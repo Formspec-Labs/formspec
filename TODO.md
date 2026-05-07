@@ -13,18 +13,6 @@ Scoring `[Imp / Cx / Debt]` per [`.claude/user_profile.md`](.claude/user_profile
 
 Historical completion notes and resolved items moved to [`COMPLETED.md`](COMPLETED.md).
 
-## Agent instruction layer
-
-Docs every agent reads before any task. Drift here compounds through every future session.
-
-- **Doc restructure: 9 → 7 files, single ownership** `[6 / 3 / 5]` (**30**)
-  - Plan: [`thoughts/plans/2026-04-28-doc-restructure.md`](thoughts/plans/2026-04-28-doc-restructure.md).
-  - Eliminates `.claude/operating-mode.md` (→ `user_profile.md§Behavioral interrupts`) and `work-spec/POSITIONING.md` (→ `work-spec/CLAUDE.md§Identity`).
-  - Collapses VISION.md §IX/X/XI to per-spec framing pointers; promotes root `CLAUDE.md` to canonical home for Formspec heuristics (split by topic across §Decision heuristics + §Testing philosophy) and submodule conventions; adds ownership headers (Owns / Does not own / Update when) to all 7 surviving files.
-  - Today: economic model restated in 4+ places; wos-server architecture in 3; per-spec commitments in both VISION.md and submodule `CLAUDE.md` files.
-  - Single commit + submodule pointer bumps (per the §Submodule conventions the plan adds).
-  - **Gate:** owner approval on the plan.
-
 ## Formspec-side cross-layer
 
 Work in the Formspec spec and runtime itself that other layers depend on. Lives in `specs/` and `schemas/`, not in stack ADRs.
@@ -36,7 +24,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - **`ResponseCorrection` event in Respondent Ledger §6** `[6 / 3 / 4]` (**24**)
   - Introduce correction event referencing prior `ResponseSubmitted.canonical_event_hash` with declared corrected-field subset.
-  - **Gate:** ADR 0066 accepted (tracked in [`TODO-STACK.md`](TODO-STACK.md)).
+  - **Gate:** [ADR 0066](../thoughts/adr/0066-stack-amendment-and-supersession.md) accepted (2026-05-06 — WOS Stack Closure cluster).
 
 - **Offline authoring profile in Respondent Ledger companion** `[6 / 5 / 4]` (**24**)
   - Specify pending-local-state semantics, authored-time preservation under delayed submit, and chain construction for buffered offline events.
@@ -50,14 +38,14 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   - **Why:** [ADR 0069](thoughts/adr/0069-stack-time-semantics.md) D-6 pins explicit-timezone-required as the FEL invariant; silent UTC fallback was the source of cross-tenant deadline drift in the cluster audit. Today the builtins read process-local TZ as a side channel — per-process global state leaking into spec evaluation, the worst kind of architectural debt. The error type forces every call site to inject an explicit timezone or fail audibly; no silent default.
   - **Done:** `fel-core::FelEvaluator::eval_with_context(expr, env, tz)` signature carries `&Timezone` explicitly; `current_date()` / `now()` return `Result<_, MissingTimezoneContextError>`; downstream Formspec FEL evaluator (`src/formspec/fel/evaluator.py`), WOS guard evaluator (`wos-runtime`), Studio FEL preview, and conformance harness updated with explicit tz from caller (calendar context for WOS guards, user TZ for Formspec response display); migration test proves the silent-UTC path is unreachable. Cross-spec breaking change per `nothing-is-released` posture.
   - **Cross-layer scope:** FEL crate is parent (`crates/fel-core`); WASM bridge in `formspec-engine`; Python evaluator parity; WOS guard evaluator. All must move together.
-  - **Gate:** [ADR 0069](thoughts/adr/0069-stack-time-semantics.md) accepted (currently *Proposed*, owner-probe gated).
+  - **Gate:** [ADR 0069](../thoughts/adr/0069-stack-time-semantics.md) accepted (2026-05-06 — WOS Stack Closure cluster).
 
 ## Track / Monitor
 
 ### 14. `materializePagedLayout` — by design
 
 - **Source**: editor/layout split review
-- **File**: `packages/formspec-studio/src/workspaces/layout/LayoutCanvas.tsx:361-380`
+- **File**: `formspec-studio/packages/formspec-studio/src/workspaces/layout/useLayoutPageMaterializer.ts:16-34`
 - **Status**: Guarded by `useRef<boolean>` flag — no-op after first call. Negligible overhead.
 
 ### 19. Component tree reconciles on every dispatch
@@ -66,8 +54,4 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - **File**: `packages/formspec-core/src/raw-project.ts:350-373`
 - **Action**: Monitor. Resolution path documented: add dirty flag. Not yet implemented.
 
-### LayoutContainer dual-droppable
 
-- **Source**: layout DnD review (2026-04-07)
-- **File**: `packages/formspec-studio/src/workspaces/layout/LayoutContainer.tsx:194-209`
-- **Status**: `useSortable` + `useDroppable(container-drop)` on same element. No code change until a mis-hit is reproduced.
