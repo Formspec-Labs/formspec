@@ -278,6 +278,8 @@ Each event **MUST** contain at least:
 - `identityAttestation` — provider-neutral record of identity, proof-of-personhood, DID, or delegation evidence associated with the event.
 - `attachmentBinding` — chain-bound `EvidenceAttachmentBinding` record for an added or replaced attachment, defined in §6.9.
 - `priorAttachmentBindingHash` — prior attachment-binding event hash referenced by an attachment removal.
+- `recordKind` — Trellis/WOS-readable record discriminator for `response.correction-recorded`; when present it **MUST** equal `responseCorrection`.
+- `data` — structured `ResponseCorrection` payload for `response.correction-recorded`, defined in §11.3.
 - `priorEventHash` — previous event hash in the respondent-ledger chain, or `null` for the first event in a Trellis-wrapped chain.
 - `eventHash` — hash of this respondent-ledger event under the active integrity profile.
 - `privacyTier` — optional disclosure tier on the actor or identity attestation stating how linkable or revealed the subject is for this event.
@@ -609,6 +611,7 @@ An implementation **MAY** support additional material event types, including:
 - `attestation.captured`
 - `response.submit-attempted`
 - `response.migrated`
+- `response.correction-recorded`
 - `field.edit-recorded`
 
 ### 8.3 Event type guidance
@@ -630,6 +633,7 @@ An implementation **MAY** support additional material event types, including:
 - `identity-verified` — an identity provider, DID verifier, or proof-of-personhood flow materially updated the assurance state relied on by the workflow.
 - `attestation.captured` — a credential, delegation, personhood proof, or related attestation was durably bound into audit history.
 - `response.migrated` — response was transformed to a new definition version.
+- `response.correction-recorded` — additive correction to a prior submitted response event. The event **MUST** carry `recordKind = "responseCorrection"` and a `data` payload with the prior submission event hash, the corrected field subset, original/corrected field values, correction reason, and authorizing WOS event hash.
 - `field.edit-recorded` — optional event type for deployments that emit one durable event per field edit batch instead of carrying field-level entries only inside `draft.saved`, `autosave.coalesced`, `response.submit-attempted`, `response.amended`, migration, or merge events.
 
 ### 8.4 Explicit exclusions
@@ -774,6 +778,33 @@ The migrating processor:
 When a migration depends on a structural changelog or field map, the processor **SHOULD** retain a reference to the changelog or migration artifact used.
 
 This specification does not define the migration format itself; it only defines how migration outcomes are captured in respondent history.
+
+### 11.4 Response corrections
+
+A `response.correction-recorded` event records an additive factual correction to
+a prior submitted response. It **MUST NOT** rewrite, delete, or reinterpret the
+prior event. The corrected fields are preserved alongside the original values
+so a Trellis verifier can produce a correction-preservation report without
+granting mutation authority to the verifier.
+
+The event **MUST** carry:
+
+- `recordKind = "responseCorrection"`;
+- `data.correctionTargetEventHash`, the hash of the prior submitted response
+  event being corrected;
+- `data.correctedFieldSet`, a non-empty set of RFC 6901 JSON Pointers into the
+  prior submitted response;
+- `data.fieldValues[]`, where each `path` **MUST** appear in
+  `correctedFieldSet` and each row preserves `originalValue` and
+  `correctedValue`;
+- `data.reason`, a respondent-visible correction rationale;
+- `data.authorizationEventHash`, the WOS `CorrectionAuthorized` provenance
+  record hash or equivalent authorizing act.
+
+The corrected field set is a declared subset, not an open-ended amendment. If a
+proposed change affects determination content or fields outside the declared
+subset, it is an amendment or supersession under the stack amendment contract,
+not a `ResponseCorrection`.
 
 ---
 

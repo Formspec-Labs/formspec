@@ -154,6 +154,80 @@ def test_material_ledger_without_changelog_fields_is_valid():
     _validate_ledger(_minimal_ledger_material())
 
 
+def _response_correction_event() -> dict:
+    return {
+        "eventId": "evt-response-correction-0001",
+        "sequence": 7,
+        "eventType": "response.correction-recorded",
+        "occurredAt": "2026-05-07T16:20:00Z",
+        "recordedAt": "2026-05-07T16:20:02Z",
+        "responseId": "resp-8d0b1e85",
+        "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+        "definitionVersion": "2.3.0",
+        "actor": {
+            "kind": "support-agent",
+            "id": "agent-42",
+            "assuranceLevel": "L4",
+        },
+        "source": {"kind": "api", "channelId": "caseworker-console"},
+        "priorEventHash": "sha256:72df6b4f6ff78ec1f41f43a5c68a1be2114e7338e25a7bde7a7258f5b8bb0fb9",
+        "eventHash": "sha256:98bbf8c4f5a97e6f1d6e2c3b4a59687766554433221100ffeeddccbbaa009988",
+        "recordKind": "responseCorrection",
+        "data": {
+            "correctionTargetEventHash": "sha256:9366d6fddc451087771a2514419a9b7a876e8301f849cffc5f45f143d0b29088",
+            "correctedFieldSet": ["/applicantName"],
+            "fieldValues": [
+                {
+                    "path": "/applicantName",
+                    "originalValue": "Jon",
+                    "correctedValue": "John",
+                }
+            ],
+            "reason": "transcription error corrected against signed source document",
+            "authorizationEventHash": "sha256:aad0556334071a0d40050c61ba4601506b87dbc4847d808fb3693b364af5090c",
+        },
+        "changes": [
+            {
+                "op": "replace",
+                "path": "applicantName",
+                "valueClass": "system-derived",
+                "itemKey": "applicant_name",
+                "before": "Jon",
+                "after": "John",
+                "reasonCode": "response-correction",
+            }
+        ],
+    }
+
+
+def test_response_correction_event_is_schema_valid():
+    _validate_event(_response_correction_event())
+
+
+def test_response_correction_requires_authorization_hash():
+    event = _response_correction_event()
+    event["data"].pop("authorizationEventHash")
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_correction_requires_json_pointer_field_set():
+    event = _response_correction_event()
+    event["data"]["correctedFieldSet"] = ["applicantName"]
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_correction_record_kind_is_reserved_to_correction_events():
+    event = _response_correction_event()
+    event["eventType"] = "draft.saved"
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
 def _field_edit_recorded_event() -> dict:
     return {
         "eventId": "evt-field-edit-0001",

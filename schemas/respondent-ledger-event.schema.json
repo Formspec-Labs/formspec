@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/respondent-ledger-event.schema.json",
   "title": "Formspec Respondent Ledger Event",
-  "description": "A single append-only respondent-side audit event for the optional Respondent Ledger add-on. Events capture material draft, submission, amendment, attachment, prepopulation, validation, and optional field-level edit milestones without redefining a Formspec Response as an event stream.",
+  "description": "A single append-only respondent-side audit event for the optional Respondent Ledger add-on. Events capture material draft, submission, correction, amendment, attachment, prepopulation, validation, and optional field-level edit milestones without redefining a Formspec Response as an event stream.",
   "type": "object",
   "required": [
     "eventId",
@@ -89,6 +89,14 @@
       "$ref": "#/$defs/HashString",
       "description": "Prior attachment-binding event hash referenced by an attachment.removed event."
     },
+    "recordKind": {
+      "type": "string",
+      "const": "responseCorrection",
+      "description": "Trellis/WOS-readable record discriminator. Present only for response.correction-recorded events."
+    },
+    "data": {
+      "$ref": "#/$defs/ResponseCorrectionData"
+    },
     "sessionRef": {
       "type": "string",
       "minLength": 1,
@@ -158,6 +166,37 @@
         "required": ["changes", "priorAttachmentBindingHash"],
         "not": { "required": ["attachmentBinding"] }
       }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "response.correction-recorded" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["recordKind", "data", "changes"],
+        "properties": {
+          "recordKind": { "const": "responseCorrection" },
+          "data": { "$ref": "#/$defs/ResponseCorrectionData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["recordKind"]
+      },
+      "then": {
+        "properties": { "eventType": { "const": "response.correction-recorded" } },
+        "required": ["eventType"]
+      }
+    },
+    {
+      "if": {
+        "required": ["data"]
+      },
+      "then": {
+        "properties": { "eventType": { "const": "response.correction-recorded" } },
+        "required": ["eventType"]
+      }
     }
   ],
   "$defs": {
@@ -185,6 +224,7 @@
         "attestation.captured",
         "response.submit-attempted",
         "response.migrated",
+        "response.correction-recorded",
         "field.edit-recorded"
       ],
       "description": "Canonical event classifications defined by the Respondent Ledger add-on. The first thirteen values are required event types; the remaining values are optional but standardized extension points."
@@ -330,6 +370,68 @@
         },
         "extensions": {
           "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ResponseCorrectionData": {
+      "type": "object",
+      "required": [
+        "correctionTargetEventHash",
+        "correctedFieldSet",
+        "fieldValues",
+        "reason",
+        "authorizationEventHash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "correctionTargetEventHash": {
+          "$ref": "#/$defs/HashString",
+          "description": "Hash of the prior response-submission event being corrected."
+        },
+        "correctedFieldSet": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Declared subset of response fields corrected by this event. Each entry is an RFC 6901 JSON Pointer into the prior submitted response.",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          }
+        },
+        "fieldValues": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Original/corrected value pairs preserved for verifier correction-preservation reports. Each path MUST appear in correctedFieldSet.",
+          "items": {
+            "$ref": "#/$defs/ResponseCorrectionFieldValue"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Respondent-visible explanation of why the correction was recorded."
+        },
+        "authorizationEventHash": {
+          "$ref": "#/$defs/HashString",
+          "description": "Hash of the WOS CorrectionAuthorized provenance record or equivalent authorizing act."
+        }
+      }
+    },
+    "ResponseCorrectionFieldValue": {
+      "type": "object",
+      "required": ["path", "originalValue", "correctedValue"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "RFC 6901 JSON Pointer for the corrected field."
+        },
+        "originalValue": {
+          "description": "Original submitted value, or a policy-safe representation when raw value retention is not permitted."
+        },
+        "correctedValue": {
+          "description": "Corrected value, or a policy-safe representation when raw value retention is not permitted."
         }
       }
     },

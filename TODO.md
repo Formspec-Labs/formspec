@@ -23,6 +23,10 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   - Processor/rejection/hook ordering implementation lives in [`work-spec/TODO.md`](work-spec/TODO.md) item `#66`.
 
 - **`ResponseCorrection` event in Respondent Ledger §6** `[6 / 3 / 4]` (**24**)
+  - **Closed 2026-05-07.** `response.correction-recorded` now carries
+    `recordKind = "responseCorrection"` plus target-event hash, corrected-field
+    subset, original/corrected value pairs, reason, and authorization-event
+    hash; schema conformance covers the valid and invalid cases.
   - Introduce correction event referencing prior `ResponseSubmitted.canonical_event_hash` with declared corrected-field subset.
   - **Gate:** [ADR 0066](../thoughts/adr/0066-stack-amendment-and-supersession.md) accepted (2026-05-06 — WOS Stack Closure cluster).
 
@@ -53,5 +57,4 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - **Source**: editor/layout split review
 - **File**: `packages/formspec-core/src/raw-project.ts:350-373`
 - **Action**: Monitor. Resolution path documented: add dirty flag. Not yet implemented.
-
 
