@@ -97,6 +97,19 @@ def test_prior_event_hash_allows_null_for_first_trellis_wrapped_event():
     _validate_event(event)
 
 
+def test_chained_event_hashes_are_structurally_paired():
+    event = _attachment_added_event()
+    missing_prior = deepcopy(event)
+    missing_prior.pop("priorEventHash")
+    with pytest.raises(ValidationError):
+        _validate_event(missing_prior)
+
+    missing_current = deepcopy(event)
+    missing_current.pop("eventHash")
+    with pytest.raises(ValidationError):
+        _validate_event(missing_current)
+
+
 def _minimal_ledger_material() -> dict:
     return {
         "$formspecRespondentLedger": "0.1",

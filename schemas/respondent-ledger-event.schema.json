@@ -17,6 +17,10 @@
     "source"
   ],
   "additionalProperties": false,
+  "dependentRequired": {
+    "eventHash": ["priorEventHash"],
+    "priorEventHash": ["eventHash"]
+  },
   "properties": {
     "eventId": {
       "type": "string",
