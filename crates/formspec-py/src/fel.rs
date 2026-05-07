@@ -20,7 +20,7 @@ use serde_json::Value;
 use crate::PyObject;
 use crate::convert::{
     build_formspec_env, depythonize_json, fel_to_python, fel_to_python_tagged, json_to_python,
-    parse_fel_expr, pydict_to_field_map,
+    normalize_wire_json_for_python, parse_fel_expr, pydict_to_field_map,
 };
 
 // ── FEL Evaluation ──────────────────────────────────────────────
@@ -85,6 +85,7 @@ pub fn eval_fel_with_trace(
     let trace_json = serde_json::to_value(&trace.steps).map_err(|e| {
         pyo3::exceptions::PyValueError::new_err(format!("trace serialization: {e}"))
     })?;
+    let trace_json = normalize_wire_json_for_python(&trace_json);
     let trace_py = json_to_python(py, &trace_json)?;
 
     let payload = PyDict::new(py);

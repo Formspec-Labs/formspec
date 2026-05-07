@@ -1424,7 +1424,7 @@ Aggregate functions operate on arrays and reduce them to a single value.
 
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|------------|
-| `sum` | `sum(array<number>) → number` | `number` | Sum of all elements. `sum([])` returns `0`. Null elements are skipped. |
+| `sum` | `sum(array<number>) → number` | `number` | Sum of all numeric elements. `sum([])` returns `0`. Null elements are skipped. Arrays containing `money` MUST be rejected with diagnostic code `FEL_SUM_REJECTS_MONEY`; use `moneySum()` for money arrays. |
 | `count` | `count(array<T>) → number` | `number` | Number of non-null elements. `count([])` returns `0`. |
 | `countWhere` | `countWhere(array, boolean) → number` | `number` | Count of elements where the expression evaluates to `true`. Within the expression, `$` refers to the current element. E.g., `countWhere($line_items[*].amount, $ > 10000)`. |
 | `sumWhere` | `sumWhere(array<number>, boolean) → number` | `number` | Sum of numeric elements whose predicate evaluates to `true`. Within the expression, `$` refers to the current element. Non-numeric matches are skipped. |
@@ -1501,8 +1501,8 @@ For `countWhere`, `sumWhere`, `avgWhere`, `minWhere`, `maxWhere`, `every`, and `
 | `if` | `if(boolean, T, T) → T` | `T` | If the first argument is `true`, returns the second argument; otherwise returns the third. Only the selected branch is evaluated. The second and third arguments MUST be of the same type. |
 | `coalesce` | `coalesce(T, T, ...T) → T` | `T` | Returns the first non-null argument. If all arguments are `null`, returns `null`. All arguments MUST be of the same type (or `null`). |
 | `empty` | `empty(T) → boolean` | `boolean` | `true` if the argument is `null`, an empty string (`''`), or an empty array (`[]`). `false` otherwise. |
-| `present` | `present(T) → boolean` | `boolean` | The logical inverse of `empty()`. |
-| `selected` | `selected(array, string) → boolean` | `boolean` | Returns `true` if the multiChoice field's value array contains the specified value. Shorthand for `value in $field`. |
+| `present` | `present(T) → boolean` | `boolean` | The logical inverse of `empty()`. Total boolean function; never returns `null`. |
+| `selected` | `selected(array, string) → boolean` | `boolean` | Returns `true` if the multiChoice field's value array contains the specified value. Returns `false` when the array argument is `null` or `[]`. Shorthand for `value in $field`. |
 
 #### 3.5.6 Type-Checking Functions
 
@@ -1525,7 +1525,17 @@ For `countWhere`, `sumWhere`, `avgWhere`, `minWhere`, `maxWhere`, `every`, and `
 | `moneySum` | `moneySum(array) → money` | `money` | Sum an array of Money values. All elements MUST share the same currency. Empty array returns `null`. |
 | `moneySumWhere` | `moneySumWhere(array<money>, boolean) → money` | `money` | Sum of Money elements whose predicate evaluates to `true`. Within the expression, `$` refers to the current element. All matching elements MUST share the same currency. Returns `null` when no elements match. |
 
-#### 3.5.8 MIP-State Query Functions
+#### 3.5.8 FEL Diagnostic Codes
+
+Implementations SHOULD emit stable machine-readable diagnostic codes for runtime consumers:
+
+| Code | Condition |
+|------|-----------|
+| `FEL_SUM_REJECTS_MONEY` | sum receives one or more money elements. |
+| `FEL_MONEY_SUM_MIXED_CURRENCIES` | moneySum or moneySumWhere sees more than one currency code. |
+| `FEL_MONEY_SUM_NON_MONEY` | moneySum or moneySumWhere receives a non-money, non-null element. |
+
+#### 3.5.9 MIP-State Query Functions
 
 These functions query the current computed state of model item properties.
 They are evaluated during the Revalidate phase, after all Recalculate MIPs
@@ -1544,7 +1554,7 @@ The argument is a field reference using standard FEL `$path` syntax:
 if(not(valid($ein)), "Please correct EIN before proceeding", "")
 ```
 
-#### 3.5.9 Repeat Navigation Functions
+#### 3.5.10 Repeat Navigation Functions
 
 These functions navigate within repeat contexts. All MUST only be called
 within a repeat context; calling them outside a repeat is a definition error.
@@ -1567,7 +1577,7 @@ all expressions using `prev()` or `next()` in the affected repeat MUST be
 re-evaluated. Implementations SHOULD treat `prev()`/`next()` as depending on
 the entire repeat collection for dependency tracking purposes.
 
-#### 3.5.10 Locale, Runtime Metadata, and Instance Lookup
+#### 3.5.11 Locale, Runtime Metadata, and Instance Lookup
 
 These functions support host-provided locale and metadata, programmatic access
 to secondary instance data, and plural selection aligned with Unicode CLDR
@@ -1820,10 +1830,11 @@ general propagation rule:
 | `coalesce(v1, v2, ...)` | Skips null arguments, returns first non-null. Returns `null` only if all arguments are null. |
 | `empty(value)` | Returns `true` if the argument is `null`. |
 | `present(value)` | Returns `false` if the argument is `null`. |
+| `selected(array, value)` | Returns `false` if the array argument is `null`. |
 | `isNull(value)` | Returns `true` if the argument is `null`. |
 | `typeOf(value)` | Returns `"null"` if the argument is `null`. |
 | `count(array)` | Skips null elements in the array. |
-| `sum(array)` | Skips null elements. `sum([null, null])` → `0`. |
+| `sum(array)` | Skips null elements. `sum([null, null])` → `0`. Arrays containing `money` MUST emit diagnostic code `FEL_SUM_REJECTS_MONEY` and return `null`. |
 | `avg(array)` | Skips null elements. `avg([null, 10, null, 20])` → `15`. |
 | `min(array)` | Skips null elements. |
 | `max(array)` | Skips null elements. |

@@ -82,7 +82,7 @@
     },
     {
       "name": "subawardTotalValue",
-      "expression": "sum($project.subawardRows[*].subawardAmount)"
+      "expression": "moneyAmount(moneySum($project.subawardRows[*].subawardAmount))"
     },
     {
       "name": "remainingBalance",

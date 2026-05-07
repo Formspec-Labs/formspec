@@ -81,7 +81,6 @@ class TestEvaluateVariables:
         data = {'items': [{'amount': 1000}]}
         result = evaluate_definition(defn, data)
         assert result.variables['totalDirect'] == {
-            '$type': 'money',
             'amount': 1000,
             'currency': 'USD',
         }

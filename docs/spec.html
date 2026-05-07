@@ -2703,8 +2703,11 @@ value.</p>
 <td><code>sum</code></td>
 <td><code>sum(array&lt;number&gt;) → number</code></td>
 <td><code>number</code></td>
-<td>Sum of all elements. <code>sum([])</code> returns <code>0</code>.
-Null elements are skipped.</td>
+<td>Sum of all numeric elements. <code>sum([])</code> returns
+<code>0</code>. Null elements are skipped. Arrays containing
+<code>money</code> MUST be rejected with diagnostic code
+<code>FEL_SUM_REJECTS_MONEY</code>; use <code>moneySum()</code> for
+money arrays.</td>
 </tr>
 <tr>
 <td><code>count</code></td>
@@ -3135,14 +3138,16 @@ string (<code>''</code>), or an empty array (<code>[]</code>).
 <td><code>present</code></td>
 <td><code>present(T) → boolean</code></td>
 <td><code>boolean</code></td>
-<td>The logical inverse of <code>empty()</code>.</td>
+<td>The logical inverse of <code>empty()</code>. Total boolean function;
+never returns <code>null</code>.</td>
 </tr>
 <tr>
 <td><code>selected</code></td>
 <td><code>selected(array, string) → boolean</code></td>
 <td><code>boolean</code></td>
 <td>Returns <code>true</code> if the multiChoice field’s value array
-contains the specified value. Shorthand for
+contains the specified value. Returns <code>false</code> when the array
+argument is <code>null</code> or <code>[]</code>. Shorthand for
 <code>value in $field</code>.</td>
 </tr>
 </tbody>
@@ -3261,7 +3266,37 @@ Returns <code>null</code> when no elements match.</td>
 </tr>
 </tbody>
 </table>
-<h4 id="mip-state-query-functions">3.5.8 MIP-State Query Functions</h4>
+<h4 id="fel-diagnostic-codes">3.5.8 FEL Diagnostic Codes</h4>
+<p>Implementations SHOULD emit stable machine-readable diagnostic codes
+for runtime consumers:</p>
+<table>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 64%" />
+</colgroup>
+<thead>
+<tr>
+<th>Code</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FEL_SUM_REJECTS_MONEY</code></td>
+<td>sum receives one or more money elements.</td>
+</tr>
+<tr>
+<td><code>FEL_MONEY_SUM_MIXED_CURRENCIES</code></td>
+<td>moneySum or moneySumWhere sees more than one currency code.</td>
+</tr>
+<tr>
+<td><code>FEL_MONEY_SUM_NON_MONEY</code></td>
+<td>moneySum or moneySumWhere receives a non-money, non-null
+element.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="mip-state-query-functions">3.5.9 MIP-State Query Functions</h4>
 <p>These functions query the current computed state of model item
 properties. They are evaluated during the Revalidate phase, after all
 Recalculate MIPs have been resolved.</p>
@@ -3314,7 +3349,7 @@ required.</td>
 <p>The argument is a field reference using standard FEL
 <code>$path</code> syntax:</p>
 <pre><code>if(not(valid($ein)), &quot;Please correct EIN before proceeding&quot;, &quot;&quot;)</code></pre>
-<h4 id="repeat-navigation-functions">3.5.9 Repeat Navigation
+<h4 id="repeat-navigation-functions">3.5.10 Repeat Navigation
 Functions</h4>
 <p>These functions navigate within repeat contexts. All MUST only be
 called within a repeat context; calling them outside a repeat is a
@@ -3368,7 +3403,7 @@ parent().section_total</code></pre>
 Implementations SHOULD treat <code>prev()</code>/<code>next()</code> as
 depending on the entire repeat collection for dependency tracking
 purposes.</p>
-<h4 id="locale-runtime-metadata-and-instance-lookup">3.5.10 Locale,
+<h4 id="locale-runtime-metadata-and-instance-lookup">3.5.11 Locale,
 Runtime Metadata, and Instance Lookup</h4>
 <p>These functions support host-provided locale and metadata,
 programmatic access to secondary instance data, and plural selection
@@ -3731,6 +3766,11 @@ follow the general propagation rule:</p>
 <code>null</code>.</td>
 </tr>
 <tr>
+<td><code>selected(array, value)</code></td>
+<td>Returns <code>false</code> if the array argument is
+<code>null</code>.</td>
+</tr>
+<tr>
 <td><code>isNull(value)</code></td>
 <td>Returns <code>true</code> if the argument is <code>null</code>.</td>
 </tr>
@@ -3746,7 +3786,9 @@ follow the general propagation rule:</p>
 <tr>
 <td><code>sum(array)</code></td>
 <td>Skips null elements. <code>sum([null, null])</code> →
-<code>0</code>.</td>
+<code>0</code>. Arrays containing <code>money</code> MUST emit
+diagnostic code <code>FEL_SUM_REJECTS_MONEY</code> and return
+<code>null</code>.</td>
 </tr>
 <tr>
 <td><code>avg(array)</code></td>

@@ -191,17 +191,33 @@ export function normalizeWasmValue<T>(value: T): T {
         const record = value as Record<string, any>;
         if (record.$type === 'money' && 'amount' in record && 'currency' in record) {
             return {
+                $type: 'money',
                 amount: normalizeWasmValue(record.amount),
                 currency: normalizeWasmValue(record.currency),
             } as T;
         }
         return Object.fromEntries(
-            Object.entries(record)
-                .filter(([key]) => key !== '$type')
-                .map(([key, entry]) => [key, normalizeWasmValue(entry)]),
+            Object.entries(record).map(([key, entry]) => [key, normalizeWasmValue(entry)]),
         ) as T;
     }
     return cloneValue(value);
+}
+
+export function tagMoneyByPath(
+    path: string,
+    value: any,
+    bindConfigs: Record<string, EngineBindConfig>,
+    fieldDataTypes: Record<string, string | undefined> = {},
+): any {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const record = value as Record<string, any>;
+    if (record.$type === 'money') return value;
+    const bind = bindConfigs[toBasePath(path)];
+    const dataType = fieldDataTypes[toBasePath(path)] ?? (bind as any)?.dataType;
+    if (dataType === 'money' && 'amount' in record && 'currency' in record) {
+        return { $type: 'money', amount: record.amount, currency: record.currency };
+    }
+    return value;
 }
 
 export function toWasmContextValue<T>(value: T): T {
@@ -210,13 +226,6 @@ export function toWasmContextValue<T>(value: T): T {
     }
     if (value && typeof value === 'object') {
         const record = value as Record<string, any>;
-        if (!('$type' in record) && 'amount' in record && 'currency' in record) {
-            return {
-                $type: 'money',
-                amount: toWasmContextValue(record.amount),
-                currency: toWasmContextValue(record.currency),
-            } as T;
-        }
         return Object.fromEntries(
             Object.entries(record).map(([key, entry]) => [key, toWasmContextValue(entry)]),
         ) as T;

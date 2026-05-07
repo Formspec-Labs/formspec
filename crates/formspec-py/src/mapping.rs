@@ -8,7 +8,7 @@ use formspec_core::{
 };
 
 use crate::PyObject;
-use crate::convert::{depythonize_json, json_to_python};
+use crate::convert::{depythonize_json, json_to_python, normalize_wire_json_for_python};
 
 #[pyfunction]
 pub fn execute_mapping_doc(
@@ -26,5 +26,6 @@ pub fn execute_mapping_doc(
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
     let result = run_mapping_document(&mapping_doc, &source, dir);
     let json = mapping_result_to_json_value(&result, JsonWireStyle::PythonSnake);
-    json_to_python(py, &json)
+    let normalized = normalize_wire_json_for_python(&json);
+    json_to_python(py, &normalized)
 }

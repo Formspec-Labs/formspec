@@ -170,7 +170,7 @@
     },
     {
       "name": "projectPhasesTotal",
-      "expression": "money(sum($projectPhases[*].phaseTotal), 'USD')"
+      "expression": "moneySum($projectPhases[*].phaseTotal)"
     }
   ],
   "items": [
@@ -730,7 +730,7 @@
     },
     {
       "path": "projectPhases[*].phaseTotal",
-      "calculate": "money(sum($phaseTasks[*].taskCost), 'USD')",
+      "calculate": "moneySum($phaseTasks[*].taskCost)",
       "readonly": "true"
     },
     {

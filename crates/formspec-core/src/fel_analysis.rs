@@ -399,6 +399,23 @@ fn check_parameter_types(
 ) {
     match expr {
         Expr::FunctionCall { name, args } => {
+            if name == "sum"
+                && let Some(first) = args.first()
+                && infer_coarse_type(first, field_types) == CoarseType::Money
+            {
+                warnings.push(FelAnalysisWarning {
+                    message: "FEL_SUM_OF_MONEY_PATH: sum() input appears money-typed; use moneySum()".to_string(),
+                });
+            }
+            if name == "money"
+                && let Some(first) = args.first()
+                && infer_coarse_type(first, field_types) == CoarseType::Money
+            {
+                warnings.push(FelAnalysisWarning {
+                    message: "FEL_REDUNDANT_MONEY_WRAP: money() wraps an already money-typed expression".to_string(),
+                });
+            }
+
             // Look up catalog entry by name.
             if let Some(entry) = builtin_function_catalog().iter().find(|e| e.name == name.as_str()) {
                 // Find the index of the first variadic param (if any).

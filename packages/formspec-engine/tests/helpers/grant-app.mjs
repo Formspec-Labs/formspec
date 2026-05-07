@@ -22,7 +22,7 @@ console.error = (...args) => {
 };
 
 export function createGrantEngine() {
-  const engine = new FormEngine(definition);
+  const engine = new FormEngine(JSON.parse(JSON.stringify(definition)));
   if (typeof engine.skipScreener === 'function') {
     engine.skipScreener();
   }

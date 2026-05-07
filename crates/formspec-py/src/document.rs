@@ -19,7 +19,9 @@ use formspec_eval::{
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
 use crate::PyObject;
-use crate::convert::{depythonize_json, json_object_to_string_map, json_to_python};
+use crate::convert::{
+    depythonize_json, json_object_to_string_map, json_to_python, normalize_wire_json_for_python,
+};
 
 // ── Document Type Detection ─────────────────────────────────────
 
@@ -159,7 +161,8 @@ pub fn evaluate_def(
 
     // Match TypeScript/WASM and Python tests: validation results use constraintKind / shapeId (see schemas).
     let json = evaluation_result_to_json_value_styled(&result, JsonWireStyle::JsCamel);
-    json_to_python(py, &json)
+    let normalized = normalize_wire_json_for_python(&json);
+    json_to_python(py, &normalized)
 }
 
 // ── Field coercion ──────────────────────────────────────────────

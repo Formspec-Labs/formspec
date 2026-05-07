@@ -57,6 +57,14 @@ function addFELHint(expression: string, message: string): string {
   return message;
 }
 
+function parseAnalyzerWarning(raw: string): { code: string; message: string } {
+  const m = raw.match(/^([A-Z0-9_]+):\s*(.+)$/);
+  if (m) {
+    return { code: m[1], message: m[2] };
+  }
+  return { code: 'FEL_TYPE_MISMATCH', message: raw };
+}
+
 /**
  * Parse and validate a FEL expression without saving it to project state.
  */
@@ -151,12 +159,13 @@ export function parseFEL(state: ProjectState, expression: string, context?: FELP
 
   // Surface type-mismatch warnings from the typed analysis
   for (const msg of typeWarnings) {
+    const parsed = parseAnalyzerWarning(msg);
     warnings.push({
       artifact: 'definition',
       path: 'expression',
       severity: 'warning',
-      code: 'FEL_TYPE_MISMATCH',
-      message: msg,
+      code: parsed.code,
+      message: parsed.message,
     });
   }
 

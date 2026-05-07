@@ -803,7 +803,7 @@ describe('felFunctionCatalog', () => {
     const catalog = project.felFunctionCatalog();
     const sum = catalog.find(f => f.name === 'sum');
     expect(sum).toBeDefined();
-    expect(sum!.signature).toBe('sum(array<number>) -> number');
+    expect(sum!.signature).toBe('sum(values) -> number');
     expect(sum!.description).toBeTruthy();
   });
 

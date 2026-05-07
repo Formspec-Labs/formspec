@@ -4,13 +4,17 @@
   "title": "FEL Function Catalog",
   "description": "Structured catalog of all built-in functions in the Formspec Expression Language (FEL) v1.0. Each entry defines the function's name, signature, return type, null handling, and usage examples. This catalog is the normative reference for FEL function behavior; implementations in TypeScript (packages/formspec-engine) and Python (src/formspec/fel) must conform to these signatures and semantics.",
   "type": "object",
-  "required": ["$formspecFelFunctions"],
+  "required": [
+    "$formspecFelFunctions"
+  ],
   "properties": {
     "$formspecFelFunctions": {
       "type": "string",
       "const": "1.0",
       "description": "FEL function catalog specification version. MUST be '1.0'.",
-      "examples": ["1.0"],
+      "examples": [
+        "1.0"
+      ],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for FEL function catalog document compatibility."
@@ -29,21 +33,49 @@
   "$defs": {
     "FELType": {
       "type": "string",
-      "enum": ["string", "number", "boolean", "date", "dateTime", "time", "money", "array", "any", "null"],
+      "enum": [
+        "string",
+        "number",
+        "boolean",
+        "date",
+        "dateTime",
+        "time",
+        "money",
+        "array",
+        "any",
+        "null"
+      ],
       "description": "A FEL type identifier. 'any' means the function accepts or returns multiple types. 'array' means array<T> where T is specified in the description."
     },
     "Parameter": {
       "type": "object",
-      "required": ["name", "type"],
+      "required": [
+        "name",
+        "type"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "type": { "$ref": "#/$defs/FELType" },
-        "description": { "type": "string" },
-        "required": { "type": "boolean", "default": true },
-        "variadic": { "type": "boolean", "default": false },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/FELType"
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        },
+        "variadic": {
+          "type": "boolean",
+          "default": false
+        },
         "enum": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "When present, restricts the parameter to these literal values."
         }
       },
@@ -51,7 +83,13 @@
     },
     "FunctionEntry": {
       "type": "object",
-      "required": ["name", "category", "parameters", "returns", "description"],
+      "required": [
+        "name",
+        "category",
+        "parameters",
+        "returns",
+        "description"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -59,12 +97,25 @@
         },
         "category": {
           "type": "string",
-          "enum": ["aggregate", "string", "numeric", "date", "logical", "type", "money", "mip", "repeat", "locale"],
+          "enum": [
+            "aggregate",
+            "string",
+            "numeric",
+            "date",
+            "logical",
+            "type",
+            "money",
+            "mip",
+            "repeat",
+            "locale"
+          ],
           "description": "Functional category for grouping and documentation."
         },
         "parameters": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Parameter" },
+          "items": {
+            "$ref": "#/$defs/Parameter"
+          },
           "description": "Ordered parameter list. Variadic parameters must be last."
         },
         "returns": {
@@ -98,11 +149,18 @@
           "items": {
             "type": "object",
             "properties": {
-              "expression": { "type": "string" },
+              "expression": {
+                "type": "string"
+              },
               "result": {},
-              "note": { "type": "string" }
+              "note": {
+                "type": "string"
+              }
             },
-            "required": ["expression", "result"]
+            "required": [
+              "expression",
+              "result"
+            ]
           }
         },
         "sinceVersion": {
@@ -120,410 +178,745 @@
       "name": "sum",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of numbers (or money objects — extracts .amount)." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of numbers."
+        }
       ],
       "returns": "number",
-      "description": "Sums all numeric elements in the array. Extracts .amount from money objects. Non-finite values treated as 0.",
-      "nullHandling": "Null elements are skipped. Null argument returns 0.",
+      "description": "Sums all numeric elements in the array. Money values are rejected; use moneySum() for currency-safe aggregation.",
+      "nullHandling": "Null elements are skipped. Arrays containing money emit FEL_SUM_REJECTS_MONEY and return null.",
       "examples": [
-        { "expression": "sum($items[*].amount)", "result": 1500 },
-        { "expression": "sum([10, null, 20])", "result": 30 },
-        { "expression": "sum([])", "result": 0 }
+        {
+          "expression": "sum($items[*].amount)",
+          "result": 1500
+        },
+        {
+          "expression": "sum([10, null, 20])",
+          "result": 30
+        },
+        {
+          "expression": "sum([])",
+          "result": 0
+        }
       ]
     },
     {
       "name": "count",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array to count." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array to count."
+        }
       ],
       "returns": "number",
       "description": "Returns the number of elements in the array, including nulls.",
       "nullHandling": "Null argument returns 0. Null elements ARE counted.",
       "examples": [
-        { "expression": "count($items[*].name)", "result": 3 },
-        { "expression": "count([1, null, 3])", "result": 3 }
+        {
+          "expression": "count($items[*].name)",
+          "result": 3
+        },
+        {
+          "expression": "count([1, null, 3])",
+          "result": 3
+        }
       ]
     },
     {
       "name": "countWhere",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array to filter." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array to filter."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "number",
       "description": "Counts array elements for which the predicate evaluates to true. The predicate receives each element via '$' (the self-reference is rebound per element). Special argument handling: the predicate is NOT pre-evaluated — it is evaluated once per element.",
       "nullHandling": "Null array returns 0. Null predicate result counts as false.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "countWhere($items[*].amount, $ > 100)", "result": 2 },
-        { "expression": "countWhere($scores[*], $ >= 60)", "result": 4 }
+        {
+          "expression": "countWhere($items[*].amount, $ > 100)",
+          "result": 2
+        },
+        {
+          "expression": "countWhere($scores[*], $ >= 60)",
+          "result": 4
+        }
       ]
     },
     {
       "name": "sumWhere",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of numbers (or elements from which numeric matches are taken)." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of numbers (or elements from which numeric matches are taken)."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "number",
       "description": "Sums numeric array elements for which the predicate evaluates to true. The predicate is NOT pre-evaluated — it is evaluated once per element.",
       "nullHandling": "Null array returns null. Non-numeric matches are skipped. No numeric matches returns 0.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "sumWhere([1, 2, 3, 4], $ > 2)", "result": 7 }
+        {
+          "expression": "sumWhere([1, 2, 3, 4], $ > 2)",
+          "result": 7
+        }
       ]
     },
     {
       "name": "avgWhere",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of numbers." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of numbers."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "number",
       "description": "Arithmetic mean of numeric elements for which the predicate is true. Returns null when no elements match.",
       "nullHandling": "Null array returns null. No matches returns null.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "avgWhere([40, 50, 60], $ >= 50)", "result": 55 }
+        {
+          "expression": "avgWhere([40, 50, 60], $ >= 50)",
+          "result": 55
+        }
       ]
     },
     {
       "name": "minWhere",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of comparable values." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of comparable values."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "any",
       "description": "Smallest element among those satisfying the predicate. Also applies to dates and strings.",
       "nullHandling": "Null array returns null. No matches returns null.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "minWhere([3, 1, 4], $ > 0)", "result": 1 }
+        {
+          "expression": "minWhere([3, 1, 4], $ > 0)",
+          "result": 1
+        }
       ]
     },
     {
       "name": "maxWhere",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of comparable values." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of comparable values."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "any",
       "description": "Largest element among those satisfying the predicate. Also applies to dates and strings.",
       "nullHandling": "Null array returns null. No matches returns null.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "maxWhere([3, 1, 4], $ < 4)", "result": 3 }
+        {
+          "expression": "maxWhere([3, 1, 4], $ < 4)",
+          "result": 3
+        }
       ]
     },
     {
       "name": "every",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array to test." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array to test."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "boolean",
       "description": "True if the array is empty or the predicate is true for every element. The predicate is NOT pre-evaluated — it is evaluated once per element.",
       "nullHandling": "Null array returns null. Null predicate result is not true (element fails every, does not satisfy some).",
       "shortCircuit": true,
       "examples": [
-        { "expression": "every([1, 2, 3], $ > 0)", "result": true },
-        { "expression": "every([], $ > 0)", "result": true }
+        {
+          "expression": "every([1, 2, 3], $ > 0)",
+          "result": true
+        },
+        {
+          "expression": "every([], $ > 0)",
+          "result": true
+        }
       ]
     },
     {
       "name": "some",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array to test." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current element." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array to test."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current element."
+        }
       ],
       "returns": "boolean",
       "description": "True if at least one element satisfies the predicate. The predicate is NOT pre-evaluated — it is evaluated once per element.",
       "nullHandling": "Null array returns null. Null predicate result counts as false.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "some([0, 2, 4], $ > 3)", "result": true },
-        { "expression": "some([], $ > 0)", "result": false }
+        {
+          "expression": "some([0, 2, 4], $ > 3)",
+          "result": true
+        },
+        {
+          "expression": "some([], $ > 0)",
+          "result": false
+        }
       ]
     },
     {
       "name": "avg",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of numbers." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of numbers."
+        }
       ],
       "returns": "number",
       "description": "Arithmetic mean of all finite numeric elements. Skips nulls and non-numeric values.",
       "nullHandling": "Null/non-numeric elements skipped. Empty array or all-null returns 0.",
       "examples": [
-        { "expression": "avg([10, 20, 30])", "result": 20 },
-        { "expression": "avg([10, null, 30])", "result": 20 }
+        {
+          "expression": "avg([10, 20, 30])",
+          "result": 20
+        },
+        {
+          "expression": "avg([10, null, 30])",
+          "result": 20
+        }
       ]
     },
     {
       "name": "min",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of numbers." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of numbers."
+        }
       ],
       "returns": "number",
       "description": "Returns the smallest finite numeric value in the array.",
       "nullHandling": "Null/non-numeric elements skipped. Empty array returns 0.",
       "examples": [
-        { "expression": "min([5, 2, 8])", "result": 2 },
-        { "expression": "min($items[*].amount)", "result": 100 }
+        {
+          "expression": "min([5, 2, 8])",
+          "result": 2
+        },
+        {
+          "expression": "min($items[*].amount)",
+          "result": 100
+        }
       ]
     },
     {
       "name": "max",
       "category": "aggregate",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of numbers." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of numbers."
+        }
       ],
       "returns": "number",
       "description": "Returns the largest finite numeric value in the array.",
       "nullHandling": "Null/non-numeric elements skipped. Empty array returns 0.",
       "examples": [
-        { "expression": "max([5, 2, 8])", "result": 8 }
+        {
+          "expression": "max([5, 2, 8])",
+          "result": 8
+        }
       ]
     },
     {
       "name": "length",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to measure." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to measure."
+        }
       ],
       "returns": "number",
       "description": "Returns the number of characters in the string.",
       "nullHandling": "Null returns 0.",
       "examples": [
-        { "expression": "length('hello')", "result": 5 },
-        { "expression": "length(null)", "result": 0 },
-        { "expression": "length($name)", "result": 12 }
+        {
+          "expression": "length('hello')",
+          "result": 5
+        },
+        {
+          "expression": "length(null)",
+          "result": 0
+        },
+        {
+          "expression": "length($name)",
+          "result": 12
+        }
       ]
     },
     {
       "name": "contains",
       "category": "string",
       "parameters": [
-        { "name": "haystack", "type": "string", "description": "String to search in." },
-        { "name": "needle", "type": "string", "description": "Substring to find." }
+        {
+          "name": "haystack",
+          "type": "string",
+          "description": "String to search in."
+        },
+        {
+          "name": "needle",
+          "type": "string",
+          "description": "Substring to find."
+        }
       ],
       "returns": "boolean",
-      "description": "Returns true if haystack contains needle. Case-sensitive.",
+      "description": "Returns true if the haystack string contains the needle substring. Case-sensitive.",
       "nullHandling": "Null haystack treated as empty string.",
       "examples": [
-        { "expression": "contains('hello world', 'world')", "result": true },
-        { "expression": "contains($email, '@')", "result": true }
+        {
+          "expression": "contains('hello world', 'world')",
+          "result": true
+        },
+        {
+          "expression": "contains($email, '@')",
+          "result": true
+        }
       ]
     },
     {
       "name": "startsWith",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to test." },
-        { "name": "prefix", "type": "string", "description": "Expected prefix." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to test."
+        },
+        {
+          "name": "prefix",
+          "type": "string",
+          "description": "Expected prefix."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if value starts with prefix. Case-sensitive.",
       "nullHandling": "Null value treated as empty string.",
       "examples": [
-        { "expression": "startsWith($url, 'https://')", "result": true }
+        {
+          "expression": "startsWith($url, 'https://')",
+          "result": true
+        }
       ]
     },
     {
       "name": "endsWith",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to test." },
-        { "name": "suffix", "type": "string", "description": "Expected suffix." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to test."
+        },
+        {
+          "name": "suffix",
+          "type": "string",
+          "description": "Expected suffix."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if value ends with suffix. Case-sensitive.",
       "nullHandling": "Null value treated as empty string.",
       "examples": [
-        { "expression": "endsWith($email, '.gov')", "result": true }
+        {
+          "expression": "endsWith($email, '.gov')",
+          "result": true
+        }
       ]
     },
     {
       "name": "substring",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "Source string." },
-        { "name": "start", "type": "number", "description": "1-based start position." },
-        { "name": "length", "type": "number", "description": "Number of characters to extract.", "required": false }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "Source string."
+        },
+        {
+          "name": "start",
+          "type": "number",
+          "description": "1-based start position."
+        },
+        {
+          "name": "length",
+          "type": "number",
+          "description": "Number of characters to extract.",
+          "required": false
+        }
       ],
       "returns": "string",
       "description": "Extracts a substring starting at the 1-based position. If length is omitted, extracts to the end of the string.",
       "nullHandling": "Null value treated as empty string.",
       "examples": [
-        { "expression": "substring('abcdef', 2, 3)", "result": "bcd" },
-        { "expression": "substring('abcdef', 4)", "result": "def" }
+        {
+          "expression": "substring('abcdef', 2, 3)",
+          "result": "bcd"
+        },
+        {
+          "expression": "substring('abcdef', 4)",
+          "result": "def"
+        }
       ]
     },
     {
       "name": "replace",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "Source string." },
-        { "name": "search", "type": "string", "description": "Literal substring to find (NOT regex)." },
-        { "name": "replacement", "type": "string", "description": "Replacement string." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "Source string."
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "description": "Literal substring to find (NOT regex)."
+        },
+        {
+          "name": "replacement",
+          "type": "string",
+          "description": "Replacement string."
+        }
       ],
       "returns": "string",
       "description": "Replaces ALL occurrences of the search literal with the replacement. Not regex — literal string match only.",
       "nullHandling": "Null value treated as empty string.",
       "examples": [
-        { "expression": "replace('hello world', 'world', 'there')", "result": "hello there" },
-        { "expression": "replace($phone, '-', '')", "result": "5551234567" }
+        {
+          "expression": "replace('hello world', 'world', 'there')",
+          "result": "hello there"
+        },
+        {
+          "expression": "replace($phone, '-', '')",
+          "result": "5551234567"
+        }
       ]
     },
     {
       "name": "upper",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to convert." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to convert."
+        }
       ],
       "returns": "string",
       "description": "Converts string to uppercase.",
       "nullHandling": "Null treated as empty string, returns empty string.",
       "examples": [
-        { "expression": "upper('hello')", "result": "HELLO" }
+        {
+          "expression": "upper('hello')",
+          "result": "HELLO"
+        }
       ]
     },
     {
       "name": "lower",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to convert." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to convert."
+        }
       ],
       "returns": "string",
       "description": "Converts string to lowercase.",
       "nullHandling": "Null treated as empty string, returns empty string.",
       "examples": [
-        { "expression": "lower('HELLO')", "result": "hello" }
+        {
+          "expression": "lower('HELLO')",
+          "result": "hello"
+        }
       ]
     },
     {
       "name": "trim",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to trim." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to trim."
+        }
       ],
       "returns": "string",
       "description": "Removes leading and trailing whitespace.",
       "nullHandling": "Null treated as empty string, returns empty string.",
       "examples": [
-        { "expression": "trim('  hello  ')", "result": "hello" }
+        {
+          "expression": "trim('  hello  ')",
+          "result": "hello"
+        }
       ]
     },
     {
       "name": "matches",
       "category": "string",
       "parameters": [
-        { "name": "value", "type": "string", "description": "String to test." },
-        { "name": "pattern", "type": "string", "description": "Regular expression pattern." }
+        {
+          "name": "value",
+          "type": "string",
+          "description": "String to test."
+        },
+        {
+          "name": "pattern",
+          "type": "string",
+          "description": "Regular expression pattern."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the string matches the regular expression pattern. Pattern syntax follows the host language's regex engine (ECMA-262 for TypeScript, Python re for Python).",
       "nullHandling": "Null value treated as empty string.",
       "examples": [
-        { "expression": "matches($ein, '^[0-9]{2}-[0-9]{7}$')", "result": true },
-        { "expression": "matches($email, '^[^@]+@[^@]+$')", "result": true }
+        {
+          "expression": "matches($ein, '^[0-9]{2}-[0-9]{7}$')",
+          "result": true
+        },
+        {
+          "expression": "matches($email, '^[^@]+@[^@]+$')",
+          "result": true
+        }
       ]
     },
     {
       "name": "format",
       "category": "string",
       "parameters": [
-        { "name": "template", "type": "string", "description": "Format string with {0}, {1}, ... positional placeholders." },
-        { "name": "args", "type": "any", "description": "Values to substitute for placeholders.", "variadic": true }
+        {
+          "name": "template",
+          "type": "string",
+          "description": "Format string with {0}, {1}, ... positional placeholders."
+        },
+        {
+          "name": "args",
+          "type": "any",
+          "description": "Values to substitute for placeholders.",
+          "variadic": true
+        }
       ],
       "returns": "string",
       "description": "Positional string interpolation. Replaces {0}, {1}, etc. in the template with stringified arguments. Null arguments become empty string. Numbers strip trailing zeros. Booleans become 'true'/'false'.",
       "nullHandling": "Null template returns empty string. Null arguments substituted as empty string.",
       "examples": [
-        { "expression": "format('{0} of {1}', $current, $total)", "result": "3 of 10" },
-        { "expression": "format('Hello, {0}!', $name)", "result": "Hello, Alice!" }
+        {
+          "expression": "format('{0} of {1}', $current, $total)",
+          "result": "3 of 10"
+        },
+        {
+          "expression": "format('Hello, {0}!', $name)",
+          "result": "Hello, Alice!"
+        }
       ]
     },
     {
       "name": "round",
       "category": "numeric",
       "parameters": [
-        { "name": "value", "type": "number", "description": "Number to round." },
-        { "name": "precision", "type": "number", "description": "Decimal places (default 0).", "required": false }
+        {
+          "name": "value",
+          "type": "number",
+          "description": "Number to round."
+        },
+        {
+          "name": "precision",
+          "type": "number",
+          "description": "Decimal places (default 0).",
+          "required": false
+        }
       ],
       "returns": "number",
       "description": "Rounds to the specified number of decimal places using banker's rounding (round half to even).",
       "nullHandling": "Null treated as 0.",
       "examples": [
-        { "expression": "round(3.456, 2)", "result": 3.46 },
-        { "expression": "round(2.5)", "result": 2, "note": "Banker's rounding: half rounds to even" },
-        { "expression": "round(3.5)", "result": 4 }
+        {
+          "expression": "round(3.456, 2)",
+          "result": 3.46
+        },
+        {
+          "expression": "round(2.5)",
+          "result": 2,
+          "note": "Banker's rounding: half rounds to even"
+        },
+        {
+          "expression": "round(3.5)",
+          "result": 4
+        }
       ]
     },
     {
       "name": "floor",
       "category": "numeric",
       "parameters": [
-        { "name": "value", "type": "number", "description": "Number to floor." }
+        {
+          "name": "value",
+          "type": "number",
+          "description": "Number to floor."
+        }
       ],
       "returns": "number",
       "description": "Returns the largest integer less than or equal to the value.",
       "nullHandling": "Null treated as 0.",
       "examples": [
-        { "expression": "floor(3.7)", "result": 3 },
-        { "expression": "floor(-2.3)", "result": -3 }
+        {
+          "expression": "floor(3.7)",
+          "result": 3
+        },
+        {
+          "expression": "floor(-2.3)",
+          "result": -3
+        }
       ]
     },
     {
       "name": "ceil",
       "category": "numeric",
       "parameters": [
-        { "name": "value", "type": "number", "description": "Number to ceil." }
+        {
+          "name": "value",
+          "type": "number",
+          "description": "Number to ceil."
+        }
       ],
       "returns": "number",
       "description": "Returns the smallest integer greater than or equal to the value.",
       "nullHandling": "Null treated as 0.",
       "examples": [
-        { "expression": "ceil(3.2)", "result": 4 },
-        { "expression": "ceil(-2.7)", "result": -2 }
+        {
+          "expression": "ceil(3.2)",
+          "result": 4
+        },
+        {
+          "expression": "ceil(-2.7)",
+          "result": -2
+        }
       ]
     },
     {
       "name": "abs",
       "category": "numeric",
       "parameters": [
-        { "name": "value", "type": "number", "description": "Number to take absolute value of." }
+        {
+          "name": "value",
+          "type": "number",
+          "description": "Number to take absolute value of."
+        }
       ],
       "returns": "number",
       "description": "Returns the absolute value of the number.",
       "nullHandling": "Null treated as 0.",
       "examples": [
-        { "expression": "abs(-42)", "result": 42 },
-        { "expression": "abs(42)", "result": 42 }
+        {
+          "expression": "abs(-42)",
+          "result": 42
+        },
+        {
+          "expression": "abs(42)",
+          "result": 42
+        }
       ]
     },
     {
       "name": "power",
       "category": "numeric",
       "parameters": [
-        { "name": "base", "type": "number", "description": "Base number." },
-        { "name": "exponent", "type": "number", "description": "Exponent." }
+        {
+          "name": "base",
+          "type": "number",
+          "description": "Base number."
+        },
+        {
+          "name": "exponent",
+          "type": "number",
+          "description": "Exponent."
+        }
       ],
       "returns": "number",
       "description": "Returns base raised to the power of exponent.",
       "nullHandling": "Null arguments treated as 0.",
       "examples": [
-        { "expression": "power(2, 10)", "result": 1024 },
-        { "expression": "power(10, 2)", "result": 100 }
+        {
+          "expression": "power(2, 10)",
+          "result": 1024
+        },
+        {
+          "expression": "power(10, 2)",
+          "result": 100
+        }
       ]
     },
     {
@@ -532,10 +925,13 @@
       "parameters": [],
       "returns": "date",
       "description": "Returns the current date as an ISO 8601 date string (YYYY-MM-DD). Non-deterministic.",
-      "deterministic": false,
       "nullHandling": "N/A — no parameters.",
+      "deterministic": false,
       "examples": [
-        { "expression": "today()", "result": "2025-07-10" }
+        {
+          "expression": "today()",
+          "result": "2025-07-10"
+        }
       ]
     },
     {
@@ -544,465 +940,864 @@
       "parameters": [],
       "returns": "dateTime",
       "description": "Returns the current date and time as an ISO 8601 dateTime string. Non-deterministic.",
-      "deterministic": false,
       "nullHandling": "N/A — no parameters.",
+      "deterministic": false,
       "examples": [
-        { "expression": "now()", "result": "2025-07-10T14:30:00.000Z" }
+        {
+          "expression": "now()",
+          "result": "2025-07-10T14:30:00.000Z"
+        }
       ]
     },
     {
       "name": "year",
       "category": "date",
       "parameters": [
-        { "name": "date", "type": "date", "description": "ISO 8601 date or dateTime string." }
+        {
+          "name": "date",
+          "type": "date",
+          "description": "ISO 8601 date or dateTime string."
+        }
       ],
       "returns": "number",
       "description": "Extracts the 4-digit year from a date.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "year(@2025-07-10)", "result": 2025 },
-        { "expression": "year($birthDate)", "result": 1990 }
+        {
+          "expression": "year(@2025-07-10)",
+          "result": 2025
+        },
+        {
+          "expression": "year($birthDate)",
+          "result": 1990
+        }
       ]
     },
     {
       "name": "month",
       "category": "date",
       "parameters": [
-        { "name": "date", "type": "date", "description": "ISO 8601 date or dateTime string." }
+        {
+          "name": "date",
+          "type": "date",
+          "description": "ISO 8601 date or dateTime string."
+        }
       ],
       "returns": "number",
       "description": "Extracts the month (1-12) from a date.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "month(@2025-07-10)", "result": 7 }
+        {
+          "expression": "month(@2025-07-10)",
+          "result": 7
+        }
       ]
     },
     {
       "name": "day",
       "category": "date",
       "parameters": [
-        { "name": "date", "type": "date", "description": "ISO 8601 date or dateTime string." }
+        {
+          "name": "date",
+          "type": "date",
+          "description": "ISO 8601 date or dateTime string."
+        }
       ],
       "returns": "number",
       "description": "Extracts the day of month (1-31) from a date.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "day(@2025-07-10)", "result": 10 }
+        {
+          "expression": "day(@2025-07-10)",
+          "result": 10
+        }
       ]
     },
     {
       "name": "hours",
       "category": "date",
       "parameters": [
-        { "name": "dateTime", "type": "dateTime", "description": "ISO 8601 dateTime or time string." }
+        {
+          "name": "dateTime",
+          "type": "dateTime",
+          "description": "ISO 8601 dateTime or time string."
+        }
       ],
       "returns": "number",
       "description": "Extracts the hour component (0-23) from a dateTime or time value.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "hours(@2025-07-10T14:30:00Z)", "result": 14 }
+        {
+          "expression": "hours(@2025-07-10T14:30:00Z)",
+          "result": 14
+        }
       ]
     },
     {
       "name": "minutes",
       "category": "date",
       "parameters": [
-        { "name": "dateTime", "type": "dateTime", "description": "ISO 8601 dateTime or time string." }
+        {
+          "name": "dateTime",
+          "type": "dateTime",
+          "description": "ISO 8601 dateTime or time string."
+        }
       ],
       "returns": "number",
       "description": "Extracts the minute component (0-59) from a dateTime or time value.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "minutes(@2025-07-10T14:30:00Z)", "result": 30 }
+        {
+          "expression": "minutes(@2025-07-10T14:30:00Z)",
+          "result": 30
+        }
       ]
     },
     {
       "name": "seconds",
       "category": "date",
       "parameters": [
-        { "name": "dateTime", "type": "dateTime", "description": "ISO 8601 dateTime or time string." }
+        {
+          "name": "dateTime",
+          "type": "dateTime",
+          "description": "ISO 8601 dateTime or time string."
+        }
       ],
       "returns": "number",
       "description": "Extracts the second component (0-59) from a dateTime or time value.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "seconds(@2025-07-10T14:30:45Z)", "result": 45 }
+        {
+          "expression": "seconds(@2025-07-10T14:30:45Z)",
+          "result": 45
+        }
       ]
     },
     {
       "name": "time",
       "category": "date",
       "parameters": [
-        { "name": "hours", "type": "number", "description": "Hour (0-23)." },
-        { "name": "minutes", "type": "number", "description": "Minute (0-59)." },
-        { "name": "seconds", "type": "number", "description": "Second (0-59)." }
+        {
+          "name": "hours",
+          "type": "number",
+          "description": "Hour (0-23)."
+        },
+        {
+          "name": "minutes",
+          "type": "number",
+          "description": "Minute (0-59)."
+        },
+        {
+          "name": "seconds",
+          "type": "number",
+          "description": "Second (0-59)."
+        }
       ],
       "returns": "time",
       "description": "Constructs an HH:MM:SS time string from numeric components.",
       "nullHandling": "Null components treated as 0.",
       "examples": [
-        { "expression": "time(14, 30, 0)", "result": "14:30:00" },
-        { "expression": "time(9, 5, 30)", "result": "09:05:30" }
+        {
+          "expression": "time(14, 30, 0)",
+          "result": "14:30:00"
+        },
+        {
+          "expression": "time(9, 5, 30)",
+          "result": "09:05:30"
+        }
       ]
     },
     {
       "name": "dateDiff",
       "category": "date",
       "parameters": [
-        { "name": "date1", "type": "date", "description": "First date (ISO 8601)." },
-        { "name": "date2", "type": "date", "description": "Second date (ISO 8601)." },
-        { "name": "unit", "type": "string", "description": "Unit of measurement.", "enum": ["days", "months", "years"] }
+        {
+          "name": "date1",
+          "type": "date",
+          "description": "First date (ISO 8601)."
+        },
+        {
+          "name": "date2",
+          "type": "date",
+          "description": "Second date (ISO 8601)."
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "description": "Unit of measurement.",
+          "enum": [
+            "days",
+            "months",
+            "years"
+          ]
+        }
       ],
       "returns": "number",
-      "description": "Returns the difference date1 - date2 in the specified unit. Result is positive when date1 > date2, negative when date1 < date2. For months/years, incomplete periods are truncated (not rounded).",
+      "description": "Returns the difference laterDate − earlierDate in the specified unit (arguments: date1 as laterDate, date2 as earlierDate). Result is positive when date1 > date2, negative when date1 < date2. For months/years, incomplete periods are truncated (not rounded).",
       "nullHandling": "Null or invalid dates return null.",
       "examples": [
-        { "expression": "dateDiff(@2025-07-10, @2025-01-01, 'days')", "result": 190 },
-        { "expression": "dateDiff($endDate, $startDate, 'months')", "result": 6 },
-        { "expression": "dateDiff(today(), $birthDate, 'years')", "result": 35, "note": "Age calculation" }
+        {
+          "expression": "dateDiff(@2025-07-10, @2025-01-01, 'days')",
+          "result": 190
+        },
+        {
+          "expression": "dateDiff($endDate, $startDate, 'months')",
+          "result": 6
+        },
+        {
+          "expression": "dateDiff(today(), $birthDate, 'years')",
+          "result": 35,
+          "note": "Age calculation"
+        }
       ]
     },
     {
       "name": "dateAdd",
       "category": "date",
       "parameters": [
-        { "name": "date", "type": "date", "description": "Base date (ISO 8601)." },
-        { "name": "amount", "type": "number", "description": "Number of units to add (negative to subtract)." },
-        { "name": "unit", "type": "string", "description": "Unit of measurement.", "enum": ["days", "months", "years"] }
+        {
+          "name": "date",
+          "type": "date",
+          "description": "Base date (ISO 8601)."
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "description": "Number of units to add (negative to subtract)."
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "description": "Unit of measurement.",
+          "enum": [
+            "days",
+            "months",
+            "years"
+          ]
+        }
       ],
       "returns": "date",
       "returnDescription": "ISO 8601 date string (YYYY-MM-DD).",
       "description": "Adds the specified number of units to a date. Negative values subtract. Month/year arithmetic handles end-of-month overflow per the host language's Date implementation.",
       "nullHandling": "Null date returns null.",
       "examples": [
-        { "expression": "dateAdd(@2025-01-15, 30, 'days')", "result": "2025-02-14" },
-        { "expression": "dateAdd(today(), 1, 'years')", "result": "2026-07-10" },
-        { "expression": "dateAdd($startDate, -6, 'months')", "result": "2025-01-10" }
+        {
+          "expression": "dateAdd(@2025-01-15, 30, 'days')",
+          "result": "2025-02-14"
+        },
+        {
+          "expression": "dateAdd(today(), 1, 'years')",
+          "result": "2026-07-10"
+        },
+        {
+          "expression": "dateAdd($startDate, -6, 'months')",
+          "result": "2025-01-10"
+        }
       ]
     },
     {
       "name": "timeDiff",
       "category": "date",
       "parameters": [
-        { "name": "laterTime", "type": "time", "description": "Later ISO 8601 time string (HH:MM:SS)." },
-        { "name": "earlierTime", "type": "time", "description": "Earlier ISO 8601 time string (HH:MM:SS)." }
+        {
+          "name": "laterTime",
+          "type": "time",
+          "description": "Later ISO 8601 time string (HH:MM:SS)."
+        },
+        {
+          "name": "earlierTime",
+          "type": "time",
+          "description": "Earlier ISO 8601 time string (HH:MM:SS)."
+        }
       ],
       "returns": "number",
       "returnDescription": "Signed difference in whole seconds: laterTime minus earlierTime (positive when the first argument is later in the day).",
       "description": "Difference in seconds between two time-of-day strings. Distinct from duration(), which parses an ISO 8601 duration and returns milliseconds.",
       "nullHandling": "Invalid time strings produce a diagnostic and null.",
       "examples": [
-        { "expression": "timeDiff('14:30:00', '13:00:00')", "result": 5400 },
-        { "expression": "timeDiff('13:00:00', '14:30:00')", "result": -5400 }
+        {
+          "expression": "timeDiff('14:30:00', '13:00:00')",
+          "result": 5400
+        },
+        {
+          "expression": "timeDiff('13:00:00', '14:30:00')",
+          "result": -5400
+        }
       ]
     },
     {
       "name": "duration",
       "category": "date",
       "parameters": [
-        { "name": "isoDuration", "type": "string", "description": "ISO 8601 duration (PnYnMnDTnHnMnS subset), optional leading minus." }
+        {
+          "name": "isoDuration",
+          "type": "string",
+          "description": "ISO 8601 duration (PnYnMnDTnHnMnS subset), optional leading minus."
+        }
       ],
       "returns": "number",
       "description": "Parses a duration string and returns its length in milliseconds. Years/months in the date part use fixed 365-day years and 30-day months (not calendar arithmetic). Distinct from timeDiff, which compares two clock times in seconds.",
       "nullHandling": "Null argument returns null. Invalid strings produce an error diagnostic and null.",
       "examples": [
-        { "expression": "duration('PT1H')", "result": 3600000 },
-        { "expression": "duration('P1D')", "result": 86400000 }
+        {
+          "expression": "duration('PT1H')",
+          "result": 3600000
+        },
+        {
+          "expression": "duration('P1D')",
+          "result": 86400000
+        }
       ]
     },
     {
       "name": "if",
       "category": "logical",
       "parameters": [
-        { "name": "condition", "type": "boolean", "description": "Condition to evaluate." },
-        { "name": "thenValue", "type": "any", "description": "Value returned when condition is true." },
-        { "name": "elseValue", "type": "any", "description": "Value returned when condition is false." }
+        {
+          "name": "condition",
+          "type": "boolean",
+          "description": "Condition to evaluate."
+        },
+        {
+          "name": "thenValue",
+          "type": "any",
+          "description": "Value returned when condition is true."
+        },
+        {
+          "name": "elseValue",
+          "type": "any",
+          "description": "Value returned when condition is false."
+        }
       ],
       "returns": "any",
       "returnDescription": "Type matches whichever branch is selected.",
       "description": "Conditional function. Returns thenValue when condition is true, elseValue when false. Only the selected branch is evaluated (short-circuit). Alternative syntax: 'if cond then a else b' (keyword form). Note: 'if' is a reserved word; this function is special-cased in the parser.",
-      "shortCircuit": true,
       "nullHandling": "Null condition is an evaluation error.",
+      "shortCircuit": true,
       "examples": [
-        { "expression": "if($age >= 18, 'adult', 'minor')", "result": "adult" },
-        { "expression": "if($status = 'married', $income * 0.75, $income)", "result": 45000 }
+        {
+          "expression": "if($age >= 18, 'adult', 'minor')",
+          "result": "adult"
+        },
+        {
+          "expression": "if($status = 'married', $income * 0.75, $income)",
+          "result": 45000
+        }
       ]
     },
     {
       "name": "coalesce",
       "category": "logical",
       "parameters": [
-        { "name": "values", "type": "any", "description": "Values to check.", "variadic": true }
+        {
+          "name": "values",
+          "type": "any",
+          "description": "Values to check.",
+          "variadic": true
+        }
       ],
       "returns": "any",
       "description": "Returns the first argument that is not null, undefined, or empty string. If all arguments are null/empty, returns null.",
       "nullHandling": "Core purpose is null handling — returns first non-null, non-empty value.",
       "examples": [
-        { "expression": "coalesce($preferredName, $firstName, 'Unknown')", "result": "Alice" },
-        { "expression": "coalesce(null, '', 'fallback')", "result": "fallback" }
+        {
+          "expression": "coalesce($preferredName, $firstName, 'Unknown')",
+          "result": "Alice"
+        },
+        {
+          "expression": "coalesce(null, '', 'fallback')",
+          "result": "fallback"
+        }
       ]
     },
     {
       "name": "empty",
       "category": "logical",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to test." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to test."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the value is null, undefined, empty string (''), or an empty array ([]). Broader than a simple null check.",
       "nullHandling": "Null returns true (that's the point).",
       "examples": [
-        { "expression": "empty(null)", "result": true },
-        { "expression": "empty('')", "result": true },
-        { "expression": "empty([])", "result": true },
-        { "expression": "empty('hello')", "result": false },
-        { "expression": "empty(0)", "result": false, "note": "0 is not empty" }
+        {
+          "expression": "empty(null)",
+          "result": true
+        },
+        {
+          "expression": "empty('')",
+          "result": true
+        },
+        {
+          "expression": "empty([])",
+          "result": true
+        },
+        {
+          "expression": "empty('hello')",
+          "result": false
+        },
+        {
+          "expression": "empty(0)",
+          "result": false,
+          "note": "0 is not empty"
+        }
       ]
     },
     {
       "name": "present",
       "category": "logical",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to test." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to test."
+        }
       ],
       "returns": "boolean",
       "description": "Inverse of empty(). Returns true if the value is non-null, non-empty-string, and non-empty-array.",
       "nullHandling": "Null returns false.",
       "examples": [
-        { "expression": "present($email)", "result": true },
-        { "expression": "present(null)", "result": false },
-        { "expression": "not empty($email) or not empty($phone)", "result": true, "note": "Equivalent to: present($email) or present($phone)" }
+        {
+          "expression": "present($email)",
+          "result": true
+        },
+        {
+          "expression": "present(null)",
+          "result": false
+        },
+        {
+          "expression": "not empty($email) or not empty($phone)",
+          "result": true,
+          "note": "Equivalent to: present($email) or present($phone)"
+        }
       ]
     },
     {
       "name": "selected",
       "category": "logical",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Field value (string for choice, array for multiChoice)." },
-        { "name": "option", "type": "string", "description": "Option value to check for." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Field value (string for choice, array for multiChoice)."
+        },
+        {
+          "name": "option",
+          "type": "string",
+          "description": "Option value to check for."
+        }
       ],
       "returns": "boolean",
       "description": "For multiChoice (array): returns true if the option is included in the array. For choice (string): returns true if value equals option. Designed for testing selected options in choice/multiChoice fields.",
       "nullHandling": "Null value returns false.",
       "examples": [
-        { "expression": "selected($categories, 'personnel')", "result": true, "note": "multiChoice field" },
-        { "expression": "selected($status, 'active')", "result": true, "note": "choice field" }
+        {
+          "expression": "selected($categories, 'personnel')",
+          "result": true,
+          "note": "multiChoice field"
+        },
+        {
+          "expression": "selected($status, 'active')",
+          "result": true,
+          "note": "choice field"
+        }
       ]
     },
     {
       "name": "isNumber",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to test." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to test."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the value is a finite number (not NaN).",
       "nullHandling": "Null returns false.",
       "examples": [
-        { "expression": "isNumber(42)", "result": true },
-        { "expression": "isNumber('42')", "result": false }
+        {
+          "expression": "isNumber(42)",
+          "result": true
+        },
+        {
+          "expression": "isNumber('42')",
+          "result": false
+        }
       ]
     },
     {
       "name": "isString",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to test." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to test."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the value is a string.",
       "nullHandling": "Null returns false.",
       "examples": [
-        { "expression": "isString('hello')", "result": true },
-        { "expression": "isString(42)", "result": false }
+        {
+          "expression": "isString('hello')",
+          "result": true
+        },
+        {
+          "expression": "isString(42)",
+          "result": false
+        }
       ]
     },
     {
       "name": "isDate",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to test." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to test."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the value can be parsed as a valid date.",
       "nullHandling": "Null returns false.",
       "examples": [
-        { "expression": "isDate('2025-07-10')", "result": true },
-        { "expression": "isDate('not-a-date')", "result": false }
+        {
+          "expression": "isDate('2025-07-10')",
+          "result": true
+        },
+        {
+          "expression": "isDate('not-a-date')",
+          "result": false
+        }
       ]
     },
     {
       "name": "isNull",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to test." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to test."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the value is null, undefined, or empty string. Note: broader than a strict null check — empty string is also considered 'null' in FEL.",
       "nullHandling": "Null returns true (that's the point).",
       "examples": [
-        { "expression": "isNull(null)", "result": true },
-        { "expression": "isNull('')", "result": true },
-        { "expression": "isNull(0)", "result": false }
+        {
+          "expression": "isNull(null)",
+          "result": true
+        },
+        {
+          "expression": "isNull('')",
+          "result": true
+        },
+        {
+          "expression": "isNull(0)",
+          "result": false
+        }
       ]
     },
     {
       "name": "typeOf",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to inspect." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to inspect."
+        }
       ],
       "returns": "string",
       "returnDescription": "One of: 'string', 'number', 'boolean', 'array', 'object', 'null'.",
       "description": "Returns the FEL type name of the value.",
       "nullHandling": "Null returns 'null'.",
       "examples": [
-        { "expression": "typeOf(42)", "result": "number" },
-        { "expression": "typeOf([1,2])", "result": "array" },
-        { "expression": "typeOf(null)", "result": "null" }
+        {
+          "expression": "typeOf(42)",
+          "result": "number"
+        },
+        {
+          "expression": "typeOf([1,2])",
+          "result": "array"
+        },
+        {
+          "expression": "typeOf(null)",
+          "result": "null"
+        }
       ]
     },
     {
       "name": "number",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to coerce to number." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to coerce to number."
+        }
       ],
       "returns": "number",
       "description": "Explicit type cast to number. Strings are parsed as numbers. Returns null if coercion fails.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "number('42')", "result": 42 },
-        { "expression": "number('3.14')", "result": 3.14 },
-        { "expression": "number('abc')", "result": null }
+        {
+          "expression": "number('42')",
+          "result": 42
+        },
+        {
+          "expression": "number('3.14')",
+          "result": 3.14
+        },
+        {
+          "expression": "number('abc')",
+          "result": null
+        }
       ]
     },
     {
       "name": "string",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to coerce to string." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to coerce to string."
+        }
       ],
       "returns": "string",
       "description": "Explicit type cast to string. Null becomes empty string. Numbers, booleans, and dates are stringified.",
       "nullHandling": "Null returns empty string ''.",
       "examples": [
-        { "expression": "string(42)", "result": "42" },
-        { "expression": "string(true)", "result": "true" },
-        { "expression": "string(null)", "result": "" }
+        {
+          "expression": "string(42)",
+          "result": "42"
+        },
+        {
+          "expression": "string(true)",
+          "result": "true"
+        },
+        {
+          "expression": "string(null)",
+          "result": ""
+        }
       ]
     },
     {
       "name": "boolean",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to coerce to boolean." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to coerce to boolean."
+        }
       ],
       "returns": "boolean",
       "description": "Explicit type cast to boolean. Accepts: booleans (pass-through), numbers (0 = false, non-zero = true), strings 'true'/'false'. Other values produce an evaluation error.",
       "nullHandling": "Null returns false.",
       "examples": [
-        { "expression": "boolean(1)", "result": true },
-        { "expression": "boolean(0)", "result": false },
-        { "expression": "boolean('true')", "result": true },
-        { "expression": "boolean(null)", "result": false }
+        {
+          "expression": "boolean(1)",
+          "result": true
+        },
+        {
+          "expression": "boolean(0)",
+          "result": false
+        },
+        {
+          "expression": "boolean('true')",
+          "result": true
+        },
+        {
+          "expression": "boolean(null)",
+          "result": false
+        }
       ]
     },
     {
       "name": "date",
       "category": "type",
       "parameters": [
-        { "name": "value", "type": "any", "description": "Value to validate/coerce as ISO 8601 date." }
+        {
+          "name": "value",
+          "type": "any",
+          "description": "Value to validate/coerce as ISO 8601 date."
+        }
       ],
       "returns": "date",
       "description": "Validates and returns the input as an ISO 8601 date string. If the input is not a valid date, produces an evaluation error.",
       "nullHandling": "Null returns null.",
       "examples": [
-        { "expression": "date('2025-07-10')", "result": "2025-07-10" }
+        {
+          "expression": "date('2025-07-10')",
+          "result": "2025-07-10"
+        }
       ]
     },
     {
       "name": "money",
       "category": "money",
       "parameters": [
-        { "name": "amount", "type": "number", "description": "Monetary amount." },
-        { "name": "currency", "type": "string", "description": "ISO 4217 currency code (e.g., 'USD', 'EUR')." }
+        {
+          "name": "amount",
+          "type": "number",
+          "description": "Monetary amount."
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "description": "ISO 4217 currency code (e.g., 'USD', 'EUR')."
+        }
       ],
       "returns": "money",
       "returnDescription": "Object: {amount: number, currency: string}.",
       "description": "Constructs a money object from an amount and currency code.",
       "nullHandling": "Null arguments produce a money object with null/undefined fields.",
       "examples": [
-        { "expression": "money(50000, 'USD')", "result": {"amount": 50000, "currency": "USD"} },
-        { "expression": "money($total, 'EUR')", "result": {"amount": 12500, "currency": "EUR"} }
+        {
+          "expression": "money(50000, 'USD')",
+          "result": {
+            "amount": 50000,
+            "currency": "USD"
+          }
+        },
+        {
+          "expression": "money($total, 'EUR')",
+          "result": {
+            "amount": 12500,
+            "currency": "EUR"
+          }
+        }
       ]
     },
     {
       "name": "moneyAmount",
       "category": "money",
       "parameters": [
-        { "name": "value", "type": "money", "description": "Money object." }
+        {
+          "name": "value",
+          "type": "money",
+          "description": "Money object."
+        }
       ],
       "returns": "number",
       "description": "Extracts the numeric amount from a money object.",
       "nullHandling": "Null or non-money value returns null.",
       "examples": [
-        { "expression": "moneyAmount($budget)", "result": 50000 }
+        {
+          "expression": "moneyAmount($budget)",
+          "result": 50000
+        }
       ]
     },
     {
       "name": "moneyCurrency",
       "category": "money",
       "parameters": [
-        { "name": "value", "type": "money", "description": "Money object." }
+        {
+          "name": "value",
+          "type": "money",
+          "description": "Money object."
+        }
       ],
       "returns": "string",
       "description": "Extracts the currency code from a money object.",
       "nullHandling": "Null or non-money value returns null.",
       "examples": [
-        { "expression": "moneyCurrency($budget)", "result": "USD" }
+        {
+          "expression": "moneyCurrency($budget)",
+          "result": "USD"
+        }
       ]
     },
     {
       "name": "moneyAdd",
       "category": "money",
       "parameters": [
-        { "name": "a", "type": "money", "description": "First money object." },
-        { "name": "b", "type": "money", "description": "Second money object. Must have the same currency as first." }
+        {
+          "name": "a",
+          "type": "money",
+          "description": "First money object."
+        },
+        {
+          "name": "b",
+          "type": "money",
+          "description": "Second money object. Must have the same currency as first."
+        }
       ],
       "returns": "money",
       "description": "Adds two money objects. Uses the currency from the first non-null operand. Per the spec, both operands SHOULD have the same currency; implementations MAY error on mismatched currencies.",
       "nullHandling": "Null operand returns null.",
       "examples": [
-        { "expression": "moneyAdd(money(100, 'USD'), money(250, 'USD'))", "result": {"amount": 350, "currency": "USD"} }
+        {
+          "expression": "moneyAdd(money(100, 'USD'), money(250, 'USD'))",
+          "result": {
+            "amount": 350,
+            "currency": "USD"
+          }
+        }
       ]
     },
     {
       "name": "moneySum",
       "category": "money",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of money objects." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of money objects."
+        }
       ],
       "returns": "money",
       "description": "Sums an array of money objects. Returns a money object with the currency from the first element. All elements SHOULD have the same currency.",
       "nullHandling": "Null elements skipped. Empty array returns null.",
       "examples": [
-        { "expression": "moneySum($lineItems[*].cost)", "result": {"amount": 1500, "currency": "USD"} }
+        {
+          "expression": "moneySum($lineItems[*].cost)",
+          "result": {
+            "amount": 1500,
+            "currency": "USD"
+          }
+        }
       ]
     },
     {
       "name": "moneySumWhere",
       "category": "money",
       "parameters": [
-        { "name": "values", "type": "array", "description": "Array of money objects." },
-        { "name": "predicate", "type": "boolean", "description": "FEL expression evaluated per element with '$' rebound to the current money value." }
+        {
+          "name": "values",
+          "type": "array",
+          "description": "Array of money objects."
+        },
+        {
+          "name": "predicate",
+          "type": "boolean",
+          "description": "FEL expression evaluated per element with '$' rebound to the current money value."
+        }
       ],
       "returns": "money",
       "description": "Sums money array elements for which the predicate evaluates to true. Matched elements MUST share the same currency. The predicate is NOT pre-evaluated — it is evaluated once per element.",
       "nullHandling": "Null array returns null. No matches returns null.",
       "shortCircuit": true,
       "examples": [
-        { "expression": "moneySumWhere([money(100,'USD'), money(200,'USD')], moneyAmount($) > 50)", "result": {"amount": 300, "currency": "USD"} }
+        {
+          "expression": "moneySumWhere([money(100,'USD'), money(200,'USD')], moneyAmount($) > 50)",
+          "result": {
+            "amount": 300,
+            "currency": "USD"
+          }
+        }
       ]
     },
     {
@@ -1011,147 +1806,246 @@
       "parameters": [],
       "returns": "string",
       "description": "Returns the active BCP 47 locale tag from the evaluation context.",
-      "deterministic": false,
       "nullHandling": "When the host has not set a locale, returns null.",
+      "deterministic": false,
       "examples": [
-        { "expression": "locale()", "result": "en-US" }
+        {
+          "expression": "locale()",
+          "result": "en-US"
+        }
       ]
     },
     {
       "name": "runtimeMeta",
       "category": "locale",
       "parameters": [
-        { "name": "key", "type": "string", "description": "Key in the host-provided runtime metadata bag." }
+        {
+          "name": "key",
+          "type": "string",
+          "description": "Key in the host-provided runtime metadata bag."
+        }
       ],
       "returns": "any",
       "description": "Reads a value from runtime metadata supplied by the host.",
-      "deterministic": false,
       "nullHandling": "Missing key returns null.",
+      "deterministic": false,
       "examples": [
-        { "expression": "runtimeMeta('tenantId')", "result": "acme-42" }
+        {
+          "expression": "runtimeMeta('tenantId')",
+          "result": "acme-42"
+        }
       ]
     },
     {
       "name": "pluralCategory",
       "category": "locale",
       "parameters": [
-        { "name": "count", "type": "number", "description": "Numeric count for plural rule selection." },
-        { "name": "localeTag", "type": "string", "description": "Optional BCP 47 tag; defaults to locale().", "required": false }
+        {
+          "name": "count",
+          "type": "number",
+          "description": "Numeric count for plural rule selection."
+        },
+        {
+          "name": "localeTag",
+          "type": "string",
+          "description": "Optional BCP 47 tag; defaults to locale().",
+          "required": false
+        }
       ],
       "returns": "string",
       "description": "Returns the CLDR cardinal plural category (zero, one, two, few, many, other) for the count and locale.",
-      "deterministic": true,
       "nullHandling": "Null count returns null.",
+      "deterministic": true,
       "examples": [
-        { "expression": "pluralCategory(1)", "result": "one" },
-        { "expression": "pluralCategory(2, 'en')", "result": "other" }
+        {
+          "expression": "pluralCategory(1)",
+          "result": "one"
+        },
+        {
+          "expression": "pluralCategory(2, 'en')",
+          "result": "other"
+        }
       ]
     },
     {
       "name": "valid",
       "category": "mip",
       "parameters": [
-        { "name": "path", "type": "string", "description": "Field path (NOT evaluated as expression — extracted as literal path string)." }
+        {
+          "name": "path",
+          "type": "string",
+          "description": "Field path (NOT evaluated as expression — extracted as literal path string)."
+        }
       ],
       "returns": "boolean",
       "description": "Returns true if the field at the given path has zero validation errors. The argument is a field reference path, not a general expression — the parser extracts it as a literal string rather than evaluating it.",
       "nullHandling": "N/A — path is a literal reference.",
       "examples": [
-        { "expression": "valid($totalBudget)", "result": true },
-        { "expression": "valid($email) and valid($phone)", "result": false }
+        {
+          "expression": "valid($totalBudget)",
+          "result": true
+        },
+        {
+          "expression": "valid($email) and valid($phone)",
+          "result": false
+        }
       ]
     },
     {
       "name": "relevant",
       "category": "mip",
       "parameters": [
-        { "name": "path", "type": "string", "description": "Field path (literal, not evaluated)." }
+        {
+          "name": "path",
+          "type": "string",
+          "description": "Field path (literal, not evaluated)."
+        }
       ],
       "returns": "boolean",
       "description": "Returns the computed relevance (visibility) state of the field at the given path. True means the field is visible/active.",
       "nullHandling": "N/A — path is a literal reference.",
       "examples": [
-        { "expression": "relevant($spouseInfo)", "result": false }
+        {
+          "expression": "relevant($spouseInfo)",
+          "result": false
+        }
       ]
     },
     {
       "name": "readonly",
       "category": "mip",
       "parameters": [
-        { "name": "path", "type": "string", "description": "Field path (literal, not evaluated)." }
+        {
+          "name": "path",
+          "type": "string",
+          "description": "Field path (literal, not evaluated)."
+        }
       ],
       "returns": "boolean",
       "description": "Returns the computed readonly state of the field at the given path.",
       "nullHandling": "N/A — path is a literal reference.",
       "examples": [
-        { "expression": "readonly($approvedAmount)", "result": true }
+        {
+          "expression": "readonly($approvedAmount)",
+          "result": true
+        }
       ]
     },
     {
       "name": "required",
       "category": "mip",
       "parameters": [
-        { "name": "path", "type": "string", "description": "Field path (literal, not evaluated)." }
+        {
+          "name": "path",
+          "type": "string",
+          "description": "Field path (literal, not evaluated)."
+        }
       ],
       "returns": "boolean",
       "description": "Returns the computed required state of the field at the given path.",
       "nullHandling": "N/A — path is a literal reference.",
       "examples": [
-        { "expression": "required($email)", "result": true }
+        {
+          "expression": "required($email)",
+          "result": true
+        }
       ]
     },
     {
       "name": "prev",
       "category": "repeat",
       "parameters": [
-        { "name": "fieldName", "type": "string", "description": "Name of the sibling field to read from the previous repeat instance." }
+        {
+          "name": "fieldName",
+          "type": "string",
+          "description": "Name of the sibling field to read from the previous repeat instance."
+        }
       ],
       "returns": "any",
       "description": "Returns the value of the named field from the previous repeat instance (index - 1). Must be called within a repeat context. Returns null if at the first instance or not inside a repeat.",
       "nullHandling": "Returns null when no previous instance exists.",
       "examples": [
-        { "expression": "prev('runningTotal')", "result": 500, "note": "Value from previous row" }
+        {
+          "expression": "prev('runningTotal')",
+          "result": 500,
+          "note": "Value from previous row"
+        }
       ]
     },
     {
       "name": "next",
       "category": "repeat",
       "parameters": [
-        { "name": "fieldName", "type": "string", "description": "Name of the sibling field to read from the next repeat instance." }
+        {
+          "name": "fieldName",
+          "type": "string",
+          "description": "Name of the sibling field to read from the next repeat instance."
+        }
       ],
       "returns": "any",
       "description": "Returns the value of the named field from the next repeat instance (index + 1). Must be called within a repeat context. Returns null if at the last instance or not inside a repeat.",
       "nullHandling": "Returns null when no next instance exists.",
       "examples": [
-        { "expression": "next('amount')", "result": 200, "note": "Peek at next row's value" }
+        {
+          "expression": "next('amount')",
+          "result": 200,
+          "note": "Peek at next row's value"
+        }
       ]
     },
     {
       "name": "parent",
       "category": "repeat",
       "parameters": [
-        { "name": "fieldName", "type": "string", "description": "Name of the ancestor field to find." }
+        {
+          "name": "fieldName",
+          "type": "string",
+          "description": "Name of the ancestor field to find."
+        }
       ],
       "returns": "any",
       "description": "Walks up the path hierarchy from the current item and returns the value of the first ancestor field matching the given name. Useful for accessing enclosing group data from within nested repeats.",
       "nullHandling": "Returns null if no ancestor field with that name is found.",
       "examples": [
-        { "expression": "parent('projectName')", "result": "Infrastructure Upgrade" }
+        {
+          "expression": "parent('projectName')",
+          "result": "Infrastructure Upgrade"
+        }
       ]
     },
     {
       "name": "instance",
       "category": "logical",
       "parameters": [
-        { "name": "name", "type": "string", "description": "Name of the secondary data source (must match a key in the definition's 'instances' object)." },
-        { "name": "path", "type": "string", "description": "Dot-notation path within the instance data.", "required": false }
+        {
+          "name": "name",
+          "type": "string",
+          "description": "Name of the secondary data source (must match a key in the definition's 'instances' object)."
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "Dot-notation path within the instance data.",
+          "required": false
+        }
       ],
       "returns": "any",
       "description": "Retrieves data from a named secondary instance. Typically invoked via the '@instance(\"name\")' context reference syntax in FEL, which the parser translates to this function call. The optional path parameter drills into the instance data.",
       "nullHandling": "Returns null/undefined if instance name not found or path doesn't exist.",
       "examples": [
-        { "expression": "@instance('priorYear').totalExpenditure", "result": 200000 },
-        { "expression": "@instance('agencies')", "result": [{"code": "DOE", "name": "Dept of Energy"}] }
+        {
+          "expression": "@instance('priorYear').totalExpenditure",
+          "result": 200000
+        },
+        {
+          "expression": "@instance('agencies')",
+          "result": [
+            {
+              "code": "DOE",
+              "name": "Dept of Energy"
+            }
+          ]
+        }
       ]
     }
   ]

@@ -364,6 +364,7 @@ export class FormEngine implements IFormEngine {
                     requiredSignals: this.requiredSignals,
                     repeats: this.repeats,
                     bindConfigs: this._bindConfigs,
+                    fieldDataTypes: this.fieldDataTypesSnapshot(),
                     variableDefs: this._variableDefs,
                     variableSignals: this.variableSignals,
                     instanceData: this.instanceData,
@@ -801,6 +802,14 @@ export class FormEngine implements IFormEngine {
         }
     }
 
+    private fieldDataTypesSnapshot(): Record<string, string | undefined> {
+        const out: Record<string, string | undefined> = {};
+        for (const [path, item] of this._fieldItems.entries()) {
+            out[path] = item.dataType;
+        }
+        return out;
+    }
+
     /** Returns true if the source string is fetchable (HTTP(S) or absolute path). */
     private static isFetchableSource(source: string): boolean {
         return /^https?:\/\//i.test(source) || source.startsWith('/');
@@ -1119,6 +1128,7 @@ export class FormEngine implements IFormEngine {
                 requiredSignals: this.requiredSignals,
                 repeats: this.repeats,
                 bindConfigs: this._bindConfigs,
+                fieldDataTypes: this.fieldDataTypesSnapshot(),
                 variableDefs: this._variableDefs,
                 variableSignals: this.variableSignals,
                 instanceData: this.instanceData,
@@ -1322,6 +1332,7 @@ export class FormEngine implements IFormEngine {
             requiredSignals: this.requiredSignals,
             repeats: this.repeats,
             bindConfigs: this._bindConfigs,
+            fieldDataTypes: this.fieldDataTypesSnapshot(),
             variableDefs: this._variableDefs,
             variableSignals: this.variableSignals,
             instanceData: this.instanceData,

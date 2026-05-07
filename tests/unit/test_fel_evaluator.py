@@ -474,7 +474,7 @@ class TestPostfixWildcard:
 
     def test_wildcard_via_let_binding(self):
         data = {'items': [{'val': 10}, {'val': 20}, {'val': 30}]}
-        assert is_null(val('let arr = $items in sum(arr[*].val)', data))
+        assert pyval('let arr = $items in sum(arr[*].val)', data) == Decimal('60')
 
     def test_nested_index_then_wildcard(self):
         data = {'items': [{'sub': [{'val': 1}, {'val': 2}]}, {'sub': [{'val': 3}]}]}

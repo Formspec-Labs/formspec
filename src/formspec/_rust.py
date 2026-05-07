@@ -242,18 +242,27 @@ def _serialize_mip_states(
     serialized: dict[str, dict[str, bool]] = {}
     for path, state in mip_states.items():
         if isinstance(state, dict):
+            required_keys = {"valid", "relevant", "readonly", "required"}
+            if not required_keys.issubset(set(state.keys())):
+                missing = sorted(required_keys - set(state.keys()))
+                raise TypeError(
+                    f"mip_states[{path!r}] missing keys: {', '.join(missing)}"
+                )
             serialized[path] = {
-                "valid": bool(state.get("valid", True)),
-                "relevant": bool(state.get("relevant", True)),
-                "readonly": bool(state.get("readonly", False)),
-                "required": bool(state.get("required", False)),
+                "valid": bool(state["valid"]),
+                "relevant": bool(state["relevant"]),
+                "readonly": bool(state["readonly"]),
+                "required": bool(state["required"]),
             }
         else:
+            for attr in ("valid", "relevant", "readonly", "required"):
+                if not hasattr(state, attr):
+                    raise TypeError(f"mip_states[{path!r}] missing attribute: {attr}")
             serialized[path] = {
-                "valid": bool(getattr(state, "valid", True)),
-                "relevant": bool(getattr(state, "relevant", True)),
-                "readonly": bool(getattr(state, "readonly", False)),
-                "required": bool(getattr(state, "required", False)),
+                "valid": bool(getattr(state, "valid")),
+                "relevant": bool(getattr(state, "relevant")),
+                "readonly": bool(getattr(state, "readonly")),
+                "required": bool(getattr(state, "required")),
             }
     return serialized
 
@@ -313,6 +322,7 @@ def evaluate(
             message=_normalize_diagnostic_message(str(raw.get("message", ""))),
             pos=None,
             severity=_severity_from_str(raw.get("severity")),
+            code=(str(raw.get("code")) if raw.get("code") is not None else None),
         )
         for raw in payload.get("diagnostics", [])
         if isinstance(raw, dict)

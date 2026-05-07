@@ -2,10 +2,10 @@
 
 use std::collections::HashMap;
 
-use fel_core::{Value as EnvVal, FormspecEnvironment, evaluate, fel_to_json, parse};
+use fel_core::{Value as EnvVal, FormspecEnvironment, evaluate, fel_to_ui_json, parse};
 use serde_json::Value;
 
-use super::json_fel::{coerce_calculated_json, json_to_runtime_fel};
+use super::json_fel::{coerce_calculated_value, json_to_runtime_fel};
 use super::repeats::{
     apply_instance_aliases, push_repeat_context_for_instance, refresh_nested_group_aliases,
     restore_instance_aliases,
@@ -167,12 +167,13 @@ fn evaluate_calculate_only(
     };
 
     let result = evaluate(&parsed, env);
-    let json_val = coerce_calculated_json(item, fel_to_json(&result.value));
+    let coerced = coerce_calculated_value(item, result.value);
+    let json_val = fel_to_ui_json(&coerced);
     let changed = values.get(&item.path) != Some(&json_val);
 
     values.insert(item.path.clone(), json_val.clone());
     item.value = json_val.clone();
-    env.set_field(&item.path, json_to_runtime_fel(&json_val));
+    env.set_field(&item.path, coerced);
 
     changed
 }

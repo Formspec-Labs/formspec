@@ -15,6 +15,7 @@ import {
     parentPathOf,
     setExpressionContextValue,
     snapshotSignals,
+    tagMoneyByPath,
     toBasePath,
     toFelIndexedPath,
     toWasmContextValue,
@@ -190,12 +191,22 @@ export interface WasmFelContextBuildInput {
     requiredSignals: Record<string, EngineSignal<boolean>>;
     repeats: Record<string, EngineSignal<number>>;
     bindConfigs: Record<string, EngineBindConfig>;
+    fieldDataTypes: Record<string, string | undefined>;
     variableDefs: FormVariable[];
     variableSignals: Record<string, EngineSignal<any>>;
     instanceData: Record<string, unknown>;
     nowIso: string;
     locale?: string;
     meta?: Record<string, string | number | boolean>;
+}
+
+function tagMoneyVariableValue(value: any): any {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    if (value.$type === 'money') return value;
+    if ('amount' in value && 'currency' in value) {
+        return { $type: 'money', amount: value.amount, currency: value.currency };
+    }
+    return value;
 }
 
 export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput): WasmFelContext {
@@ -212,7 +223,12 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         setExpressionContextValue(
             fields,
             path,
-            toWasmContextValue(resolveFelFieldValueForWasm(path, value, options.bindConfigs, irrelevant)),
+            toWasmContextValue(tagMoneyByPath(
+                path,
+                resolveFelFieldValueForWasm(path, value, options.bindConfigs, irrelevant),
+                options.bindConfigs,
+                options.fieldDataTypes,
+            )),
         );
     }
 
@@ -222,9 +238,17 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
         const prefixB = `${scopePath}[`;
         for (const [path, value] of Object.entries(rawFields)) {
             if (path.startsWith(prefixA)) {
-                setExpressionContextValue(fields, path.slice(prefixA.length), toWasmContextValue(value));
+                setExpressionContextValue(
+                    fields,
+                    path.slice(prefixA.length),
+                    toWasmContextValue(tagMoneyByPath(path, value, options.bindConfigs, options.fieldDataTypes)),
+                );
             } else if (path.startsWith(prefixB)) {
-                setExpressionContextValue(fields, path.slice(scopePath.length + 1), toWasmContextValue(value));
+                setExpressionContextValue(
+                    fields,
+                    path.slice(scopePath.length + 1),
+                    toWasmContextValue(tagMoneyByPath(path, value, options.bindConfigs, options.fieldDataTypes)),
+                );
             }
         }
     }
@@ -263,7 +287,7 @@ export function buildWasmFelExpressionContext(options: WasmFelContextBuildInput)
                     options.variableSignals,
                     options.scopedVariableOverrides,
                 ),
-            ).map(([key, value]) => [key, toWasmContextValue(value)]),
+            ).map(([key, value]) => [key, toWasmContextValue(tagMoneyVariableValue(value))]),
         ),
         mipStates,
         repeatContext: buildFelRepeatWasmContext({

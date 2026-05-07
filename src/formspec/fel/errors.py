@@ -33,6 +33,7 @@ class Diagnostic:
     message: str
     pos: SourcePos | None
     severity: Severity = Severity.ERROR
+    code: str | None = None
 
     def __str__(self) -> str:
         loc = f" at {self.pos}" if self.pos else ""

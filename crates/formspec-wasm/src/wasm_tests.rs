@@ -4,7 +4,6 @@
 mod tests {
     use fel_core::{Value as FelVal, fel_to_json, json_to_fel};
     use rust_decimal::Decimal;
-    use rust_decimal::prelude::*;
     use serde_json::{Value, json};
 
     #[cfg(feature = "changelog-api")]
@@ -776,47 +775,31 @@ mod tests {
 
     // ── Finding 74: fel_to_json Decimal::MAX ────────────────────
 
-    /// Spec: FEL runtime values — Decimal::MAX exceeds i64 range but fits in f64.
-    /// The value falls through the i64 path and is serialized as an f64 JSON number.
-    /// The null branch of fel_to_json is unreachable for valid Decimal values because
-    /// Decimal cannot represent NaN or Infinity.
+    /// Spec: host-facing FEL JSON uses UI encoding, preserving non-representable
+    /// decimals as strings rather than lossy f64 conversion.
     #[test]
-    fn fel_to_json_decimal_max_produces_number() {
+    fn fel_to_json_decimal_max_produces_string() {
         let val = FelVal::Number(Decimal::MAX);
         let json = fel_to_json(&val);
-        // Decimal::MAX has zero fract, so to_i64() is tried first — but fails (too large).
-        // Then to_f64() succeeds (7.9e28), and from_f64() accepts it (finite).
         assert!(
-            json.is_number(),
-            "Decimal::MAX should produce a JSON number, not null"
+            json.is_string(),
+            "Decimal::MAX should produce a JSON string under UI encoding"
         );
-        // Verify the approximate value is correct (precision loss is expected)
-        let f = json.as_f64().unwrap();
-        assert!(f > 7.9e28 && f < 8.0e28, "unexpected magnitude: {f}");
+        let expected = Decimal::MAX.normalize().to_string();
+        assert_eq!(json.as_str(), Some(expected.as_str()));
     }
 
     // ── Finding 75: json_to_fel/fel_to_json large integer ───────
 
-    /// Spec: FEL runtime values — large integers beyond i64 range lose precision in f64 roundtrip.
-    /// Decimal preserves exact values but JSON serialization via f64 truncates to 53-bit mantissa.
-    /// For Decimal::MAX specifically, the f64 value is too large to convert back to Decimal
-    /// (Decimal::from_f64 returns None), so the roundtrip is lossy and unrecoverable.
+    /// Spec: UI JSON encoding preserves large Decimal values as strings; parsing UI JSON
+    /// back to FEL without tags yields a string value (lossless text, not typed number).
     #[test]
-    fn json_fel_roundtrip_large_integer_precision_loss() {
+    fn json_fel_roundtrip_large_integer_is_lossless_string() {
         let d = Decimal::MAX;
         let json = fel_to_json(&FelVal::Number(d));
-        let f64_val = json.as_f64().unwrap();
-
-        // The f64 value is finite but outside the Decimal representable range
-        assert!(f64_val.is_finite(), "Decimal::MAX as f64 should be finite");
-        assert!(f64_val > 7.9e28, "magnitude should be ~7.9e28");
-
-        // Roundtrip back to Decimal fails — the f64 is outside Decimal's 96-bit range
-        let roundtripped = Decimal::from_f64(f64_val);
-        assert!(
-            roundtripped.is_none(),
-            "Decimal::MAX f64 representation exceeds Decimal range on roundtrip"
-        );
+        let roundtripped = json_to_fel(&json);
+        assert_eq!(json, json!(d.normalize().to_string()));
+        assert_eq!(roundtripped, FelVal::String(d.normalize().to_string()));
     }
 
     // ── Finding 77: eval_fel_inner field injection edge cases ────

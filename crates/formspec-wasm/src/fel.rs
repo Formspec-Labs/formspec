@@ -9,7 +9,7 @@ use fel_core::{
 };
 use fel_core::{
     evaluate, evaluate_with_trace, expr_is_interpolation_static_literal,
-    fel_diagnostics_to_json_value, fel_to_json, field_map_from_json_str,
+    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
     formspec_environment_from_json_map, has_error_diagnostics, parse, prepare,
     host_options_from_json, reject_undefined_functions,
 };
@@ -82,7 +82,7 @@ pub(crate) fn eval_fel_inner(expression: &str, fields_json: &str) -> Result<Stri
     let env = fel_core::MapEnvironment::with_fields(fields);
     let result = evaluate(&expr, &env);
     LAST_EVAL_HAD_ERROR_DIAGNOSTICS.with(|c| c.set(has_error_diagnostics(&result.diagnostics)));
-    let json = fel_to_json(&result.value);
+    let json = fel_to_ui_json(&result.value);
     to_json_string(&json)
 }
 
@@ -106,7 +106,7 @@ pub(crate) fn eval_fel_with_trace_inner(
     let (result, trace) = evaluate_with_trace(&expr, &env);
     LAST_EVAL_HAD_ERROR_DIAGNOSTICS.with(|c| c.set(has_error_diagnostics(&result.diagnostics)));
     let payload = serde_json::json!({
-        "value": fel_to_json(&result.value),
+        "value": fel_to_ui_json(&result.value),
         "diagnostics": fel_diagnostics_to_json_value(&result.diagnostics),
         "trace": trace.steps,
     });
@@ -131,7 +131,7 @@ pub(crate) fn eval_fel_with_context_inner(
     let result = evaluate(&expr, &env);
     LAST_EVAL_HAD_ERROR_DIAGNOSTICS.with(|c| c.set(has_error_diagnostics(&result.diagnostics)));
     reject_undefined_functions(&result.diagnostics)?;
-    let json = fel_to_json(&result.value);
+    let json = fel_to_ui_json(&result.value);
     to_json_string(&json)
 }
 

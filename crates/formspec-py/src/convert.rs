@@ -353,6 +353,129 @@ pub(crate) fn json_to_python(py: Python, val: &JsonValue) -> PyResult<PyObject> 
     }
 }
 
+/// Normalize tagged wire JSON fragments into UI-friendly host JSON.
+///
+/// The Python bridge historically returns untagged scalar values for host-facing
+/// APIs (`evaluate_def`, `execute_mapping_doc`, trace payloads). Some internal
+/// call paths can still surface tagged fragments (`{"$type":"number",...}`),
+/// so this helper strips those tags while preserving normal object shape.
+pub(crate) fn normalize_wire_json_for_python(val: &JsonValue) -> JsonValue {
+    fn parse_decimal_number(text: &str) -> JsonValue {
+        if let Ok(i) = text.parse::<i64>() {
+            return JsonValue::Number(serde_json::Number::from(i));
+        }
+        let Ok(d) = Decimal::from_str_exact(text) else {
+            return JsonValue::String(text.to_string());
+        };
+        if d.fract().is_zero()
+            && let Some(i) = d.to_i64()
+        {
+            return JsonValue::Number(serde_json::Number::from(i));
+        }
+        if let Some(f) = d.to_f64()
+            && f.is_finite()
+            && let Some(back) = Decimal::from_f64(f)
+            && back == d
+            && let Some(num) = serde_json::Number::from_f64(f)
+        {
+            return JsonValue::Number(num);
+        }
+        JsonValue::String(text.to_string())
+    }
+
+    fn normalize_number_payload(value: &JsonValue) -> JsonValue {
+        match value {
+            JsonValue::Number(_) => value.clone(),
+            JsonValue::String(text) => parse_decimal_number(text),
+            other => other.clone(),
+        }
+    }
+
+    match val {
+        JsonValue::Array(arr) => JsonValue::Array(
+            arr.iter()
+                .map(normalize_wire_json_for_python)
+                .collect::<Vec<_>>(),
+        ),
+        JsonValue::Object(map) => {
+            if let Some(JsonValue::String(kind)) = map.get("$type") {
+                match kind.as_str() {
+                    "number" => {
+                        if let Some(value) = map.get("value") {
+                            return normalize_number_payload(value);
+                        }
+                    }
+                    "date" | "datetime" => {
+                        if let Some(value) = map.get("value") {
+                            return value.clone();
+                        }
+                    }
+                    "money" => {
+                        let mut out = serde_json::Map::new();
+                        out.insert("$type".to_string(), JsonValue::String("money".to_string()));
+                        if let Some(amount) = map.get("amount") {
+                            out.insert("amount".to_string(), normalize_number_payload(amount));
+                        }
+                        if let Some(currency) = map.get("currency") {
+                            out.insert("currency".to_string(), currency.clone());
+                        }
+                        return JsonValue::Object(out);
+                    }
+                    _ => {}
+                }
+            }
+            let normalized = map
+                .iter()
+                .map(|(k, v)| (k.clone(), normalize_wire_json_for_python(v)))
+                .collect::<serde_json::Map<String, JsonValue>>();
+            JsonValue::Object(normalized)
+        }
+        _ => val.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_wire_json_for_python;
+    use serde_json::json;
+
+    #[test]
+    fn normalize_tagged_number_string_preserves_high_precision() {
+        let input = json!({"$type":"number","value":"12345678901234567890.123456789012345678"});
+        let out = normalize_wire_json_for_python(&input);
+        assert_eq!(out, json!("12345678901234567890.123456789012345678"));
+    }
+
+    #[test]
+    fn normalize_tagged_number_string_to_numeric_when_exactly_representable() {
+        let input = json!({"$type":"number","value":"3.5"});
+        let out = normalize_wire_json_for_python(&input);
+        assert_eq!(out, json!(3.5));
+    }
+
+    #[test]
+    fn normalize_nested_tagged_values_recursively() {
+        let input = json!({
+            "trace": [
+                {"result": {"$type":"number", "value":"7"}},
+                {"result": {"$type":"date", "value":"2026-05-07"}},
+                {"result": {"$type":"money", "amount":"1000", "currency":"USD"}}
+            ]
+        });
+        let out = normalize_wire_json_for_python(&input);
+        assert_eq!(
+            out,
+            json!({
+                "trace": [
+                    {"result": 7},
+                    {"result": "2026-05-07"},
+                    {"result": {"$type":"money", "amount": 1000, "currency":"USD"}}
+                ]
+            })
+        );
+    }
+}
+
 // ── Registry helpers ────────────────────────────────────────────
 
 pub(crate) fn parse_status_str(s: &str) -> Option<RegistryEntryStatus> {
