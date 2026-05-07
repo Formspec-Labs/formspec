@@ -112,6 +112,15 @@
       },
       "uniqueItems": true
     },
+    "integrityProfile": {
+      "type": "string",
+      "enum": ["none", "chained", "trellis-wrapped"],
+      "default": "none",
+      "description": "Integrity profile for retained events. 'chained' and 'trellis-wrapped' require every embedded event to carry both priorEventHash and eventHash; priorEventHash is null only on the first event in the chain."
+    },
+    "offlineAuthoring": {
+      "$ref": "#/$defs/OfflineAuthoringProfile"
+    },
     "changelogMode": {
       "type": "string",
       "enum": ["material", "field-level"],
@@ -163,9 +172,75 @@
       "then": {
         "required": ["changelogBoundaries"]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "integrityProfile": {
+            "enum": ["chained", "trellis-wrapped"]
+          }
+        },
+        "required": ["integrityProfile"]
+      },
+      "then": {
+        "properties": {
+          "events": {
+            "items": {
+              "required": ["priorEventHash", "eventHash"]
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
+    "OfflineAuthoringProfile": {
+      "type": "object",
+      "required": ["state", "bufferedEventCount", "chainConstruction"],
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["online", "pending-local", "syncing", "synced", "conflict"],
+          "description": "Current synchronization state for events authored while the device or client was offline."
+        },
+        "pendingSince": {
+          "type": "string",
+          "format": "date-time",
+          "description": "First local-durable timestamp for the pending offline buffer."
+        },
+        "lastLocalAuthoredAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Most recent occurredAt value authored locally before successful sync."
+        },
+        "lastSyncedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Most recent server synchronization timestamp."
+        },
+        "bufferedEventCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of locally durable events not yet accepted by the server."
+        },
+        "firstBufferedSequence": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Sequence of the first locally buffered event, when any pending events exist."
+        },
+        "lastBufferedSequence": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Sequence of the last locally buffered event, when any pending events exist."
+        },
+        "chainConstruction": {
+          "type": "string",
+          "enum": ["local-linear"],
+          "description": "Buffered events are chained in local durable order and submitted without rebasing their occurredAt values or priorEventHash/eventHash links."
+        }
+      }
+    },
     "LedgerCheckpoint": {
       "type": "object",
       "required": ["checkpointId", "ledgerId", "fromSequence", "toSequence", "batchHash", "signedAt"],

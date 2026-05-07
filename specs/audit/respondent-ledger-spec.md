@@ -189,6 +189,8 @@ A `RespondentLedger` object **SHOULD** also include, where available:
 - `headEventId`
 - `sessionRefs`
 - `checkpointRefs`
+- `integrityProfile`
+- `offlineAuthoring`
 - `changelogMode`
 - `changelogBoundaries`
 - `extensions`
@@ -206,6 +208,10 @@ A `RespondentLedger` object **SHOULD** also include, where available:
 - `currentResponseHash` — optional digest of the current canonical response snapshot.
 - `currentResponseAuthored` — last known `Response.authored` timestamp.
 - `headEventId` — identifier of the newest retained event.
+- `integrityProfile` — optional integrity declaration. Allowed values are
+  `none`, `chained`, and `trellis-wrapped`. If omitted, `none` is assumed.
+- `offlineAuthoring` — optional synchronization profile for events authored
+  while offline or not yet accepted by the server.
 - `changelogMode` — optional capture declaration. Allowed values are `material` and `field-level`. If omitted, `material` is assumed.
 - `changelogBoundaries` — optional in `material` mode and required in `field-level` mode. Declares the durable boundaries at which field-level deltas are captured.
 
@@ -224,6 +230,7 @@ A `RespondentLedger` object **SHOULD** also include, where available:
   "eventCount": 4,
   "headEventId": "evt-0004",
   "currentResponseAuthored": "2026-03-22T09:14:27Z",
+  "integrityProfile": "trellis-wrapped",
   "extensions": {
     "x-storage": {
       "partition": "tenant-44/us-east-1"
@@ -806,6 +813,39 @@ proposed change affects determination content or fields outside the declared
 subset, it is an amendment or supersession under the stack amendment contract,
 not a `ResponseCorrection`.
 
+### 11.5 Offline authoring profile
+
+The offline authoring profile covers events that become locally durable before
+the processor can submit them to the authoritative service.
+
+A ledger with pending offline work **SHOULD** include `offlineAuthoring`:
+
+- `state` — one of `online`, `pending-local`, `syncing`, `synced`, or
+  `conflict`;
+- `pendingSince` — when the current local buffer first became durable;
+- `lastLocalAuthoredAt` — the most recent `occurredAt` authored locally;
+- `lastSyncedAt` — the last server acceptance timestamp, when known;
+- `bufferedEventCount` — number of locally durable events not yet accepted by
+  the server;
+- `firstBufferedSequence` / `lastBufferedSequence` — buffered sequence range,
+  when `bufferedEventCount > 0`;
+- `chainConstruction` — currently `local-linear`.
+
+Offline events **MUST** preserve authored time. On delayed submit, a server may
+set or update acceptance metadata outside the event, but it **MUST NOT** rewrite
+`occurredAt` to server receipt time. `recordedAt` remains the time the
+processor durably recorded the event; implementations that need a separate
+server receipt time **SHOULD** store it outside the canonical event bytes or in
+a namespaced extension that is already part of the local canonicalization
+profile.
+
+For `chainConstruction = "local-linear"`, buffered events are ordered by their
+local durable sequence. Each event's `priorEventHash` points to the immediately
+preceding locally canonical event hash, or `null` for the first event in a new
+chain. A server **MUST NOT** rebase the hash chain during sync. If the server
+cannot accept the chain as submitted, it **MUST** record a rejection or conflict
+state instead of silently rewriting event bytes.
+
 ---
 
 ## 12. Storage and retention model
@@ -878,13 +918,21 @@ A checkpoint **MAY** also include:
 
 ### 13.4 Integrity behavior
 
-If integrity chaining is enabled:
+If `integrityProfile = "chained"` or `"trellis-wrapped"`:
 
-- each event **SHOULD** carry `priorEventHash` and `eventHash`,
+- each retained event **MUST** carry both `priorEventHash` and `eventHash`;
+- `priorEventHash` is `null` only for the first event in the chain;
 - each checkpoint **SHOULD** seal an ordered contiguous event range,
 - checkpoint anchoring **MAY** reference an external organizational audit ledger, transparency log, or notarization service.
 
-This specification does not mandate any specific signature suite or external anchor.
+`integrityProfile = "none"` means the ledger has no integrity-chain promise and
+events **MAY** omit both hashes. A ledger that emits either hash on any retained
+event is a chained ledger for that event stream and **MUST** declare
+`integrityProfile = "chained"` or `"trellis-wrapped"` before conformance is
+claimed.
+
+This specification does not mandate any specific signature suite or external
+anchor outside the `trellis-wrapped` profile.
 
 ---
 
@@ -1144,7 +1192,7 @@ A processor claiming conformance to the Respondent Ledger add-on:
 9. **SHOULD** preserve validation snapshots at save, submit, amendment, and stop boundaries.
 10. **SHOULD** preserve provider-neutral identity / proof-of-personhood attestation references when those facts are used for completion, delegation, or eligibility-sensitive processing.
 11. **SHOULD** support privacy-bounded retention using hashes, summaries, or redaction metadata where necessary.
-12. **SHOULD** support optional integrity chaining and checkpointing for higher-assurance environments.
+12. **MUST** enforce `integrityProfile` hash obligations when chaining or Trellis wrapping is declared, and **SHOULD** support checkpointing for higher-assurance environments.
 
 ---
 

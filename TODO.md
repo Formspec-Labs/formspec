@@ -31,6 +31,11 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   - **Gate:** [ADR 0066](../thoughts/adr/0066-stack-amendment-and-supersession.md) accepted (2026-05-06 — WOS Stack Closure cluster).
 
 - **Offline authoring profile in Respondent Ledger companion** `[6 / 5 / 4]` (**24**)
+  - **Closed 2026-05-07.** Respondent Ledger now carries
+    `integrityProfile` and `offlineAuthoring`; `chained` /
+    `trellis-wrapped` ledgers require paired event hashes on every embedded
+    event, and offline buffers use local-linear chain construction with
+    authored-time preservation.
   - Specify pending-local-state semantics, authored-time preservation under delayed submit, and chain construction for buffered offline events.
   - Required producer-side contract for Trellis `priorEventHash: [Hash]` reservation (ADR 0001).
   - Absorbs archived migration SHOULDs ULCOMP-R-210..212 as offline-authoring semantics (not ADR 0071 migration semantics).
@@ -57,4 +62,3 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - **Source**: editor/layout split review
 - **File**: `packages/formspec-core/src/raw-project.ts:350-373`
 - **Action**: Monitor. Resolution path documented: add dirty flag. Not yet implemented.
-

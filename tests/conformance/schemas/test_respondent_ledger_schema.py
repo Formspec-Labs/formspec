@@ -154,6 +154,34 @@ def test_material_ledger_without_changelog_fields_is_valid():
     _validate_ledger(_minimal_ledger_material())
 
 
+def test_trellis_wrapped_ledger_requires_hashes_on_embedded_events():
+    event = _attachment_added_event()
+    event.pop("eventHash")
+    doc = _minimal_ledger_material()
+    doc["integrityProfile"] = "trellis-wrapped"
+    doc["events"] = [event]
+
+    with pytest.raises(ValidationError):
+        _validate_ledger(doc)
+
+
+def test_offline_authoring_profile_is_schema_valid():
+    doc = _minimal_ledger_material()
+    doc["integrityProfile"] = "chained"
+    doc["offlineAuthoring"] = {
+        "state": "pending-local",
+        "pendingSince": "2026-05-07T16:00:00Z",
+        "lastLocalAuthoredAt": "2026-05-07T16:05:00Z",
+        "bufferedEventCount": 2,
+        "firstBufferedSequence": 4,
+        "lastBufferedSequence": 5,
+        "chainConstruction": "local-linear",
+    }
+    doc["events"] = [_attachment_added_event()]
+
+    _validate_ledger(doc)
+
+
 def _response_correction_event() -> dict:
     return {
         "eventId": "evt-response-correction-0001",
