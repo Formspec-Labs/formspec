@@ -1,0 +1,83 @@
+[
+  {
+    "id": "length-null",
+    "expr": "length(null)",
+    "data": {},
+    "expected_value": 0
+  },
+  {
+    "id": "empty-null",
+    "expr": "empty(null)",
+    "data": {},
+    "expected_value": true
+  },
+  {
+    "id": "present-null",
+    "expr": "present(null)",
+    "data": {},
+    "expected_value": false
+  },
+  {
+    "id": "selected-null-array",
+    "expr": "selected(null, 'x')",
+    "data": {},
+    "expected_value": false
+  },
+  {
+    "id": "sum-rejects-money",
+    "expr": "sum($amounts)",
+    "data": {
+      "amounts": [
+        {
+          "$type": "money",
+          "amount": "1.00",
+          "currency": "USD"
+        }
+      ]
+    },
+    "expected_value": null,
+    "expected_diagnostic_codes": [
+      "FEL_SUM_REJECTS_MONEY"
+    ]
+  },
+  {
+    "id": "money-sum-mixed-currencies",
+    "expr": "moneySum($amounts)",
+    "data": {
+      "amounts": [
+        {
+          "$type": "money",
+          "amount": "1.00",
+          "currency": "USD"
+        },
+        {
+          "$type": "money",
+          "amount": "2.00",
+          "currency": "EUR"
+        }
+      ]
+    },
+    "expected_value": null,
+    "expected_diagnostic_codes": [
+      "FEL_MONEY_SUM_MIXED_CURRENCIES"
+    ]
+  },
+  {
+    "id": "money-sum-non-money-element",
+    "expr": "moneySum($amounts)",
+    "data": {
+      "amounts": [
+        {
+          "$type": "money",
+          "amount": "1.00",
+          "currency": "USD"
+        },
+        2
+      ]
+    },
+    "expected_value": null,
+    "expected_diagnostic_codes": [
+      "FEL_MONEY_SUM_NON_MONEY"
+    ]
+  }
+]
