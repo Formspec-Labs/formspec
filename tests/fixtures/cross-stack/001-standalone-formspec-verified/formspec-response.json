@@ -1,0 +1,49 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.org/forms/cross-stack-signature-001",
+  "definitionVersion": "1.0.0",
+  "id": "resp-cross-stack-001",
+  "status": "completed",
+  "data": {
+    "signerName": "Ada Lovelace",
+    "consentAccepted": true,
+    "benefitProgram": "cross-stack-fixture"
+  },
+  "authored": "2026-05-08T17:30:00Z",
+  "authoredSignatures": [
+    {
+      "signatureId": "sig-cross-stack-001",
+      "documentId": "benefitsApplication",
+      "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
+      "signatureValue": "0oRYGKIBJwRTZml4dHVyZS0wMDEtZWQyNTUxOaD2WEDc6ZQa1CriVyEUvXHm7IFFiBadt3RYHsSGBuPhHIkurkyAFJk7CDKDm/7Br/wujUUGp5MaoGKHxp+ABuLgiJQA",
+      "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+      "verificationReceipt": "0oRYGKIBJwRTZml4dHVyZS0wMDEtcmVjZWlwdKBZAd17ImFkYXB0ZXIiOnsiaWQiOiJ1cm46Zm9ybXNwZWM6YWRhcHRlcjp3ZWJjcnlwdG9AMSIsInZlcnNpb24iOiIwLjEuMCJ9LCJjb250ZXh0Ijp7IndpdG5lc3MiOnsiYW5jaG9yIjp7ImV2ZW50SGFzaCI6IkN5REpHajh6TDVSN0liZUhPL24wZDFvUVhDNlp4bFlZKzdVZ3JjQjI2Tkk9IiwibGVkZ2VyU2NvcGUiOiJmb3Jtc3BlYy1jcm9zcy1zdGFjay1maXh0dXJlLTAwMSJ9fX0sImtleSI6eyJyZWYiOiJBNkVIdi9QT0VMNGRjTjBZNTB2QW1XZmsxakNicFExZkhkeUdaQkpWTWJnPSIsInNuYXBzaG90IjoiQTZFSHYvUE9FTDRkY04wWTUwdkFtV2ZrMWpDYnBRMWZIZHlHWkJKVk1iZz0ifSwibWV0aG9kIjoidXJuOmZvcm1zcGVjOnNpZy1tZXRob2Q6ZWQyNTUxOS1jb3NlLXNpZ24xQDEiLCJtZXRob2RSZWdpc3RyeVZlcnNpb24iOiIxLjAuMCIsInJlc3VsdCI6InZlcmlmaWVkIiwidmVyaWZpZWRBdCI6IjIwMjYtMDUtMDhUMTc6MzE6MDBaIn1YQEKgBPv+u8xDQpz/sQ/6Kjcq9BGU95jvOidHo41yfJ9vd/ntZnEj910bZzTrLdIjf9ApXnlXEgqwSIJwbx+lfAc=",
+      "signerId": "applicant",
+      "signerName": "Ada Lovelace",
+      "consentAccepted": true,
+      "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
+      "consentVersion": "1.0.0",
+      "affirmationText": "I certify under penalty of perjury that this submission is true and complete.",
+      "signedPayload": {
+        "canonicalization": "formspec-response-signing-v1",
+        "digestAlgorithm": "sha-256",
+        "digest": "9b56dfeea64d35904ff30663aaebd4643645caeb5c0d2cce34ab242486432e3a",
+        "responseId": "resp-cross-stack-001",
+        "definitionUrl": "https://example.org/forms/cross-stack-signature-001",
+        "definitionVersion": "1.0.0",
+        "signedAt": "2026-05-08T17:30:00Z",
+        "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1"
+      },
+      "documentHash": "f724d236755e33c2969d66c62efcd956e425529d3dcedff47e5ed0877d101ac4",
+      "documentHashAlgorithm": "sha-256",
+      "identityProofRef": "urn:agency.gov:identity-proof:cross-stack-fixture-001",
+      "identityBinding": {
+        "method": "email-otp",
+        "assuranceLevel": "standard",
+        "providerRef": "urn:agency.gov:identity:providers:fixture-email-otp"
+      },
+      "signatureProvider": "urn:formspec:signature-provider:fixture-webcrypto",
+      "ceremonyId": "ceremony-cross-stack-001"
+    }
+  ]
+}

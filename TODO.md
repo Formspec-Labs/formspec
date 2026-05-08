@@ -117,10 +117,13 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - **CROSS-STACK-FIXTURES-001 — Byte-populated cross-stack fixtures** `[7 / 5 / 5]` (35)
   Seven bundle directories exist with manifest.toml skeletons and formspec-cross-stack-fixture-harness
-  proving structural coherence (9 tests, 3 negative). No bytes populated.
+  proving structural coherence (10 tests, 3 negative). Bundle 001 is byte-populated and verifies:
+  `formspec-response.json` schema-validates, `signedPayload.digest` matches canonical bytes,
+  `verificationReceipt` byte-matches `verification-receipt.cose`, and the ring adapter verifies
+  the detached Ed25519 COSE_Sign1 signature using the receipt key reference.
   Remaining per bundle:
-    • 001 — generate ed25519 keypair, construct Response, sign COSE_Sign1, run webcrypto adapter,
-      produce VerificationReceipt with receiptBytes, populate formspec-response.json + verification-receipt.cose
+    • 001 — done: Formspec-only verified fixture with Response, Posture Declaration,
+      COSE_Sign1 signature, and COSE-wrapped VerificationReceipt bytes
     • 002 — full WOS-governed path: Response → SignatureAffirmation with verified receipt
     • 003 — posture forbids method → SignatureAdmissionFailed { reason: method_unsupported }
     • 004 — adapter rejects → SignatureAdmissionFailed { reason: primitive_verification_failed }

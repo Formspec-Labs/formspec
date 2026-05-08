@@ -1,6 +1,37 @@
 use formspec_cross_stack_fixture_harness::*;
 use std::path::PathBuf;
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FixtureResponse {
+    id: String,
+    definition_url: String,
+    definition_version: String,
+    authored_signatures: Vec<FixtureAuthoredSignature>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FixtureAuthoredSignature {
+    signing_intent: String,
+    signature_value: String,
+    signature_method: String,
+    verification_receipt: String,
+    signed_payload: FixtureSignedPayload,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FixtureSignedPayload {
+    digest_algorithm: String,
+    digest: String,
+    response_id: String,
+    definition_url: String,
+    definition_version: String,
+    signed_at: String,
+    signing_intent: String,
+}
+
 fn cross_stack_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let root = manifest_dir
@@ -17,6 +48,15 @@ fn cross_stack_root() -> PathBuf {
         root
     );
     root
+}
+
+fn formspec_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }
 
 #[test]
@@ -62,6 +102,126 @@ fn test_bundle_001_has_expected_shape() {
     assert!(!b001.manifest.required_files.wos_provenance);
     assert!(!b001.manifest.required_files.trellis_events);
     assert!(!b001.manifest.required_files.trellis_export);
+}
+
+#[test]
+fn test_bundle_001_bytes_verify_with_ring_adapter() {
+    use base64::Engine;
+    use formspec_canonical::{DigestAlgorithm, build_signed_payload};
+    use formspec_signature_adapter_ring::RingVerifier;
+    use formspec_signature_cose::decode_cose_sign1;
+    use formspec_signature_port::{
+        SignatureMethodRegistry, VerificationReceipt, VerificationResult, Verifier, VerifyRequest,
+    };
+
+    let root = cross_stack_root();
+    let bundle_dir = root.join("001-standalone-formspec-verified");
+    let response_path = bundle_dir.join("formspec-response.json");
+    let receipt_path = bundle_dir.join("verification-receipt.cose");
+    let posture_path = bundle_dir.join("posture-declaration.json");
+
+    assert!(response_path.exists(), "bundle 001 response missing");
+    assert!(
+        receipt_path.exists(),
+        "bundle 001 verification receipt missing"
+    );
+    assert!(
+        posture_path.exists(),
+        "bundle 001 posture declaration missing"
+    );
+
+    let response_json: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&response_path).expect("read response"))
+            .expect("parse response");
+    let schema_path = formspec_root().join("schemas/response.schema.json");
+    let response_schema: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(schema_path).expect("read response schema"))
+            .expect("parse response schema");
+    let validation_result_schema_path =
+        formspec_root().join("schemas/validation-result.schema.json");
+    let validation_result_schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(validation_result_schema_path)
+            .expect("read validation result schema"),
+    )
+    .expect("parse validation result schema");
+    let response_validator = jsonschema::options()
+        .with_resource(
+            "https://formspec.org/schemas/validationResult/1.0",
+            jsonschema::Resource::from_contents(validation_result_schema),
+        )
+        .build(&response_schema)
+        .expect("compile response schema");
+    response_validator
+        .validate(&response_json)
+        .expect("bundle 001 response must validate against response.schema.json");
+
+    let response: FixtureResponse =
+        serde_json::from_value(response_json.clone()).expect("typed response");
+    assert_eq!(response.authored_signatures.len(), 1);
+    let signature = &response.authored_signatures[0];
+
+    assert_eq!(signature.signed_payload.response_id, response.id);
+    assert_eq!(
+        signature.signed_payload.definition_url,
+        response.definition_url
+    );
+    assert_eq!(
+        signature.signed_payload.definition_version,
+        response.definition_version
+    );
+    assert_eq!(
+        signature.signed_payload.signing_intent,
+        signature.signing_intent
+    );
+    assert!(
+        !signature.signed_payload.signed_at.is_empty(),
+        "signedAt must be carried inside signedPayload"
+    );
+
+    let algorithm = DigestAlgorithm::from_str(&signature.signed_payload.digest_algorithm)
+        .expect("digest algorithm");
+    let signed_payload = build_signed_payload(&response_json, algorithm).expect("signed payload");
+    assert_eq!(signed_payload.digest, signature.signed_payload.digest);
+
+    let receipt_bytes = std::fs::read(&receipt_path).expect("read receipt");
+    let receipt_b64 = base64::engine::general_purpose::STANDARD.encode(&receipt_bytes);
+    assert_eq!(
+        signature.verification_receipt, receipt_b64,
+        "response verificationReceipt must byte-match verification-receipt.cose"
+    );
+
+    let receipt_cose = decode_cose_sign1(&receipt_bytes).expect("decode receipt cose");
+    let receipt_payload = receipt_cose
+        .payload()
+        .expect("bundle 001 receipt must embed its JSON payload");
+    let receipt: VerificationReceipt =
+        serde_json::from_slice(receipt_payload).expect("parse receipt payload");
+    assert_eq!(
+        receipt.result.to_string(),
+        VerificationResult::Verified.to_string()
+    );
+    assert_eq!(receipt.method.as_str(), signature.signature_method);
+
+    let registry_path = formspec_root().join("registries/signature-method-registry.json");
+    let registry: SignatureMethodRegistry =
+        serde_json::from_str(&std::fs::read_to_string(registry_path).expect("read registry"))
+            .expect("parse registry");
+    let signature_bytes = base64::engine::general_purpose::STANDARD
+        .decode(&signature.signature_value)
+        .expect("decode signatureValue");
+    let verifier = RingVerifier::new();
+    let verification = verifier
+        .verify(
+            &VerifyRequest {
+                signed_bytes: signed_payload.canonical_bytes,
+                signature_bytes,
+                signature_method: signature.signature_method.as_str().into(),
+                key_ref: receipt.key.r#ref.clone(),
+            },
+            &registry,
+        )
+        .expect("ring verification");
+    assert_eq!(verification.result.to_string(), "verified");
 }
 
 #[test]

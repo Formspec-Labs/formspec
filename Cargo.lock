@@ -414,6 +414,11 @@ dependencies = [
 name = "formspec-cross-stack-fixture-harness"
 version = "0.1.0"
 dependencies = [
+ "base64",
+ "formspec-canonical",
+ "formspec-signature-adapter-ring",
+ "formspec-signature-cose",
+ "formspec-signature-port",
  "jsonschema",
  "serde",
  "serde_json",
