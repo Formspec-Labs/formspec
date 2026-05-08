@@ -27,7 +27,7 @@ Source schema: `schemas/intake-handoff.schema.json`
 | `#/properties/intakeSessionId` | yes | string | Stable session handle that binds the handoff to the intake run that produced its evidence. | Identifier for the intake session that produced the response and ledger evidence. |
 | `#/properties/ledgerHeadRef` | yes | $ref | Connects downstream case creation to respondent-side material history. | Reference to the respondent-ledger head event or checkpoint at handoff time. |
 | `#/properties/occurredAt` | yes | string | Boundary timestamp for when the validated intake evidence became eligible for host acceptance. | RFC 3339 timestamp when the handoff was produced. |
-| `#/properties/responseHash` | yes | $ref | Integrity binding for the response bytes used by downstream acceptance. | Digest of the canonical Response envelope referenced by responseRef. |
+| `#/properties/responseHash` | yes | $ref | Integrity binding for the response bytes used by downstream acceptance. | Digest of the canonical Response envelope referenced by responseRef, including the current authoredSignatures array when signatures are present. This handoff digest is distinct from authoredSignatures[*].signedPayload.digest, which hashes the signer-assented payload with authoredSignatures omitted. |
 | `#/properties/responseRef` | yes | $ref | Stable pointer to the canonical captured data payload. | Reference to the persisted canonical Formspec Response produced by the intake session. |
 | `#/properties/validationReportRef` | yes | $ref | Carries validation evidence without reinterpreting case policy in Formspec. | Reference to the immutable ValidationReport snapshot evaluated before handoff. |
 

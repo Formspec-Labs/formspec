@@ -476,12 +476,12 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/$formspecResponse` | `$formspecResponse` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Response specification version. MUST be '1.0'. |
 | `#/properties/author` | `author` | <code>object</code> | no | — | Identifier and display name of the person or system that authored the Response. For human authors, 'id' is typically a user account identifier; for automated systems, 'id' identifies the service or integration. |
 | `#/properties/authored` | `authored` | <code>string</code> | yes | critical | When the Response was last modified (ISO 8601 date-time with timezone). Updated on every save, not just on status transitions. Used for conflict detection, audit trails, and ordering Responses chronologically. |
-| `#/properties/authoredSignatures` | `authoredSignatures` | <code>array</code> | no | — | Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Response envelope. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations. |
+| `#/properties/authoredSignatures` | `authoredSignatures` | <code>array</code> | no | — | Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations. |
 | `#/properties/data` | `data` | <code>object</code> | yes | critical | The primary Instance — the form data. Structure mirrors the Definition's item tree: field Items produce scalar properties, non-repeatable group Items produce nested objects, repeatable group Items produce arrays of objects, display Items have no representation. Non-relevant fields are handled per the Definition's nonRelevantBehavior setting: 'remove' (default) omits them entirely, 'empty' retains the key with null value, 'keep' retains the last value. Calculated fields (those with a 'calculate' Bind) are included with their computed values. |
 | `#/properties/definitionUrl` | `definitionUrl` | <code>string</code> | yes | critical | The canonical URL of the Definition this Response was created against. This is the stable logical-form identifier shared across all versions of the same form. Combined with definitionVersion to form the immutable identity reference. MUST match the 'url' property of a known Definition. |
 | `#/properties/definitionVersion` | `definitionVersion` | <code>string</code> | yes | critical | The exact version of the Definition against which this Response was created. Interpretation of the version string is governed by the Definition's versionAlgorithm (default: semver). A Response is always validated against this specific version, never against a newer version — even if one exists (Pinning Rule VP-01). Once set, this value MUST NOT change for the lifetime of the Response. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state). |
-| `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind to a stable responseId. |
+| `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
 | `#/properties/status` | `status` | <code>string</code> | yes | enum: <code>"in-progress"</code>, <code>"completed"</code>, <code>"amended"</code>, <code>"stopped"</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
 | `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form). |
 | `#/properties/validationResults` | `validationResults` | <code>array</code> | no | — | The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run. |
@@ -497,8 +497,8 @@ Response whose `definitionVersion` does not match any known Definition at the
 given `definitionUrl`.
 
 A Response MAY carry one or more `authoredSignatures` records. Each record
-binds one signer/document act to the Response envelope itself, not merely to a
-widget control in `data`.
+binds one signer/document act to the Formspec Signed Response Payload, not
+merely to a widget control in `data`.
 
 An `authoredSignatures` record is for authored evidence produced at signing
 time. It is distinct from respondent-ledger `attestation.captured` events,
@@ -508,16 +508,61 @@ keep these concerns separate.
 When `authoredSignatures` is present:
 
 - the top-level `id` MUST be present,
-- each `authoredSignatures[*].responseId` MUST equal that top-level `id`,
-- each record MUST bind the signing act to a `documentHash` and
-  `documentHashAlgorithm`, and
+- each record MUST carry `signatureId`, `signingIntent`, and `signedPayload`,
+- each `authoredSignatures[*].signedPayload.responseId` MUST equal that
+  top-level `id`,
+- each `authoredSignatures[*].signedPayload.definitionUrl` and
+  `signedPayload.definitionVersion` MUST equal the top-level Response pins,
+- each `authoredSignatures[*].signedPayload.digest` MUST verify against the
+  Formspec Signed Response Payload using
+  `signedPayload.canonicalization` and `signedPayload.digestAlgorithm`,
+- each record MAY separately bind the signing act to a `documentHash` and
+  `documentHashAlgorithm` for the document, rendered view, certification page,
+  or signing surface shown to the signer, and
 - each record MUST carry explicit consent evidence
   (`consentAccepted`, `consentTextRef`, `consentVersion`, `affirmationText`).
+
+The Formspec Signed Response Payload is the Response object after normal
+response emission, with `authoredSignatures` omitted. All other emitted Response
+fields remain in scope unless this section explicitly marks a field as
+unsigned. This omission rule avoids self-reference and allows later
+co-signatures to be appended without invalidating earlier signatures.
+
+The `formspec-response-signing-v1` canonicalization profile uses UTF-8 encoded
+canonical JSON, deterministic object member ordering, no insignificant
+whitespace, stable representation of numbers, strings, arrays, booleans, and
+null, explicit handling for absent optional fields, and rejection of non-finite
+numbers or duplicate object member names. The domain separation string is
+`formspec.response.signed-payload.v1`.
 
 A drawn signature image, typed name, or provider callback alone is not
 sufficient signing intent. A conforming implementation MUST NOT claim authored
 signature semantics from `signatureValue` alone without the consent and
-document-binding evidence above.
+signed-payload evidence above. `documentHash` is useful corroborating evidence
+for the viewed signing surface, but it is not the normative response-byte
+assent binding; `signedPayload.digest` carries that commitment.
+
+Formspec authored-signature verification produces a structured result rather
+than only a boolean. At minimum, implementations MUST distinguish these result
+codes when reporting verification failure or success:
+
+- `valid`
+- `schema-invalid`
+- `payload-digest-mismatch`
+- `response-pin-mismatch`
+- `consent-missing`
+- `identity-binding-insufficient`
+- `provider-verification-failed`
+- `unsupported-signature-method`
+- `clock-policy-failed`
+
+Verification proceeds by validating the Response schema, checking the Response
+pins in `signedPayload`, constructing the Formspec Signed Response Payload by
+omitting `authoredSignatures`, canonicalizing with
+`formspec-response-signing-v1`, hashing with `signedPayload.digestAlgorithm`,
+comparing the computed digest to `signedPayload.digest`, checking consent and
+signing-intent evidence, and applying method/provider-specific verification
+where the signature method requires an external verifier.
 
 > **Example.** A completed Response (this object includes every required
 > top-level property in `schemas/response.schema.json` and omits optional
@@ -555,7 +600,9 @@ document-binding evidence above.
 >   "authored": "2026-04-22T12:00:00Z",
 >   "authoredSignatures": [
 >     {
+>       "signatureId": "sig-2026-0001",
 >       "documentId": "benefitsApplication",
+>       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
 >       "signatureValue": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
 >       "signatureMethod": "drawn",
 >       "signerId": "applicant",
@@ -565,9 +612,16 @@ document-binding evidence above.
 >       "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
 >       "consentVersion": "1.0.0",
 >       "affirmationText": "I certify under penalty of perjury that this submission is true and complete.",
+>       "signedPayload": {
+>         "canonicalization": "formspec-response-signing-v1",
+>         "digestAlgorithm": "sha-256",
+>         "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+>         "responseId": "resp-2026-0001",
+>         "definitionUrl": "https://example.org/forms/signature-attestation",
+>         "definitionVersion": "1.0.0"
+>       },
 >       "documentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 >       "documentHashAlgorithm": "sha-256",
->       "responseId": "resp-2026-0001",
 >       "identityProofRef": "urn:agency.gov:identity-proof:case-2026-0042",
 >       "identityBinding": {
 >         "method": "email-otp",
@@ -607,7 +661,7 @@ from `schemas/intake-handoff.schema.json`:
 | `#/properties/intakeSessionId` | `intakeSessionId` | <code>string</code> | yes | critical | Identifier for the intake session that produced the response and ledger evidence. |
 | `#/properties/ledgerHeadRef` | `ledgerHeadRef` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/Ref</code>; critical | Reference to the respondent-ledger head event or checkpoint at handoff time. |
 | `#/properties/occurredAt` | `occurredAt` | <code>string</code> | yes | critical | RFC 3339 timestamp when the handoff was produced. |
-| `#/properties/responseHash` | `responseHash` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/HashString</code>; critical | Digest of the canonical Response envelope referenced by responseRef. |
+| `#/properties/responseHash` | `responseHash` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/HashString</code>; critical | Digest of the canonical Response envelope referenced by responseRef, including the current authoredSignatures array when signatures are present. This handoff digest is distinct from authoredSignatures[*].signedPayload.digest, which hashes the signer-assented payload with authoredSignatures omitted. |
 | `#/properties/responseRef` | `responseRef` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/Ref</code>; critical | Reference to the persisted canonical Formspec Response produced by the intake session. |
 | `#/properties/subjectRef` | `subjectRef` | <code>composite</code> | no | — | Optional reference to the person, organization, asset, or matter that the intake concerns. |
 | `#/properties/validationReportRef` | `validationReportRef` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/Ref</code>; critical | Reference to the immutable ValidationReport snapshot evaluated before handoff. |
@@ -651,9 +705,14 @@ for Response processing (Core S6.4, VP-01), but Intake Handoff carries the
 tuple as `definitionRef.url` and `definitionRef.version` instead of top-level
 `definitionUrl` and `definitionVersion`.
 
-The `responseHash` binds the handoff to the canonical Response envelope. A
-conforming acceptor SHOULD verify the hash before creating or updating any
-governed case state.
+The `responseHash` binds the handoff to the canonical Response envelope
+referenced by `responseRef`. When that envelope carries `authoredSignatures`,
+`responseHash` covers the current signature array. This handoff digest is not
+the signer-assent digest: `authoredSignatures[*].signedPayload.digest` hashes
+the Formspec Signed Response Payload with `authoredSignatures` omitted. A
+conforming acceptor SHOULD verify `responseHash` before creating or updating
+any governed case state and MAY separately require authored-signature
+verification before accepting signed intake.
 
 The `ledgerHeadRef` identifies the respondent-side material history available
 at handoff time. Systems such as Trellis MAY anchor this evidence, but they

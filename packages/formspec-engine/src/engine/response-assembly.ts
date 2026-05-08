@@ -6,6 +6,7 @@ import type { EvalResult } from '../diff.js';
 import type {
     AuthoredSignatureIdentityBinding,
     AuthoredSignatureInput,
+    AuthoredSignatureSignedPayload,
     PinnedResponseReference,
 } from '../interfaces.js';
 import { wasmApplyMigrationsToResponseData } from '../wasm-bridge-runtime.js';
@@ -24,16 +25,16 @@ function resolveResponseId(
     }
     const responseIds = new Set(
         authoredSignatures
-            .map((signature) => signature.responseId)
+            .map((signature) => signature.signedPayload?.responseId)
             .filter((value): value is string => typeof value === 'string' && value.trim().length > 0),
     );
     if (responseIds.size === 0) {
         throw new Error(
-            'authoredSignatures require meta.id on getResponse(), or a single agreed non-empty responseId among signature records',
+            'authoredSignatures require meta.id on getResponse(), or a single agreed non-empty signedPayload.responseId among signature records',
         );
     }
     if (responseIds.size > 1) {
-        throw new Error('authoredSignatures must agree on a single responseId');
+        throw new Error('authoredSignatures must agree on a single signedPayload.responseId');
     }
     return [...responseIds][0];
 }
@@ -57,25 +58,90 @@ function pickIdentityBinding(
     return out;
 }
 
+function requireNonEmptyString(value: string | undefined, label: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        throw new Error(`${label} is required`);
+    }
+    return value;
+}
+
+function normalizeSignedPayload(
+    signature: AuthoredSignatureInput,
+    index: number,
+    responseId: string,
+    definitionUrl: string,
+    definitionVersion: string,
+): AuthoredSignatureSignedPayload {
+    const signedPayload = signature.signedPayload;
+    if (!signedPayload) {
+        throw new Error(`authoredSignatures[${index}].signedPayload is required`);
+    }
+    if (signedPayload.canonicalization !== 'formspec-response-signing-v1') {
+        throw new Error(
+            `authoredSignatures[${index}].signedPayload.canonicalization must be formspec-response-signing-v1`,
+        );
+    }
+    requireNonEmptyString(
+        signedPayload.digestAlgorithm,
+        `authoredSignatures[${index}].signedPayload.digestAlgorithm`,
+    );
+    requireNonEmptyString(
+        signedPayload.digest,
+        `authoredSignatures[${index}].signedPayload.digest`,
+    );
+    if (signedPayload.responseId !== responseId) {
+        throw new Error(`authoredSignatures[${index}].signedPayload.responseId must match the Response id`);
+    }
+    if (signedPayload.definitionUrl !== definitionUrl) {
+        throw new Error(`authoredSignatures[${index}].signedPayload.definitionUrl must match the Response definitionUrl`);
+    }
+    if (signedPayload.definitionVersion !== definitionVersion) {
+        throw new Error(`authoredSignatures[${index}].signedPayload.definitionVersion must match the Response definitionVersion`);
+    }
+    return {
+        canonicalization: signedPayload.canonicalization,
+        digestAlgorithm: signedPayload.digestAlgorithm,
+        digest: signedPayload.digest,
+        responseId: signedPayload.responseId,
+        definitionUrl: signedPayload.definitionUrl,
+        definitionVersion: signedPayload.definitionVersion,
+    };
+}
+
 /** Emit only JSON-Schema–declared AuthoredSignature properties (additionalProperties: false). */
 function toNormalizedAuthoredSignatureRecord(
     signature: AuthoredSignatureInput,
     index: number,
     responseId: string,
+    definitionUrl: string,
+    definitionVersion: string,
     meta: { author?: { id: string; name?: string } } | undefined,
 ): Record<string, unknown> {
     const signerName = signature.signerName ?? meta?.author?.name;
     if (!signerName || !signerName.trim()) {
         throw new Error(`authoredSignatures[${index}] requires signerName or meta.author.name`);
     }
-    const signatureResponseId = signature.responseId ?? responseId;
-    if (signatureResponseId !== responseId) {
-        throw new Error(`authoredSignatures[${index}].responseId must match the Response id`);
-    }
+    const signatureId = requireNonEmptyString(
+        signature.signatureId,
+        `authoredSignatures[${index}].signatureId`,
+    );
+    const signingIntent = requireNonEmptyString(
+        signature.signingIntent,
+        `authoredSignatures[${index}].signingIntent`,
+    );
+    const signedPayload = normalizeSignedPayload(
+        signature,
+        index,
+        responseId,
+        definitionUrl,
+        definitionVersion,
+    );
     const signerId = signature.signerId ?? meta?.author?.id;
 
     const record: Record<string, unknown> = {
+        signatureId,
         documentId: signature.documentId,
+        signingIntent,
         signatureValue: signature.signatureValue,
         signatureMethod: signature.signatureMethod,
         signerName: signerName.trim(),
@@ -84,9 +150,9 @@ function toNormalizedAuthoredSignatureRecord(
         consentTextRef: signature.consentTextRef,
         consentVersion: signature.consentVersion,
         affirmationText: signature.affirmationText,
+        signedPayload,
         documentHash: signature.documentHash,
         documentHashAlgorithm: signature.documentHashAlgorithm,
-        responseId,
         signatureProvider: signature.signatureProvider,
         ceremonyId: signature.ceremonyId,
     };
@@ -108,7 +174,10 @@ function prepareAuthoredSignaturesSection(meta: {
     author?: { id: string; name?: string };
     subject?: { id: string; type?: string };
     authoredSignatures?: AuthoredSignatureInput[];
-} | undefined): {
+} | undefined, responsePins: {
+    definitionUrl: string;
+    definitionVersion: string;
+}): {
     authoredSignatures: Record<string, unknown>[] | undefined;
     envelopeResponseId: string | undefined;
 } {
@@ -121,7 +190,14 @@ function prepareAuthoredSignaturesSection(meta: {
         throw new Error('authoredSignatures require a stable response id');
     }
     const normalized = signatures.map((sig, i) =>
-        toNormalizedAuthoredSignatureRecord(sig, i, responseId, meta),
+        toNormalizedAuthoredSignatureRecord(
+            sig,
+            i,
+            responseId,
+            responsePins.definitionUrl,
+            responsePins.definitionVersion,
+            meta,
+        ),
     );
     return { authoredSignatures: normalized, envelopeResponseId: responseId };
 }
@@ -138,11 +214,16 @@ export function buildFormspecResponseEnvelope(options: {
         authoredSignatures?: AuthoredSignatureInput[];
     };
 }): Record<string, unknown> {
-    const { authoredSignatures, envelopeResponseId } = prepareAuthoredSignaturesSection(options.meta);
+    const definitionUrl = options.definition.url ?? 'http://example.org/form';
+    const definitionVersion = options.definition.version ?? '1.0.0';
+    const { authoredSignatures, envelopeResponseId } = prepareAuthoredSignaturesSection(options.meta, {
+        definitionUrl,
+        definitionVersion,
+    });
     const response: Record<string, unknown> = {
         $formspecResponse: '1.0',
-        definitionUrl: options.definition.url ?? 'http://example.org/form',
-        definitionVersion: options.definition.version ?? '1.0.0',
+        definitionUrl,
+        definitionVersion,
         status: options.report.valid ? 'completed' : 'in-progress',
         data: options.data,
         validationResults: options.report.results,

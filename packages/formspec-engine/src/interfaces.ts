@@ -262,8 +262,19 @@ export interface AuthoredSignatureIdentityBinding {
     externalAttestationRef?: string;
 }
 
+export interface AuthoredSignatureSignedPayload {
+    canonicalization: 'formspec-response-signing-v1';
+    digestAlgorithm: string;
+    digest: string;
+    responseId: string;
+    definitionUrl: string;
+    definitionVersion: string;
+}
+
 export interface AuthoredSignatureInput {
+    signatureId: string;
     documentId: string;
+    signingIntent: string;
     signatureValue: string;
     signatureMethod: string;
     signerId?: string;
@@ -273,9 +284,9 @@ export interface AuthoredSignatureInput {
     consentTextRef: string;
     consentVersion: string;
     affirmationText: string;
+    signedPayload: AuthoredSignatureSignedPayload;
     documentHash: string;
     documentHashAlgorithm: string;
-    responseId?: string;
     identityProofRef?: string;
     identityBinding?: AuthoredSignatureIdentityBinding;
     signatureProvider: string;

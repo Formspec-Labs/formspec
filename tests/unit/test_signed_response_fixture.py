@@ -26,4 +26,6 @@ def test_signed_response_fixture_survives_server_side_revalidation_without_losin
     assert schema_pass.items[0].error_count == 0
     assert runtime_pass.items[0].error_count == 0
     assert artifacts.responses[0].doc == original
-    assert artifacts.responses[0].doc["authoredSignatures"][0]["responseId"] == artifacts.responses[0].doc["id"]
+    signed_payload = artifacts.responses[0].doc["authoredSignatures"][0]["signedPayload"]
+    assert signed_payload["responseId"] == artifacts.responses[0].doc["id"]
+    assert signed_payload["canonicalization"] == "formspec-response-signing-v1"

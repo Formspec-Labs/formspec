@@ -6,12 +6,7 @@
   "status": "completed",
   "data": {
     "signerName": "Ada Lovelace",
-    "consentAccepted": true,
-    "signatureCapture": {
-      "contentType": "image/png",
-      "url": "data:image/png;base64,AAA="
-    },
-    "identityProofRef": "urn:agency.gov:identity-proof:case-2026-0042"
+    "consentAccepted": true
   },
   "authored": "2026-04-22T12:00:00Z",
   "authoredSignatures": [
@@ -19,8 +14,8 @@
       "signatureId": "sig-2026-0001",
       "documentId": "benefitsApplication",
       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
-      "signatureValue": "data:image/png;base64,AAA=",
-      "signatureMethod": "drawn",
+      "signatureValue": "urn:agency.gov:signature:artifacts:ceremony-2026-0001:primary",
+      "signatureMethod": "provider-managed",
       "signerId": "applicant",
       "signerName": "Ada Lovelace",
       "signedAt": "2026-04-22T12:00:00Z",
@@ -31,19 +26,13 @@
       "signedPayload": {
         "canonicalization": "formspec-response-signing-v1",
         "digestAlgorithm": "sha-256",
-        "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         "responseId": "resp-2026-0001",
         "definitionUrl": "https://example.org/forms/signature-attestation",
         "definitionVersion": "1.0.0"
       },
       "documentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "documentHashAlgorithm": "sha-256",
-      "identityProofRef": "urn:agency.gov:identity-proof:case-2026-0042",
-      "identityBinding": {
-        "method": "email-otp",
-        "assuranceLevel": "standard",
-        "providerRef": "urn:agency.gov:identity:providers:email-otp"
-      },
       "signatureProvider": "urn:agency.gov:signature:providers:formspec",
       "ceremonyId": "ceremony-2026-0001"
     }

@@ -49,11 +49,64 @@
         }
       }
     },
+    "AuthoredSignatureSignedPayload": {
+      "type": "object",
+      "description": "Digest commitment for the Formspec Signed Response Payload. The payload is the canonical Response envelope with authoredSignatures omitted, so the digest remains stable when later co-signatures are appended.",
+      "required": [
+        "canonicalization",
+        "digestAlgorithm",
+        "digest",
+        "responseId",
+        "definitionUrl",
+        "definitionVersion"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "canonicalization": {
+          "type": "string",
+          "const": "formspec-response-signing-v1",
+          "description": "Canonicalization profile used to produce the signed-payload bytes.",
+          "examples": ["formspec-response-signing-v1"]
+        },
+        "digestAlgorithm": {
+          "type": "string",
+          "pattern": "^(sha-256|sha-384|sha-512|x-[a-z0-9][a-z0-9-]*)$",
+          "description": "Digest algorithm used to hash the canonical signed payload.",
+          "examples": ["sha-256"]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64,128}$",
+          "description": "Digest of the Formspec Signed Response Payload: the canonical Response envelope with authoredSignatures omitted.",
+          "examples": ["0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifier of the Response whose signed payload was hashed. It MUST equal the top-level Response id.",
+          "examples": ["resp-2026-0001"]
+        },
+        "definitionUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Definition URL pin included in the signed payload. It MUST equal the top-level Response definitionUrl.",
+          "examples": ["https://example.org/forms/signature-attestation"]
+        },
+        "definitionVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Definition version pin included in the signed payload. It MUST equal the top-level Response definitionVersion.",
+          "examples": ["1.0.0"]
+        }
+      }
+    },
     "AuthoredSignature": {
       "type": "object",
-      "description": "Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Response envelope. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.",
+      "description": "Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.",
       "required": [
+        "signatureId",
         "documentId",
+        "signingIntent",
         "signatureValue",
         "signatureMethod",
         "signerName",
@@ -62,19 +115,31 @@
         "consentTextRef",
         "consentVersion",
         "affirmationText",
+        "signedPayload",
         "documentHash",
         "documentHashAlgorithm",
-        "responseId",
         "signatureProvider",
         "ceremonyId"
       ],
       "additionalProperties": false,
       "properties": {
+        "signatureId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for this authored signature record within the Response.",
+          "examples": ["sig-2026-0001"]
+        },
         "documentId": {
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
           "description": "Identifier of the document or signing surface this authored signature affirms.",
           "examples": ["benefitsApplication", "grantCertification"]
+        },
+        "signingIntent": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI identifying the signing intent or certification profile the signer accepted.",
+          "examples": ["urn:agency.gov:signing-intent:benefits-application-certification:v1"]
         },
         "signatureValue": {
           "type": "string",
@@ -131,10 +196,13 @@
           "description": "Affirmation text shown to and accepted by the signer at authoring time.",
           "examples": ["I certify under penalty of perjury that this submission is true and complete."]
         },
+        "signedPayload": {
+          "$ref": "#/$defs/AuthoredSignatureSignedPayload"
+        },
         "documentHash": {
           "type": "string",
           "pattern": "^[A-Fa-f0-9]{64,128}$",
-          "description": "Digest of the document bytes, rendered view, or canonical signing payload that the signer affirmed. This binds the signing act to content stronger than a drawn image alone.",
+          "description": "Digest of the document bytes, rendered view, certification page, or signing surface shown to the signer. This is not the normative response-byte assent binding; signedPayload.digest carries that commitment.",
           "examples": ["0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"]
         },
         "documentHashAlgorithm": {
@@ -142,12 +210,6 @@
           "pattern": "^(sha-256|sha-384|sha-512|x-[a-z0-9][a-z0-9-]*)$",
           "description": "Digest algorithm used to compute documentHash.",
           "examples": ["sha-256"]
-        },
-        "responseId": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Identifier of the Response this authored signature binds to. It MUST match the top-level Response id when the envelope is persisted.",
-          "examples": ["resp-2026-0001"]
         },
         "identityProofRef": {
           "type": "string",
@@ -268,7 +330,7 @@
     },
     "id": {
       "type": "string",
-      "description": "A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind to a stable responseId.",
+      "description": "A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.",
       "examples": [
         "550e8400-e29b-41d4-a716-446655440000",
         "resp-2025-00042"
@@ -362,14 +424,16 @@
     "authoredSignatures": {
       "type": "array",
       "minItems": 1,
-      "description": "Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Response envelope. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.",
+      "description": "Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.",
       "items": {
         "$ref": "#/$defs/AuthoredSignature"
       },
       "examples": [
         [
           {
+            "signatureId": "sig-2026-0001",
             "documentId": "benefitsApplication",
+            "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
             "signatureValue": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
             "signatureMethod": "drawn",
             "signerId": "applicant",
@@ -379,9 +443,16 @@
             "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
             "consentVersion": "1.0.0",
             "affirmationText": "I certify under penalty of perjury that this submission is true and complete.",
+            "signedPayload": {
+              "canonicalization": "formspec-response-signing-v1",
+              "digestAlgorithm": "sha-256",
+              "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+              "responseId": "resp-2026-0001",
+              "definitionUrl": "https://example.org/forms/signature-attestation",
+              "definitionVersion": "1.0.0"
+            },
             "documentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             "documentHashAlgorithm": "sha-256",
-            "responseId": "resp-2026-0001",
             "identityProofRef": "urn:agency.gov:identity-proof:case-2026-0042",
             "identityBinding": {
               "method": "email-otp",

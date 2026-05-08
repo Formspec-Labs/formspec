@@ -3,6 +3,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FormEngine } from '../dist/index.js';
 
+const SIGNATURE_DIGEST = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+
+function signedPayload(responseId, definitionUrl = 'https://example.org/forms/signature-attestation', definitionVersion = '1.0.0') {
+  return {
+    canonicalization: 'formspec-response-signing-v1',
+    digestAlgorithm: 'sha-256',
+    digest: SIGNATURE_DIGEST,
+    responseId,
+    definitionUrl,
+    definitionVersion
+  };
+}
+
 test('should prune non-relevant leaf fields when calling getResponse()', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
@@ -100,7 +113,9 @@ test('should include authored signatures in the response envelope and normalize 
     author: { id: 'applicant', name: 'Ada Lovelace' },
     authoredSignatures: [
       {
+        signatureId: 'sig-2026-0001',
         documentId: 'benefitsApplication',
+        signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
         signatureValue: 'data:image/png;base64,AAA=',
         signatureMethod: 'drawn',
         signedAt: '2026-04-22T12:00:00Z',
@@ -108,9 +123,9 @@ test('should include authored signatures in the response envelope and normalize 
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
         consentVersion: '1.0.0',
         affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
-        documentHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        signedPayload: signedPayload('resp-2026-0001'),
+        documentHash: SIGNATURE_DIGEST,
         documentHashAlgorithm: 'sha-256',
-        responseId: 'resp-2026-0001',
         identityProofRef: 'urn:agency.gov:identity-proof:case-2026-0042',
         identityBinding: {
           method: 'email-otp',
@@ -126,7 +141,9 @@ test('should include authored signatures in the response envelope and normalize 
   assert.equal(response.id, 'resp-2026-0001');
   assert.ok(Array.isArray(response.authoredSignatures));
   assert.equal(response.authoredSignatures.length, 1);
-  assert.equal(response.authoredSignatures[0].responseId, 'resp-2026-0001');
+  assert.equal(response.authoredSignatures[0].signatureId, 'sig-2026-0001');
+  assert.equal(response.authoredSignatures[0].signingIntent, 'urn:agency.gov:signing-intent:benefits-application-certification:v1');
+  assert.equal(response.authoredSignatures[0].signedPayload.responseId, 'resp-2026-0001');
   assert.equal(response.authoredSignatures[0].signerId, 'applicant');
   assert.equal(response.authoredSignatures[0].signerName, 'Ada Lovelace');
 });
@@ -144,6 +161,99 @@ test('should reject authored signatures that disagree on response identity', () 
     () => engine.getResponse({
       authoredSignatures: [
         {
+          signatureId: 'sig-1',
+          documentId: 'benefitsApplication',
+          signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
+          signatureValue: 'urn:agency.gov:signature:primary',
+          signatureMethod: 'provider-managed',
+          signerName: 'Ada Lovelace',
+          signedAt: '2026-04-22T12:00:00Z',
+          consentAccepted: true,
+          consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
+          consentVersion: '1.0.0',
+          affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
+          signedPayload: signedPayload('resp-1'),
+          documentHash: SIGNATURE_DIGEST,
+          documentHashAlgorithm: 'sha-256',
+          signatureProvider: 'urn:agency.gov:signature:providers:formspec',
+          ceremonyId: 'ceremony-1'
+        },
+        {
+          signatureId: 'sig-2',
+          documentId: 'benefitsApplication',
+          signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
+          signatureValue: 'urn:agency.gov:signature:secondary',
+          signatureMethod: 'provider-managed',
+          signerName: 'Ada Lovelace',
+          signedAt: '2026-04-22T12:05:00Z',
+          consentAccepted: true,
+          consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
+          consentVersion: '1.0.0',
+          affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
+          signedPayload: signedPayload('resp-2'),
+          documentHash: SIGNATURE_DIGEST,
+          documentHashAlgorithm: 'sha-256',
+          signatureProvider: 'urn:agency.gov:signature:providers:formspec',
+          ceremonyId: 'ceremony-2'
+        }
+      ]
+    }),
+    /single signedPayload\.responseId/
+  );
+});
+
+test('should reject authored signatures with mismatched signed payload definition pins', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/forms/signature-attestation',
+    version: '1.0.0',
+    title: 'Signature Attestation',
+    items: [{ type: 'field', dataType: 'string', key: 'signerName', label: 'Signer name' }]
+  });
+
+  assert.throws(
+    () => engine.getResponse({
+      id: 'resp-2026-0001',
+      authoredSignatures: [
+        {
+          signatureId: 'sig-2026-0001',
+          documentId: 'benefitsApplication',
+          signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
+          signatureValue: 'urn:agency.gov:signature:primary',
+          signatureMethod: 'provider-managed',
+          signerName: 'Ada Lovelace',
+          signedAt: '2026-04-22T12:00:00Z',
+          consentAccepted: true,
+          consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
+          consentVersion: '1.0.0',
+          affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
+          signedPayload: signedPayload('resp-2026-0001', 'https://example.org/forms/other-form'),
+          documentHash: SIGNATURE_DIGEST,
+          documentHashAlgorithm: 'sha-256',
+          signatureProvider: 'urn:agency.gov:signature:providers:formspec',
+          ceremonyId: 'ceremony-1'
+        }
+      ]
+    }),
+    /signedPayload\.definitionUrl must match/
+  );
+});
+
+test('should reject authored signatures missing signing intent before envelope emission', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/forms/signature-attestation',
+    version: '1.0.0',
+    title: 'Signature Attestation',
+    items: [{ type: 'field', dataType: 'string', key: 'signerName', label: 'Signer name' }]
+  });
+
+  assert.throws(
+    () => engine.getResponse({
+      id: 'resp-2026-0001',
+      authoredSignatures: [
+        {
+          signatureId: 'sig-2026-0001',
           documentId: 'benefitsApplication',
           signatureValue: 'urn:agency.gov:signature:primary',
           signatureMethod: 'provider-managed',
@@ -153,35 +263,19 @@ test('should reject authored signatures that disagree on response identity', () 
           consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
           consentVersion: '1.0.0',
           affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
-          documentHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          signedPayload: signedPayload('resp-2026-0001'),
+          documentHash: SIGNATURE_DIGEST,
           documentHashAlgorithm: 'sha-256',
-          responseId: 'resp-1',
           signatureProvider: 'urn:agency.gov:signature:providers:formspec',
           ceremonyId: 'ceremony-1'
-        },
-        {
-          documentId: 'benefitsApplication',
-          signatureValue: 'urn:agency.gov:signature:secondary',
-          signatureMethod: 'provider-managed',
-          signerName: 'Ada Lovelace',
-          signedAt: '2026-04-22T12:05:00Z',
-          consentAccepted: true,
-          consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
-          consentVersion: '1.0.0',
-          affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
-          documentHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-          documentHashAlgorithm: 'sha-256',
-          responseId: 'resp-2',
-          signatureProvider: 'urn:agency.gov:signature:providers:formspec',
-          ceremonyId: 'ceremony-2'
         }
       ]
     }),
-    /single responseId/
+    /signingIntent is required/
   );
 });
 
-test('should use meta.id when authored signatures omit responseId', () => {
+test('should use meta.id when authored signatures provide matching signedPayload response pins', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'https://example.org/forms/signature-attestation',
@@ -191,7 +285,9 @@ test('should use meta.id when authored signatures omit responseId', () => {
   });
 
   const baseSig = {
+    signatureId: 'sig-1',
     documentId: 'benefitsApplication',
+    signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
     signatureValue: 'urn:agency.gov:signature:primary',
     signatureMethod: 'provider-managed',
     signerName: 'Ada Lovelace',
@@ -200,7 +296,8 @@ test('should use meta.id when authored signatures omit responseId', () => {
     consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
     consentVersion: '1.0.0',
     affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
-    documentHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    signedPayload: signedPayload('resp-from-meta'),
+    documentHash: SIGNATURE_DIGEST,
     documentHashAlgorithm: 'sha-256',
     signatureProvider: 'urn:agency.gov:signature:providers:formspec',
     ceremonyId: 'ceremony-1'
@@ -211,13 +308,13 @@ test('should use meta.id when authored signatures omit responseId', () => {
     author: { id: 'applicant', name: 'Ada Lovelace' },
     authoredSignatures: [
       { ...baseSig, signatureValue: 'urn:agency.gov:signature:primary' },
-      { ...baseSig, signatureValue: 'urn:agency.gov:signature:secondary', signedAt: '2026-04-22T12:05:00Z', ceremonyId: 'ceremony-2' }
+      { ...baseSig, signatureId: 'sig-2', signatureValue: 'urn:agency.gov:signature:secondary', signedAt: '2026-04-22T12:05:00Z', ceremonyId: 'ceremony-2' }
     ]
   });
 
   assert.equal(response.id, 'resp-from-meta');
-  assert.equal(response.authoredSignatures[0].responseId, 'resp-from-meta');
-  assert.equal(response.authoredSignatures[1].responseId, 'resp-from-meta');
+  assert.equal(response.authoredSignatures[0].signedPayload.responseId, 'resp-from-meta');
+  assert.equal(response.authoredSignatures[1].signedPayload.responseId, 'resp-from-meta');
 });
 
 test('should infer signerName from meta.author.name when omitted on signatures', () => {
@@ -234,7 +331,9 @@ test('should infer signerName from meta.author.name when omitted on signatures',
     author: { id: 'applicant', name: 'Grace Hopper' },
     authoredSignatures: [
       {
+        signatureId: 'sig-2026-0002',
         documentId: 'benefitsApplication',
+        signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
         signatureValue: 'data:image/png;base64,AAA=',
         signatureMethod: 'drawn',
         signedAt: '2026-04-22T12:00:00Z',
@@ -242,9 +341,9 @@ test('should infer signerName from meta.author.name when omitted on signatures',
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
         consentVersion: '1.0.0',
         affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
-        documentHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        signedPayload: signedPayload('resp-2026-0002'),
+        documentHash: SIGNATURE_DIGEST,
         documentHashAlgorithm: 'sha-256',
-        responseId: 'resp-2026-0002',
         signatureProvider: 'urn:agency.gov:signature:providers:formspec',
         ceremonyId: 'ceremony-2026-0001'
       }
@@ -268,7 +367,9 @@ test('should strip unknown properties from authored signature inputs', () => {
     author: { id: 'applicant', name: 'Ada Lovelace' },
     authoredSignatures: [
       {
+        signatureId: 'sig-2026-0003',
         documentId: 'benefitsApplication',
+        signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
         signatureValue: 'urn:agency.gov:signature:primary',
         signatureMethod: 'provider-managed',
         signerName: 'Ada Lovelace',
@@ -277,9 +378,9 @@ test('should strip unknown properties from authored signature inputs', () => {
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
         consentVersion: '1.0.0',
         affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
-        documentHash: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        signedPayload: signedPayload('resp-2026-0003'),
+        documentHash: SIGNATURE_DIGEST,
         documentHashAlgorithm: 'sha-256',
-        responseId: 'resp-2026-0003',
         signatureProvider: 'urn:agency.gov:signature:providers:formspec',
         ceremonyId: 'ceremony-1',
         clientOpaqueAuditToken: 'should-not-appear-in-envelope'

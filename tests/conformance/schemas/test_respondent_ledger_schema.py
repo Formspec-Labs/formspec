@@ -155,7 +155,7 @@ def test_material_ledger_without_changelog_fields_is_valid():
     _validate_ledger(_minimal_ledger_material())
 
 
-def test_trellis_wrapped_ledger_requires_hashes_on_embedded_events():
+def test_trellis_wrapped_profile_value_requires_hashes_on_embedded_events():
     event = _attachment_added_event()
     event.pop("eventHash")
     doc = _minimal_ledger_material()
@@ -247,7 +247,7 @@ def _response_correction_event() -> dict:
                 }
             ],
             "reason": "transcription error corrected against signed source document",
-            "authorizationEventHash": "sha256:aad0556334071a0d40050c61ba4601506b87dbc4847d808fb3693b364af5090c",
+            "authorizationRef": "sha256:aad0556334071a0d40050c61ba4601506b87dbc4847d808fb3693b364af5090c",
         },
         "changes": [
             {
@@ -268,9 +268,17 @@ def test_response_correction_event_is_schema_valid():
     assert validate_response_correction_event_semantics(_response_correction_event()) == []
 
 
-def test_response_correction_requires_authorization_hash():
+def test_response_correction_requires_authorization_ref():
     event = _response_correction_event()
-    event["data"].pop("authorizationEventHash")
+    event["data"].pop("authorizationRef")
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_correction_rejects_legacy_authorization_event_hash():
+    event = _response_correction_event()
+    event["data"]["authorizationEventHash"] = event["data"].pop("authorizationRef")
 
     with pytest.raises(ValidationError):
         _validate_event(event)

@@ -360,13 +360,10 @@ Adapters receive concrete values only — no token resolution needed.
 
 Warn if the component type is incompatible with the item's dataType.
 
-## `bindSharedFieldEffects(ctx: BehaviorContext, fieldPath: string, labelTextOrVM: string | FieldViewModel, refs: FieldRefs): Array<() => void>`
+## `bindSharedFieldEffects(ctx: BehaviorContext, fieldPath: string, vm: FieldViewModel | undefined, labelText: string, refs: FieldRefs): Array<() => void>`
 
 Wire the shared reactive effects that all field behaviors need:
 required indicator, validation display, readonly, relevance, touched tracking.
-
-Accepts either a FieldViewModel (reactive locale-resolved signals) or a
-legacy (fieldPath, labelText) pair for backwards compatibility.
 
 Returns an array of dispose functions.
 
@@ -407,17 +404,8 @@ substituted with concrete values. Adapters never need token resolution.
 
 Returned by every field behavior hook.
 
-- **response**: `any`
-- **validationReport**: `{
-        valid: boolean;
-        results: any[];
-        counts: {
-            error: number;
-            warning: number;
-            info: number;
-        };
-        timestamp: string;
-    }`
+- **response**: `FormResponse`
+- **validationReport**: `ValidationReport`
 
 #### interface `FieldBehavior`
 
@@ -922,16 +910,7 @@ Mark all registered fields as touched so validation errors become visible.
         emitEvent?: boolean;
     }): {
         response: any;
-        validationReport: {
-            valid: boolean;
-            results: any;
-            counts: {
-                error: number;
-                warning: number;
-                info: number;
-            };
-            timestamp: any;
-        };
+        validationReport: import("@formspec-org/types").ValidationReport;
     } | null`
 
 Build a submit payload and validation report from the current form state.
@@ -1123,59 +1102,35 @@ Interface for what emitNode/renderActualComponent need from FormspecRender.
 
 ##### `render(): void`
 
-## `renderInputComponent(host: FieldInputHost, comp: any, item: any, fullName: string): HTMLElement`
-
-#### interface `FieldInputHost`
-
-##### `resolveItemPresentation(itemDesc: ItemDescriptor): PresentationBlock`
-
-##### `resolveWidgetClassSlots(presentation: PresentationBlock): {
-        root?: unknown;
-        label?: unknown;
-        control?: unknown;
-        hint?: unknown;
-        error?: unknown;
-    }`
-
-##### `applyClassValue(el: HTMLElement, classValue: unknown): void`
-
-##### `applyCssClass(el: HTMLElement, comp: any): void`
-
-##### `applyStyle(el: HTMLElement, style: any): void`
-
-##### `applyAccessibility(el: HTMLElement, comp: any): void`
-
-##### `render(): void`
-
-## `evaluateScreenerDocumentForRoute(screenerDocument: any, answers: Record<string, any>): ScreenerRoute | null`
+## `evaluateScreenerDocumentForRoute(screenerDocument: ScreenerDocument, answers: Record<string, unknown>): ScreenerRoute | null`
 
 Evaluate a standalone Screener Document (WASM) and return the first matched route, if any.
 See specs/screener/screener-spec.md — embedded `definition.screener` is not supported.
 
-## `screenerAnswersSatisfyRequired(screener: any, answers: Record<string, any>): boolean`
+## `screenerAnswersSatisfyRequired(screener: ScreenerDocument, answers: Record<string, unknown>): boolean`
 
 True when `answers` satisfies the same required / “at least one answer” rules as the Continue button.
 
-## `normalizeScreenerSeedForItem(item: any, raw: any, defaultCurrency: string): any`
+## `normalizeScreenerSeedForItem(item: FormItem, raw: unknown, defaultCurrency: string): unknown`
 
 Coerce values from external systems (saved responses, REST/GraphQL, auth claims, etc.) into
 shapes the screener DOM and WASM screener evaluation expect.
 
-## `buildInitialScreenerAnswers(screener: any, seed: Record<string, any> | null, defaultCurrency: string): Record<string, any>`
+## `buildInitialScreenerAnswers(screener: ScreenerDocument, seed: Record<string, any> | null, defaultCurrency: string): Record<string, any>`
 
 Build the in-memory answer map for the screener from optional seed data (same keys as screener items).
 
-## `extractScreenerSeedFromData(screenerDocument: any | null | undefined, data: Record<string, any> | null | undefined): Record<string, any> | null`
+## `extractScreenerSeedFromData(screenerDocument: ScreenerDocument | null | undefined, data: Record<string, any> | null | undefined): Record<string, any> | null`
 
 From any plain object, select only entries whose keys match the standalone screener's `items`.
 Set {@link FormspecRender.screenerDocument} before {@link FormspecRender.definition} when using
 {@link FormspecRender.initialData} so seeds line up with the same document.
 
-## `omitScreenerKeysFromData(screenerDocument: any | null | undefined, data: Record<string, any>): Record<string, any>`
+## `omitScreenerKeysFromData(screenerDocument: ScreenerDocument | null | undefined, data: Record<string, any>): Record<string, any>`
 
 Shallow copy of `data` without top-level keys that match screener item keys.
 
-## `hasActiveScreener(screenerDocument: any | null | undefined): boolean`
+## `hasActiveScreener(screenerDocument: ScreenerDocument | null | undefined): boolean`
 
 True when a standalone Screener Document is attached and has at least one item.
 
@@ -1183,12 +1138,12 @@ True when a standalone Screener Document is attached and has at least one item.
 
 #### interface `ScreenerHost`
 
-- **_screenerDocument** (`any | null`): Standalone Screener Document (`$formspecScreener`). Required for the gate UI.
-- **screenerSeedAnswers** (`Record<string, any> | null`): Initial answers when the screener mounts — from {@link extractScreenerSeedFromData} / host integration.
+- **_screenerDocument** (`ScreenerDocument | null`): Standalone Screener Document (`$formspecScreener`). Required for the gate UI.
+- **screenerSeedAnswers** (`Record<string, unknown> | null`): Initial answers when the screener mounts — from {@link extractScreenerSeedFromData} / host integration.
 
 ##### `classifyScreenerRoute(route: ScreenerRoute | null | undefined): 'none' | 'internal' | 'external'`
 
-##### `emitScreenerStateChange(reason: string, answers?: Record<string, any>): void`
+##### `emitScreenerStateChange(reason: string, answers?: Record<string, unknown>): void`
 
 ##### `dispatchEvent(event: Event): boolean`
 
@@ -1214,7 +1169,7 @@ True when a standalone Screener Document is attached and has at least one item.
 
 ##### `getEffectiveTheme(): ThemeDocument`
 
-##### `findItemByKey(key: string, items?: any[]): any | null`
+##### `findItemByKey(key: string, items?: FormItem[]): FormItem | null`
 
 ## `applyStyle(host: StylingHost, el: HTMLElement, style: any): void`
 
@@ -1229,10 +1184,6 @@ True when a standalone Screener Document is attached and has at least one item.
 ## `stylesheetRefCounts: Map<string, number>`
 
 Module-level ref counts (was static on the class).
-
-## `getTailwindAdapterSafelistTokens(): string[]`
-
-Sorted unique utility tokens for Tailwind Play CDN `safelist`.
 
 ## `resolveToken(host: StylingHost, val: any): any`
 
@@ -1259,16 +1210,7 @@ Mark all registered fields as touched so validation errors become visible.
     emitEvent?: boolean;
 }): {
     response: any;
-    validationReport: {
-        valid: boolean;
-        results: any;
-        counts: {
-            error: number;
-            warning: number;
-            info: number;
-        };
-        timestamp: any;
-    };
+    validationReport: ValidationReport;
 } | null`
 
 Build a submit payload and validation report from the current form state.
@@ -1283,7 +1225,7 @@ whenever the value changes.
 
 Returns the current shared submit pending state.
 
-## `resolveValidationTarget(host: SubmitHost, resultOrPath: any): ValidationTargetMetadata`
+## `resolveValidationTarget(host: SubmitHost, resultOrPath: string | ValidationResult): ValidationTargetMetadata`
 
 Resolve a validation result/path to a navigation target with metadata.
 
@@ -1291,7 +1233,7 @@ Resolve a validation result/path to a navigation target with metadata.
 
 ##### `dispatchEvent(event: Event): boolean`
 
-##### `findItemByKey(key: string, items?: any[]): any | null`
+##### `findItemByKey(key: string, items?: FormItem[]): FormItem | null`
 
 ##### `focusField(path: string): void`
 
@@ -1332,48 +1274,30 @@ apply theme styles, and recursively render child components without
 depending on the `FormspecRender` element directly.
 
 - **engine** (`IFormEngine`): The active form engine instance managing reactive form state.
-- **componentDocument** (`any`): The loaded component document (component tree, custom components, tokens, breakpoints).
+- **componentDocument** (`ComponentDocument | null`): The loaded component document (component tree, custom components, tokens, breakpoints).
 - **themeDocument** (`ThemeDocument | null`): The loaded theme document, or `null` when no theme is provided.
 - **prefix** (`string`): Dotted path prefix for the current render scope (e.g. `"group[0]"`).
 - **submit** (`(options?: {
         mode?: 'continuous' | 'submit';
         emitEvent?: boolean;
     }) => {
-        response: any;
-        validationReport: {
-            valid: boolean;
-            results: any[];
-            counts: {
-                error: number;
-                warning: number;
-                info: number;
-            };
-            timestamp: string;
-        };
+        response: FormResponse;
+        validationReport: ValidationReport;
     } | null`): Build submit payload + validation report and optionally dispatch `formspec-submit`.
-- **resolveValidationTarget** (`(resultOrPath: any) => ValidationTargetMetadata`): Resolve a validation result/path to a target path + label + jump metadata.
+- **resolveValidationTarget** (`(resultOrPath: string | ValidationResult) => ValidationTargetMetadata`): Resolve a validation result/path to a target path + label + jump metadata.
 - **focusField** (`(path: string) => boolean`): Reveal and focus a field by path; returns false when no target field is found.
 - **submitPendingSignal** (`Signal<boolean>`): Reactive shared submit pending signal used by submit-oriented plugins.
 - **latestSubmitDetailSignal** (`Signal<{
-        response: any;
-        validationReport: {
-            valid: boolean;
-            results: any[];
-            counts: {
-                error: number;
-                warning: number;
-                info: number;
-            };
-            timestamp: string;
-        };
+        response: FormResponse;
+        validationReport: ValidationReport;
     } | null>`): Latest renderer submit detail (`{ response, validationReport }`), or null before first submit.
 - **setSubmitPending** (`(pending: boolean) => void`): Set shared submit pending state and emit change event when it toggles.
 - **isSubmitPending** (`() => boolean`): Read shared submit pending state.
-- **renderComponent** (`(comp: any, parent: HTMLElement, prefix?: string) => void`): Recursively render a child component descriptor into a parent element.
+- **renderComponent** (`(comp: LayoutNode, parent: HTMLElement, prefix?: string) => void`): Recursively render a child component descriptor into a parent element.
 - **resolveToken** (`(val: any) => any`): Resolve a `$token.xxx` reference against component and theme token maps. Non-token values pass through unchanged.
-- **applyStyle** (`(el: HTMLElement, style: any) => void`): Apply an inline style object to an element, resolving token references in values.
-- **applyCssClass** (`(el: HTMLElement, comp: any) => void`): Apply `cssClass` entries from a component descriptor to an element's classList.
-- **applyAccessibility** (`(el: HTMLElement, comp: any) => void`): Apply accessibility attributes (role, aria-description, aria-live) from a component descriptor.
+- **applyStyle** (`(el: HTMLElement, style: Record<string, any>) => void`): Apply an inline style object to an element, resolving token references in values.
+- **applyCssClass** (`(el: HTMLElement, comp: LayoutNode) => void`): Apply `cssClass` entries from a component descriptor to an element's classList.
+- **applyAccessibility** (`(el: HTMLElement, comp: LayoutNode) => void`): Apply accessibility attributes (role, aria-description, aria-live) from a component descriptor.
 - **resolveItemPresentation** (`(item: ItemDescriptor) => PresentationBlock`): Resolve the effective PresentationBlock for a definition item via the 5-level theme cascade.
 - **cleanupFns** (`Array<() => void>`): Disposal callbacks for signal effects and event listeners created during this render cycle.
 - **touchedFields** (`Set<string>`): Set of field paths that have been interacted with (blurred/changed).
@@ -1382,7 +1306,7 @@ to force inline error display (e.g. wizard soft-validation on Next click).
 - **touchedVersion** (`Signal<number>`): Monotonic counter that increments whenever touched state changes.
 Error-display effects subscribe to this so they re-run when fields are
 touched programmatically (e.g. wizard Next click).
-- **findItemByKey** (`(key: string, items?: any[]) => any | null`): Look up a definition item by key (supports dotted paths like `"group.field"`). Returns `null` if not found.
+- **findItemByKey** (`(key: string, items?: FormItem[]) => FormItem | null`): Look up a definition item by key (supports dotted paths like `"group.field"`). Returns `null` if not found.
 - **activeBreakpoint** (`string | null`): The currently active responsive breakpoint name, or `null` when no breakpoint matches.
 - **behaviorContext** (`BehaviorContext`): Behavior context for the headless behavior→adapter pipeline.
 - **adapterContext** (`AdapterContext`): Adapter context for the headless behavior→adapter pipeline.
@@ -1396,7 +1320,7 @@ maps to a component document's `component` field, and a `render` function
 that builds the DOM for that component type.
 
 - **type** (`string`): Component type identifier matched against `comp.component` at render time.
-- **render** (`(comp: any, parent: HTMLElement, ctx: RenderContext) => void`): Build DOM for this component and append it to `parent`.
+- **render** (`(comp: LayoutNode, parent: HTMLElement, ctx: RenderContext) => void`): Build DOM for this component and append it to `parent`.
 
 #### type `ScreenerRouteType`
 

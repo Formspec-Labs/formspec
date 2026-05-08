@@ -145,7 +145,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ##### `setValue(name: string, value: any): void`
 
 ##### `getValidationReport(options?: {
-
         mode?: 'continuous' | 'submit';
     }): ValidationReport`
 
@@ -158,7 +157,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ##### `getProgress(): import('../interfaces.js').FormProgress`
 
 ##### `getResponse(meta?: {
-
         id?: string;
         author?: {
             id: string;
@@ -173,14 +171,12 @@ True if query is empty or matches label, value, or any keyword (substring, case-
     }): any`
 
 ##### `getDiagnosticsSnapshot(options?: {
-
         mode?: 'continuous' | 'submit';
     }): FormEngineDiagnosticsSnapshot`
 
 ##### `applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult`
 
 ##### `replay(events: EngineReplayEvent[], options?: {
-
         stopOnError?: boolean;
     }): EngineReplayResult`
 
@@ -207,7 +203,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ##### `resolveLocaleString(key: string, fallback: string): string`
 
 ##### `injectExternalValidation(results: Array<{
-
         path: string;
         severity: string;
         code: string;
@@ -238,7 +233,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ## `toValidationResults(results: EvalValidation[]): ValidationResult[]`
 
 ## `toRuntimeMappingResult(result: {
-
     direction: string;
     output: any;
     rulesApplied: number;
@@ -257,6 +251,8 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 
 ## `normalizeWasmValue(value: T): T`
 
+## `tagMoneyByPath(path: string, value: any, bindConfigs: Record<string, EngineBindConfig>, fieldDataTypes?: Record<string, string | undefined>): any`
+
 ## `toWasmContextValue(value: T): T`
 
 ## `deepEqual(left: unknown, right: unknown): boolean`
@@ -268,7 +264,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ## `toBasePath(path: string): string`
 
 ## `parseInstanceTarget(path: string): {
-
     instanceName: string;
     instancePath?: string;
 } | null`
@@ -300,7 +295,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ## `buildRepeatCollection(groupPath: string, count: number, signals: Record<string, EngineSignal<any>>): any[]`
 
 ## `getRepeatAncestors(currentItemPath: string, repeats: Record<string, EngineSignal<number>>): Array<{
-
     groupPath: string;
     index: number;
     count: number;
@@ -327,7 +321,6 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 ## `escapeRegExp(value: string): string`
 
 ## `resolveQualifiedGroupRefs(expression: string, currentItemPath: string, repeatAncestors: Array<{
-
     groupPath: string;
     index: number;
     count: number;
@@ -367,7 +360,6 @@ type RuntimeNowInput = Date | string | number;
 @filedesc Validate instance JSON against optional per-instance schema (datatype strings).
 
 ## `patchValueSignalsFromWasm(options: {
-
     values: Record<string, unknown>;
     signals: Record<string, EngineSignal<any>>;
     data: Record<string, any>;
@@ -377,7 +369,6 @@ type RuntimeNowInput = Date | string | number;
 }): void`
 
 ## `patchDeltaSignalsFromWasm(rx: EngineReactiveRuntime, delta: EvalDelta, options: {
-
     relevantSignals: Record<string, EngineSignal<boolean>>;
     requiredSignals: Record<string, EngineSignal<boolean>>;
     readonlySignals: Record<string, EngineSignal<boolean>>;
@@ -389,13 +380,11 @@ type RuntimeNowInput = Date | string | number;
 }): void`
 
 ## `patchErrorSignalsFromWasm(rx: EngineReactiveRuntime, options: {
-
     validationResults: Record<string, EngineSignal<ValidationResult[]>>;
     errorSignals: Record<string, EngineSignal<string | null>>;
 }): void`
 
 ## `clearRepeatIndexedSubtree(options: {
-
     rootRepeatPath: string;
     signals: Record<string, EngineSignal<any>>;
     relevantSignals: Record<string, EngineSignal<boolean>>;
@@ -420,7 +409,6 @@ Snapshot nested field values under a repeat prefix (used when removing a repeat 
 Restore nested field values after repeat rows were reindexed.
 
 ## `buildFormspecResponseEnvelope(options: {
-
     definition: FormDefinition;
     data: Record<string, unknown>;
     report: ValidationReport;
@@ -448,14 +436,12 @@ Shape validations that only run on submit, from a WASM eval with `trigger: 'subm
 Strip optional cardinality `source`, compute counts, and wrap the spec envelope.
 
 ## `migrateResponseData(definition: FormDefinition, responseData: Record<string, any>, fromVersion: string, options: {
-
     nowIso: string;
 }): Record<string, any>`
 
 ## `resolvePinnedDefinition(response: PinnedResponseReference, definitions: T[]): T`
 
 ## `wasmEvaluateDefinitionPayload(options: {
-
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
     previousResult: EvalResult | null;
@@ -476,14 +462,12 @@ Strip optional cardinality `source`, compute counts, and wrap the spec envelope.
 Options object consumed by the WASM definition evaluator (JSON-serialized internally).
 
 ## `mergeWasmEvalWithExternalValidations(result: EvalResult, options: {
-
     externalValidations: EvalValidation[];
 }): EvalResult`
 
 Append engine-owned validations (e.g. extension hooks) after WASM batch evaluation.
 
 ## `normalizeExpressionForWasmEvaluation(options: {
-
     expression: string;
     currentItemPath: string;
     replaceSelfRef: boolean;
@@ -496,7 +480,6 @@ Append engine-owned validations (e.g. extension hooks) after WASM batch evaluati
 ## `visibleScopedVariableValues(scopePath: string, variableDefs: FormVariable[], variableSignals: Record<string, EngineSignal<any>>, overrides?: Record<string, any>): Record<string, any>`
 
 ## `buildFelRepeatWasmContext(options: {
-
     currentItemPath: string;
     repeats: Record<string, EngineSignal<number>>;
     fieldSignals: Record<string, EngineSignal<any>>;
@@ -519,6 +502,7 @@ Append engine-owned validations (e.g. extension hooks) after WASM batch evaluati
 - **requiredSignals**: `Record<string, EngineSignal<boolean>>`
 - **repeats**: `Record<string, EngineSignal<number>>`
 - **bindConfigs**: `Record<string, EngineBindConfig>`
+- **fieldDataTypes**: `Record<string, string | undefined>`
 - **variableDefs**: `FormVariable[]`
 - **variableSignals**: `Record<string, EngineSignal<any>>`
 - **instanceData**: `Record<string, unknown>`
@@ -614,7 +598,6 @@ Rewrite FEL references using callback options (bridges to WASM rewrite).
 ## `getBuiltinFELFunctionCatalog(): FELBuiltinFunctionCatalogEntry[]`
 
 ## `validateExtensionUsage(items: unknown[], options: {
-
     resolveEntry: (name: string) => RegistryEntry | undefined;
 }): ExtensionUsageIssue[]`
 
@@ -640,9 +623,35 @@ Rewrite FEL references using callback options (bridges to WASM rewrite).
 
 ## `printFEL: typeof wasmPrintFEL`
 
-## `tryLiftConditionGroup(expression: string): FELConditionGroupLiftResult`
+## `tryLiftConditionGroup: typeof wasmTryLiftConditionGroup`
 
-Tools WASM only (call **`await initFormspecEngineTools()`** after runtime init). Parses FEL with `fel_core::parse` and returns either **`{ status: 'lifted', logic: 'and' | 'or', conditions: { field, operator, value }[] }`** (operators match Studio `fel-condition-builder`) or **`{ status: 'unlifted', reason, valid }`** (`valid: false` on parse error). See **`FELConditionGroupLiftResult`** in `interfaces.ts`.
+## `lineColumnAtCharOffset(expression: string, charOffset: number): {
+    line: number;
+    column: number;
+}`
+
+1-based line and column at a Unicode scalar index (matches Rust lexer char indices).
+
+## `normalizeFelAnalysisError(expression: string, e: WasmFelAnalysisErrorWire): FELAnalysisError`
+
+Normalize legacy string errors, `{ message, span }` from Rust, or partially-filled objects.
+
+#### type `WasmFelAnalysisErrorWire`
+
+Raw error element from `fel_analysis_to_json_value` JSON (before normalization).
+
+```ts
+type WasmFelAnalysisErrorWire = string | {
+    message: string;
+    span?: {
+        start: number;
+        end: number;
+    } | null;
+    line?: number;
+    column?: number;
+    offset?: number;
+};
+```
 
 ## `createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel`
 
@@ -744,11 +753,10 @@ Whether the tools WASM module has completed initialization.
 
 #### interface `FELAnalysisError`
 
-- **message**: `string`
-- **span?**: `{ start: number; end: number }` (from Rust lexer; normalized together with line/column)
-- **offset?**: `number`
-- **line?**: `number`
-- **column?**: `number`
+- **span** (`{
+        start: number;
+        end: number;
+    }`): Byte/char index range in source (matches Rust `ParseError` / fel lexer spans).
 
 #### interface `FELAnalysis`
 
@@ -759,6 +767,26 @@ Whether the tools WASM module has completed initialization.
 - **variables**: `string[]`
 - **functions**: `string[]`
 - **cst?**: `unknown`
+
+#### interface `FELConditionGroupCondition`
+
+One row in a lifted condition group (`tryLiftConditionGroup`).
+
+- **field**: `string`
+- **operator**: `FELConditionBuilderOperator`
+- **value**: `string`
+
+#### interface `FELConditionGroupLifted`
+
+- **status**: `'lifted'`
+- **logic**: `'and' | 'or'`
+- **conditions**: `FELConditionGroupCondition[]`
+
+#### interface `FELConditionGroupUnlifted`
+
+- **status**: `'unlifted'`
+- **reason**: `string`
+- **valid**: `boolean`
 
 #### interface `FELRewriteOptions`
 
@@ -907,9 +935,20 @@ Whether the tools WASM module has completed initialization.
 - **providerRef?**: `string`
 - **externalAttestationRef?**: `string`
 
+#### interface `AuthoredSignatureSignedPayload`
+
+- **canonicalization**: `'formspec-response-signing-v1'`
+- **digestAlgorithm**: `string`
+- **digest**: `string`
+- **responseId**: `string`
+- **definitionUrl**: `string`
+- **definitionVersion**: `string`
+
 #### interface `AuthoredSignatureInput`
 
+- **signatureId**: `string`
 - **documentId**: `string`
+- **signingIntent**: `string`
 - **signatureValue**: `string`
 - **signatureMethod**: `string`
 - **signerId?**: `string`
@@ -919,9 +958,9 @@ Whether the tools WASM module has completed initialization.
 - **consentTextRef**: `string`
 - **consentVersion**: `string`
 - **affirmationText**: `string`
+- **signedPayload**: `AuthoredSignatureSignedPayload`
 - **documentHash**: `string`
 - **documentHashAlgorithm**: `string`
-- **responseId?**: `string`
 - **identityProofRef?**: `string`
 - **identityBinding?**: `AuthoredSignatureIdentityBinding`
 - **signatureProvider**: `string`
@@ -1002,7 +1041,6 @@ Whether the tools WASM module has completed initialization.
 ##### `setValue(name: string, value: any): void`
 
 ##### `getValidationReport(options?: {
-
         mode?: 'continuous' | 'submit';
     }): ValidationReport`
 
@@ -1015,7 +1053,6 @@ Whether the tools WASM module has completed initialization.
 ##### `getProgress(): FormProgress`
 
 ##### `getResponse(meta?: {
-
         id?: string;
         author?: {
             id: string;
@@ -1030,14 +1067,12 @@ Whether the tools WASM module has completed initialization.
     }): any`
 
 ##### `getDiagnosticsSnapshot(options?: {
-
         mode?: 'continuous' | 'submit';
     }): FormEngineDiagnosticsSnapshot`
 
 ##### `applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult`
 
 ##### `replay(events: EngineReplayEvent[], options?: {
-
         stopOnError?: boolean;
     }): EngineReplayResult`
 
@@ -1068,7 +1103,6 @@ Resolve a locale string key with fallback. For component-tier `$component.` keys
 ##### `dispose(): void`
 
 ##### `injectExternalValidation(results: Array<{
-
         path: string;
         severity: string;
         code: string;
@@ -1103,6 +1137,16 @@ Resolve a locale string key with fallback. For component-tier `$component.` keys
 
 ##### `reverse(source: any): RuntimeMappingResult`
 
+#### type `FELConditionBuilderOperator`
+
+Operators for structured FEL conditions (mirrors Studio `fel-condition-builder`).
+
+#### type `FELConditionGroupLiftResult`
+
+```ts
+type FELConditionGroupLiftResult = FELConditionGroupLifted | FELConditionGroupUnlifted;
+```
+
 #### type `DocumentType`
 
 ```ts
@@ -1134,12 +1178,11 @@ type MappingDirection = 'forward' | 'reverse';
 Resolve `{{expr}}` sequences in a locale string.
 
 Rules (§3.3.1):
-
 1. `{{{{` → literal `{{` (escape before scanning)
 2. Failed parse/eval → preserve literal `{{expr}}` + warning.
    Includes any eval where WASM records error-severity diagnostics (side-channel check).
 3–4. Coerce values; `null` → "" except rule 3a (no `$`/`@` and not a static literal → preserve)
-3. Replacement text is NOT re-scanned for `{{`
+5. Replacement text is NOT re-scanned for `{{`
 
 #### interface `InterpolationWarning`
 
@@ -1360,7 +1403,6 @@ Normalize a dotted path by stripping repeat indices.
 Resolve an item in a nested item tree by dotted path.
 
 ## `wasmItemLocationAtPath(items: unknown[], path: string): {
-
     parentPath: string;
     index: number;
     item: T;
@@ -1369,7 +1411,6 @@ Resolve an item in a nested item tree by dotted path.
 Resolve an item's parent path, index, and value in a nested item tree.
 
 ## `wasmEvaluateDefinition(definition: unknown, data: Record<string, unknown>, context?: {
-
     nowIso?: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
     previousValidations?: Array<{
@@ -1403,27 +1444,11 @@ Evaluate a Formspec definition against provided data.
 Evaluate a standalone Screener Document against respondent inputs.
 Returns a Determination Record (always non-null).
 
-## `wasmAnalyzeFEL(expression: string): {
-
-    valid: boolean;
-    errors: Array<string | { message: string; span?: { start: number; end: number } | null }>;
-    warnings: string[];
-    references: string[];
-    variables: string[];
-    functions: string[];
-}`
+## `wasmAnalyzeFEL(expression: string): WasmFelAnalysisResultJson`
 
 Analyze a FEL expression and return structural info.
 
-## `wasmAnalyzeFELWithFieldTypes(expression: string, fieldTypes: Record<string, string>): {
-
-    valid: boolean;
-    errors: Array<string | { message: string; span?: { start: number; end: number } | null }>;
-    warnings: string[];
-    references: string[];
-    variables: string[];
-    functions: string[];
-}`
+## `wasmAnalyzeFELWithFieldTypes(expression: string, fieldTypes: Record<string, string>): WasmFelAnalysisResultJson`
 
 Analyze a FEL expression with field data type context for type-mismatch warnings.
 
@@ -1436,7 +1461,6 @@ Check if a string is a valid FEL identifier.
 Sanitize a string into a valid FEL identifier.
 
 ## `wasmComputeDependencyGroups(entriesJson: string): Array<{
-
     entries: number[];
     reason: string;
 }>`
@@ -1458,9 +1482,11 @@ Result of a traced FEL evaluation.
 - **diagnostics** (`Array<Record<string, unknown>>`): Diagnostics emitted during evaluation.
 - **trace** (`FelTraceStep[]`): Ordered trace steps, appended in evaluation order.
 
-#### type `WasmModule`
+#### type `WasmFelAnalysisResultJson`
 
-@filedesc Runtime WASM — init, accessors, and wrappers that use only the runtime `formspec_wasm_runtime` module.
+Parsed JSON from `fel_analysis_to_json_value` (Rust) — pass through to {@link normalizeFelAnalysisError}.
+
+#### type `WasmModule`
 
 ```ts
 type WasmModule = typeof import('../wasm-pkg-runtime/formspec_wasm_runtime.js');
@@ -1516,7 +1542,6 @@ Exported for unit tests; `initWasmTools` uses this after loading the tools modul
 Parse a FEL expression and return whether it's valid.
 
 ## `wasmTokenizeFEL(expression: string): Array<{
-
     tokenType: string;
     text: string;
     start: number;
@@ -1526,7 +1551,6 @@ Parse a FEL expression and return whether it's valid.
 Tokenize a FEL expression and return positioned token records.
 
 ## `wasmExtractDependencies(expression: string): {
-
     fields: string[];
     contextRefs: string[];
     instanceRefs: string[];
@@ -1547,7 +1571,6 @@ Detect the document type of a Formspec JSON document.
 Convert a JSON Pointer into a JSONPath string.
 
 ## `wasmPlanSchemaValidation(doc: unknown, documentType?: string | null): {
-
     documentType: string | null;
     mode: 'unknown' | 'document' | 'component';
     componentTargets: Array<{
@@ -1561,7 +1584,6 @@ Convert a JSON Pointer into a JSONPath string.
 Plan schema validation dispatch and component-node target enumeration.
 
 ## `wasmAssembleDefinition(definition: unknown, fragments: Record<string, unknown>): {
-
     definition: any;
     warnings: string[];
     errors: string[];
@@ -1576,7 +1598,6 @@ Plan schema validation dispatch and component-node target enumeration.
 Assemble a definition by resolving $ref inclusions.
 
 ## `wasmExecuteMapping(rules: unknown[], source: unknown, direction: 'forward' | 'reverse'): {
-
     direction: string;
     output: any;
     rulesApplied: number;
@@ -1586,7 +1607,6 @@ Assemble a definition by resolving $ref inclusions.
 Execute a mapping transform.
 
 ## `wasmExecuteMappingDoc(doc: unknown, source: unknown, direction: 'forward' | 'reverse'): {
-
     direction: string;
     output: any;
     rulesApplied: number;
@@ -1596,7 +1616,6 @@ Execute a mapping transform.
 Execute a full mapping document (rules + defaults + autoMap).
 
 ## `wasmLintDocument(doc: unknown): {
-
     documentType: string | null;
     valid: boolean;
     diagnostics: any[];
@@ -1605,7 +1624,6 @@ Execute a full mapping document (rules + defaults + autoMap).
 Lint a Formspec document.
 
 ## `wasmCollectFELRewriteTargets(expression: string): {
-
     fieldPaths: string[];
     currentPaths: string[];
     variables: string[];
@@ -1619,7 +1637,6 @@ Lint a Formspec document.
 Collect the rewriteable targets in a FEL expression.
 
 ## `wasmRewriteFELReferences(expression: string, rewrites: {
-
     fieldPaths?: Record<string, string>;
     currentPaths?: Record<string, string>;
     variables?: Record<string, string>;
@@ -1634,7 +1651,6 @@ Rewrite a FEL expression using explicit rewrite maps.
 Rewrite FEL using definition-assembly `RewriteMap` JSON (fragment + host keys).
 
 ## `wasmRewriteMessageTemplate(message: string, rewrites: {
-
     fieldPaths?: Record<string, string>;
     currentPaths?: Record<string, string>;
     variables?: Record<string, string>;
@@ -1648,8 +1664,11 @@ Rewrite FEL expressions embedded in {{...}} interpolation segments.
 
 Print a FEL expression AST back to normalized source.
 
-## `wasmListBuiltinFunctions(): Array<{
+## `wasmTryLiftConditionGroup(expression: string): FELConditionGroupLiftResult`
 
+Parse FEL and lift a homogeneous `and` / `or` chain into Studio condition-group JSON when possible.
+
+## `wasmListBuiltinFunctions(): Array<{
     name: string;
     category: string;
     signature: string;
@@ -1659,7 +1678,6 @@ Print a FEL expression AST back to normalized source.
 Return the builtin FEL function catalog exported by the Rust runtime.
 
 ## `wasmLintDocumentWithRegistries(doc: unknown, registries: unknown[]): {
-
     documentType: string | null;
     valid: boolean;
     diagnostics: any[];
@@ -1668,7 +1686,6 @@ Return the builtin FEL function catalog exported by the Rust runtime.
 Lint a Formspec document with explicit registry documents.
 
 ## `wasmParseRegistry(registry: unknown): {
-
     publisher: {
         name?: string;
         url?: string;
@@ -1698,7 +1715,6 @@ Construct a well-known registry URL from a base URL.
 Generate a structured changelog between two definitions.
 
 ## `wasmValidateExtensionUsage(items: unknown[], registryEntries: Record<string, unknown>): Array<{
-
     path: string;
     extension: string;
     severity: 'error' | 'warning' | 'info';
@@ -1709,8 +1725,6 @@ Generate a structured changelog between two definitions.
 Validate enabled x-extension usage in an item tree against registry entries.
 
 #### type `WasmToolsModule`
-
-@filedesc Tools WASM — lazy init and wrappers for `formspec_wasm_tools` (lint, mapping, assembly, FEL authoring helpers).
 
 ```ts
 type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');

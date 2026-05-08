@@ -116,7 +116,7 @@
       "type": "string",
       "enum": ["none", "chained", "trellis-wrapped"],
       "default": "none",
-      "description": "Integrity profile for retained events. 'chained' and 'trellis-wrapped' require every embedded event to carry both priorEventHash and eventHash; priorEventHash is null only on the first event in the chain."
+      "description": "Integrity profile for retained events. 'chained' and the optional compatibility value 'trellis-wrapped' require every embedded event to carry both priorEventHash and eventHash; priorEventHash is null only on the first event in the chain. The base Respondent Ledger treats trellis-wrapped only as a hash-obligation profile value; Trellis envelope/export verification belongs to Trellis profile validators."
     },
     "offlineAuthoring": {
       "$ref": "#/$defs/OfflineAuthoringProfile"

@@ -48,43 +48,125 @@ Called after each successful dispatch when recording is on.
 
 ## `getCurrentComponentDocument(state: Pick<ProjectState, 'component'>): ComponentState`
 
-Component property handlers.
+## `normalizeBindsFromUnknown(binds: unknown): FormBind[] | undefined`
 
-These handlers implement the `component.*` property-mutation commands defined
-in the API spec's "Component -- Node Properties", "Custom Components", and
-"Document-Level" sections. They modify properties on individual tree nodes,
-manage custom component templates, and set document-level tokens/breakpoints.
+## `componentPropertiesHandlers: {
+    'component.setNodeProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeType': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeStyle': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeAccessibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.spliceArrayProp': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setFieldWidget': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeNotFound: true;
+    } | {
+        rebuildComponentTree: false;
+        nodeNotFound?: undefined;
+    };
+    'component.setResponsiveOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setGroupRepeatable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    'component.setGroupDisplayMode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setGroupDataTable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.registerCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.updateCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.deleteCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.renameCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setToken': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setBreakpoint': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setDocumentProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-handlers/component-properties
-
-## `componentPropertiesHandlers: Record<string, CommandHandler>`
-
-Component tree structure handlers.
-
-These handlers implement the `component.*` tree-manipulation commands defined
-in the API spec's "Component -- Tree Structure" section. They operate on the
-component document's `tree` -- a recursive node structure that describes how
-definition items are laid out and rendered.
-
-**Node referencing (NodeRef):**
-Every tree node is addressed by a `NodeRef`, which is an object carrying
-exactly one of:
-
-- `{ bind: string }` -- for nodes bound to a definition item key (Input,
-  Display, and some Special components).
-- `{ nodeId: string }` -- for unbound layout/container nodes that receive a
-  stable auto-generated ID.
-
-**Parent/child relationships:**
-The tree root is always a synthetic `Stack` node with `nodeId: 'root'`.
-Layout and Container nodes may have `children`; Input and Display nodes
-are leaf nodes. Nesting rules (component-spec S3.4) are enforced by
-`addNode` and `moveNode` at a higher level; these handlers perform the
-raw structural mutations.
-
-handlers/component-tree
-
-## `componentTreeHandlers: Record<string, CommandHandler>`
+## `componentTreeHandlers: {
+    /**
+     * Rebuild bound/display nodes from the current definition while preserving
+     * layout wrappers (Page, Card, etc.). Used when a node was removed from the
+     * tree but the definition item still exists — e.g. Layout "Remove from Tree"
+     * followed by placing the item on a page again.
+     */
+    'component.reconcileFromDefinition': (state: import("../types.js").ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'component.addNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            bind: string;
+            nodeId?: undefined;
+        } | {
+            nodeId: string;
+            bind?: undefined;
+        };
+    };
+    'component.deleteNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.moveNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.reorderNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.duplicateNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            bind: string;
+            nodeId?: undefined;
+        } | {
+            nodeId: string;
+            bind?: undefined;
+        };
+    };
+    'component.wrapNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            nodeId: string;
+        };
+    };
+    /**
+     * Wrap several sibling nodes in one layout container, preserving their relative order.
+     * Resolves all targets before mutating; removes from highest index downward so indices stay valid.
+     */
+    'component.wrapSiblingNodes': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            nodeId: string;
+        };
+    };
+    'component.unwrapNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
 Handlers for definition bind management and field configuration commands.
 
@@ -101,39 +183,155 @@ rather than the binds array.
 
 definition-binds
 
-## `definitionBindsHandlers: Record<string, CommandHandler>`
+## `definitionBindsHandlers: {
+    'definition.setBind': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setItemProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: boolean;
+    };
+    'definition.setFieldDataType': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setFieldOptions': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setItemExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-Instance command handlers for Formspec Studio Core.
+Handlers for definition bind management and field configuration commands.
 
-Instances are named external data sources declared in a form definition. FEL
-expressions reference them via `@instance('name')` to read (or, when
-`readonly: false`, write) data that lives outside the form's own item tree.
-Common use cases include pre-populating fields from a patient record, looking
-up reference data, or exposing a writable scratch-pad for intermediate
-calculations.
+**Binds** in Formspec are declarative rules that connect a field (identified by
+a dot-path) to dynamic behaviors: calculated values, relevance conditions,
+required/readonly state, validation constraints, default values, and various
+processing directives. Each bind entry targets a single path and carries one
+or more property expressions (typically FEL strings). The binds array lives at
+`definition.binds` and is the primary mechanism for making fields reactive.
 
-Each instance can point to an external URI (`source`), carry inline `data`,
-declare a JSON Schema for its structure, and be marked `static` (a caching
-hint) or `readonly` (default `true`).
+This module also registers handlers for direct field/item property editing
+(data type, options, extensions) which operate on the `definition.items` tree
+rather than the binds array.
 
-None of these commands affect the component tree, so all handlers return
-`{ rebuildComponentTree: false }`.
+## `definitionInstancesHandlers: {
+    'definition.addInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.renameInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-definition-instances
-
-## `definitionInstancesHandlers: Record<string, CommandHandler>`
-
-Command handlers for definition item CRUD operations.
-
-Registers handlers for: `definition.addItem`, `definition.deleteItem`,
-`definition.renameItem`, `definition.moveItem`, `definition.reorderItem`,
-and `definition.duplicateItem`.
-
-All handlers mutate a cloned `ProjectState` in-place and return a
-`CommandResult`. Most return `{ rebuildComponentTree: true }` to signal
-that the component tree must be regenerated after the mutation.
-
-## `definitionItemsHandlers: Record<string, CommandHandler>`
+## `definitionItemsHandlers: {
+    /**
+     * Handler for `definition.addItem`.
+     *
+     * Creates a new item and inserts it into the definition item tree.
+     *
+     * **Payload** (`AddItemPayload`):
+     * - `type` — `"field"` | `"group"` | `"display"` (required).
+     * - `parentPath` — Dot-path of the parent item. Omit to insert at root.
+     * - `insertIndex` — Position within the parent's children. Omit to append.
+     * - `key` — Desired item key. Auto-generated from type if omitted.
+     * - `dataType` — For fields only; defaults to `"string"`.
+     * - `label`, `description`, `hint`, `options`, `labels` — Optional metadata.
+     *
+     * **Returns**: `{ rebuildComponentTree: true, insertedPath }` where
+     * `insertedPath` is the full dot-path of the newly created item.
+     *
+     * **Side effects**: Ensures the key is unique among siblings. Groups get
+     * an empty `children` array. Fields default to `dataType: "string"`.
+     *
+     * @throws If `parentPath` cannot be resolved in the item tree.
+     */
+    'definition.addItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        insertedPath: string;
+    };
+    /**
+     * Handler for `definition.deleteItem`.
+     *
+     * Removes an item (and its entire subtree) from the definition, then
+     * cleans up all cross-references to the deleted paths.
+     *
+     * **Payload**: `{ path }` — Dot-path of the item to delete.
+     *
+     * **Returns**: `{ rebuildComponentTree: true }`.
+     *
+     * **Side effects** (cascading cleanup):
+     * - Removes the item from its parent's children array.
+     * - Filters out any `binds` entries whose `path` matches a deleted path.
+     * - Filters out any `shapes` entries whose `target` matches a deleted path.
+     * - Deletes matching keys from `theme.items` per-item overrides.
+     *
+     * @throws If `path` cannot be resolved in the item tree.
+     */
+    'definition.deleteItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    /**
+     * Handler for `definition.renameItem`.
+     *
+     * Changes an item's key and rewrites all references across every artifact
+     * to maintain consistency.
+     *
+     * **Payload**: `{ path, newKey }` — `path` is the current dot-path;
+     * `newKey` is the replacement key string.
+     *
+     * **Returns**: `{ rebuildComponentTree: true, newPath }` where `newPath`
+     * is the updated full dot-path after the rename.
+     *
+     * @throws If `path` cannot be resolved in the item tree.
+     */
+    'definition.renameItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        newPath: string;
+    };
+    /**
+     * Handler for `definition.moveItem`.
+     *
+     * Moves an item from its current location to a new parent and/or position
+     * within the definition item tree.
+     *
+     * @throws If `sourcePath` cannot be resolved or `targetParentPath` is invalid.
+     */
+    'definition.moveItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        newPath: string;
+    };
+    /**
+     * Handler for `definition.reorderItem`.
+     *
+     * Swaps an item with its adjacent sibling in the specified direction
+     * within the same parent.
+     *
+     * @throws If `path` cannot be resolved in the item tree.
+     */
+    'definition.reorderItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    } | {
+        rebuildComponentTree: true;
+    };
+    /**
+     * Handler for `definition.duplicateItem`.
+     *
+     * Creates a deep clone of an item (including its entire subtree) and
+     * inserts the clone immediately after the original.
+     *
+     * @throws If `path` cannot be resolved in the item tree.
+     */
+    'definition.duplicateItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        insertedPath: string;
+    };
+}`
 
 Handlers for definition-level metadata commands.
 
@@ -150,7 +348,11 @@ elsewhere.
 
 definition-metadata
 
-## `definitionMetadataHandlers: Record<string, CommandHandler>`
+## `definitionMetadataHandlers: {
+    'definition.setFormTitle': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
 **Command: `definition.setFormTitle`**
 
@@ -160,107 +362,91 @@ distinct from `name` (a machine-readable identifier) and `description` (a
 longer explanatory text).
 
 **Payload:**
-
 - `title` -- The new title string for the form. An empty string is valid
   (clears the title display).
 
-Migration command handlers for Formspec Core.
+## `definitionMigrationsHandlers: {
+    'definition.addMigration': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteMigration': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setMigrationProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.addFieldMapRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setFieldMapRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteFieldMapRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setMigrationDefaults': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-Migrations declare how to transform responses collected under a prior definition
-version into the current version's structure. This enables backwards compatibility
-when form definitions evolve: fields may be renamed, removed, split, merged, or
-have their values recomputed.
+## `definitionOptionsetsHandlers: {
+    'definition.setOptionSet': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setOptionSetProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteOptionSet': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.promoteToOptionSet': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-The schema models migrations as `{ from: { [version]: MigrationDescriptor } }` --
-a keyed map where the version string is the key. Each descriptor contains an
-ordered `fieldMap` array of transform rules plus optional `defaults` for new fields.
+## `definitionPagesHandlers: {
+    'definition.setDefinitionProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setFormPresentation': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setGroupRef': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+}`
 
-None of these commands affect the component tree, so all handlers return
-`{ rebuildComponentTree: false }`.
+## `definitionShapesHandlers: {
+    'definition.addShape': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setShapeProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setShapeComposition': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.renameShape': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteShape': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-definition-migrations
-
-## `definitionMigrationsHandlers: Record<string, CommandHandler>`
-
-Option set command handlers for the Formspec Studio Core.
-
-Option sets are named, reusable collections of selectable options (label/value pairs)
-that can be shared across multiple choice-type fields (dropdowns, radio groups,
-checkbox groups, etc.). Instead of duplicating the same list of options on every
-field that needs them, authors declare a named option set once in
-`definition.optionSets` and reference it by name from any field via the
-`optionSet` property.
-
-An option set can be defined in two forms:
-
-- **Inline**: an array of `Option` objects (each with at least `value` and `label`),
-  optionally including FEL-based visibility conditions per option.
-- **External source**: a URI string pointing to a remote option list, with optional
-  `valueField` and `labelField` mappings.
-
-definition-optionsets
-
-## `definitionOptionsetsHandlers: Record<string, CommandHandler>`
-
-Definition-level metadata and form-presentation handlers.
-
-This module is intentionally narrow: it only mutates Tier 1 authoring state
-that belongs on the definition itself.
-
-That includes:
-
-- top-level definition metadata (`definition.setDefinitionProperty`)
-- form presentation behavior such as `pageMode` (`definition.setFormPresentation`)
-- group `$ref` composition (`definition.setGroupRef`)
-
-It does not author Tier 2 theme pages or Tier 3 component Page nodes. Those
-higher-precedence layout surfaces are handled elsewhere.
-
-definition-pages
-
-## `definitionPagesHandlers: Record<string, CommandHandler>`
-
-## `definitionScreenerHandlers: Record<string, CommandHandler>`
-
-Command handlers for managing definition-level shapes (cross-field validation rules).
-
-Shapes are form-level constraints defined in `definition.shapes`. Unlike
-field-level bind constraints (required, constraint, readonly), shapes
-express cross-field or form-wide validation rules. Each shape targets one
-or more fields via a path expression (supporting wildcards like
-`items[*].field`), contains a FEL constraint expression that must evaluate
-to true for the form to be valid, and carries a human-readable message
-with a severity level (`error`, `warning`, or `info`).
-
-Shapes can be composed using boolean combinators (`and`, `or`, `xone`,
-`not`) that reference other shapes by ID, enabling complex validation
-logic to be built from smaller, reusable rules.
-
-Shapes do not affect the component tree layout, so all handlers in this
-module return `{ rebuildComponentTree: false }`.
-
-definition-shapes
-
-## `definitionShapesHandlers: Record<string, CommandHandler>`
-
-Command handlers for managing definition-level variables.
-
-Variables are form-level constants or computed values defined in the
-`definition.variables` array. Each variable has a `name` and a FEL
-(Formspec Expression Language) `expression` that can be referenced
-from bind expressions, shape constraints, and other FEL contexts
-throughout the form definition. An optional `scope` restricts
-visibility to a specific section of the form.
-
-Variables do not affect the component tree layout, so all handlers
-in this module return `{ rebuildComponentTree: false }`.
-
-definition-variables
-
-## `definitionVariablesHandlers: Record<string, CommandHandler>`
+## `definitionVariablesHandlers: {
+    'definition.addVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
 ## `resolveItemLocation(state: ProjectState, path: string): {
-
     parent: FormItem[];
     index: number;
     item: FormItem;
@@ -275,7 +461,435 @@ the target item, the item's index within that array, and the item itself.
 Used by virtually every definition-item handler (`deleteItem`, `renameItem`,
 `moveItem`, `reorderItem`, `duplicateItem`) to locate an item before mutating it.
 
-## `builtinHandlers: Readonly<Record<string, CommandHandler>>`
+## `builtinHandlers: Readonly<{
+    'project.import': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: boolean;
+        clearHistory: false;
+    };
+    'project.importSubform': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    'project.loadRegistry': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'project.removeRegistry': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'project.publish': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.load': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.remove': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.select': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setString': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setStrings': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.removeString': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setMetadata': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setFallback': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.create': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.delete': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.rename': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.select': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setTargetSchema': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.addRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.deleteRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.clearRules': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.reorderRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setAdapter': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setDefaults': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.autoGenerateRules': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setRuleExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.addInnerRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setInnerRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.deleteInnerRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.reorderInnerRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setToken': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setTokens': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setDefaults': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.addSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.deleteSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.reorderSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.deleteItemOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemStyle': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemWidgetConfig': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemAccessibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setBreakpoint': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setStylesheets': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setDocumentProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setTargetCompatibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeType': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeStyle': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setNodeAccessibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.spliceArrayProp': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setFieldWidget': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeNotFound: true;
+    } | {
+        rebuildComponentTree: false;
+        nodeNotFound?: undefined;
+    };
+    'component.setResponsiveOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setGroupRepeatable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    'component.setGroupDisplayMode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setGroupDataTable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.registerCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.updateCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.deleteCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.renameCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setToken': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setBreakpoint': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.setDocumentProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.reconcileFromDefinition': (state: import("../types.js").ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'component.addNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            bind: string;
+            nodeId?: undefined;
+        } | {
+            nodeId: string;
+            bind?: undefined;
+        };
+    };
+    'component.deleteNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.moveNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.reorderNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'component.duplicateNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            bind: string;
+            nodeId?: undefined;
+        } | {
+            nodeId: string;
+            bind?: undefined;
+        };
+    };
+    'component.wrapNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            nodeId: string;
+        };
+    };
+    'component.wrapSiblingNodes': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+        nodeRef: {
+            nodeId: string;
+        };
+    };
+    'component.unwrapNode': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.addMigration': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteMigration': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setMigrationProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.addFieldMapRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setFieldMapRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteFieldMapRule': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setMigrationDefaults': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.remove': (state: import("../types.js").ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setMetadata': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.addItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.deleteItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setItemProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.reorderItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setBind': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.addPhase': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.removePhase': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.reorderPhase': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setPhaseProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.addRoute': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setRouteProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.deleteRoute': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.reorderRoute': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setAvailability': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setResultValidity': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.addInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.renameInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setOptionSet': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setOptionSetProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteOptionSet': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.promoteToOptionSet': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setDefinitionProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setFormPresentation': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setGroupRef': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    'definition.addVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.addShape': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setShapeProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setShapeComposition': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.renameShape': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.deleteShape': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setBind': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setItemProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: boolean;
+    };
+    'definition.setFieldDataType': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setFieldOptions': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.setItemExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'definition.addItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        insertedPath: string;
+    };
+    'definition.deleteItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    'definition.renameItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        newPath: string;
+    };
+    'definition.moveItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        newPath: string;
+    };
+    'definition.reorderItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    } | {
+        rebuildComponentTree: true;
+    };
+    'definition.duplicateItem': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+        insertedPath: string;
+    };
+    'definition.setFormTitle': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}>`
 
 Locale command handlers.
 
@@ -287,7 +901,32 @@ mutations do not alter the definition item tree structure.
 
 handlers/locale
 
-## `localeHandlers: Record<string, CommandHandler>`
+## `localeHandlers: {
+    'locale.load': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.remove': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.select': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setString': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setStrings': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.removeString': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setMetadata': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'locale.setFallback': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
 Mapping command handlers.
 
@@ -299,50 +938,198 @@ mutations do not alter the definition item tree structure.
 
 handlers/mapping
 
-## `mappingHandlers: Record<string, CommandHandler>`
+## `mappingHandlers: {
+    'mapping.create': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.delete': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.rename': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.select': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setProperty': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setTargetSchema': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.addRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.deleteRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.clearRules': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.reorderRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setAdapter': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setDefaults': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.autoGenerateRules': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setExtension': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setRuleExtension': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.addInnerRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.setInnerRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.deleteInnerRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'mapping.reorderInnerRule': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-@filedesc Page handlers that manipulate Page nodes in the component tree.
+## `projectHandlers: {
+    'project.import': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: boolean;
+        clearHistory: false;
+    };
+    'project.importSubform': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: true;
+    };
+    'project.loadRegistry': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'project.removeRegistry': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'project.publish': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-Page nodes live as direct children of the root Stack with
-`{ component: 'Page', nodeId, title, _layout: true, children: [] }`.
+## `screenerHandlers: {
+    'screener.setDocument': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.remove': (state: ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setMetadata': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.addItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.deleteItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setItemProperty': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.reorderItem': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setBind': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.addPhase': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.removePhase': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.reorderPhase': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setPhaseProperty': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.addRoute': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setRouteProperty': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.deleteRoute': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.reorderRoute': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setAvailability': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'screener.setResultValidity': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
-All handlers return `{ rebuildComponentTree: false }` because they
-mutate the tree directly — no rebuild needed.
-
-handlers/pages
-
-## `pagesHandlers: Record<string, CommandHandler>`
-
-Project-level command handlers.
-
-Project commands manage the project lifecycle: importing complete artifact
-bundles, merging subforms, loading/unloading extension registries, and
-publishing versioned releases.
-
-handlers/project
-
-## `projectHandlers: Record<string, CommandHandler>`
-
-## `screenerHandlers: Record<string, CommandHandler>`
-
-Theme command handlers.
-
-The Formspec theme document controls visual presentation through a three-level
-cascade that determines how each form item is rendered:
-
-- **Cascade Level 1 (Defaults)** -- Form-wide presentation baseline.
-- **Cascade Level 2 (Selectors)** -- Pattern-based overrides.
-- **Cascade Level 3 (Per-Item Overrides)** -- Highest-specificity level.
-
-Also manages design tokens, breakpoints, and stylesheets.
-Page layout lives in the component tree; theme handlers no longer own page authoring.
-
-All handlers return `{ rebuildComponentTree: false }` because theme mutations
-do not alter the definition item tree structure.
-
-handlers/theme
-
-## `themeHandlers: Record<string, CommandHandler>`
+## `themeHandlers: {
+    'theme.setToken': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setTokens': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setDefaults': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.addSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.deleteSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.reorderSelector': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.deleteItemOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemStyle': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemWidgetConfig': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setItemAccessibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setBreakpoint': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setStylesheets': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setDocumentProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'theme.setTargetCompatibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
 
 Shared tree utilities for component handlers.
 
@@ -470,9 +1257,605 @@ returns the new state plus all results. Middleware wraps the full plan.
 ##### `constructor(handlers: Readonly<Record<string, CommandHandler>>, middleware: Middleware[])`
 
 ##### `execute(state: ProjectState, phases: AnyCommand[][], reconcile: (clone: ProjectState) => void): {
-
         newState: ProjectState;
         results: CommandResult[];
+    }`
+
+#### interface `ProjectCommandMap`
+
+- **'theme.setToken'**: `{
+        key: string;
+        value: unknown;
+    }`
+- **'theme.setTokens'**: `{
+        tokens: Record<string, unknown>;
+    }`
+- **'theme.setDefaults'**: `{
+        property: string;
+        value: unknown;
+    }`
+- **'theme.addSelector'**: `{
+        match: unknown;
+        apply: unknown;
+        insertIndex?: number;
+    }`
+- **'theme.setSelector'**: `{
+        index: number;
+        match?: unknown;
+        apply?: unknown;
+    }`
+- **'theme.deleteSelector'**: `{
+        index: number;
+    }`
+- **'theme.reorderSelector'**: `{
+        index: number;
+        direction: 'up' | 'down';
+    }`
+- **'theme.setItemOverride'**: `{
+        itemKey: string;
+        property: string;
+        value: unknown;
+    }`
+- **'theme.deleteItemOverride'**: `{
+        itemKey: string;
+    }`
+- **'theme.setItemStyle'**: `{
+        itemKey: string;
+        property: string;
+        value: unknown;
+    }`
+- **'theme.setItemWidgetConfig'**: `{
+        itemKey: string;
+        property: string;
+        value: unknown;
+    }`
+- **'theme.setItemAccessibility'**: `{
+        itemKey: string;
+        property: string;
+        value: unknown;
+    }`
+- **'theme.setBreakpoint'**: `{
+        name: string;
+        minWidth: number | null;
+    }`
+- **'theme.setStylesheets'**: `{
+        urls: string[];
+    }`
+- **'theme.setDocumentProperty'**: `{
+        property: string;
+        value: unknown;
+    }`
+- **'theme.setExtension'**: `{
+        key: string;
+        value: unknown;
+    }`
+- **'theme.setTargetCompatibility'**: `{
+        compatibleVersions: string;
+    }`
+- **'screener.setDocument'**: `ScreenerDocument`
+- **'screener.remove'**: `Record<string, unknown>`
+- **'screener.setMetadata'**: `Record<string, unknown>`
+- **'screener.addItem'**: `Record<string, unknown>`
+- **'screener.deleteItem'**: `{
+        key: string;
+    }`
+- **'screener.setItemProperty'**: `{
+        key: string;
+        property: string;
+        value: unknown;
+    }`
+- **'screener.reorderItem'**: `{
+        index: number;
+        direction: 'up' | 'down';
+    }`
+- **'screener.setBind'**: `{
+        path: string;
+        properties: Record<string, unknown>;
+    }`
+- **'screener.addPhase'**: `{
+        id: string;
+        strategy: string;
+        label?: string;
+        insertIndex?: number;
+    }`
+- **'screener.removePhase'**: `{
+        phaseId: string;
+    }`
+- **'screener.reorderPhase'**: `{
+        phaseId: string;
+        direction: 'up' | 'down';
+    }`
+- **'screener.setPhaseProperty'**: `{
+        phaseId: string;
+        property: string;
+        value: unknown;
+    }`
+- **'screener.addRoute'**: `{
+        phaseId: string;
+        route: Record<string, unknown>;
+        insertIndex?: number;
+    }`
+- **'screener.setRouteProperty'**: `{
+        phaseId: string;
+        index: number;
+        property: string;
+        value: unknown;
+    }`
+- **'screener.deleteRoute'**: `{
+        phaseId: string;
+        index: number;
+    }`
+- **'screener.reorderRoute'**: `{
+        phaseId: string;
+        index: number;
+        direction: 'up' | 'down';
+    }`
+- **'screener.setAvailability'**: `{
+        from?: string | null;
+        until?: string | null;
+    }`
+- **'screener.setResultValidity'**: `{
+        duration: string | null;
+    }`
+- **'project.import'**: `Record<string, any>`
+- **'project.importSubform'**: `{
+        definition: Record<string, unknown>;
+        targetGroupPath?: string;
+        keyPrefix?: string;
+    }`
+- **'project.loadRegistry'**: `{
+        registry: Record<string, unknown>;
+    }`
+- **'project.removeRegistry'**: `{
+        url: string;
+    }`
+- **'project.publish'**: `{
+        version: string;
+        summary?: string;
+    }`
+- **'mapping.create'**: `{
+        id: string;
+        targetSchema?: any;
+    }`
+- **'mapping.delete'**: `{
+        id: string;
+    }`
+- **'mapping.rename'**: `{
+        oldId: string;
+        newId: string;
+    }`
+- **'mapping.select'**: `{
+        id: string;
+    }`
+- **'mapping.setProperty'**: `{
+        mappingId?: string;
+        property: string;
+        value: unknown;
+    }`
+- **'mapping.setTargetSchema'**: `{
+        mappingId?: string;
+        property: string;
+        value: unknown;
+    }`
+- **'mapping.addRule'**: `{
+        mappingId?: string;
+        sourcePath?: string;
+        targetPath?: string;
+        transform?: string;
+        insertIndex?: number;
+    }`
+- **'mapping.setRule'**: `{
+        mappingId?: string;
+        index: number;
+        property: string;
+        value: unknown;
+    }`
+- **'mapping.deleteRule'**: `{
+        mappingId?: string;
+        index: number;
+    }`
+- **'mapping.clearRules'**: `{
+        mappingId?: string;
+    }`
+- **'mapping.reorderRule'**: `{
+        mappingId?: string;
+        index: number;
+        direction: 'up' | 'down';
+    }`
+- **'mapping.setAdapter'**: `{
+        mappingId?: string;
+        format: string;
+        config: unknown;
+    }`
+- **'mapping.setDefaults'**: `{
+        mappingId?: string;
+        defaults: Record<string, unknown>;
+    }`
+- **'mapping.autoGenerateRules'**: `{
+        mappingId?: string;
+        scopePath?: string;
+        priority?: number;
+        replace?: boolean;
+    }`
+- **'mapping.setExtension'**: `{
+        mappingId?: string;
+        key: string;
+        value: unknown;
+    }`
+- **'mapping.setRuleExtension'**: `{
+        mappingId?: string;
+        index: number;
+        key: string;
+        value: unknown;
+    }`
+- **'mapping.addInnerRule'**: `{
+        mappingId?: string;
+        ruleIndex: number;
+        sourcePath?: string;
+        targetPath?: string;
+        transform?: string;
+        insertIndex?: number;
+    }`
+- **'mapping.setInnerRule'**: `{
+        mappingId?: string;
+        ruleIndex: number;
+        innerIndex: number;
+        property: string;
+        value: unknown;
+    }`
+- **'mapping.deleteInnerRule'**: `{
+        mappingId?: string;
+        ruleIndex: number;
+        innerIndex: number;
+    }`
+- **'mapping.reorderInnerRule'**: `{
+        mappingId?: string;
+        ruleIndex: number;
+        innerIndex: number;
+        direction: 'up' | 'down';
+    }`
+- **'locale.load'**: `{
+        document: Record<string, unknown>;
+    }`
+- **'locale.remove'**: `{
+        localeId: string;
+    }`
+- **'locale.select'**: `{
+        localeId: string;
+    }`
+- **'locale.setString'**: `{
+        localeId?: string;
+        key: string;
+        value: string | null;
+    }`
+- **'locale.setStrings'**: `{
+        localeId?: string;
+        strings: Record<string, string>;
+    }`
+- **'locale.removeString'**: `{
+        localeId?: string;
+        key: string;
+    }`
+- **'locale.setMetadata'**: `{
+        localeId?: string;
+        property: string;
+        value: unknown;
+    }`
+- **'locale.setFallback'**: `{
+        localeId?: string;
+        fallback: string | null;
+    }`
+- **'definition.addVariable'**: `Record<string, unknown>`
+- **'definition.setVariable'**: `{
+        name: string;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.deleteVariable'**: `{
+        name: string;
+    }`
+- **'definition.addShape'**: `Record<string, unknown>`
+- **'definition.setShapeProperty'**: `{
+        id: string;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.setShapeComposition'**: `{
+        id: string;
+        mode: string;
+        refs?: string[];
+        ref?: string;
+    }`
+- **'definition.renameShape'**: `{
+        id: string;
+        newId: string;
+    }`
+- **'definition.deleteShape'**: `{
+        id: string;
+    }`
+- **'definition.setDefinitionProperty'**: `{
+        property: string;
+        value: unknown;
+    }`
+- **'definition.setFormPresentation'**: `{
+        property: string;
+        value: unknown;
+    }`
+- **'definition.setGroupRef'**: `{
+        path: string;
+        ref: string | null;
+        keyPrefix?: string;
+    }`
+- **'definition.setOptionSet'**: `{
+        name: string;
+        options?: unknown[];
+        source?: string;
+    }`
+- **'definition.setOptionSetProperty'**: `{
+        name: string;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.deleteOptionSet'**: `{
+        name: string;
+    }`
+- **'definition.promoteToOptionSet'**: `{
+        path: string;
+        name: string;
+    }`
+- **'definition.addMigration'**: `{
+        fromVersion: string;
+        description?: string;
+    }`
+- **'definition.deleteMigration'**: `{
+        fromVersion: string;
+    }`
+- **'definition.setMigrationProperty'**: `{
+        fromVersion: string;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.addFieldMapRule'**: `{
+        fromVersion: string;
+        source: string;
+        target: string | null;
+        transform: string;
+        expression?: string;
+        insertIndex?: number;
+    }`
+- **'definition.setFieldMapRule'**: `{
+        fromVersion: string;
+        index: number;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.deleteFieldMapRule'**: `{
+        fromVersion: string;
+        index: number;
+    }`
+- **'definition.setMigrationDefaults'**: `{
+        fromVersion: string;
+        defaults: Record<string, unknown>;
+    }`
+- **'definition.setFormTitle'**: `{
+        title: string;
+    }`
+- **'definition.addItem'**: `Record<string, unknown>`
+- **'definition.deleteItem'**: `{
+        path: string;
+    }`
+- **'definition.renameItem'**: `{
+        path: string;
+        newKey: string;
+    }`
+- **'definition.moveItem'**: `{
+        sourcePath: string;
+        targetParentPath?: string;
+        targetIndex?: number;
+    }`
+- **'definition.reorderItem'**: `{
+        path: string;
+        direction: 'up' | 'down';
+    }`
+- **'definition.duplicateItem'**: `{
+        path: string;
+    }`
+- **'definition.addInstance'**: `Record<string, unknown>`
+- **'definition.setInstance'**: `{
+        name: string;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.renameInstance'**: `{
+        name: string;
+        newName: string;
+    }`
+- **'definition.deleteInstance'**: `{
+        name: string;
+    }`
+- **'definition.setBind'**: `{
+        path: string;
+        properties: Record<string, unknown>;
+    }`
+- **'definition.setItemProperty'**: `{
+        path: string;
+        property: string;
+        value: unknown;
+    }`
+- **'definition.setFieldDataType'**: `{
+        path: string;
+        dataType: NonNullable<FormItem['dataType']>;
+    }`
+- **'definition.setFieldOptions'**: `{
+        path: string;
+        options: unknown;
+    }`
+- **'definition.setItemExtension'**: `{
+        path: string;
+        extension: string;
+        value: unknown;
+    }`
+- **'component.reconcileFromDefinition'**: `Record<string, never>`
+- **'component.addNode'**: `{
+        parent: {
+            bind?: string;
+            nodeId?: string;
+        };
+        insertIndex?: number;
+        component: string;
+        bind?: string;
+        props?: Record<string, unknown>;
+    }`
+- **'component.deleteNode'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+    }`
+- **'component.moveNode'**: `{
+        source: {
+            bind?: string;
+            nodeId?: string;
+        };
+        targetParent: {
+            bind?: string;
+            nodeId?: string;
+        };
+        targetIndex?: number;
+    }`
+- **'component.reorderNode'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        direction: 'up' | 'down';
+    }`
+- **'component.duplicateNode'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+    }`
+- **'component.wrapNode'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        wrapper: {
+            component: string;
+            props?: Record<string, unknown>;
+        };
+    }`
+- **'component.wrapSiblingNodes'**: `{
+        nodes: Array<{
+            bind?: string;
+            nodeId?: string;
+        }>;
+        wrapper: {
+            component: string;
+            props?: Record<string, unknown>;
+        };
+    }`
+- **'component.unwrapNode'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+    }`
+- **'component.setNodeProperty'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        property: string;
+        value: unknown;
+    }`
+- **'component.setNodeType'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        component: string;
+        preserveProps?: boolean;
+    }`
+- **'component.setNodeStyle'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        property: string;
+        value: unknown;
+    }`
+- **'component.setNodeAccessibility'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        property: string;
+        value: unknown;
+    }`
+- **'component.spliceArrayProp'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        property: string;
+        index: number;
+        deleteCount: number;
+        insert?: unknown[];
+    }`
+- **'component.setFieldWidget'**: `{
+        fieldKey: string;
+        widget: string;
+    }`
+- **'component.setResponsiveOverride'**: `{
+        node: {
+            bind?: string;
+            nodeId?: string;
+        };
+        breakpoint: string;
+        patch: unknown;
+    }`
+- **'component.setGroupRepeatable'**: `{
+        groupKey: string;
+        repeatable: boolean;
+    }`
+- **'component.setGroupDisplayMode'**: `{
+        groupKey: string;
+        mode: string;
+    }`
+- **'component.setGroupDataTable'**: `{
+        groupKey: string;
+        config: unknown;
+    }`
+- **'component.registerCustom'**: `{
+        name: string;
+        params: unknown;
+        tree: unknown;
+    }`
+- **'component.updateCustom'**: `{
+        name: string;
+        params?: unknown;
+        tree?: unknown;
+    }`
+- **'component.deleteCustom'**: `{
+        name: string;
+    }`
+- **'component.renameCustom'**: `{
+        name: string;
+        newName: string;
+    }`
+- **'component.setToken'**: `{
+        key: string;
+        value: unknown;
+    }`
+- **'component.setBreakpoint'**: `{
+        name: string;
+        minWidth: number | null;
+    }`
+- **'component.setDocumentProperty'**: `{
+        property: string;
+        value: unknown;
     }`
 
 #### interface `IProjectCore`
@@ -483,13 +1866,13 @@ This is the seam between the two packages.
 
 - **locales** (`Readonly<Record<string, LocaleState>>`): Read-only view of all loaded locale states, keyed by BCP 47 code.
 
-##### `dispatch(command: AnyCommand): CommandResult`
+##### `dispatch(command: Command<T, ProjectCommandMap[T]>): CommandResult`
 
-##### `dispatch(command: AnyCommand[]): CommandResult[]`
+##### `dispatch(command: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
-##### `batch(commands: AnyCommand[]): CommandResult[]`
+##### `batch(commands: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
-##### `batchWithRebuild(phase1: AnyCommand[], phase2: AnyCommand[]): CommandResult[]`
+##### `batchWithRebuild(phase1: Command<T, ProjectCommandMap[T]>[], phase2: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
 ##### `undo(): boolean`
 
@@ -760,63 +2143,6 @@ This is a pure query and does not modify the state.
 
 Count the number of fields in the definition that reference a given option set name.
 
-## `resolvePageView(state: PageViewInput): PageStructureView`
-
-Resolves the page structure into behavioral types for the Pages UI.
-
-Pure function that wraps `resolvePageStructure` and translates schema vocabulary
-(span, start, exists) to UI vocabulary (width, offset, status).
-
-#### interface `PageView`
-
-What PagesTab sees — no schema vocabulary.
-
-- **id**: `string`
-- **title**: `string`
-- **description?**: `string`
-- **items**: `PageItemView[]`
-
-#### interface `PageItemView`
-
-- **key**: `string`
-- **label**: `string`
-- **status**: `'valid' | 'broken'`
-- **width**: `number`
-- **offset?**: `number`
-- **responsive**: `Record<string, {
-        width?: number;
-        offset?: number;
-        hidden?: boolean;
-    }>`
-- **itemType**: `'field' | 'group' | 'display'`
-- **childCount?**: `number`
-- **repeatable?**: `boolean`
-- **widgetHint?**: `string`
-
-#### interface `PlaceableItem`
-
-- **key**: `string`
-- **label**: `string`
-- **itemType**: `'field' | 'group' | 'display'`
-
-#### interface `PageStructureView`
-
-- **itemPageMap** (`Record<string, string>`): Maps each placed item key to the page ID it belongs to.
-
-#### type `PageViewInput`
-
-Minimal input: only the document slices resolvePageView actually reads.
-
-```ts
-type PageViewInput = {
-    definition: Pick<FormDefinition, 'formPresentation' | 'items'>;
-    component?: Pick<ComponentState, 'tree'>;
-    theme?: {
-        breakpoints?: Record<string, number>;
-    };
-};
-```
-
 ## `listRegistries(state: ProjectState): RegistrySummary[]`
 
 Enumerate loaded extension registries with summary metadata.
@@ -1007,16 +2333,15 @@ command-dispatch pipeline. Queries are delegated to pure functions in `queries/`
 Wholesale replace project state with a prior snapshot.
 
 CONTRACT — the snapshot is held BY REFERENCE:
-
-- Callers MUST NOT mutate `snapshot` after this call. The project will
+  - Callers MUST NOT mutate `snapshot` after this call. The project will
     observe those mutations as corruption of its internal state.
-- Callers who intend to keep using their own copy MUST clone before
+  - Callers who intend to keep using their own copy MUST clone before
     passing (see ProposalManager — every call site wraps with
     `structuredClone`).
 
 Why by-reference rather than cloning inside?  Snapshots are already full
 `ProjectState` graphs (definition + component + theme + mappings + locales
-- baseline). In snapshot-and-replay flows (reject / partial-merge) the
++ baseline). In snapshot-and-replay flows (reject / partial-merge) the
 caller clones once from the stored `snapshotBefore`; cloning again here
 would double the cost of every replay for a guarantee the caller already
 provides.  In dev builds we deep-freeze the snapshot after assignment so
@@ -1029,15 +2354,15 @@ corrupting downstream reads.
 
 ##### `onChange(listener: ChangeListener): () => void`
 
-##### `dispatch(command: AnyCommand): CommandResult`
+##### `dispatch(command: Command<T, ProjectCommandMap[T]>): CommandResult`
 
-##### `dispatch(command: AnyCommand[]): CommandResult[]`
+##### `dispatch(command: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
-##### `batchWithRebuild(phase1: AnyCommand[], phase2: AnyCommand[]): CommandResult[]`
+##### `batchWithRebuild(phase1: Command<T, ProjectCommandMap[T]>[], phase2: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
 ##### `clearRedo(): void`
 
-##### `batch(commands: AnyCommand[]): CommandResult[]`
+##### `batch(commands: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
 ## `indexRegistryPayload(registry: Record<string, unknown>, fallbackUrl?: string): LoadedRegistry`
 
@@ -1088,7 +2413,6 @@ Preserves existing bound node properties (widget overrides, styles) and
 unbound layout nodes (re-inserted at original positions).
 
 The algorithm:
-
   1. Snapshot layout wrappers (_layout: true) with their full subtrees.
   2. Collect existing bound/display nodes by path, rebuild from definition.
   3. Build a flat Stack root with all definition-derived nodes.
@@ -1252,7 +2576,7 @@ A timestamped record of a dispatched command.
 The full command log is serializable and can be persisted then replayed
 on a fresh project to reconstruct state.
 
-- **command** (`AnyCommand`): The command that was dispatched.
+- **command** (`AnyCommand | InternalCommand`): The command that was dispatched (or an internal lifecycle label for batch/undo/redo).
 - **timestamp** (`number`): Epoch milliseconds when the command was dispatched.
 
 #### interface `ProjectOptions`
@@ -1271,7 +2595,7 @@ with a generated URL, blank component/theme/mapping documents, no extensions).
 
 Describes a state change that just occurred. Passed to {@link ChangeListener} callbacks.
 
-- **command** (`AnyCommand`): The command that triggered this change.
+- **command** (`AnyCommand | InternalCommand`): The command that triggered this change, or an internal lifecycle label for undo/redo/batch.
 - **result** (`CommandResult`): The result returned by the command handler.
 - **source** (`string`): How the change originated: `'dispatch'`, `'undo'`, `'redo'`, or `'batch'`.
 
@@ -1397,8 +2721,8 @@ context refs (`@source`, `@target`) when inside a mapping expression.
         label?: string;
         /**
          * Present only when contextPath is inside a repeatable group.
-         * -`'local'` — field is inside the same innermost repeat group as contextPath.
-         * - `'global'`— field is outside that repeat group.
+         * - `'local'` — field is inside the same innermost repeat group as contextPath.
+         * - `'global'` — field is outside that repeat group.
          */
         scope?: 'local' | 'global';
     }[]`): Fields that can be referenced, with their data type and optional label.
@@ -1483,6 +2807,10 @@ Used across structural, expression, extension, and consistency checks.
 - **message** (`string`): Human-readable description of the issue.
 - **line** (`number`): 1-based line number within the expression, when available (FEL parse errors).
 - **column** (`number`): 1-based column number within the expression, when available (FEL parse errors).
+- **span** (`{
+        start: number;
+        end: number;
+    }`): Character span in source when provided by the analyzer (Rust lexer indices).
 
 #### interface `Diagnostics`
 
@@ -1550,12 +2878,36 @@ derived from the highest-impact individual change.
 - **semverImpact** (`'breaking' | 'compatible' | 'cosmetic'`): Overall semver impact (the maximum across all individual changes).
 - **changes** (`Change[]`): Individual changes detected between the two versions.
 
+#### type `BuiltinCommandType`
+
+```ts
+type BuiltinCommandType = keyof ProjectCommandMap;
+```
+
 #### type `AnyCommand`
 
 A command with any type and payload -- used when the specific command type is not known statically.
 
 ```ts
-type AnyCommand = Command;
+type AnyCommand = {
+    [K in BuiltinCommandType]: Command<K, ProjectCommandMap[K]>;
+}[BuiltinCommandType];
+```
+
+#### type `InternalCommandType`
+
+Synthetic lifecycle labels emitted by the project for history/notification
+purposes only. These are never dispatched through command handlers and
+therefore do not belong in ProjectCommandMap.
+
+```ts
+type InternalCommandType = 'undo' | 'redo' | 'restoreState' | 'batch' | 'batchWithRebuild';
+```
+
+#### type `InternalCommand`
+
+```ts
+type InternalCommand = Command<InternalCommandType, Record<string, unknown>>;
 ```
 
 #### type `CommandHandler`

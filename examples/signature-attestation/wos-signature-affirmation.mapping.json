@@ -13,6 +13,18 @@
   },
   "rules": [
     {
+      "sourcePath": "authoredSignatures[0].signatureId",
+      "targetPath": "formspecSignatureId",
+      "transform": "preserve",
+      "description": "Carry the Formspec authored-signature identifier into the WOS evidence seed."
+    },
+    {
+      "sourcePath": "authoredSignatures[0].signingIntent",
+      "targetPath": "signingIntent",
+      "transform": "preserve",
+      "description": "Carry the Formspec signing-intent URI for WOS governance checks."
+    },
+    {
       "sourcePath": "authoredSignatures[0].signerId",
       "targetPath": "signerId",
       "transform": "preserve",
@@ -31,6 +43,21 @@
     {
       "sourcePath": "authoredSignatures[0].documentHashAlgorithm",
       "targetPath": "documentHashAlgorithm",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "authoredSignatures[0].signedPayload.digest",
+      "targetPath": "signedPayloadDigest",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "authoredSignatures[0].signedPayload.digestAlgorithm",
+      "targetPath": "signedPayloadDigestAlgorithm",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "authoredSignatures[0].signedPayload.responseId",
+      "targetPath": "formspecResponseId",
       "transform": "preserve"
     },
     {

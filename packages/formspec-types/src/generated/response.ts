@@ -39,7 +39,7 @@ export interface FormResponse {
    */
   authored: string;
   /**
-   * A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind to a stable responseId.
+   * A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.
    */
   id?: string;
   /**
@@ -73,7 +73,7 @@ export interface FormResponse {
    */
   validationResults?: FormspecValidationResult[];
   /**
-   * Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Response envelope. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.
+   * Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.
    *
    * @minItems 1
    */
@@ -84,16 +84,24 @@ export interface FormResponse {
   extensions?: {};
 }
 /**
- * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Response envelope. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
+ * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
  *
  * This interface was referenced by `FormResponse`'s JSON-Schema
  * via the `definition` "AuthoredSignature".
  */
 export interface AuthoredSignature {
   /**
+   * Stable identifier for this authored signature record within the Response.
+   */
+  signatureId: string;
+  /**
    * Identifier of the document or signing surface this authored signature affirms.
    */
   documentId: string;
+  /**
+   * URI identifying the signing intent or certification profile the signer accepted.
+   */
+  signingIntent: string;
   /**
    * Opaque signature evidence value or reference. This may be a data URL from a drawn-signature control, an attachment reference, a detached signature blob, or a provider-managed ceremony reference. A signatureValue alone MUST NOT be treated as sufficient signing intent.
    */
@@ -130,18 +138,15 @@ export interface AuthoredSignature {
    * Affirmation text shown to and accepted by the signer at authoring time.
    */
   affirmationText: string;
+  signedPayload: AuthoredSignatureSignedPayload;
   /**
-   * Digest of the document bytes, rendered view, or canonical signing payload that the signer affirmed. This binds the signing act to content stronger than a drawn image alone.
+   * Digest of the document bytes, rendered view, certification page, or signing surface shown to the signer. This is not the normative response-byte assent binding; signedPayload.digest carries that commitment.
    */
   documentHash: string;
   /**
    * Digest algorithm used to compute documentHash.
    */
   documentHashAlgorithm: string;
-  /**
-   * Identifier of the Response this authored signature binds to. It MUST match the top-level Response id when the envelope is persisted.
-   */
-  responseId: string;
   /**
    * URI reference to the identity-proofing artifact or proof bundle associated with this signing act, when one exists.
    */
@@ -155,6 +160,38 @@ export interface AuthoredSignature {
    * Identifier for the signing ceremony or provider session that produced this authored signature evidence.
    */
   ceremonyId: string;
+}
+/**
+ * Digest commitment for the Formspec Signed Response Payload. The payload is the canonical Response envelope with authoredSignatures omitted, so the digest remains stable when later co-signatures are appended.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "AuthoredSignatureSignedPayload".
+ */
+export interface AuthoredSignatureSignedPayload {
+  /**
+   * Canonicalization profile used to produce the signed-payload bytes.
+   */
+  canonicalization: 'formspec-response-signing-v1';
+  /**
+   * Digest algorithm used to hash the canonical signed payload.
+   */
+  digestAlgorithm: string;
+  /**
+   * Digest of the Formspec Signed Response Payload: the canonical Response envelope with authoredSignatures omitted.
+   */
+  digest: string;
+  /**
+   * Identifier of the Response whose signed payload was hashed. It MUST equal the top-level Response id.
+   */
+  responseId: string;
+  /**
+   * Definition URL pin included in the signed payload. It MUST equal the top-level Response definitionUrl.
+   */
+  definitionUrl: string;
+  /**
+   * Definition version pin included in the signed payload. It MUST equal the top-level Response definitionVersion.
+   */
+  definitionVersion: string;
 }
 /**
  * Provider-neutral identity-binding evidence attached to an authored signature. This records how the signer identity was bound to the signing act without baking one provider or ceremony vendor into the Response contract.

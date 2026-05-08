@@ -92,7 +92,7 @@
     "recordKind": {
       "type": "string",
       "const": "responseCorrection",
-      "description": "Trellis/WOS-readable record discriminator. Present only for response.correction-recorded events."
+      "description": "Correction-profile discriminator. Present only for response.correction-recorded events."
     },
     "data": {
       "$ref": "#/$defs/ResponseCorrectionData"
@@ -380,7 +380,7 @@
         "correctedFieldSet",
         "fieldValues",
         "reason",
-        "authorizationEventHash"
+        "authorizationRef"
       ],
       "additionalProperties": false,
       "properties": {
@@ -411,9 +411,10 @@
           "minLength": 1,
           "description": "Respondent-visible explanation of why the correction was recorded."
         },
-        "authorizationEventHash": {
-          "$ref": "#/$defs/HashString",
-          "description": "Hash of the WOS CorrectionAuthorized provenance record or equivalent authorizing act."
+        "authorizationRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the authorizing act that permitted the correction. This may be an algorithm-prefixed hash, URI, or implementation-local reference; the Respondent Ledger records the reference without owning workflow governance semantics."
         }
       }
     },
@@ -531,15 +532,15 @@
         "byte_length": {
           "type": "integer",
           "minimum": 0,
-          "description": "Exact attachment byte length before Trellis envelope encryption."
+          "description": "Exact attachment byte length before any adapter encryption, export wrapping, or transport encoding."
         },
         "attachment_sha256": {
           "$ref": "#/$defs/HashString",
-          "description": "SHA-256 over the exact attachment bytes before Trellis envelope encryption."
+          "description": "SHA-256 over the exact attachment bytes before any adapter encryption, export wrapping, or transport encoding."
         },
         "payload_content_hash": {
           "$ref": "#/$defs/HashString",
-          "description": "Trellis ciphertext hash; equals EventPayload.content_hash and PayloadExternal.content_hash when Trellis-wrapped."
+          "description": "Hash of the payload bytes as carried by the selected integrity or export profile. For a Trellis-wrapped profile this equals EventPayload.content_hash and PayloadExternal.content_hash; base Formspec attachment lifecycle meaning comes from attachment_id, slot_path, attachment_sha256, and prior_binding_hash."
         },
         "filename": {
           "type": ["string", "null"],

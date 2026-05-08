@@ -143,11 +143,15 @@ This specification does **not** require:
 
 ### 4.1 Top-level document
 
-A ledger document represents the material respondent-side history for one logical intake record.
+A ledger document represents the material respondent-side history for one
+Formspec `Response`. It is response-scoped history, not a workflow case ledger.
 
 Each ledger document **MUST** correspond to exactly one current `responseId`.
 
-A ledger document **MAY** cover one or more session segments over the life of that response, including amendment cycles.
+A ledger document **MAY** cover one or more session segments over the life of
+that response, including amendment cycles. Workflow hosts may compose a sealed
+response ledger head into a separate case ledger, but that composition does not
+rename or merge the Respondent Ledger into case governance history.
 
 ### 4.2 Canonical objects
 
@@ -210,6 +214,10 @@ A `RespondentLedger` object **SHOULD** also include, where available:
 - `headEventId` — identifier of the newest retained event.
 - `integrityProfile` — optional integrity declaration. Allowed values are
   `none`, `chained`, and `trellis-wrapped`. If omitted, `none` is assumed.
+  The `trellis-wrapped` value remains an optional compatibility profile value
+  in this base schema, but Formspec only assigns the hash-obligation semantics
+  described here. Trellis envelope, export, and certificate validation are
+  profile-validator responsibilities outside the base Respondent Ledger.
 - `offlineAuthoring` — optional synchronization profile for events authored
   while offline or not yet accepted by the server.
 - `changelogMode` — optional capture declaration. Allowed values are `material` and `field-level`. If omitted, `material` is assumed.
@@ -285,7 +293,7 @@ Each event **MUST** contain at least:
 - `identityAttestation` — provider-neutral record of identity, proof-of-personhood, DID, or delegation evidence associated with the event.
 - `attachmentBinding` — chain-bound `EvidenceAttachmentBinding` record for an added or replaced attachment, defined in §6.9.
 - `priorAttachmentBindingHash` — prior attachment-binding event hash referenced by an attachment removal.
-- `recordKind` — Trellis/WOS-readable record discriminator for `response.correction-recorded`; when present it **MUST** equal `responseCorrection`.
+- `recordKind` — correction-profile discriminator for `response.correction-recorded`; when present it **MUST** equal `responseCorrection`.
 - `data` — structured `ResponseCorrection` payload for `response.correction-recorded`, defined in §11.3.
 - `priorEventHash` — previous event hash in the respondent-ledger chain, or `null` for the first event in a Trellis-wrapped chain.
 - `eventHash` — hash of this respondent-ledger event under the active integrity profile.
@@ -416,6 +424,15 @@ This add-on records the fact that a signature, credential, or delegation was bou
 
 An implementation **MUST NOT** treat a recorded `attestation.captured` event as a substitute for the authored signature itself. Verifiers evaluating authenticity of Response content **MUST** verify the authored signature; the ledger event is corroborating audit context, not the signature.
 
+Signature lifecycle history **SHOULD** be recorded as response-scoped ledger
+events when a deployment needs durable audit history for capture, verification
+success, verification failure, withdrawal, supersession, or amendment after
+signing. Those events **SHOULD** reference the authored signature with
+`signatureId`, `responseId`, and `signedPayload.digest` values from the
+Formspec Response. The ledger records lifecycle history and corroborating
+facts; it **MUST NOT** replace Formspec authored-signature verification or
+invent signature semantics outside the Response contract.
+
 ### 6.9 EvidenceAttachmentBinding object
 
 `EvidenceAttachmentBinding` is the canonical Formspec-originated attachment-binding record adopted by [ADR 0072](../../thoughts/adr/0072-stack-evidence-integrity-and-attachment-binding.md).
@@ -436,9 +453,9 @@ Field semantics:
 - `attachment_id` — stable logical attachment identifier within the current `responseId` and origin-layer scope. It **MUST** remain stable across replacement of the same logical attachment. It **MUST NOT** be derived solely from filename, storage key, or content hash.
 - `slot_path` — Formspec response path or evidence slot where the attachment is bound. For repeated or multi-attachment slots, the path **SHOULD** include a stable row or attachment discriminator when available and **SHOULD NOT** rely on an array index alone when a stable discriminator exists.
 - `media_type` — RFC 6838 media type of the attachment bytes.
-- `byte_length` — exact byte length before Trellis envelope encryption.
-- `attachment_sha256` — SHA-256 over the exact attachment bytes before Trellis envelope encryption. The processor **MUST NOT** canonicalize, transcode, normalize, or MIME-reinterpret bytes before computing this digest.
-- `payload_content_hash` — Trellis ciphertext hash. For Trellis-wrapped attachment events, this value **MUST** equal `EventPayload.content_hash` and `PayloadExternal.content_hash`.
+- `byte_length` — exact byte length before any adapter encryption, export wrapping, or transport encoding.
+- `attachment_sha256` — SHA-256 over the exact attachment bytes before any adapter encryption, export wrapping, or transport encoding. The processor **MUST NOT** canonicalize, transcode, normalize, or MIME-reinterpret bytes before computing this digest.
+- `payload_content_hash` — hash of the payload bytes as carried by the selected integrity or export profile. For Trellis-wrapped attachment events, this value **MUST** equal `EventPayload.content_hash` and `PayloadExternal.content_hash`.
 - `filename` — display-only filename, or `null`. It **MUST NOT** be treated as identity.
 - `prior_binding_hash` — `null` for `attachment.added`; the prior binding event's `canonical_event_hash` for `attachment.replaced`.
 
@@ -448,7 +465,13 @@ Field semantics:
 
 `attachment.removed` **MUST NOT** emit a new `EvidenceAttachmentBinding`; it records removal under its own lifecycle event and references the removed binding through `priorAttachmentBindingHash`.
 
-The attachment binding is authoritative for portable attachment identity. Storage layout, blob identifiers, filenames, and membership under a payload directory are adapter details and **MUST NOT** be used as substitutes for this record.
+The attachment binding is authoritative for portable attachment identity.
+Storage layout, blob identifiers, filenames, membership under a payload
+directory, and export-wrapper hashes are adapter details and **MUST NOT** be
+used as substitutes for this record. Attachment lifecycle meaning comes from
+the Formspec fields `attachment_id`, `slot_path`, `attachment_sha256`, and
+`prior_binding_hash`; export profiles may add byte-carriage evidence but do not
+define the lifecycle act.
 
 When this event is wrapped by Trellis, the `EvidenceAttachmentBinding` metadata is carried in `EventPayload.extensions["trellis.evidence-attachment-binding.v1"]`; Trellis `PayloadExternal` names the attachment ciphertext bytes whose digest is `payload_content_hash`.
 
@@ -640,7 +663,7 @@ An implementation **MAY** support additional material event types, including:
 - `identity-verified` — an identity provider, DID verifier, or proof-of-personhood flow materially updated the assurance state relied on by the workflow.
 - `attestation.captured` — a credential, delegation, personhood proof, or related attestation was durably bound into audit history.
 - `response.migrated` — response was transformed to a new definition version.
-- `response.correction-recorded` — additive correction to a prior submitted response event. The event **MUST** carry `recordKind = "responseCorrection"` and a `data` payload with the prior submission event hash, the corrected field subset, original/corrected field values, correction reason, and authorizing WOS event hash.
+- `response.correction-recorded` — additive correction to a prior submitted response event. The event **MUST** carry `recordKind = "responseCorrection"` and a `data` payload with the prior submission event hash, the corrected field subset, original/corrected field values, correction reason, and neutral authorization reference.
 - `field.edit-recorded` — optional event type for deployments that emit one durable event per field edit batch instead of carrying field-level entries only inside `draft.saved`, `autosave.coalesced`, `response.submit-attempted`, `response.amended`, migration, or merge events.
 
 ### 8.4 Explicit exclusions
@@ -805,8 +828,10 @@ The event **MUST** carry:
   `correctedFieldSet` and each row preserves `originalValue` and
   `correctedValue`;
 - `data.reason`, a respondent-visible correction rationale;
-- `data.authorizationEventHash`, the WOS `CorrectionAuthorized` provenance
-  record hash or equivalent authorizing act.
+- `data.authorizationRef`, a neutral reference to the authorizing act that
+  permitted the correction. It may be an algorithm-prefixed hash, URI, or
+  implementation-local reference. The Respondent Ledger records the reference
+  without owning workflow governance semantics.
 
 The corrected field set is a declared subset, not an open-ended amendment. If a
 proposed change affects determination content or fields outside the declared
@@ -932,7 +957,10 @@ event is a chained ledger for that event stream and **MUST** declare
 claimed.
 
 This specification does not mandate any specific signature suite or external
-anchor outside the `trellis-wrapped` profile.
+anchor. The optional `trellis-wrapped` profile value is retained for
+compatibility and stack composition, but this base specification assigns only
+the response-ledger hash obligations above. Trellis envelope, export, and
+certificate checks live in Trellis profile validators.
 
 ---
 
