@@ -1,18 +1,47 @@
 /** @filedesc Response contract and pruning: getResponse() omits non-relevant fields and meets the response shape contract */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { FormEngine } from '../dist/index.js';
 
 const SIGNATURE_DIGEST = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+const SIGNATURE_INTENT = 'urn:agency.gov:signing-intent:benefits-application-certification:v1';
+const SIGNED_AT = '2026-04-22T12:00:00Z';
+const COSE_SIGN1_BYTES = '0oRWoQExiQEFQnNpZ25lZA==';
+const COSE_SIGN1_METHOD = 'urn:formspec:sig-method:ed25519-cose-sign1@1';
+const responseSchema = JSON.parse(
+  readFileSync(new URL('../../../schemas/response.schema.json', import.meta.url), 'utf8')
+);
+const validationResultSchema = JSON.parse(
+  readFileSync(new URL('../../../schemas/validation-result.schema.json', import.meta.url), 'utf8')
+);
+const ajv = new Ajv2020({ strict: false, allErrors: true });
+addFormats(ajv);
+ajv.addSchema(validationResultSchema);
+const validateResponse = ajv.compile(responseSchema);
 
-function signedPayload(responseId, definitionUrl = 'https://example.org/forms/signature-attestation', definitionVersion = '1.0.0') {
+function assertSchemaValidResponse(response) {
+  assert.equal(validateResponse(response), true, JSON.stringify(validateResponse.errors, null, 2));
+}
+
+function signedPayload(
+  responseId,
+  definitionUrl = 'https://example.org/forms/signature-attestation',
+  definitionVersion = '1.0.0',
+  signedAt = SIGNED_AT,
+  signingIntent = SIGNATURE_INTENT
+) {
   return {
     canonicalization: 'formspec-response-signing-v1',
     digestAlgorithm: 'sha-256',
     digest: SIGNATURE_DIGEST,
     responseId,
     definitionUrl,
-    definitionVersion
+    definitionVersion,
+    signedAt,
+    signingIntent
   };
 }
 
@@ -115,10 +144,10 @@ test('should include authored signatures in the response envelope and normalize 
       {
         signatureId: 'sig-2026-0001',
         documentId: 'benefitsApplication',
-        signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
-        signatureValue: 'data:image/png;base64,AAA=',
-        signatureMethod: 'drawn',
-        signedAt: '2026-04-22T12:00:00Z',
+        signingIntent: SIGNATURE_INTENT,
+        signatureValue: COSE_SIGN1_BYTES,
+        signatureMethod: COSE_SIGN1_METHOD,
+        signedAt: SIGNED_AT,
         consentAccepted: true,
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
         consentVersion: '1.0.0',
@@ -142,10 +171,14 @@ test('should include authored signatures in the response envelope and normalize 
   assert.ok(Array.isArray(response.authoredSignatures));
   assert.equal(response.authoredSignatures.length, 1);
   assert.equal(response.authoredSignatures[0].signatureId, 'sig-2026-0001');
-  assert.equal(response.authoredSignatures[0].signingIntent, 'urn:agency.gov:signing-intent:benefits-application-certification:v1');
+  assert.equal(response.authoredSignatures[0].signingIntent, SIGNATURE_INTENT);
   assert.equal(response.authoredSignatures[0].signedPayload.responseId, 'resp-2026-0001');
+  assert.equal(response.authoredSignatures[0].signedPayload.signedAt, SIGNED_AT);
+  assert.equal(response.authoredSignatures[0].signedPayload.signingIntent, SIGNATURE_INTENT);
+  assert.equal(Object.hasOwn(response.authoredSignatures[0], 'signedAt'), false);
   assert.equal(response.authoredSignatures[0].signerId, 'applicant');
   assert.equal(response.authoredSignatures[0].signerName, 'Ada Lovelace');
+  assertSchemaValidResponse(response);
 });
 
 test('should reject authored signatures that disagree on response identity', () => {
@@ -308,7 +341,14 @@ test('should use meta.id when authored signatures provide matching signedPayload
     author: { id: 'applicant', name: 'Ada Lovelace' },
     authoredSignatures: [
       { ...baseSig, signatureValue: 'urn:agency.gov:signature:primary' },
-      { ...baseSig, signatureId: 'sig-2', signatureValue: 'urn:agency.gov:signature:secondary', signedAt: '2026-04-22T12:05:00Z', ceremonyId: 'ceremony-2' }
+      {
+        ...baseSig,
+        signatureId: 'sig-2',
+        signatureValue: 'urn:agency.gov:signature:secondary',
+        signedAt: '2026-04-22T12:05:00Z',
+        signedPayload: signedPayload('resp-from-meta', undefined, undefined, '2026-04-22T12:05:00Z'),
+        ceremonyId: 'ceremony-2'
+      }
     ]
   });
 

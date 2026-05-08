@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/signature-method-registry/1.0",
+  "title": "Formspec Signature Method Registry",
+  "description": "Schema for the Formspec signature-method registry document (ADR-0087 D7). Lists registered cryptographic signature methods with their COSE alg codepoints.",
+  "type": "object",
+  "required": ["$registry", "version", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "$registry": {
+      "type": "string",
+      "const": "formspec-signature-method-registry@1",
+      "description": "Registry document type identifier.",
+      "x-lm": { "critical": true, "intent": "Type discriminator for the signature method registry document." }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "SemVer of this registry document.",
+      "x-lm": { "critical": true, "intent": "Semantic version of the registry, pinned in VerificationReceipt.methodRegistryVersion." },
+      "examples": ["1.0.0"]
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "suite", "wire", "alg", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^urn:formspec:sig-method:[a-z0-9-]+@\\d+$",
+            "description": "Registry entry identifier — the signatureMethod URI.",
+            "x-lm": { "critical": true, "intent": "Canonical URI used in signatureMethod and VerificationReceipt.method." },
+            "examples": ["urn:formspec:sig-method:ed25519-cose-sign1@1"]
+          },
+          "suite": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Cryptographic suite name (e.g., Ed25519, ECDSA-P256).",
+            "examples": ["Ed25519", "ECDSA-P256"]
+          },
+          "wire": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Wire encoding description for COSE_Sign1.",
+            "examples": ["COSE_Sign1 with alg = -8 (EdDSA)"]
+          },
+          "alg": {
+            "type": ["integer", "null"],
+            "description": "IANA COSE algorithm identifier. null for methods awaiting IANA registration (e.g., PQC).",
+            "examples": [-8, -7]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["registered", "deprecated"],
+            "description": "Entry lifecycle status. registered: active and supported. deprecated: should not be used for new signatures.",
+            "x-lm": { "critical": true, "intent": "Status determines if lint rule FORMSPEC-SIG-METHOD-REGISTERED-001 accepts or rejects." },
+            "examples": ["registered"]
+          },
+          "deprecationNotice": {
+            "type": "string",
+            "description": "Human-readable deprecation notice when status is deprecated."
+          }
+        }
+      }
+    }
+  }
+}

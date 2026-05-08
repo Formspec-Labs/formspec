@@ -1,0 +1,38 @@
+[bundle]
+id = "007"
+name = "cross-stack-trellis-export"
+description = "Full end-to-end: response → affirmation → Trellis append → export → certificate of completion → portable receipt; UCA corroborates"
+
+[required-adapters]
+adapters = ["trellis-cose"]
+
+[required-files]
+formspec_response = true
+wos_provenance = true
+trellis_events = true
+trellis_export = true
+verification_receipt = true
+posture_declaration = true
+
+[expected-outcomes.formspec]
+schema_valid = true
+semantic_valid = true
+expected_errors = []
+source_of_truth_invariants = { response_id_matches_signed_payload = true, definition_url_matches = true, definition_version_matches = true, signed_at_in_signed_payload = true }
+
+[expected-outcomes.wos]
+present = true
+record_kind = "signatureAffirmation"
+primitive_verification_status = "verified"
+
+[expected-outcomes.trellis]
+present = true
+custody_hook_present = true
+uca_corroborated = true
+export_present = true
+
+[cross-layer-byte-equality]
+formspec_signed_payload_digest_equals_wos = true
+signature_value_bytes_equals_trellis_uca = true
+verification_receipt_bytes_identical = true
+response_hash_equals_export = true

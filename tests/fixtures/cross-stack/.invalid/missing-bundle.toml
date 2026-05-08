@@ -1,0 +1,6 @@
+no_bundle_section = true
+
+[expected-outcomes.formspec]
+schema_valid = false
+expected_errors = []
+source_of_truth_invariants = {}

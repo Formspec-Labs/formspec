@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.dev/schemas/cross-stack-fixture-manifest.schema.json",
+  "title": "Cross-Stack Fixture Bundle Manifest",
+  "description": "Schema for cross-stack fixture bundle manifest.toml files (D4). Validates expected outcomes per bundle.",
+  "type": "object",
+  "required": ["bundle", "expected-outcomes"],
+  "properties": {
+    "bundle": {
+      "type": "object",
+      "required": ["id", "name", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^00[1-7]$",
+          "description": "Bundle identifier (001-007)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "required-adapters": {
+      "type": "object",
+      "properties": {
+        "adapters": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required-files": {
+      "type": "object",
+      "properties": {
+        "formspec_response": { "type": "boolean" },
+        "wos_provenance": { "type": "boolean" },
+        "trellis_events": { "type": "boolean" },
+        "trellis_export": { "type": "boolean" },
+        "verification_receipt": { "type": "boolean" },
+        "posture_declaration": { "type": "boolean" }
+      }
+    },
+    "expected-outcomes": {
+      "type": "object",
+      "required": ["formspec"],
+      "properties": {
+        "formspec": {
+          "type": "object",
+          "required": ["schema_valid"],
+          "properties": {
+            "schema_valid": { "type": "boolean" },
+            "semantic_valid": { "type": "boolean" },
+            "expected_errors": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "source_of_truth_invariants": {
+              "type": "object",
+              "properties": {
+                "response_id_matches_signed_payload": { "type": "boolean" },
+                "definition_url_matches": { "type": "boolean" },
+                "definition_version_matches": { "type": "boolean" },
+                "signed_at_in_signed_payload": { "type": "boolean" }
+              }
+            }
+          }
+        },
+        "wos": {
+          "type": "object",
+          "properties": {
+            "present": { "type": "boolean" },
+            "record_kind": {
+              "type": "string",
+              "enum": ["signatureAffirmation", "signatureAdmissionFailed"]
+            },
+            "primitive_verification_status": {
+              "type": "string",
+              "enum": ["verified", "deferredPendingHelper"]
+            },
+            "admission_failed_reason": { "type": "string" }
+          }
+        },
+        "trellis": {
+          "type": "object",
+          "properties": {
+            "present": { "type": "boolean" },
+            "custody_hook_present": { "type": "boolean" },
+            "uca_corroborated": { "type": "boolean" },
+            "export_present": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "cross-layer-byte-equality": {
+      "type": "object",
+      "properties": {
+        "formspec_signed_payload_digest_equals_wos": { "type": "boolean" },
+        "signature_value_bytes_equals_trellis_uca": { "type": "boolean" },
+        "verification_receipt_bytes_identical": { "type": "boolean" },
+        "response_hash_equals_export": { "type": "boolean" }
+      }
+    }
+  }
+}

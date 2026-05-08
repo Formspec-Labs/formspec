@@ -55,6 +55,9 @@ Model</a>
 <ul>
 <li><a href="#core-abstractions" id="toc-core-abstractions">2.1 Core
 Abstractions</a></li>
+<li><a href="#n-cross-record-fact-authority-normative"
+id="toc-n-cross-record-fact-authority-normative">2.1.N Cross-record fact
+authority (normative)</a></li>
 <li><a href="#relationships" id="toc-relationships">2.2
 Relationships</a></li>
 <li><a href="#the-three-layers" id="toc-the-three-layers">2.3 The Three
@@ -1650,6 +1653,82 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href=
 <pre><code>@instance(&#39;priorYear&#39;).totalIncome
 @instance(&#39;countryCodes&#39;)  </code></pre>
 </blockquote>
+<h3 id="n-cross-record-fact-authority-normative">2.1.N Cross-record fact
+authority (normative)</h3>
+<p>When facts about a signing event or response are recorded in more
+than one layer (Formspec Response, WOS provenance, Trellis ledger),
+exactly one record is the source-of-truth. Every other record is derived
+or corroborating. Divergence between the source-of-truth and any derived
+record is a MUST-fail at admission.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Source-of-truth record (canonical)</th>
+<th>Derived / corroborating</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Signer identity</td>
+<td><code>Response.authoredSignatures[*].signerId</code></td>
+<td><code>RespondentLedger.signature*</code> events; WOS
+<code>SignatureAffirmation.signerId</code></td>
+</tr>
+<tr>
+<td>Canonical signed bytes</td>
+<td><code>Response.authoredSignatures[*].signedPayload</code> (the bytes
+the signer assented to)</td>
+<td><code>signedPayload.digest</code>; Trellis
+<code>065-certificates</code>; UCA</td>
+</tr>
+<tr>
+<td>Signed-at timestamp</td>
+<td><code>Response.authoredSignatures[*].signedPayload.signedAt</code>
+(the field within the signed payload)</td>
+<td>ledger-event timestamp; WOS affirmation timestamp; response consent
+path</td>
+</tr>
+<tr>
+<td>Signing intent</td>
+<td><code>Response.authoredSignatures[*].signedPayload.signingIntent</code></td>
+<td>WOS <code>SignatureAffirmation.signingIntent</code></td>
+</tr>
+<tr>
+<td>Document binding</td>
+<td><code>Response.authoredSignatures[*].signedPayload.documentHash</code>
+and <code>signedPayload.responseId</code></td>
+<td>top-level Response <code>id</code> (MUST equal
+<code>signedPayload.responseId</code>)</td>
+</tr>
+<tr>
+<td>Ceremony state</td>
+<td>WOS workflow state machine</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td>Custody / integrity at rest</td>
+<td>Trellis ledger envelope</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td>Verification result</td>
+<td><code>VerificationReceipt.receiptBytes</code> (the signed receipt)
+when present, else receipt fields</td>
+<td>WOS <code>primitiveVerification</code>; admission record</td>
+</tr>
+</tbody>
+</table>
+<p><code>signedAt</code> MOVES into <code>signedPayload</code> so the
+timestamp is part of what the signer assented to. Without this move,
+<code>signedAt</code> would be a derived/ corroborating field with no
+source-of-truth — an attacker could change it without invalidating the
+signature.</p>
 <h3 id="relationships">2.2 Relationships</h3>
 <p>The six core abstractions relate to each other as follows. A
 conformant processor MUST maintain these relationships.</p>

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/posture-declaration/1.0",
+  "title": "Formspec Posture Declaration",
+  "description": "Per-deployment posture declaration consumed by WOS admission (ADR-0090 D8). Declares signature policy, jurisdictional posture, and custody requirements for a deployment.",
+  "type": "object",
+  "required": ["$postureDeclaration", "url", "version", "signaturePolicy"],
+  "additionalProperties": false,
+  "properties": {
+    "$postureDeclaration": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Posture declaration specification version.",
+      "x-lm": { "critical": true, "intent": "Version pin for posture declaration compatibility." }
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical URL where this posture declaration is published.",
+      "x-lm": { "critical": true, "intent": "Deployment URL for this posture — workflows reference this." }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SemVer of this posture declaration document.",
+      "x-lm": { "critical": true, "intent": "Semantic version for pinning posture declarations." },
+      "examples": ["1.0.0"]
+    },
+    "signaturePolicy": {
+      "type": "object",
+      "required": ["allowedMethods", "minimumPrimitiveVerification", "receiptSigningRequired"],
+      "additionalProperties": false,
+      "properties": {
+        "allowedMethods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^urn:formspec:sig-method:[a-z0-9-]+@\\d+$"
+          },
+          "description": "Subset of registered signature-method URIs admitted by this deployment.",
+          "x-lm": { "critical": true, "intent": "If a signature method is not in this list, admission emits SignatureAdmissionFailed { reason: method_unsupported }." },
+          "examples": [["urn:formspec:sig-method:ed25519-cose-sign1@1", "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1"]]
+        },
+        "minimumPrimitiveVerification": {
+          "type": "string",
+          "enum": ["verified", "deferredPendingHelper"],
+          "description": "Minimum primitive verification status required for admission. verified: cryptographic check must pass. deferredPendingHelper: helper-not-bundled is acceptable.",
+          "x-lm": { "critical": true, "intent": "Floor for admission — if adapter returns deferredPendingHelper but posture requires verified, admission fails." },
+          "examples": ["verified"]
+        },
+        "receiptSigningRequired": {
+          "type": "boolean",
+          "description": "When true, VerificationReceipt MUST carry receiptBytes (signed receipt). When false, unsigned receipts are accepted.",
+          "x-lm": { "critical": true, "intent": "If true and receipt lacks receiptBytes, admission emits SignatureAdmissionFailed { reason: posture_floor_unmet }." }
+        },
+        "allowedSigningIntents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Allowlist of signing-intent URIs admitted by this deployment, including deployment-local URIs. Supersedes workflow-level deploymentLocalSigningIntents (PLN-0384 sunset).",
+          "x-lm": { "critical": true, "intent": "Deployment-scoped signing-intent allowlist — replaces workflow-level bridge field." },
+          "examples": [["urn:wos:signing-intent:application-certification:v1", "urn:acme:signing-intent:supervisor-approval"]]
+        },
+        "revocationPolicy": {
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["strict", "soft", "none"],
+              "description": "Revocation checking policy. strict: must verify and fail on revocation. soft: check but warn. none: skip revocation checks.",
+              "examples": ["strict"]
+            }
+          }
+        }
+      }
+    },
+    "jurisdictionalPosture": {
+      "type": "object",
+      "properties": {
+        "framework": {
+          "type": "string",
+          "enum": ["esign", "ueta-crossstate", "eidas-advanced", "eidas-qes"],
+          "description": "Jurisdictional framework governing signature admissibility.",
+          "examples": ["esign"]
+        },
+        "notarialRequirements": {
+          "type": "object",
+          "description": "Notarial requirements when framework requires notary involvement."
+        }
+      }
+    },
+    "custodyPosture": {
+      "type": "object",
+      "properties": {
+        "requiresTrellisExport": {
+          "type": "boolean",
+          "description": "When true, Trellis export is required for signature custody proof."
+        },
+        "requiresUca": {
+          "type": "boolean",
+          "description": "When true, User-Content Attestation is required for byte-level corroboration."
+        },
+        "requiresTimestamping": {
+          "type": "boolean",
+          "description": "When true, external timestamping authority receipt is required."
+        }
+      }
+    }
+  }
+}

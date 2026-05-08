@@ -1,0 +1,41 @@
+{
+  "$registry": "formspec-signature-method-registry@1",
+  "version": "1.0.0",
+  "entries": [
+    {
+      "id": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+      "suite": "Ed25519",
+      "wire": "COSE_Sign1 with alg = -8 (EdDSA)",
+      "alg": -8,
+      "status": "registered"
+    },
+    {
+      "id": "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
+      "suite": "ECDSA-P256",
+      "wire": "COSE_Sign1 with alg = -7 (ES256)",
+      "alg": -7,
+      "status": "registered"
+    },
+    {
+      "id": "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1",
+      "suite": "RSA-PSS-SHA256",
+      "wire": "COSE_Sign1 with alg = -37 (PS256)",
+      "alg": -37,
+      "status": "registered"
+    },
+    {
+      "id": "urn:formspec:sig-method:ml-dsa-65-cose-sign1@1",
+      "suite": "ML-DSA-65 (FIPS 204)",
+      "wire": "COSE_Sign1 with alg = TBD (awaiting IANA PQC registration)",
+      "alg": null,
+      "status": "registered"
+    },
+    {
+      "id": "urn:formspec:sig-method:slh-dsa-128s-cose-sign1@1",
+      "suite": "SLH-DSA-128s (FIPS 205)",
+      "wire": "COSE_Sign1 with alg = TBD (awaiting IANA PQC registration)",
+      "alg": null,
+      "status": "registered"
+    }
+  ]
+}

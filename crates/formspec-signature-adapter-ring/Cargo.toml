@@ -1,0 +1,15 @@
+[package]
+name = "formspec-signature-adapter-ring"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Formspec ring-crypto signature adapter — implements Verifier port using ring"
+repository = "https://github.com/Formspec-org/formspec"
+
+[dependencies]
+formspec-signature-cose = { version = "0.1.0", path = "../formspec-signature-cose" }
+formspec-signature-port = { version = "0.1.0", path = "../formspec-signature-port" }
+ring = "0.17"
+base64 = "0.22"
+
+[dev-dependencies]

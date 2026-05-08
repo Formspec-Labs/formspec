@@ -1,0 +1,16 @@
+{
+  "name": "@formspec/signature-port",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Formspec signature verifier port — Verifier interface and VerificationReceipt types",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

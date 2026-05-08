@@ -1,0 +1,17 @@
+{
+  "name": "@formspec/signature-cose",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Formspec COSE_Sign1 decode helpers for signature adapters",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

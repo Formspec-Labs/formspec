@@ -1,0 +1,9 @@
+[bundle]
+id = "999"
+name = "invalid-type"
+description = "schema_valid is a string, not bool"
+
+[expected-outcomes.formspec]
+schema_valid = "yes"
+expected_errors = []
+source_of_truth_invariants = {}

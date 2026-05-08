@@ -99,29 +99,42 @@ export interface AuthoredSignature {
    */
   documentId: string;
   /**
-   * URI identifying the signing intent or certification profile the signer accepted.
+   * URI identifying the signing intent or certification profile the signer accepted. MUST equal signedPayload.signingIntent. Both are required — the top-level field enables quick lookup without payload inspection; the signed-payload copy is part of what the signer assented to.
    */
   signingIntent: string;
   /**
-   * Opaque signature evidence value or reference. This may be a data URL from a drawn-signature control, an attachment reference, a detached signature blob, or a provider-managed ceremony reference. A signatureValue alone MUST NOT be treated as sufficient signing intent.
+   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signatureMethod URI selects the cryptographic suite from the Formspec signature-method registry.
    */
   signatureValue: string;
   /**
-   * How the signature evidence was captured.
+   * URI identifying the cryptographic signature method from the Formspec signature-method registry. Selects the adapter and algorithm for primitive verification.
    */
   signatureMethod: string;
   /**
-   * Stable signer identifier when the host system can provide one. When absent, processors may correlate through the Response author or workflow actor binding.
+   * Stable signer identifier when the signing ceremony supplies one.
    */
   signerId?: string;
   /**
-   * Human-readable signer name captured at authoring time.
+   * Human-readable signer name shown during the signing ceremony.
    */
   signerName: string;
   /**
-   * RFC 3339 timestamp when the signer completed the authored signing act.
+   * UX evidence record — drawn artifacts, typed tokens, provider-managed ceremony references. NOT cryptographic verification input.
    */
-  signedAt: string;
+  signerEvidence?: {
+    /**
+     * The kind of UX evidence this is.
+     */
+    kind: 'drawn' | 'typed' | 'provider-receipt';
+    /**
+     * Opaque evidence value — data URL for drawn, token for typed, reference for provider-receipt.
+     */
+    value: string;
+  };
+  /**
+   * Optional base64-encoded COSE_Sign1 VerificationReceipt. Present when a verifier has produced a signed receipt for this signature.
+   */
+  verificationReceipt?: string;
   /**
    * Whether the signer explicitly accepted the declared consent text as part of the signing act.
    */
@@ -184,6 +197,14 @@ export interface AuthoredSignatureSignedPayload {
    * Identifier of the Response whose signed payload was hashed. It MUST equal the top-level Response id.
    */
   responseId: string;
+  /**
+   * RFC 3339 timestamp when the signer completed the authored signing act. Part of the signed payload — a verifier MUST reject if this differs from the source-of-truth.
+   */
+  signedAt: string;
+  /**
+   * URI identifying the signing intent or certification profile the signer accepted. Part of the signed payload.
+   */
+  signingIntent: string;
   /**
    * Definition URL pin included in the signed payload. It MUST equal the top-level Response definitionUrl.
    */

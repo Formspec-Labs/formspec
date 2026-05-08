@@ -832,6 +832,30 @@ is encountered.
 > @instance('countryCodes')  
 > ```
 
+### 2.1.N Cross-record fact authority (normative)
+
+When facts about a signing event or response are recorded in more than one
+layer (Formspec Response, WOS provenance, Trellis ledger), exactly one record
+is the source-of-truth. Every other record is derived or corroborating.
+Divergence between the source-of-truth and any derived record is a MUST-fail
+at admission.
+
+| Fact | Source-of-truth record (canonical) | Derived / corroborating |
+|---|---|---|
+| Signer identity | `Response.authoredSignatures[*].signerId` | `RespondentLedger.signature*` events; WOS `SignatureAffirmation.signerId` |
+| Canonical signed bytes | `Response.authoredSignatures[*].signedPayload` (the bytes the signer assented to) | `signedPayload.digest`; Trellis `065-certificates`; UCA |
+| Signed-at timestamp | `Response.authoredSignatures[*].signedPayload.signedAt` (the field within the signed payload) | ledger-event timestamp; WOS affirmation timestamp; response consent path |
+| Signing intent | `Response.authoredSignatures[*].signedPayload.signingIntent` | WOS `SignatureAffirmation.signingIntent` |
+| Document binding | `Response.authoredSignatures[*].signedPayload.documentHash` and `signedPayload.responseId` | top-level Response `id` (MUST equal `signedPayload.responseId`) |
+| Ceremony state | WOS workflow state machine | nothing |
+| Custody / integrity at rest | Trellis ledger envelope | nothing |
+| Verification result | `VerificationReceipt.receiptBytes` (the signed receipt) when present, else receipt fields | WOS `primitiveVerification`; admission record |
+
+`signedAt` MOVES into `signedPayload` so the timestamp is part of what the
+signer assented to. Without this move, `signedAt` would be a derived/
+corroborating field with no source-of-truth — an attacker could change it
+without invalidating the signature.
+
 ### 2.2 Relationships
 
 The six core abstractions relate to each other as follows. A conformant

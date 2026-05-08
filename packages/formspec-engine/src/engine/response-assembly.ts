@@ -90,13 +90,29 @@ function normalizeSignedPayload(
         `authoredSignatures[${index}].signedPayload.digest`,
     );
     if (signedPayload.responseId !== responseId) {
-        throw new Error(`authoredSignatures[${index}].signedPayload.responseId must match the Response id`);
+        throw new Error(
+            `SIGNED_PAYLOAD_RESPONSE_ID_MISMATCH: authoredSignatures[${index}].signedPayload.responseId must match the Response id`,
+        );
     }
     if (signedPayload.definitionUrl !== definitionUrl) {
-        throw new Error(`authoredSignatures[${index}].signedPayload.definitionUrl must match the Response definitionUrl`);
+        throw new Error(
+            `SIGNED_PAYLOAD_DEFINITION_URL_MISMATCH: authoredSignatures[${index}].signedPayload.definitionUrl must match the Response definitionUrl`,
+        );
     }
     if (signedPayload.definitionVersion !== definitionVersion) {
-        throw new Error(`authoredSignatures[${index}].signedPayload.definitionVersion must match the Response definitionVersion`);
+        throw new Error(
+            `SIGNED_PAYLOAD_DEFINITION_VERSION_MISMATCH: authoredSignatures[${index}].signedPayload.definitionVersion must match the Response definitionVersion`,
+        );
+    }
+    if (signedPayload.signingIntent !== signature.signingIntent) {
+        throw new Error(
+            `SIGNED_PAYLOAD_SIGNING_INTENT_MISMATCH: authoredSignatures[${index}].signedPayload.signingIntent must match the authored signature signingIntent`,
+        );
+    }
+    if (signedPayload.signedAt !== signature.signedAt) {
+        throw new Error(
+            `SIGNED_PAYLOAD_SIGNED_AT_MISMATCH: authoredSignatures[${index}].signedPayload.signedAt must match the authored signature signedAt input`,
+        );
     }
     return {
         canonicalization: signedPayload.canonicalization,
@@ -105,6 +121,8 @@ function normalizeSignedPayload(
         responseId: signedPayload.responseId,
         definitionUrl: signedPayload.definitionUrl,
         definitionVersion: signedPayload.definitionVersion,
+        signedAt: signedPayload.signedAt,
+        signingIntent: signedPayload.signingIntent,
     };
 }
 
@@ -129,6 +147,19 @@ function toNormalizedAuthoredSignatureRecord(
         signature.signingIntent,
         `authoredSignatures[${index}].signingIntent`,
     );
+    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(signingIntent)) {
+        throw new Error(
+            `SIGNED_PAYLOAD_SIGNING_INTENT_MISSING: authoredSignatures[${index}].signingIntent must be a valid URI`,
+        );
+    }
+    if (
+        typeof signature.signedAt !== 'string'
+        || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(signature.signedAt)
+    ) {
+        throw new Error(
+            `SIGNED_PAYLOAD_SIGNED_AT_INVALID: authoredSignatures[${index}].signedAt must be a valid RFC 3339 timestamp`,
+        );
+    }
     const signedPayload = normalizeSignedPayload(
         signature,
         index,
@@ -145,7 +176,6 @@ function toNormalizedAuthoredSignatureRecord(
         signatureValue: signature.signatureValue,
         signatureMethod: signature.signatureMethod,
         signerName: signerName.trim(),
-        signedAt: signature.signedAt,
         consentAccepted: signature.consentAccepted,
         consentTextRef: signature.consentTextRef,
         consentVersion: signature.consentVersion,

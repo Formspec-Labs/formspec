@@ -1,0 +1,21 @@
+[bundle]
+id = "001"
+name = "standalone-formspec-verified"
+description = "Formspec-only deployment (no WOS, no Trellis) signs and verifies a Response with the in-tree webcrypto adapter"
+
+[required-adapters]
+adapters = ["webcrypto"]
+
+[required-files]
+formspec_response = true
+wos_provenance = false
+trellis_events = false
+trellis_export = false
+verification_receipt = true
+posture_declaration = true
+
+[expected-outcomes.formspec]
+schema_valid = true
+semantic_valid = true
+expected_errors = []
+source_of_truth_invariants = { response_id_matches_signed_payload = true, definition_url_matches = true, definition_version_matches = true, signed_at_in_signed_payload = true }

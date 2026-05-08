@@ -269,6 +269,8 @@ export interface AuthoredSignatureSignedPayload {
     responseId: string;
     definitionUrl: string;
     definitionVersion: string;
+    signedAt: string;
+    signingIntent: string;
 }
 
 export interface AuthoredSignatureInput {

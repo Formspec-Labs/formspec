@@ -1,0 +1,36 @@
+[bundle]
+id = "002"
+name = "wos-governed-verified"
+description = "Formspec response → WOS SignatureAffirmation with verified receipt"
+
+[required-adapters]
+adapters = ["webcrypto"]
+
+[required-files]
+formspec_response = true
+wos_provenance = true
+trellis_events = true
+trellis_export = false
+verification_receipt = true
+posture_declaration = true
+
+[expected-outcomes.formspec]
+schema_valid = true
+semantic_valid = true
+expected_errors = []
+source_of_truth_invariants = { response_id_matches_signed_payload = true, definition_url_matches = true, definition_version_matches = true, signed_at_in_signed_payload = true }
+
+[expected-outcomes.wos]
+present = true
+record_kind = "signatureAffirmation"
+primitive_verification_status = "verified"
+
+[expected-outcomes.trellis]
+present = true
+custody_hook_present = true
+uca_corroborated = false
+export_present = false
+
+[cross-layer-byte-equality]
+formspec_signed_payload_digest_equals_wos = true
+verification_receipt_bytes_identical = true

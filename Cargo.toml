@@ -1,10 +1,15 @@
 [workspace]
 members = [
+    "crates/formspec-canonical",
     "crates/formspec-changeset",
     "crates/formspec-core",
+    "crates/formspec-cross-stack-fixture-harness",
     "crates/formspec-eval",
     "crates/formspec-lint",
     "crates/formspec-py",
+    "crates/formspec-signature-adapter-ring",
+    "crates/formspec-signature-cose",
+    "crates/formspec-signature-port",
     "crates/formspec-wasm",
 ]
 resolver = "2"

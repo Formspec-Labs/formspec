@@ -1,0 +1,21 @@
+[bundle]
+id = "005"
+name = "evidence-divergence-rejected"
+description = "Response consent path disagrees with signedPayload.signedAt; evidence divergence detected at semantic verification"
+
+[required-adapters]
+adapters = []
+
+[required-files]
+formspec_response = true
+wos_provenance = false
+trellis_events = false
+trellis_export = false
+verification_receipt = false
+posture_declaration = true
+
+[expected-outcomes.formspec]
+schema_valid = true
+semantic_valid = false
+expected_errors = ["SOURCE_OF_TRUTH_DIVERGENCE"]
+source_of_truth_invariants = { response_id_matches_signed_payload = true, definition_url_matches = true, definition_version_matches = true, signed_at_in_signed_payload = false }

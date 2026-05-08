@@ -1,0 +1,12 @@
+[package]
+name = "formspec-signature-cose"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Formspec COSE_Sign1 decode helpers for signature adapters"
+repository = "https://github.com/Formspec-org/formspec"
+
+[dependencies]
+ciborium = "0.2"
+
+[dev-dependencies]

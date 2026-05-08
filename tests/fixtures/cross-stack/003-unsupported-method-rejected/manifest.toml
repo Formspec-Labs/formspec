@@ -1,0 +1,35 @@
+[bundle]
+id = "003"
+name = "unsupported-method-rejected"
+description = "Posture forbids the signed method; SignatureAdmissionFailed { reason: method_unsupported }"
+
+[required-adapters]
+adapters = ["webcrypto"]
+
+[required-files]
+formspec_response = true
+wos_provenance = true
+trellis_events = true
+trellis_export = false
+verification_receipt = false
+posture_declaration = true
+
+[expected-outcomes.formspec]
+schema_valid = true
+semantic_valid = true
+expected_errors = []
+source_of_truth_invariants = { response_id_matches_signed_payload = true, definition_url_matches = true, definition_version_matches = true, signed_at_in_signed_payload = true }
+
+[expected-outcomes.wos]
+present = true
+record_kind = "signatureAdmissionFailed"
+admission_failed_reason = "method_unsupported"
+
+[expected-outcomes.trellis]
+present = true
+custody_hook_present = true
+uca_corroborated = false
+export_present = false
+
+[cross-layer-byte-equality]
+formspec_signed_payload_digest_equals_wos = true
