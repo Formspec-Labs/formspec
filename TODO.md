@@ -25,8 +25,9 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - **`ResponseCorrection` event in Respondent Ledger §6** `[6 / 3 / 4]` (**24**)
   - **Closed 2026-05-07.** `response.correction-recorded` now carries
     `recordKind = "responseCorrection"` plus target-event hash, corrected-field
-    subset, original/corrected value pairs, reason, and authorization-event
-    hash; schema conformance covers the valid and invalid cases.
+    subset, original/corrected value pairs, reason, and a neutral
+    `authorizationRef` (per ADR 0084 boundary cleanup); schema conformance
+    covers the valid and invalid cases.
   - Introduce correction event referencing prior `ResponseSubmitted.canonical_event_hash` with declared corrected-field subset.
   - **Gate:** [ADR 0066](../thoughts/adr/0066-stack-amendment-and-supersession.md) accepted (2026-05-06 — WOS Stack Closure cluster).
 
