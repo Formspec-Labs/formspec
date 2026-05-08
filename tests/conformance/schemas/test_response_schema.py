@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, ValidationError, validate
@@ -15,6 +16,7 @@ from tests.unit.support.schema_fixtures import build_schema_registry, load_schem
 RESPONSE_SCHEMA = load_schema("response.schema.json")
 VALIDATION_REPORT_SCHEMA = load_schema("validation-report.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
+SIGNATURE_FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "signature-responses"
 
 # Build a resolver/registry so schemas can resolve cross-schema $refs.
 _REGISTRY = build_schema_registry(RESPONSE_SCHEMA, VALIDATION_REPORT_SCHEMA, VALIDATION_RESULT_SCHEMA)
@@ -28,6 +30,10 @@ def _validate_response(instance: dict) -> None:
 def _validate_report(instance: dict) -> None:
     v = Draft202012Validator(VALIDATION_REPORT_SCHEMA, registry=_REGISTRY)
     v.validate(instance)
+
+
+def _load_signature_fixture(name: str) -> dict:
+    return json.loads((SIGNATURE_FIXTURE_DIR / name).read_text())
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +53,9 @@ def _minimal_response() -> dict:
 
 def _minimal_authored_signature() -> dict:
     return {
+        "signatureId": "sig-2026-0001",
         "documentId": "benefitsApplication",
+        "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
         "signatureValue": "urn:agency.gov:signature:artifacts:ceremony-2026-0001:primary",
         "signatureMethod": "provider-managed",
         "signerId": "applicant",
@@ -57,9 +65,16 @@ def _minimal_authored_signature() -> dict:
         "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
         "consentVersion": "1.0.0",
         "affirmationText": "I certify under penalty of perjury that this submission is true and complete.",
+        "signedPayload": {
+            "canonicalization": "formspec-response-signing-v1",
+            "digestAlgorithm": "sha-256",
+            "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "responseId": "resp-2026-0001",
+            "definitionUrl": "https://example.com/forms/intake",
+            "definitionVersion": "1.0.0",
+        },
         "documentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
         "documentHashAlgorithm": "sha-256",
-        "responseId": "resp-2026-0001",
         "identityProofRef": "urn:agency.gov:identity-proof:case-2026-0042",
         "identityBinding": {
             "method": "email-otp",
@@ -280,7 +295,9 @@ class TestResponseAuthoredSignatures:
             _validate_response(doc)
 
     @pytest.mark.parametrize("field", [
+        "signatureId",
         "documentId",
+        "signingIntent",
         "signatureValue",
         "signatureMethod",
         "signerName",
@@ -289,9 +306,9 @@ class TestResponseAuthoredSignatures:
         "consentTextRef",
         "consentVersion",
         "affirmationText",
+        "signedPayload",
         "documentHash",
         "documentHashAlgorithm",
-        "responseId",
         "signatureProvider",
         "ceremonyId",
     ])
@@ -313,6 +330,32 @@ class TestResponseAuthoredSignatures:
         with pytest.raises(ValidationError):
             _validate_response(doc)
 
+    @pytest.mark.parametrize("field", [
+        "canonicalization",
+        "digestAlgorithm",
+        "digest",
+        "responseId",
+        "definitionUrl",
+        "definitionVersion",
+    ])
+    def test_signed_payload_missing_required_field(self, field):
+        signature = _minimal_authored_signature()
+        del signature["signedPayload"][field]
+        doc = _minimal_response()
+        doc["id"] = "resp-2026-0001"
+        doc["authoredSignatures"] = [signature]
+        with pytest.raises(ValidationError, match=f"'{field}' is a required property"):
+            _validate_response(doc)
+
+    def test_invalid_signed_payload_canonicalization_rejected(self):
+        signature = _minimal_authored_signature()
+        signature["signedPayload"]["canonicalization"] = "other-profile"
+        doc = _minimal_response()
+        doc["id"] = "resp-2026-0001"
+        doc["authoredSignatures"] = [signature]
+        with pytest.raises(ValidationError):
+            _validate_response(doc)
+
     def test_invalid_identity_binding_assurance_rejected(self):
         signature = _minimal_authored_signature()
         signature["identityBinding"]["assuranceLevel"] = "critical"
@@ -321,6 +364,65 @@ class TestResponseAuthoredSignatures:
         doc["authoredSignatures"] = [signature]
         with pytest.raises(ValidationError):
             _validate_response(doc)
+
+
+class TestResponseSignatureFixtures:
+    """Signed-response fixture matrix for the authored-signature contract."""
+
+    @pytest.mark.parametrize("fixture_name", [
+        "valid-single.response.json",
+        "valid-cosignature.response.json",
+        "digest-mismatch.response.json",
+    ])
+    def test_schema_valid_signature_fixtures(self, fixture_name):
+        _validate_response(_load_signature_fixture(fixture_name))
+
+    def test_cosignature_fixture_preserves_prior_signed_payload_digest(self):
+        doc = _load_signature_fixture("valid-cosignature.response.json")
+        digests = {
+            signature["signedPayload"]["digest"]
+            for signature in doc["authoredSignatures"]
+        }
+        assert len(digests) == 1
+        assert all(
+            signature["signedPayload"]["responseId"] == doc["id"]
+            for signature in doc["authoredSignatures"]
+        )
+
+    @pytest.mark.parametrize("fixture_name", ["response-pin-mismatch.response.json"])
+    def test_signature_fixtures_schema_valid_but_semantically_invalid(self, fixture_name):
+        """Schema-only validation passes for these fixtures because the Formspec
+        JSON Schema cannot encode the cross-field invariant
+        ``authoredSignatures[*].signedPayload.responseId == top-level id``
+        (Core spec §2.1.6 — "When `authoredSignatures` is present" MUST list).
+
+        These fixtures exist as a NEGATIVE corpus for the semantic verifier
+        that lives downstream of schema validation. Until that verifier is
+        wired, the schema test passes; the gap is intentional and tracked
+        in formspec/TODO.md (FORMSPEC-SIGN-VERIFY-001).
+        """
+        fixture = _load_signature_fixture(fixture_name)
+        # Schema-level: passes (gap the verifier must close).
+        _validate_response(fixture)
+        # Semantic invariant the verifier MUST catch:
+        assert fixture["id"] != fixture["authoredSignatures"][0]["signedPayload"]["responseId"], (
+            "fixture is no longer a pin-mismatch case; please replace with a true mismatch case "
+            "or remove this test."
+        )
+
+    def test_missing_signing_intent_fixture_is_schema_invalid(self):
+        doc = _load_signature_fixture("missing-signing-intent.response.json")
+        with pytest.raises(ValidationError, match="'signingIntent' is a required property"):
+            _validate_response(doc)
+
+    def test_digest_mismatch_fixture_is_reserved_for_canonical_digest_verifier(self):
+        valid = _load_signature_fixture("valid-single.response.json")
+        mismatch = _load_signature_fixture("digest-mismatch.response.json")
+
+        _validate_response(mismatch)
+        assert mismatch["authoredSignatures"][0]["signedPayload"]["digest"] != (
+            valid["authoredSignatures"][0]["signedPayload"]["digest"]
+        )
 
 
 class TestResponseExtensions:

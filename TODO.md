@@ -22,6 +22,17 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   - Ensure integrator-facing docs cite the canonical home: `work-spec/specs/kernel/spec.md` §13 Formspec Coprocessor (post-ADR-0076 absorption 2026-04-28; was Runtime Companion §15 — companion file retained as redirect-stub).
   - Processor/rejection/hook ordering implementation lives in [`work-spec/TODO.md`](work-spec/TODO.md) item `#66`.
 
+- **FORMSPEC-SIGN-HELPER-001 — Response signing digest helper** `[6 / 3 / 4]` (**24**)
+  - Implement a Formspec-owned `formspec-response-signing-v1` canonicalization and digest helper that constructs the Signed Response Payload by omitting `authoredSignatures`, computes `authoredSignatures[*].signedPayload.digest`, and verifies co-signature stability.
+  - **Why:** Formspec signed responses must remain valid without WOS. WOS can consume verified signature evidence through `wos-formspec-binding`, but the portable signing primitive belongs in Formspec.
+  - **Current state:** schema, core prose, runtime normalization, generated types, and signed-response fixtures understand the `signedPayload` shape; runtime signing still validates supplied pins rather than computing canonical JSON digests itself.
+  - **Done:** helper API plus tests for valid single signature, valid co-signature, digest mismatch, response pin mismatch, and missing signing intent; WOS binding tests can reuse the helper rather than owning Formspec canonicalization.
+
+- **FORMSPEC-SIGN-VERIFY-001 — Response signature semantic verifier** `[6 / 4 / 4]` (**24**)
+  - Wire the cross-field invariant verifier into the lint/validate path: `authoredSignatures[*].signedPayload.responseId` MUST equal top-level `id`; `authoredSignatures[*].signedPayload.definitionUrl` and `definitionVersion` MUST equal top-level pins (Core spec §2.1.6 "When `authoredSignatures` is present" MUST list).
+  - **Why:** schema cannot encode these invariants. Review F2 found `response-pin-mismatch.response.json` passing schema validation today. The conformance test recategorized this as a documented gap (`test_signature_fixtures_schema_valid_but_semantically_invalid`).
+  - **Done:** `lint(resp.doc)` rejects pin-mismatch fixture; tests for valid + each mismatch shape (responseId, definitionUrl, definitionVersion) pass.
+
 - **`ResponseCorrection` event in Respondent Ledger §6** `[6 / 3 / 4]` (**24**)
   - **Closed 2026-05-07.** `response.correction-recorded` now carries
     `recordKind = "responseCorrection"` plus target-event hash, corrected-field
