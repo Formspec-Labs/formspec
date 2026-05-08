@@ -185,9 +185,43 @@
       "then": {
         "properties": {
           "events": {
+            "prefixItems": [
+              {
+                "required": ["priorEventHash", "eventHash"],
+                "properties": {
+                  "priorEventHash": { "type": "null" }
+                }
+              }
+            ],
             "items": {
-              "required": ["priorEventHash", "eventHash"]
+              "required": ["priorEventHash", "eventHash"],
+              "properties": {
+                "priorEventHash": { "$ref": "#/$defs/HashString" }
+              }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "events": {
+            "contains": {
+              "anyOf": [
+                { "required": ["priorEventHash"] },
+                { "required": ["eventHash"] }
+              ]
+            }
+          }
+        },
+        "required": ["events"]
+      },
+      "then": {
+        "required": ["integrityProfile"],
+        "properties": {
+          "integrityProfile": {
+            "enum": ["chained", "trellis-wrapped"]
           }
         }
       }

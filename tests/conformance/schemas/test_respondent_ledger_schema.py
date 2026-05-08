@@ -6,6 +6,7 @@ import json
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
+from formspec.respondent_ledger import validate_response_correction_event_semantics
 from tests.unit.support.schema_fixtures import ROOT_DIR, build_schema_registry, load_schema
 
 
@@ -165,6 +166,40 @@ def test_trellis_wrapped_ledger_requires_hashes_on_embedded_events():
         _validate_ledger(doc)
 
 
+def test_hash_bearing_ledger_requires_integrity_profile():
+    doc = _minimal_ledger_material()
+    doc["events"] = [_attachment_added_event()]
+
+    with pytest.raises(ValidationError):
+        _validate_ledger(doc)
+
+
+def test_chained_ledger_rejects_null_prior_hash_after_first_event():
+    first = _attachment_added_event()
+    second = deepcopy(first)
+    second["eventId"] = "evt-attachment-0002"
+    second["sequence"] = 2
+    second["eventHash"] = "sha256:d63f1d5fe2a9f0d8a9b6e5f1234d7c3b2a1908776af4ed0d17b9f225e5c4cb01"
+    second["priorEventHash"] = None
+    doc = _minimal_ledger_material()
+    doc["integrityProfile"] = "chained"
+    doc["events"] = [first, second]
+
+    with pytest.raises(ValidationError):
+        _validate_ledger(doc)
+
+
+def test_chained_ledger_requires_null_prior_hash_on_first_event():
+    event = _attachment_added_event()
+    event["priorEventHash"] = "sha256:72df6b4f6ff78ec1f41f43a5c68a1be2114e7338e25a7bde7a7258f5b8bb0fb9"
+    doc = _minimal_ledger_material()
+    doc["integrityProfile"] = "chained"
+    doc["events"] = [event]
+
+    with pytest.raises(ValidationError):
+        _validate_ledger(doc)
+
+
 def test_offline_authoring_profile_is_schema_valid():
     doc = _minimal_ledger_material()
     doc["integrityProfile"] = "chained"
@@ -230,6 +265,7 @@ def _response_correction_event() -> dict:
 
 def test_response_correction_event_is_schema_valid():
     _validate_event(_response_correction_event())
+    assert validate_response_correction_event_semantics(_response_correction_event()) == []
 
 
 def test_response_correction_requires_authorization_hash():
@@ -254,6 +290,18 @@ def test_response_correction_record_kind_is_reserved_to_correction_events():
 
     with pytest.raises(ValidationError):
         _validate_event(event)
+
+
+def test_response_correction_field_values_must_be_declared_subset():
+    event = _response_correction_event()
+    event["data"]["fieldValues"][0]["path"] = "/mailingAddress/zip"
+
+    diagnostics = validate_response_correction_event_semantics(event)
+
+    assert diagnostics == [
+        "response.correction-recorded data.fieldValues[0].path "
+        "is not declared in correctedFieldSet"
+    ]
 
 
 def _field_edit_recorded_event() -> dict:
