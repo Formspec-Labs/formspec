@@ -117,14 +117,17 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - **CROSS-STACK-FIXTURES-001 — Byte-populated cross-stack fixtures** `[7 / 5 / 5]` (35)
   Seven bundle directories exist with manifest.toml skeletons and formspec-cross-stack-fixture-harness
-  proving structural coherence (10 tests, 3 negative). Bundle 001 is byte-populated and verifies:
-  `formspec-response.json` schema-validates, `signedPayload.digest` matches canonical bytes,
-  `verificationReceipt` byte-matches `verification-receipt.cose`, and the ring adapter verifies
-  the detached Ed25519 COSE_Sign1 signature using the receipt key reference.
+  proving structural coherence (11 tests, 3 negative). Bundles 001-002 are byte-populated and
+  verified: `formspec-response.json` schema-validates, `signedPayload.digest` matches canonical
+  bytes, `verificationReceipt` byte-matches `verification-receipt.cose`, and the ring adapter
+  verifies the detached Ed25519 COSE_Sign1 signature using the receipt key reference. Bundle 002
+  additionally decodes WOS and Trellis CBOR and checks digest/receipt byte equality through
+  `SignatureAffirmation`.
   Remaining per bundle:
     • 001 — done: Formspec-only verified fixture with Response, Posture Declaration,
       COSE_Sign1 signature, and COSE-wrapped VerificationReceipt bytes
-    • 002 — full WOS-governed path: Response → SignatureAffirmation with verified receipt
+    • 002 — done: WOS-governed path with Response → SignatureAffirmation CBOR,
+      verified primitive status, Trellis custody-hook event CBOR, and matching receipt bytes
     • 003 — posture forbids method → SignatureAdmissionFailed { reason: method_unsupported }
     • 004 — adapter rejects → SignatureAdmissionFailed { reason: primitive_verification_failed }
     • 005 — consent-path signedAt diverges from signedPayload → SOURCE_OF_TRUTH_DIVERGENCE

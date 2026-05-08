@@ -415,6 +415,7 @@ name = "formspec-cross-stack-fixture-harness"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "ciborium",
  "formspec-canonical",
  "formspec-signature-adapter-ring",
  "formspec-signature-cose",

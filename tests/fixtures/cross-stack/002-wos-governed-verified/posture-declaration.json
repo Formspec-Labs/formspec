@@ -1,0 +1,23 @@
+{
+  "$postureDeclaration": "1.0",
+  "url": "https://example.org/posture/cross-stack-fixture-002.json",
+  "version": "1.0.0",
+  "signaturePolicy": {
+    "allowedMethods": [
+      "urn:formspec:sig-method:ed25519-cose-sign1@1"
+    ],
+    "minimumPrimitiveVerification": "verified",
+    "receiptSigningRequired": false,
+    "allowedSigningIntents": [
+      "urn:agency.gov:signing-intent:benefits-application-certification:v1"
+    ]
+  },
+  "jurisdictionalPosture": {
+    "framework": "esign"
+  },
+  "custodyPosture": {
+    "requiresTrellisExport": false,
+    "requiresUca": false,
+    "requiresTimestamping": false
+  }
+}

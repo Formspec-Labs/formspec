@@ -8,6 +8,7 @@ repository = "https://github.com/Formspec-org/formspec"
 
 [dependencies]
 base64 = "0.22"
+ciborium = "0.2"
 formspec-canonical = { path = "../formspec-canonical" }
 formspec-signature-adapter-ring = { path = "../formspec-signature-adapter-ring" }
 formspec-signature-cose = { path = "../formspec-signature-cose" }
