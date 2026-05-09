@@ -84,7 +84,18 @@
               "type": "string",
               "enum": ["verified", "deferredPendingHelper"]
             },
-            "admission_failed_reason": { "type": "string" }
+            "admission_failed_reason": {
+              "type": "string",
+              "enum": [
+                "primitive_verification_failed",
+                "method_unsupported",
+                "method_unregistered",
+                "evidence_divergence",
+                "posture_floor_unmet",
+                "registry_unrecognized_method",
+                "adapter_unavailable"
+              ]
+            }
           }
         },
         "trellis": {

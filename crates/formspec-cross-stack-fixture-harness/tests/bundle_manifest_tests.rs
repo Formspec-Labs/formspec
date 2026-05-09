@@ -49,7 +49,7 @@ struct WosProvenanceBundle {
 #[serde(rename_all = "camelCase")]
 struct WosProvenanceRecord {
     record_kind: String,
-    data: WosSignatureAffirmationData,
+    data: serde_json::Value,
 }
 
 #[derive(serde::Deserialize)]
@@ -61,6 +61,24 @@ struct WosSignatureAffirmationData {
     custody_hook_eligible: bool,
     primitive_verification: PrimitiveVerification,
     verification_receipt: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WosSignatureAdmissionFailedData {
+    reason: String,
+    evidence_bindings: WosEvidenceBindings,
+    signer_id: Option<String>,
+    emitted_at: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WosEvidenceBindings {
+    response_id: String,
+    signed_payload_digest: String,
+    signature_id: String,
+    signing_intent: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -88,6 +106,7 @@ struct TrellisEventData {
     signed_payload_digest: String,
     verification_receipt: String,
     custody_hook_present: bool,
+    admission_failed_reason: Option<String>,
 }
 
 fn cross_stack_root() -> PathBuf {
@@ -324,16 +343,18 @@ fn test_bundle_002_wos_governed_bytes_match_formspec_receipt() {
     assert_eq!(wos.records.len(), 1);
     let record = &wos.records[0];
     assert_eq!(record.record_kind, "signatureAffirmation");
-    assert_eq!(record.data.source_signature_id, "sig-cross-stack-002");
+    let data: WosSignatureAffirmationData =
+        serde_json::from_value(record.data.clone()).expect("signatureAffirmation data");
+    assert_eq!(data.source_signature_id, "sig-cross-stack-002");
     assert_eq!(
-        record.data.signed_payload_digest,
+        data.signed_payload_digest,
         fixture.signature.signed_payload.digest
     );
-    assert_eq!(record.data.signing_intent, fixture.signature.signing_intent);
-    assert!(record.data.custody_hook_eligible);
-    assert_eq!(record.data.primitive_verification.status, "verified");
+    assert_eq!(data.signing_intent, fixture.signature.signing_intent);
+    assert!(data.custody_hook_eligible);
+    assert_eq!(data.primitive_verification.status, "verified");
     assert_eq!(
-        record.data.verification_receipt,
+        data.verification_receipt,
         base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes)
     );
 
@@ -349,14 +370,13 @@ fn test_bundle_002_wos_governed_bytes_match_formspec_receipt() {
         event.data.signed_payload_digest,
         fixture.signature.signed_payload.digest
     );
-    assert_eq!(
-        event.data.verification_receipt,
-        record.data.verification_receipt
-    );
+    assert_eq!(event.data.verification_receipt, data.verification_receipt);
 }
 
 #[test]
-fn test_bundle_003_rejects_unsupported_method() {
+fn test_bundle_003_posture_forbids_registered_verified_method() {
+    use base64::Engine;
+
     let root = cross_stack_root();
     let bundles = discover_bundles(root.to_str().unwrap()).unwrap();
     let b003 = bundles
@@ -373,6 +393,91 @@ fn test_bundle_003_rejects_unsupported_method() {
     assert_eq!(wos.record_kind.as_deref(), Some("signatureAdmissionFailed"));
     assert_eq!(
         wos.admission_failed_reason.as_deref(),
+        Some("method_unsupported")
+    );
+
+    let fixture = load_verified_response_fixture("003-unsupported-method-rejected");
+    verify_with_ring(&fixture);
+
+    let bundle_dir = cross_stack_root().join("003-unsupported-method-rejected");
+    let posture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(bundle_dir.join("posture-declaration.json"))
+            .expect("read posture-declaration.json"),
+    )
+    .expect("parse posture declaration");
+    let allowed_methods = posture["signaturePolicy"]["allowedMethods"]
+        .as_array()
+        .expect("allowedMethods array");
+    assert!(
+        !allowed_methods
+            .iter()
+            .any(|method| method.as_str() == Some(fixture.signature.signature_method.as_str())),
+        "posture must forbid the otherwise registered and verified signature method"
+    );
+    let allowed_intents = posture["signaturePolicy"]["allowedSigningIntents"]
+        .as_array()
+        .expect("allowedSigningIntents array");
+    assert!(
+        allowed_intents
+            .iter()
+            .any(|intent| intent.as_str() == Some(fixture.signature.signing_intent.as_str())),
+        "signing intent must be allowed so Bundle 003 proves method rejection, not intent rejection"
+    );
+
+    let wos_bytes =
+        std::fs::read(bundle_dir.join("wos-provenance.cbor")).expect("read wos-provenance.cbor");
+    let wos_bundle: WosProvenanceBundle =
+        ciborium::from_reader(wos_bytes.as_slice()).expect("decode WOS provenance CBOR");
+    assert!(
+        !wos_bundle
+            .records
+            .iter()
+            .any(|record| record.record_kind == "signatureAffirmation"),
+        "forbidden method must not admit a SignatureAffirmation"
+    );
+    assert_eq!(wos_bundle.records.len(), 1);
+    let record = &wos_bundle.records[0];
+    assert_eq!(record.record_kind, "signatureAdmissionFailed");
+    let data: WosSignatureAdmissionFailedData =
+        serde_json::from_value(record.data.clone()).expect("signatureAdmissionFailed data");
+    assert_eq!(data.reason, "method_unsupported");
+    assert_eq!(data.signer_id.as_deref(), Some("applicant"));
+    assert_eq!(data.emitted_at, fixture.signature.signed_payload.signed_at);
+    assert_eq!(
+        data.evidence_bindings.response_id,
+        fixture.signature.signed_payload.response_id
+    );
+    assert_eq!(
+        data.evidence_bindings.signed_payload_digest,
+        fixture.signature.signed_payload.digest
+    );
+    assert_eq!(data.evidence_bindings.signature_id, "sig-cross-stack-003");
+    assert_eq!(
+        data.evidence_bindings.signing_intent,
+        fixture.signature.signing_intent
+    );
+
+    let trellis_bytes =
+        std::fs::read(bundle_dir.join("trellis-events.cbor")).expect("read trellis-events.cbor");
+    let trellis: TrellisEventsBundle =
+        ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
+    assert_eq!(trellis.events.len(), 1);
+    let event = &trellis.events[0];
+    assert_eq!(event.event_kind, "wos.signature.signatureAdmissionFailed");
+    assert!(
+        !event.data.custody_hook_present,
+        "failed admission must not create a custody hook"
+    );
+    assert_eq!(
+        event.data.signed_payload_digest,
+        fixture.signature.signed_payload.digest
+    );
+    assert_eq!(
+        event.data.verification_receipt,
+        base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes)
+    );
+    assert_eq!(
+        event.data.admission_failed_reason.as_deref(),
         Some("method_unsupported")
     );
 }

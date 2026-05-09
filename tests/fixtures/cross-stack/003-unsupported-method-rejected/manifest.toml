@@ -11,7 +11,7 @@ formspec_response = true
 wos_provenance = true
 trellis_events = true
 trellis_export = false
-verification_receipt = false
+verification_receipt = true
 posture_declaration = true
 
 [expected-outcomes.formspec]
@@ -27,9 +27,10 @@ admission_failed_reason = "method_unsupported"
 
 [expected-outcomes.trellis]
 present = true
-custody_hook_present = true
+custody_hook_present = false
 uca_corroborated = false
 export_present = false
 
 [cross-layer-byte-equality]
 formspec_signed_payload_digest_equals_wos = true
+verification_receipt_bytes_identical = true
