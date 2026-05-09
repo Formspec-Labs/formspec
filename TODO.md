@@ -117,24 +117,39 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - **CROSS-STACK-FIXTURES-001 — Byte-populated cross-stack fixtures** `[7 / 5 / 5]` (35)
   Seven bundle directories exist with manifest.toml skeletons and formspec-cross-stack-fixture-harness
-  proving structural coherence (11 tests, 3 negative). Bundles 001-002 are byte-populated and
+  proving structural coherence (11 tests, 3 negative). Bundles 001-003 are byte-populated and
   verified: `formspec-response.json` schema-validates, `signedPayload.digest` matches canonical
   bytes, `verificationReceipt` byte-matches `verification-receipt.cose`, and the ring adapter
   verifies the detached Ed25519 COSE_Sign1 signature using the receipt key reference. Bundle 002
   additionally decodes WOS and Trellis CBOR and checks digest/receipt byte equality through
-  `SignatureAffirmation`.
+  `SignatureAffirmation`. Bundle 003 proves a registered and cryptographically verified method
+  rejected by posture as `SignatureAdmissionFailed { reason: method_unsupported }`.
   Remaining per bundle:
     • 001 — done: Formspec-only verified fixture with Response, Posture Declaration,
       COSE_Sign1 signature, and COSE-wrapped VerificationReceipt bytes
     • 002 — done: WOS-governed path with Response → SignatureAffirmation CBOR,
       verified primitive status, Trellis custody-hook event CBOR, and matching receipt bytes
-    • 003 — posture forbids method → SignatureAdmissionFailed { reason: method_unsupported }
-    • 004 — adapter rejects → SignatureAdmissionFailed { reason: primitive_verification_failed }
-    • 005 — consent-path signedAt diverges from signedPayload → SOURCE_OF_TRUTH_DIVERGENCE
-    • 006 — adapter not bundled → SignatureAffirmation { deferredPendingHelper }
-    • 007 — full end-to-end: Response → affirmation → Trellis append → export → certificate → receipt; UCA corroboration
-  Gate: Ed25519 COSE adapter implementation has landed; next gate is byte generation plus
-  WOS/server/certificate receipt embedding.
+    • 003 — done: posture forbids otherwise registered/verified Ed25519 method →
+      SignatureAdmissionFailed { reason: method_unsupported }, no SignatureAffirmation,
+      Trellis failed-admission event, and receipt byte equality
+    • 004 — TODO: adapter rejects → SignatureAdmissionFailed { reason: primitive_verification_failed }
+    • 005 — TODO: consent-path signedAt diverges from signedPayload → SOURCE_OF_TRUTH_DIVERGENCE
+    • 006 — TODO: adapter not bundled → SignatureAffirmation { deferredPendingHelper }
+    • 007 — TODO: full end-to-end: Response → affirmation → Trellis append → export → certificate → receipt; UCA corroboration
+  Task breakdown:
+    • [ ] **CROSS-STACK-FIXTURES-001.4:** Populate Bundle 004 with tampered COSE bytes,
+      failed VerificationReceipt, WOS SignatureAdmissionFailed CBOR, and Trellis failed-admission
+      event; add harness assertions for no SignatureAffirmation.
+    • [ ] **CROSS-STACK-FIXTURES-001.5:** Populate Bundle 005 with source-of-truth divergence
+      bytes and harness checks for semantic failure without downstream custody.
+    • [ ] **CROSS-STACK-FIXTURES-001.6:** Populate Bundle 006 with deferred helper evidence,
+      posture allowing deferred status, and harness checks for admitted deferred SignatureAffirmation.
+    • [ ] **CROSS-STACK-FIXTURES-001.7:** Populate Bundle 007 with full Trellis append/export,
+      certificate, receipt embedding, UCA corroboration, and export byte-equality checks.
+    • [ ] **CROSS-STACK-FIXTURES-001.H:** Factor shared fixture-generation helpers so 004-007
+      do not copy opaque one-off COSE/CBOR generation logic from 001-003.
+  Gate: Ed25519 COSE adapter implementation has landed; next gates are Bundles 004-007 byte
+  generation, WOS/server admission split fixup, and certificate receipt embedding.
 
 - **FORMSPEC-TYPES-REGEN-001 — Regenerate TypeScript types after Phase 2 schema changes** `[4 / 3 / 3]` (12)
   formspec/packages/formspec-types/src/generated/*.ts must be regenerated after response.schema.json
