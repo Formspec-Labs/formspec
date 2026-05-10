@@ -433,6 +433,13 @@ Formspec Response. The ledger records lifecycle history and corroborating
 facts; it **MUST NOT** replace Formspec authored-signature verification or
 invent signature semantics outside the Response contract.
 
+The source-of-truth for each cross-record signature fact is defined by the
+normative source-of-truth table in `formspec/specs/core/spec.md` §2.1.N. The
+Response is the canonical carrier of signer identity, signed bytes, signed-at
+timestamp, signing intent, and document binding. Ledger events are derived/
+corroborating. When a ledger event records a fact that diverges from the
+Response's canonical fact, the Response prevails.
+
 ### 6.9 EvidenceAttachmentBinding object
 
 `EvidenceAttachmentBinding` is the canonical Formspec-originated attachment-binding record adopted by [ADR 0072](../../thoughts/adr/0072-stack-evidence-integrity-and-attachment-binding.md).
