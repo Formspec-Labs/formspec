@@ -78,6 +78,9 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   Remaining: receipt signing key management, ECDSA/RSA-PSS real key/vector coverage,
   PQC stubs returning `unsupported`, and the full registry-entry matrix
   {valid, invalid, malformed-cose, key-mismatch}.
+  Receipt signing is distinct from primitive verification: adapters may verify signatures today,
+  but they are not production-complete until they can emit receipt COSE_Sign1 bytes under the
+  stack receipt profile in `../thoughts/plans/2026-05-09-signature-wire-convergence-plan.md`.
   Debt remains 5: shared COSE parsing landed, but receipt signing + multi-alg vector coverage still add surface.
 
 - **FORMSPEC-SIGNATURE-ADAPTER-RING-001 — Sibling Rust adapter** `[6 / 4 / 5]` (30)
@@ -113,7 +116,20 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - **FORMSPEC-CANONICALIZATION-001 — Canonicalization helper (no crypto deps)** `[6 / 4 / 4]` (**24**)
   - Reframes FORMSPEC-SIGN-HELPER-001. Rust+TS crate for canonical payload+d digest construction.
-  - **Done:** formspec-canonical crates, known-vector tests, WOS binding consumes it.
+  - **Done:** formspec-canonical crates, known-vector tests.
+  - **Open cross-stack blocker:** WOS still has a local Formspec signed-payload digest implementation
+    that uses a different preimage shape. Migrate `work-spec/crates/wos-formspec-binding` to call
+    `formspec-canonical` and add Bundle 001-003 regression vectors before treating this as stack-closed.
+
+- **FORMSPEC-SIGNATURE-WIRE-CONVERGENCE-001 — Shared primitive/profile cleanup** `[7 / 4 / 6]` (**42**)
+  - Stack plan: [`../thoughts/plans/2026-05-09-signature-wire-convergence-plan.md`](../thoughts/plans/2026-05-09-signature-wire-convergence-plan.md).
+  - Purpose: preserve Formspec/WOS/Trellis semantic ownership while eliminating accidental byte-grammar drift.
+  - Formspec-owned pieces that stay here: response-signing canonicalization profile, signature-method registry,
+    verifier port, default WebCrypto/ring adapters, and cross-stack fixture harness.
+  - Shared/consumer pieces to coordinate: COSE_Sign1 generic primitive boundary, signed receipt profile,
+    fixture-generation helpers, and WOS migration to `formspec-canonical`.
+  - Done when: Formspec, WOS, Trellis Rust, Trellis Python, and TypeScript adapter tests consume the same
+    canonical payload/COSE/receipt vectors for all overlapping behavior.
 
 - **CROSS-STACK-FIXTURES-001 — Byte-populated cross-stack fixtures** `[7 / 5 / 5]` (35)
   Seven bundle directories exist with manifest.toml skeletons and formspec-cross-stack-fixture-harness
@@ -145,9 +161,11 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
     • [ ] **CROSS-STACK-FIXTURES-001.6:** Populate Bundle 006 with deferred helper evidence,
       posture allowing deferred status, and harness checks for admitted deferred SignatureAffirmation.
     • [ ] **CROSS-STACK-FIXTURES-001.7:** Populate Bundle 007 with full Trellis append/export,
-      certificate, receipt embedding, UCA corroboration, and export byte-equality checks.
+      certificate, receipt embedding, UCA corroboration, and export byte-equality checks. Depends on
+      signed receipt production and Trellis certificate receipt embedding.
     • [ ] **CROSS-STACK-FIXTURES-001.H:** Factor shared fixture-generation helpers so 004-007
-      do not copy opaque one-off COSE/CBOR generation logic from 001-003.
+      do not copy opaque one-off COSE/CBOR generation logic from 001-003; helpers must cover
+      canonical payload, COSE signature, receipt COSE, WOS CBOR, Trellis CBOR/export, and certificate bytes.
   Gate: Ed25519 COSE adapter implementation has landed; next gates are Bundles 004-007 byte
   generation, WOS/server admission split fixup, and certificate receipt embedding.
 
