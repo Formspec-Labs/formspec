@@ -22,10 +22,7 @@ fn normalize_money_like_json(value: &JsonValue) -> JsonValue {
                 && normalized.contains_key("amount")
                 && normalized.contains_key("currency")
             {
-                normalized.insert(
-                    "$type".to_string(),
-                    JsonValue::String("money".to_string()),
-                );
+                normalized.insert("$type".to_string(), JsonValue::String("money".to_string()));
             }
             JsonValue::Object(normalized)
         }

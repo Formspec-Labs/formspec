@@ -854,10 +854,7 @@ mod tests {
     #[test]
     fn json_to_fel_boolean() {
         assert!(matches!(json_to_fel(&json!(true)), FelVal::Boolean(true)));
-        assert!(matches!(
-            json_to_fel(&json!(false)),
-            FelVal::Boolean(false)
-        ));
+        assert!(matches!(json_to_fel(&json!(false)), FelVal::Boolean(false)));
     }
 
     /// Verify integer roundtrip.

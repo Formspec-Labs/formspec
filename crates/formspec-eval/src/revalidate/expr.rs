@@ -3,8 +3,7 @@
 
 use fel_core::error::{Diagnostic, Severity};
 use fel_core::{
-    EvalResult, Value, FormspecEnvironment, evaluate, expr_is_interpolation_static_literal,
-    parse,
+    EvalResult, FormspecEnvironment, Value, evaluate, expr_is_interpolation_static_literal, parse,
 };
 
 /// Check whether a constraint evaluation result means "passes."

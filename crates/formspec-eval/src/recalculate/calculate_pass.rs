@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use fel_core::{Value as EnvVal, FormspecEnvironment, evaluate, fel_to_ui_json, parse};
+use fel_core::{FormspecEnvironment, Value as EnvVal, evaluate, fel_to_ui_json, parse};
 use serde_json::Value;
 
 use super::json_fel::{coerce_calculated_value, json_to_runtime_fel};

@@ -11,8 +11,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 use fel_core::ast::{BinaryOp, Expr, PathSegment, UnaryOp};
-use fel_core::extensions::builtin_function_catalog;
 use fel_core::extensions::FelType;
+use fel_core::extensions::builtin_function_catalog;
 use fel_core::{Error, parse};
 use serde_json::{Value, json};
 use std::ops::Range;
@@ -404,7 +404,9 @@ fn check_parameter_types(
                 && infer_coarse_type(first, field_types) == CoarseType::Money
             {
                 warnings.push(FelAnalysisWarning {
-                    message: "FEL_SUM_OF_MONEY_PATH: sum() input appears money-typed; use moneySum()".to_string(),
+                    message:
+                        "FEL_SUM_OF_MONEY_PATH: sum() input appears money-typed; use moneySum()"
+                            .to_string(),
                 });
             }
             if name == "money"
@@ -412,12 +414,17 @@ fn check_parameter_types(
                 && infer_coarse_type(first, field_types) == CoarseType::Money
             {
                 warnings.push(FelAnalysisWarning {
-                    message: "FEL_REDUNDANT_MONEY_WRAP: money() wraps an already money-typed expression".to_string(),
+                    message:
+                        "FEL_REDUNDANT_MONEY_WRAP: money() wraps an already money-typed expression"
+                            .to_string(),
                 });
             }
 
             // Look up catalog entry by name.
-            if let Some(entry) = builtin_function_catalog().iter().find(|e| e.name == name.as_str()) {
+            if let Some(entry) = builtin_function_catalog()
+                .iter()
+                .find(|e| e.name == name.as_str())
+            {
                 // Find the index of the first variadic param (if any).
                 let variadic_pos = entry.parameters.iter().position(|p| p.variadic);
 
@@ -1869,13 +1876,10 @@ mod tests {
         let result = analyze_fel("length(42)");
         assert!(result.valid);
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("length")
-                    && w.message.contains("arg 1")
-                    && w.message.contains("string")
-                    && w.message.contains("number")),
+            result.warnings.iter().any(|w| w.message.contains("length")
+                && w.message.contains("arg 1")
+                && w.message.contains("string")
+                && w.message.contains("number")),
             "expected type mismatch warning for length(42), got: {:?}",
             result.warnings
         );
@@ -1887,13 +1891,10 @@ mod tests {
         let result = analyze_fel("dateAdd(\"not-a-date\", 1, \"days\")");
         assert!(result.valid);
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("dateAdd")
-                    && w.message.contains("arg 1")
-                    && w.message.contains("date")
-                    && w.message.contains("string")),
+            result.warnings.iter().any(|w| w.message.contains("dateAdd")
+                && w.message.contains("arg 1")
+                && w.message.contains("date")
+                && w.message.contains("string")),
             "expected date/string mismatch for dateAdd arg 1, got: {:?}",
             result.warnings
         );
@@ -1943,13 +1944,10 @@ mod tests {
         let result = analyze_fel("dateAdd(today(), 1, \"weeks\")");
         assert!(result.valid);
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("dateAdd")
-                    && w.message.contains("arg 3")
-                    && w.message.contains("weeks")
-                    && w.message.contains("not in allowed values")),
+            result.warnings.iter().any(|w| w.message.contains("dateAdd")
+                && w.message.contains("arg 3")
+                && w.message.contains("weeks")
+                && w.message.contains("not in allowed values")),
             "expected enum invalid literal warning, got: {:?}",
             result.warnings
         );
@@ -1999,25 +1997,19 @@ mod tests {
         assert!(result.valid);
         // power() arg 1 expects Number, got String
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("power")
-                    && w.message.contains("arg 1")
-                    && w.message.contains("number")
-                    && w.message.contains("string")),
+            result.warnings.iter().any(|w| w.message.contains("power")
+                && w.message.contains("arg 1")
+                && w.message.contains("number")
+                && w.message.contains("string")),
             "expected power arg1 type warning, got: {:?}",
             result.warnings
         );
         // length() arg 1 expects String, got Number (power returns Number)
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("length")
-                    && w.message.contains("arg 1")
-                    && w.message.contains("string")
-                    && w.message.contains("number")),
+            result.warnings.iter().any(|w| w.message.contains("length")
+                && w.message.contains("arg 1")
+                && w.message.contains("string")
+                && w.message.contains("number")),
             "expected length arg1 type warning from power return, got: {:?}",
             result.warnings
         );
@@ -2047,13 +2039,10 @@ mod tests {
         let result = analyze_fel("if(42, \"yes\", \"no\")");
         assert!(result.valid);
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("if")
-                    && w.message.contains("arg 1")
-                    && w.message.contains("boolean")
-                    && w.message.contains("number")),
+            result.warnings.iter().any(|w| w.message.contains("if")
+                && w.message.contains("arg 1")
+                && w.message.contains("boolean")
+                && w.message.contains("number")),
             "if() should warn when cond is not Boolean, got: {:?}",
             result.warnings
         );
@@ -2182,13 +2171,10 @@ mod tests {
         let result = analyze_fel_with_field_types("length($count)", &field_types);
         assert!(result.valid);
         assert!(
-            result
-                .warnings
-                .iter()
-                .any(|w| w.message.contains("length")
-                    && w.message.contains("arg 1")
-                    && w.message.contains("string")
-                    && w.message.contains("number")),
+            result.warnings.iter().any(|w| w.message.contains("length")
+                && w.message.contains("arg 1")
+                && w.message.contains("string")
+                && w.message.contains("number")),
             "length($count:number) should warn, got: {:?}",
             result.warnings
         );

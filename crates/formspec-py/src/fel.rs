@@ -8,8 +8,7 @@ use pyo3::types::PyDict;
 use fel_core::{
     JsonWireStyle, MapEnvironment, builtin_function_catalog_json_value,
     dependencies_to_json_value_styled, evaluate, evaluate_with_trace, extract_dependencies,
-    fel_diagnostics_to_json_value, parse, prepare,
-    host_options_from_json,
+    fel_diagnostics_to_json_value, host_options_from_json, parse, prepare,
 };
 use formspec_core::{
     analyze_fel, assembly_fel_rewrite_map_from_value, fel_analysis_to_json_value,
@@ -190,8 +189,8 @@ pub fn prepare_expression(options: &Bound<'_, PyAny>) -> PyResult<String> {
     let m = v.as_object().ok_or_else(|| {
         pyo3::exceptions::PyTypeError::new_err("prepare_expression options must be a dict")
     })?;
-    let owned = host_options_from_json(m)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+    let owned =
+        host_options_from_json(m).map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
     Ok(prepare(&owned))
 }
 

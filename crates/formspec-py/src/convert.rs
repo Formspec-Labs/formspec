@@ -11,7 +11,7 @@ use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use serde::de::DeserializeOwned;
 use serde_json::Value as JsonValue;
 
-use fel_core::{Value, FormspecEnvironment, MipState};
+use fel_core::{FormspecEnvironment, MipState, Value};
 use formspec_core::extension_analysis::RegistryEntryStatus;
 use formspec_core::registry_client;
 

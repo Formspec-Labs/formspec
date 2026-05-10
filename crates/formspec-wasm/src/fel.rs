@@ -10,8 +10,8 @@ use fel_core::{
 use fel_core::{
     evaluate, evaluate_with_trace, expr_is_interpolation_static_literal,
     fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
-    formspec_environment_from_json_map, has_error_diagnostics, parse, prepare,
-    host_options_from_json, reject_undefined_functions,
+    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
+    prepare, reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
 use formspec_core::try_lift_condition_group;

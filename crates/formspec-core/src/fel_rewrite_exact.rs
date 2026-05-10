@@ -126,10 +126,7 @@ impl<'a> ExactRewriteParser<'a> {
             self.advance();
             Ok(())
         } else {
-            Err(self.parse_err_current(format!(
-                "expected {expected:?}, got {:?}",
-                self.peek()
-            )))
+            Err(self.parse_err_current(format!("expected {expected:?}, got {:?}", self.peek())))
         }
     }
 
@@ -139,10 +136,7 @@ impl<'a> ExactRewriteParser<'a> {
                 let token = self.advance().clone();
                 Ok((name, token))
             }
-            _ => Err(self.parse_err_current(format!(
-                "expected identifier, got {:?}",
-                self.peek()
-            ))),
+            _ => Err(self.parse_err_current(format!("expected identifier, got {:?}", self.peek()))),
         }
     }
 
@@ -387,15 +381,10 @@ impl<'a> ExactRewriteParser<'a> {
                 if matches!(self.peek(), Token::LParen) {
                     self.parse_function_call("if".to_string())
                 } else {
-                    Err(self.parse_err_current(
-                        "unexpected 'if' — use if...then...else or if(...)",
-                    ))
+                    Err(self.parse_err_current("unexpected 'if' — use if...then...else or if(...)"))
                 }
             }
-            _ => Err(self.parse_err_current(format!(
-                "unexpected token {:?}",
-                self.peek()
-            ))),
+            _ => Err(self.parse_err_current(format!("unexpected token {:?}", self.peek()))),
         }
     }
 
@@ -653,10 +642,9 @@ impl<'a> ExactRewriteParser<'a> {
                 self.advance();
             }
             _ => {
-                return Err(self.parse_err_current(format!(
-                    "expected object key, got {:?}",
-                    self.peek()
-                )));
+                return Err(
+                    self.parse_err_current(format!("expected object key, got {:?}", self.peek()))
+                );
             }
         }
         self.expect(&Token::Colon)?;

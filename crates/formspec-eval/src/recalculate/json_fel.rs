@@ -34,4 +34,3 @@ pub(crate) fn coerce_calculated_value(item: &ItemInfo, value: TypeValue) -> Type
     }
     out
 }
-

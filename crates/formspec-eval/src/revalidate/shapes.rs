@@ -3,7 +3,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::{EvalResult, Value, FormspecEnvironment, fel_to_json};
+use fel_core::{EvalResult, FormspecEnvironment, Value, fel_to_json};
 use serde_json::Value as JsonValue;
 
 use crate::fel_json::json_to_runtime_fel_typed;
