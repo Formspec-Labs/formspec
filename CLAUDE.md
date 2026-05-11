@@ -12,7 +12,7 @@ Every sentence pulls weight. If a phrase can be cut without losing meaning, cut 
 
 **Use the channel.** A reader in this repo has [`filemap.json`](filemap.json), the `formspec-specs` skill, generated `*.llm.md` artifacts, and `thoughts/`. Don't restate what those carry — point to them.
 
-**Drop the pin next to the dense word.** Boundary pins on a map: a landmark earns its terseness because surrounding labels triangulate it. Same in prose. When you compress a term, leave a marker within reading distance — a link, a parenthetical gloss, the enclosing section title, an adjacent example. "FEL" needs no expansion *inside* `specs/fel/` (section is the pin). "Async init gotcha" lands fully inside the FormEngine section (section is the pin). `OptionSet` vs `choicesFrom` reads as drift the moment "spec is source of truth" is in scope (sentence is the pin). **No dense term without a nearby pin.** If you can't find one, either add the pin or expand the term.
+**Drop the pin next to the dense word.** Boundary pins on a map: a landmark earns its terseness because surrounding labels triangulate it. Same in prose. When you compress a term, leave a marker within reading distance — a link, a parenthetical gloss, the enclosing section title, an adjacent example. "FEL" needs no expansion *near* the FEL grammar spec (now in `fel-core/specs/fel/`). "Async init gotcha" lands fully inside the FormEngine section (section is the pin). `OptionSet` vs `choicesFrom` reads as drift the moment "spec is source of truth" is in scope (sentence is the pin). **No dense term without a nearby pin.** If you can't find one, either add the pin or expand the term.
 
 **Where this applies:** backlog/TODO entries (`TODO.md`, inline `// TODO`), plan files (`thoughts/plans/`), ADR follow-ups, lint-rule backlog, conformance/test fixture stubs, spec prose (`*.md`, `*.bluf.md`), commit messages, PR descriptions, code comments that earn the right to exist, and this file.
 
@@ -58,7 +58,7 @@ Frame lives in `formspec-stack/.claude/user_profile.md` and `formspec-stack/.cla
 - **`docs/api/`** + colocated **`API.llm.md`** — Generated API reference (pdoc + TypeDoc). Regenerate with `make api-docs`. `API.llm.md` is gitignored; prefer it over reading source.
 - **`thoughts/`** — All plans, ADRs, research, design artifacts. Never put plans in `docs/`. ADR/plan/spec metadata lives in [`thoughts/README.md`](thoughts/README.md) — CLAUDE.md never inlines metadata that changes weekly.
   - `thoughts/adr/`, `thoughts/plans/`, `thoughts/specs/` — active. Implemented/superseded → `thoughts/archive/...`. `npm run docs:check` enforces archive paths in tracked links.
-  - `thoughts/reviews/`, `thoughts/research/`, `thoughts/studio/`, `thoughts/examples/` — see local READMEs.
+  - `thoughts/reviews/`, `thoughts/research/`, `thoughts/examples/` — see local READMEs. Studio thoughts moved to `formspec-studio/thoughts/`.
 - **`tests/`** — Python conformance suite. **`tests/e2e/`** — Playwright + JSON fixtures.
 - **[`filemap.json`](filemap.json)** — Generated file→description index. Never hand-edit. Regenerate with `npm run docs:filemap`.
 

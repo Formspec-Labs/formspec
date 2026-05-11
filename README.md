@@ -129,7 +129,7 @@ Neither runtime imports or wraps the other. They deploy and test independently, 
 
 | Tier | Spec | Schema |
 |------|------|--------|
-| Core | [Core Spec](specs/core/spec.md) · [FEL Grammar](specs/fel/fel-grammar.md) | [`definition`](schemas/definition.schema.json) · [`response`](schemas/response.schema.json) · [`intake-handoff`](schemas/intake-handoff.schema.json) · [`validationReport`](schemas/validation-report.schema.json) |
+| Core | [Core Spec](specs/core/spec.md) · [FEL Grammar](../fel-core/specs/fel/fel-grammar.md) | [`definition`](schemas/definition.schema.json) · [`response`](schemas/response.schema.json) · [`intake-handoff`](schemas/intake-handoff.schema.json) · [`validationReport`](schemas/validation-report.schema.json) |
 | Theme | [Theme Spec](specs/theme/theme-spec.md) · [Token Registry](specs/theme/token-registry-spec.md) | [`theme`](schemas/theme.schema.json) · [`token-registry`](schemas/token-registry.schema.json) |
 | Components | [Component Spec](specs/component/component-spec.md) | [`component`](schemas/component.schema.json) |
 | Mapping | [Mapping DSL](specs/mapping/mapping-spec.md) | [`mapping`](schemas/mapping.schema.json) |

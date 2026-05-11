@@ -15,6 +15,13 @@ Historical completion notes and resolved items moved to [`COMPLETED.md`](COMPLET
 
 ## Formspec-side cross-layer
 
+- **FORMSPEC-DATA-CLASSIFICATION-001 — `x-data-classification` extension** `[6 / 2 / 3]` (**18**)
+  - Formalize the `x-data-classification` extension property schema from the [compliance exploration](thoughts/research/2026-03-23-compliance-exploration.md) §3.3. Register in `formspec-common.registry.json`. Add a compliance lint rule (C001) flagging fields with PHI-identifiable `semanticType` that lack classification.
+  - **Why:** Every compliance conversation starts with "which fields have PII/PHI?" The research is complete — a concrete JSON schema proposal exists with sensitivity levels (`public`/`internal`/`confidential`/`restricted`/`pii`), categories (PII, PHI, financial), and regulatory tags. This is independently valuable: classification metadata on fields enables compliance workflows even without the crypto architecture from ADR-0074.
+  - **Gate for:** FORMSPEC-FIELD-CLASSIFICATION-001 (deferred) — must have classification labeling proven in a deployed form before adding encryption.
+  - **Done:** `x-data-classification` entry in common registry JSON; schema validates sensitivity levels + categories + regulatory tags; compliance lint rule C001 emits warnings for unclassified PHI fields; clinical-intake example annotated with classifications.
+  - **Gate:** none.
+
 Work in the Formspec spec and runtime itself that other layers depend on. Lives in `specs/` and `schemas/`, not in stack ADRs.
 
 - **WOS Formspec-Coprocessor integrator alignment (P11-BL-051)** `[5 / 3 / 3]` (**15**)
@@ -192,6 +199,114 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - **FORMSPEC-LAYOUT-BACKCOMPAT-001 — Document or remove backwards-compat responsive layer** `[3 / 1 / 2]` (6)
   - `packages/formspec-layout/src/responsive.ts:5` declares "backwards-compatible behaviour" when no breakpoints map is provided. If the no-breakpoints path is the intended v1 default, reframe the comment. If it's a migration shim, set a removal version.
   - **Done when:** comment accurately reflects product intent (default behavior vs. compat shim).
+
+## User Journeys
+
+*Gaps surfaced by persona-to-journey mapping (FORMSPEC-FEATURE-MATRIX.md §16). Each entry bridges a feature inventory item to a user-visible outcome. Features without a journey are inventory; journeys without a feature are gaps.*
+
+- **FORMSPEC-JOURNEY-PROGRESS-001 — Progress indicator for multi-page forms** `[5 / 5 / 3]` (**15**)
+  - **Gap:** §16.1. Respondent has no visibility into how far through a multi-page form they are or which sections remain.
+  - **Why:** Any form with more than one page needs a progress model. Without it, abandonment spikes on page 2 — respondents think the form is broken, not that there are 5 more pages. Theme already defines pages (§5.1.5) and the Theme schema carries a `pages[]` array; only the progress-display contract is missing.
+  - **Done:** Spec addition to Theme companion: `progressIndicator` block (position, style, label template with FEL interpolation for `{{currentPage}}`/`{{totalPages}}` placeholder). Schema update. Component-tree guidance for progress rendering. One Playwright E2E test proving progress updates across page navigation.
+  - **Gate:** none.
+
+- **FORMSPEC-JOURNEY-SAVE-RESUME-001 — Save/resume UX surface** `[5 / 5 / 3]` (**15**)
+  - **Gap:** §16.2. Draft events exist programmatically (§9.1 `draft.saved`/`draft.resumed`) but have no respondent-facing UI contract.
+  - **Why:** Long forms (grants, clinical intake, tax prep) are completed over days, not minutes. Without recognizable save/resume controls, respondents lose work and blame the form, not the host app. Events are the data layer; the UX contract (auto-save indicator, resume picker, stale-draft detection) is unspecified.
+  - **Done:** Spec addition to Respondent Ledger companion: `SaveResumeContract` specifying auto-save trigger timing, save-indicator display states (saving/saved/error), resume-listing schema, and stale-definition detection rules. One Playwright E2E test per state.
+  - **Gate:** none.
+
+- **FORMSPEC-JOURNEY-DEBUG-001 — Developer debugging console** `[5 / 5 / 4]` (**20**)
+  - **Gap:** §16.13. FEL traces (§2.17), validation reports (§4.3), and event replay (§3.6) exist as data structures, not as a debugging tool. Integrators debug expression errors with `console.log`.
+  - **Why:** The #1 friction point for integrator adoption is "why isn't this expression working?" A structured trace exists — ordered steps, resolved fields, function calls, branch decisions — but it's raw JSON. The debugging console wraps it in a visual explorer. This is the Formspec equivalent of Chrome DevTools for form logic.
+  - **Done:** Spec addition: `DevtoolsContract` defining trace tree view, expression breakpoints, validation report browser, event replay stepper. Studio package (`formspec-devtools`) with trace explorer component and validation browser component. One Playwright E2E test per tool.
+  - **Gate:** none.
+
+- **FORMSPEC-JOURNEY-LIFECYCLE-001 — Publish/unpublish/deprecate lifecycle** `[6 / 4 / 4]` (**24**)
+  - **Gap:** §16.9, §16.10. Definitions are files, not managed artifacts. No publish-to-runtime, unpublish, deprecate-with-redirect, or respondent notification workflow.
+  - **Why:** Operators need to push a definition version live, pull it when it's broken, and sunset old versions with redirect-to-replacement. Without this, every deploy is manual file sync and every deprecation is an email blast. The changelog (§5.9) tracks what changed; lifecycle management tracks *where it's running and who's using it*.
+  - **Done:** Spec: `DefinitionLifecycle` companion document with states (draft → published → deprecated → retired), runtime binding, sunset timeline, redirect target, and respondent notification template. Schema. Lint rule `FORMSPEC-LIFECYCLE-STATE-001` rejects retired definitions in active runtimes.
+  - **Gate:** Non-trivial — crosses Formspec (spec + schema) and workspec-server (definition registry in wos-server). Start with spec-only; server surface is a follow-up.
+  - **Blocked by:** Define where definition registry lives (Formspec-owned vs. WOS-owned). Decision pending.
+
+- **FORMSPEC-JOURNEY-FRAGMENTS-001 — Fragment library discovery** `[4 / 3 / 3]` (**12**)
+  - **Gap:** §16.8. `$ref` assembly (§12.3) enables modular composition but resolves local paths only. No catalog, search, or import for reusable fragments.
+  - **Why:** Every government agency reinvents "name," "address," "household members." A fragment library means authors compose from shared, tested blocks instead of rebuilding from scratch. `$ref` is the composition mechanism; discovery is the missing half.
+  - **Done:** Spec: `FragmentCatalog` companion document with fragment metadata (key, description, author, version, tags), search index schema, and import semantics. Schema. Lint rule `FORMSPEC-FRAGMENT-UNRESOLVED-001` validates fragment references.
+  - **Gate:** none — spec-only; implementation follows spec ratification.
+
+- **FORMSPEC-JOURNEY-WCAG-001 — WCAG 2.2 AA conformance report** `[5 / 5 / 2]` (**10**)
+  - **Gap:** §16.14. Features are documented (§14) but no formal accessibility audit or VPAT exists. Procurement §508 checklists require a report, not a feature list.
+  - **Why:** Every government procurement blocks on accessibility evidence. "We implement ARIA" is a feature claim; a VPAT is procurement currency. Without it, every deal stalls at the security review.
+  - **Done:** Third-party accessibility audit against WCAG 2.2 AA across all 35 built-in components. Published VPAT. Remediation plan for any findings. Not an engineering task — procurement gate.
+  - **Gate:** Budget for third-party audit. Pre-audit: internal WCAG sweep using axe-core across the component catalog.
+
+- **FORMSPEC-JOURNEY-ONBOARDING-001 — TTHW measurement + getting-started** `[4 / 5 / 2]` (**8**)
+  - **Gap:** §16.12. SDK exists (§11) but time-to-hello-world is unmeasured and no canonical quickstart exists.
+  - **Why:** Every integrator starts with "clone, install, render a form." If that takes more than 5 minutes, they bounce. TTHW is the leading indicator of SDK adoption; without measuring it, it drifts silently.
+  - **Done:** Canonical quickstart repo (`formspec-quickstart`) rendering a 5-field form. Measured TTHW (clone → `npm install` → `npm run dev` → form rendered). CI gate: TTHW must not regress beyond 2x baseline.
+  - **Gate:** none.
+
+- **FORMSPEC-JOURNEY-PRIVACY-001 — PII encryption posture document** `[4 / 3 / 2]` (**8**)
+  - **Gap:** §16.15. Architecture (§15) documents offline-first and sandboxing, but no formal posture document answers "how is PII protected at rest and in transit?"
+  - **Why:** Same procurement dynamic as WCAG. The architecture answer is strong (data stays on device, FEL is sandboxed) but it's buried in spec prose. A one-page posture document with architecture diagram + threat model + encryption boundary is what procurement actually reads.
+  - **Done:** `POSTURE.md` document: data-flow diagram, encryption-at-rest boundary, encryption-in-transit boundary, FEL sandbox boundary, threat model (STRIDE), and known residual risks. Reviewed by outside counsel or security engineer.
+  - **Gate:** none — documentation only.
+
+## Deferred — User Journeys
+
+*Journey gaps that require product decisions or cross-stack coordination before engineering can start. Tracked here to prevent re-litigation.*
+
+- **FORMSPEC-JOURNEY-COLLABORATION-001 — Multi-author editing + review gates** ⚪ DEFERRED
+  - **Gap:** §16.7. No concurrent editing, review/approval gates, or branch/merge workflow for definition authoring.
+  - **Why deferred:** Requires a definition version-control model (CRDT vs. lock-based vs. Git-backed). Product decision: does Formspec own authoring collaboration, or do teams use Git? Studio (formspec-studio) is where this lives; the spec layer is a prerequisite but the UX surface is a Studio product decision.
+  - **Gate:** Studio authoring has production users who can articulate the collaboration gap.
+
+- **FORMSPEC-JOURNEY-RECEIPT-001 — Respondent-facing receipt UX** ⚪ DEFERRED
+  - **Gap:** §16.4. Verification receipts exist cryptographically (§6.8) but have no user-visible artifact.
+  - **Why deferred:** Receipt UX is a rendering concern, not a spec gap. The cryptographic receipt exists; displaying it is host application responsibility that varies by jurisdiction (ESIGN disclosure requirements differ from eIDAS). Formspec should provide a reference implementation, not a spec mandate.
+  - **Gate:** Receipt rendering requirements from a production deployment with legal review.
+
+- **FORMSPEC-JOURNEY-TRACKING-001 — Submission status tracking** ⚪ DEFERRED
+  - **Gap:** §16.5. Respondent cannot query submission status ("received/processed/adjudicated?").
+  - **Why deferred:** Formspec owns intake, not lifecycle. Submission status tracking crosses into WOS territory (work-spec case lifecycle). Cross-stack concern — needs WOS case-status query API before Formspec can surface it.
+  - **Gate:** WOS case-instance status query exists.
+
+- **FORMSPEC-JOURNEY-DELETION-001 — Data portability + right-to-deletion** ⚪ DEFERRED
+  - **Gap:** §16.6. Ledgers are immutable (§9.2) but GDPR/CCPA require respondent-initiated deletion.
+  - **Why deferred:** Tension between cryptographic immutability and regulatory deletion. Resolution paths: tombstone records, cryptographic erasure (key deletion), or logical deletion with retention justification. Product + legal decision, not engineering.
+  - **Gate:** Legal review of deletion obligations against ledger architecture.
+
+- **FORMSPEC-JOURNEY-OFFLINE-SYNC-001 — Offline sync UX contract** ⚪ DEFERRED
+  - **Gap:** §16.3. Architecture provides offline-first (§15.1) but sync UX (conflict resolution, stale-definition warnings) has no spec contract.
+  - **Why deferred:** Host application responsibility. Formspec provides the offline engine; sync UX varies by host context (mobile app vs. PWA vs. kiosk). Reference implementation is useful but not spec-mandated.
+  - **Gate:** At least one production host application with offline sync that reveals the reusable contract surface.
+
+- **FORMSPEC-JOURNEY-ANALYTICS-001 — Usage dashboards** ⚪ DEFERRED
+  - **Gap:** §16.11. No submission metrics, error rates, completion rates, or abandonment analytics.
+  - **Why deferred:** Formspec is a form engine, not an analytics platform. Telemetry is an opt-in host concern. Formspec could emit structured analytics events as a spec contract, but the dashboard itself is outside scope.
+  - **Gate:** At least one production host that needs cross-form analytics and can define the event schema.
+
+## Deferred
+
+Work that has been researched and decided against for now. Tracked here so it isn't re-litigated; may be revisited when prerequisites mature.
+
+- **FORMSPEC-INTAKEHANDOFF-EMISSION-001 — Native IntakeHandoff custody envelope** ⚪ DEFERRED
+  - [ADR 0079](thoughts/adr/0079-formspec-native-intake-handoff-emission.md) specifies `targetWorkflow` on definitions + auto-envelope on validated submit.
+  - **User story:** "As a respondent, I want to submit my form and receive a verifiable receipt proving it was accepted by the reviewing agency."
+  - **Why deferred:** Custody is the user value, not the envelope. The ADR's `targetWorkflow` + auto-emission is infrastructure around a narrative that hasn't been product-proven. Revisit after IntakeHandoff (section 7) has production users who can articulate the custody gap.
+  - **Gate:** IntakeHandoff boundary has production users in a governed workflow.
+
+- **FORMSPEC-FIELD-CLASSIFICATION-001 — Field-level access classification** ⚪ DEFERRED
+  - [ADR 0074](thoughts/adr/0074-formspec-native-field-level-transparency.md) proposes `accessControl` on items, bucketed response encryption, key bags, Privacy Profile + Access-Class Registry companion docs, Phase 5 Emission in the processing model, and cross-class FEL rules.
+  - **User story:** "As a privacy officer, I want to know which fields contain sensitive data, so I can apply retention policies consistently."
+  - **Why deferred:** The ADR proposes a crypto architecture (key-wrapped DEKs, bucketed Response) as a major version bump before any production users exist. The simpler, higher-value first step is `x-data-classification` metadata — field-level sensitivity labeling without encryption. Build the labeling, prove the classification workflows, then add crypto when the user need is proven.
+  - **Gate:** `x-data-classification` extension is spec'd and used in a deployed form with compliance requirements.
+
+- **FORMSPEC-CONTENT-ADDRESSED-001 — Content-addressed artifact identity** ⚪ DEFERRED
+  - [ADR 0081](thoughts/adr/0081-content-addressed-artifact-identity.md) proposes `*Ref` syntax, shared canonicalization library, lint rules, and conformance fixtures for content-addressed references across all definition-class artifacts.
+  - **Why deferred:** Cross-layer infrastructure. The `caseFileSnapshot` precedent (JCS+SHA-256) is proven but the generalization to all definition artifacts creates refactoring surface across formspec, WOS, and Trellis with no current user-facing impact.
+  - **Gate:** A concrete use case where content-addressed identity solves a cross-stack integrity problem that current hash chains (section 9.2) don't.
 
 ## Track / Monitor
 
