@@ -7,7 +7,7 @@ All internal planning, research, decisions, and reviews live here. `docs/` is fo
 ### Verification
 
 - After adding or moving markdown under `thoughts/`, run **`npm run docs:filemap`** so `filemap.json` stays accurate.
-- **`npm run docs:check`** includes **`scripts/check-thoughts-relocated-paths.mjs`**, which fails if tracked sources cite legacy paths under **`thoughts/adr`**, **`thoughts/plans`**, **`thoughts/specs`**, **`thoughts/reviews`**, or **`thoughts/studio`** for files that exist only under **`thoughts/archive/`** (with exceptions when the same path still exists at top level, e.g. `thoughts/reviews/README.md`).
+- **`npm run docs:check`** includes **`scripts/check-thoughts-relocated-paths.mjs`**, which fails if tracked sources cite legacy paths under **`thoughts/adr`**, **`thoughts/plans`**, **`thoughts/specs`**, or **`thoughts/reviews`** for files that exist only under **`thoughts/archive/`** (with exceptions when the same path still exists at top level, e.g. `thoughts/reviews/README.md`).
 
 ---
 
@@ -21,7 +21,7 @@ All internal planning, research, decisions, and reviews live here. `docs/` is fo
 | `archive/` | Closed ADRs, plans, specs, **archived** reviews & Studio history | `adr/`, `plans/`, `specs/`, `reviews/`, `studio/` |
 | `reviews/` | **Active** reference reviews + planning (`README.md` indexes the split) | `YYYY-MM-DD-short-name.md` |
 | `research/` | External spec analysis, competitive research | Free-form |
-| `studio/` | **Active** Studio canon + prior art cited from specs (`README.md` indexes the split) | Dated `.md`, `vendor/`, new `visual-reviews/` |
+| `studio/` | Moved to `formspec-studio/thoughts/` — see [`../../formspec-studio/thoughts/`](../../formspec-studio/thoughts/) | — |
 | `examples/` | Reference example implementation plans | Free-form |
 
 ---
@@ -160,7 +160,7 @@ See [research/README.md](research/README.md) — external spec analysis (XForms,
 
 ## Studio
 
-See [studio/README.md](studio/README.md) — active canon and prior art; archived sprints and visual-review bundles under [`archive/studio/`](archive/studio/).
+Studio thoughts moved to [`../../formspec-studio/thoughts/`](../../formspec-studio/thoughts/). Archived works remain under [`archive/studio/`](archive/studio/).
 
 ---
 
