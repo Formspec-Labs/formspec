@@ -19,7 +19,7 @@ presentation tree** of UI components bound to a Formspec Definition's items.
 **Date:** 2025-01-14
 **Depends on:** Formspec Core Specification v1.0 (spec.md), Formspec Theme
 Specification v1.0 (theme-spec.md), FEL Normative Grammar v1.0
-(fel-grammar.md)
+(shipped with the `fel-core` crate at `../../../fel-core/specs/fel/fel-grammar.md`)
 
 ---
 
@@ -177,7 +177,7 @@ Tier 3 MAY coexist with a Tier 2 theme. When both are present:
 - Items not explicitly bound in the component tree fall back to Tier 2/Tier 1
   rendering (§11.1).
 
-FEL expressions (fel-grammar.md) are used in the `when` property for
+FEL expressions (fel-core/specs/fel/fel-grammar.md) are used in the `when` property for
 conditional rendering (§8). FEL is NOT used for computed props, data
 transformation, or any purpose other than boolean visibility conditions
 and display text interpolation.
@@ -2729,7 +2729,7 @@ model.
 
 ### 8.1 The when Property
 
-The `when` property is a **FEL boolean expression** (fel-grammar.md).
+The `when` property is a **FEL boolean expression** (fel-core/specs/fel/fel-grammar.md).
 When present on a component:
 
 1. The processor MUST evaluate the expression against the current

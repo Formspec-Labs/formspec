@@ -282,7 +282,8 @@ bound to a Formspec Definition’s items.</p>
 <strong>Version:</strong> 1.0.0 <strong>Date:</strong> 2025-01-14
 <strong>Depends on:</strong> Formspec Core Specification v1.0 (spec.md),
 Formspec Theme Specification v1.0 (theme-spec.md), FEL Normative Grammar
-v1.0 (fel-grammar.md)</p>
+v1.0 (shipped with the <code>fel-core</code> crate at
+<code>../../../fel-core/specs/fel/fel-grammar.md</code>)</p>
 <hr />
 <h2 id="conventions-and-terminology">Conventions and Terminology</h2>
 <p>The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”,
@@ -528,10 +529,10 @@ the Component Document (§10.3).</li>
 <li>Items not explicitly bound in the component tree fall back to Tier
 2/Tier 1 rendering (§11.1).</li>
 </ul>
-<p>FEL expressions (fel-grammar.md) are used in the <code>when</code>
-property for conditional rendering (§8). FEL is NOT used for computed
-props, data transformation, or any purpose other than boolean visibility
-conditions and display text interpolation.</p>
+<p>FEL expressions (fel-core/specs/fel/fel-grammar.md) are used in the
+<code>when</code> property for conditional rendering (§8). FEL is NOT
+used for computed props, data transformation, or any purpose other than
+boolean visibility conditions and display text interpolation.</p>
 <h3 id="conformance-levels-core-complete">1.3 Conformance Levels (Core /
 Complete)</h3>
 <p>This specification defines two conformance levels:</p>
@@ -4732,7 +4733,8 @@ shown or hidden based on the current data state, without affecting the
 data model.</p>
 <h3 id="the-when-property">8.1 The when Property</h3>
 <p>The <code>when</code> property is a <strong>FEL boolean
-expression</strong> (fel-grammar.md). When present on a component:</p>
+expression</strong> (fel-core/specs/fel/fel-grammar.md). When present on
+a component:</p>
 <ol type="1">
 <li>The processor MUST evaluate the expression against the current data
 tree.</li>

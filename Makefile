@@ -4,6 +4,8 @@ PANDOC = pandoc
 TEMPLATE = docs/template.html
 DOCS_DIR = docs
 SPECS_DIR = specs
+# Normative FEL grammar lives in sibling `fel-core` (path-coupled stack layout).
+FEL_GRAMMAR_SRC = ../fel-core/specs/fel/fel-grammar.md
 
 all: build
 
@@ -134,7 +136,7 @@ $(DOCS_DIR)/spec.html: $(SPECS_DIR)/core/spec.md $(TEMPLATE)
 $(DOCS_DIR)/mapping.html: $(SPECS_DIR)/mapping/mapping-spec.md $(TEMPLATE)
 	$(PANDOC) -s --toc --template=$(TEMPLATE) --metadata title="Formspec Mapping Specification" -o $@ $<
 
-$(DOCS_DIR)/fel-grammar.html: $(SPECS_DIR)/fel/fel-grammar.md $(TEMPLATE)
+$(DOCS_DIR)/fel-grammar.html: $(FEL_GRAMMAR_SRC) $(TEMPLATE)
 	$(PANDOC) -s --toc --template=$(TEMPLATE) --metadata title="FEL Grammar Specification" -o $@ $<
 
 $(DOCS_DIR)/changelog.html: $(SPECS_DIR)/registry/changelog-spec.md $(TEMPLATE)
