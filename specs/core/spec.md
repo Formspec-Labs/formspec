@@ -539,6 +539,28 @@ rename the wire-visible Formspec profile. Formspec owns the projection rule
 that omits `authoredSignatures` and the domain separation string
 `formspec.response.signed-payload.v1`.
 
+Formspec authored-signature byte production is the normative composition of two
+substrate primitives (per convergence plan §18 Train 3, ratified 2026-05-12):
+`integrity-canonical-json-v1` (RFC 8785 JCS bytes framed as
+`domain || NUL || canonical-json`, source of truth
+`integrity-stack/crates/integrity-canonical/`) and `integrity-cose` (the
+RFC 9052 COSE_Sign1 envelope and `Sig_structure`, with the Formspec profile
+dispatched at protected-header label `-65539` (`profile_id`), source of truth
+`integrity-stack/crates/integrity-cose/`). The composition order is fixed:
+(1) project the Response by omitting `authoredSignatures`; (2) canonicalize
+under `formspec-response-signing-v1` to obtain `integrity-canonical-json-v1`
+bytes (`formspec.response.signed-payload.v1 || NUL || JCS(payload)`);
+(3) digest those bytes with `signedPayload.digestAlgorithm` and bind the
+result into `signedPayload.digest`; (4) construct the COSE_Sign1
+`Sig_structure` over the protected headers (including the
+`profile_id = -65539` label that names the Formspec profile) and the
+canonical payload bytes; (5) produce `signatureValue` by signing the
+`Sig_structure` under the signer's key. Verifiers reverse the composition:
+parse the COSE_Sign1 envelope via `integrity-cose`, confirm the
+`profile_id = -65539` protected-header dispatch, reconstruct the canonical
+bytes via `integrity-canonical-json-v1`, and re-derive the digest. Neither
+primitive is redefined here; both crates are the byte-level source of truth.
+
 A drawn signature image, typed name, or provider callback alone is not
 sufficient signing intent. A conforming implementation MUST NOT claim authored
 signature semantics from `signatureValue` alone without the consent and

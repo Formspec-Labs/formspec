@@ -1188,6 +1188,33 @@ canonical-byte primitive but does not rename the wire-visible Formspec
 profile. Formspec owns the projection rule that omits
 <code>authoredSignatures</code> and the domain separation string
 <code>formspec.response.signed-payload.v1</code>.</p>
+<p>Formspec authored-signature byte production is the normative
+composition of two substrate primitives (per convergence plan §18 Train
+3, ratified 2026-05-12): <code>integrity-canonical-json-v1</code> (RFC
+8785 JCS bytes framed as <code>domain || NUL || canonical-json</code>,
+source of truth
+<code>integrity-stack/crates/integrity-canonical/</code>) and
+<code>integrity-cose</code> (the RFC 9052 COSE_Sign1 envelope and
+<code>Sig_structure</code>, with the Formspec profile dispatched at
+protected-header label <code>-65539</code> (<code>profile_id</code>),
+source of truth <code>integrity-stack/crates/integrity-cose/</code>).
+The composition order is fixed: (1) project the Response by omitting
+<code>authoredSignatures</code>; (2) canonicalize under
+<code>formspec-response-signing-v1</code> to obtain
+<code>integrity-canonical-json-v1</code> bytes
+(<code>formspec.response.signed-payload.v1 || NUL || JCS(payload)</code>);
+(3) digest those bytes with <code>signedPayload.digestAlgorithm</code>
+and bind the result into <code>signedPayload.digest</code>; (4)
+construct the COSE_Sign1 <code>Sig_structure</code> over the protected
+headers (including the <code>profile_id = -65539</code> label that names
+the Formspec profile) and the canonical payload bytes; (5) produce
+<code>signatureValue</code> by signing the <code>Sig_structure</code>
+under the signer’s key. Verifiers reverse the composition: parse the
+COSE_Sign1 envelope via <code>integrity-cose</code>, confirm the
+<code>profile_id = -65539</code> protected-header dispatch, reconstruct
+the canonical bytes via <code>integrity-canonical-json-v1</code>, and
+re-derive the digest. Neither primitive is redefined here; both crates
+are the byte-level source of truth.</p>
 <p>A drawn signature image, typed name, or provider callback alone is
 not sufficient signing intent. A conforming implementation MUST NOT
 claim authored signature semantics from <code>signatureValue</code>
