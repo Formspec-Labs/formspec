@@ -167,14 +167,14 @@ impl Verifier for RingVerifier {
                     .map_err(|error| VerifierError::InvalidCoseEncoding {
                         reason: error.to_string(),
                     })?;
-                if cose.alg() != entry.alg {
+                if cose.alg() != entry.alg.map(i128::from) {
                     return Ok(self.failed_receipt(request, registry));
                 }
-                let payload = cose
-                    .resolve_payload(&request.signed_bytes)
-                    .map_err(|error| VerifierError::InvalidCoseEncoding {
-                        reason: error.to_string(),
-                    })?;
+                let payload =
+                    cose.resolve_payload(Some(&request.signed_bytes))
+                        .map_err(|error| VerifierError::InvalidCoseEncoding {
+                            reason: error.to_string(),
+                        })?;
                 let sig_structure =
                     formspec_signature_cose::sig_structure_bytes(cose.protected_header(), payload);
                 match entry.alg {

@@ -7,6 +7,6 @@ description = "Formspec COSE_Sign1 decode helpers for signature adapters"
 repository = "https://github.com/Formspec-org/formspec"
 
 [dependencies]
-ciborium = "0.2"
+integrity-cose = { path = "../../../integrity-stack/crates/integrity-cose" }
 
 [dev-dependencies]
