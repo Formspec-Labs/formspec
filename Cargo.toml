@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "crates/formspec-canonical",
     "crates/formspec-changeset",
     "crates/formspec-core",
     "crates/formspec-cross-stack-fixture-harness",

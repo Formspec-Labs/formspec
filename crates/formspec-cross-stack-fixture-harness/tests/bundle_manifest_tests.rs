@@ -138,8 +138,8 @@ fn formspec_root() -> PathBuf {
 
 fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture {
     use base64::Engine;
-    use formspec_canonical::{DigestAlgorithm, build_signed_payload};
     use formspec_signature_cose::decode_cose_sign1;
+    use integrity_canonical::{DigestAlgorithm, build_signed_payload};
 
     let bundle_dir = cross_stack_root().join(bundle_name);
     let response_path = bundle_dir.join("formspec-response.json");

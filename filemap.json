@@ -47,7 +47,6 @@
     "benchmarks/tasks/invoice/reference/invoice.theme.json": "Invoice Theme",
     "benchmarks/tasks/invoice/requirement.md": "Supplier Invoice",
     "context.md": "Formspec — Project Context",
-    "crates/formspec-canonical/src/lib.rs": null,
     "crates/formspec-changeset/src/extract.rs": "Key extraction from recorded changeset entries",
     "crates/formspec-changeset/src/graph.rs": "Dependency graph construction and connected-component grouping",
     "crates/formspec-changeset/src/lib.rs": "Changeset dependency analysis — key extraction and connected-component grouping",
