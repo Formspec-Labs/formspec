@@ -175,20 +175,20 @@ export interface AuthoredSignature {
   ceremonyId: string;
 }
 /**
- * Digest commitment for the Formspec Signed Response Payload. The payload is the canonical Response envelope with authoredSignatures omitted, so the digest remains stable when later co-signatures are appended.
+ * Digest commitment for the Formspec Signed Response Payload. This Formspec profile shape omits authoredSignatures, applies the formspec.response.signed-payload.v1 domain tag, and consumes the shared integrity-canonical-json-v1 canonical-byte primitive. The digest remains stable when later co-signatures are appended.
  *
  * This interface was referenced by `FormResponse`'s JSON-Schema
  * via the `definition` "AuthoredSignatureSignedPayload".
  */
 export interface AuthoredSignatureSignedPayload {
   /**
-   * Canonicalization profile used to produce the signed-payload bytes.
+   * Formspec response-signing profile used to produce the signed-payload bytes. Keep this wire-visible profile name distinct from the shared integrity-canonical-json-v1 substrate primitive it consumes.
    */
   canonicalization: 'formspec-response-signing-v1';
   /**
-   * Digest algorithm used to hash the canonical signed payload.
+   * Digest algorithm used to hash the canonical signed payload. Prod-MVP signed-payload commitments use sha-256 only.
    */
-  digestAlgorithm: string;
+  digestAlgorithm: 'sha-256';
   /**
    * Digest of the Formspec Signed Response Payload: the canonical Response envelope with authoredSignatures omitted.
    */

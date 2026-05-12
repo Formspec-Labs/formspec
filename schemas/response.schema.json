@@ -51,7 +51,7 @@
     },
     "AuthoredSignatureSignedPayload": {
       "type": "object",
-      "description": "Digest commitment for the Formspec Signed Response Payload. The payload is the canonical Response envelope with authoredSignatures omitted, so the digest remains stable when later co-signatures are appended.",
+      "description": "Digest commitment for the Formspec Signed Response Payload. This Formspec profile shape omits authoredSignatures, applies the formspec.response.signed-payload.v1 domain tag, and consumes the shared integrity-canonical-json-v1 canonical-byte primitive. The digest remains stable when later co-signatures are appended.",
       "required": [
         "canonicalization",
         "digestAlgorithm",
@@ -67,13 +67,13 @@
         "canonicalization": {
           "type": "string",
           "const": "formspec-response-signing-v1",
-          "description": "Canonicalization profile used to produce the signed-payload bytes.",
+          "description": "Formspec response-signing profile used to produce the signed-payload bytes. Keep this wire-visible profile name distinct from the shared integrity-canonical-json-v1 substrate primitive it consumes.",
           "examples": ["formspec-response-signing-v1"]
         },
         "digestAlgorithm": {
           "type": "string",
-          "pattern": "^(sha-256|sha-384|sha-512|x-[a-z0-9][a-z0-9-]*)$",
-          "description": "Digest algorithm used to hash the canonical signed payload.",
+          "const": "sha-256",
+          "description": "Digest algorithm used to hash the canonical signed payload. Prod-MVP signed-payload commitments use sha-256 only.",
           "examples": ["sha-256"]
         },
         "digest": {

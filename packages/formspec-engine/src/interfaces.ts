@@ -264,7 +264,7 @@ export interface AuthoredSignatureIdentityBinding {
 
 export interface AuthoredSignatureSignedPayload {
     canonicalization: 'formspec-response-signing-v1';
-    digestAlgorithm: string;
+    digestAlgorithm: 'sha-256';
     digest: string;
     responseId: string;
     definitionUrl: string;

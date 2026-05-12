@@ -532,7 +532,11 @@ The `formspec-response-signing-v1` canonicalization profile uses UTF-8 encoded
 canonical JSON, deterministic object member ordering, no insignificant
 whitespace, stable representation of numbers, strings, arrays, booleans, and
 null, explicit handling for absent optional fields, and rejection of non-finite
-numbers or duplicate object member names. The domain separation string is
+numbers or duplicate object member names. It is the Formspec profile shape
+visible in `authoredSignatures[*].signedPayload.canonicalization`; it consumes
+the shared `integrity-canonical-json-v1` canonical-byte primitive but does not
+rename the wire-visible Formspec profile. Formspec owns the projection rule
+that omits `authoredSignatures` and the domain separation string
 `formspec.response.signed-payload.v1`.
 
 A drawn signature image, typed name, or provider callback alone is not
@@ -603,11 +607,10 @@ where the signature method requires an external verifier.
 >       "signatureId": "sig-2026-0001",
 >       "documentId": "benefitsApplication",
 >       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
->       "signatureValue": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
->       "signatureMethod": "drawn",
+>       "signatureValue": "0oRWoQExiQEFQnNpZ25lZA==",
+>       "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
 >       "signerId": "applicant",
 >       "signerName": "Ada Lovelace",
->       "signedAt": "2026-04-22T12:00:00Z",
 >       "consentAccepted": true,
 >       "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
 >       "consentVersion": "1.0.0",
@@ -618,7 +621,9 @@ where the signature method requires an external verifier.
 >         "digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 >         "responseId": "resp-2026-0001",
 >         "definitionUrl": "https://example.org/forms/signature-attestation",
->         "definitionVersion": "1.0.0"
+>         "definitionVersion": "1.0.0",
+>         "signedAt": "2026-04-22T12:00:00Z",
+>         "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1"
 >       },
 >       "documentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 >       "documentHashAlgorithm": "sha-256",

@@ -358,6 +358,15 @@ class TestResponseAuthoredSignatures:
         with pytest.raises(ValidationError):
             _validate_response(doc)
 
+    def test_signed_payload_digest_algorithm_must_be_sha256(self):
+        signature = _minimal_authored_signature()
+        signature["signedPayload"]["digestAlgorithm"] = "sha-512"
+        doc = _minimal_response()
+        doc["id"] = "resp-2026-0001"
+        doc["authoredSignatures"] = [signature]
+        with pytest.raises(ValidationError):
+            _validate_response(doc)
+
     def test_invalid_identity_binding_assurance_rejected(self):
         signature = _minimal_authored_signature()
         signature["identityBinding"]["assuranceLevel"] = "critical"

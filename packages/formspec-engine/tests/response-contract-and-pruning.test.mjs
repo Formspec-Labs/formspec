@@ -272,6 +272,43 @@ test('should reject authored signatures with mismatched signed payload definitio
   );
 });
 
+test('should reject authored signatures with non-sha-256 signed payload digest algorithms', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/forms/signature-attestation',
+    version: '1.0.0',
+    title: 'Signature Attestation',
+    items: [{ type: 'field', dataType: 'string', key: 'signerName', label: 'Signer name' }]
+  });
+
+  assert.throws(
+    () => engine.getResponse({
+      id: 'resp-2026-0001',
+      authoredSignatures: [
+        {
+          signatureId: 'sig-2026-0001',
+          documentId: 'benefitsApplication',
+          signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
+          signatureValue: 'urn:agency.gov:signature:primary',
+          signatureMethod: 'provider-managed',
+          signerName: 'Ada Lovelace',
+          signedAt: '2026-04-22T12:00:00Z',
+          consentAccepted: true,
+          consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
+          consentVersion: '1.0.0',
+          affirmationText: 'I certify under penalty of perjury that this submission is true and complete.',
+          signedPayload: { ...signedPayload('resp-2026-0001'), digestAlgorithm: 'sha-512' },
+          documentHash: SIGNATURE_DIGEST,
+          documentHashAlgorithm: 'sha-256',
+          signatureProvider: 'urn:agency.gov:signature:providers:formspec',
+          ceremonyId: 'ceremony-1'
+        }
+      ]
+    }),
+    /signedPayload\.digestAlgorithm must be sha-256/
+  );
+});
+
 test('should reject authored signatures missing signing intent before envelope emission', () => {
   const engine = new FormEngine({
     $formspec: '1.0',

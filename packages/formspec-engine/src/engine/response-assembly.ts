@@ -81,10 +81,9 @@ function normalizeSignedPayload(
             `authoredSignatures[${index}].signedPayload.canonicalization must be formspec-response-signing-v1`,
         );
     }
-    requireNonEmptyString(
-        signedPayload.digestAlgorithm,
-        `authoredSignatures[${index}].signedPayload.digestAlgorithm`,
-    );
+    if (signedPayload.digestAlgorithm !== 'sha-256') {
+        throw new Error(`authoredSignatures[${index}].signedPayload.digestAlgorithm must be sha-256`);
+    }
     requireNonEmptyString(
         signedPayload.digest,
         `authoredSignatures[${index}].signedPayload.digest`,
