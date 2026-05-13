@@ -6,8 +6,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use fel_core::{
-    JsonWireStyle, MapEnvironment, builtin_function_catalog_json_value,
-    dependencies_to_json_value_styled, evaluate, evaluate_with_trace, extract_dependencies,
+    EvaluatorOptions, JsonWireStyle, MapEnvironment, Trace, builtin_function_catalog_json_value,
+    dependencies_to_json_value_styled, evaluate, evaluate_with, extract_dependencies,
     fel_diagnostics_to_json_value, host_options_from_json, parse, prepare,
 };
 use formspec_core::{
@@ -77,7 +77,15 @@ pub fn eval_fel_with_trace(
     };
 
     let env = MapEnvironment::with_fields(field_map);
-    let (result, trace) = evaluate_with_trace(&expr, &env);
+    let mut trace = Trace::new();
+    let result = evaluate_with(
+        &expr,
+        &env,
+        EvaluatorOptions {
+            trace: Some(&mut trace),
+            ..EvaluatorOptions::default()
+        },
+    );
 
     let value = fel_to_python(py, &result.value)?;
     let diagnostics = json_to_python(py, &fel_diagnostics_to_json_value(&result.diagnostics))?;

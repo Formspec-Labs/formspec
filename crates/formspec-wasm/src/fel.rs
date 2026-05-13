@@ -2,16 +2,16 @@
 
 use std::cell::Cell;
 
+use fel_core::{
+    EvaluatorOptions, Trace, evaluate, evaluate_with, expr_is_interpolation_static_literal,
+    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
+    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
+    prepare, reject_undefined_functions,
+};
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
     builtin_function_catalog_json_value, dependencies_to_json_value, extract_dependencies,
     print_expr, tokenize_to_json_value,
-};
-use fel_core::{
-    evaluate, evaluate_with_trace, expr_is_interpolation_static_literal,
-    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
-    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
-    prepare, reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
 use formspec_core::try_lift_condition_group;
@@ -103,7 +103,15 @@ pub(crate) fn eval_fel_with_trace_inner(
     let expr = parse_fel_source(expression)?;
     let fields = field_map_from_json_str(fields_json)?;
     let env = fel_core::MapEnvironment::with_fields(fields);
-    let (result, trace) = evaluate_with_trace(&expr, &env);
+    let mut trace = Trace::new();
+    let result = evaluate_with(
+        &expr,
+        &env,
+        EvaluatorOptions {
+            trace: Some(&mut trace),
+            ..EvaluatorOptions::default()
+        },
+    );
     LAST_EVAL_HAD_ERROR_DIAGNOSTICS.with(|c| c.set(has_error_diagnostics(&result.diagnostics)));
     let payload = serde_json::json!({
         "value": fel_to_ui_json(&result.value),

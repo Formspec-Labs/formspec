@@ -117,7 +117,7 @@ mod tests {
         assert_eq!(val, json!(42));
     }
 
-    // ── evalFELWithTrace: bridges `fel_core::evaluate_with_trace` through WASM ──
+    // ── evalFELWithTrace: bridges `fel_core::evaluate_with` + trace through WASM ──
 
     /// Wire contract: `{ value, diagnostics, trace }`. Trace steps carry PascalCase
     /// `kind` discriminants from `fel_core::TraceStep` (serde default).
