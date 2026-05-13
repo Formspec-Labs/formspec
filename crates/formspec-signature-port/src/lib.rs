@@ -1,5 +1,52 @@
 use serde::{Deserialize, Serialize};
-use std::{fmt, ops::Deref};
+use std::{fmt, ops::Deref, sync::Arc};
+
+pub trait ClockPort: Send + Sync + 'static {
+    fn now_rfc3339(&self) -> String;
+
+    fn now_unix_millis(&self) -> i64;
+}
+
+pub type ClockHandle = Arc<dyn ClockPort>;
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SystemClock;
+
+impl ClockPort for SystemClock {
+    fn now_rfc3339(&self) -> String {
+        chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+    }
+
+    fn now_unix_millis(&self) -> i64 {
+        chrono::Utc::now().timestamp_millis()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FixedClock {
+    rfc3339: String,
+    unix_millis: i64,
+}
+
+impl FixedClock {
+    pub fn at_rfc3339(rfc3339: &str) -> Result<Self, chrono::ParseError> {
+        let parsed = chrono::DateTime::parse_from_rfc3339(rfc3339)?.with_timezone(&chrono::Utc);
+        Ok(Self {
+            rfc3339: parsed.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            unix_millis: parsed.timestamp_millis(),
+        })
+    }
+}
+
+impl ClockPort for FixedClock {
+    fn now_rfc3339(&self) -> String {
+        self.rfc3339.clone()
+    }
+
+    fn now_unix_millis(&self) -> i64 {
+        self.unix_millis
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(transparent)]

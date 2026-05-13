@@ -1,23 +1,30 @@
 use formspec_signature_port::{
-    AdapterInfo, KeyInfo, SignatureMethodRegistry, VerificationReceipt, VerificationResult,
-    Verifier, VerifierError, VerifyRequest,
+    AdapterInfo, ClockHandle, KeyInfo, SignatureMethodRegistry, SystemClock, VerificationReceipt,
+    VerificationResult, Verifier, VerifierError, VerifyRequest,
 };
 use ring::signature;
+use std::sync::Arc;
 
 const ADAPTER_ID: &str = "urn:formspec:adapter:ring@1";
 const ADAPTER_VERSION: &str = "0.1.0";
 
 pub struct RingVerifier {
     adapter_info: AdapterInfo,
+    clock: ClockHandle,
 }
 
 impl RingVerifier {
     pub fn new() -> Self {
+        Self::new_with_clock(Arc::new(SystemClock))
+    }
+
+    pub fn new_with_clock(clock: ClockHandle) -> Self {
         Self {
             adapter_info: AdapterInfo {
                 id: ADAPTER_ID.into(),
                 version: ADAPTER_VERSION.into(),
             },
+            clock,
         }
     }
 
@@ -36,7 +43,7 @@ impl RingVerifier {
                 version: None,
                 snapshot: None,
             },
-            verified_at: chrono_now(),
+            verified_at: self.clock.now_rfc3339(),
             context: None,
             receipt_bytes: None,
         }
@@ -57,7 +64,7 @@ impl RingVerifier {
                 version: None,
                 snapshot: None,
             },
-            verified_at: chrono_now(),
+            verified_at: self.clock.now_rfc3339(),
             context: None,
             receipt_bytes: None,
         }
@@ -78,7 +85,7 @@ impl RingVerifier {
                 version: None,
                 snapshot: None,
             },
-            verified_at: chrono_now(),
+            verified_at: self.clock.now_rfc3339(),
             context: None,
             receipt_bytes: None,
         }
@@ -163,10 +170,12 @@ impl Verifier for RingVerifier {
 
         let result = match entry.alg {
             Some(-8) | Some(-7) | Some(-37) => {
-                let cose = formspec_signature_cose::decode_cose_sign1(&request.signature_bytes)
-                    .map_err(|error| VerifierError::InvalidCoseEncoding {
-                        reason: error.to_string(),
-                    })?;
+                let cose = formspec_signature_cose::decode_cose_sign1_with_profile_id(
+                    &request.signature_bytes,
+                )
+                .map_err(|error| VerifierError::InvalidCoseEncoding {
+                    reason: error.to_string(),
+                })?;
                 if cose.alg() != entry.alg.map(i128::from) {
                     return Ok(self.failed_receipt(request, registry));
                 }
@@ -201,40 +210,10 @@ impl Verifier for RingVerifier {
     }
 }
 
-fn chrono_now() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let dur = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    let secs = dur.as_secs() as i64;
-
-    let days = secs / 86400;
-    let time_secs = secs % 86400;
-    let hours = time_secs / 3600;
-    let minutes = (time_secs % 3600) / 60;
-    let seconds = time_secs % 60;
-
-    // Hinnant civil_from_days algorithm (all values non-negative)
-    let z = days + 719468;
-    let era = z / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let mut y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    if m <= 2 {
-        y += 1;
-    }
-
-    format!("{y:04}-{m:02}-{d:02}T{hours:02}:{minutes:02}:{seconds:02}Z")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use formspec_signature_port::RegistryEntry;
+    use formspec_signature_port::{FixedClock, RegistryEntry};
     use ring::rand::SystemRandom;
     use ring::signature::KeyPair;
 
@@ -286,6 +265,27 @@ mod tests {
             )
             .unwrap();
         assert_eq!(receipt.result.to_string(), "unsupported");
+    }
+
+    #[test]
+    fn ring_adapter_uses_injected_clock_for_receipt_timestamp() {
+        let verifier = RingVerifier::new_with_clock(Arc::new(
+            FixedClock::at_rfc3339("2026-05-13T12:00:00Z").expect("fixed clock"),
+        ));
+        let registry = test_registry();
+        let receipt = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes: vec![1, 2, 3],
+                    signature_bytes: vec![4, 5, 6],
+                    signature_method: "urn:formspec:sig-method:unknown@1".into(),
+                    key_ref: "deadbeef".into(),
+                },
+                &registry,
+            )
+            .expect("receipt");
+
+        assert_eq!(receipt.verified_at, "2026-05-13T12:00:00Z");
     }
 
     #[test]
@@ -349,6 +349,38 @@ mod tests {
             )
             .unwrap();
         assert_eq!(receipt.result.to_string(), "failed");
+    }
+
+    #[test]
+    fn ring_adapter_rejects_cose_sign1_without_profile_id() {
+        let verifier = RingVerifier::new();
+        let registry = test_registry();
+        let legacy_protected = [0xa1, 0x01, 0x27];
+        let signature_bytes =
+            formspec_signature_cose::encode_cose_sign1(&legacy_protected, None, &[0u8; 64]);
+        let key_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+        let error = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes: b"test message".to_vec(),
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: key_b64.into(),
+                },
+                &registry,
+            )
+            .expect_err("missing profile_id should reject");
+
+        match error {
+            VerifierError::InvalidCoseEncoding { reason } => {
+                assert!(
+                    reason.contains("profile_id"),
+                    "expected profile_id rejection, got: {reason}"
+                );
+            }
+            other => panic!("expected InvalidCoseEncoding error, got: {other}"),
+        }
     }
 
     #[test]

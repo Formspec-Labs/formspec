@@ -8,6 +8,9 @@ repository = "https://github.com/Formspec-org/formspec"
 publish = false
 readme = "README.md"
 
+[package.metadata.cargo-machete]
+ignored = ["getrandom"]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 

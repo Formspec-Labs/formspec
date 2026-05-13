@@ -1160,8 +1160,9 @@ and <code>signedPayload.definitionVersion</code> MUST equal the
 top-level Response pins,</li>
 <li>each <code>authoredSignatures[*].signedPayload.digest</code> MUST
 verify against the Formspec Signed Response Payload using
-<code>signedPayload.canonicalization</code> and
-<code>signedPayload.digestAlgorithm</code>,</li>
+<code>signedPayload.canonicalization</code> and the v1-required
+<code>signedPayload.digestAlgorithm</code> value
+<code>sha-256</code>,</li>
 <li>each record MAY separately bind the signing act to a
 <code>documentHash</code> and <code>documentHashAlgorithm</code> for the
 document, rendered view, certification page, or signing surface shown to
@@ -1195,26 +1196,35 @@ composition of two substrate primitives (per convergence plan §18 Train
 source of truth
 <code>integrity-stack/crates/integrity-canonical/</code>) and
 <code>integrity-cose</code> (the RFC 9052 COSE_Sign1 envelope and
-<code>Sig_structure</code>, with the Formspec profile dispatched at
-protected-header label <code>-65539</code> (<code>profile_id</code>),
-source of truth <code>integrity-stack/crates/integrity-cose/</code>).
-The composition order is fixed: (1) project the Response by omitting
-<code>authoredSignatures</code>; (2) canonicalize under
-<code>formspec-response-signing-v1</code> to obtain
+<code>Sig_structure</code>, with the Formspec profile dispatched by
+protected-header label <code>-65539</code> (<code>profile_id</code>)
+carrying <code>FORMSPEC_PROFILE_ID = 2</code>, source of truth
+<code>integrity-stack/crates/integrity-cose/</code> plus the Trellis
+§26.2.1 value registry). The composition order is fixed: (1) project the
+Response by omitting <code>authoredSignatures</code>; (2) canonicalize
+under <code>formspec-response-signing-v1</code> to obtain
 <code>integrity-canonical-json-v1</code> bytes
 (<code>formspec.response.signed-payload.v1 || NUL || JCS(payload)</code>);
-(3) digest those bytes with <code>signedPayload.digestAlgorithm</code>
-and bind the result into <code>signedPayload.digest</code>; (4)
-construct the COSE_Sign1 <code>Sig_structure</code> over the protected
-headers (including the <code>profile_id = -65539</code> label that names
-the Formspec profile) and the canonical payload bytes; (5) produce
-<code>signatureValue</code> by signing the <code>Sig_structure</code>
-under the signer’s key. Verifiers reverse the composition: parse the
-COSE_Sign1 envelope via <code>integrity-cose</code>, confirm the
-<code>profile_id = -65539</code> protected-header dispatch, reconstruct
-the canonical bytes via <code>integrity-canonical-json-v1</code>, and
-re-derive the digest. Neither primitive is redefined here; both crates
-are the byte-level source of truth.</p>
+(3) digest those bytes with SHA-256, the only
+<code>signedPayload.digestAlgorithm</code> value admitted by the v1
+Response schema, and bind the result into
+<code>signedPayload.digest</code>; (4) construct the COSE_Sign1
+<code>Sig_structure</code> over the protected headers, including
+protected-header label <code>-65539</code> (<code>profile_id</code>)
+with value <code>2</code> for the Formspec authored- signature profile,
+and the canonical payload bytes; (5) produce <code>signatureValue</code>
+by signing the <code>Sig_structure</code> under the signer’s key.
+Verifiers reverse the composition: parse the COSE_Sign1 envelope via
+<code>integrity-cose</code>, confirm the <code>profile_id</code>
+protected-header dispatch value equals
+<code>FORMSPEC_PROFILE_ID = 2</code>, reconstruct the canonical bytes
+via <code>integrity-canonical-json-v1</code>, and re-derive the digest.
+Neither primitive is redefined here; both crates are the byte-level
+source of truth. Expanding <code>signedPayload.digestAlgorithm</code>
+beyond <code>sha-256</code> is a coordinated profile change that must
+update the Response schema, substrate algorithm admission, examples, and
+fixtures together; implementations MUST NOT treat the field as an open
+algorithm registry in <code>formspec-response-signing-v1</code>.</p>
 <p>A drawn signature image, typed name, or provider callback alone is
 not sufficient signing intent. A conforming implementation MUST NOT
 claim authored signature semantics from <code>signatureValue</code>
@@ -1240,11 +1250,11 @@ these result codes when reporting verification failure or success:</p>
 Response pins in <code>signedPayload</code>, constructing the Formspec
 Signed Response Payload by omitting <code>authoredSignatures</code>,
 canonicalizing with <code>formspec-response-signing-v1</code>, hashing
-with <code>signedPayload.digestAlgorithm</code>, comparing the computed
-digest to <code>signedPayload.digest</code>, checking consent and
-signing-intent evidence, and applying method/provider-specific
-verification where the signature method requires an external
-verifier.</p>
+with the v1-required SHA-256 <code>signedPayload.digestAlgorithm</code>,
+comparing the computed digest to <code>signedPayload.digest</code>,
+checking consent and signing-intent evidence, and applying
+method/provider-specific verification where the signature method
+requires an external verifier.</p>
 <blockquote>
 <p><strong>Example.</strong> A completed Response (this object includes
 every required top-level property in

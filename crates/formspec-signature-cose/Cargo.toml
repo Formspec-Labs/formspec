@@ -8,5 +8,6 @@ repository = "https://github.com/Formspec-org/formspec"
 
 [dependencies]
 integrity-cose = { path = "../../../integrity-stack/crates/integrity-cose" }
+integrity-verify = { path = "../../../integrity-stack/crates/integrity-verify" }
 
 [dev-dependencies]

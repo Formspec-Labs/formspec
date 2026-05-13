@@ -10,7 +10,6 @@ repository = "https://github.com/Formspec-org/formspec"
 fel-core = { version = "0.1.0", path = "../../../fel-core" }
 formspec-core = { version = "0.1.0", path = "../formspec-core" }
 jsonschema = { version = "0.45", default-features = false }
-rust_decimal = "1"
 serde_json = "1"
 
 [dev-dependencies]

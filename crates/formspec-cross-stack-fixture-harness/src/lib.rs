@@ -1,5 +1,7 @@
 use std::{fs, path::PathBuf};
 
+pub mod canonicalization_vectors;
+
 pub struct FixtureBundle {
     pub dir: PathBuf,
     pub id: String,
