@@ -1,10 +1,13 @@
+use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use std::{fmt, ops::Deref, sync::Arc};
 
 pub trait ClockPort: Send + Sync + 'static {
-    fn now_rfc3339(&self) -> String;
+    fn now_utc(&self) -> DateTime<Utc>;
 
-    fn now_unix_millis(&self) -> i64;
+    fn now_unix_millis(&self) -> i64 {
+        self.now_utc().timestamp_millis()
+    }
 }
 
 pub type ClockHandle = Arc<dyn ClockPort>;
@@ -13,39 +16,37 @@ pub type ClockHandle = Arc<dyn ClockPort>;
 pub struct SystemClock;
 
 impl ClockPort for SystemClock {
-    fn now_rfc3339(&self) -> String {
-        chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-    }
-
-    fn now_unix_millis(&self) -> i64 {
-        chrono::Utc::now().timestamp_millis()
+    fn now_utc(&self) -> DateTime<Utc> {
+        Utc::now()
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FixedClock {
-    rfc3339: String,
-    unix_millis: i64,
+    now: DateTime<Utc>,
 }
 
 impl FixedClock {
     pub fn at_rfc3339(rfc3339: &str) -> Result<Self, chrono::ParseError> {
         let parsed = chrono::DateTime::parse_from_rfc3339(rfc3339)?.with_timezone(&chrono::Utc);
-        Ok(Self {
-            rfc3339: parsed.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-            unix_millis: parsed.timestamp_millis(),
-        })
+        Ok(Self { now: parsed })
     }
 }
 
 impl ClockPort for FixedClock {
-    fn now_rfc3339(&self) -> String {
-        self.rfc3339.clone()
+    fn now_utc(&self) -> DateTime<Utc> {
+        self.now
     }
+}
 
-    fn now_unix_millis(&self) -> i64 {
-        self.unix_millis
-    }
+/// Formats a UTC timestamp as second-precision RFC 3339.
+pub fn utc_to_rfc3339_seconds(value: DateTime<Utc>) -> String {
+    value.to_rfc3339_opts(SecondsFormat::Secs, true)
+}
+
+/// Formats a UTC timestamp as millisecond-precision RFC 3339.
+pub fn utc_to_rfc3339_millis(value: DateTime<Utc>) -> String {
+    value.to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]

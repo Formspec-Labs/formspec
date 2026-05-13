@@ -11,10 +11,10 @@
 //! the signed-payload projection).
 
 use integrity_canonical::{
-    canonical_response_handoff_bytes, canonical_response_signed_payload_bytes, compute_digest,
-    DigestAlgorithm,
+    DigestAlgorithm, canonical_response_handoff_bytes, canonical_response_signed_payload_bytes,
+    compute_digest,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// One canonicalization vector covering both digest contracts for a Response.
 pub struct CanonicalizationVector {
@@ -46,8 +46,7 @@ pub fn vector_a_without_signatures() -> CanonicalizationVector {
             "authored": "2026-05-08T12:00:00Z"
         }),
         expected_handoff_hex: "0912e0fdca5b0901ad0b24f7ff5a45af2f46685b6857222ff304730c590fffe5",
-        expected_signed_payload_hex:
-            "0580b4321a18d888907a5053f956b681404656bd5bd612348f69df1b026f0660",
+        expected_signed_payload_hex: "0580b4321a18d888907a5053f956b681404656bd5bd612348f69df1b026f0660",
     }
 }
 
@@ -72,8 +71,7 @@ pub fn vector_b_with_signatures() -> CanonicalizationVector {
             ]
         }),
         expected_handoff_hex: "7c2d46794e7904e2bc3ec2bfce0cd076a3957bd1c33631c03933e87eca9c4d27",
-        expected_signed_payload_hex:
-            "f784073dbcdd2efe685fb900ec9cdedcd602daeb173b7188fa4a5387894e0422",
+        expected_signed_payload_hex: "f784073dbcdd2efe685fb900ec9cdedcd602daeb173b7188fa4a5387894e0422",
     }
 }
 

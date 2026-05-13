@@ -1,6 +1,6 @@
 use formspec_signature_port::{
     AdapterInfo, ClockHandle, KeyInfo, SignatureMethodRegistry, SystemClock, VerificationReceipt,
-    VerificationResult, Verifier, VerifierError, VerifyRequest,
+    VerificationResult, Verifier, VerifierError, VerifyRequest, utc_to_rfc3339_seconds,
 };
 use ring::signature;
 use std::sync::Arc;
@@ -43,7 +43,7 @@ impl RingVerifier {
                 version: None,
                 snapshot: None,
             },
-            verified_at: self.clock.now_rfc3339(),
+            verified_at: utc_to_rfc3339_seconds(self.clock.now_utc()),
             context: None,
             receipt_bytes: None,
         }
@@ -64,7 +64,7 @@ impl RingVerifier {
                 version: None,
                 snapshot: None,
             },
-            verified_at: self.clock.now_rfc3339(),
+            verified_at: utc_to_rfc3339_seconds(self.clock.now_utc()),
             context: None,
             receipt_bytes: None,
         }
@@ -85,7 +85,7 @@ impl RingVerifier {
                 version: None,
                 snapshot: None,
             },
-            verified_at: self.clock.now_rfc3339(),
+            verified_at: utc_to_rfc3339_seconds(self.clock.now_utc()),
             context: None,
             receipt_bytes: None,
         }
