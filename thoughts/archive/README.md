@@ -2,7 +2,7 @@
 
 Material here is **read-only history**: superseded decision precursors, **implemented** ADRs, **completed** execution plans, and **delivered** design specs that are now reflected in canonical `specs/`, `schemas/`, and code.
 
-**Active** proposals and open work: [`thoughts/README.md`](../README.md) → `thoughts/adr/`, `thoughts/plans/`, `thoughts/specs/`.
+**Active** proposals and open work → [`thoughts/TODO.md`](../TODO.md), `thoughts/adr/`, `thoughts/plans/`, `thoughts/specs/`.
 
 | Subfolder | Contents |
 |-----------|----------|

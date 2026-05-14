@@ -57,8 +57,7 @@ Frame lives in `formspec-stack/.claude/user_profile.md` and `formspec-stack/.cla
 - **`specs/`** — Markdown spec sources (`*.md`), BLUF summaries (`*.bluf.md`), generated LLM artifacts (`*.llm.md`). Generated files MUST NOT be hand-edited. Prefer `*.llm.md` for context. Use `formspec-specs` skill for authoritative lookup.
 - **`docs/api/`** + colocated **`API.llm.md`** — Generated API reference (pdoc + TypeDoc). Regenerate with `make api-docs`. `API.llm.md` is gitignored; prefer it over reading source.
 - **`thoughts/`** — All plans, ADRs, research, design artifacts. Never put plans in `docs/`. ADR/plan/spec metadata lives in [`thoughts/README.md`](thoughts/README.md) — CLAUDE.md never inlines metadata that changes weekly.
-  - `thoughts/adr/`, `thoughts/plans/`, `thoughts/specs/` — active. Implemented/superseded → `thoughts/archive/...`. `npm run docs:check` enforces archive paths in tracked links.
-  - `thoughts/reviews/`, `thoughts/research/`, `thoughts/examples/` — see local READMEs. Studio thoughts moved to `formspec-studio/thoughts/`.
+  - `thoughts/TODO.md` — work tracking index. [`thoughts/adr/`](thoughts/adr/) — active ADRs. [`thoughts/plans/`](thoughts/plans/), [`thoughts/specs/`](thoughts/specs/) — active. Implemented/superseded → `thoughts/archive/...`. `npm run docs:check` enforces archive paths in tracked links.
 - **`tests/`** — Python conformance suite. **`tests/e2e/`** — Playwright + JSON fixtures.
 - **[`filemap.json`](filemap.json)** — Generated file→description index. Never hand-edit. Regenerate with `npm run docs:filemap`.
 
