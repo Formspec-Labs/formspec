@@ -61,7 +61,7 @@
       "transform": "preserve"
     },
     {
-      "sourcePath": "authoredSignatures[0].signedAt",
+      "sourcePath": "authoredSignatures[0].signedPayload.signedAt",
       "targetPath": "signedAt",
       "transform": "preserve"
     },
@@ -83,7 +83,7 @@
     {
       "targetPath": "consentReference.acceptedAtPath",
       "transform": "constant",
-      "expression": "'authoredSignatures[0].signedAt'"
+      "expression": "'authoredSignatures[0].signedPayload.signedAt'"
     },
     {
       "targetPath": "consentReference.affirmationPath",

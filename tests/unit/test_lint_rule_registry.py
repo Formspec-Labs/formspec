@@ -23,6 +23,7 @@ REGISTRY_PATH = REPO_ROOT / "specs" / "lint-codes.json"
 REQUIRED_RULE_FIELDS = ("code", "pass", "severity", "title", "state")
 ALLOWED_STATES = {"draft", "tested", "stable"}
 ALLOWED_SEVERITIES = {"error", "warning", "info"}
+ALLOWED_SPEC_REF_PREFIXES = ("specs/", "../fel-core/specs/")
 
 
 def _load_registry() -> dict:
@@ -37,6 +38,11 @@ def _rules_by_code() -> dict[str, dict]:
     registry = _load_registry()
     rules = registry.get("rules", [])
     return {rule["code"]: rule for rule in rules}
+
+
+def _spec_ref_target_path(spec_ref: str) -> Path:
+    rel_path = spec_ref.split("#", 1)[0]
+    return REPO_ROOT / rel_path
 
 
 def test_registry_structure_is_well_formed() -> None:
@@ -74,8 +80,11 @@ def test_tested_and_stable_rules_have_spec_ref_and_suggested_fix() -> None:
             f"rule {code} is {rule['state']} but has no suggestedFix — "
             "tested rules must offer a machine-actionable repair hint"
         )
-        assert rule["specRef"].startswith("specs/"), (
-            f"rule {code}: specRef should be a repo-relative path under specs/"
+        assert rule["specRef"].startswith(ALLOWED_SPEC_REF_PREFIXES), (
+            f"rule {code}: specRef should point under specs/ or ../fel-core/specs/"
+        )
+        assert _spec_ref_target_path(rule["specRef"]).exists(), (
+            f"rule {code}: specRef target does not exist: {rule['specRef']}"
         )
 
 

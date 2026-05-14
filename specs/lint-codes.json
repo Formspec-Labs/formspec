@@ -104,7 +104,7 @@
       "pass": 4,
       "severity": "error",
       "title": "FEL expression failed to parse",
-      "specRef": "../../fel-core/specs/fel/fel-grammar.md#4-expression-grammar",
+      "specRef": "../fel-core/specs/fel/fel-grammar.md#4-expression-grammar",
       "suggestedFix": "fix the FEL syntax to match the grammar \u2014 check operators, quotes, and path references",
       "fixtures": [
         "tests/fixtures/lint/E400-fel-parse-error.json"
