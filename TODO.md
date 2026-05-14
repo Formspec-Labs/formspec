@@ -69,6 +69,11 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   - **Cross-layer scope:** FEL crate is parent (`crates/fel-core`); WASM bridge in `formspec-engine`; Python evaluator parity; WOS guard evaluator. All must move together.
   - **Gate:** [ADR 0069](../thoughts/adr/0069-stack-time-semantics.md) accepted (2026-05-06 — WOS Stack Closure cluster).
 
+- **FORMSPEC-EVAL-VALID-UNTIL-001 — validUntil duration computation** `[4 / 3 / 2]` (**12**)
+  `formspec-eval/src/screener_eval.rs:522` carries `TODO: Implement proper duration addition for validUntil`. The `ValidityBlock` records the `resultValidity` duration string but sets `valid_until` to `String::new()`. The `_now_str` parameter is unused (underscore prefix). Full implementation: parse ISO 8601 duration, add to current timestamp, populate `valid_until`. Downstream consumers (caching layers, expiry checks) must compute this themselves today.
+  - **Done:** parse ISO 8601 duration (e.g., `P1Y`, `P30D`), add to `now`, populate `valid_until`; remove `_now_str` underscore prefix; unit tests for edge cases (zero duration, leap year, timezone-aware).
+  - **Gate:** none.
+
 - **FORMSPEC-SIGNATURE-VERIFY-PORT-001 — Verifier port trait + receipt shape** `[6 / 4 / 4]` (**24**)
   - Rust trait Verifier and TS port mirror. D2 from substrate boundary plan.
   - **Done:** crate, trait surface, Receipt shape, tests for JSON round-trip.
@@ -87,7 +92,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
   {valid, invalid, malformed-cose, key-mismatch}.
   Receipt signing is distinct from primitive verification: adapters may verify signatures today,
   but they are not production-complete until they can emit receipt COSE_Sign1 bytes under the
-  stack receipt profile in `../thoughts/plans/2026-05-09-signature-wire-convergence-plan.md`.
+  archived stack receipt profile rationale in `../thoughts/archive/plans/2026-05-09-signature-wire-convergence-plan.md`.
   Debt remains 5: shared COSE parsing landed, but receipt signing + multi-alg vector coverage still add surface.
 
 - **FORMSPEC-SIGNATURE-ADAPTER-RING-001 — Sibling Rust adapter** `[6 / 4 / 5]` (30)
@@ -129,7 +134,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
     `formspec-canonical` and add Bundle 001-003 regression vectors before treating this as stack-closed.
 
 - **FORMSPEC-SIGNATURE-WIRE-CONVERGENCE-001 — Shared primitive/profile cleanup** `[7 / 4 / 6]` (**42**)
-  - Stack plan: [`../thoughts/plans/2026-05-09-signature-wire-convergence-plan.md`](../thoughts/plans/2026-05-09-signature-wire-convergence-plan.md).
+  - Archived stack plan: [`../thoughts/archive/plans/2026-05-09-signature-wire-convergence-plan.md`](../thoughts/archive/plans/2026-05-09-signature-wire-convergence-plan.md).
   - Purpose: preserve Formspec/WOS/Trellis semantic ownership while eliminating accidental byte-grammar drift.
   - Formspec-owned pieces that stay here: response-signing canonicalization profile, signature-method registry,
     verifier port, default WebCrypto/ring adapters, and cross-stack fixture harness.
@@ -185,8 +190,8 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 ## Untracked debt (monorepo audit 2026-05-08)
 
 - **FORMSPEC-PY-NATIVE-TEST-001 — Python native-test extraction + JSON type-mapping coverage** `[4 / 2 / 3]` (12)
-  - Five inline TODOs in `crates/formspec-py/src/native_tests.rs:619-642`: extract `parse_mapping_document_inner` for native testability; test bool-before-int extraction; test Number fract→int/float dispatch; test all JSON types map correctly; test mixed-type/nested dicts. All are test-coverage gaps in the Python binding.
-  - **Done when:** `parse_mapping_document_inner` extracted; 5 test cases land; `pytest tests/` green.
+  - Current state (verified 2026-05-14): `parse_mapping_document_from_value` is imported as `parse_mapping_document_inner`, and native Rust tests now cover valid, minimal, non-object, defaults, and missing-rules mapping documents. Remaining coverage gaps are the Python boundary conversions still noted in `crates/formspec-py/src/native_tests.rs`: bool-before-int extraction, FEL Number fract→int/float dispatch, all JSON-to-Python type mapping, and mixed/empty/nested dict conversion.
+  - **Done when:** the remaining Python binding edge cases land in native or Python-side tests; `pytest tests/` green.
 
 - **FORMSPEC-TEMPORARY-MAP-001 — Remove temporary map-and-merge in runtime mapping engine** `[3 / 1 / 3]` (9)
   - `crates/formspec-core/src/runtime_mapping/engine.rs:262` builds a "temporary map and merge" — should be a named, reusable merge operation, not an ad-hoc local. Low urgency but the comment signals known tech debt.

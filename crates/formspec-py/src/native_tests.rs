@@ -614,10 +614,10 @@ mod tests {
         assert!(rules.is_empty());
     }
 
-    // NOTE: parse_mapping_document tests require PyO3 (uses PyResult/PyValueError).
-    // These must be tested via Python-side integration tests.
-    // TODO: Extract parse_mapping_document_inner for native testability.
-    // Untestable functions — require Python interpreter
+    // NOTE: parse_mapping_document_from_value is now tested natively below.
+    // The remaining conversion helpers use PyO3 objects and need a live
+    // Python interpreter, so cover them at the Python boundary.
+    // Untested Python boundary functions
     // ────────────────────────────────────────────────────────────
     //
     // The following functions use PyO3 types (Python<'_>, PyObject, Bound<'_, PyDict>)
