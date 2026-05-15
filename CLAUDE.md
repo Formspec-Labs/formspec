@@ -24,7 +24,7 @@ JSON-native declarative form specification with dual reference implementations (
 
 Three spec tiers (distinct from the `formspec-core` package below): **Core** (data & logic), **Theme** (presentation), **Components** (interaction). FEL (Formspec Expression Language) handles calculated values and conditional logic.
 
-Sibling layers (via `formspec-stack`): `trellis/` (event-ledger crates), `work-spec/` (Workflow Orchestration Standard). Coupled via filesystem-sibling paths under `formspec-stack`; `formspec` carries no submodules.
+Sibling layers (via `formspec-stack`): `trellis/` (event-ledger + substrate service crates), `work-spec/` (Workflow Orchestration Standard). Coupled via filesystem-sibling paths under `formspec-stack`; `formspec` carries no submodules. **Proof/substrate pins for agents:** shared bytes in `integrity-stack/` (`integrity-*`), HTTP append contract in `trellis/crates/trellis-service-client`, WOS-aware export verification in `trellis/crates/trellis-verify-wos` — not deleted app-local composers or retired `trellis-export` / center-`trellis-verify` authority ([ADR 0095](../thoughts/adr/0095-trellis-platform-substrate-infrastructure.md), [ADR 0106](../thoughts/adr/0106-wos-server-governance-overlay.md)).
 
 ## Operating Context
 
