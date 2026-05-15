@@ -10,6 +10,7 @@ repository = "https://github.com/Formspec-org/formspec"
 base64 = "0.22"
 ciborium = "0.2"
 integrity-canonical = { path = "../../../integrity-stack/crates/integrity-canonical" }
+integrity-bundle-fixtures = { path = "../../../integrity-stack/crates/integrity-bundle-fixtures" }
 formspec-signature-adapter-ring = { path = "../formspec-signature-adapter-ring" }
 formspec-signature-cose = { path = "../formspec-signature-cose" }
 formspec-signature-port = { path = "../formspec-signature-port" }
