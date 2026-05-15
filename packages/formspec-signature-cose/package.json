@@ -10,6 +10,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@integrity-stack/cose": "file:../../../integrity-stack/packages/integrity-cose"
+  },
   "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"

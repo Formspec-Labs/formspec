@@ -1,12 +1,18 @@
 /** @filedesc Unit tests for shared COSE_Sign1 helpers. */
 import { describe, expect, it } from 'vitest';
 import {
+  FORMSPEC_PROFILE_ID,
   decodeCoseSign1,
   encodeCoseSign1,
+  extractProfileId,
   protectedHeaderBytes,
   resolvePayload,
   sigStructureBytes,
 } from './index';
+import {
+  protectedHeaderBytesForAlg,
+  protectedHeaderBytesForAlgWithProfileId,
+} from '@integrity-stack/cose';
 
 describe('COSE_Sign1 helpers', () => {
   it('decodes detached COSE_Sign1', () => {
@@ -18,9 +24,35 @@ describe('COSE_Sign1 helpers', () => {
 
     expect(decoded.alg).toBe(-8);
     expect(decoded.kid).toEqual(new Uint8Array([1, 2, 3]));
+    expect(decoded.profileId).toBe(FORMSPEC_PROFILE_ID);
     expect(decoded.payload).toBeNull();
     expect(decoded.signature).toEqual(signature);
     expect(resolvePayload(decoded, new Uint8Array([9]))).toEqual(new Uint8Array([9]));
+  });
+
+  it('emits and extracts the Formspec profile id', () => {
+    const protectedHeader = protectedHeaderBytes(-8, new Uint8Array(16).fill(0xaa));
+    const encoded = encodeCoseSign1(protectedHeader, new Uint8Array([1]), new Uint8Array(64));
+
+    expect(extractProfileId(encoded)).toBe(FORMSPEC_PROFILE_ID);
+  });
+
+  it('rejects missing Formspec profile id', () => {
+    const protectedHeader = protectedHeaderBytesForAlg(-8, new Uint8Array([1, 2, 3]));
+    const encoded = encodeCoseSign1(protectedHeader, null, new Uint8Array(64));
+
+    expect(() => decodeCoseSign1(encoded)).toThrow(/missing Formspec profile_id/);
+  });
+
+  it('rejects wrong Formspec profile id', () => {
+    const protectedHeader = protectedHeaderBytesForAlgWithProfileId(
+      -8,
+      new Uint8Array([1, 2, 3]),
+      1,
+    );
+    const encoded = encodeCoseSign1(protectedHeader, null, new Uint8Array(64));
+
+    expect(() => decodeCoseSign1(encoded)).toThrow(/wrong Formspec profile_id: expected 2, got 1/);
   });
 
   it('rejects embedded payload mismatch', () => {
