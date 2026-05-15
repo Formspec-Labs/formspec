@@ -1,347 +1,347 @@
-source,task_id,description,target,priority
-ADR 0029,0029-001,Add field exercising dataType dateTime (e.g. submissionDeadline),examples/grant-application/definition.json,medium
-ADR 0029,0029-002,Add field exercising dataType time (e.g. meetingTime),examples/grant-application/definition.json,medium
-ADR 0029,0029-003,Back-sync dataType uri on projectWebsite from engine fixture to grant-app,examples/grant-application/definition.json,high
-ADR 0029,0029-004,Add suffix on at least one field (e.g. % on indirectRate),examples/grant-application/definition.json,low
-ADR 0029,0029-005,Add per-field currency on at least one field,examples/grant-application/definition.json,low
-ADR 0029,0029-006,Add description on at least 3 items,examples/grant-application/definition.json,low
-ADR 0029,0029-007,Add field-level presentation with widgetHint on at least one item,examples/grant-application/definition.json,low
-ADR 0029,0029-008,Add initialValue as expression (=today() on startDate),examples/grant-application/definition.json,medium
-ADR 0029,0029-009,Add prePopulate with editable false locking a pre-populated field,examples/grant-application/definition.json,medium
-ADR 0029,0029-010,Add layout subsystem on at least one group (flow grid columns colSpan collapsible styleHints accessibility),examples/grant-application/definition.json,medium
-ADR 0029,0029-011,Add conditional required expression,examples/grant-application/definition.json,medium
-ADR 0029,0029-012,Add conditional readonly expression,examples/grant-application/definition.json,medium
-ADR 0029,0029-013,Add whitespace remove on at least one bind,examples/grant-application/definition.json,low
-ADR 0029,0029-014,Add nonRelevantBehavior empty per-bind override,examples/grant-application/definition.json,low
-ADR 0029,0029-015,Back-sync timing demand on at least one shape from engine fixture,examples/grant-application/definition.json,high
-ADR 0029,0029-016,Add xone shape composition exercising exclusive-or groups,examples/grant-application/definition.json,medium
-ADR 0029,0029-017,Back-sync shape message with expression interpolation from engine fixture,examples/grant-application/definition.json,high
-ADR 0029,0029-018,Add shape composition via shape ID references,examples/grant-application/definition.json,medium
-ADR 0029,0029-019,Add derivedFrom as url version object at definition level,examples/grant-application/definition.json,low
-ADR 0029,0029-020,Back-sync extensions x- data at definition item bind and shape levels from engine fixture,examples/grant-application/definition.json,high
-ADR 0029,0029-021,Add cascade level 3 items — per-item presentation overrides for at least 3 items,examples/grant-application/theme.json,medium
-ADR 0029,0029-022,Add style blocks with token references in PresentationBlocks,examples/grant-application/theme.json,low
-ADR 0029,0029-023,Add fallback widget chain on attachment selector,examples/grant-application/theme.json,low
-ADR 0029,0029-024,Add cssClass on at least one PresentationBlock in theme,examples/grant-application/theme.json,low
-ADR 0029,0029-025,Add AccessibilityBlock with liveRegion polite on at least one PresentationBlock,examples/grant-application/theme.json,low
-ADR 0029,0029-026,Add type selector matching in theme,examples/grant-application/theme.json,low
-ADR 0029,0029-027,Add combined type + dataType selector in theme,examples/grant-application/theme.json,low
-ADR 0029,0029-028,Add elevation token and at least one numeric token value,examples/grant-application/theme.json,low
-ADR 0029,0029-029,Exercise labelPosition hidden third enum value,examples/grant-application/theme.json,low
-ADR 0029,0029-030,Add at least one Select component,examples/grant-application/component.json,medium
-ADR 0029,0029-031,Instantiate SummaryRow custom component,examples/grant-application/component.json,low
-ADR 0029,0029-032,Use cssClass array form on at least one component,examples/grant-application/component.json,low
-ADR 0029,0029-033,Exercise Stack direction horizontal,examples/grant-application/component.json,low
-ADR 0029,0029-034,Exercise Stack align (gap from prior validation),examples/grant-application/component.json,high
-ADR 0029,0029-035,Exercise Stack wrap (gap from prior validation),examples/grant-application/component.json,high
-ADR 0029,0029-036,Exercise Grid columns as CSS string,examples/grant-application/component.json,medium
-ADR 0029,0029-037,Exercise Grid gap,examples/grant-application/component.json,low
-ADR 0029,0029-038,Exercise Grid rowGap,examples/grant-application/component.json,low
-ADR 0029,0029-039,Exercise Tabs position,examples/grant-application/component.json,low
-ADR 0029,0029-040,Exercise Tabs defaultTab,examples/grant-application/component.json,low
-ADR 0029,0029-041,Exercise Page description,examples/grant-application/component.json,low
-ADR 0029,0029-042,Exercise TextInput maxLines,examples/grant-application/component.json,low
-ADR 0029,0029-043,Exercise TextInput inputMode (gap from prior validation),examples/grant-application/component.json,high
-ADR 0029,0029-044,Exercise TextInput prefix,examples/grant-application/component.json,low
-ADR 0029,0029-045,Exercise TextInput suffix (gap from prior validation),examples/grant-application/component.json,high
-ADR 0029,0029-046,Exercise NumberInput step,examples/grant-application/component.json,low
-ADR 0029,0029-047,Exercise NumberInput min,examples/grant-application/component.json,low
-ADR 0029,0029-048,Exercise NumberInput max,examples/grant-application/component.json,low
-ADR 0029,0029-049,Exercise NumberInput showStepper,examples/grant-application/component.json,low
-ADR 0029,0029-050,Exercise DatePicker minDate,examples/grant-application/component.json,low
-ADR 0029,0029-051,Exercise DatePicker maxDate,examples/grant-application/component.json,low
-ADR 0029,0029-052,Exercise FileUpload multiple,examples/grant-application/component.json,low
-ADR 0029,0029-053,Exercise MoneyInput locale,examples/grant-application/component.json,low
-ADR 0029,0029-054,Exercise Rating icon,examples/grant-application/component.json,low
-ADR 0029,0029-055,Exercise Rating allowHalf,examples/grant-application/component.json,low
-ADR 0029,0029-056,Exercise Alert severity success and error,examples/grant-application/component.json,low
-ADR 0029,0029-057,Exercise Badge variant default primary success error,examples/grant-application/component.json,low
-ADR 0029,0029-058,Add ProgressBar with bind data-bound progress,examples/grant-application/component.json,medium
-ADR 0029,0029-059,Exercise Card subtitle,examples/grant-application/component.json,low
-ADR 0029,0029-060,Exercise Panel position left (gap from prior validation),examples/grant-application/component.json,high
-ADR 0029,0029-061,Exercise Modal trigger auto (gap from prior validation),examples/grant-application/component.json,high
-ADR 0029,0029-062,Exercise Modal size variants,examples/grant-application/component.json,low
-ADR 0029,0029-063,Exercise Popover triggerBind,examples/grant-application/component.json,low
-ADR 0029,0029-064,Exercise Popover placement variants,examples/grant-application/component.json,low
-ADR 0029,0029-065,Add id UUID to submission,examples/grant-application/fixtures/sample-submission.json,low
-ADR 0029,0029-066,Add subject as id type pair,examples/grant-application/fixtures/sample-submission.json,low
-ADR 0029,0029-067,Exercise all 6 constraintKind values in validationResults (cardinality and shape currently missing),examples/grant-application/fixtures/,high
-ADR 0029,0029-068,Exercise all 3 source values in validationResults,examples/grant-application/fixtures/,low
-ADR 0029,0029-069,Exercise shapeId sourceId value constraint context in validationResults,examples/grant-application/fixtures/,low
-ADR 0029,0029-070,Create submission-in-progress.json with status in-progress and partial data,examples/grant-application/fixtures/,medium
-ADR 0029,0029-071,Include attachment values in data,examples/grant-application/fixtures/sample-submission.json,low
-ADR 0029,0029-072,Include multiChoice array values in data,examples/grant-application/fixtures/,low
-ADR 0029,0029-073,Include nested repeat data (projectPhases/phaseTasks) in data,examples/grant-application/fixtures/,low
-ADR 0029,0029-074,Include nonRelevantBehavior empty representation in data,examples/grant-application/fixtures/,low
-ADR 0029,0029-075,Write Playwright E2E test for every new property/value,`tests/e2e/playwright/`,medium
-ADR 0030,0030-001,Create changelog.json with definitionUrl fromVersion toVersion generatedAt semverImpact summary,examples/grant-application/changelog.json,medium
-ADR 0030,0030-002,Add at least 5 Change objects exercising all 5 type values,examples/grant-application/changelog.json,medium
-ADR 0030,0030-003,Exercise all 3 impact levels breaking compatible cosmetic,examples/grant-application/changelog.json,low
-ADR 0030,0030-004,Exercise all 8 target categories in changelog,examples/grant-application/changelog.json,low
-ADR 0030,0030-005,Add before/after fragments on modified removed renamed moved changes,examples/grant-application/changelog.json,medium
-ADR 0030,0030-006,Add migrationHint with preserve drop and FEL expression referencing old,examples/grant-application/changelog.json,medium
-ADR 0030,0030-007,Add key on target item changes,examples/grant-application/changelog.json,low
-ADR 0030,0030-008,Change mapping.json direction to both,examples/grant-application/mapping.json,medium
-ADR 0030,0030-009,Add mapping rules exercising transforms drop flatten nest constant split,examples/grant-application/mapping.json,medium
-ADR 0030,0030-010,Add full-form coerce on at least one rule,examples/grant-application/mapping.json,medium
-ADR 0030,0030-011,Add full-form valueMap on at least one rule,examples/grant-application/mapping.json,medium
-ADR 0030,0030-012,Add reverse overrides on at least 2 rules,examples/grant-application/mapping.json,medium
-ADR 0030,0030-013,Add bidirectional false on at least one rule,examples/grant-application/mapping.json,low
-ADR 0030,0030-014,Add reversePriority on at least 2 rules,examples/grant-application/mapping.json,low
-ADR 0030,0030-015,Add default fallback value on at least one rule,examples/grant-application/mapping.json,low
-ADR 0030,0030-016,Add description on at least 3 rules,examples/grant-application/mapping.json,low
-ADR 0030,0030-017,Add separator on at least one flatten/nest rule,examples/grant-application/mapping.json,low
-ADR 0030,0030-018,Add defaults target document default values at top level,examples/grant-application/mapping.json,medium
-ADR 0030,0030-019,Add autoMap synthetic preserve rules,examples/grant-application/mapping.json,medium
-ADR 0030,0030-020,Set conformanceLevel bidirectional,examples/grant-application/mapping.json,low
-ADR 0030,0030-021,Fix array.rules to array.innerRules naming mismatch,examples/grant-application/mapping.json,medium
-ADR 0030,0030-022,Exercise innerRules depth condition priority index,examples/grant-application/mapping.json,medium
-ADR 0030,0030-023,Exercise ArrayDescriptor.mode indexed on at least one array,examples/grant-application/mapping.json,medium
-ADR 0030,0030-024,Create mapping-xml.json with targetSchema format xml rootElement namespaces,examples/grant-application/mapping-xml.json,medium
-ADR 0030,0030-025,Add XmlAdapter config declaration indent cdata,examples/grant-application/mapping-xml.json,low
-ADR 0030,0030-026,Add at least 5 XML mapping rules,examples/grant-application/mapping-xml.json,medium
-ADR 0030,0030-027,Add targetSchema.url for canonical schema URL,examples/grant-application/mapping-xml.json,low
-ADR 0030,0030-028,Create mapping-csv.json with targetSchema format csv name,examples/grant-application/mapping-csv.json,medium
-ADR 0030,0030-029,Add CsvAdapter config delimiter quote header encoding lineEnding,examples/grant-application/mapping-csv.json,low
-ADR 0030,0030-030,Add at least 5 CSV mapping rules,examples/grant-application/mapping-csv.json,medium
-ADR 0030,0030-031,Add flatten transform for nested group data in CSV mapping,examples/grant-application/mapping-csv.json,medium
-ADR 0030,0030-032,Add pages with at least 2 Page objects to main theme.json,examples/grant-application/theme.json,high
-ADR 0030,0030-033,Add regions with at least 4 Region objects exercising key span start,examples/grant-application/theme.json,high
-ADR 0030,0030-034,Add responsive on regions with breakpoint-keyed overrides,examples/grant-application/theme.json,high
-ADR 0030,0030-035,Add breakpoints at theme level,examples/grant-application/theme.json,low
-ADR 0030,0030-036,Create contact-fragment.json reusable group fragment,examples/grant-application/contact-fragment.json,medium
-ADR 0030,0030-037,Add ref + keyPrefix in definition.json referencing contact-fragment,examples/grant-application/definition.json,medium
-ADR 0030,0030-038,Populate migrations with full MigrationDescriptor,examples/grant-application/definition.json,medium
-ADR 0030,0030-039,Fix presentation.page path to presentation.layout.page,examples/grant-application/definition.json,low
-ADR 0030,0030-040,Add constraintKind type validation result to submission,examples/grant-application/fixtures/,low
-ADR 0030,0030-041,Add constraintKind external validation result to submission,examples/grant-application/fixtures/,low
-ADR 0030,0030-042,Add source external with sourceId on external validation result,examples/grant-application/fixtures/,low
-ADR 0030,0030-043,Add definitionUrl and definitionVersion to validationReport metadata from engine,packages/formspec-engine/src/,low
-ADR 0030,0030-044,Create submission-amended.json with status amended,examples/grant-application/fixtures/,low
-ADR 0030,0030-045,Optionally create submission-stopped.json with status stopped,examples/grant-application/fixtures/,low
-ADR 0030,0030-046,Write E2E test for ref fragment resolution,`tests/e2e/playwright/`,medium
-ADR 0030,0030-047,Write E2E test for theme page/region layout rendering,`tests/e2e/playwright/`,medium
-ADR 0030,0030-048,Write Python tests for changelog parsing,`tests/`,medium
-ADR 0030,0030-049,Write Python tests for mapping round-trip forward+reverse,`tests/`,medium
-ADR 0030,0030-050,Write Python tests for schema validation of new files,`tests/`,medium
-ADR 0031,0031-001,Add screener to definition.json with 2-3 screening items,examples/grant-application/definition.json,medium
-ADR 0031,0031-002,Add routes with at least 3 Route objects,examples/grant-application/definition.json,medium
-ADR 0031,0031-003,Implement evaluateScreener engine method,packages/formspec-engine/src/,medium
-ADR 0031,0031-004,Implement screener rendering in webcomponent,packages/formspec-webcomponent/src/,medium
-ADR 0031,0031-005,Create registry.json in examples/grant-application/,examples/grant-application/registry.json,high
-ADR 0031,0031-006,Add RegistryEntry for dataType category,examples/grant-application/registry.json,medium
-ADR 0031,0031-007,Add RegistryEntry for function category,examples/grant-application/registry.json,medium
-ADR 0031,0031-008,Add RegistryEntry for constraint category,examples/grant-application/registry.json,medium
-ADR 0031,0031-009,Add RegistryEntry for property category,examples/grant-application/registry.json,medium
-ADR 0031,0031-010,Add RegistryEntry for namespace category,examples/grant-application/registry.json,medium
-ADR 0031,0031-011,Exercise all 4 status values across entries including retired,examples/grant-application/registry.json,high
-ADR 0031,0031-012,Add deprecationNotice on deprecated entry,examples/grant-application/registry.json,low
-ADR 0031,0031-013,Add specUrl schemaUrl license on at least one entry,examples/grant-application/registry.json,low
-ADR 0031,0031-014,Add examples array on at least 2 entries,examples/grant-application/registry.json,low
-ADR 0031,0031-015,Add compatibility formspecVersion and mappingDslVersion,examples/grant-application/registry.json,low
-ADR 0031,0031-016,Add extensions at registry and entry levels,examples/grant-application/registry.json,low
-ADR 0031,0031-017,Write schema validation tests for registry conditional validation,`tests/`,medium
-ADR 0031,0031-018,Implement registry.py load and query module,src/formspec/registry.py,medium
-ADR 0031,0031-019,Add at least 2 scoped variables with scope targeting specific groups,examples/grant-application/definition.json,medium
-ADR 0031,0031-020,Implement scoped variable resolution in engine,packages/formspec-engine/src/,medium
-ADR 0031,0031-021,Support scopedVar references in FEL resolving within scope,packages/formspec-engine/src/ + WASM bridge,medium
-ADR 0031,0031-022,Add writable instance with readonly false inline data schema,examples/grant-application/definition.json,medium
-ADR 0031,0031-023,Add source instance with source URL and static true (gap from prior validation),examples/grant-application/definition.json,high
-ADR 0031,0031-024,Implement mutable instance signals in engine,packages/formspec-engine/src/,medium
-ADR 0031,0031-025,Implement schema on instance — engine validates instance data against declared schema,packages/formspec-engine/src/,medium
-ADR 0031,0031-026,Add labels.pdf on at least 3 items in definition.json,examples/grant-application/definition.json,low
-ADR 0031,0031-027,Add labels.csv on at least 3 items in definition.json,examples/grant-application/definition.json,low
-ADR 0031,0031-028,Create theme-pdf.json with platform pdf different tokens/selectors,examples/grant-application/theme-pdf.json,medium
-ADR 0031,0031-029,Implement label multiplexing in engine selecting variant based on platform,packages/formspec-engine/src/,medium
-ADR 0031,0031-030,Exercise DatePicker showTime with dateTime field,packages/formspec-webcomponent/src/,low
-ADR 0031,0031-031,Wire ProgressBar.bind engine integration,packages/formspec-engine/src/ + webcomponent,medium
-ADR 0031,0031-032,Wire Modal.trigger auto engine/webcomponent behavior (gap from prior validation),packages/formspec-webcomponent/src/,high
-ADR 0031,0031-033,Wire Popover.triggerBind engine integration,packages/formspec-webcomponent/src/,low
-ADR 0031,0031-034,Ensure renderer handles Grid.columns as CSS grid-template-columns string,packages/formspec-webcomponent/src/,low
-ADR 0031,0031-035,Ensure renderer handles Stack.direction horizontal applying flex-direction row,packages/formspec-webcomponent/src/,low
-ADR 0031,0031-036,Write E2E test for screener screening questions render and route,`tests/e2e/playwright/`,medium
-ADR 0031,0031-037,Write E2E test for writable instance FEL expression writes and reads,`tests/e2e/playwright/`,medium
-ADR 0031,0031-038,Write Python tests for registry schema validation,`tests/`,medium
-ADR 0031,0031-039,Write Python tests for scoped variable evaluation,`tests/`,medium
-ADR 0040,0040-001,Implement batch processing utility with sequential per-item results,packages/formspec-mcp/src/batch.ts,later
-ADR 0040,0040-002,Implement formspec_guide tool new/modify modes,packages/formspec-mcp/src/tools/guide.ts,later
-ADR 0040,0040-003,Consolidate bootstrap tools draft into formspec_draft with type param,packages/formspec-mcp/src/tools/,later
-ADR 0040,0040-004,Add batch support items[] to formspec_field/content/group,packages/formspec-mcp/src/tools/structure.ts,later
-ADR 0040,0040-005,Create formspec_update non-destructive property bag changes,packages/formspec-mcp/src/tools/structure.ts,later
-ADR 0040,0040-006,Create formspec_edit destructive remove/move/rename/copy,packages/formspec-mcp/src/tools/structure.ts,later
-ADR 0040,0040-007,Split page tools formspec_page and formspec_place,packages/formspec-mcp/src/tools/,later
-ADR 0040,0040-008,Consolidate behavior tools into formspec_behavior with action param,packages/formspec-mcp/src/tools/behavior.ts,later
-ADR 0040,0040-009,Consolidate data tools 9-1 into formspec_data with resource+action params,packages/formspec-mcp/src/tools/data.ts,later
-ADR 0040,0040-010,Consolidate screener tools 7-1 into formspec_screener,packages/formspec-mcp/src/tools/screener.ts,later
-ADR 0040,0040-011,Split query tools describe search trace,packages/formspec-mcp/src/tools/query.ts,later
-ADR 0040,0040-012,Consolidate remaining tools flow style fel preview,packages/formspec-mcp/src/tools/,later
-ADR 0040,0040-013,Wire outputSchema zod objects to all tools in server.ts,packages/formspec-mcp/src/server.ts,high
-ADR 0040,0040-014,Add batch error formatting to errors module,packages/formspec-mcp/src/errors.ts,later
-ADR 0040,0040-015,Produce tool descriptions with path format examples and type enumerations,packages/formspec-mcp/src/tools/,later
-ADR 0040,0040-016,Apply annotations strategy to all tool registrations,packages/formspec-mcp/src/server.ts,later
-ADR 0040,0040-017,Consolidate from 49 actual tools down to 28 target,packages/formspec-mcp/src/tools/,later
-ADR 0040,0040-018,Write lifecycle integration test guide to preview chain,packages/formspec-mcp/tests/integration.test.ts,later
-ADR 0040,0040-019,Update lifecycle test file to match new tool shapes,packages/formspec-mcp/tests/lifecycle.test.ts,later
-ADR 0048,0048-001,Create Locale Document JSON schema with x-lm critical annotations,schemas/locale.schema.json,later
-ADR 0048,0048-002,Write Locale specification path-based strings FEL interpolation fallback chains,s`pecs/locale/locale-spec.md`,later
-ADR 0048,0048-003,Add loadLocale document to FormEngine,packages/formspec-engine/src/form-engine.ts,later
-ADR 0048,0048-004,Add setLocale code to FormEngine triggers reactive updates,packages/formspec-engine/src/form-engine.ts,later
-ADR 0048,0048-005,Add resolveString path property context to FormEngine,packages/formspec-engine/src/form-engine.ts,later
-ADR 0048,0048-006,Make string resolution reactive — locale change propagates via signals,packages/formspec-engine/src/,later
-ADR 0048,0048-007,Implement fallback chain resolution fr-CA to fr to definition inline,packages/formspec-engine/src/i18n/,later
-ADR 0048,0048-008,Implement FEL interpolation in locale strings via expression syntax,packages/formspec-engine/src/i18n/,later
-ADR 0048,0048-009,Implement contextual variant key suffix @context,packages/formspec-engine/src/i18n/,later
-ADR 0048,0048-010,Add locale() FEL built-in function returning active locale code,fel-core/src/stdlib/ or crates/formspec-eval/,later
-ADR 0048,0048-011,Add plural() stdlib FEL function for common pluralization,fel-core/src/stdlib/ or crates/formspec-eval/,later
-ADR 0048,0048-012,Add formatNumber() as FEL built-in (validated gap),fel-core/src/stdlib/,high
-ADR 0048,0048-013,Add formatDate() as FEL built-in (validated gap),fel-core/src/stdlib/,high
-ADR 0048,0048-014,Add lint rule L101 missing translation for string path,cr`ates/formspec-lint/` and `src/formspec/validator/`,high
-ADR 0048,0048-015,Add lint rule L201 stale translation key references removed item path,cr`ates/formspec-lint/` and `src/formspec/validator/`,high
-ADR 0048,0048-016,Add lint rule L301 missing FEL interpolation variable,cr`ates/formspec-lint/` and `src/formspec/validator/`,high
-ADR 0048,0048-017,Add lint rule L401 invalid fallback chain parent locale not found,cr`ates/formspec-lint/` and `src/formspec/validator/`,high
-ADR 0048,0048-018,Extend Python validator with cross-referencing Locale Documents against Definition,src/formspec/validator/,later
-ADR 0048,0048-019,Regenerate docs after schema and spec land,`npm run docs:generate`,later
-ADR 0053,0053-001,Write Assist specification formal tool catalog context resolution profile matching transport contracts,s`pecs/assist/assist-spec.md`,later
-ADR 0053,0053-002,Generate Assist spec BLUF and LLM artifacts,s`pecs/assist/`,later
-ADR 0053,0053-003,Create packages/formspec-assist/ at Layer 2 package scaffold,packages/formspec-assist/,later
-ADR 0053,0053-004,Implement pluggable transport abstraction InProcess PostMessage CustomEvent MCPWebSocket,packages/formspec-assist/src/transport/,high
-ADR 0053,0053-005,Implement WebMCP shim polyfill navigator.modelContext,packages/formspec-assist/src/shim/,later
-ADR 0053,0053-006,Implement per-tool registerTool using registerTool not provideContext,packages/formspec-assist/src/shim/,later
-ADR 0053,0053-007,Implement context resolver FieldHelp assembly from References+Ontology,packages/formspec-assist/src/resolver/,later
-ADR 0053,0053-008,Implement profile store concept-keyed storage SKOS confidence levels,packages/formspec-assist/src/profile/,later
-ADR 0053,0053-009,Implement introspection tools describe list help progress,packages/formspec-assist/src/tools/,later
-ADR 0053,0053-010,Implement mutation tools set bulkSet,packages/formspec-assist/src/tools/,later
-ADR 0053,0053-011,Implement profile tools match apply learn,packages/formspec-assist/src/tools/,later
-ADR 0053,0053-012,Implement navigation tools validate pages nextIncomplete,packages/formspec-assist/src/tools/,later
-ADR 0053,0053-013,Wire requestUserInteraction for autofill consent on profile.apply,packages/formspec-assist/src/tools/profile.ts,high
-ADR 0053,0053-014,Add getFieldPaths to FormEngine prerequisite API,packages/formspec-engine/src/form-engine.ts,later
-ADR 0053,0053-015,Add getProgress to FormEngine prerequisite API,packages/formspec-engine/src/form-engine.ts,later
-ADR 0053,0053-016,Expose FieldViewModel/FormViewModel as primary read surface for assist tools,packages/formspec-engine/src/,later
-ADR 0053,0053-017,Emit declarative data-formspec-* DOM annotations on rendered elements,packages/formspec-webcomponent/src/,high
-ADR 0053,0053-018,Emit toolparamdescription and autocomplete attributes on form elements,packages/formspec-webcomponent/src/,high
-ADR 0053,0053-019,Implement AdapterContext in webcomponent for assist-sidecar discovery,packages/formspec-webcomponent/src/,later
-ADR 0053,0053-020,Create packages/formspec-assist-chat/ at Layer 5 package scaffold,packages/formspec-assist-chat/,high
-ADR 0053,0053-021,Implement pluggable LLM adapter in chat package,packages/formspec-assist-chat/src/adapter/,later
-ADR 0053,0053-022,Implement conversational QandA grounded in FieldHelp context,packages/formspec-assist-chat/src/features/,later
-ADR 0053,0053-023,Implement guided walkthrough step-by-step flow,packages/formspec-assist-chat/src/features/,later
-ADR 0053,0053-024,Implement proactive suggestions watching form state,packages/formspec-assist-chat/src/features/,later
-ADR 0053,0053-025,Implement document extraction upload LLM to bulkSet,packages/formspec-assist-chat/src/features/,later
-ADR 0053,0053-026,Implement HTTP transport binding for remote agent access,packages/formspec-assist/src/transport/http.ts,high
-ADR 0053,0053-027,Enforce no lateral dependency between formspec-assist and formspec-webcomponent,`npm run check:deps`,later
-Plan u1-u4-mcp,PLAN-001,Add add_group action to handlePage in structure.ts routing to project.addWizardPage,packages/formspec-mcp/src/tools/structure.ts:52-79,high
-Plan u1-u4-mcp,PLAN-002,Update formspec_page tool registration in server.ts to add add_group to action enum,packages/formspec-mcp/src/server.ts,high
-Plan u1-u4-mcp,PLAN-003,Fix PAGED_ROOT_NON_GROUP diagnostic build theme-placed keys set for differentiated message,packages/formspec-core/src/queries/diagnostics.ts:253-266,medium
-Plan u1-u4-mcp,PLAN-004,Add test handlePage action add_group creates definition group and sets wizard mode,packages/formspec-mcp/tests/structure.test.ts,medium
-Plan u1-u4-mcp,PLAN-005,Add test handlePage action add_group returns createdId,packages/formspec-mcp/tests/structure.test.ts,medium
-Plan u1-u4-mcp,PLAN-006,Add test PAGED_ROOT_NON_GROUP message mentions theme-placed when item exists on theme page,packages/formspec-core/tests/diagnostics.test.ts,medium
-Plan uswds,PLAN-007,Modify bindSharedFieldEffects to auto-calculate and set aria-describedby on actualInput,packages/formspec-webcomponent/src/behaviors/shared.ts,bindSharedFieldEffects,high
-Plan uswds,PLAN-008,Remove manual describedBy string building from default adapter createFieldDOM,packages/formspec-webcomponent/src/adapters/default/shared.ts,high
-Plan uswds,PLAN-009,Remove manual describedBy string building from USWDS adapter createUSWDSFieldDOM,packages/formspec-adapters/src/uswds/shared.ts,high
-Plan uswds,PLAN-010,Remove setAttribute aria-describedby from all 26 individual default component adapters,packages/formspec-webcomponent/src/adapters/default/*.ts,high
-Plan uswds,PLAN-011,Remove setAttribute aria-describedby from all individual uswds component adapters,packages/formspec-adapters/src/uswds/*.ts,high
-Plan layout-workspace,PLAN-012,Add DataTable as widget option for repeatable group items in widget catalog,studio-core ITEM_TYPE_WIDGETS,medium
-Plan layout-workspace,PLAN-013,Add setGroupDisplayMode itemKey mode stack/table wrapper on Project class,studio-core Project class,medium
-Plan layout-workspace,PLAN-014,Expose setGroupDisplayMode in widget selector UI for repeatable groups,formspec-studio layout workspace,medium
-Plan layout-workspace,PLAN-015,Add DataTableSection to component-specific property dispatcher for repeatable groups,ComponentProperties.tsx,medium
-Plan layout-workspace,PLAN-016,Spec addition add SubmitButton to component spec via formspec-specs expert,component spec specs/ tree then schema update,medium
-Plan layout-workspace,PLAN-017,Add SubmitButton toolbar button or palette entry invoking project.addSubmitButton,formspec-studio layout workspace toolbar/palette,medium
-Spec 2026-03-24,SPEC-001,formspec-theme crate — types + serde,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-002,formspec-theme crate — 6-level cascade resolver,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-003,formspec-theme crate — token resolution,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-004,formspec-theme crate — widget fallback chain,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-005,formspec-theme crate — widget vocabulary,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-006,formspec-theme crate — cssClassReplace + tailwind-merge,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-007,formspec-theme crate — none sentinel suppression,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-008,formspec-theme crate — unit tests,crates/formspec-theme/,later
-Spec 2026-03-24,SPEC-009,formspec-plan crate — types + serde,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-010,formspec-plan crate — plan_definition_fallback,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-011,formspec-plan crate — plan_component_tree,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-012,formspec-plan crate — custom component expansion,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-013,formspec-plan crate — responsive resolution,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-014,formspec-plan crate — theme page layout 12-column grid,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-015,formspec-plan crate — page mode wrapping wizard/tabs,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-016,formspec-plan crate — unbound required items fallback,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-017,formspec-plan crate — parameter interpolation + default component mapping,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-018,formspec-plan crate — evaluate_and_merge behind eval-merge feature,crates/formspec-plan/,later
-Spec 2026-03-24,SPEC-019,formspec-plan crate — unit tests + cross-planner conformance fixtures,crates/formspec-plan/ + tests/conformance/layout/,later
-Spec 2026-03-24,SPEC-020,WASM bridge — feature flags theme-api plan-api pdf-api,formspec-wasm/,later
-Spec 2026-03-24,SPEC-021,WASM bridge — export functions resolvePresentation resolveToken planComponentTree,formspec-wasm/src/,later
-Spec 2026-03-24,SPEC-022,WASM bridge — TypeScript migration delete TS planner files keep types,packages/formspec-layout/,later
-Spec 2026-03-24,SPEC-023,WASM bridge — cross-planner conformance + E2E fix regressions,packages/formspec-layout/ + tests/,later
-Spec 2026-03-24,SPEC-024,formspec-pdf 4a — font metrics Standard 14 AFM glyph widths,crates/formspec-pdf/src/fonts.rs,later
-Spec 2026-03-24,SPEC-025,formspec-pdf 4a — measure_node for all node categories,crates/formspec-pdf/src/measure.rs,later
-Spec 2026-03-24,SPEC-026,formspec-pdf 4a — pagination greedy single-pass with 5 keep constraints,crates/formspec-pdf/src/paginate.rs,later
-Spec 2026-03-24,SPEC-027,formspec-pdf 4a — pagination tests accuracy and fixtures,crates/formspec-pdf/tests/,later
-Spec 2026-03-24,SPEC-028,formspec-pdf 4b — appearance streams text checkbox radio,crates/formspec-pdf/src/appearance.rs,later
-Spec 2026-03-24,SPEC-029,formspec-pdf 4b — AcroForm fields all 12 component types hierarchical naming,crates/formspec-pdf/src/acroform.rs,later
-Spec 2026-03-24,SPEC-030,formspec-pdf 4b — appearance + acroform tests,crates/formspec-pdf/tests/,later
-Spec 2026-03-24,SPEC-031,formspec-pdf 4c — Tagged PDF structure TaggingContext StructTreeRoot ParentTree,crates/formspec-pdf/src/tagged.rs,later
-Spec 2026-03-24,SPEC-032,formspec-pdf 4c — artifact marking + MDI tags,crates/formspec-pdf/src/,later
-Spec 2026-03-24,SPEC-033,formspec-pdf 4c — Matterhorn compliance tests,crates/formspec-pdf/tests/,later
-Spec 2026-03-24,SPEC-034,formspec-pdf 4d — coordinate mapping 12-column grid to PDF point coords,crates/formspec-pdf/src/layout.rs,later
-Spec 2026-03-24,SPEC-035,formspec-pdf 4d — content rendering page content streams headers footers,crates/formspec-pdf/src/render.rs,later
-Spec 2026-03-24,SPEC-036,formspec-pdf 4d — pipeline wiring + E2E definition+theme+response to PDF bytes,crates/formspec-pdf/src/ + tests/,later
-Spec 2026-03-24,SPEC-037,formspec-pdf 4e — XFDF round-trip generation and parsing,crates/formspec-pdf/src/xfdf.rs,later
-Spec 2026-03-24,SPEC-038,formspec-pdf 4e — custom font strategy Standard 14 default + subsetter,crates/formspec-pdf/src/fonts.rs,later
-Spec 2026-03-24,SPEC-039,formspec-pdf 4e — WASM + Python exposure renderPDF generateXFDF parseXFDF,formspec-wasm/ + formspec-py/,later
-Spec 2026-03-24,SPEC-040,formspec-pdf 4e — round-trip test render PDF extract XFDF parse compare,cr`ates/formspec-pdf/tests/`,later
-Spec 2026-03-26 assist-chat,SPEC-041,Define shared LLMAdapter interface in formspec-types Layer 0,packages/formspec-types/,later
-Spec 2026-03-26 assist-chat,SPEC-042,Create packages/formspec-assist-chat/ Layer 5 package scaffold,packages/formspec-assist-chat/,high
-Spec 2026-03-26 assist-chat,SPEC-043,Implement ChatSession attach/detach conversational QandA with LLM context,packages/formspec-assist-chat/src/,later
-Spec 2026-03-26 assist-chat,SPEC-044,Implement guided walkthrough step-by-step field walkthrough,packages/formspec-assist-chat/src/,later
-Spec 2026-03-26 assist-chat,SPEC-045,Implement suggestion engine Preact Signals-based watching,crates/formspec-assist-chat/src/,later
-Spec 2026-03-26 assist-chat,SPEC-046,Implement document-to-form extraction upload LLM extract ontology align bulkSet,crates/formspec-assist-chat/src/,later
-Spec 2026-03-26 assist-chat,SPEC-047,Implement LLM-powered field explanations explain.ts,crates/formspec-assist-chat/src/,later
-Spec 2026-03-26 assist-chat,SPEC-048,Implement LLM adapters anthropic openai mock,packages/formspec-assist-chat/src/adapters/,later
-Spec 2026-03-26 formy,SPEC-049,Formy Phase 1 — Chrome M3 manifest service worker content script side panel,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-050,Formy Phase 1 — Mode 1 Full Assist Provider tools-available detection postMessage transport autofill,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-051,Formy Phase 1 — side panel UI profile picker autofill preview field help progress,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-052,Formy Phase 1 — profile vault password-based PBKDF2 localStorage encryption,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-053,Formy Phase 2 — WebAuthn vault encryption PRF extension HKDF AES-256-GCM,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-054,Formy Phase 2 — Mode 2 Bootstrap Assist Provider inject bundle sidecar discovery,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-055,Formy Phase 2 — multi-profile form memory auto-save restore 30-day expiry,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-056,Formy Phase 3 — Firefox WebExtensions port manifest sidebar_action,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-057,Formy Phase 3 — Mode 3 Plain HTML Forms degraded mode DOM scanning autofill,formy-extension/,later
-Spec 2026-03-26 formy,SPEC-058,Formy Phase 3 — profile import/export cloud sync encrypted vault blob,formy-extension/,later
-Spec 2026-03-26 locale-translation,SPEC-059,Implement TranslationContext assembler walk translatable keys resolve Definition References Ontology,packages/formspec-core/src/ + formspec-studio-core/,later
-Spec 2026-03-26 locale-translation,SPEC-060,Implement formspec_locale MCP tool CRUD for locale documents,packages/formspec-mcp/src/tools/locale.ts,later
-Spec 2026-03-26 locale-translation,SPEC-061,Implement formspec_translate MCP tool batch AI translate with TranslationContext,packages/formspec-mcp/src/tools/,later
-Spec 2026-03-26 locale-translation,SPEC-062,Implement formspec_locale_coverage MCP tool translated/total per locale,packages/formspec-mcp/src/tools/,later
-Spec 2026-03-26 locale-translation,SPEC-063,Implement formspec_locale_diff MCP tool detect keys added/removed/changed,packages/formspec-mcp/src/tools/,later
-Spec 2026-03-26 locale-translation,SPEC-064,Implement formspec_locale_review MCP tool AI quality review,packages/formspec-mcp/src/tools/,later
-Spec 2026-03-26 locale-translation,SPEC-065,Implement formspec_locale_glossary MCP tool extract/manage translation glossary,packages/formspec-mcp/src/tools/,later
-Spec 2026-03-26 locale-translation,SPEC-066,Build Studio Locale Tab 7th workspace tab with locale list translation grid AI review,packages/formspec-studio/src/workspaces/,later
-Spec 2026-03-26 locale-translation,SPEC-067,Wire Studio context panel to selected key with field info references ontology,packages/formspec-studio/src/workspaces/locale/,later
-Spec 2026-03-26 locale-translation,SPEC-068,Build standalone translation app Phase 3 project bundle import/export TMS hooks,later,later
-Spec 2026-03-26 locale-translation,SPEC-069,Advanced AI features Phase 4 glossary management translation memory pluralization,later,later
-Spec 2026-03-26 refs-ontology,SPEC-070,Implement formspec-core references handlers load remove select addReference updateReference etc,packages/formspec-core/src/handlers/,later
-Spec 2026-03-26 refs-ontology,SPEC-071,Implement formspec-core ontology handlers load remove select setConcept removeConcept etc,packages/formspec-core/src/handlers/,later
-Spec 2026-03-26 refs-ontology,SPEC-072,Implement formspec_context MCP tool unified References+Ontology CRUD,packages/formspec-mcp/src/tools/,later
-Spec 2026-03-26 refs-ontology,SPEC-073,Implement studio-core helpers addReference updateReference setConcept addAlignment etc,packages/formspec-studio-core/src/,later
-Spec 2026-03-26 refs-ontology,SPEC-074,Add ReferencesState and OntologyState to ProjectState,packages/formspec-core/src/types.ts,later
-Spec 2026-03-26 refs-ontology,SPEC-075,Build Context Layer UI editor context mode toggle with badge overlay,packages/formspec-studio/src/workspaces/editor/,later
-Spec 2026-03-26 refs-ontology,SPEC-076,Build Context Panel Meaning section concept search matched display equivalents management,packages/formspec-studio/src/components/,later
-Spec 2026-03-26 refs-ontology,SPEC-077,Build Context Panel Context section glossary entries documentation links AI resources,packages/formspec-studio/src/components/,later
-Spec 2026-03-26 refs-ontology,SPEC-078,Build Context Panel Rules section regulation/policy entries with plain-language verbs,packages/formspec-studio/src/components/,later
-Spec 2026-03-26 refs-ontology,SPEC-079,Build form-level context panel domain metadata JSON-LD editor,packages/formspec-studio/src/components/,later
-Spec 2026-03-26 refs-ontology,SPEC-080,Implement reusable references promotion auto-promote to referenceDefs with pointers,packages/formspec-studio-core/src/,later
-Spec 2026-03-26 refs-ontology,SPEC-081,Build Bulk Annotation Mode Phase 3 table view filter by missing annotations AI bulk actions,packages/formspec-studio/src/workspaces/,later
-Spec 2026-03-26 refs-ontology,SPEC-082,Implement AI auto-suggest concept bindings from field metadata,packages/formspec-studio-core/src/ or formspec-assist/,later
-Spec 2026-03-26 refs-ontology,SPEC-083,Implement AI bulk concept suggestion for all untagged fields,packages/formspec-studio-core/src/ or formspec-assist/,later
-Spec 2026-03-26 refs-ontology,SPEC-084,Implement AI context generation writes glossary entry and agent context note,packages/formspec-studio-core/src/ or formspec-assist/,later
-Spec 2026-03-26 refs-ontology,SPEC-085,Implement AI vocabulary auto-mapping option set values to terminology codes,packages/formspec-studio-core/src/ or formspec-assist/,later
-Spec 2026-03-26 refs-ontology,SPEC-086,Implement AI reference discovery search for relevant regulations standards documentation,packages/formspec-studio-core/src/ or formspec-assist/,later
-Spec 2026-03-26 refs-ontology,SPEC-087,Implement AI cross-system alignment suggestions from concept bindings,later,later
-Spec 2026-03-26 refs-ontology,SPEC-088,Implement concept search infrastructure Phase 4 bundled local index web search AI URI suggestion,later,later
-Spec 2026-03-31 advisories,SPEC-089,Insert spec prose §3.10.3 Definition Advisories with DA-01 DA-02 DA-03,s`pecs/core/spec.md`,high
-Spec 2026-03-31 advisories,SPEC-090,Retitle spec §3.10 from Error Handling to Error Handling and Static Analysis update preamble,s`pecs/core/spec.md`,high
-Spec 2026-03-31 advisories,SPEC-091,Add spec cross-reference from §4.3.1 Bind Properties to §3.10.3,s`pecs/core/spec.md`,medium
-Spec 2026-03-31 advisories,SPEC-092,Create Rust Pass 8 bind_consistency.rs with W900/W901/W902 detection,cr`ates/formspec-lint/src/bind_consistency.rs`,high
-Spec 2026-03-31 advisories,SPEC-093,Integrate Pass 8 into formspec-lint pipeline gated on doc_type Definition,crates/formspec-lint/src/lib.rs,high
-Spec 2026-03-31 advisories,SPEC-094,Add W900-W902 to LintMode Authoring suppressed set,crates/formspec-lint/src/types.rs,medium
-Spec 2026-03-31 advisories,SPEC-095,Ensure W900-W902 NOT promoted to errors in strict mode per spec,crates/formspec-lint/src/lib.rs,medium
-Spec 2026-03-31 advisories,SPEC-096,Implement Python validator mirror for W900/W901/W902,src/formspec/validate.py,high
-Spec 2026-03-31 advisories,SPEC-097,Write tests for each rule positive/skip/dynamic/repeat context,cr`ates/formspec-lint/tests/`,high
-Spec 2026-03-31 advisories,SPEC-098,Integrate buildDefinitionAdvisoryIssues into formspec_audit MCP tool short-term,packages/formspec-mcp/src/tools/audit.ts,high
-Spec 2026-03-31 advisories,SPEC-099,Remove TS advisory code after Rust Pass 8 ships via WASM long-term,packages/formspec-studio-core/src/editor-tree-helpers.ts,low
-Spec 2026-03-31 advisories,SPEC-100,Extend value-source check to inspect mapping documents suppress W900 for mapped fields future,later,low
+source,task_id,description,target,priority,status,user_story,p_value,scope_note
+ADR 0029,0029-003,Back-sync dataType uri on projectWebsite from engine fixture to grant-app,examples/grant-application/definition.json,high,NOT_DONE,"As a form author, I want dataType uri on projectWebsite from engine fixture to grant-app, so that the grant-app example stays consistent with the engine fixture.",P0,"Merge with M1 (0029-015, 0029-017, 0031-023). Fix also benchmark reference definition.json. Remove now-redundant x-formspec-url extension."
+ADR 0029,0029-015,Back-sync timing demand on at least one shape from engine fixture,examples/grant-application/definition.json,high,NOT_DONE,"As a form author, I want timing demand on at least one shape from engine fixture, so that the grant-app example stays consistent with the engine fixture.",P0,"Merge with M1 (0029-003, 0029-017, 0031-023). Same websiteFormat shape carries timing AND message interpolation."
+ADR 0029,0029-017,Back-sync shape message with expression interpolation from engine fixture,examples/grant-application/definition.json,high,NOT_DONE,"As a form author, I want shape message with expression interpolation from engine fixture, so that the grant-app example stays consistent with the engine fixture.",P0,Merge with M1 (0029-015). Share same websiteFormat shape. Verifying conformance test info:0 before/after.
+ADR 0030,0030-032,Add pages with at least 2 Page objects to main theme.json,examples/grant-application/theme.json,high,NOT_DONE,"As a form author, I want to add pages with at least 2 Page objects to main theme.json, so that the examples is complete.",P0,"Merge with M2 (0030-033, 0030-034). Pages cannot exist without regions. Add pages WITH regions WITH responsive in one commit."
+ADR 0030,0030-033,Add regions with at least 4 Region objects exercising key span start,examples/grant-application/theme.json,high,NOT_DONE,"As a form author, I want to add regions with at least 4 Region objects exercising key span start, so that the example demonstrates this feature.",P0,"Merged into M2 (0030-032). At least 4 regions across 2 pages, exercising span and start properties."
+ADR 0030,0030-034,Add responsive on regions with breakpoint-keyed overrides,examples/grant-application/theme.json,high,NOT_DONE,"As a form author, I want to add responsive on regions with breakpoint-keyed overrides, so that the examples is complete.",P0,Merged into M2 (0030-032). Responsive overrides on at least 2 regions using existing breakpoints.
+ADR 0031,0031-005,Create registry.json in examples/grant-application/,examples/grant-application/registry.json,high,NOT_DONE,"As a form author, I want to create registry.json in examples/grant-application/, so that the example set is complete.",P0,"Merge with M3 (PLAN-001, PLAN-002). No independent value — 11 tickets blocked on this. Ship skeleton that passes schema validation."
+ADR 0031,0031-023,Add source instance with source URL and static true (gap from prior validation),examples/grant-application/definition.json,high,NOT_DONE,"As a form author, I want to add source instance with source URL and static true (gap from prior validation), so that the examples is complete.",P0,Merge with M1. Verify conformance tests handle source fetch failure gracefully (data field is fallback).
+ADR 0040,0040-013,Wire outputSchema zod objects to all tools in server.ts,packages/formspec-mcp/src/server.ts,high,NOT_DONE,"As a spec author, I want to wire outputSchema zod objects to all tools in server.ts, so that the feature works end-to-end.",P0,Standalone P0. Bulk mechanical change across 49 tools. Each tool output is HelperResult or specialized shape.
+ADR 0048,0048-012,Add formatNumber() as FEL built-in (validated gap),fel-core/src/stdlib/,high,NOT_DONE,"As a form author, I want to add formatNumber() as FEL built-in (validated gap), so that the fel-core is complete.",P0,Merge with M5 (0048-013). Add to new builtins/locale.rs. Implementations delegate to ICU4X or chrono.
+ADR 0048,0048-013,Add formatDate() as FEL built-in (validated gap),fel-core/src/stdlib/,high,NOT_DONE,"As a form author, I want to add formatDate() as FEL built-in (validated gap), so that the fel-core is complete.",P0,Merge with M5 (0048-012). Add to same builtins/locale.rs. Implementation delegates to ICU4X.
+ADR 0053,0053-017,Emit declarative data-formspec-* DOM annotations on rendered elements,packages/formspec-webcomponent/src/,high,NOT_DONE,"As a spec author, I want to emit declarative data-formspec-* DOM annotations on rendered elements, so that the packages is complete.",P0,Merge with M6 (0053-018). Add toolAnnotations to AdapterContext so ALL adapters benefit. Single injection point in shared.ts createFieldDOM.
+ADR 0053,0053-018,Emit toolparamdescription and autocomplete attributes on form elements,packages/formspec-webcomponent/src/,high,NOT_DONE,"As a spec author, I want to emit toolparamdescription and autocomplete attributes on form elements, so that the packages is complete.",P0,Merge with M6 (0053-017). Share AdapterContext injection. toolparamdescription from label+description+ontology.
+Plan u1-u4-mcp,PLAN-001,Add add_group action to handlePage in structure.ts routing to project.addWizardPage,packages/formspec-mcp/src/tools/structure.ts:52-79,high,NOT_DONE,"As a spec author, I want to add add_group action to handlePage in structure.ts routing to project.addWizardPage, so that the packages is complete.",P0,"Merge with M3 (PLAN-002, 0031-005). Also need to implement project.addWizardPage() on Project class (currently undefined)."
+Plan u1-u4-mcp,PLAN-002,Update formspec_page tool registration in server.ts to add add_group to action enum,packages/formspec-mcp/src/server.ts,high,NOT_DONE,"As a spec author, I want the formspec_page MCP tool implemented (Update formspec_page tool registration in server.ts to add add_group to action enum), so that I can manage this resource through the MCP interface.",P0,Merge with M3 (PLAN-001). Single-line change to action z.enum.
+Plan uswds,PLAN-008,Remove manual describedBy string building from default adapter createFieldDOM,packages/formspec-webcomponent/src/adapters/default/shared.ts,high,NOT_DONE,"As a spec author, I want to remove manual describedBy string building from default adapter createFieldDOM, so that the codebase is clean and the responsibility is owned at the correct layer.",P0,"Merge with M4 (PLAN-009). Also add reactive aria-describedby for group containers (radio-group, checkbox-group)."
+Plan uswds,PLAN-009,Remove manual describedBy string building from USWDS adapter createUSWDSFieldDOM,packages/formspec-adapters/src/uswds/shared.ts,high,NOT_DONE,"As a spec author, I want to remove manual describedBy string building from USWDS adapter createUSWDSFieldDOM, so that the codebase is clean and the responsibility is owned at the correct layer.",P0,Merge with M4 (PLAN-008). clean removal — initialDescribedBy is dead return value (no consumers).
+Spec 2026-03-31 advisories,SPEC-089,Insert spec prose §3.10.3 Definition Advisories with DA-01 DA-02 DA-03,s`pecs/core/spec.md`,high,NOT_DONE,"As a spec author, I want to insert spec prose §3.10.3 Definition Advisories with DA-01 DA-02 DA-03, so that the specification is complete and normative.",P0,Merge with M7 (SPEC-090). Insert §3.10.3 with DA-01/DA-02/DA-03 spec prose + severity table + resolution guidance.
+Spec 2026-03-31 advisories,SPEC-090,Retitle spec §3.10 from Error Handling to Error Handling and Static Analysis update preamble,s`pecs/core/spec.md`,high,NOT_DONE,"As a spec author, I want to retitle spec §3.10 from Error Handling to Error Handling and Static Analysis update preamble, so that the specification is complete and normative.",P0,Merge with M7 (SPEC-089). Single line retitle + preamble update.
+Spec 2026-03-31 advisories,SPEC-092,Create Rust Pass 8 bind_consistency.rs with W900/W901/W902 detection,cr`ates/formspec-lint/src/bind_consistency.rs`,high,NOT_DONE,"As a spec author, I want to create rust pass 8 bind_consistency.rs with w900/w901/w902 detection, so that the example set is complete.",P0,"Merge with M8 (SPEC-093, SPEC-096, SPEC-097, SPEC-098). Should also scan screener items and shape paths (not just definition items)."
+Spec 2026-03-31 advisories,SPEC-093,Integrate Pass 8 into formspec-lint pipeline gated on doc_type Definition,crates/formspec-lint/src/lib.rs,high,NOT_DONE,"As a spec author, I want pass 8 into formspec-lint pipeline gated on doc_type Definition, so that form definitions are validated for this concern.",P0,"Merge with M8. Add call in lib.rs inside the doc_type==Definition block after pass 5, NOT gated by pass 2 errors (advisories are warnings, not halting)."
+Spec 2026-03-31 advisories,SPEC-096,Implement Python validator mirror for W900/W901/W902,src/formspec/validate.py,high,NOT_DONE,"As a spec author, I want to implement Python validator mirror for W900/W901/W902, so that the runtime supports this behavior.",P0,"Merge with M8. After Rust Pass 8 lands, verify _lint_pass in validate.py:297 surfaces W9xx via Rust bridge. Add integration test."
+Spec 2026-03-31 advisories,SPEC-097,Write tests for each rule positive/skip/dynamic/repeat context,cr`ates/formspec-lint/tests/`,high,NOT_DONE,"As a QA engineer, I want to write tests for each rule positive/skip/dynamic/repeat context, so that this behavior is covered by automated tests.",P0,Merge with M8. Create tests/bind_consistency_test.rs with 5+ cases (positive/skip/dynamic/repeat). Use fixtures.
+Spec 2026-03-31 advisories,SPEC-098,Integrate buildDefinitionAdvisoryIssues into formspec_audit MCP tool short-term,packages/formspec-mcp/src/tools/audit.ts,high,NOT_DONE,"As a spec author, I want the formspec_audit MCP tool implemented (Integrate buildDefinitionAdvisoryIssues into formspec_audit MCP tool short-term), so that I can manage this resource through the MCP interface.",P0,"Merge with M8. Import buildDefinitionAdvisoryIssues from studio-core, add 'advisories' action to formspec_audit."
+ADR 0029,0029-020,Back-sync extensions x- data at definition item bind and shape levels from engine fixture,examples/grant-application/definition.json,high,PARTIAL,"As a form author, I want extensions x- data at definition item bind and shape levels from engine fixture, so that the grant-app example stays consistent with the engine fixture.",P1,"3-way divergence problem: example, benchmark reference, and engine fixture have different extensions coverage. Fix example + benchmark. Add missing x-budget-version and x-help-link."
+ADR 0029,0029-034,Exercise Stack align (gap from prior validation),examples/grant-application/component.json,high,NOT_DONE,"As a form author, I want to exercise stack align (gap from prior validation), so that the example covers this configuration variant.",P1,Bundle with 0029-035 (Stack). Add align to 1 horizontal + 1 vertical Stack in component.json.
+ADR 0029,0029-035,Exercise Stack wrap (gap from prior validation),examples/grant-application/component.json,high,NOT_DONE,"As a form author, I want to exercise stack wrap (gap from prior validation), so that the example covers this configuration variant.",P1,Bundle with 0029-034. Add wrap:true to horizontal Stack (line 128). May need more children or container width constraint.
+ADR 0029,0029-043,Exercise TextInput inputMode (gap from prior validation),examples/grant-application/component.json,high,NOT_DONE,"As a form author, I want to exercise textinput inputmode (gap from prior validation), so that the example covers this configuration variant.",P1,Add inputMode:'url' to projectWebsite TextInput (component.json:71). Schema only supports 5 values (text/email/tel/url/search) not the ticket's claimed 8.
+ADR 0029,0029-045,Exercise TextInput suffix (gap from prior validation),examples/grant-application/component.json,high,NOT_DONE,"As a form author, I want to exercise textinput suffix (gap from prior validation), so that the example covers this configuration variant.",P1,Add suffix:'.gov' to projectWebsite (component.json:71) alongside existing prefix. Or close as wontfix — definition-level suffix coverage may be sufficient.
+ADR 0029,0029-060,Exercise Panel position left (gap from prior validation),examples/grant-application/component.json,high,NOT_DONE,"As a form author, I want to exercise panel position left (gap from prior validation), so that the example covers this configuration variant.",P1,Change Panel position from 'right' to 'left' at component.json:101. Schema default is 'left'; making 'right' the variant. Schema example already covers 'left'.
+ADR 0029,0029-061,Exercise Modal trigger auto (gap from prior validation),examples/grant-application/component.json,high,NOT_DONE,"As a form author, I want to exercise modal trigger auto (gap from prior validation), so that the example covers this configuration variant.",P1,Change Modal trigger from 'button' to 'auto' on Subcontractor Certification (component.json:405). Add 'when' condition referencing $budget.usesSubcontractors.
+ADR 0029,0029-067,Exercise all 6 constraintKind values in validationResults (cardinality and shape currently missing),examples/grant-application/fixtures/,high,PARTIAL,"As a form author, I want to exercise all 6 constraintkind values in validationresults (cardinality and shape currently missing), so that the example covers this configuration variant.",P1,Add cardinality and shape constraintKind results. Best on submission-in-progress.json (missing lineItems data makes minRepeat violation natural).
+ADR 0031,0031-006,Add RegistryEntry for dataType category,examples/grant-application/registry.json,medium,NOT_DONE,"As a form author, I want to add RegistryEntry for dataType category, so that the examples is complete.",P1,Blocked on 0031-005 (registry.json creation). Add dataType entry once file exists. Include baseType per schema.
+ADR 0031,0031-007,Add RegistryEntry for function category,examples/grant-application/registry.json,medium,NOT_DONE,"As a form author, I want to add RegistryEntry for function category, so that the examples is complete.",P1,Blocked on 0031-005. Add function entry with parameters+returns per schema. Model on kitchen-sink x-example-risk-score.
+ADR 0031,0031-008,Add RegistryEntry for constraint category,examples/grant-application/registry.json,medium,NOT_DONE,"As a form author, I want to add RegistryEntry for constraint category, so that the examples is complete.",P1,Blocked on 0031-005. Add constraint entry with parameters per schema. Could be x-ein-format matching the grant-app EIN validation.
+ADR 0031,0031-009,Add RegistryEntry for property category,examples/grant-application/registry.json,medium,NOT_DONE,"As a form author, I want to add RegistryEntry for property category, so that the examples is complete.",P1,Blocked on 0031-005. Add property entry. Simplest category — no additional required fields.
+ADR 0031,0031-010,Add RegistryEntry for namespace category,examples/grant-application/registry.json,medium,NOT_DONE,"As a form author, I want to add RegistryEntry for namespace category, so that the examples is complete.",P1,Blocked on 0031-005. Add namespace entry with members referencing sibling entries (0031-006/007/008/009).
+ADR 0031,0031-011,Exercise all 4 status values across entries including retired,examples/grant-application/registry.json,high,NOT_DONE,"As a form author, I want to exercise all 4 status values across entries including retired, so that the example covers this configuration variant.",P1,Blocked on 0031-005. All 4 statuses across entries. retired has ZERO coverage anywhere in repo (kitchen-sink fixture lacks it too). Consider backfilling kitchen-sink also.
+ADR 0053,0053-004,Implement pluggable transport abstraction InProcess PostMessage CustomEvent MCPWebSocket,packages/formspec-assist/src/transport/,high,NOT_DONE,"As a spec author, I want to implement pluggable transport abstraction InProcess PostMessage CustomEvent MCPWebSocket, so that the runtime supports this behavior.",P1,Create transport/ directory with interface. InProcess extraction from provider.ts. PostMessage transport. Required by 0053-026.
+ADR 0053,0053-013,Wire requestUserInteraction for autofill consent on profile.apply,packages/formspec-assist/src/tools/profile.ts,high,PARTIAL,"As a spec author, I want to wire requestUserInteraction for autofill consent on profile.apply, so that the feature works end-to-end.",P1,"Add requestUserInteraction to ModelContextLike shim interface, wire into applyProfileMatches confirm flow. Annotate confirm param in tool schema."
+ADR 0053,0053-020,Create packages/formspec-assist-chat/ at Layer 5 package scaffold,packages/formspec-assist-chat/,high,NOT_DONE,"As a spec author, I want to create packages/formspec-assist-chat/ at layer 5 package scaffold, so that the example set is complete.",P1,Create formspec-assist-chat/ package scaffold. Include src/types.ts with ChatSession/LLMAdapter/LLMContext interfaces + stub. Ship with minimum viable exports or dependent P4 tickets are blocked.
+ADR 0053,0053-026,Implement HTTP transport binding for remote agent access,packages/formspec-assist/src/transport/http.ts,high,NOT_DONE,"As a spec author, I want to implement HTTP transport binding for remote agent access, so that the runtime supports this behavior.",P1,BLOCKED on 0053-004. HTTP transport binding: createHttpServerHandler + createHttpClient. assist-spec.md §7.5 defines 2 endpoints.
+Plan uswds,PLAN-010,Remove setAttribute aria-describedby from all 26 individual default component adapters,packages/formspec-webcomponent/src/adapters/default/*.ts,high,PARTIAL,"As a spec author, I want to remove setAttribute aria-describedby from all 26 individual default component adapters, so that the codebase is clean and the responsibility is owned at the correct layer.",P1,"Remove manual setAttribute aria-describedby from radio-group.ts, checkbox-group.ts, text-input.ts. Groups lose skipAriaDescribedBy:true and move describedby to first input (correct per ARIA)."
+Spec 2026-03-26 assist-chat,SPEC-042,Create packages/formspec-assist-chat/ Layer 5 package scaffold,packages/formspec-assist-chat/,high,NOT_DONE,"As a spec author, I want to create packages/formspec-assist-chat/ layer 5 package scaffold, so that the example set is complete.",P1,"DUPLICATE of 0053-020. Same description, same target, same priority. Keep 0053-020, mark SPEC-042 as duplicate."
+ADR 0029,0029-075,Write Playwright E2E test for every new property/value,`tests/e2e/playwright/`,medium,PARTIAL,"As a QA engineer, I want to write Playwright E2E test for every new property/value, so that this behavior is covered by automated tests.",P2,"Write tests/unit/test_component_properties.py or tests/e2e/browser/grant-app/component-properties.spec.ts covering Stack align/wrap, TextInput inputMode/suffix, Panel left, Modal auto."
+ADR 0030,0030-046,Write E2E test for ref fragment resolution,`tests/e2e/playwright/`,medium,NOT_DONE,"As a QA engineer, I want to write E2E test for ref fragment resolution, so that this behavior is covered by automated tests.",P2,Add test('should resolve $ref fragment with keyPrefix') to field-interaction.spec.ts or new component-properties.spec.ts. Check for altContact.email DOM presence.
+ADR 0030,0030-047,Write E2E test for theme page/region layout rendering,`tests/e2e/playwright/`,medium,NOT_DONE,"As a QA engineer, I want to write E2E test for theme page/region layout rendering, so that this behavior is covered by automated tests.",P2,BLOCKED on 0030-032 (pages on theme.json). Park until M2 ships.
+ADR 0031,0031-001,Add screener to definition.json with 2-3 screening items,examples/grant-application/definition.json,medium,PARTIAL,"As a form author, I want to add screener to definition.json with 2-3 screening items, so that the examples is complete.",P2,WONTFIX — spec screener-spec.md §1.3 explicitly replaced embedded screener with standalone Screener Document design.
+ADR 0031,0031-002,Add routes with at least 3 Route objects,examples/grant-application/definition.json,medium,PARTIAL,"As a form author, I want to add routes with at least 3 Route objects, so that the examples is complete.",P2,WONTFIX — same as 0031-001. Routes belong in standalone screener.json per spec. 4 routes already exceed requirement.
+ADR 0031,0031-018,Implement registry.py load and query module,src/formspec/registry.py,medium,PARTIAL,"As a spec author, I want to implement registry.py load and query module, so that the runtime supports this behavior.",P2,Create src/formspec/registry.py facade wrapping _rust.py parse_registry + find_registry_entry. README import path currently fails.
+ADR 0031,0031-037,Write E2E test for writable instance FEL expression writes and reads,`tests/e2e/playwright/`,medium,NOT_DONE,"As a QA engineer, I want to write E2E test for writable instance FEL expression writes and reads, so that this behavior is covered by automated tests.",P2,Add writable-instance.spec.ts to tests/e2e/browser/grant-app/. Test FEL reads/writes through scratchPad instance. Also test readonly write rejection.
+ADR 0040,0040-017,Consolidate from 49 actual tools down to 28 target,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to consolidate from 49 actual tools down to 28 target, so that the tool surface is simpler and more maintainable.",P2,"Merge plan: changeset 5->1, lifecycle 3->1, theme->style, behavior_expanded->behavior, mapping_expanded->mapping, component->structure. 28 may be too aggressive; tolerate 30-32."
+Plan u1-u4-mcp,PLAN-003,Fix PAGED_ROOT_NON_GROUP diagnostic build theme-placed keys set for differentiated message,packages/formspec-core/src/queries/diagnostics.ts:253-266,medium,NOT_DONE,"As a spec author, I want to fix PAGED_ROOT_NON_GROUP diagnostic build theme-placed keys set for differentiated message, so that the codebase is correct.",P2,Add themePlacedKeys set to diagnostics.ts:276-298 parallel to pagePlacedKeys. Scan state.theme?.items for items with page property. Union with pagePlacedKeys.
+Plan u1-u4-mcp,PLAN-004,Add test handlePage action add_group creates definition group and sets wizard mode,packages/formspec-mcp/tests/structure.test.ts,medium,NOT_DONE,"As a QA engineer, I want to add test handlePage action add_group creates definition group and sets wizard mode, so that the packages is complete.",P2,BLOCKED on PLAN-001 (P0 add_group feature). Test: handlePage action=add_group creates group + sets pageMode wizard.
+Plan u1-u4-mcp,PLAN-005,Add test handlePage action add_group returns createdId,packages/formspec-mcp/tests/structure.test.ts,medium,NOT_DONE,"As a QA engineer, I want to add test handlePage action add_group returns createdId, so that the packages is complete.",P2,BLOCKED on PLAN-001. Test: handlePage action=add_group returns non-empty createdId matching new group key.
+Plan u1-u4-mcp,PLAN-006,Add test PAGED_ROOT_NON_GROUP message mentions theme-placed when item exists on theme page,packages/formspec-core/tests/diagnostics.test.ts,medium,NOT_DONE,"As a QA engineer, I want to add test PAGED_ROOT_NON_GROUP message mentions theme-placed when item exists on theme page, so that the packages is complete.",P2,BLOCKED on PLAN-003. Test: theme-placed item triggers PAGED_ROOT_NON_GROUP with 'theme-placed' wording.
+Plan layout-workspace,PLAN-012,Add DataTable as widget option for repeatable group items in widget catalog,studio-core ITEM_TYPE_WIDGETS,medium,NOT_DONE,"As a Studio user, I want to add DataTable as widget option for repeatable group items in widget catalog, so that the codebase is complete.",P2,One-line edit: authoring-helpers.ts:74 add 'DataTable' to group array.
+Plan layout-workspace,PLAN-014,Expose setGroupDisplayMode in widget selector UI for repeatable groups,formspec-studio layout workspace,medium,NOT_DONE,"As a spec author, I want to expose setGroupDisplayMode in widget selector UI for repeatable groups, so that the codebase is complete.",P2,Add stack/table toggle to GroupConfigSection.tsx calling project.setGroupDisplayMode. Merge with PLAN-015.
+Plan layout-workspace,PLAN-015,Add DataTableSection to component-specific property dispatcher for repeatable groups,ComponentProperties.tsx,medium,NOT_DONE,"As a developer, I want to add DataTableSection to component-specific property dispatcher for repeatable groups, so that the codebase is complete.",P2,Create DataTableSection.tsx with column list editor. Wire into EditorPropertiesPanel.tsx when displayMode==='table'. Merge with PLAN-014.
+Plan layout-workspace,PLAN-016,Spec addition add SubmitButton to component spec via formspec-specs expert,component spec specs/ tree then schema update,medium,UNKNOWN,"As a spec author, I want to spec addition add SubmitButton to component spec via formspec-specs expert, so that the component spec specs is complete.",P2,"DONE — SubmitButton fully specified across spec, schema, types, runtime. component.schema.json:897-935. Close as already implemented."
+Plan layout-workspace,PLAN-017,Add SubmitButton toolbar button or palette entry invoking project.addSubmitButton,formspec-studio layout workspace toolbar/palette,medium,NOT_DONE,"As a spec author, I want to add SubmitButton toolbar button or palette entry invoking project.addSubmitButton, so that the formspec-studio layout workspace toolbar is complete.",P2,Add SubmitButton to FIELD_TYPE_CATALOG with itemType:'layout'. Wire handleAddItem to project.addSubmitButton().
+Spec 2026-03-31 advisories,SPEC-091,Add spec cross-reference from §4.3.1 Bind Properties to §3.10.3,s`pecs/core/spec.md`,medium,NOT_DONE,"As a spec author, I want to add spec cross-reference from §4.3.1 Bind Properties to §3.10.3, so that the specification is complete and normative.",P2,BLOCKED on SPEC-089 (P0 §3.10.3 creation). Add one-sentence cross-ref at spec.md:~2662 once target section exists.
+Spec 2026-03-31 advisories,SPEC-094,Add W900-W902 to LintMode Authoring suppressed set,crates/formspec-lint/src/types.rs,medium,NOT_DONE,"As a spec author, I want w900-W902 to LintMode Authoring suppressed set, so that form definitions are validated for this concern.",P2,Add W9xx range to suppressed_in() in types.rs:180. Use self.code.starts_with('W9') pattern. Add unit test.
+Spec 2026-03-31 advisories,SPEC-095,Ensure W900-W902 NOT promoted to errors in strict mode per spec,crates/formspec-lint/src/lib.rs,medium,NOT_DONE,"As a spec author, I want to ensure W900-W902 NOT promoted to errors in strict mode per spec, so that the renderer handles this configuration correctly.",P2,Add comment at lib.rs:160 explaning W9xx must NOT be promoted to error per spec §3.10.3. Add unit test asserting no W9xx code is promoted in strict mode.
+ADR 0029,0029-005,Add per-field currency on at least one field,examples/grant-application/definition.json,low,NOT_DONE,"As a form author, I want to add per-field currency on at least one field, so that the examples is complete.",P3,Add currency:'USD' to requestedAmount (definition.json:511). Consider adding 2nd money field (euPortion with EUR) for actual mixed-currency demo.
+ADR 0029,0029-031,Instantiate SummaryRow custom component,examples/grant-application/component.json,low,NOT_DONE,"As a form author, I want to instantiate SummaryRow custom component, so that the examples is complete.",P3,"Replace built-in Summary at component.json:225-229 with explicit SummaryRow instantiations passing {label, field} params."
+ADR 0029,0029-072,Include multiChoice array values in data,examples/grant-application/fixtures/,low,UNKNOWN,"As a form author, I want to include multiChoice array values in data, so that the examples is complete.",P3,"DONE — multiChoice array values already present in sample-submission.json:42-45 (focusAreas: ['health','equity']). OptionSet-backed multiChoice still outstanding."
+ADR 0029,0029-074,Include nonRelevantBehavior empty representation in data,examples/grant-application/fixtures/,low,NOT_DONE,"As a form author, I want to include nonRelevantBehavior empty representation in data, so that the examples is complete.",P3,Create submission-university.json with orgType:'university' (nonprofitPhoneHint NRB=empty). Verify evaluator coerces to empty.
+ADR 0030,0030-043,Add definitionUrl and definitionVersion to validationReport metadata from engine,packages/formspec-engine/src/,low,PARTIAL,"As a spec author, I want to add definitionUrl and definitionVersion to validationReport metadata from engine, so that the packages is complete.",P3,3-line fix: wire definition.url and definition.version through buildValidationReportEnvelope in response-assembly.ts.
+ADR 0031,0031-012,Add deprecationNotice on deprecated entry,examples/grant-application/registry.json,low,NOT_DONE,"As a form author, I want to add deprecationNotice on deprecated entry, so that the examples is complete.",P3,Mark 1 entry status:'deprecated' + add deprecationNotice. Blocked on 0031-005 (registry.json).
+ADR 0031,0031-013,Add specUrl schemaUrl license on at least one entry,examples/grant-application/registry.json,low,NOT_DONE,"As a form author, I want to add specUrl schemaUrl license on at least one entry, so that the examples is complete.",P3,Add specUrl + schemaUrl + license to 1 entry. Metadata for tool discoverability.
+ADR 0031,0031-014,Add examples array on at least 2 entries,examples/grant-application/registry.json,low,NOT_DONE,"As a form author, I want to add examples array on at least 2 entries, so that the examples is complete.",P3,formspec-common.registry.json already has examples on every entry. Add to 2 entries in new grant-app registry.json if created.
+ADR 0031,0031-015,Add compatibility formspecVersion and mappingDslVersion,examples/grant-application/registry.json,low,NOT_DONE,"As a form author, I want to add compatibility formspecVersion and mappingDslVersion, so that the examples is complete.",P3,Add mappingDslVersion alongside formspecVersion on 1 entry.
+ADR 0031,0031-016,Add extensions at registry and entry levels,examples/grant-application/registry.json,low,NOT_DONE,"As a form author, I want to add extensions at registry and entry levels, so that the examples is complete.",P3,Add extensions at registry doc level + 1 entry level.
+ADR 0048,0048-014,Add lint rule L101 missing translation for string path,cr`ates/formspec-lint/` and `src/formspec/validator/`,high,NOT_DONE,"As a spec author, I want lint rule L101 missing translation for string path, so that form definitions are validated for this concern.",P3,BIGGER THAN DESCRIBED. Requires new DocumentType::Locale + $formspecLocale marker + cross-doc LintOptions expansion. Not just 'add a pass.' Full locale lint foundation.
+ADR 0048,0048-015,Add lint rule L201 stale translation key references removed item path,cr`ates/formspec-lint/` and `src/formspec/validator/`,high,NOT_DONE,"As a spec author, I want lint rule L201 stale translation key references removed item path, so that form definitions are validated for this concern.",P3,Shares pass_locale.rs infrastructure with L101. Cross-doc key resolution matches pattern from pass 6 (theme item key check).
+ADR 0048,0048-016,Add lint rule L301 missing FEL interpolation variable,cr`ates/formspec-lint/` and `src/formspec/validator/`,high,NOT_DONE,"As a spec author, I want lint rule L301 missing FEL interpolation variable, so that form definitions are validated for this concern.",P3,"Needs FEL {{expression}} extraction from locale strings. If spec supports full FEL expressions (not just variable refs), this is a full FEL parse pass, not regex."
+ADR 0048,0048-017,Add lint rule L401 invalid fallback chain parent locale not found,cr`ates/formspec-lint/` and `src/formspec/validator/`,high,NOT_DONE,"As a spec author, I want lint rule L401 invalid fallback chain parent locale not found, so that form definitions are validated for this concern.",P3,Requires LintOptions.locale_documents: Vec<Value> for cross-locale fallback resolution. Also needs L400 circular chain detection.
+Spec 2026-03-31 advisories,SPEC-099,Remove TS advisory code after Rust Pass 8 ships via WASM long-term,packages/formspec-studio-core/src/editor-tree-helpers.ts,low,NOT_DONE,"As a spec author, I want to remove TS advisory code after Rust Pass 8 ships via WASM long-term, so that the codebase is clean and the responsibility is owned at the correct layer.",P3,NOOP — condition not met. Rust Pass 8 has not shipped via WASM. TS advisory code stays until SPEC-092 lands.
+Spec 2026-03-31 advisories,SPEC-100,Extend value-source check to inspect mapping documents suppress W900 for mapped fields future,later,low,NOT_DONE,"As a developer, I want to extend value-source check to inspect mapping documents suppress W900 for mapped fields future, so that the codebase is complete.",P3,FUTURE — mapping-aware value-source detection not implemented. No action now.
+ADR 0040,0040-014,Add batch error formatting to errors module,packages/formspec-mcp/src/errors.ts,later,PARTIAL,"As a spec author, I want to add batch error formatting to errors module, so that the packages is complete.",P4,wrapBatchCall referenced in design docs only. Create dedicated batch error formatter. P4 correct.
+ADR 0048,0048-005,Add resolveString path property context to FormEngine,packages/formspec-engine/src/form-engine.ts,later,PARTIAL,"As a spec author, I want to add resolveString path property context to FormEngine, so that the packages is complete.",P4,Exists as resolveLocaleString (FormEngine.ts:690). Add alias or rename. ~30min.
+ADR 0048,0048-007,Implement fallback chain resolution fr-CA to fr to definition inline,packages/formspec-engine/src/i18n/,later,PARTIAL,"As a spec author, I want to implement fallback chain resolution fr-CA to fr to definition inline, so that the runtime supports this behavior.",P4,Exists in locale.ts _cascadeLookup. In correct file just not named src/i18n/. Path mismatch only.
+ADR 0048,0048-008,Implement FEL interpolation in locale strings via expression syntax,packages/formspec-engine/src/i18n/,later,PARTIAL,"As a spec author, I want to implement FEL interpolation in locale strings via expression syntax, so that the runtime supports this behavior.",P4,Exists in locale.ts resolveLocaleString. Same path mismatch as 0048-007.
+ADR 0048,0048-009,Implement contextual variant key suffix @context,packages/formspec-engine/src/i18n/,later,PARTIAL,"As a spec author, I want to implement contextual variant key suffix @context, so that the runtime supports this behavior.",P4,Exists in field-view-model.ts:119 (6-step cascade with @context). Path mismatch only.
+ADR 0048,0048-011,Add plural() stdlib FEL function for common pluralization,fel-core/src/stdlib/ or crates/formspec-eval/,later,PARTIAL,"As a spec author, I want to add plural() stdlib FEL function for common pluralization, so that the fel-core is complete.",P4,Exists as pluralCategory() FEL function (different signature). Spec drift — update spec or align naming.
+ADR 0048,0048-018,Extend Python validator with cross-referencing Locale Documents against Definition,src/formspec/validator/,later,NOT_DONE,"As a spec author, I want to extend Python validator with cross-referencing Locale Documents against Definition, so that the src is complete.",P4,Python validator locale cross-referencing. P4 correct — no demand driver.
+ADR 0053,0053-002,Generate Assist spec BLUF and LLM artifacts,s`pecs/assist/`,later,NOT_DONE,"As a developer, I want to generate Assist spec BLUF and LLM artifacts, so that the s`pecs is complete.",P4,Generate Assist spec BLUF + LLM artifacts. npm run docs:generate should handle once spec is stable.
+ADR 0053,0053-005,Implement WebMCP shim polyfill navigator.modelContext,packages/formspec-assist/src/shim/,later,PARTIAL,"As a spec author, I want to implement WebMCP shim polyfill navigator.modelContext, so that the runtime supports this behavior.",P4,Exists at src/webmcp-shim.ts (not src/shim/). Path mismatch — organizational debt.
+ADR 0053,0053-006,Implement per-tool registerTool using registerTool not provideContext,packages/formspec-assist/src/shim/,later,PARTIAL,"As a spec author, I want to implement per-tool registerTool using registerTool not provideContext, so that the runtime supports this behavior.",P4,Exists at provider.ts:578 (not src/shim/). Path mismatch. Extract to dedicated file ~P3.
+ADR 0053,0053-007,Implement context resolver FieldHelp assembly from References+Ontology,packages/formspec-assist/src/resolver/,later,PARTIAL,"As a spec author, I want to implement context resolver FieldHelp assembly from References+Ontology, so that the runtime supports this behavior.",P4,Exists at src/context-resolver.ts (not src/resolver/). Path mismatch only.
+ADR 0053,0053-008,Implement profile store concept-keyed storage SKOS confidence levels,packages/formspec-assist/src/profile/,later,PARTIAL,"As a spec author, I want to implement profile store concept-keyed storage SKOS confidence levels, so that the runtime supports this behavior.",P4,Exists at src/profile-store.ts + profile-matcher.ts (not src/profile/). Path mismatch only.
+ADR 0053,0053-009,Implement introspection tools describe list help progress,packages/formspec-assist/src/tools/,later,PARTIAL,"As a spec author, I want to implement introspection tools describe list help progress, so that the runtime supports this behavior.",P4,Inline in provider.ts:526 (not src/tools/). Extraction from 969-line monolith — ~1 day refactor.
+ADR 0053,0053-010,Implement mutation tools set bulkSet,packages/formspec-assist/src/tools/,later,PARTIAL,"As a spec author, I want to implement mutation tools set bulkSet, so that the runtime supports this behavior.",P4,Inline in provider.ts:544. Same extraction opportunity as 0053-009.
+ADR 0053,0053-011,Implement profile tools match apply learn,packages/formspec-assist/src/tools/,later,PARTIAL,"As a spec author, I want to implement profile tools match apply learn, so that the runtime supports this behavior.",P4,Inline in provider.ts:554. Same extraction.
+ADR 0053,0053-012,Implement navigation tools validate pages nextIncomplete,packages/formspec-assist/src/tools/,later,PARTIAL,"As a spec author, I want to implement navigation tools validate pages nextIncomplete, so that the runtime supports this behavior.",P4,Inline in provider.ts:548. Same extraction.
+ADR 0053,0053-019,Implement AdapterContext in webcomponent for assist-sidecar discovery,packages/formspec-webcomponent/src/,later,NOT_DONE,"As a spec author, I want to implement AdapterContext in webcomponent for assist-sidecar discovery, so that the runtime supports this behavior.",P4,AdapterContext for assist-sidecar in webcomponent. P4 correct — no demand driver.
+ADR 0053,0053-021,Implement pluggable LLM adapter in chat package,packages/formspec-assist-chat/src/adapter/,later,NOT_DONE,"As a spec author, I want to implement pluggable LLM adapter in chat package, so that the runtime supports this behavior.",P4,"LLM adapter in chat package. Blocked on 0053-020 (assist-chat scaffold, P1)."
+ADR 0053,0053-022,Implement conversational QandA grounded in FieldHelp context,packages/formspec-assist-chat/src/features/,later,NOT_DONE,"As a spec author, I want to implement conversational QandA grounded in FieldHelp context, so that the runtime supports this behavior.",P4,Conversational QandA. Blocked on 0053-020 (assist-chat scaffold).
+ADR 0053,0053-023,Implement guided walkthrough step-by-step flow,packages/formspec-assist-chat/src/features/,later,NOT_DONE,"As a spec author, I want to implement guided walkthrough step-by-step flow, so that the runtime supports this behavior.",P4,Guided walkthrough. Blocked on 0053-020 (assist-chat scaffold).
+ADR 0053,0053-024,Implement proactive suggestions watching form state,packages/formspec-assist-chat/src/features/,later,NOT_DONE,"As a spec author, I want to implement proactive suggestions watching form state, so that the runtime supports this behavior.",P4,Proactive suggestions. Blocked on 0053-020 (assist-chat scaffold).
+ADR 0053,0053-025,Implement document extraction upload LLM to bulkSet,packages/formspec-assist-chat/src/features/,later,NOT_DONE,"As a spec author, I want to implement document extraction upload LLM to bulkSet, so that the runtime supports this behavior.",P4,Document-to-form extraction. Blocked on 0053-020 (assist-chat scaffold).
+Spec 2026-03-24,SPEC-001,formspec-theme crate — types + serde,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — types + serde, so that the specification is complete and normative.",P4,Rust formspec-theme types+serde. TS equivalent at formspec-layout/src/theme-resolver.ts.
+Spec 2026-03-24,SPEC-002,formspec-theme crate — 6-level cascade resolver,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — 6-level cascade resolver, so that the specification is complete and normative.",P4,Rust cascade resolver. TS equivalent at theme-resolver.ts (5-level merge).
+Spec 2026-03-24,SPEC-003,formspec-theme crate — token resolution,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — token resolution, so that the specification is complete and normative.",P4,Rust token resolution. TS equivalent at tokens.ts.
+Spec 2026-03-24,SPEC-004,formspec-theme crate — widget fallback chain,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — widget fallback chain, so that the specification is complete and normative.",P4,Rust widget fallback chain. TS equivalent at theme-resolver.ts.
+Spec 2026-03-24,SPEC-005,formspec-theme crate — widget vocabulary,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — widget vocabulary, so that the specification is complete and normative.",P4,Rust widget vocabulary. TS equivalent at widget-vocabulary.ts.
+Spec 2026-03-24,SPEC-006,formspec-theme crate — cssClassReplace + tailwind-merge,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — cssClassReplace + tailwind-merge, so that the specification is complete and normative.",P4,Rust cssClassReplace+tailwind-merge. TS equivalent at theme-resolver.ts:231-254.
+Spec 2026-03-24,SPEC-007,formspec-theme crate — none sentinel suppression,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — none sentinel suppression, so that the specification is complete and normative.",P4,Rust none sentinel suppression. Not in TS either — spec divergence.
+Spec 2026-03-24,SPEC-008,formspec-theme crate — unit tests,crates/formspec-theme/,later,NOT_DONE,"As a spec author, I want to formspec-theme crate — unit tests, so that the specification is complete and normative.",P4,Rust unit tests for formspec-theme.
+Spec 2026-03-24,SPEC-009,formspec-plan crate — types + serde,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — types + serde, so that the specification is complete and normative.",P4,Rust formspec-plan types+serde. TS equivalent at planner.ts (972 lines).
+Spec 2026-03-24,SPEC-010,formspec-plan crate — plan_definition_fallback,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — plan_definition_fallback, so that the specification is complete and normative.",P4,Rust plan_definition_fallback. TS equivalent at planner.ts.
+Spec 2026-03-24,SPEC-011,formspec-plan crate — plan_component_tree,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — plan_component_tree, so that the specification is complete and normative.",P4,Rust plan_component_tree. TS equivalent at planner.ts:340-410.
+Spec 2026-03-24,SPEC-012,formspec-plan crate — custom component expansion,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — custom component expansion, so that the specification is complete and normative.",P4,Rust custom component expansion. TS equivalent at planner.ts.
+Spec 2026-03-24,SPEC-013,formspec-plan crate — responsive resolution,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — responsive resolution, so that the specification is complete and normative.",P4,Rust responsive resolution. TS equivalent at responsive.ts.
+Spec 2026-03-24,SPEC-014,formspec-plan crate — theme page layout 12-column grid,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — theme page layout 12-column grid, so that the specification is complete and normative.",P4,Rust 12-column grid layout. TS equivalent at planner.ts planThemePages.
+Spec 2026-03-24,SPEC-015,formspec-plan crate — page mode wrapping wizard/tabs,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — page mode wrapping wizard/tabs, so that the specification is complete and normative.",P4,Rust page mode wizard/tabs. TS equivalent at page-sequence.ts.
+Spec 2026-03-24,SPEC-016,formspec-plan crate — unbound required items fallback,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — unbound required items fallback, so that the specification is complete and normative.",P4,Rust unbound required items fallback. TS partial — spec divergence noted.
+Spec 2026-03-24,SPEC-017,formspec-plan crate — parameter interpolation + default component mapping,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want to formspec-plan crate — parameter interpolation + default component mapping, so that the specification is complete and normative.",P4,Rust parameter interpolation + default mapping. TS at params.ts + defaults.ts.
+Spec 2026-03-24,SPEC-018,formspec-plan crate — evaluate_and_merge behind eval-merge feature,crates/formspec-plan/,later,NOT_DONE,"As a spec author, I want crate — evaluate_and_merge behind eval-merge feature, so that the engine evaluates this correctly.",P4,Rust evaluate_and_merge behind feature flag. Feature flag system exists in wasm crate.
+Spec 2026-03-24,SPEC-019,formspec-plan crate — unit tests + cross-planner conformance fixtures,crates/formspec-plan/ + tests/conformance/layout/,later,NOT_DONE,"As a QA engineer, I want to formspec-plan crate — unit tests + cross-planner conformance fixtures, so that the specification is complete and normative.",P4,Rust unit tests + conformance fixtures. TS tests at planner.test.ts.
+Spec 2026-03-24,SPEC-020,WASM bridge — feature flags theme-api plan-api pdf-api,formspec-wasm/,later,NOT_DONE,"As a spec author, I want to wASM bridge — feature flags theme-api plan-api pdf-api, so that the specification is complete and normative.",P4,"WASM feature flags theme-api/plan-api/pdf-api. Current flags: lint, document-api, fel-authoring."
+Spec 2026-03-24,SPEC-021,WASM bridge — export functions resolvePresentation resolveToken planComponentTree,formspec-wasm/src/,later,NOT_DONE,"As a spec author, I want to wASM bridge — export functions resolvePresentation resolveToken planComponentTree, so that the specification is complete and normative.",P4,WASM exports resolvePresentation/resolveToken/planComponentTree.
+Spec 2026-03-24,SPEC-022,WASM bridge — TypeScript migration delete TS planner files keep types,packages/formspec-layout/,later,NOT_DONE,"As a spec author, I want to wASM bridge — TypeScript migration delete TS planner files keep types, so that the specification is complete and normative.",P4,Delete TS planner files after Rust parity proven. RISKY — formspec-layout consumed by 3+ packages.
+Spec 2026-03-24,SPEC-023,WASM bridge — cross-planner conformance + E2E fix regressions,packages/formspec-layout/ + tests/,later,NOT_DONE,"As a QA engineer, I want to wASM bridge — cross-planner conformance + E2E fix regressions, so that the specification is complete and normative.",P4,Cross-planner conformance + E2E regression fixes.
+Spec 2026-03-24,SPEC-024,formspec-pdf 4a — font metrics Standard 14 AFM glyph widths,crates/formspec-pdf/src/fonts.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4a — font metrics Standard 14 AFM glyph widths, so that the specification is complete and normative.",P4,"PDF 4a font metrics. SHOULD BE P3 — unblocks ADR 0051. Greenfield, independent of other Rust work."
+Spec 2026-03-24,SPEC-025,formspec-pdf 4a — measure_node for all node categories,crates/formspec-pdf/src/measure.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4a — measure_node for all node categories, so that the specification is complete and normative.",P4,PDF 4a measure_node. Greenfield. Tied to SPEC-024.
+Spec 2026-03-24,SPEC-026,formspec-pdf 4a — pagination greedy single-pass with 5 keep constraints,crates/formspec-pdf/src/paginate.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4a — pagination greedy single-pass with 5 keep constraints, so that the specification is complete and normative.",P4,PDF 4a pagination greedy single-pass. Greenfield.
+Spec 2026-03-24,SPEC-027,formspec-pdf 4a — pagination tests accuracy and fixtures,crates/formspec-pdf/tests/,later,NOT_DONE,"As a QA engineer, I want to formspec-pdf 4a — pagination tests accuracy and fixtures, so that the specification is complete and normative.",P4,PDF 4a pagination tests. Greenfield.
+Spec 2026-03-24,SPEC-028,formspec-pdf 4b — appearance streams text checkbox radio,crates/formspec-pdf/src/appearance.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4b — appearance streams text checkbox radio, so that the specification is complete and normative.",P4,PDF 4b appearance streams. Greenfield.
+Spec 2026-03-24,SPEC-029,formspec-pdf 4b — AcroForm fields all 12 component types hierarchical naming,crates/formspec-pdf/src/acroform.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4b — AcroForm fields all 12 component types hierarchical naming, so that the specification is complete and normative.",P4,PDF 4b AcroForm fields. Greenfield.
+Spec 2026-03-24,SPEC-030,formspec-pdf 4b — appearance + acroform tests,crates/formspec-pdf/tests/,later,NOT_DONE,"As a QA engineer, I want to formspec-pdf 4b — appearance + acroform tests, so that the specification is complete and normative.",P4,PDF 4b appearance + acroform tests. Greenfield.
+Spec 2026-03-24,SPEC-031,formspec-pdf 4c — Tagged PDF structure TaggingContext StructTreeRoot ParentTree,crates/formspec-pdf/src/tagged.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4c — Tagged PDF structure TaggingContext StructTreeRoot ParentTree, so that the specification is complete and normative.",P4,PDF 4c Tagged PDF structure. Greenfield.
+Spec 2026-03-24,SPEC-032,formspec-pdf 4c — artifact marking + MDI tags,crates/formspec-pdf/src/,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4c — artifact marking + MDI tags, so that the specification is complete and normative.",P4,PDF 4c artifact marking + MDI. Greenfield.
+Spec 2026-03-24,SPEC-033,formspec-pdf 4c — Matterhorn compliance tests,crates/formspec-pdf/tests/,later,NOT_DONE,"As a QA engineer, I want to formspec-pdf 4c — Matterhorn compliance tests, so that the specification is complete and normative.",P4,PDF 4c Matterhorn compliance tests. Greenfield.
+Spec 2026-03-24,SPEC-034,formspec-pdf 4d — coordinate mapping 12-column grid to PDF point coords,crates/formspec-pdf/src/layout.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4d — coordinate mapping 12-column grid to PDF point coords, so that the specification is complete and normative.",P4,PDF 4d coordinate mapping 12-column grid to PDF points. Greenfield.
+Spec 2026-03-24,SPEC-035,formspec-pdf 4d — content rendering page content streams headers footers,crates/formspec-pdf/src/render.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4d — content rendering page content streams headers footers, so that the specification is complete and normative.",P4,PDF 4d content rendering. Greenfield.
+Spec 2026-03-24,SPEC-036,formspec-pdf 4d — pipeline wiring + E2E definition+theme+response to PDF bytes,crates/formspec-pdf/src/ + tests/,later,NOT_DONE,"As a QA engineer, I want to formspec-pdf 4d — pipeline wiring + E2E definition+theme+response to PDF bytes, so that the specification is complete and normative.",P4,PDF 4d pipeline wiring E2E. Greenfield.
+Spec 2026-03-24,SPEC-037,formspec-pdf 4e — XFDF round-trip generation and parsing,crates/formspec-pdf/src/xfdf.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4e — XFDF round-trip generation and parsing, so that the specification is complete and normative.",P4,PDF 4e XFDF round-trip. Greenfield.
+Spec 2026-03-24,SPEC-038,formspec-pdf 4e — custom font strategy Standard 14 default + subsetter,crates/formspec-pdf/src/fonts.rs,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4e — custom font strategy Standard 14 default + subsetter, so that the specification is complete and normative.",P4,PDF 4e custom font strategy. Greenfield.
+Spec 2026-03-24,SPEC-039,formspec-pdf 4e — WASM + Python exposure renderPDF generateXFDF parseXFDF,formspec-wasm/ + formspec-py/,later,NOT_DONE,"As a spec author, I want to formspec-pdf 4e — WASM + Python exposure renderPDF generateXFDF parseXFDF, so that the specification is complete and normative.",P4,PDF 4e WASM + Python exposure. Greenfield.
+Spec 2026-03-24,SPEC-040,formspec-pdf 4e — round-trip test render PDF extract XFDF parse compare,cr`ates/formspec-pdf/tests/`,later,NOT_DONE,"As a QA engineer, I want to formspec-pdf 4e — round-trip test render PDF extract XFDF parse compare, so that the specification is complete and normative.",P4,PDF 4e round-trip tests. Greenfield.
+Spec 2026-03-26 assist-chat,SPEC-041,Define shared LLMAdapter interface in formspec-types Layer 0,packages/formspec-types/,later,NOT_DONE,"As a spec author, I want to define shared LLMAdapter interface in formspec-types Layer 0, so that the specification is complete and normative.",P4,LLMAdapter interface in formspec-types Layer 0. Not done. P4 correct.
+Spec 2026-03-26 assist-chat,SPEC-043,Implement ChatSession attach/detach conversational QandA with LLM context,packages/formspec-assist-chat/src/,later,PARTIAL,"As a spec author, I want to implement ChatSession attach/detach conversational QandA with LLM context, so that the runtime supports this behavior.",P4,ChatSession attach/detach. Exists in formspec-studio/formspec-chat. Not in formspec repo.
+Spec 2026-03-26 assist-chat,SPEC-044,Implement guided walkthrough step-by-step field walkthrough,packages/formspec-assist-chat/src/,later,NOT_DONE,"As a spec author, I want to implement guided walkthrough step-by-step field walkthrough, so that the runtime supports this behavior.",P4,Guided walkthrough. Not done anywhere. P4 correct.
+Spec 2026-03-26 assist-chat,SPEC-045,Implement suggestion engine Preact Signals-based watching,crates/formspec-assist-chat/src/,later,NOT_DONE,"As a spec author, I want to implement suggestion engine Preact Signals-based watching, so that the runtime supports this behavior.",P4,Suggestion engine. Not done. P4 correct.
+Spec 2026-03-26 assist-chat,SPEC-046,Implement document-to-form extraction upload LLM extract ontology align bulkSet,crates/formspec-assist-chat/src/,later,PARTIAL,"As a spec author, I want to implement document-to-form extraction upload LLM extract ontology align bulkSet, so that the runtime supports this behavior.",P4,Document-to-form extraction. Partial in formspec-studio/formspec-chat.
+Spec 2026-03-26 assist-chat,SPEC-047,Implement LLM-powered field explanations explain.ts,crates/formspec-assist-chat/src/,later,NOT_DONE,"As a spec author, I want to implement LLM-powered field explanations explain.ts, so that the runtime supports this behavior.",P4,LLM-powered field explanations. Not done. P4 correct.
+Spec 2026-03-26 assist-chat,SPEC-048,Implement LLM adapters anthropic openai mock,packages/formspec-assist-chat/src/adapters/,later,PARTIAL,"As a spec author, I want to implement LLM adapters anthropic openai mock, so that the runtime supports this behavior.",P4,LLM adapters anthropic/openai/mock. Exist in formspec-studio/formspec-chat.
+Spec 2026-03-26 formy,SPEC-049,Formy Phase 1 — Chrome M3 manifest service worker content script side panel,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 1 — Chrome M3 manifest service worker content script side panel, so that the formy-extension is complete.",P4,BLOCKED — formy-extension submodule does not exist. All 10 formy tickets unstartable.
+Spec 2026-03-26 formy,SPEC-050,Formy Phase 1 — Mode 1 Full Assist Provider tools-available detection postMessage transport autofill,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 1 — Mode 1 Full Assist Provider tools-available detection postMessage transport autofill, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-051,Formy Phase 1 — side panel UI profile picker autofill preview field help progress,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 1 — side panel UI profile picker autofill preview field help progress, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-052,Formy Phase 1 — profile vault password-based PBKDF2 localStorage encryption,formy-extension/,later,NOT_DONE,"As a developer, I want phase 1 — profile vault password-based pbkdf2 localstorage encryption, so that form definitions are validated for correctness.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-053,Formy Phase 2 — WebAuthn vault encryption PRF extension HKDF AES-256-GCM,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 2 — WebAuthn vault encryption PRF extension HKDF AES-256-GCM, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-054,Formy Phase 2 — Mode 2 Bootstrap Assist Provider inject bundle sidecar discovery,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 2 — Mode 2 Bootstrap Assist Provider inject bundle sidecar discovery, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-055,Formy Phase 2 — multi-profile form memory auto-save restore 30-day expiry,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 2 — multi-profile form memory auto-save restore 30-day expiry, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-056,Formy Phase 3 — Firefox WebExtensions port manifest sidebar_action,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 3 — Firefox WebExtensions port manifest sidebar_action, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-057,Formy Phase 3 — Mode 3 Plain HTML Forms degraded mode DOM scanning autofill,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 3 — Mode 3 Plain HTML Forms degraded mode DOM scanning autofill, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 formy,SPEC-058,Formy Phase 3 — profile import/export cloud sync encrypted vault blob,formy-extension/,later,NOT_DONE,"As a developer, I want to formy Phase 3 — profile import/export cloud sync encrypted vault blob, so that the formy-extension is complete.",P4,BLOCKED on formy-extension submodule.
+Spec 2026-03-26 locale-translation,SPEC-059,Implement TranslationContext assembler walk translatable keys resolve Definition References Ontology,packages/formspec-core/src/ + formspec-studio-core/,later,NOT_DONE,"As a spec author, I want to implement TranslationContext assembler walk translatable keys resolve Definition References Ontology, so that the runtime supports this behavior.",P4,TranslationContext assembler. Depends on Refs+Ontology docs (SPEC-070). DESIGN EXISTS.
+Spec 2026-03-26 locale-translation,SPEC-061,Implement formspec_translate MCP tool batch AI translate with TranslationContext,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to implement formspec_translate MCP tool batch AI translate with TranslationContext, so that the runtime supports this behavior.",P4,formspec_translate MCP tool. Follows locale.ts pattern.
+Spec 2026-03-26 locale-translation,SPEC-062,Implement formspec_locale_coverage MCP tool translated/total per locale,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to implement formspec_locale_coverage MCP tool translated/total per locale, so that the runtime supports this behavior.",P4,formspec_locale_coverage MCP tool. Follows locale.ts pattern.
+Spec 2026-03-26 locale-translation,SPEC-063,Implement formspec_locale_diff MCP tool detect keys added/removed/changed,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to implement formspec_locale_diff MCP tool detect keys added/removed/changed, so that the runtime supports this behavior.",P4,formspec_locale_diff MCP tool. Follows locale.ts pattern.
+Spec 2026-03-26 locale-translation,SPEC-064,Implement formspec_locale_review MCP tool AI quality review,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to implement formspec_locale_review MCP tool AI quality review, so that the runtime supports this behavior.",P4,formspec_locale_review MCP tool. Follows locale.ts pattern.
+Spec 2026-03-26 locale-translation,SPEC-065,Implement formspec_locale_glossary MCP tool extract/manage translation glossary,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to implement formspec_locale_glossary MCP tool extract/manage translation glossary, so that the runtime supports this behavior.",P4,formspec_locale_glossary MCP tool. Follows locale.ts pattern.
+Spec 2026-03-26 locale-translation,SPEC-066,Build Studio Locale Tab 7th workspace tab with locale list translation grid AI review,packages/formspec-studio/src/workspaces/,later,NOT_DONE,"As a spec author, I want to build Studio Locale Tab 7th workspace tab with locale list translation grid AI review, so that the specification is complete and normative.",P4,Studio Locale Tab. 6-8h UI work. DESIGN EXISTS.
+Spec 2026-03-26 locale-translation,SPEC-067,Wire Studio context panel to selected key with field info references ontology,packages/formspec-studio/src/workspaces/locale/,later,NOT_DONE,"As a spec author, I want to wire Studio context panel to selected key with field info references ontology, so that the feature works end-to-end.",P4,Studio context panel wiring. DEPENDS on SPEC-066.
+Spec 2026-03-26 locale-translation,SPEC-068,Build standalone translation app Phase 3 project bundle import/export TMS hooks,later,later,NOT_DONE,"As a developer, I want to build standalone translation app Phase 3 project bundle import/export TMS hooks, so that the codebase is complete.",P4,Standalone translation app Phase 3. P4 correct — deferred.
+Spec 2026-03-26 locale-translation,SPEC-069,Advanced AI features Phase 4 glossary management translation memory pluralization,later,later,NOT_DONE,"As a developer, I want to advanced AI features Phase 4 glossary management translation memory pluralization, so that the codebase is complete.",P4,Advanced AI Phase 4. P4 correct — deferred.
+Spec 2026-03-26 refs-ontology,SPEC-070,Implement formspec-core references handlers load remove select addReference updateReference etc,packages/formspec-core/src/handlers/,later,NOT_DONE,"As a spec author, I want to implement formspec-core references handlers load remove select addReference updateReference etc, so that the runtime supports this behavior.",P4,formspec-core references handlers. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-071,Implement formspec-core ontology handlers load remove select setConcept removeConcept etc,packages/formspec-core/src/handlers/,later,NOT_DONE,"As a spec author, I want to implement formspec-core ontology handlers load remove select setConcept removeConcept etc, so that the runtime supports this behavior.",P4,formspec-core ontology handlers. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-072,Implement formspec_context MCP tool unified References+Ontology CRUD,packages/formspec-mcp/src/tools/,later,NOT_DONE,"As a spec author, I want to implement formspec_context MCP tool unified References+Ontology CRUD, so that the runtime supports this behavior.",P4,formspec_context unified MCP tool. standalone reference.ts + ontology.ts exist separately.
+Spec 2026-03-26 refs-ontology,SPEC-073,Implement studio-core helpers addReference updateReference setConcept addAlignment etc,packages/formspec-studio-core/src/,later,NOT_DONE,"As a spec author, I want to implement studio-core helpers addReference updateReference setConcept addAlignment etc, so that the runtime supports this behavior.",P4,studio-core helpers addReference etc. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-074,Add ReferencesState and OntologyState to ProjectState,packages/formspec-core/src/types.ts,later,NOT_DONE,"As a spec author, I want to add ReferencesState and OntologyState to ProjectState, so that the specification is complete and normative.",P4,ReferencesState + OntologyState on ProjectState. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-075,Build Context Layer UI editor context mode toggle with badge overlay,packages/formspec-studio/src/workspaces/editor/,later,NOT_DONE,"As a spec author, I want to build Context Layer UI editor context mode toggle with badge overlay, so that the specification is complete and normative.",P4,Context Layer UI editor toggle. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-076,Build Context Panel Meaning section concept search matched display equivalents management,packages/formspec-studio/src/components/,later,NOT_DONE,"As a spec author, I want to build Context Panel Meaning section concept search matched display equivalents management, so that the specification is complete and normative.",P4,Context Panel Meaning section. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-077,Build Context Panel Context section glossary entries documentation links AI resources,packages/formspec-studio/src/components/,later,NOT_DONE,"As a spec author, I want to build Context Panel Context section glossary entries documentation links AI resources, so that the specification is complete and normative.",P4,Context Panel Context section. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-078,Build Context Panel Rules section regulation/policy entries with plain-language verbs,packages/formspec-studio/src/components/,later,NOT_DONE,"As a spec author, I want to build Context Panel Rules section regulation/policy entries with plain-language verbs, so that the specification is complete and normative.",P4,Context Panel Rules section. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-079,Build form-level context panel domain metadata JSON-LD editor,packages/formspec-studio/src/components/,later,NOT_DONE,"As a spec author, I want to build form-level context panel domain metadata JSON-LD editor, so that the specification is complete and normative.",P4,Form-level context panel JSON-LD editor. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-080,Implement reusable references promotion auto-promote to referenceDefs with pointers,packages/formspec-studio-core/src/,later,NOT_DONE,"As a spec author, I want to implement reusable references promotion auto-promote to referenceDefs with pointers, so that the runtime supports this behavior.",P4,Reusable references promotion. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-081,Build Bulk Annotation Mode Phase 3 table view filter by missing annotations AI bulk actions,packages/formspec-studio/src/workspaces/,later,NOT_DONE,"As a spec author, I want to build Bulk Annotation Mode Phase 3 table view filter by missing annotations AI bulk actions, so that the specification is complete and normative.",P4,Bulk Annotation Mode. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-082,Implement AI auto-suggest concept bindings from field metadata,packages/formspec-studio-core/src/ or formspec-assist/,later,PARTIAL,"As a spec author, I want to implement AI auto-suggest concept bindings from field metadata, so that the runtime supports this behavior.",P4,AI auto-suggest concept bindings. Partial via ContextResolver in formspec-assist.
+Spec 2026-03-26 refs-ontology,SPEC-083,Implement AI bulk concept suggestion for all untagged fields,packages/formspec-studio-core/src/ or formspec-assist/,later,NOT_DONE,"As a spec author, I want to implement AI bulk concept suggestion for all untagged fields, so that the runtime supports this behavior.",P4,AI bulk concept suggestion. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-084,Implement AI context generation writes glossary entry and agent context note,packages/formspec-studio-core/src/ or formspec-assist/,later,NOT_DONE,"As a spec author, I want to implement AI context generation writes glossary entry and agent context note, so that the runtime supports this behavior.",P4,AI context generation. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-085,Implement AI vocabulary auto-mapping option set values to terminology codes,packages/formspec-studio-core/src/ or formspec-assist/,later,NOT_DONE,"As a spec author, I want to implement AI vocabulary auto-mapping option set values to terminology codes, so that the runtime supports this behavior.",P4,AI vocabulary auto-mapping. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-086,Implement AI reference discovery search for relevant regulations standards documentation,packages/formspec-studio-core/src/ or formspec-assist/,later,NOT_DONE,"As a spec author, I want to implement AI reference discovery search for relevant regulations standards documentation, so that the runtime supports this behavior.",P4,AI reference discovery. Not done. P4 correct.
+Spec 2026-03-26 refs-ontology,SPEC-087,Implement AI cross-system alignment suggestions from concept bindings,later,later,NOT_DONE,"As a developer, I want to implement AI cross-system alignment suggestions from concept bindings, so that the runtime supports this behavior.",P4,AI cross-system alignment. Not done. P5 correct.
+Spec 2026-03-26 refs-ontology,SPEC-088,Implement concept search infrastructure Phase 4 bundled local index web search AI URI suggestion,later,later,NOT_DONE,"As a developer, I want to implement concept search infrastructure Phase 4 bundled local index web search AI URI suggestion, so that the runtime supports this behavior.",P4,Concept search infrastructure Phase 4. Not done. P5 correct.
+ADR 0029,0029-001,Add field exercising dataType dateTime (e.g. submissionDeadline),examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-002,Add field exercising dataType time (e.g. meetingTime),examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-004,Add suffix on at least one field (e.g. % on indirectRate),examples/grant-application/definition.json,low,DONE,,,
+ADR 0029,0029-006,Add description on at least 3 items,examples/grant-application/definition.json,low,DONE,,,
+ADR 0029,0029-007,Add field-level presentation with widgetHint on at least one item,examples/grant-application/definition.json,low,DONE,,,
+ADR 0029,0029-008,Add initialValue as expression (=today() on startDate),examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-009,Add prePopulate with editable false locking a pre-populated field,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-010,Add layout subsystem on at least one group (flow grid columns colSpan collapsible styleHints accessibility),examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-011,Add conditional required expression,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-012,Add conditional readonly expression,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-013,Add whitespace remove on at least one bind,examples/grant-application/definition.json,low,DONE,,,
+ADR 0029,0029-014,Add nonRelevantBehavior empty per-bind override,examples/grant-application/definition.json,low,DONE,,,
+ADR 0029,0029-016,Add xone shape composition exercising exclusive-or groups,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-018,Add shape composition via shape ID references,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0029,0029-019,Add derivedFrom as url version object at definition level,examples/grant-application/definition.json,low,DONE,,,
+ADR 0029,0029-021,Add cascade level 3 items — per-item presentation overrides for at least 3 items,examples/grant-application/theme.json,medium,DONE,,,
+ADR 0029,0029-022,Add style blocks with token references in PresentationBlocks,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-023,Add fallback widget chain on attachment selector,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-024,Add cssClass on at least one PresentationBlock in theme,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-025,Add AccessibilityBlock with liveRegion polite on at least one PresentationBlock,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-026,Add type selector matching in theme,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-027,Add combined type + dataType selector in theme,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-028,Add elevation token and at least one numeric token value,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-029,Exercise labelPosition hidden third enum value,examples/grant-application/theme.json,low,DONE,,,
+ADR 0029,0029-030,Add at least one Select component,examples/grant-application/component.json,medium,DONE,,,
+ADR 0029,0029-032,Use cssClass array form on at least one component,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-033,Exercise Stack direction horizontal,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-036,Exercise Grid columns as CSS string,examples/grant-application/component.json,medium,DONE,,,
+ADR 0029,0029-037,Exercise Grid gap,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-038,Exercise Grid rowGap,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-039,Exercise Tabs position,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-040,Exercise Tabs defaultTab,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-041,Exercise Page description,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-042,Exercise TextInput maxLines,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-044,Exercise TextInput prefix,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-046,Exercise NumberInput step,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-047,Exercise NumberInput min,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-048,Exercise NumberInput max,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-049,Exercise NumberInput showStepper,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-050,Exercise DatePicker minDate,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-051,Exercise DatePicker maxDate,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-052,Exercise FileUpload multiple,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-053,Exercise MoneyInput locale,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-054,Exercise Rating icon,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-055,Exercise Rating allowHalf,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-056,Exercise Alert severity success and error,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-057,Exercise Badge variant default primary success error,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-058,Add ProgressBar with bind data-bound progress,examples/grant-application/component.json,medium,DONE,,,
+ADR 0029,0029-059,Exercise Card subtitle,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-062,Exercise Modal size variants,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-063,Exercise Popover triggerBind,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-064,Exercise Popover placement variants,examples/grant-application/component.json,low,DONE,,,
+ADR 0029,0029-065,Add id UUID to submission,examples/grant-application/fixtures/sample-submission.json,low,DONE,,,
+ADR 0029,0029-066,Add subject as id type pair,examples/grant-application/fixtures/sample-submission.json,low,DONE,,,
+ADR 0029,0029-068,Exercise all 3 source values in validationResults,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0029,0029-069,Exercise shapeId sourceId value constraint context in validationResults,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0029,0029-070,Create submission-in-progress.json with status in-progress and partial data,examples/grant-application/fixtures/,medium,DONE,,,
+ADR 0029,0029-071,Include attachment values in data,examples/grant-application/fixtures/sample-submission.json,low,DONE,,,
+ADR 0029,0029-073,Include nested repeat data (projectPhases/phaseTasks) in data,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0030,0030-001,Create changelog.json with definitionUrl fromVersion toVersion generatedAt semverImpact summary,examples/grant-application/changelog.json,medium,DONE,,,
+ADR 0030,0030-002,Add at least 5 Change objects exercising all 5 type values,examples/grant-application/changelog.json,medium,DONE,,,
+ADR 0030,0030-003,Exercise all 3 impact levels breaking compatible cosmetic,examples/grant-application/changelog.json,low,DONE,,,
+ADR 0030,0030-004,Exercise all 8 target categories in changelog,examples/grant-application/changelog.json,low,DONE,,,
+ADR 0030,0030-005,Add before/after fragments on modified removed renamed moved changes,examples/grant-application/changelog.json,medium,DONE,,,
+ADR 0030,0030-006,Add migrationHint with preserve drop and FEL expression referencing old,examples/grant-application/changelog.json,medium,DONE,,,
+ADR 0030,0030-007,Add key on target item changes,examples/grant-application/changelog.json,low,DONE,,,
+ADR 0030,0030-008,Change mapping.json direction to both,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-009,Add mapping rules exercising transforms drop flatten nest constant split,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-010,Add full-form coerce on at least one rule,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-011,Add full-form valueMap on at least one rule,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-012,Add reverse overrides on at least 2 rules,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-013,Add bidirectional false on at least one rule,examples/grant-application/mapping.json,low,DONE,,,
+ADR 0030,0030-014,Add reversePriority on at least 2 rules,examples/grant-application/mapping.json,low,DONE,,,
+ADR 0030,0030-015,Add default fallback value on at least one rule,examples/grant-application/mapping.json,low,DONE,,,
+ADR 0030,0030-016,Add description on at least 3 rules,examples/grant-application/mapping.json,low,DONE,,,
+ADR 0030,0030-017,Add separator on at least one flatten/nest rule,examples/grant-application/mapping.json,low,DONE,,,
+ADR 0030,0030-018,Add defaults target document default values at top level,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-019,Add autoMap synthetic preserve rules,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-020,Set conformanceLevel bidirectional,examples/grant-application/mapping.json,low,DONE,,,
+ADR 0030,0030-021,Fix array.rules to array.innerRules naming mismatch,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-022,Exercise innerRules depth condition priority index,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-023,Exercise ArrayDescriptor.mode indexed on at least one array,examples/grant-application/mapping.json,medium,DONE,,,
+ADR 0030,0030-024,Create mapping-xml.json with targetSchema format xml rootElement namespaces,examples/grant-application/mapping-xml.json,medium,DONE,,,
+ADR 0030,0030-025,Add XmlAdapter config declaration indent cdata,examples/grant-application/mapping-xml.json,low,DONE,,,
+ADR 0030,0030-026,Add at least 5 XML mapping rules,examples/grant-application/mapping-xml.json,medium,DONE,,,
+ADR 0030,0030-027,Add targetSchema.url for canonical schema URL,examples/grant-application/mapping-xml.json,low,DONE,,,
+ADR 0030,0030-028,Create mapping-csv.json with targetSchema format csv name,examples/grant-application/mapping-csv.json,medium,DONE,,,
+ADR 0030,0030-029,Add CsvAdapter config delimiter quote header encoding lineEnding,examples/grant-application/mapping-csv.json,low,DONE,,,
+ADR 0030,0030-030,Add at least 5 CSV mapping rules,examples/grant-application/mapping-csv.json,medium,DONE,,,
+ADR 0030,0030-031,Add flatten transform for nested group data in CSV mapping,examples/grant-application/mapping-csv.json,medium,DONE,,,
+ADR 0030,0030-035,Add breakpoints at theme level,examples/grant-application/theme.json,low,DONE,,,
+ADR 0030,0030-036,Create contact-fragment.json reusable group fragment,examples/grant-application/contact-fragment.json,medium,DONE,,,
+ADR 0030,0030-037,Add ref + keyPrefix in definition.json referencing contact-fragment,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0030,0030-038,Populate migrations with full MigrationDescriptor,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0030,0030-039,Fix presentation.page path to presentation.layout.page,examples/grant-application/definition.json,low,DONE,,,
+ADR 0030,0030-040,Add constraintKind type validation result to submission,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0030,0030-041,Add constraintKind external validation result to submission,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0030,0030-042,Add source external with sourceId on external validation result,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0030,0030-044,Create submission-amended.json with status amended,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0030,0030-045,Optionally create submission-stopped.json with status stopped,examples/grant-application/fixtures/,low,DONE,,,
+ADR 0030,0030-048,Write Python tests for changelog parsing,`tests/`,medium,DONE,,,
+ADR 0030,0030-049,Write Python tests for mapping round-trip forward+reverse,`tests/`,medium,DONE,,,
+ADR 0030,0030-050,Write Python tests for schema validation of new files,`tests/`,medium,DONE,,,
+ADR 0031,0031-003,Implement evaluateScreener engine method,packages/formspec-engine/src/,medium,DONE,,,
+ADR 0031,0031-004,Implement screener rendering in webcomponent,packages/formspec-webcomponent/src/,medium,DONE,,,
+ADR 0031,0031-017,Write schema validation tests for registry conditional validation,`tests/`,medium,DONE,,,
+ADR 0031,0031-019,Add at least 2 scoped variables with scope targeting specific groups,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0031,0031-020,Implement scoped variable resolution in engine,packages/formspec-engine/src/,medium,DONE,,,
+ADR 0031,0031-021,Support scopedVar references in FEL resolving within scope,packages/formspec-engine/src/ + WASM bridge,medium,DONE,,,
+ADR 0031,0031-022,Add writable instance with readonly false inline data schema,examples/grant-application/definition.json,medium,DONE,,,
+ADR 0031,0031-024,Implement mutable instance signals in engine,packages/formspec-engine/src/,medium,DONE,,,
+ADR 0031,0031-025,Implement schema on instance — engine validates instance data against declared schema,packages/formspec-engine/src/,medium,DONE,,,
+ADR 0031,0031-026,Add labels.pdf on at least 3 items in definition.json,examples/grant-application/definition.json,low,DONE,,,
+ADR 0031,0031-027,Add labels.csv on at least 3 items in definition.json,examples/grant-application/definition.json,low,DONE,,,
+ADR 0031,0031-028,Create theme-pdf.json with platform pdf different tokens/selectors,examples/grant-application/theme-pdf.json,medium,DONE,,,
+ADR 0031,0031-029,Implement label multiplexing in engine selecting variant based on platform,packages/formspec-engine/src/,medium,DONE,,,
+ADR 0031,0031-030,Exercise DatePicker showTime with dateTime field,packages/formspec-webcomponent/src/,low,DONE,,,
+ADR 0031,0031-031,Wire ProgressBar.bind engine integration,packages/formspec-engine/src/ + webcomponent,medium,DONE,,,
+ADR 0031,0031-032,Wire Modal.trigger auto engine/webcomponent behavior (gap from prior validation),packages/formspec-webcomponent/src/,high,DONE,,,
+ADR 0031,0031-033,Wire Popover.triggerBind engine integration,packages/formspec-webcomponent/src/,low,DONE,,,
+ADR 0031,0031-034,Ensure renderer handles Grid.columns as CSS grid-template-columns string,packages/formspec-webcomponent/src/,low,DONE,,,
+ADR 0031,0031-035,Ensure renderer handles Stack.direction horizontal applying flex-direction row,packages/formspec-webcomponent/src/,low,DONE,,,
+ADR 0031,0031-036,Write E2E test for screener screening questions render and route,`tests/e2e/playwright/`,medium,DONE,,,
+ADR 0031,0031-038,Write Python tests for registry schema validation,`tests/`,medium,DONE,,,
+ADR 0031,0031-039,Write Python tests for scoped variable evaluation,`tests/`,medium,DONE,,,
+ADR 0040,0040-001,Implement batch processing utility with sequential per-item results,packages/formspec-mcp/src/batch.ts,later,DONE,,,
+ADR 0040,0040-002,Implement formspec_guide tool new/modify modes,packages/formspec-mcp/src/tools/guide.ts,later,DONE,,,
+ADR 0040,0040-003,Consolidate bootstrap tools draft into formspec_draft with type param,packages/formspec-mcp/src/tools/,later,DONE,,,
+ADR 0040,0040-004,Add batch support items[] to formspec_field/content/group,packages/formspec-mcp/src/tools/structure.ts,later,DONE,,,
+ADR 0040,0040-005,Create formspec_update non-destructive property bag changes,packages/formspec-mcp/src/tools/structure.ts,later,DONE,,,
+ADR 0040,0040-006,Create formspec_edit destructive remove/move/rename/copy,packages/formspec-mcp/src/tools/structure.ts,later,DONE,,,
+ADR 0040,0040-007,Split page tools formspec_page and formspec_place,packages/formspec-mcp/src/tools/,later,DONE,,,
+ADR 0040,0040-008,Consolidate behavior tools into formspec_behavior with action param,packages/formspec-mcp/src/tools/behavior.ts,later,DONE,,,
+ADR 0040,0040-009,Consolidate data tools 9-1 into formspec_data with resource+action params,packages/formspec-mcp/src/tools/data.ts,later,DONE,,,
+ADR 0040,0040-010,Consolidate screener tools 7-1 into formspec_screener,packages/formspec-mcp/src/tools/screener.ts,later,DONE,,,
+ADR 0040,0040-011,Split query tools describe search trace,packages/formspec-mcp/src/tools/query.ts,later,DONE,,,
+ADR 0040,0040-012,Consolidate remaining tools flow style fel preview,packages/formspec-mcp/src/tools/,later,DONE,,,
+ADR 0040,0040-015,Produce tool descriptions with path format examples and type enumerations,packages/formspec-mcp/src/tools/,later,DONE,,,
+ADR 0040,0040-016,Apply annotations strategy to all tool registrations,packages/formspec-mcp/src/server.ts,later,DONE,,,
+ADR 0040,0040-018,Write lifecycle integration test guide to preview chain,packages/formspec-mcp/tests/integration.test.ts,later,DONE,,,
+ADR 0040,0040-019,Update lifecycle test file to match new tool shapes,packages/formspec-mcp/tests/lifecycle.test.ts,later,DONE,,,
+ADR 0048,0048-001,Create Locale Document JSON schema with x-lm critical annotations,schemas/locale.schema.json,later,DONE,,,
+ADR 0048,0048-002,Write Locale specification path-based strings FEL interpolation fallback chains,s`pecs/locale/locale-spec.md`,later,DONE,,,
+ADR 0048,0048-003,Add loadLocale document to FormEngine,packages/formspec-engine/src/form-engine.ts,later,DONE,,,
+ADR 0048,0048-004,Add setLocale code to FormEngine triggers reactive updates,packages/formspec-engine/src/form-engine.ts,later,DONE,,,
+ADR 0048,0048-006,Make string resolution reactive — locale change propagates via signals,packages/formspec-engine/src/,later,DONE,,,
+ADR 0048,0048-010,Add locale() FEL built-in function returning active locale code,fel-core/src/stdlib/ or crates/formspec-eval/,later,DONE,,,
+ADR 0048,0048-019,Regenerate docs after schema and spec land,`npm run docs:generate`,later,DONE,,,
+ADR 0053,0053-001,Write Assist specification formal tool catalog context resolution profile matching transport contracts,s`pecs/assist/assist-spec.md`,later,DONE,,,
+ADR 0053,0053-003,Create packages/formspec-assist/ at Layer 2 package scaffold,packages/formspec-assist/,later,DONE,,,
+ADR 0053,0053-014,Add getFieldPaths to FormEngine prerequisite API,packages/formspec-engine/src/form-engine.ts,later,DONE,,,
+ADR 0053,0053-015,Add getProgress to FormEngine prerequisite API,packages/formspec-engine/src/form-engine.ts,later,DONE,,,
+ADR 0053,0053-016,Expose FieldViewModel/FormViewModel as primary read surface for assist tools,packages/formspec-engine/src/,later,DONE,,,
+ADR 0053,0053-027,Enforce no lateral dependency between formspec-assist and formspec-webcomponent,`npm run check:deps`,later,DONE,,,
+Plan uswds,PLAN-007,Modify bindSharedFieldEffects to auto-calculate and set aria-describedby on actualInput,packages/formspec-webcomponent/src/behaviors/shared.ts,high,DONE,,,
+Plan uswds,PLAN-011,Remove setAttribute aria-describedby from all individual uswds component adapters,packages/formspec-adapters/src/uswds/*.ts,high,DONE,,,
+Plan layout-workspace,PLAN-013,Add setGroupDisplayMode itemKey mode stack/table wrapper on Project class,studio-core Project class,medium,DONE,,,
+Spec 2026-03-26 locale-translation,SPEC-060,Implement formspec_locale MCP tool CRUD for locale documents,packages/formspec-mcp/src/tools/locale.ts,later,DONE,,,
