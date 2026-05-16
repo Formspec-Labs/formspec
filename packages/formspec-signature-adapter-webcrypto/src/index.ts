@@ -179,9 +179,62 @@ export class WebCryptoVerifier implements Verifier {
     }, 'ECDSA-P256');
   }
 
-  // TODO: implement RSA-PSS once key import and fixture vectors are fixed.
-  private async verifyRsaPssSha256(_request: VerifyRequest): Promise<AlgOutcome> {
-    return { kind: 'unsupported', reason: 'RSA-PSS SHA-256 adapter path not implemented' };
+  private async verifyRsaPssSha256(request: VerifyRequest): Promise<AlgOutcome> {
+    // RSA-PSS SHA-256 via WebCrypto.
+    //
+    // Wire-format parity with the ring adapter:
+    //   - keyRef carries base64(PKCS#1 RSAPublicKey) — the bare `SEQUENCE { n, e }`
+    //     ring's `key_pair.public_key().as_ref()` returns. This matches the format
+    //     committed under tests/fixtures/golden-vectors/rsa-pss-sha256.json so the
+    //     same fixture verifies cross-runtime.
+    //   - WebCrypto's importKey('spki', ...) needs the SubjectPublicKeyInfo wrapper
+    //     instead; we wrap PKCS#1 -> SPKI here so callers don't have to.
+    //   - Signature wire is the raw RSA-PSS signature (modulus-length bstr) inside
+    //     the COSE_Sign1 envelope, salt = hash length = 32 bytes (PS256 default).
+    let keyBytes: ArrayBuffer;
+    try {
+      keyBytes = base64ToBytes(request.keyRef);
+    } catch (e) {
+      throw new VerifierError(
+        `RSA-PSS-SHA256 key import failed (invalid base64): ${sanitizeReason(String(e))}`,
+        'internal',
+      );
+    }
+    const spki = wrapPkcs1RsaPublicKeyInSpki(new Uint8Array(keyBytes));
+    let key: CryptoKey;
+    try {
+      key = await crypto.subtle.importKey(
+        'spki',
+        spki as BufferSource,
+        { name: 'RSA-PSS', hash: 'SHA-256' },
+        false,
+        ['verify'],
+      );
+    } catch (e) {
+      throw new VerifierError(
+        `RSA-PSS-SHA256 key import failed: ${sanitizeReason(String(e))}`,
+        'internal',
+      );
+    }
+
+    const cose = decodeCoseEnvelope(request.signatureBytes);
+    if (cose.kind === 'unsupported') {
+      return cose;
+    }
+    if (cose.value.alg !== -37) {
+      return { kind: 'unsupported', reason: `cose alg mismatch: expected -37, got ${cose.value.alg}` };
+    }
+
+    return verdictFromSubtle(async () => {
+      const payload = resolvePayload(cose.value, request.signedBytes);
+      const sigStructure = sigStructureBytes(cose.value.protectedHeaderBytes, payload);
+      return crypto.subtle.verify(
+        { name: 'RSA-PSS', saltLength: 32 },
+        key,
+        cose.value.signature as BufferSource,
+        sigStructure as BufferSource,
+      );
+    }, 'RSA-PSS-SHA256');
   }
 
   private unsupportedReceipt(
@@ -279,6 +332,86 @@ async function verdictFromSubtle(
 function base64ToBytes(base64: string): ArrayBuffer {
   const binString = atob(base64);
   return Uint8Array.from(binString, (c) => c.charCodeAt(0)).buffer;
+}
+
+/**
+ * Wraps a PKCS#1 `RSAPublicKey` (raw DER `SEQUENCE { n, e }`) in an X.509
+ * SubjectPublicKeyInfo so it can be imported via `crypto.subtle.importKey('spki', ...)`.
+ *
+ * The ring adapter ships RSA public keys in PKCS#1 form (what
+ * `key_pair.public_key().as_ref()` returns); WebCrypto only accepts SPKI on
+ * import. Wrapping here keeps the wire format identical across adapters — the
+ * same `keyRef` produced by ring verifies under WebCrypto without bookkeeping
+ * at the call site.
+ *
+ * Output layout (DER, ASN.1):
+ *   SEQUENCE {
+ *     SEQUENCE {                              -- AlgorithmIdentifier
+ *       OBJECT IDENTIFIER 1.2.840.113549.1.1.1,  -- rsaEncryption
+ *       NULL
+ *     },
+ *     BIT STRING (0 unused bits) {            -- the PKCS#1 RSAPublicKey bytes
+ *       <pkcs1 input verbatim>
+ *     }
+ *   }
+ *
+ * The algorithm OID is `rsaEncryption`, NOT `id-RSASSA-PSS` — this matches the
+ * SPKI form openssl produces for plain RSA keys and what WebCrypto's RSA-PSS
+ * importer expects when the algorithm/hash parameters are supplied at import
+ * time. (RSA-PSS-specific OID would require encoding PSS parameters here too,
+ * which WebCrypto does not accept.)
+ */
+function wrapPkcs1RsaPublicKeyInSpki(pkcs1: Uint8Array): Uint8Array {
+  const algorithmIdentifier = new Uint8Array([
+    0x30, 0x0d, // SEQUENCE, 13 bytes
+    0x06, 0x09, // OBJECT IDENTIFIER, 9 bytes
+    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // 1.2.840.113549.1.1.1
+    0x05, 0x00, // NULL
+  ]);
+  const bitStringLengthBytes = derLengthBytes(pkcs1.length + 1);
+  const bitStringHeader = new Uint8Array(1 + bitStringLengthBytes.length + 1);
+  bitStringHeader[0] = 0x03; // BIT STRING
+  bitStringHeader.set(bitStringLengthBytes, 1);
+  bitStringHeader[bitStringHeader.length - 1] = 0x00; // 0 unused bits
+  const bitStringTotal = bitStringHeader.length + pkcs1.length;
+  const innerLengthBytes = derLengthBytes(algorithmIdentifier.length + bitStringTotal);
+  const outerHeader = new Uint8Array(1 + innerLengthBytes.length);
+  outerHeader[0] = 0x30; // SEQUENCE
+  outerHeader.set(innerLengthBytes, 1);
+
+  const out = new Uint8Array(
+    outerHeader.length + algorithmIdentifier.length + bitStringHeader.length + pkcs1.length,
+  );
+  let offset = 0;
+  out.set(outerHeader, offset);
+  offset += outerHeader.length;
+  out.set(algorithmIdentifier, offset);
+  offset += algorithmIdentifier.length;
+  out.set(bitStringHeader, offset);
+  offset += bitStringHeader.length;
+  out.set(pkcs1, offset);
+  return out;
+}
+
+/**
+ * Encodes a DER length field. Short form (<= 127) is a single byte; long form
+ * is `0x80 | n` followed by `n` big-endian length bytes. Caller writes the tag
+ * itself (we only return the length bytes).
+ */
+function derLengthBytes(length: number): Uint8Array {
+  if (length < 0) {
+    throw new RangeError(`negative DER length: ${length}`);
+  }
+  if (length < 0x80) {
+    return new Uint8Array([length]);
+  }
+  const bytes: number[] = [];
+  let value = length;
+  while (value > 0) {
+    bytes.unshift(value & 0xff);
+    value >>>= 8;
+  }
+  return new Uint8Array([0x80 | bytes.length, ...bytes]);
 }
 
 export { decodeCoseSign1 } from '@formspec/signature-cose';

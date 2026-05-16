@@ -28,6 +28,10 @@ const RING_ECDSA_FIXTURE_PATH = resolve(
   __dirname,
   '../../../crates/formspec-signature-adapter-ring/tests/fixtures/golden-vectors/ecdsa-p256-sha256.json',
 );
+const RING_RSA_PSS_FIXTURE_PATH = resolve(
+  __dirname,
+  '../../../crates/formspec-signature-adapter-ring/tests/fixtures/golden-vectors/rsa-pss-sha256.json',
+);
 
 interface RegistryFileEntry {
   id: string;
@@ -59,15 +63,19 @@ function loadRegistry(): SignatureMethodRegistry {
 
 const TEST_REGISTRY: SignatureMethodRegistry = loadRegistry();
 
-interface RingEcdsaFixture {
+interface RingGoldenVector {
   signature_method: string;
   public_key: { hex: string; base64: string };
   signed_bytes: { hex: string; base64: string };
   signature_bytes_cose_sign1: { hex: string; base64: string };
 }
 
-function loadRingEcdsaFixture(): RingEcdsaFixture {
-  return JSON.parse(readFileSync(RING_ECDSA_FIXTURE_PATH, 'utf8')) as RingEcdsaFixture;
+function loadRingEcdsaFixture(): RingGoldenVector {
+  return JSON.parse(readFileSync(RING_ECDSA_FIXTURE_PATH, 'utf8')) as RingGoldenVector;
+}
+
+function loadRingRsaPssFixture(): RingGoldenVector {
+  return JSON.parse(readFileSync(RING_RSA_PSS_FIXTURE_PATH, 'utf8')) as RingGoldenVector;
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -434,18 +442,117 @@ describe('WebCryptoVerifier', () => {
     expect(receipt.verifiedAt).toBeTruthy();
   });
 
-  it('returns unsupported for RSA-PSS SHA-256 stub', async () => {
+  it('verifies a self-signed RSA-PSS SHA-256 COSE_Sign1 signature (round-trip)', async () => {
+    // Generates a fresh key, signs a payload, builds a COSE_Sign1 envelope,
+    // then verifies via the adapter. Public key is exported in SPKI form,
+    // unwrapped to PKCS#1 RSAPublicKey for the keyRef — matching the ring
+    // adapter's wire format. The adapter rewraps PKCS#1 -> SPKI internally
+    // for WebCrypto import. This contract — keyRef = PKCS#1 base64 — is the
+    // load-bearing parity invariant for cross-runtime verification.
+    const keyPair = await crypto.subtle.generateKey(
+      {
+        name: 'RSA-PSS',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: 'SHA-256',
+      },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('formspec rsa-pss round-trip payload');
+    const protectedHeader = protectedHeaderBytes(-37, new TextEncoder().encode('test-kid'));
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'RSA-PSS', saltLength: 32 },
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+    const spki = new Uint8Array(await crypto.subtle.exportKey('spki', keyPair.publicKey));
+    const pkcs1 = unwrapSpkiToPkcs1RsaPublicKey(spki);
+    const keyRef = kidOrThumbprint(bytesToBase64(pkcs1));
+
     const verifier = new WebCryptoVerifier();
     const receipt = await verifier.verify(
       {
-        signedBytes: new Uint8Array([1, 2, 3]),
-        signatureBytes: new Uint8Array([4, 5, 6]),
+        signedBytes,
+        signatureBytes,
         signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
-        keyRef: kidOrThumbprint('a2V5LWRhdGE='),
+        keyRef,
+      },
+      TEST_REGISTRY,
+    );
+
+    expect(receipt.result).toBe('verified');
+    expect(receipt.adapter.id).toBe('urn:formspec:adapter:webcrypto@1');
+  });
+
+  it('verifies the ring-generated RSA-PSS SHA-256 golden vector', async () => {
+    // Cross-adapter byte-equivalence: bytes signed by the ring adapter
+    // (RSA-PSS SHA-256, salt = 32) must verify under WebCrypto. Public key is
+    // PKCS#1 RSAPublicKey (raw SEQUENCE { n, e }); adapter rewraps -> SPKI.
+    const fixture = loadRingRsaPssFixture();
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes: hexToBytes(fixture.signed_bytes.hex),
+        signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
+        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        keyRef: kidOrThumbprint(fixture.public_key.base64),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('verified');
+    expect(receipt.adapter.id).toBe('urn:formspec:adapter:webcrypto@1');
+  });
+
+  it('fails when the ring RSA-PSS golden vector signature is tampered', async () => {
+    // Negative twin to the positive RSA-PSS golden-vector test. Flips the
+    // final byte of the COSE envelope (inside the raw RSA-PSS signature bstr)
+    // to invalidate without changing framing — mirrors the ring crate's
+    // `flip_inner_signature` invariant. Without this case a regression in the
+    // RSA-PSS branch's key import or salt-length parameter could pass the
+    // positive vector trivially and still leak by accepting forgeries.
+    const fixture = loadRingRsaPssFixture();
+    const tampered = hexToBytes(fixture.signature_bytes_cose_sign1.hex);
+    tampered[tampered.length - 1] ^= 0x01;
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes: hexToBytes(fixture.signed_bytes.hex),
+        signatureBytes: tampered,
+        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        keyRef: kidOrThumbprint(fixture.public_key.base64),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('failed');
+    expect(receipt.adapter.id).toBe('urn:formspec:adapter:webcrypto@1');
+  });
+
+  it('returns unsupported when COSE alg id disagrees with the requested method (RSA-PSS)', async () => {
+    // The adapter pre-checks the COSE alg label against the registry entry's
+    // expected alg id BEFORE invoking subtle.verify. Feeding a -7 (ECDSA)
+    // envelope under the rsa-pss-sha256 method must route to 'unsupported'
+    // with a sanitized reason, not 'failed' (which would imply a real
+    // cryptographic check was performed against the RSA key).
+    const fixture = loadRingEcdsaFixture();
+    const rsaFixture = loadRingRsaPssFixture();
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes: hexToBytes(fixture.signed_bytes.hex),
+        signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
+        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        keyRef: kidOrThumbprint(rsaFixture.public_key.base64),
       },
       TEST_REGISTRY,
     );
     expect(receipt.result).toBe('unsupported');
+    expect(receipt.reason).toMatch(/cose alg mismatch/i);
   });
 });
 
@@ -461,4 +568,62 @@ describe('decodeCoseSign1', () => {
 
 function bytesToBase64(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes));
+}
+
+/**
+ * Strips the X.509 SubjectPublicKeyInfo wrapper off a WebCrypto-exported RSA
+ * public key, leaving the embedded PKCS#1 RSAPublicKey (`SEQUENCE { n, e }`).
+ * The round-trip test uses this to pin the parity invariant: the adapter
+ * accepts what the ring adapter would emit, not what WebCrypto's exporter
+ * emits.
+ *
+ * SPKI shape (skipped here):
+ *   SEQUENCE {
+ *     SEQUENCE { OID rsaEncryption, NULL },   -- AlgorithmIdentifier
+ *     BIT STRING (0 unused bits) { <pkcs1> }  -- the bytes we extract
+ *   }
+ *
+ * Test-only utility — assertions over malformed DER suffice. The production
+ * unwrap path lives in the reverse direction (PKCS#1 -> SPKI) inside the
+ * adapter's `wrapPkcs1RsaPublicKeyInSpki`.
+ */
+function unwrapSpkiToPkcs1RsaPublicKey(spki: Uint8Array): Uint8Array {
+  let offset = 0;
+  if (spki[offset] !== 0x30) {
+    throw new Error('SPKI: expected outer SEQUENCE');
+  }
+  offset += 1;
+  offset += derLengthFieldSize(spki, offset);
+  // AlgorithmIdentifier — skip it.
+  if (spki[offset] !== 0x30) {
+    throw new Error('SPKI: expected AlgorithmIdentifier SEQUENCE');
+  }
+  const algIdSize = 1 + derLengthFieldSize(spki, offset + 1) + derContentLength(spki, offset + 1);
+  offset += algIdSize;
+  // BIT STRING containing the PKCS#1 RSAPublicKey.
+  if (spki[offset] !== 0x03) {
+    throw new Error('SPKI: expected BIT STRING');
+  }
+  offset += 1;
+  const bitStringLengthSize = derLengthFieldSize(spki, offset);
+  const bitStringContentLength = derContentLength(spki, offset);
+  offset += bitStringLengthSize;
+  // Skip the single "unused bits" byte (always 0x00 for byte-aligned keys).
+  offset += 1;
+  return spki.slice(offset, offset + bitStringContentLength - 1);
+}
+
+function derLengthFieldSize(buf: Uint8Array, at: number): number {
+  return buf[at] < 0x80 ? 1 : 1 + (buf[at] & 0x7f);
+}
+
+function derContentLength(buf: Uint8Array, at: number): number {
+  const first = buf[at];
+  if (first < 0x80) return first;
+  const lengthBytes = first & 0x7f;
+  let value = 0;
+  for (let i = 0; i < lengthBytes; i += 1) {
+    value = (value << 8) | buf[at + 1 + i];
+  }
+  return value;
 }
