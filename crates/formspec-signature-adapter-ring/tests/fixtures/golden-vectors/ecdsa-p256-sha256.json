@@ -1,0 +1,33 @@
+{
+  "signature_method": "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
+  "registry_alg": -7,
+  "adapter": {
+    "id": "urn:formspec:adapter:ring@1",
+    "version": "0.1.0"
+  },
+  "public_key_format": "SEC1 uncompressed P-256 (65 bytes, 0x04 prefix)",
+  "public_key": {
+    "hex": "048729c58bd797c468c10539636ea085c0af270d2a6b3166bc883604db1904426433526a4b89860b616dc1a621fc3f5cc3befc3565eda14f584dc9ef70029eda4d",
+    "base64": "BIcpxYvXl8RowQU5Y26ghcCvJw0qazFmvIg2BNsZBEJkM1JqS4mGC2FtwaYh/D9cw778NWXtoU9YTcnvcAKe2k0="
+  },
+  "signed_bytes": {
+    "hex": "666f726d737065632065636473612d7032353620676f6c64656e20766563746f72207061796c6f6164",
+    "base64": "Zm9ybXNwZWMgZWNkc2EtcDI1NiBnb2xkZW4gdmVjdG9yIHBheWxvYWQ="
+  },
+  "protected_header": {
+    "hex": "a301260448746573742d6b69643a0001000202",
+    "base64": "owEmBEh0ZXN0LWtpZDoAAQACAg=="
+  },
+  "sig_structure": {
+    "hex": "846a5369676e61747572653153a301260448746573742d6b69643a0001000202405829666f726d737065632065636473612d7032353620676f6c64656e20766563746f72207061796c6f6164",
+    "base64": "hGpTaWduYXR1cmUxU6MBJgRIdGVzdC1raWQ6AAEAAgJAWClmb3Jtc3BlYyBlY2RzYS1wMjU2IGdvbGRlbiB2ZWN0b3IgcGF5bG9hZA=="
+  },
+  "raw_signature": {
+    "hex": "3c2b82b3d8359a77f9821062a499a6d97a67bbe230d2d3640cb5882a251b971435393098f2a622f04ba78e61ae04caed46634979052f7e3ca5673d1654487d61",
+    "base64": "PCuCs9g1mnf5ghBipJmm2Xpnu+Iw0tNkDLWIKiUblxQ1OTCY8qYi8EunjmGuBMrtRmNJeQUvfjylZz0WVEh9YQ=="
+  },
+  "signature_bytes_cose_sign1": {
+    "hex": "d28453a301260448746573742d6b69643a0001000202a0f658403c2b82b3d8359a77f9821062a499a6d97a67bbe230d2d3640cb5882a251b971435393098f2a622f04ba78e61ae04caed46634979052f7e3ca5673d1654487d61",
+    "base64": "0oRTowEmBEh0ZXN0LWtpZDoAAQACAqD2WEA8K4Kz2DWad/mCEGKkmabZeme74jDS02QMtYgqJRuXFDU5MJjypiLwS6eOYa4Eyu1GY0l5BS9+PKVnPRZUSH1h"
+  }
+}
