@@ -1,134 +1,45 @@
 # Grant Application — Formspec Kitchen-Sink Reference
 
-A complete vertical slice demonstrating the full Formspec lifecycle and nearly every feature across all specification tiers:
-**screener routing → form authoring → browser rendering → submission → server re-validation → mapping output**
+A complete vertical slice exercising nearly every feature across all Formspec specification tiers: screener routing, 6-page wizard authoring, FEL calculations and validation shapes, theme cascade (web + PDF), bidirectional JSON mapping plus CSV/XML adapters, an extension registry, and a v1.0→v1.1 changelog.
 
-## What's here
+This directory is **artifacts only** — no app shell or server. To see these artifacts rendered live, run the [references demo](../references/) (Vite, port 8082) which loads every example through `<formspec-render>`. From the monorepo root: `npm run start:references`.
 
-**Spec artifacts (the form itself):**
+This example focuses on:
+
+- **Breadth** — 6-page wizard, 13 data types, all bind MIPs, repeatable groups (incl. nested), variables, screener, instances, pre-population, `$ref` composition, version migrations.
+- **Validation surface** — 12 shapes covering `or`/`not`/`and`/`xone`, shape-id composition, `activeWhen`, continuous/submit/demand timing, context blocks, named codes.
+- **Mapping coverage** — bidirectional JSON (23 rules: `valueMap`, `coerce`, `concat`, `split`, `nest`, `flatten`, `constant`, `expression`, `drop`; array modes `each`/`indexed`/`whole`), forward-only CSV adapter, forward-only XML adapter with namespaces and CDATA.
+- **Authoring surface** — registry with all 5 extension categories (`dataType`, `function`, `constraint`, `property`, `namespace`) across all lifecycle statuses; changelog with every change type and impact level; PDF theme with print-first tokens.
+
+Validate artifacts:
+
+```bash
+PYTHONPATH=src python3 examples/grant-application/validate.py
+```
+
+## What's in this directory
 
 | File | Spec | Purpose |
 |---|---|---|
 | `definition.json` | Core | 6-page grant application: items, binds, variables, shapes, screener, instances, migrations |
-| `component.json` | Component | Wizard layout tree with 33 components, custom components, responsive design |
-| `theme.json` | Theme | USWDS-flavored web theme: tokens, selectors, cascade, pages |
-| `theme-pdf.json` | Theme | PDF-specific theme with print-first tokens and static selectors |
-| `mapping.json` | Mapping | Bidirectional JSON transform (23 rules, valueMap, coerce, expression, array modes) |
-| `mapping-csv.json` | Mapping | CSV export adapter (6 rules, flatten, column mapping) |
-| `mapping-xml.json` | Mapping | XML export with namespaces, CDATA, element/attribute mapping |
-| `changelog.json` | Changelog | Version 1.0→1.1 migration guide (8 change entries, impact levels) |
-| `registry.json` | Registry | Extension registry: custom SSN type, fiscal-year function, DUNS constraint |
-| `contact-fragment.json` | Core | Reusable contact group ($ref target for modular composition) |
+| `contact-fragment.json` | Core | Reusable contact group (`$ref` target for modular composition) |
+| `component.json` | Component | 118-node wizard layout across 36 distinct component types, including 2 custom components |
+| `theme.json` | Theme | USWDS-flavored web theme: tokens, cascade selectors, per-page grid regions |
+| `theme-pdf.json` | Theme | PDF-specific theme with print-first tokens and static widget overrides |
+| `mapping.json` | Mapping | Bidirectional JSON transform (23 rules) |
+| `mapping-csv.json` | Mapping | CSV export adapter (6 rules, pipe/semicolon-delimited arrays) |
+| `mapping-xml.json` | Mapping | XML export with namespaces and CDATA |
+| `changelog.json` | Changelog | v1.0.0→v1.1.0 migration: 8 entries covering every change type and impact level |
+| `screener.json` | Core | Standalone screener document (also embedded in `definition.json`) |
+| `grant-bridge.css` | — | Component styling layered over `formspec-base.css`, consumed by the references demo |
+| `fixtures/` | — | 4 submission samples: complete, in-progress, amended, stopped |
+| `validate.py` | — | Lints every artifact in this directory via `formspec.validate.discover_artifacts` |
 
-**Submission samples:**
+> Earlier iterations of this example shipped a Vite shell, a FastAPI backend, and a 5-tab tools dashboard. Those have been consolidated into the [references demo](../references/), which loads every example through the same WASM-backed renderer.
 
-| File | Purpose |
-|---|---|
-| `sample-submission.json` | Complete valid response for curl testing |
-| `submission-in-progress.json` | Partial submission (missing required fields) |
-| `submission-amended.json` | Previously submitted form with corrections |
-| `submission-stopped.json` | Abandoned/stopped submission state |
+## Feature coverage
 
-**Application shell:**
-
-| File | Purpose |
-|---|---|
-| `index.html` | Portal page: gov header, sidebar progress nav, grid layout, sticky totals footer |
-| `main.js` | Entry point: loads artifacts, wires reactive footer, handles wizard nav + submit |
-| `tools.html` | Form Intelligence Dashboard: 5-tab developer tools page |
-| `tools.js` | Dashboard controller: expression tester, export, changelog, registry, dependency graph |
-| `grant-bridge.css` | Component styling layered on formspec-base.css (cards, tables, popovers, etc.) |
-| `vite.config.js` | Dev server (port 8081) with repo-root middleware and API proxy to port 8000 |
-| `package.json` | Workspace config |
-
-**Server:**
-
-| File | Purpose |
-|---|---|
-| `server/main.py` | FastAPI with 9 endpoints (see Server API below) |
-| `server/requirements.txt` | Python dependencies (fastapi, uvicorn, jsonschema, pydantic) |
-
-**Documentation:**
-
-| File | Purpose |
-|---|---|
-| `README.md` | This file |
-| `REVIEW-PROMPT.md` | Design review workflow for frontend polish |
-
-## Running
-
-### 1. Install and build (one-time)
-
-```bash
-# From repo root
-npm install
-npm run build
-```
-
-### 2. Start the form (browser)
-
-```bash
-cd examples/grant-application
-npm run dev
-```
-
-Open: http://localhost:8081
-
-> `npm run start:grant-app` from the repo root is an alias.
-> The `test:serve` script (port 8080) serves the Playwright test harness — use `npm run dev` here for the demo.
-
-### 3. Start the API server (separate terminal)
-
-The server powers the tools dashboard and handles form submission with server-side re-validation and mapping.
-
-```bash
-cd examples/grant-application
-pip install -r server/requirements.txt
-PYTHONPATH=../../src python3 -m uvicorn server.main:app --reload --reload-dir ../../src --port 8000
-```
-
-> The form works without the server (instance data falls back to inline defaults), but the tools dashboard and submit require it.
-> Vite proxies `/api/*` to port 8000, so the dashboard works through any hostname (including exe.dev).
-
-### 4. Open the tools dashboard
-
-Navigate to http://localhost:8081/tools.html (or click "Form Intelligence Dashboard" from the header).
-
-Five tabs are available:
-
-| Tab | What it does |
-|---|---|
-| **Expression Tester** | Run any FEL expression with sample data. 18 pre-built examples across aggregates, math, strings, dates, conditionals, and type utilities. |
-| **Download & Export** | Export form data through mapping rules. Shows mapping metadata, all source→target rules with transform types, and editable input data. Supports JSON, CSV, and XML. |
-| **Version Comparison** | Diff two definition versions. Pre-loaded with a v1.0.0→v2.0.0 diff touching items (add/remove/modify), binds (required changes), shapes, optionSets, screener, and metadata across all impact levels (breaking/compatible/cosmetic). |
-| **Extensions** | Browse the extension registry with type/status filters. Cards show base types, constraints, parameters, return types, namespace members, license, compatibility ranges, and deprecation notices. |
-| **Field Relationships** | Interactive d3-force dependency graph. Calculated fields (yellow) and input fields (blue) with directional edges. Click any node to see its expression and dependencies. Supports zoom and drag. |
-
-### 5. Test with curl (no browser needed)
-
-```bash
-curl -X POST http://localhost:8000/submit \
-  -H "Content-Type: application/json" \
-  -d @sample-submission.json | python3 -m json.tool
-```
-
-## Server API
-
-The FastAPI server (`server/main.py`) exposes these endpoints:
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/health` | Health check |
-| GET | `/definition` | Returns the loaded definition.json |
-| GET | `/api/prior-year-data` | Mock prior-year performance data (instance source) |
-| POST | `/evaluate` | Evaluate a FEL expression with sample data |
-| POST | `/export/{format}` | Run mapping engine + adapter for json/csv/xml export |
-| POST | `/submit` | Full submission: Python FEL re-validation + mapping output |
-| POST | `/changelog` | Diff two definition versions into a semver-classified changelog |
-| GET | `/registry` | Query extension registry (optional `name`, `category`, `status` filters) |
-| GET | `/dependencies` | Extract field dependency graph from definition binds |
-
-## Feature coverage by spec tier
+The remainder of this README is a feature inventory — useful for navigating the artifacts and for verifying that the spec features you care about have a working reference. For canonical semantics use the [`formspec-specs`](../../specs/) skill and the generated `*.llm.md` summaries.
 
 ### Core (data & logic)
 
@@ -257,18 +168,10 @@ The FastAPI server (`server/main.py`) exposes these endpoints:
 - **JSON mapping (mapping.json)** — direction: both (bidirectional conformance), 23 top-level rules + 7 inner rules, targetSchema format: json (Grants Management System Payload). Transforms exercised: preserve, valueMap (orgType with forward/reverse maps + unmapped passthrough + default), coerce (object-form with from/to/format and shorthand string), concat (FEL expression composing display name), split (expression with `upper()`), nest (date string to tree by separator), flatten (multiselect to pipe-delimited with reverse nest), constant (static mapping version), expression (FEL-based forward + reverse), drop (attachments stripped for privacy). Array modes: each (lineItems, 5 inner rules with condition guard), indexed (projectPhases, slots 0/1), whole (subcontractors with separator). Priorities and reversePriorities on most rules; `bidirectional: false` on forward-only rules. Top-level defaults (meta.source, meta.profile, submission.channel), per-rule defaults (contactPhone, abstract). Version range `>=1.0.0 <2.0.0`, autoMap enabled.
 - **CSV adapter (mapping-csv.json)** — direction: forward, 6 rules. Adapter config: encoding utf-8, lineEnding lf, delimiter `,`, quote `"`, header row enabled. Transforms: preserve (3), coerce (1, date with format), flatten (2, pipe and semicolon separators for multiselect and repeat arrays).
 - **XML adapter (mapping-xml.json)** — direction: forward, 6 rules. Root element `GrantApplication`, namespaces: default (`https://example.gov/ns/grants/application/v1`) + `xsi`. Adapter config: XML declaration enabled, indent 2, CDATA section on `GrantApplication.Project.Abstract`. Element mapping via dotted paths; attribute mapping via `@` prefix (`RequestedAmount.@currency`). All transforms are preserve.
-- **Server-side execution** — Python `MappingEngine` in `server/main.py` loads `mapping.json` at startup. `POST /submit` runs Python FEL re-validation via `DefinitionEvaluator`, then applies `_mapping_engine.forward()` to produce the grants-management JSON output returned in the `mapped` field.
 
 ### Registry & Changelog (extensions & versioning)
 
-**Extension registry (registry.json)**
-- **Publisher** — "US Grants Modernization Office" with url and contact email; registry version 1.0
-- **5 entries** across all extension categories: `dataType` (x-grants-gov-ssn), `function` (x-grants-gov-fiscal-year), `constraint` (x-grants-gov-duns-valid), `property` (x-grants-gov-agency-code), `namespace` (x-grants-gov)
-- **All lifecycle statuses** — stable (SSN type, namespace), draft (fiscal-year function v0.9.0), deprecated (DUNS constraint with deprecationNotice pointing to UEI replacement), retired (agency-code property with retiredOn date)
-- **Namespace grouping** — x-grants-gov namespace entry with `members` array collecting all four extensions under a single umbrella
-- **Concrete entries** — SSN type with `baseType: string`, pattern constraint `^[0-9]{3}-[0-9]{2}-[0-9]{4}$`, mask metadata, and usage example; fiscal-year function with `date` parameter and `integer` return type; DUNS constraint deprecated in favor of x-grants-gov-uei-valid after SAM migration; agency-code property retired 2025-12-31
-- **Compatibility ranges** — all entries declare `formspecVersion` and `mappingDslVersion` ranges (`>=1.0.0 <2.0.0`)
-- **Registry-level extensions** — approval board (Schema Council), ticket reference (FSM-2031), per-entry x-grants-gov-owner tags
+**Extension registry** — formspec-common (`registries/formspec-common.registry.json`, loaded by `validate.py`) covers the cross-example baseline. Grant-specific extensions referenced in artifacts: SSN dataType, fiscal-year function, DUNS constraint (deprecated, see UEI replacement), agency-code property (retired), and an x-grants-gov namespace umbrella.
 
 **Changelog (changelog.json)**
 - **Version range** — 1.0.0 to 1.1.0, semverImpact: `minor`
