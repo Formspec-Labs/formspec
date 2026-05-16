@@ -522,6 +522,30 @@ mod tests {
             .expect("base64 decode")
     }
 
+    /// Reads a committed golden-vector JSON or fails loudly. Skipping silently
+    /// on missing file hides regressions (deleted fixture → green test); the
+    /// `FORMSPEC_REGENERATE_GOLDEN_VECTORS=1` opt-out exists for the path
+    /// where the round-trip test must produce the file before this one
+    /// re-reads it under parallel nextest.
+    fn read_committed_vector_or_panic(path: &std::path::Path, name: &str) -> String {
+        if let Ok(json) = std::fs::read_to_string(path) {
+            return json;
+        }
+        if std::env::var_os("FORMSPEC_REGENERATE_GOLDEN_VECTORS").is_some() {
+            panic!(
+                "{name} not present yet under FORMSPEC_REGENERATE_GOLDEN_VECTORS; \
+                 round-trip test must run before import test on first regen pass"
+            );
+        }
+        panic!(
+            "{name} committed golden vector missing at {}; \
+             this fixture is committed to the repo and must be present. \
+             To regenerate, set FORMSPEC_REGENERATE_GOLDEN_VECTORS=1 and \
+             rerun the round-trip test first.",
+            path.display()
+        );
+    }
+
     /// JSON fixture shape. Hand-rolled (no serde) so the crate keeps zero
     /// extra dev-deps and importers can match the exact key ordering
     /// byte-for-byte if they care to.
@@ -799,16 +823,11 @@ mod tests {
         // Mirrors the byte-for-byte path another adapter (webcrypto,
         // trellis-admission-formspec) will take when importing this vector:
         // read JSON → decode public_key + signed_bytes + COSE_Sign1 → verify.
-        // Regenerate mode just skips: the round-trip test owns producing
-        // the file and parallel nextest ordering doesn't guarantee the
-        // file exists yet when this test runs.
+        // Regenerate mode is the only path that may bypass the fixture-present
+        // assertion (the round-trip test produces the file before this one
+        // re-reads it; parallel nextest can't guarantee ordering).
         let path = fixture_dir().join("ecdsa-p256-sha256.json");
-        let Ok(json) = std::fs::read_to_string(&path) else {
-            eprintln!(
-                "ecdsa-p256 golden vector missing; run with FORMSPEC_REGENERATE_GOLDEN_VECTORS=1"
-            );
-            return;
-        };
+        let json = read_committed_vector_or_panic(&path, "ecdsa-p256-sha256.json");
         let public_key = read_b64_field(&json, "public_key");
         let signed_bytes = read_b64_field(&json, "signed_bytes");
         let signature_bytes = read_b64_field(&json, "signature_bytes_cose_sign1");
@@ -833,12 +852,7 @@ mod tests {
     #[test]
     fn test_rsa_pss_sha256_committed_golden_vector_imports_and_verifies() {
         let path = fixture_dir().join("rsa-pss-sha256.json");
-        let Ok(json) = std::fs::read_to_string(&path) else {
-            eprintln!(
-                "rsa-pss-sha256 golden vector missing; run with FORMSPEC_REGENERATE_GOLDEN_VECTORS=1"
-            );
-            return;
-        };
+        let json = read_committed_vector_or_panic(&path, "rsa-pss-sha256.json");
         let public_key = read_b64_field(&json, "public_key");
         let signed_bytes = read_b64_field(&json, "signed_bytes");
         let signature_bytes = read_b64_field(&json, "signature_bytes_cose_sign1");

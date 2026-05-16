@@ -66,15 +66,24 @@ pub(crate) fn get_by_path<'a>(obj: &'a Value, path: &str) -> &'a Value {
     current
 }
 
-/// Merge flat key/value entries into `output`, either at the root or into an
-/// existing object at `parent_path`. Used by the Flatten transform (mapping
-/// spec §4.7) to attach dot-prefixed flat keys to a target container without
-/// trampling sibling keys already there.
+/// Write flat key/value entries into `output`, either at the root or under
+/// `parent_path`. Backs the Flatten transform (mapping spec §4.7) by attaching
+/// dot-prefixed flat keys to a target container.
 ///
-/// When `parent_path` is `None` and `output` is an object, entries are inserted
-/// at the root. When `parent_path` is `Some`, the parent object is created (via
-/// `set_by_path`) if it does not yet exist, then entries are merged in — new
-/// entries win on key collision, pre-existing unrelated keys are preserved.
+/// **Asymmetric semantics — preserved from the pre-extraction inline code:**
+///
+/// - `parent_path = None`: entries are inserted at the root via
+///   `out_map.insert(k, v)`. Pre-existing root keys are **preserved** unless a
+///   new entry collides (new wins).
+/// - `parent_path = Some(p)`: the parent at `p` is **overwritten** with a
+///   fresh empty object first (via `set_by_path`), then entries are written
+///   under it. Pre-existing sibling keys under `p` are **NOT preserved**.
+///
+/// The asymmetry comes from `set_by_path` doing an unconditional `map.insert`
+/// at the leaf segment. Whether Flatten *should* preserve siblings under a
+/// parent path is an open Mapping Spec §4.7 question; the regression-pinned
+/// test `merge_flat_into_parent_path_replaces_existing_object` guards the
+/// current behavior so any change is intentional.
 pub(crate) fn merge_flat_into(
     output: &mut Value,
     parent_path: Option<&str>,

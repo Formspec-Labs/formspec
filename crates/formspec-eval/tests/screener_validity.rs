@@ -166,6 +166,10 @@ fn malformed_duration_drops_validity_block() {
         "P1.5Y",   // decimals not in our subset
         "P-1Y",    // negative
         "P1Y2",    // trailing digits without unit
+        "P1Y1Y",   // duplicate unit (rank monotone rejects)
+        "P1D1M",   // descending order (M comes before D in date section)
+        "P1M1Y",   // descending order (Y comes before M in date section)
+        "PT1S1M",  // descending order in time section
         "garbage", // not a duration
     ] {
         let det = evaluate_screener_document(
@@ -179,6 +183,53 @@ fn malformed_duration_drops_validity_block() {
             det.validity
         );
     }
+}
+
+/// Pins `chrono::Months::checked_add_months` end-of-month clamp for the
+/// specific 31-day → 28/29-day month transition: Jan 31 + P1M lands on
+/// Feb 29 (leap year) or Feb 28. Documented as a chrono-side semantic the
+/// parser explicitly inherits.
+#[test]
+fn p1m_from_jan31_clamps_to_february() {
+    let det = evaluate_screener_document(
+        &screener_with_validity("P1M"),
+        &empty_answers(),
+        Some("2024-01-31T00:00:00Z"),
+    );
+    let v = det.validity.unwrap();
+    // 2024 is a leap year → Feb 29.
+    assert_eq!(v.valid_until, "2024-02-29T00:00:00+00:00");
+
+    let det = evaluate_screener_document(
+        &screener_with_validity("P1M"),
+        &empty_answers(),
+        Some("2025-01-31T00:00:00Z"),
+    );
+    let v = det.validity.unwrap();
+    // 2025 non-leap → Feb 28.
+    assert_eq!(v.valid_until, "2025-02-28T00:00:00+00:00");
+}
+
+/// Exercises `add_to`'s seconds branch (`total_seconds > 0` → `TimeDelta`),
+/// which the rest of the suite never lights up through a `...S` component.
+#[test]
+fn pt_seconds_branch_adds_exact_duration() {
+    let det = evaluate_screener_document(
+        &screener_with_validity("PT30S"),
+        &empty_answers(),
+        Some("2026-04-01T10:00:00Z"),
+    );
+    let v = det.validity.unwrap();
+    assert_eq!(v.valid_until, "2026-04-01T10:00:30+00:00");
+
+    // Composite with seconds — verifies the time-section rank includes S.
+    let det = evaluate_screener_document(
+        &screener_with_validity("PT1H2M3S"),
+        &empty_answers(),
+        Some("2026-04-01T10:00:00Z"),
+    );
+    let v = det.validity.unwrap();
+    assert_eq!(v.valid_until, "2026-04-01T11:02:03+00:00");
 }
 
 #[test]

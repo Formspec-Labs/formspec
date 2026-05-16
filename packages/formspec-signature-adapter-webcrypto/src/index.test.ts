@@ -168,6 +168,31 @@ describe('WebCryptoVerifier', () => {
     expect(receipt.result).toBe('verified');
   });
 
+  it('fails when the ring ECDSA-P256 golden vector signature is tampered', async () => {
+    // ECDSA-specific negative twin to the Ed25519 tamper test. Reuses the
+    // committed ring fixture; flips the final byte of `signature_bytes_cose_sign1`
+    // (inside the 64-byte IEEE-P1363 r||s signature bstr trailing the COSE_Sign1
+    // envelope — see fs-wxoz harness `flip_inner_signature` invariant). Without
+    // this case, a regression in the ECDSA branch's key import or signature
+    // wire format would only be caught by the happy path.
+    const fixture = loadRingEcdsaFixture();
+    const tampered = hexToBytes(fixture.signature_bytes_cose_sign1.hex);
+    tampered[tampered.length - 1] ^= 0x01;
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes: hexToBytes(fixture.signed_bytes.hex),
+        signatureBytes: tampered,
+        signatureMethod: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
+        keyRef: kidOrThumbprint(fixture.public_key.base64),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('failed');
+    expect(receipt.adapter.id).toBe('urn:formspec:adapter:webcrypto@1');
+  });
+
   it('verifies the ring-generated ECDSA-P256 golden vector', async () => {
     // Cross-adapter byte-equivalence: bytes signed by the ring adapter
     // (fixed-format ECDSA P-256 SHA-256, IEEE-P1363 r||s) must verify under
@@ -265,8 +290,10 @@ describe('WebCryptoVerifier', () => {
 
   it('fails when COSE_Sign1 bytes are malformed garbage', async () => {
     // Garbage bytes should not crash the verifier — they must surface as a
-    // 'failed' receipt with the adapter shape preserved. Decode throws inside
-    // verifySignature; the outer catch normalizes to failedReceipt.
+    // 'failed' receipt with the adapter shape preserved. The per-alg verify
+    // method (verifyEd25519 here) catches the decode throw internally and
+    // returns 'failed' as a VerificationResult; the outer try in `verify()`
+    // never fires for this path. Receipt result is 'failed' either way.
     const verifier = new WebCryptoVerifier();
     const receipt = await verifier.verify(
       {

@@ -342,6 +342,26 @@ fn test_flatten_object() {
     assert_eq!(result.output["flat.zip"], "10001");
 }
 
+/// Spec: mapping/mapping-spec.md §4.7 — Flatten with a multi-segment target
+/// path locks the call-site wiring through `merge_flat_into`'s `Some(parent)`
+/// arm. Without this test, an accidental swap to `set_by_path` at the engine
+/// would only break direct unit coverage of `merge_flat_into`, not the runtime
+/// transform. Asserts dot-prefix flat keys land under the parent container.
+#[test]
+fn test_flatten_object_with_multi_segment_target_path() {
+    let rules = vec![rule(
+        Some("addr"),
+        "out.addr",
+        TransformType::Flatten {
+            separator: ".".to_string(),
+        },
+    )];
+    let source = json!({ "addr": { "city": "NYC", "zip": "10001" } });
+    let result = execute_mapping(&rules, &source, MappingDirection::Forward);
+    assert_eq!(result.output["out"]["addr.city"], "NYC");
+    assert_eq!(result.output["out"]["addr.zip"], "10001");
+}
+
 #[test]
 fn test_flatten_array() {
     let rules = vec![rule(
