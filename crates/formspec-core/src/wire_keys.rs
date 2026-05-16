@@ -1,6 +1,6 @@
 //! Centralized JSON field names for host bindings (`JsonWireStyle`).
 
-use fel_core::JsonWireStyle;
+pub use fel_core::JsonWireStyle;
 
 /// Keys for [`crate::runtime_mapping::mapping_result_to_json_value`].
 pub fn mapping_result_host_keys(

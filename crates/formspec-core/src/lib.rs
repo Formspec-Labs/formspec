@@ -57,9 +57,7 @@ pub use fel_analysis::{
 };
 pub use fel_condition_group_lift::try_lift_condition_group;
 pub use fel_rewrite_exact::{rewrite_fel_source_references, rewrite_message_template};
-pub use json_artifacts::{
-    JsonWireStyle, changelog_to_json_value, extension_usage_issues_to_json_value,
-};
+pub use json_artifacts::{changelog_to_json_value, extension_usage_issues_to_json_value};
 pub use json_util::json_object_to_string_map;
 pub use option_sets::resolve_option_sets_on_definition;
 pub use path_utils::{
@@ -81,3 +79,4 @@ pub use schema_validator::{
     schema_validation_plan, validate_document,
 };
 pub use value_coerce::coerce_field_value;
+pub use wire_keys::JsonWireStyle;

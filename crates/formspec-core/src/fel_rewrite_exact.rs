@@ -489,8 +489,7 @@ impl<'a> ExactRewriteParser<'a> {
             ) && let Some(updated) = rewrite(current_name)
                 && updated != current_name
             {
-                let raw = char_slice(self.source, token.span.start, token.span.end);
-                let quote = raw.chars().next().unwrap_or('\'');
+                let quote = nth_char(self.source, token.span.start).unwrap_or('\'');
                 self.replacements.push(Replacement {
                     start: token.span.start,
                     end: token.span.end,
@@ -598,8 +597,7 @@ impl<'a> ExactRewriteParser<'a> {
             return;
         }
 
-        let raw = char_slice(self.source, token.span.start, token.span.end);
-        let quote = raw.chars().next().unwrap_or('\'');
+        let quote = nth_char(self.source, token.span.start).unwrap_or('\'');
         self.replacements.push(Replacement {
             start: token.span.start,
             end: token.span.end,
@@ -672,20 +670,56 @@ fn apply_replacements(source: &str, replacements: &[Replacement]) -> String {
     output
 }
 
+/// Replace the char-indexed range `[start, end)` of `source` with `replacement`.
+///
+/// FEL spans are emitted by [`fel_core::lexer::Lexer`] in **char (Unicode
+/// scalar) indices**, not byte offsets. Identifiers, numbers, punctuation,
+/// and reference sigils are ASCII per FEL grammar — but string literals and
+/// block comments interleaved through the source may contain non-ASCII bytes,
+/// so we cannot simply treat the span endpoints as byte offsets.
+///
+/// Rather than allocate intermediate `String` slices via
+/// `chars().skip().take().collect()` (the prior implementation, O(N) per call
+/// inside the reverse-sorted-replacement loop in [`apply_replacements`]), we
+/// walk `char_indices()` once to translate the two char positions into byte
+/// offsets and then slice `&str` directly.
 fn replace_char_range(source: &str, start: usize, end: usize, replacement: &str) -> String {
-    let mut output = String::new();
-    output.push_str(&char_slice(source, 0, start));
+    let (start_byte, end_byte) = char_range_to_byte_range(source, start, end);
+    debug_assert!(source.is_char_boundary(start_byte));
+    debug_assert!(source.is_char_boundary(end_byte));
+
+    let mut output = String::with_capacity(
+        source.len().saturating_sub(end_byte - start_byte) + replacement.len(),
+    );
+    output.push_str(&source[..start_byte]);
     output.push_str(replacement);
-    output.push_str(&char_slice(source, end, source.chars().count()));
+    output.push_str(&source[end_byte..]);
     output
 }
 
-fn char_slice(source: &str, start: usize, end: usize) -> String {
-    source
-        .chars()
-        .skip(start)
-        .take(end.saturating_sub(start))
-        .collect()
+/// Return the `n`-th `char` (Unicode scalar) of `source`, or `None` if past end.
+///
+/// Used to recover the opening quote of a string-literal token whose span is
+/// in char indices.
+fn nth_char(source: &str, n: usize) -> Option<char> {
+    source.chars().nth(n)
+}
+
+/// Translate a half-open char range `[start, end)` to byte offsets via one
+/// pass through `char_indices()`.
+fn char_range_to_byte_range(source: &str, start: usize, end: usize) -> (usize, usize) {
+    let mut start_byte = source.len();
+    let mut end_byte = source.len();
+    for (char_idx, (byte_idx, _)) in source.char_indices().enumerate() {
+        if char_idx == start {
+            start_byte = byte_idx;
+        }
+        if char_idx == end {
+            end_byte = byte_idx;
+            return (start_byte, end_byte);
+        }
+    }
+    (start_byte, end_byte)
 }
 
 fn quote_string_literal(value: &str, quote: char) -> String {

@@ -6,7 +6,7 @@
 //! Private `diff_*` / `merge_*` / `classify_*` helpers implement the section-by-section comparison.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Map;
 use serde_json::Value;
@@ -120,18 +120,9 @@ pub fn generate_changelog(old_def: &Value, new_def: &Value, definition_url: &str
     );
     diff_screener(old_def, new_def, &mut changes);
     diff_migrations(old_def, new_def, &mut changes);
-    diff_metadata(old_def, new_def, &mut changes);
+    diff_metadata_keys(old_def, new_def, METADATA_KEYS, &mut changes);
 
-    let max_impact = changes
-        .iter()
-        .map(|c| c.impact)
-        .max()
-        .unwrap_or(ChangeImpact::Cosmetic);
-    let semver_impact = match max_impact {
-        ChangeImpact::Breaking => SemverImpact::Major,
-        ChangeImpact::Compatible => SemverImpact::Minor,
-        ChangeImpact::Cosmetic => SemverImpact::Patch,
-    };
+    let semver_impact = compute_semver_impact(&changes);
 
     Changelog {
         definition_url: definition_url.to_string(),
@@ -139,6 +130,20 @@ pub fn generate_changelog(old_def: &Value, new_def: &Value, definition_url: &str
         to_version,
         semver_impact,
         changes,
+    }
+}
+
+/// Fold the per-change impacts into the implied semver bump.
+fn compute_semver_impact(changes: &[Change]) -> SemverImpact {
+    let max_impact = changes
+        .iter()
+        .map(|c| c.impact)
+        .max()
+        .unwrap_or(ChangeImpact::Cosmetic);
+    match max_impact {
+        ChangeImpact::Breaking => SemverImpact::Major,
+        ChangeImpact::Compatible => SemverImpact::Minor,
+        ChangeImpact::Cosmetic => SemverImpact::Patch,
     }
 }
 
@@ -151,7 +156,10 @@ fn str_field<'a>(val: &'a Value, key: &str) -> &'a str {
 }
 
 /// Index an array of objects by a string key field, returning (key → &Value).
-fn index_by_key<'a>(arr: &'a [Value], key_field: &str) -> Vec<(&'a str, &'a Value)> {
+///
+/// O(1) lookup per key — used by `diff_items` / `diff_binds` / `diff_keyed_array`
+/// to avoid quadratic `iter().find()` scans on the modify pass.
+fn index_by_key<'a>(arr: &'a [Value], key_field: &str) -> HashMap<&'a str, &'a Value> {
     arr.iter()
         .filter_map(|v| v.get(key_field).and_then(|k| k.as_str()).map(|k| (k, v)))
         .collect()
@@ -172,16 +180,13 @@ fn diff_items(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     let old_map = index_by_key(old_items, "key");
     let new_map = index_by_key(new_items, "key");
 
-    let old_keys: std::collections::HashSet<&str> = old_map.iter().map(|(k, _)| *k).collect();
-    let new_keys: std::collections::HashSet<&str> = new_map.iter().map(|(k, _)| *k).collect();
-
     // Added
-    for &(key, val) in &new_map {
-        if !old_keys.contains(key) {
+    for (&key, &val) in &new_map {
+        if !old_map.contains_key(key) {
             changes.push(Change {
                 change_type: ChangeType::Added,
                 target: ChangeTarget::Item,
-                path: format!("items.{}", key),
+                path: format!("items.{key}"),
                 impact: ChangeImpact::Compatible,
                 key: Some(key.to_string()),
                 description: None,
@@ -193,12 +198,12 @@ fn diff_items(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     }
 
     // Removed
-    for &(key, val) in &old_map {
-        if !new_keys.contains(key) {
+    for (&key, &val) in &old_map {
+        if !new_map.contains_key(key) {
             changes.push(Change {
                 change_type: ChangeType::Removed,
                 target: ChangeTarget::Item,
-                path: format!("items.{}", key),
+                path: format!("items.{key}"),
                 impact: ChangeImpact::Breaking,
                 key: Some(key.to_string()),
                 description: None,
@@ -210,15 +215,15 @@ fn diff_items(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     }
 
     // Modified
-    for &(key, old_val) in &old_map {
-        if let Some(&(_, new_val)) = new_map.iter().find(|(k, _)| *k == key)
+    for (&key, &old_val) in &old_map {
+        if let Some(&new_val) = new_map.get(key)
             && old_val != new_val
         {
             let impact = classify_item_modification(old_val, new_val);
             changes.push(Change {
                 change_type: ChangeType::Modified,
                 target: ChangeTarget::Item,
-                path: format!("items.{}", key),
+                path: format!("items.{key}"),
                 impact,
                 key: Some(key.to_string()),
                 description: None,
@@ -239,8 +244,7 @@ fn classify_item_modification(old: &Value, new: &Value) -> ChangeImpact {
     };
 
     // Collect all keys that differ
-    let all_keys: std::collections::HashSet<&String> =
-        old_obj.keys().chain(new_obj.keys()).collect();
+    let all_keys: HashSet<&String> = old_obj.keys().chain(new_obj.keys()).collect();
 
     let mut has_breaking = false;
     let mut has_non_cosmetic = false;
@@ -341,14 +345,15 @@ fn diff_binds(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     let old_binds = index_binds_by_path(old_def);
     let new_binds = index_binds_by_path(new_def);
 
-    let old_keys: std::collections::HashSet<&str> =
-        old_binds.iter().map(|(k, _)| k.as_str()).collect();
-    let new_keys: std::collections::HashSet<&str> =
-        new_binds.iter().map(|(k, _)| k.as_str()).collect();
+    // O(1) lookup keyed by &str borrowed from the owning Vec entries.
+    let old_map: HashMap<&str, &Value> =
+        old_binds.iter().map(|(k, v)| (k.as_str(), v)).collect();
+    let new_map: HashMap<&str, &Value> =
+        new_binds.iter().map(|(k, v)| (k.as_str(), v)).collect();
 
     // Added
-    for (path, val) in &new_binds {
-        if !old_keys.contains(path.as_str()) {
+    for (&path, &val) in &new_map {
+        if !old_map.contains_key(path) {
             let has_required = bind_has_required(val);
             changes.push(Change {
                 change_type: ChangeType::Added,
@@ -369,8 +374,8 @@ fn diff_binds(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     }
 
     // Removed
-    for (path, val) in &old_binds {
-        if !new_keys.contains(path.as_str()) {
+    for (&path, &val) in &old_map {
+        if !new_map.contains_key(path) {
             changes.push(Change {
                 change_type: ChangeType::Removed,
                 target: ChangeTarget::Bind,
@@ -386,8 +391,8 @@ fn diff_binds(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     }
 
     // Modified
-    for (path, old_val) in &old_binds {
-        if let Some((_, new_val)) = new_binds.iter().find(|(k, _)| k == path)
+    for (&path, &old_val) in &old_map {
+        if let Some(&new_val) = new_map.get(path)
             && old_val != new_val
         {
             let impact = classify_bind_modification(old_val, new_val);
@@ -455,17 +460,14 @@ fn diff_keyed_array(
     let old_map = index_by_key(old_arr, key_field);
     let new_map = index_by_key(new_arr, key_field);
 
-    let old_keys: std::collections::HashSet<&str> = old_map.iter().map(|(k, _)| *k).collect();
-    let new_keys: std::collections::HashSet<&str> = new_map.iter().map(|(k, _)| *k).collect();
-
     let (add_impact, remove_impact, modify_impact) = keyed_array_impacts(&target);
 
-    for &(key, val) in &new_map {
-        if !old_keys.contains(key) {
+    for (&key, &val) in &new_map {
+        if !old_map.contains_key(key) {
             changes.push(Change {
                 change_type: ChangeType::Added,
                 target: target.clone(),
-                path: format!("{}.{}", section, key),
+                path: format!("{section}.{key}"),
                 impact: add_impact,
                 key: None,
                 description: None,
@@ -476,12 +478,12 @@ fn diff_keyed_array(
         }
     }
 
-    for &(key, val) in &old_map {
-        if !new_keys.contains(key) {
+    for (&key, &val) in &old_map {
+        if !new_map.contains_key(key) {
             changes.push(Change {
                 change_type: ChangeType::Removed,
                 target: target.clone(),
-                path: format!("{}.{}", section, key),
+                path: format!("{section}.{key}"),
                 impact: remove_impact,
                 key: None,
                 description: None,
@@ -492,14 +494,14 @@ fn diff_keyed_array(
         }
     }
 
-    for &(key, old_val) in &old_map {
-        if let Some(&(_, new_val)) = new_map.iter().find(|(k, _)| *k == key)
+    for (&key, &old_val) in &old_map {
+        if let Some(&new_val) = new_map.get(key)
             && old_val != new_val
         {
             changes.push(Change {
                 change_type: ChangeType::Modified,
                 target: target.clone(),
-                path: format!("{}.{}", section, key),
+                path: format!("{section}.{key}"),
                 impact: modify_impact,
                 key: None,
                 description: None,
@@ -546,14 +548,14 @@ fn diff_dict(
         .and_then(|v| v.as_object())
         .unwrap_or(&empty_obj);
 
-    let old_keys: std::collections::HashSet<&String> = old_dict.keys().collect();
-    let new_keys: std::collections::HashSet<&String> = new_dict.keys().collect();
+    let old_keys: HashSet<&String> = old_dict.keys().collect();
+    let new_keys: HashSet<&String> = new_dict.keys().collect();
 
     for key in new_keys.difference(&old_keys) {
         changes.push(Change {
             change_type: ChangeType::Added,
             target: target.clone(),
-            path: format!("{}.{}", section, key),
+            path: format!("{section}.{key}"),
             impact: ChangeImpact::Compatible,
             key: None,
             description: None,
@@ -567,7 +569,7 @@ fn diff_dict(
         changes.push(Change {
             change_type: ChangeType::Removed,
             target: target.clone(),
-            path: format!("{}.{}", section, key),
+            path: format!("{section}.{key}"),
             impact: ChangeImpact::Breaking,
             key: None,
             description: None,
@@ -584,7 +586,7 @@ fn diff_dict(
             changes.push(Change {
                 change_type: ChangeType::Modified,
                 target: target.clone(),
-                path: format!("{}.{}", section, key),
+                path: format!("{section}.{key}"),
                 impact: ChangeImpact::Compatible,
                 key: None,
                 description: None,
@@ -666,7 +668,7 @@ fn diff_migrations(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) 
                 changes.push(Change {
                     change_type: ChangeType::Added,
                     target: ChangeTarget::Migration,
-                    path: format!("migrations[{}]", i),
+                    path: format!("migrations[{i}]"),
                     impact: ChangeImpact::Compatible,
                     key: None,
                     description: None,
@@ -679,7 +681,7 @@ fn diff_migrations(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) 
                 changes.push(Change {
                     change_type: ChangeType::Removed,
                     target: ChangeTarget::Migration,
-                    path: format!("migrations[{}]", i),
+                    path: format!("migrations[{i}]"),
                     impact: ChangeImpact::Compatible,
                     key: None,
                     description: None,
@@ -692,7 +694,7 @@ fn diff_migrations(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) 
                 changes.push(Change {
                     change_type: ChangeType::Modified,
                     target: ChangeTarget::Migration,
-                    path: format!("migrations[{}]", i),
+                    path: format!("migrations[{i}]"),
                     impact: ChangeImpact::Cosmetic,
                     key: None,
                     description: None,
@@ -716,9 +718,14 @@ const METADATA_KEYS: &[&str] = &[
     "formPresentation",
 ];
 
-/// Diff top-level metadata fields.
-fn diff_metadata(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
-    for &key in METADATA_KEYS {
+/// Diff a fixed set of top-level metadata keys, emitting `Cosmetic` changes.
+fn diff_metadata_keys(
+    old_def: &Value,
+    new_def: &Value,
+    keys: &[&str],
+    changes: &mut Vec<Change>,
+) {
+    for &key in keys {
         let old_val = old_def.get(key);
         let new_val = new_def.get(key);
         if old_val != new_val {
@@ -789,38 +796,9 @@ pub fn generate_screener_changelog(
     diff_availability(old_doc, new_doc, &mut changes);
 
     // Metadata
-    for &key in SCREENER_METADATA_KEYS {
-        let old_val = old_doc.get(key);
-        let new_val = new_doc.get(key);
-        if old_val != new_val {
-            changes.push(Change {
-                change_type: match (old_val, new_val) {
-                    (None, Some(_)) => ChangeType::Added,
-                    (Some(_), None) => ChangeType::Removed,
-                    _ => ChangeType::Modified,
-                },
-                target: ChangeTarget::Metadata,
-                path: key.to_string(),
-                impact: ChangeImpact::Cosmetic,
-                key: None,
-                description: None,
-                before: old_val.cloned(),
-                after: new_val.cloned(),
-                migration_hint: None,
-            });
-        }
-    }
+    diff_metadata_keys(old_doc, new_doc, SCREENER_METADATA_KEYS, &mut changes);
 
-    let max_impact = changes
-        .iter()
-        .map(|c| c.impact)
-        .max()
-        .unwrap_or(ChangeImpact::Cosmetic);
-    let semver_impact = match max_impact {
-        ChangeImpact::Breaking => SemverImpact::Major,
-        ChangeImpact::Compatible => SemverImpact::Minor,
-        ChangeImpact::Cosmetic => SemverImpact::Patch,
-    };
+    let semver_impact = compute_semver_impact(&changes);
 
     Changelog {
         definition_url: screener_url.to_string(),

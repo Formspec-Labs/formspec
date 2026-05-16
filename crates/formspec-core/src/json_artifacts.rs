@@ -7,9 +7,7 @@ use serde_json::{Value, json};
 
 use crate::changelog::{Change, ChangeImpact, ChangeTarget, ChangeType, Changelog, SemverImpact};
 use crate::extension_analysis::ExtensionUsageIssue;
-use crate::wire_keys::{changelog_change_keys, changelog_root_keys};
-
-pub use fel_core::JsonWireStyle;
+use crate::wire_keys::{JsonWireStyle, changelog_change_keys, changelog_root_keys};
 
 fn semver_impact_str(i: SemverImpact) -> &'static str {
     match i {
