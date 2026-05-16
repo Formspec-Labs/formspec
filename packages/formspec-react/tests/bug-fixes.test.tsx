@@ -597,6 +597,74 @@ describe('Item 11: Wizard step indicator aria-live removed', () => {
     });
 });
 
+// ── fs-eiz7 regression: WhenGuard rules-of-hooks invariant ─────────────────
+
+describe('fs-eiz7 regression: WhenGuard hooks order under when-toggle', () => {
+    // The fix landed in commit 81032347 moved `useMemo` BEFORE the
+    // conditional `if (!visible) return null;` in WhenGuard. This test pins
+    // the invariant by toggling visibility multiple times — React throws
+    // "Rendered fewer/more hooks" if hook order varies between renders.
+    const whenToggleDefinition = {
+        $formspec: '1.0',
+        url: 'https://test.example/when-toggle',
+        version: '1.0.0',
+        status: 'active',
+        title: 'WhenGuard Toggle',
+        name: 'when-toggle-test',
+        items: [
+            { key: 'visible', type: 'field', dataType: 'boolean', label: 'Visible' },
+        ],
+    };
+
+    const guardedNode: LayoutNode = {
+        id: 'guarded',
+        component: 'Stack',
+        category: 'layout',
+        props: { title: 'inner' },
+        cssClasses: ['fs-eiz7-inner'],
+        children: [],
+        when: '$visible',
+    };
+
+    it('toggles false → true → false → true without rules-of-hooks error', () => {
+        const engine = createFormEngine(whenToggleDefinition);
+        engine.setValue('visible', false);
+
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        flushSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={guardedNode} />
+                </FormspecProvider>
+            );
+        });
+
+        // Initial: visible=false → WhenGuard returns null, no inner DOM.
+        expect(container.querySelector('.fs-eiz7-inner')).toBeNull();
+
+        // Toggle visible=true → re-render renders inner.
+        flushSync(() => { engine.setValue('visible', true); });
+        expect(container.querySelector('.fs-eiz7-inner')).toBeTruthy();
+
+        // Toggle back to false → re-render returns null again.
+        flushSync(() => { engine.setValue('visible', false); });
+        expect(container.querySelector('.fs-eiz7-inner')).toBeNull();
+
+        // Toggle to true once more.
+        flushSync(() => { engine.setValue('visible', true); });
+        expect(container.querySelector('.fs-eiz7-inner')).toBeTruthy();
+
+        // If WhenGuard had useMemo AFTER the conditional return (the
+        // pre-fix shape), the toggle sequence above would throw
+        // "Rendered more hooks than during the previous render" on the
+        // false→true transition. Reaching this assertion proves the
+        // invariant holds.
+    });
+});
+
 // ── Item 31: No dual submit buttons when Wizard is present ───────────────
 
 describe('Item 31: FormspecForm does not render second submit when Wizard present', () => {
