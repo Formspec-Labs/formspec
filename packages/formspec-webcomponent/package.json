@@ -25,7 +25,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc && sh ../../scripts/copy-layout-css-assets.sh ../formspec-layout/src dist",
+    "build": "tsc && node ../../scripts/copy-layout-css-assets.mjs ../formspec-layout/src dist",
     "test": "vitest run",
     "test:watch": "vitest"
   },

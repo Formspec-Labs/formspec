@@ -58,10 +58,8 @@ def test_tasks_directory_exists_and_is_populated():
     assert ids, "no benchmark tasks defined yet"
 
 
-@pytest.mark.parametrize("task_id", _task_ids() or ["__placeholder__"])
+@pytest.mark.parametrize("task_id", _task_ids())
 def test_task_has_required_artifacts(task_id: str):
-    if task_id == "__placeholder__":
-        pytest.skip("no tasks yet")
     task_dir = TASKS_DIR / task_id
 
     requirement = task_dir / "requirement.md"
@@ -84,10 +82,8 @@ def test_task_has_required_artifacts(task_id: str):
     assert isinstance(meta["tiers_covered"], list) and meta["tiers_covered"]
 
 
-@pytest.mark.parametrize("task_id", _task_ids() or ["__placeholder__"])
+@pytest.mark.parametrize("task_id", _task_ids())
 def test_reference_validates_cleanly(task_id: str):
-    if task_id == "__placeholder__":
-        pytest.skip("no tasks yet")
     reference = TASKS_DIR / task_id / "reference"
     report = _validate_directory(reference)
     assert report["totalErrors"] == 0, (
@@ -97,10 +93,8 @@ def test_reference_validates_cleanly(task_id: str):
     )
 
 
-@pytest.mark.parametrize("task_id", _task_ids() or ["__placeholder__"])
+@pytest.mark.parametrize("task_id", _task_ids())
 def test_runner_scores_reference_against_itself(task_id: str):
-    if task_id == "__placeholder__":
-        pytest.skip("no tasks yet")
     reference = TASKS_DIR / task_id / "reference"
     result = subprocess.run(
         [sys.executable, str(RUNNER), "score", task_id, str(reference)],
