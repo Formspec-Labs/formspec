@@ -142,7 +142,15 @@ impl Verifier for RingVerifier {
         let entry = registry.resolve(&request.signature_method);
         let entry = match entry {
             Some(e) => {
-                if e.status == "deprecated" {
+                // Allowlist: only the literal "registered" lifecycle status
+                // continues to verification. Anything else — "deprecated",
+                // "withdrawn", "revoked", typos ("depricated", "DEPRECATED",
+                // "deprecated "), unknown future variants, or forged registry
+                // strings — returns an unsupported receipt. This is a
+                // security-critical gate; blacklisting a single keyword
+                // silently activates any string that isn't the keyword
+                // (PR-SWEEP-001 / fs-lwsi will fold this into an enum match).
+                if e.status != "registered" {
                     return Ok(self.unsupported_receipt(request, registry));
                 }
                 e
@@ -272,6 +280,120 @@ mod tests {
                 &registry,
             )
             .unwrap();
+        assert_eq!(receipt.result.to_string(), "unsupported");
+    }
+
+    /// Builds a registry whose single ed25519 entry carries `status`. Lets
+    /// each lifecycle-gate test exercise the allowlist without disturbing
+    /// the shared `test_registry()` fixture (everything else points at the
+    /// stable "registered" entries).
+    fn registry_with_ed25519_status(status: &str) -> SignatureMethodRegistry {
+        SignatureMethodRegistry {
+            version: "1.0.0".into(),
+            entries: vec![RegistryEntry {
+                id: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                suite: "Ed25519".to_string(),
+                wire: "COSE_Sign1 with alg = -8 (EdDSA)".to_string(),
+                alg: Some(-8),
+                status: status.to_string(),
+                deprecation_notice: None,
+            }],
+        }
+    }
+
+    fn ed25519_verify_request() -> VerifyRequest {
+        VerifyRequest {
+            signed_bytes: vec![1, 2, 3],
+            signature_bytes: vec![4, 5, 6],
+            signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+            key_ref: "deadbeef".into(),
+        }
+    }
+
+    /// Existing behavior: literal "deprecated" returns unsupported.
+    #[test]
+    fn registry_status_deprecated_returns_unsupported() {
+        let verifier = RingVerifier::new();
+        let registry = registry_with_ed25519_status("deprecated");
+        let receipt = verifier
+            .verify(&ed25519_verify_request(), &registry)
+            .expect("receipt");
+        assert_eq!(receipt.result.to_string(), "unsupported");
+    }
+
+    /// Existing behavior: literal "registered" continues to verification.
+    /// The vacuous key bytes here make COSE decode fail downstream — but
+    /// crucially the lifecycle gate must *not* be the rejection layer.
+    /// We assert the receipt is anything other than "unsupported", which
+    /// proves the allowlist let us through to the next stage.
+    #[test]
+    fn registry_status_registered_continues_past_lifecycle_gate() {
+        let verifier = RingVerifier::new();
+        let registry = registry_with_ed25519_status("registered");
+        let outcome = verifier.verify(&ed25519_verify_request(), &registry);
+        // Either Err(InvalidCoseEncoding) from the COSE decoder downstream,
+        // or Ok(failed) from a downstream signature mismatch — both prove we
+        // got past the lifecycle gate. An Ok(unsupported) here would mean
+        // the gate rejected a registered status, which is the regression we
+        // are guarding against.
+        match outcome {
+            Ok(receipt) => assert_ne!(
+                receipt.result.to_string(),
+                "unsupported",
+                "registered status must pass the lifecycle gate"
+            ),
+            Err(VerifierError::InvalidCoseEncoding { .. }) => {
+                // Downstream COSE rejection — proves we got past the gate.
+            }
+            Err(other) => panic!("unexpected error past lifecycle gate: {other}"),
+        }
+    }
+
+    /// New behavior: a typo previously slipped through the blacklist and
+    /// silently activated verification. Allowlist closes that gap.
+    #[test]
+    fn registry_status_typo_returns_unsupported() {
+        let verifier = RingVerifier::new();
+        for typo in ["depricated", "DEPRECATED", "deprecated "] {
+            let registry = registry_with_ed25519_status(typo);
+            let receipt = verifier
+                .verify(&ed25519_verify_request(), &registry)
+                .expect("receipt");
+            assert_eq!(
+                receipt.result.to_string(),
+                "unsupported",
+                "status {typo:?} must not activate verification"
+            );
+        }
+    }
+
+    /// New behavior: future lifecycle states added upstream without adapter
+    /// coordination must default to unsupported, not silent activation.
+    #[test]
+    fn registry_status_unknown_lifecycle_returns_unsupported() {
+        let verifier = RingVerifier::new();
+        for unknown in ["withdrawn", "revoked", "unknown", "active"] {
+            let registry = registry_with_ed25519_status(unknown);
+            let receipt = verifier
+                .verify(&ed25519_verify_request(), &registry)
+                .expect("receipt");
+            assert_eq!(
+                receipt.result.to_string(),
+                "unsupported",
+                "status {unknown:?} must not activate verification"
+            );
+        }
+    }
+
+    /// New behavior: empty status is not "registered", must return
+    /// unsupported. Under the old blacklist this also silently activated.
+    #[test]
+    fn registry_status_empty_returns_unsupported() {
+        let verifier = RingVerifier::new();
+        let registry = registry_with_ed25519_status("");
+        let receipt = verifier
+            .verify(&ed25519_verify_request(), &registry)
+            .expect("receipt");
         assert_eq!(receipt.result.to_string(), "unsupported");
     }
 
