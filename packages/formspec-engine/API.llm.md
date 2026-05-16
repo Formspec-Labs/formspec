@@ -4,62 +4,6 @@
 
 Core form state management engine. Parses a FormspecDefinition and builds a reactive signal network for field values, relevance, validation, repeat groups, computed variables, and response serialization. Includes FEL expression compilation, definition assembly, and bidirectional runtime mapping.
 
-#### type `FormspecItem`
-
-```ts
-type FormspecItem = FormItem;
-```
-
-#### type `FormspecBind`
-
-```ts
-type FormspecBind = FormBind & {
-    remoteOptions?: string;
-};
-```
-
-#### type `FormspecShape`
-
-```ts
-type FormspecShape = FormShape;
-```
-
-#### type `FormspecVariable`
-
-```ts
-type FormspecVariable = FormVariable;
-```
-
-#### type `FormspecInstance`
-
-```ts
-type FormspecInstance = FormInstance;
-```
-
-#### type `FormspecDefinition`
-
-```ts
-type FormspecDefinition = FormDefinition;
-```
-
-#### type `FormspecOption`
-
-```ts
-type FormspecOption = OptionEntry;
-```
-
-#### type `ValidationResult`
-
-```ts
-type ValidationResult = FormspecValidationResult;
-```
-
-#### type `ValidationReport`
-
-```ts
-type ValidationReport = FormspecValidationReport;
-```
-
 ## `assembleDefinitionSync(definition: FormDefinition, resolver: Record<string, unknown> | ((url: string, version?: string) => unknown)): AssemblyResult`
 
 ## `assembleDefinition(definition: FormDefinition, resolver: DefinitionResolver): Promise<AssemblyResult>`
@@ -75,6 +19,80 @@ True if query is empty or matches label, value, or any keyword (substring, case-
 - **value**: `string`
 - **label**: `string`
 - **keywords?**: `readonly string[] | undefined`
+
+#### type `FormspecItem`
+
+@deprecated Use `FormItem` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type FormspecItem = FormItem;
+```
+
+#### type `FormspecBind`
+
+@deprecated Use `FormBind` from `@formspec-org/types` (and the engine's `RemoteOptionsState` for remote options). Removed in v1.
+
+```ts
+type FormspecBind = FormBind & {
+    remoteOptions?: string;
+};
+```
+
+#### type `FormspecShape`
+
+@deprecated Use `FormShape` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type FormspecShape = FormShape;
+```
+
+#### type `FormspecVariable`
+
+@deprecated Use `FormVariable` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type FormspecVariable = FormVariable;
+```
+
+#### type `FormspecInstance`
+
+@deprecated Use `FormInstance` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type FormspecInstance = FormInstance;
+```
+
+#### type `FormspecDefinition`
+
+@deprecated Use `FormDefinition` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type FormspecDefinition = FormDefinition;
+```
+
+#### type `FormspecOption`
+
+@deprecated Use `OptionEntry` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type FormspecOption = OptionEntry;
+```
+
+#### type `ValidationResult`
+
+@deprecated Use `ValidationResult` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type ValidationResult = FormspecValidationResult;
+```
+
+#### type `ValidationReport`
+
+@deprecated Use `ValidationReport` from `@formspec-org/types`. Removed in v1.
+
+```ts
+type ValidationReport = FormspecValidationReport;
+```
 
 ## `diffEvalResults(previous: EvalResult | null, next: EvalResult): EvalDelta`
 
@@ -938,11 +956,13 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 #### interface `AuthoredSignatureSignedPayload`
 
 - **canonicalization**: `'formspec-response-signing-v1'`
-- **digestAlgorithm**: `string`
+- **digestAlgorithm**: `'sha-256'`
 - **digest**: `string`
 - **responseId**: `string`
 - **definitionUrl**: `string`
 - **definitionVersion**: `string`
+- **signedAt**: `string`
+- **signingIntent**: `string`
 
 #### interface `AuthoredSignatureInput`
 
@@ -950,7 +970,6 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **documentId**: `string`
 - **signingIntent**: `string`
 - **signatureValue**: `string`
-- **signatureMethod**: `string`
 - **signerId?**: `string`
 - **signerName?**: `string`
 - **signedAt**: `string`
@@ -1009,6 +1028,16 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
     }>`
 
 #### interface `IFormEngine`
+
+- **localeSignal** (`ReadonlyEngineSignal<number>`): Reactive tick signal — increments on **active-locale** or
+**available-locales** changes (`setLocale`, `loadLocale`). Subscribe to
+drive re-renders that consume `getActiveLocale` / `getAvailableLocales`.
+
+Note: `setDirectionMode` (when exposed) bumps an internal
+`_directionVersion` separately; if `getLocaleDirection` consumers need
+reactivity for direction-mode changes, expose a `directionSignal` or
+fold the two ticks. Today `direction` updates indirectly via the locale
+cascade so single-signal subscription is sufficient.
 
 ##### `setRuntimeContext(context: FormEngineRuntimeContext): void`
 
@@ -1729,3 +1758,4 @@ Validate enabled x-extension usage in an item tree against registry entries.
 ```ts
 type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');
 ```
+

@@ -2936,3 +2936,4 @@ Callback invoked after every state change (dispatch, undo, redo, batch).
 ```ts
 type ChangeListener = (state: Readonly<ProjectState>, event: ChangeEvent) => void;
 ```
+
