@@ -1,6 +1,6 @@
 # formspec-lint — generated API (Markdown)
 
-Generated: 2026-03-22T12:46:12.520Z (do not edit by hand; regenerate via npm script / cargo doc-md + this bundler)
+> Do not edit by hand; regenerate via npm script / cargo doc-md + this bundler.
 
 Bundled from [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md). Nested module paths are preserved in headings. Relative links may not resolve; search by heading.
 
@@ -37,6 +37,7 @@ Pass 4 (E400): FEL expression compilation
 Pass 5 (E500): Dependency cycle detection
 Pass 6 (W700-W711/E710): Theme — token validation, reference integrity, page semantics
 Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility, bind resolution
+Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 
 ## Documentation
 
@@ -48,7 +49,7 @@ Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility
 
 ### [`formspec_lint`](formspec_lint.md)
 
-*2 functions, 8 modules*
+*2 functions, 9 modules*
 
 ### [`component_matrix`](component_matrix.md)
 
@@ -60,7 +61,7 @@ Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility
 
 ### [`expressions`](expressions.md)
 
-*1 function, 2 structs*
+*2 functions, 2 structs*
 
 ### [`extensions`](extensions.md)
 
@@ -71,6 +72,10 @@ Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility
 *1 function*
 
 ### [`pass_component`](pass_component.md)
+
+*1 function*
+
+### [`pass_response`](pass_response.md)
 
 *1 function*
 
@@ -107,6 +112,7 @@ Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility
 - [`expressions`](#expressions) - Pass 4: Expression compilation — parses all FEL expression slots in a definition,
 - [`extensions`](#extensions) - Pass 3b: Extension validation (E600/E601/E602).
 - [`pass_component`](#pass_component) - Pass 7: Component document semantic checks (E800-E807, W800-W804).
+- [`pass_response`](#pass_response) - Pass 8 — Response cross-field invariants.
 - [`pass_theme`](#pass_theme) - Pass 6: Theme document semantic checks (W700-W711, E710).
 - [`references`](#references) - Pass 3: Reference validation — checks bind paths and shape targets resolve against the item tree.
 - [`tree`](#tree) - Pass 2: Tree indexing — flattens the item tree into a lookup index.
@@ -230,14 +236,38 @@ Layout lists, subtree walks, and compatibility checks beyond [`lint_component`] 
 
 
 
+## Module: pass_response
+
+Pass 8 — Response cross-field invariants.
+
+Validates the `authoredSignatures[*].signedPayload` pin triple against the
+top-level Response pins. JSON Schema cannot encode the equality constraint;
+Core spec §2.1.6 ("When `authoredSignatures` is present") lists it MUST.
+
+Emits:
+- E900: `signedPayload.responseId` != top-level `id`
+- E901: `signedPayload.definitionUrl` != top-level `definitionUrl`
+- E902: `signedPayload.definitionVersion` != top-level `definitionVersion`
+
+Parity target: Python `_pass_signed_payload_validation` in
+`src/formspec/validate.py` (SIGNED_PAYLOAD_RESPONSE_ID_MISMATCH and
+siblings). Diagnostic shapes differ — Rust emits per-pass codes; Python
+emits SIGNED_PAYLOAD_* codes through `validate_all`. Both reject the same
+fixtures with the same root cause.
+
+
+
 ## Module: pass_theme
 
 Pass 6: Theme document semantic checks (W700-W711, E710).
 
-Validates token values by naming convention, token reference integrity,
-cross-artifact consistency (when a definition is provided), and page semantics.
+Validates token values against the embedded Token Registry, checks token
+reference integrity, cross-artifact consistency (when a definition is
+provided), and page semantics.
 
-Token classification, selector walks, and page rules beyond [`lint_theme`] are internal.
+The registry maps every platform token key to its semantic type (color,
+dimension, fontFamily, etc.) so validation uses authoritative type info
+instead of naming-convention heuristics.
 
 
 
@@ -408,6 +438,7 @@ fn analyze_dependencies(compiled: &[crate::expressions::CompiledExpression]) -> 
 **Functions**
 
 - [`compile_expressions`](#compile_expressions) - Walk all FEL expression slots in a definition document, parse each,
+- [`compile_screener_expressions`](#compile_screener_expressions) - Walk all FEL expression slots in a standalone Screener Document.
 
 ---
 
@@ -457,6 +488,20 @@ and return compiled expressions plus E400 diagnostics for parse failures.
 
 ```rust
 fn compile_expressions(document: &serde_json::Value) -> ExpressionCompilationResult
+```
+
+
+
+## formspec_lint::expressions::compile_screener_expressions
+
+*Function*
+
+Walk all FEL expression slots in a standalone Screener Document.
+Paths: $.evaluation[N].routes[M].condition, $.evaluation[N].routes[M].score,
+$.evaluation[N].activeWhen, $.binds (screener-scoped).
+
+```rust
+fn compile_screener_expressions(document: &serde_json::Value) -> ExpressionCompilationResult
 ```
 
 ---
@@ -544,6 +589,34 @@ When `definition` is provided, cross-artifact checks (W800, E802-E803) are enabl
 
 ```rust
 fn lint_component(component: &serde_json::Value, definition: Option<&serde_json::Value>) -> Vec<crate::types::LintDiagnostic>
+```
+
+---
+
+## Source: formspec_lint/pass_response.md
+
+**formspec_lint > pass_response**
+
+# Module: pass_response
+
+## Contents
+
+**Functions**
+
+- [`lint_response`](#lint_response) - Run the Response pass: cross-field signature pin invariants.
+
+---
+
+## formspec_lint::pass_response::lint_response
+
+*Function*
+
+Run the Response pass: cross-field signature pin invariants.
+
+Returns no diagnostics for Response documents that omit `authoredSignatures`.
+
+```rust
+fn lint_response(doc: &serde_json::Value) -> Vec<crate::types::LintDiagnostic>
 ```
 
 ---
@@ -636,10 +709,10 @@ Metadata for one item in the definition tree.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> ItemRef`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> ItemRef`
 
 
 
@@ -710,16 +783,20 @@ A lint diagnostic.
 
 **Fields:**
 - `code: String` - Error/warning code (e.g., "E100", "E201", "W300").
-- `pass: u8` - Pass number (1-7).
+- `pass: u8` - Pass number (1-8).
 - `severity: LintSeverity` - Severity: error, warning, info.
 - `path: String` - JSONPath to the problematic element.
 - `message: String` - Human-readable message.
+- `suggested_fix: Option<String>` - Machine-readable repair hint for the authoring loop.
+- `spec_ref: Option<String>` - Pointer to the normative spec clause that motivates this rule
 
 **Methods:**
 
 - `fn error<impl Into<String>, impl Into<String>>(code: &str, pass: u8, path: impl Trait, message: impl Trait) -> Self` - Create an error diagnostic.
 - `fn warning<impl Into<String>, impl Into<String>>(code: &str, pass: u8, path: impl Trait, message: impl Trait) -> Self` - Create a warning diagnostic.
 - `fn info<impl Into<String>, impl Into<String>>(code: &str, pass: u8, path: impl Trait, message: impl Trait) -> Self` - Create an info diagnostic.
+- `fn with_suggested_fix<impl Into<String>>(self: Self, fix: impl Trait) -> Self` - Attach a machine-readable repair hint (e.g., `"rename 'amount' to 'quantity'"`).
+- `fn with_spec_ref<impl Into<String>>(self: Self, spec_ref: impl Trait) -> Self` - Attach a pointer to the normative spec clause that motivates this rule
 - `fn suppressed_in(self: &Self, mode: LintMode) -> bool` - Whether this diagnostic should be suppressed in the given lint mode.
 
 **Trait Implementations:**
@@ -751,14 +828,14 @@ Controls which diagnostics are emitted.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> LintMode`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Default**
   - `fn default() -> LintMode`
 - **PartialEq**
   - `fn eq(self: &Self, other: &LintMode) -> bool`
+- **Clone**
+  - `fn clone(self: &Self) -> LintMode`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -777,12 +854,12 @@ Options for the lint pipeline.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Default**
   - `fn default() -> LintOptions`
 - **Clone**
   - `fn clone(self: &Self) -> LintOptions`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -799,10 +876,10 @@ Result of linting.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> LintResult`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> LintResult`
 
 
 

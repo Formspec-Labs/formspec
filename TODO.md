@@ -93,12 +93,6 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
    **Acceptance:** Schema created; lives in formspec; consumed by WOS admission gate.
 
-- **FORMSPEC-SIGN-VERIFY-001 — Response signature semantic verifier** · `fs-5u91` · P3
-
-   Wire cross-field invariant verifier into lint/validate path: authoredSignatures[*].signedPayload.responseId MUST equal top-level id; definitionUrl/definitionVersion MUST equal top-level pins (Core §2.1.6 'When authoredSignatures is present' MUST list). Schema cannot encode — response-pin-mismatch.response.json passes schema validation today; recategorized as documented gap in test_signature_fixtures_schema_valid_but_semantically_invalid.
-
-   **Acceptance:** lint(resp.doc) rejects pin-mismatch fixture; tests for valid + each mismatch shape (responseId, definitionUrl, definitionVersion) pass.
-
 - **FORMSPEC-CANONICALIZATION-001 — Canonicalization helper (no crypto deps)** · `fs-7md4` · P3
    links T4-SIG-PROVIDER-001 — Provider-neutral signature port… `fs-tdzo`
 
@@ -147,6 +141,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - ~~**Offline authoring profile in Respondent Ledger companion**~~ `fs-921l` · CLOSED — Respondent Ledger now carries integrityProfile and offlineAuthoring; chained / trellis-wrapped ledgers require paired event hashes on every embedded event; offline buffers use…
 - ~~**ResponseCorrection event in Respondent Ledger §6**~~ `fs-txpb` · CLOSED — response.correction-recorded carries recordKind='responseCorrection' plus target-event hash, corrected-field subset, original/corrected value pairs, reason, and neutral…
+- ~~**FORMSPEC-SIGN-VERIFY-001 — Response signature semantic verifier**~~ `fs-5u91` · CLOSED — Wire cross-field invariant verifier into lint/validate path: authoredSignatures[*].signedPayload.responseId MUST equal top-level id; definitionUrl/definitionVersion MUST equal…
 - ~~**FORMSPEC-EVAL-VALID-UNTIL-001 — validUntil duration computation**~~ `fs-cf51` · CLOSED — formspec-eval/src/screener_eval.rs:522 has TODO: Implement proper duration addition for validUntil.
 
 <!-- tk:end -->

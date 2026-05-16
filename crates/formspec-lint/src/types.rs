@@ -90,7 +90,7 @@ impl LintMode {
 pub struct LintDiagnostic {
     /// Error/warning code (e.g., "E100", "E201", "W300").
     pub code: String,
-    /// Pass number (1-7).
+    /// Pass number (1-8).
     pub pass: u8,
     /// Severity: error, warning, info.
     pub severity: LintSeverity,

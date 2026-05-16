@@ -448,6 +448,42 @@
         "tests/fixtures/lint/W804-duplicate-bind-any-component.json"
       ],
       "state": "tested"
+    },
+    {
+      "code": "E900",
+      "pass": 8,
+      "severity": "error",
+      "title": "Signed-payload responseId does not match top-level Response id",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "set authoredSignatures[*].signedPayload.responseId to the top-level Response id, or correct the top-level id \u2014 the pin MUST match",
+      "fixtures": [
+        "tests/fixtures/lint/E900-signed-payload-response-id-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E901",
+      "pass": 8,
+      "severity": "error",
+      "title": "Signed-payload definitionUrl does not match top-level Response definitionUrl",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "set authoredSignatures[*].signedPayload.definitionUrl to the top-level Response definitionUrl \u2014 the pin MUST match",
+      "fixtures": [
+        "tests/fixtures/lint/E901-signed-payload-definition-url-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E902",
+      "pass": 8,
+      "severity": "error",
+      "title": "Signed-payload definitionVersion does not match top-level Response definitionVersion",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "set authoredSignatures[*].signedPayload.definitionVersion to the top-level Response definitionVersion \u2014 the pin MUST match",
+      "fixtures": [
+        "tests/fixtures/lint/E902-signed-payload-definition-version-mismatch.json"
+      ],
+      "state": "tested"
     }
   ]
 }

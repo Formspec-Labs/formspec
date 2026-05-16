@@ -384,8 +384,16 @@ class TestResponseSignatureFixtures:
         "valid-single.response.json",
         "valid-cosignature.response.json",
         "digest-mismatch.response.json",
+        "response-pin-mismatch.response.json",
+        "response-definition-url-mismatch.response.json",
+        "response-definition-version-mismatch.response.json",
     ])
     def test_schema_valid_signature_fixtures(self, fixture_name):
+        """Schema-level: these fixtures pass JSON-Schema validation. The
+        pin-mismatch fixtures encode invariants the schema cannot express
+        (Core §2.1.6 cross-field equality); they are rejected by the semantic
+        verifier — see ``TestSignedPayloadVerifier`` below.
+        """
         _validate_response(_load_signature_fixture(fixture_name))
 
     def test_cosignature_fixture_preserves_prior_signed_payload_digest(self):
@@ -398,27 +406,6 @@ class TestResponseSignatureFixtures:
         assert all(
             signature["signedPayload"]["responseId"] == doc["id"]
             for signature in doc["authoredSignatures"]
-        )
-
-    @pytest.mark.parametrize("fixture_name", ["response-pin-mismatch.response.json"])
-    def test_signature_fixtures_schema_valid_but_semantically_invalid(self, fixture_name):
-        """Schema-only validation passes for these fixtures because the Formspec
-        JSON Schema cannot encode the cross-field invariant
-        ``authoredSignatures[*].signedPayload.responseId == top-level id``
-        (Core spec §2.1.6 — "When `authoredSignatures` is present" MUST list).
-
-        These fixtures exist as a NEGATIVE corpus for the semantic verifier
-        that lives downstream of schema validation. Until that verifier is
-        wired, the schema test passes; the gap is intentional and tracked
-        in formspec/TODO.md (FORMSPEC-SIGN-VERIFY-001).
-        """
-        fixture = _load_signature_fixture(fixture_name)
-        # Schema-level: passes (gap the verifier must close).
-        _validate_response(fixture)
-        # Semantic invariant the verifier MUST catch:
-        assert fixture["id"] != fixture["authoredSignatures"][0]["signedPayload"]["responseId"], (
-            "fixture is no longer a pin-mismatch case; please replace with a true mismatch case "
-            "or remove this test."
         )
 
     def test_missing_signing_intent_fixture_is_schema_invalid(self):
@@ -434,6 +421,93 @@ class TestResponseSignatureFixtures:
         assert mismatch["authoredSignatures"][0]["signedPayload"]["digest"] != (
             valid["authoredSignatures"][0]["signedPayload"]["digest"]
         )
+
+
+class TestSignedPayloadVerifier:
+    """Semantic verifier for the cross-field signed-payload pin invariants
+    (Core §2.1.6). Schema cannot encode equality between top-level Response
+    pins (``id``, ``definitionUrl``, ``definitionVersion``) and each
+    ``authoredSignatures[*].signedPayload`` echo of those values; the
+    verifier closes that gap.
+
+    Two surfaces enforce the same invariants and MUST agree:
+
+    - Python ``formspec.validate.validate_all`` emits
+      ``SIGNED_PAYLOAD_*_MISMATCH`` codes (server-side conformance pipeline).
+    - Rust ``formspec_lint::lint`` emits ``E900`` / ``E901`` / ``E902``
+      (authoring loop + cross-language parity).
+    """
+
+    @staticmethod
+    def _validate_all_codes(fixture_path):
+        from formspec.validate import DiscoveredArtifacts, ResponseArtifact, validate_all
+        from pathlib import Path as _Path
+
+        doc = json.loads(_Path(fixture_path).read_text(encoding="utf-8"))
+        artifacts = DiscoveredArtifacts(
+            responses=[ResponseArtifact(path=_Path(fixture_path), doc=doc)],
+        )
+        report = validate_all(artifacts)
+        codes = []
+        for pass_result in report.passes:
+            for item in pass_result.items:
+                for r in item.runtime_results:
+                    if r.get("severity") == "error" and r.get("code"):
+                        codes.append(r["code"])
+        return codes
+
+    @pytest.mark.parametrize(
+        ("fixture_name", "expected_code"),
+        [
+            ("response-pin-mismatch.response.json", "SIGNED_PAYLOAD_RESPONSE_ID_MISMATCH"),
+            ("response-definition-url-mismatch.response.json", "SIGNED_PAYLOAD_DEFINITION_URL_MISMATCH"),
+            ("response-definition-version-mismatch.response.json", "SIGNED_PAYLOAD_DEFINITION_VERSION_MISMATCH"),
+        ],
+    )
+    def test_validate_all_emits_mismatch_code(self, fixture_name, expected_code):
+        """Python ``validate_all`` rejects each pin-mismatch shape with the
+        matching ``SIGNED_PAYLOAD_*_MISMATCH`` error code.
+        """
+        fixture_path = SIGNATURE_FIXTURE_DIR / fixture_name
+        codes = self._validate_all_codes(fixture_path)
+        assert expected_code in codes, (
+            f"{fixture_name}: expected {expected_code} in validate_all output, got {codes}"
+        )
+
+    @pytest.mark.parametrize(
+        ("fixture_name", "expected_rust_code"),
+        [
+            ("response-pin-mismatch.response.json", "E900"),
+            ("response-definition-url-mismatch.response.json", "E901"),
+            ("response-definition-version-mismatch.response.json", "E902"),
+        ],
+    )
+    def test_rust_lint_emits_mismatch_code(self, fixture_name, expected_rust_code):
+        """Rust ``lint(resp.doc)`` rejects each pin-mismatch shape with the
+        matching ``E9xx`` diagnostic. Acceptance criterion of
+        FORMSPEC-SIGN-VERIFY-001: ``lint(resp.doc) rejects`` — parity with
+        the Python ``validate_all`` verifier above.
+        """
+        from formspec._rust import lint
+
+        doc = _load_signature_fixture(fixture_name)
+        diagnostics = lint(doc)
+        codes = [d.code for d in diagnostics]
+        assert expected_rust_code in codes, (
+            f"{fixture_name}: expected {expected_rust_code} in lint output, got {codes}"
+        )
+
+    def test_valid_fixtures_emit_no_pin_mismatch(self):
+        """Valid fixtures (no pin mismatch) MUST NOT emit E900/E901/E902."""
+        from formspec._rust import lint
+
+        for fixture_name in ("valid-single.response.json", "valid-cosignature.response.json"):
+            doc = _load_signature_fixture(fixture_name)
+            codes = {d.code for d in lint(doc)}
+            mismatch_codes = codes & {"E900", "E901", "E902"}
+            assert not mismatch_codes, (
+                f"{fixture_name} should not trigger pin-mismatch codes, got {mismatch_codes}"
+            )
 
 
 class TestResponseExtensions:

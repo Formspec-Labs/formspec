@@ -9,6 +9,7 @@
 //! Pass 5 (E500): Dependency cycle detection
 //! Pass 6 (W700-W711/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility, bind resolution
+//! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 //!
 //! ## Documentation
 //!
@@ -28,6 +29,7 @@ pub mod dependencies;
 pub mod expressions;
 pub mod extensions;
 pub mod pass_component;
+pub mod pass_response;
 pub mod pass_theme;
 pub mod references;
 pub mod tree;
@@ -149,6 +151,11 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
             doc,
             options.definition_document.as_ref(),
         ));
+    }
+
+    // ── Response pass (8) ───────────────────────────────────────
+    if doc_type == DocumentType::Response {
+        diagnostics.extend(pass_response::lint_response(doc));
     }
 
     // Sort and filter
@@ -908,6 +915,48 @@ mod tests {
                 .map(|d| (&d.code, &d.message))
                 .collect::<Vec<_>>()
         );
+    }
+
+    // ── Response pass (8): signed-payload pin invariants ────────
+
+    /// Spec: core/spec.md §2.1.6 — `signedPayload.responseId` MUST equal top-level `id`.
+    /// `lint(resp)` must reject the pin-mismatch case so Rust + Python verifier agree.
+    #[test]
+    fn response_pin_mismatch_emits_e900() {
+        let resp = json!({
+            "$formspecResponse": "1.0",
+            "definitionUrl": "https://example.org/forms/x",
+            "definitionVersion": "1.0.0",
+            "id": "resp-1",
+            "status": "completed",
+            "data": {},
+            "authored": "2026-04-22T12:00:00Z",
+            "authoredSignatures": [{
+                "signatureId": "sig-1",
+                "documentId": "d",
+                "signingIntent": "urn:x:y:z",
+                "signatureValue": "AA==",
+                "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+                "signedPayload": {
+                    "canonicalization": "formspec-response-signing-v1",
+                    "digestAlgorithm": "sha-256",
+                    "digest": "0".repeat(64),
+                    "responseId": "resp-OTHER",
+                    "definitionUrl": "https://example.org/forms/x",
+                    "definitionVersion": "1.0.0",
+                    "signedAt": "2026-04-22T12:00:00Z",
+                    "signingIntent": "urn:x:y:z",
+                }
+            }]
+        });
+        let result = lint(&resp);
+        assert_eq!(result.document_type, Some(DocumentType::Response));
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "E900"),
+            "lint MUST reject pin-mismatch — got codes: {:?}",
+            result.diagnostics.iter().map(|d| &d.code).collect::<Vec<_>>()
+        );
+        assert!(!result.valid);
     }
 
     /// E101 path should point to the specific location of the error.
