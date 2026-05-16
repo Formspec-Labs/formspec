@@ -507,7 +507,7 @@ pub enum ReceiptSignerError {
 /// Cross-runtime compatibility: only `&[u8]` and `Vec<u8>` cross the trait
 /// boundary. Adapters in other runtimes (webcrypto, Trellis-managed key
 /// services) implement the same shape.
-pub trait ReceiptSigner: Send + Sync {
+pub trait ReceiptSigner: Send + Sync + 'static {
     /// Signs canonical receipt-payload bytes and returns the COSE_Sign1
     /// envelope bytes.
     ///

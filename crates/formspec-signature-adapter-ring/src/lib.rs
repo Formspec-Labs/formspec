@@ -1,8 +1,8 @@
 use formspec_signature_port::{
-    AdapterInfo, ClockHandle, KeyInfo, KeyRef, KeyResolver, KeyResolverError, KeyResolverHandle,
-    ReceiptSigner, ReceiptSignerError, ReceiptSignerHandle, SignatureMethodRegistry,
-    StaticKeyResolver, SystemClock, VerificationReceipt, VerificationResult, Verifier,
-    VerifierError, VerifyRequest, utc_to_rfc3339_seconds,
+    AdapterInfo, ClockHandle, KeyInfo, KeyRef, KeyResolverError, KeyResolverHandle, ReceiptSigner,
+    ReceiptSignerError, ReceiptSignerHandle, SignatureMethodRegistry, StaticKeyResolver,
+    SystemClock, VerificationReceipt, VerificationResult, Verifier, VerifierError, VerifyRequest,
+    utc_to_rfc3339_seconds,
 };
 use ring::rand::SystemRandom;
 use ring::signature;
@@ -499,7 +499,11 @@ impl RingVerifier {
 /// composition root.
 pub struct InProcessReceiptSigner {
     key_pair: signature::Ed25519KeyPair,
-    kid: Vec<u8>,
+    /// Optional COSE `kid` bytes. `None` (absent kid) is wire-distinct from
+    /// `Some(vec![])` (present-but-empty kid); previously the field used
+    /// `Vec::is_empty()` as the absence sentinel which collapsed those two
+    /// cases — a foot-gun for any caller passing `Some(&[])`.
+    kid: Option<Vec<u8>>,
     signer_id: String,
 }
 
@@ -511,7 +515,7 @@ impl InProcessReceiptSigner {
     pub fn new(key_pair: signature::Ed25519KeyPair, kid: Option<&[u8]>) -> Self {
         Self {
             key_pair,
-            kid: kid.map(<[u8]>::to_vec).unwrap_or_default(),
+            kid: kid.map(<[u8]>::to_vec),
             signer_id: IN_PROCESS_RECEIPT_SIGNER_ID.to_string(),
         }
     }
@@ -549,11 +553,7 @@ impl InProcessReceiptSigner {
 
 impl ReceiptSigner for InProcessReceiptSigner {
     fn sign_receipt(&self, canonical_payload: &[u8]) -> Result<Vec<u8>, ReceiptSignerError> {
-        let kid_slice = if self.kid.is_empty() {
-            None
-        } else {
-            Some(self.kid.as_slice())
-        };
+        let kid_slice = self.kid.as_deref();
         let protected = formspec_signature_cose::protected_header_bytes(-8, kid_slice);
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(&protected, canonical_payload);
@@ -573,7 +573,7 @@ impl ReceiptSigner for InProcessReceiptSigner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use formspec_signature_port::{FixedClock, RegistryEntry};
+    use formspec_signature_port::{FixedClock, KeyResolver, RegistryEntry};
     use ring::rand::SystemRandom;
     use ring::signature::KeyPair;
 
@@ -1536,6 +1536,111 @@ mod tests {
             0u8,
             "domain tag must be NUL-separated from canonical JSON"
         );
+    }
+
+    // ---------- ReceiptSigner verdict-coverage + failing-signer (fs-abjt) ----------
+
+    /// Test-only signer that always returns `Err(SigningFailed)`. Used to
+    /// prove the fs-no9r "no silent unsigned fallback on signer failure"
+    /// contract: a failing signer MUST surface as `VerifierError::Internal`,
+    /// not as a successful receipt with `receipt_bytes = None`.
+    struct FailingReceiptSigner;
+
+    impl ReceiptSigner for FailingReceiptSigner {
+        fn sign_receipt(&self, _payload: &[u8]) -> Result<Vec<u8>, ReceiptSignerError> {
+            Err(ReceiptSignerError::SigningFailed {
+                reason: "test signer always fails".to_string(),
+            })
+        }
+
+        fn signer_id(&self) -> &str {
+            "urn:formspec:receipt-signer:test-failing@1"
+        }
+    }
+
+    /// A reached Failed verdict (signature cryptographically rejected) MUST
+    /// still receive receipt_bytes when a signer is wired. The verdict-binding
+    /// evidence in `receipt_bytes` is audit-load-bearing for negative outcomes
+    /// too — auditors prove the verifier *processed* the bad signature, not
+    /// just that they decided to call it bad. fs-abjt.
+    #[test]
+    fn verifier_with_signer_populates_receipt_bytes_on_failed_verdict() {
+        let (signer, _signer_pub_key) =
+            InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("generate signer");
+        let verifier = RingVerifier::new_with_receipt_signer(Arc::new(signer));
+        // Construct a Failed verdict by tampering with a verified envelope.
+        let (mut request, _) = verified_ed25519_request();
+        // Flip the last byte of the signature_bytes to break the COSE inner
+        // signature. The COSE envelope still decodes; ring rejects the verify.
+        let last = request.signature_bytes.len() - 1;
+        request.signature_bytes[last] ^= 0xff;
+
+        let receipt = verifier
+            .verify(&request, &test_registry())
+            .expect("verify must reach a verdict");
+        assert!(
+            receipt.is_failed(),
+            "tampered signature must produce Failed (got {:?})",
+            receipt.result,
+        );
+        assert!(
+            receipt.receipt_bytes.is_some(),
+            "Failed receipts must still carry receipt_bytes when signer is wired"
+        );
+    }
+
+    /// A reached Unsupported verdict MUST also receive receipt_bytes when a
+    /// signer is wired. Same audit-coverage argument as the Failed case —
+    /// receipt_bytes records that the verifier reached the verdict; the
+    /// caller cannot conflate "verifier crashed" with "verifier reached
+    /// Unsupported". fs-abjt.
+    #[test]
+    fn verifier_with_signer_populates_receipt_bytes_on_unsupported_verdict() {
+        let (signer, _signer_pub_key) =
+            InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("generate signer");
+        let verifier = RingVerifier::new_with_receipt_signer(Arc::new(signer));
+        // Construct an Unsupported verdict by routing through an unknown
+        // signature method (registry resolve returns None → unsupported).
+        let (mut request, _) = verified_ed25519_request();
+        request.signature_method = "urn:formspec:sig-method:nonexistent@99".into();
+
+        let receipt = verifier
+            .verify(&request, &test_registry())
+            .expect("verify must reach a verdict");
+        assert!(
+            receipt.is_unsupported(),
+            "unknown method must produce Unsupported (got {:?})",
+            receipt.result,
+        );
+        assert!(
+            receipt.receipt_bytes.is_some(),
+            "Unsupported receipts must still carry receipt_bytes when signer is wired"
+        );
+    }
+
+    /// When the signer fails, the verifier MUST return
+    /// `Err(VerifierError::Internal)` — NEVER an `Ok(receipt)` with
+    /// `receipt_bytes = None`. The fs-no9r contract distinguishes
+    /// "verifier reached a verdict" (Ok) from "verifier could not
+    /// complete" (Err); silently degrading a signer failure to an
+    /// unsigned receipt collapses that distinction. fs-abjt.
+    #[test]
+    fn verifier_with_failing_signer_returns_verifier_error_internal() {
+        let verifier =
+            RingVerifier::new_with_receipt_signer(Arc::new(FailingReceiptSigner));
+        let (request, _) = verified_ed25519_request();
+        let err = verifier
+            .verify(&request, &test_registry())
+            .expect_err("failing signer must surface as VerifierError, not Ok(unsigned)");
+        match err {
+            VerifierError::Internal { reason } => {
+                assert!(
+                    reason.contains("signer"),
+                    "Internal reason must name the signer (got: {reason})"
+                );
+            }
+            other => panic!("expected VerifierError::Internal, got {other:?}"),
+        }
     }
 
     // ---------- KeyResolver port + kid binding (fs-0gzb) ----------
