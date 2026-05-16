@@ -124,9 +124,36 @@ export class WebCryptoVerifier implements Verifier {
     }
   }
 
-  // TODO: implement ECDSA P-256 once key import and fixture vectors are fixed.
-  private async verifyEcdsaP256(_request: VerifyRequest): Promise<VerificationResult> {
-    return 'unsupported';
+  private async verifyEcdsaP256(request: VerifyRequest): Promise<VerificationResult> {
+    // ECDSA P-256 via WebCrypto. Key import path: raw SEC1 uncompressed (65 bytes,
+    // 0x04 || X || Y) matches the ring adapter's public_key fixture. Signature
+    // wire format: IEEE-P1363 r||s (64 bytes) — matches ring's ECDSA_P256_SHA256_FIXED
+    // output, which is what we extract from the COSE_Sign1 signature slot.
+    try {
+      const key = await crypto.subtle.importKey(
+        'raw',
+        base64ToBytes(request.keyRef),
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['verify'],
+      );
+
+      const cose = decodeCoseSign1(request.signatureBytes);
+      if (cose.alg !== -7) {
+        return 'failed';
+      }
+      const payload = resolvePayload(cose, request.signedBytes);
+      const sigStructure = sigStructureBytes(cose.protectedHeaderBytes, payload);
+      const isValid = await crypto.subtle.verify(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        key,
+        cose.signature as BufferSource,
+        sigStructure as BufferSource,
+      );
+      return isValid ? 'verified' : 'failed';
+    } catch {
+      return 'failed';
+    }
   }
 
   // TODO: implement RSA-PSS once key import and fixture vectors are fixed.
