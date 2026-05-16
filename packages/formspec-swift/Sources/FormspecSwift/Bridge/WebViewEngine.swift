@@ -62,6 +62,9 @@ final class WebViewEngine: NSObject {
 
         let config = WKWebViewConfiguration()
         config.userContentController.add(self, name: "formspec")
+        // Defense-in-depth: the bridge has no UI surface, so disallow scripts
+        // from opening new windows or being treated as user-gestured.
+        config.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         let wv = WKWebView(frame: .zero, configuration: config)
         wv.navigationDelegate = self
@@ -77,7 +80,11 @@ final class WebViewEngine: NSObject {
 
     /// Send an `EngineCommand` to the JS engine.
     ///
-    /// The command is JSON-encoded and forwarded via `window.formspecCommand(jsonString)`.
+    /// The command is JSON-encoded and forwarded via `window.formspecCommand(jsonString)`
+    /// using `callAsyncJavaScript(arguments:)`, which binds the JSON string as a
+    /// native JS argument — no string concatenation into JS source, no injection
+    /// vector for embedded quotes, backslashes, newlines, or U+2028/U+2029.
+    ///
     /// Throws `WebViewEngineError.notLoaded` if the bridge has not been loaded yet.
     func send(_ command: EngineCommand) async throws {
         guard let wv = webView, isLoaded else {
@@ -87,13 +94,12 @@ final class WebViewEngine: NSObject {
         let data = try JSONEncoder().encode(command)
         let jsonString = String(data: data, encoding: .utf8) ?? "{}"
 
-        // Escape the string for safe insertion into a JS single-quoted string literal.
-        let escaped = jsonString
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
-
-        let js = "window.formspecCommand('\(escaped)')"
-        try await wv.evaluateJavaScript(js)
+        _ = try await wv.callAsyncJavaScript(
+            "window.formspecCommand(cmd); return null;",
+            arguments: ["cmd": jsonString],
+            in: nil,
+            contentWorld: .page
+        )
     }
 
     /// Tear down the `WKWebView` and reset state.
@@ -147,6 +153,25 @@ extension WebViewEngine: WKScriptMessageHandler {
 // MARK: - WKNavigationDelegate
 
 extension WebViewEngine: WKNavigationDelegate {
+    /// Confine the WebView to the module bundle. The only legitimate navigation
+    /// is the initial `loadFileURL` to `formspec-engine.html`; any other origin
+    /// (network, redirect, in-document `location.href` set) is rejected.
+    nonisolated func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.cancel)
+            return
+        }
+        if url.isFileURL, url.lastPathComponent == "formspec-engine.html" {
+            decisionHandler(.allow)
+        } else {
+            decisionHandler(.cancel)
+        }
+    }
+
     nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Task { @MainActor in
             self.loadContinuation?.resume()
