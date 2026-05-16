@@ -414,7 +414,7 @@ fn test_bundle_002_wos_governed_bytes_match_formspec_receipt() {
         ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
     assert_eq!(trellis.events.len(), 1);
     let event = &trellis.events[0];
-    assert_eq!(event.event_kind, "wos.signature.signatureAffirmation");
+    assert_eq!(event.event_kind, "wos.kernel.signature_affirmation");
     assert!(event.data.custody_hook_present);
     assert_eq!(
         event.data.signed_payload_digest,
@@ -513,7 +513,7 @@ fn test_bundle_003_posture_forbids_registered_verified_method() {
         ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
     assert_eq!(trellis.events.len(), 1);
     let event = &trellis.events[0];
-    assert_eq!(event.event_kind, "wos.signature.signatureAdmissionFailed");
+    assert_eq!(event.event_kind, "wos.kernel.signature_admission_failed");
     assert!(
         !event.data.custody_hook_present,
         "failed admission must not create a custody hook"
@@ -635,7 +635,7 @@ fn test_bundle_004_tampered_signature_admission_failed() {
         ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
     assert_eq!(trellis.events.len(), 1);
     let event = &trellis.events[0];
-    assert_eq!(event.event_kind, "wos.signature.signatureAdmissionFailed");
+    assert_eq!(event.event_kind, "wos.kernel.signature_admission_failed");
     assert!(
         !event.data.custody_hook_present,
         "failed admission must not create a custody hook"
