@@ -8,6 +8,7 @@ import {
   protectedHeaderBytes,
   sigStructureBytes,
 } from '@formspec/signature-cose';
+import { protectedHeaderBytesForAlg } from '@integrity-stack/cose';
 import { WebCryptoVerifier, decodeCoseSign1 } from './index';
 import {
   keyRefKid,
@@ -19,6 +20,14 @@ import {
   uri,
   VerifierError,
 } from '@formspec/signature-port';
+
+// Method-URI constants used to build COSE protected headers in tests. Per
+// ADR 0109 these are the dispatch axis carried inside the signed protected
+// header; the adapter enforces equality between the caller-supplied
+// `request.signatureMethod` and the COSE-resident `method_uri`.
+const SIG_METHOD_ED25519 = 'urn:formspec:sig-method:ed25519-cose-sign1@1';
+const SIG_METHOD_RSA_PSS_SHA256 = 'urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1';
+const RECEIPT_METHOD_ED25519 = 'urn:formspec:receipt-method:ed25519-cose-sign1@1';
 
 // Pulls the production registry so the test matrix tracks the canonical source.
 // Avoids drift between registries/signature-method-registry.json and an inline copy.
@@ -172,7 +181,11 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const signedBytes = new TextEncoder().encode('formspec signed payload');
-    const protectedHeader = protectedHeaderBytes(-8, new TextEncoder().encode('test-kid'));
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_ED25519,
+    );
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -249,7 +262,11 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const signedBytes = new TextEncoder().encode('formspec signed payload');
-    const protectedHeader = protectedHeaderBytes(-8, new TextEncoder().encode('test-kid'));
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_ED25519,
+    );
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -290,7 +307,11 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const signedBytes = new TextEncoder().encode('formspec signed payload');
-    const protectedHeader = protectedHeaderBytes(-8, new TextEncoder().encode('test-kid'));
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_ED25519,
+    );
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -384,7 +405,11 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
-    const protectedHeader = protectedHeaderBytes(-8, new TextEncoder().encode('test-kid'));
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_ED25519,
+    );
     // Random non-matching 64-byte signature (deterministic so the test stays stable).
     const bogusSignature = new Uint8Array(64);
     for (let i = 0; i < bogusSignature.length; i += 1) bogusSignature[i] = (i * 7 + 13) & 0xff;
@@ -478,7 +503,11 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const signedBytes = new TextEncoder().encode('formspec rsa-pss round-trip payload');
-    const protectedHeader = protectedHeaderBytes(-37, new TextEncoder().encode('test-kid'));
+    const protectedHeader = protectedHeaderBytes(
+      -37,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_RSA_PSS_SHA256,
+    );
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -580,7 +609,11 @@ describe('WebCryptoVerifier', () => {
 
     // Sign with A.
     const signedBytes = new TextEncoder().encode('fs-g68k wrong-key payload');
-    const protectedHeader = protectedHeaderBytes(-37, new TextEncoder().encode('kid-A'));
+    const protectedHeader = protectedHeaderBytes(
+      -37,
+      new TextEncoder().encode('kid-A'),
+      SIG_METHOD_RSA_PSS_SHA256,
+    );
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -626,7 +659,11 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const signedBytes = new TextEncoder().encode('fs-g68k wrong-saltLength payload');
-    const protectedHeader = protectedHeaderBytes(-37, new TextEncoder().encode('kid'));
+    const protectedHeader = protectedHeaderBytes(
+      -37,
+      new TextEncoder().encode('kid'),
+      SIG_METHOD_RSA_PSS_SHA256,
+    );
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -694,7 +731,7 @@ describe('WebCryptoVerifier', () => {
       ['sign', 'verify'],
     );
     const signedBytes = new TextEncoder().encode('formspec kid-binding payload');
-    const protectedHeader = protectedHeaderBytes(-8, kid);
+    const protectedHeader = protectedHeaderBytes(-8, kid, SIG_METHOD_ED25519);
     const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
     const primitiveSignature = new Uint8Array(
       await crypto.subtle.sign(
@@ -783,6 +820,190 @@ describe('WebCryptoVerifier', () => {
     expect(thrown).toBeInstanceOf(VerifierError);
     expect((thrown as VerifierError).code).toBe('internal');
     expect((thrown as VerifierError).message).toMatch(/key resolver/i);
+  });
+
+  // ---------- ADR 0109 method_uri dispatch (P3-T5) ----------
+
+  it('rejects a COSE envelope missing method_uri (ADR 0109 P3-T5)', async () => {
+    // Legacy MAP_1 / MAP_2 alg-only header — no method_uri at -65540. Post-0109
+    // the adapter's prefix-validating decoder rejects with `cose decode failed`
+    // surfacing the underlying `missing method_uri` cause. Not 'failed' —
+    // this is a request-shape problem, not a forged signature, and routing
+    // it to 'failed' would falsely claim a cryptographic check ran.
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('legacy-no-method-uri payload');
+    const protectedHeader = protectedHeaderBytesForAlg(-8, new TextEncoder().encode('test-kid'));
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'Ed25519' },
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+    const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri(SIG_METHOD_ED25519),
+        keyRef: keyRefRawPublicKey(publicKey),
+      },
+      TEST_REGISTRY,
+    );
+
+    expect(receipt.result).toBe('unsupported');
+    expect(receipt.reason).toMatch(/missing method_uri/i);
+  });
+
+  it('rejects a receipt-method COSE envelope on the response-signing path (cross-domain swap, ADR 0111)', async () => {
+    // Receipt-signing and response-signing live in disjoint URI subspaces;
+    // ADR 0111 invariant 1 forbids cross-domain reuse. The adapter's
+    // sig-method-prefix decoder rejects the receipt-method URI before any
+    // signature primitive runs. Mirrors the Rust signature-cose cross-domain
+    // test (`decode_rejects_wrong_method_uri_prefix`).
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('cross-domain swap payload');
+    // Sign with a receipt-method URI in the protected header...
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      RECEIPT_METHOD_ED25519,
+    );
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'Ed25519' },
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+    const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
+
+    // ...then ask the adapter to verify on the response-signing path. The
+    // request's `signatureMethod` is the sig-method URI (caller derives it
+    // from a higher-level dispatch decision); the COSE envelope holds the
+    // receipt-method URI. The prefix-validating decoder rejects.
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri(SIG_METHOD_ED25519),
+        keyRef: keyRefRawPublicKey(publicKey),
+      },
+      TEST_REGISTRY,
+    );
+
+    expect(receipt.result).toBe('unsupported');
+    expect(receipt.reason).toMatch(/does not match expected prefix/i);
+  });
+
+  it('rejects within-subspace method_uri inequality (caller-vs-signed-bytes, alg matches)', async () => {
+    // Same alg, same subspace, different exact URI: the equality assertion
+    // is the sole gate. Builds a synthetic registry entry with a distinct
+    // ed25519 URI so the registry resolves, the alg matches, but the
+    // signed COSE method_uri disagrees with `request.signatureMethod`.
+    const variantRegistry: SignatureMethodRegistry = {
+      version: semVer('1.0.0'),
+      entries: [
+        {
+          id: uri('urn:formspec:sig-method:ed25519-cose-sign1@99'),
+          suite: 'Ed25519',
+          wire: 'COSE_Sign1 with alg = -8',
+          alg: -8,
+          status: 'registered',
+        },
+      ],
+    };
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('within-subspace alg-match payload');
+    // COSE envelope claims ed25519@1 ...
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_ED25519,
+    );
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'Ed25519' },
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+    const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@99'),
+        keyRef: keyRefRawPublicKey(publicKey),
+      },
+      variantRegistry,
+    );
+
+    expect(receipt.result).toBe('unsupported');
+    expect(receipt.reason).toMatch(/method_uri mismatch/i);
+  });
+
+  it('verifies cleanly when caller-supplied signatureMethod equals the COSE method_uri (Ed25519)', async () => {
+    // Positive twin to the equality-mismatch test: same URI in
+    // request.signatureMethod and COSE protected header. The assertion
+    // passes and verification proceeds to the cryptographic primitive.
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('method-uri equality positive payload');
+    const protectedHeader = protectedHeaderBytes(
+      -8,
+      new TextEncoder().encode('test-kid'),
+      SIG_METHOD_ED25519,
+    );
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'Ed25519' },
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+    const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri(SIG_METHOD_ED25519),
+        keyRef: keyRefRawPublicKey(publicKey),
+      },
+      TEST_REGISTRY,
+    );
+
+    expect(receipt.result).toBe('verified');
   });
 });
 

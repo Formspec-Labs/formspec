@@ -1,6 +1,8 @@
 /** @filedesc WebCrypto adapter implementing the Verifier interface for Ed25519 COSE_Sign1 verification. */
 import {
+  FORMSPEC_SIG_METHOD_URI_PREFIX,
   decodeCoseSign1,
+  decodeCoseSign1WithMethodUri,
   resolvePayload,
   sigStructureBytes,
 } from '@formspec/signature-cose';
@@ -181,6 +183,10 @@ export class WebCryptoVerifier implements Verifier {
     if (cose.value.alg !== -8) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -8, got ${cose.value.alg}` };
     }
+    const methodMismatch = assertMethodUriBinding(request.signatureMethod, cose.value.methodUri);
+    if (methodMismatch) {
+      return methodMismatch;
+    }
     const kidMismatch = assertKidBinding(request.keyRef, cose.value.kid);
     if (kidMismatch) {
       return kidMismatch;
@@ -218,6 +224,10 @@ export class WebCryptoVerifier implements Verifier {
     }
     if (cose.value.alg !== -7) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -7, got ${cose.value.alg}` };
+    }
+    const methodMismatch = assertMethodUriBinding(request.signatureMethod, cose.value.methodUri);
+    if (methodMismatch) {
+      return methodMismatch;
     }
     const kidMismatch = assertKidBinding(request.keyRef, cose.value.kid);
     if (kidMismatch) {
@@ -276,6 +286,10 @@ export class WebCryptoVerifier implements Verifier {
     }
     if (cose.value.alg !== -37) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -37, got ${cose.value.alg}` };
+    }
+    const methodMismatch = assertMethodUriBinding(request.signatureMethod, cose.value.methodUri);
+    if (methodMismatch) {
+      return methodMismatch;
     }
     const kidMismatch = assertKidBinding(request.keyRef, cose.value.kid);
     if (kidMismatch) {
@@ -356,6 +370,44 @@ function assertKidBinding(
     return {
       kind: 'unsupported',
       reason: 'kid mismatch: cose.kid != request.keyRef',
+    };
+  }
+  return null;
+}
+
+/**
+ * ADR 0109 / ADR 0111 method-URI binding check. The caller passes
+ * `request.signatureMethod` as the dispatch URI (caller-side derivation per
+ * P3-T5 — pre-0109 callers read it from JSON `signatureMethod`, post-0109 they
+ * derive it from the signed COSE protected header before invoking verify).
+ * The adapter independently decodes `method_uri` from the COSE protected
+ * header (label `-65540`); the two MUST agree byte-for-byte. Mismatch routes
+ * to `unsupported` — distinct from a forged signature ('failed'), which would
+ * imply a real cryptographic check ran and rejected the bytes.
+ *
+ * The prefix-validating decoder upstream already rejects envelopes missing
+ * `method_uri` and envelopes whose URI prefix falls outside the response-
+ * signing subspace; this assertion closes the remaining gap inside the
+ * subspace: two ed25519 entries with different versions or two distinct
+ * URIs sharing the same prefix must not be conflated by a caller-supplied
+ * dispatch URI that disagrees with the signed bytes.
+ */
+function assertMethodUriBinding(
+  requestMethod: string,
+  coseMethodUri: string | null,
+): AlgOutcome | null {
+  if (coseMethodUri === null) {
+    // The prefix-validating decoder upstream rejects this, so reaching here
+    // would be a defense-in-depth catch — keep the named reason consistent.
+    return {
+      kind: 'unsupported',
+      reason: 'method_uri missing from COSE protected header',
+    };
+  }
+  if (requestMethod !== coseMethodUri) {
+    return {
+      kind: 'unsupported',
+      reason: `method_uri mismatch: request ${JSON.stringify(requestMethod)} != cose ${JSON.stringify(coseMethodUri)}`,
     };
   }
   return null;
@@ -452,9 +504,16 @@ async function importPublicKey(
 }
 
 /**
- * Wraps `decodeCoseSign1` so a malformed envelope produces an `unsupported`
- * verdict with a sanitized reason — caller can distinguish "bytes did not
- * decode as COSE_Sign1" from "signature decoded fine but did not verify".
+ * Decodes a Formspec response-signing envelope (ADR 0109 consumer detached
+ * shape) and gates on the `urn:formspec:sig-method:*` URI prefix. Malformed
+ * envelopes, envelopes missing `method_uri`, and envelopes whose URI lives
+ * outside the response-signing subspace all surface as `unsupported` with a
+ * sanitized reason — distinct from a forged signature ('failed').
+ *
+ * Mirrors `decode_cose_sign1_with_method_uri(bytes, FORMSPEC_SIG_METHOD_URI_PREFIX)`
+ * in the Rust ring adapter. The returned `value` is the underlying
+ * `CoseSign1`; downstream code reads `value.methodUri` to enforce
+ * caller-vs-signed-bytes equality (see {@link assertMethodUriBinding}).
  */
 function decodeCoseEnvelope(
   signatureBytes: Uint8Array,
@@ -462,7 +521,8 @@ function decodeCoseEnvelope(
   | { kind: 'value'; value: ReturnType<typeof decodeCoseSign1> }
   | { kind: 'unsupported'; reason: string } {
   try {
-    return { kind: 'value', value: decodeCoseSign1(signatureBytes) };
+    const { cose } = decodeCoseSign1WithMethodUri(signatureBytes, FORMSPEC_SIG_METHOD_URI_PREFIX);
+    return { kind: 'value', value: cose };
   } catch (e) {
     return { kind: 'unsupported', reason: `cose decode failed: ${sanitizeReason(String(e))}` };
   }
