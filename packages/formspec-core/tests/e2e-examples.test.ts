@@ -290,9 +290,12 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
       // Build one project per definition file found in the example
       
       for (const defFile of defFiles) {
-        // Strip the .definition.json suffix. For unprefixed files (defFile === 'definition.json')
-        // this yields an empty prefix, so sibling lookups fall through to bare 'theme.json' / 'component.json' / 'mapping.json'.
-        const prefix = defFile.replace(/\.definition\.json$/, '');
+        // Strip the [.]definition.json suffix. Optional leading dot covers both
+        // 'a.definition.json' → 'a' and bare 'definition.json' → '' (the latter
+        // would otherwise round-trip through the regex unchanged because the
+        // leading literal dot would fail to match). Empty prefix lets sibling
+        // lookups fall through to bare 'theme.json' / 'component.json' / etc.
+        const prefix = defFile.replace(/\.?definition\.json$/, '');
         progress(`${ex} / ${prefix}: createRawProject + loadRegistry`);
         const project = createRawProject();
         project.dispatch({ type: 'project.loadRegistry', payload: { registry: commonRegistry } });
