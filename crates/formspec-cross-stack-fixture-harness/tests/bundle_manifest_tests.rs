@@ -109,31 +109,40 @@ struct TrellisEventData {
     admission_failed_reason: Option<String>,
 }
 
-fn cross_stack_root() -> PathBuf {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let root = manifest_dir
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("tests")
-        .join("fixtures")
-        .join("cross-stack");
-    assert!(
-        root.join("manifest.schema.json").exists(),
-        "cross-stack fixtures not found at {:?} — crate may have moved",
-        root
-    );
-    root
-}
-
+/// Resolves the formspec crate root.
+///
+/// Default path: walks up two parents from `CARGO_MANIFEST_DIR`
+/// (`crates/formspec-cross-stack-fixture-harness/` → `crates/` → repo root).
+/// `FORMSPEC_ROOT_DIR` env var overrides — set this when the harness moves to
+/// another location relative to the formspec repo, rather than rewriting the
+/// parent walk.
 fn formspec_root() -> PathBuf {
+    if let Ok(override_path) = std::env::var("FORMSPEC_ROOT_DIR") {
+        return PathBuf::from(override_path);
+    }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
         .parent()
         .unwrap()
         .to_path_buf()
+}
+
+/// Resolves the cross-stack fixture corpus directory under the formspec repo.
+///
+/// Asserts the manifest schema is present so a stale checkout or a crate move
+/// fails loudly rather than silently discovering zero bundles.
+fn cross_stack_root() -> PathBuf {
+    let root = formspec_root()
+        .join("tests")
+        .join("fixtures")
+        .join("cross-stack");
+    assert!(
+        root.join("manifest.schema.json").exists(),
+        "cross-stack fixtures not found at {:?} — crate may have moved; set FORMSPEC_ROOT_DIR to override",
+        root
+    );
+    root
 }
 
 fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture {
@@ -294,13 +303,52 @@ fn test_all_manifests_parse_and_validate_against_schema() {
 }
 
 #[test]
-fn test_all_seven_bundles_discovered() {
+fn test_all_bundles_discovered_match_directory_listing() {
     let root = cross_stack_root();
     let bundles = discover_bundles(root.to_str().unwrap()).unwrap();
 
-    assert_eq!(bundles.len(), 7, "expected exactly 7 bundles");
-    let ids: Vec<_> = bundles.iter().map(|b| b.id.as_str()).collect();
-    assert_eq!(ids, vec!["001", "002", "003", "004", "005", "006", "007"]);
+    // Expected set: every NNN-* subdirectory under cross_stack_root() with a
+    // manifest.toml. Hidden directories (e.g. `.invalid`) are excluded.
+    let mut expected_ids: Vec<String> = std::fs::read_dir(&root)
+        .expect("read cross-stack fixtures dir")
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.starts_with('.') {
+                return None;
+            }
+            if !entry.file_type().ok()?.is_dir() {
+                return None;
+            }
+            if !entry.path().join("manifest.toml").exists() {
+                return None;
+            }
+            let (id, _) = name.split_once('-')?;
+            Some(id.to_string())
+        })
+        .collect();
+    expected_ids.sort();
+
+    assert!(
+        !expected_ids.is_empty(),
+        "no bundle directories with manifest.toml found in {root:?}"
+    );
+
+    let discovered_ids: Vec<String> = bundles.iter().map(|b| b.id.clone()).collect();
+    assert_eq!(
+        discovered_ids, expected_ids,
+        "discover_bundles must return every NNN-* subdirectory, in sorted order"
+    );
+
+    // Bundle ids form a contiguous range starting at 001 — drift trap for new
+    // bundles landed out of order or with skipped numbers.
+    for (offset, id) in expected_ids.iter().enumerate() {
+        let expected = format!("{:03}", offset + 1);
+        assert_eq!(
+            id, &expected,
+            "bundle ids must be contiguous starting at 001; got {id} at position {offset}"
+        );
+    }
 }
 
 #[test]

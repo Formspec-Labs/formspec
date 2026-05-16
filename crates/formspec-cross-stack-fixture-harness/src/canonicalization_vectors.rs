@@ -31,6 +31,21 @@ pub struct CanonicalizationVector {
     pub expected_signed_payload_hex: &'static str,
 }
 
+// The pinned hex constants in vector_a_without_signatures and
+// vector_b_with_signatures are byte-stable expected values. They MUST agree
+// with `integrity-canonical`'s current preimage construction.
+//
+// Regeneration (after any intentional change to integrity-canonical's
+// canonical_response_handoff_bytes / canonical_response_signed_payload_bytes):
+//
+//   cargo nextest run -p formspec-cross-stack-fixture-harness \
+//       pinned_hex_matches_integrity_canonical_recomputation
+//
+// The test fails with both the expected and actual hex for each vector — copy
+// the actual values into the two `expected_*_hex` fields below, re-run, and
+// commit. The `vectors_diverge_handoff_vs_signed_payload` test independently
+// guards the handoff != signed-payload domain separation invariant.
+
 /// Vector A: Response without `authoredSignatures`. Handoff and signed-payload
 /// hashes commit to the same payload bytes because the strip is a no-op.
 pub fn vector_a_without_signatures() -> CanonicalizationVector {
