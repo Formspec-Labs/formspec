@@ -324,6 +324,73 @@ pub trait Verifier {
     ) -> Result<VerificationReceipt, VerifierError>;
 }
 
+/// Adapter-internal error surface for [`ReceiptSigner::sign_receipt`].
+///
+/// Receipt signing is an audit-binding step: if it cannot produce signed
+/// bytes the caller MUST surface the failure rather than emitting an
+/// unsigned receipt that lies about being signed. The signer port returns
+/// errors instead of an `Option<Vec<u8>>` so a misconfigured signing path
+/// cannot silently degrade to "verification-only" mode — opt-out at the
+/// construction site, not at the call site.
+#[derive(Debug, Error)]
+pub enum ReceiptSignerError {
+    /// The signing primitive itself rejected the payload.
+    #[error("receipt signing failed: {reason}")]
+    SigningFailed { reason: String },
+    /// The signer could not locate or import its key material.
+    #[error("signing key unavailable: {reason}")]
+    KeyUnavailable { reason: String },
+    /// Adapter-internal failure unrelated to the payload (envelope encoding,
+    /// I/O against a key service, etc.).
+    #[error("internal error: {reason}")]
+    Internal { reason: String },
+}
+
+/// Signs the canonical receipt-payload bytes for a [`VerificationReceipt`].
+///
+/// **Contract.**
+///
+/// - Input is the **canonical, domain-separated bytes** of the receipt's
+///   non-signature fields, produced by the calling verifier. The signer
+///   does not canonicalize — it just signs. This keeps the port
+///   cross-runtime: Rust, TypeScript, and Python adapters all see the same
+///   "bytes in, bytes out" shape.
+/// - Output is the **COSE_Sign1 envelope bytes** binding the signer's key
+///   to the input. Callers store these bytes in
+///   [`VerificationReceipt::receipt_bytes`] (base64-encoded by the receipt
+///   serializer) so an independent verifier can re-derive the canonical
+///   payload from the receipt fields and check the signature.
+/// - Implementations MUST be deterministic for the same `(payload, key)`
+///   pair when the signature suite is itself deterministic (Ed25519);
+///   ECDSA/RSA-PSS signers MAY use fresh randomness per call. Either way,
+///   a *correct* verification of the returned bytes under the signer's
+///   public key MUST succeed.
+/// - [`signer_id`] returns a stable adapter identifier (URN-shaped, e.g.
+///   `urn:formspec:receipt-signer:ring-in-process@1`) for telemetry and
+///   audit. It is not a key identifier — distinct keys MAY share a signer
+///   id.
+///
+/// Cross-runtime compatibility: only `&[u8]` and `Vec<u8>` cross the trait
+/// boundary. Adapters in other runtimes (webcrypto, Trellis-managed key
+/// services) implement the same shape.
+pub trait ReceiptSigner: Send + Sync {
+    /// Signs canonical receipt-payload bytes and returns the COSE_Sign1
+    /// envelope bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReceiptSignerError`] when key material is unavailable, the
+    /// crypto primitive rejects the payload, or the envelope cannot be
+    /// encoded.
+    fn sign_receipt(&self, canonical_payload: &[u8]) -> Result<Vec<u8>, ReceiptSignerError>;
+
+    /// Returns a stable adapter identifier for telemetry / debugging.
+    fn signer_id(&self) -> &str;
+}
+
+/// Shared handle for a boxed [`ReceiptSigner`] implementation.
+pub type ReceiptSignerHandle = Arc<dyn ReceiptSigner>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -484,6 +551,42 @@ mod tests {
         // Re-check Display payload to ensure thiserror derivation produced
         // the same surface text the previous hand-rolled impl did.
         assert_eq!(err.to_string(), "internal error: adapter crashed");
+    }
+
+    /// `ReceiptSignerError` must implement `std::error::Error` so callers
+    /// can `?`-chain it into anyhow / custom error enums alongside
+    /// `VerifierError`.
+    #[test]
+    fn receipt_signer_error_is_std_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        let err = ReceiptSignerError::KeyUnavailable {
+            reason: "no key bound".to_string(),
+        };
+        assert_error(&err);
+        assert_eq!(err.to_string(), "signing key unavailable: no key bound");
+    }
+
+    /// The port must accept Arc'd implementers — RingVerifier holds the
+    /// signer behind a [`ReceiptSignerHandle`], and downstream code must
+    /// be able to clone the handle across worker tasks.
+    #[test]
+    fn receipt_signer_handle_is_send_sync_clone() {
+        fn assert_send_sync_clone<T: Send + Sync + Clone>(_: &T) {}
+
+        struct NoopSigner;
+        impl ReceiptSigner for NoopSigner {
+            fn sign_receipt(&self, _: &[u8]) -> Result<Vec<u8>, ReceiptSignerError> {
+                Ok(vec![])
+            }
+            fn signer_id(&self) -> &str {
+                "urn:formspec:receipt-signer:noop@1"
+            }
+        }
+
+        let handle: ReceiptSignerHandle = Arc::new(NoopSigner);
+        assert_send_sync_clone(&handle);
+        assert_eq!(handle.signer_id(), "urn:formspec:receipt-signer:noop@1");
+        assert_eq!(handle.sign_receipt(b"payload").unwrap(), Vec::<u8>::new());
     }
 
     #[test]

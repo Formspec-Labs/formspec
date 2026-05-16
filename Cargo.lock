@@ -568,7 +568,9 @@ dependencies = [
  "base64",
  "formspec-signature-cose",
  "formspec-signature-port",
+ "integrity-canonical",
  "ring",
+ "serde_json",
 ]
 
 [[package]]

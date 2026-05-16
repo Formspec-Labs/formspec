@@ -1,19 +1,65 @@
 use formspec_signature_port::{
-    AdapterInfo, ClockHandle, KeyInfo, SignatureMethodRegistry, SystemClock, VerificationReceipt,
-    VerificationResult, Verifier, VerifierError, VerifyRequest, utc_to_rfc3339_seconds,
+    AdapterInfo, ClockHandle, KeyInfo, ReceiptSigner, ReceiptSignerError, ReceiptSignerHandle,
+    SignatureMethodRegistry, SystemClock, VerificationReceipt, VerificationResult, Verifier,
+    VerifierError, VerifyRequest, utc_to_rfc3339_seconds,
 };
+use ring::rand::SystemRandom;
 use ring::signature;
+use ring::signature::KeyPair;
 use std::sync::Arc;
 
 const ADAPTER_ID: &str = "urn:formspec:adapter:ring@1";
 const ADAPTER_VERSION: &str = "0.1.0";
 
+const IN_PROCESS_RECEIPT_SIGNER_ID: &str = "urn:formspec:receipt-signer:ring-in-process@1";
+
+/// Domain tag for Formspec verification-receipt signed bytes.
+///
+/// Parallels [`integrity_canonical::DOMAIN_SEPARATION`] (response signing).
+/// Disjoint preimage space — a verification receipt is a distinct
+/// commitment from the response it audits. fs-migs.
+pub const RECEIPT_SIGNED_PAYLOAD_DOMAIN: &str = "formspec.verification.receipt.v1";
+
+/// Builds the canonical, domain-separated receipt-payload bytes that a
+/// [`ReceiptSigner`] signs.
+///
+/// Shape: `domain || NUL || JCS(receipt_without_receipt_bytes)`. Built atop
+/// [`integrity_canonical::domain_separated_canonical_bytes`] so the byte
+/// authority lives in one place across response signing and receipt
+/// signing.
+///
+/// The `receipt_bytes` field is stripped before canonicalization — a
+/// signature must commit to the receipt body, not to itself, otherwise
+/// the digest is non-recoverable on the verifier side.
+///
+/// # Errors
+///
+/// Returns an error when the receipt does not serialize as a JSON object
+/// or canonical JSON encoding fails.
+pub fn canonical_receipt_payload_bytes(receipt: &VerificationReceipt) -> Result<Vec<u8>, String> {
+    let mut value =
+        serde_json::to_value(receipt).map_err(|e| format!("receipt is not serializable: {e}"))?;
+    match value.as_object_mut() {
+        Some(map) => {
+            map.remove("receiptBytes");
+        }
+        None => return Err("receipt must serialize as a JSON object".to_string()),
+    }
+    integrity_canonical::domain_separated_canonical_bytes(RECEIPT_SIGNED_PAYLOAD_DOMAIN, &value)
+}
+
 pub struct RingVerifier {
     adapter_info: AdapterInfo,
     clock: ClockHandle,
+    receipt_signer: Option<ReceiptSignerHandle>,
 }
 
 impl RingVerifier {
+    /// Builds a verification-only `RingVerifier`. Receipts produced by this
+    /// constructor have `receipt_bytes = None` — they record a verdict but
+    /// carry no audit-binding signature. Use
+    /// [`Self::new_with_receipt_signer`] for receipts that downstream
+    /// systems treat as evidence.
     pub fn new() -> Self {
         Self::new_with_clock(Arc::new(SystemClock))
     }
@@ -25,7 +71,67 @@ impl RingVerifier {
                 version: ADAPTER_VERSION.into(),
             },
             clock,
+            receipt_signer: None,
         }
+    }
+
+    /// Builds a `RingVerifier` that signs every reached-verdict receipt
+    /// via the supplied [`ReceiptSigner`]. The returned
+    /// [`VerificationReceipt::receipt_bytes`] is the base64-encoded
+    /// COSE_Sign1 envelope binding the signer's key to the canonical
+    /// receipt payload (see [`canonical_receipt_payload_bytes`]).
+    ///
+    /// Signer failures bubble up as
+    /// [`VerifierError::Internal`] — `verify` does NOT degrade to an
+    /// unsigned receipt when signing fails, because that would silently
+    /// produce an unauditable receipt while the caller believes they
+    /// configured signing. fs-migs.
+    pub fn new_with_receipt_signer(signer: ReceiptSignerHandle) -> Self {
+        Self::new_with_clock_and_receipt_signer(Arc::new(SystemClock), signer)
+    }
+
+    pub fn new_with_clock_and_receipt_signer(
+        clock: ClockHandle,
+        signer: ReceiptSignerHandle,
+    ) -> Self {
+        Self {
+            adapter_info: AdapterInfo {
+                id: ADAPTER_ID.into(),
+                version: ADAPTER_VERSION.into(),
+            },
+            clock,
+            receipt_signer: Some(signer),
+        }
+    }
+
+    /// Signs `receipt` in place when a [`ReceiptSigner`] is configured.
+    ///
+    /// On signer success, `receipt.receipt_bytes` is set to the
+    /// base64-encoded COSE_Sign1 envelope. On signer failure the verifier
+    /// returns `VerifierError::Internal` rather than emitting an unsigned
+    /// receipt — see [`Self::new_with_receipt_signer`] for rationale.
+    fn attach_signed_receipt_bytes(
+        &self,
+        receipt: &mut VerificationReceipt,
+    ) -> Result<(), VerifierError> {
+        let Some(signer) = self.receipt_signer.as_ref() else {
+            return Ok(());
+        };
+        let canonical = canonical_receipt_payload_bytes(receipt).map_err(|reason| {
+            VerifierError::Internal {
+                reason: format!("canonical receipt payload: {reason}"),
+            }
+        })?;
+        let envelope = signer
+            .sign_receipt(&canonical)
+            .map_err(|error| VerifierError::Internal {
+                reason: format!("receipt signer rejected payload: {error}"),
+            })?;
+        receipt.receipt_bytes = Some(base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            envelope,
+        ));
+        Ok(())
     }
 
     fn unsupported_receipt(
@@ -139,6 +245,18 @@ impl Verifier for RingVerifier {
         request: &VerifyRequest,
         registry: &SignatureMethodRegistry,
     ) -> Result<VerificationReceipt, VerifierError> {
+        let mut receipt = self.compute_receipt(request, registry)?;
+        self.attach_signed_receipt_bytes(&mut receipt)?;
+        Ok(receipt)
+    }
+}
+
+impl RingVerifier {
+    fn compute_receipt(
+        &self,
+        request: &VerifyRequest,
+        registry: &SignatureMethodRegistry,
+    ) -> Result<VerificationReceipt, VerifierError> {
         let entry = registry.resolve(&request.signature_method);
         let entry = match entry {
             Some(e) => {
@@ -215,6 +333,88 @@ impl Verifier for RingVerifier {
             Ok(()) => Ok(self.verified_receipt(request, registry)),
             Err(_) => Ok(self.failed_receipt(request, registry)),
         }
+    }
+}
+
+/// Minimal in-process [`ReceiptSigner`] backed by ring's Ed25519 keypair.
+///
+/// Holds the private key in process memory. Suitable for tests, local
+/// reference servers, and embedded use cases where Trellis-managed signing
+/// (FORMSPEC-SIGNATURE-ADAPTER-TRELLIS-001) is not yet wired. Production
+/// systems that need HSM-grade key custody or rotation MUST swap in a
+/// signer backed by their key-management service — the
+/// [`ReceiptSigner`] port keeps that substitution local to the
+/// composition root.
+pub struct InProcessReceiptSigner {
+    key_pair: signature::Ed25519KeyPair,
+    kid: Vec<u8>,
+    signer_id: String,
+}
+
+impl InProcessReceiptSigner {
+    /// Wraps an Ed25519 keypair with an optional COSE `kid` for receipt
+    /// signing. When `kid` is `None` the COSE protected header omits the
+    /// label — independent verifiers must locate the public key by other
+    /// means (e.g. the receipt's `key.ref` field).
+    pub fn new(key_pair: signature::Ed25519KeyPair, kid: Option<&[u8]>) -> Self {
+        Self {
+            key_pair,
+            kid: kid.map(<[u8]>::to_vec).unwrap_or_default(),
+            signer_id: IN_PROCESS_RECEIPT_SIGNER_ID.to_string(),
+        }
+    }
+
+    /// Generates a fresh Ed25519 keypair via the system RNG and wraps it
+    /// as an in-process signer. Returns the signer alongside the raw
+    /// public-key bytes so callers can publish the verification key.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReceiptSignerError::Internal`] if the underlying RNG or
+    /// PKCS#8 parser fails — both indicate a system-level fault, not a
+    /// caller bug.
+    pub fn generate(kid: Option<&[u8]>) -> Result<(Self, Vec<u8>), ReceiptSignerError> {
+        let rng = SystemRandom::new();
+        let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).map_err(|e| {
+            ReceiptSignerError::Internal {
+                reason: format!("ed25519 keygen: {e}"),
+            }
+        })?;
+        let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).map_err(|e| {
+            ReceiptSignerError::KeyUnavailable {
+                reason: format!("ed25519 pkcs8 parse: {e}"),
+            }
+        })?;
+        let public_key_bytes = key_pair.public_key().as_ref().to_vec();
+        Ok((Self::new(key_pair, kid), public_key_bytes))
+    }
+
+    /// Returns the raw Ed25519 public-key bytes for the embedded keypair.
+    pub fn public_key_bytes(&self) -> &[u8] {
+        self.key_pair.public_key().as_ref()
+    }
+}
+
+impl ReceiptSigner for InProcessReceiptSigner {
+    fn sign_receipt(&self, canonical_payload: &[u8]) -> Result<Vec<u8>, ReceiptSignerError> {
+        let kid_slice = if self.kid.is_empty() {
+            None
+        } else {
+            Some(self.kid.as_slice())
+        };
+        let protected = formspec_signature_cose::protected_header_bytes(-8, kid_slice);
+        let sig_structure =
+            formspec_signature_cose::sig_structure_bytes(&protected, canonical_payload);
+        let signature = self.key_pair.sign(&sig_structure);
+        Ok(formspec_signature_cose::encode_cose_sign1(
+            &protected,
+            None,
+            signature.as_ref(),
+        ))
+    }
+
+    fn signer_id(&self) -> &str {
+        &self.signer_id
     }
 }
 
@@ -1043,5 +1243,183 @@ mod tests {
             )
             .expect("verify imported rsa-pss vector");
         assert!(receipt.is_verified());
+    }
+
+    // ---------- Receipt signing (fs-migs) ----------
+
+    /// Builds an ed25519 round-trip VerifyRequest whose verdict is
+    /// Verified — used to drive receipt-signing tests through the same
+    /// path a real consumer would take.
+    fn verified_ed25519_request() -> (VerifyRequest, Vec<u8>) {
+        let rng = SystemRandom::new();
+        let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).expect("generate key");
+        let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse key");
+        let signed_bytes = b"formspec receipt-signing happy path".to_vec();
+        let protected = formspec_signature_cose::protected_header_bytes(-8, Some(b"test-kid"));
+        let sig_structure =
+            formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
+        let raw_sig = key_pair.sign(&sig_structure);
+        let signature_bytes =
+            formspec_signature_cose::encode_cose_sign1(&protected, None, raw_sig.as_ref());
+        let key_ref =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, key_pair.public_key().as_ref());
+        let request = VerifyRequest {
+            signed_bytes,
+            signature_bytes,
+            signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+            key_ref: key_ref.into(),
+        };
+        (request, key_pair.public_key().as_ref().to_vec())
+    }
+
+    /// Without a configured ReceiptSigner the legacy behavior is preserved:
+    /// receipt_bytes stays None. fs-migs.
+    #[test]
+    fn verifier_without_receipt_signer_leaves_receipt_bytes_none() {
+        let verifier = RingVerifier::new();
+        let (request, _) = verified_ed25519_request();
+        let receipt = verifier
+            .verify(&request, &test_registry())
+            .expect("verify");
+        assert!(receipt.is_verified());
+        assert!(
+            receipt.receipt_bytes.is_none(),
+            "verification-only verifier must not fabricate receipt bytes"
+        );
+    }
+
+    /// With a configured ReceiptSigner, a reached-verdict receipt carries
+    /// a non-None receipt_bytes whose COSE_Sign1 envelope verifies under
+    /// the signer's published public key. fs-migs.
+    #[test]
+    fn verifier_with_receipt_signer_attaches_verifiable_receipt_bytes() {
+        let (signer, signer_pub_key) =
+            InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("generate signer");
+        assert_eq!(
+            signer.signer_id(),
+            "urn:formspec:receipt-signer:ring-in-process@1"
+        );
+        let verifier = RingVerifier::new_with_receipt_signer(Arc::new(signer));
+        let (request, _) = verified_ed25519_request();
+        let receipt = verifier
+            .verify(&request, &test_registry())
+            .expect("verify");
+        assert!(receipt.is_verified());
+        let envelope_b64 = receipt
+            .receipt_bytes
+            .as_ref()
+            .expect("receipt_bytes must be populated when signer is wired");
+        let envelope = base64::Engine::decode(
+            &base64::engine::general_purpose::STANDARD,
+            envelope_b64,
+        )
+        .expect("base64 decode envelope");
+
+        let cose =
+            formspec_signature_cose::decode_cose_sign1_with_profile_id(&envelope).expect("cose decode");
+        assert_eq!(cose.alg(), Some(-8), "ed25519 EdDSA alg expected");
+        let canonical = canonical_receipt_payload_bytes(&VerificationReceipt {
+            // Reconstruct the receipt-without-signature view the signer saw.
+            // We strip receipt_bytes via canonical_receipt_payload_bytes,
+            // so cloning the receipt as-is is fine — only the JSON-stripping
+            // path matters.
+            ..receipt.clone()
+        })
+        .expect("canonical payload");
+        let payload = cose
+            .resolve_payload(Some(&canonical))
+            .expect("payload resolves");
+        let sig_structure =
+            formspec_signature_cose::sig_structure_bytes(cose.protected_header(), payload);
+        let public_key =
+            signature::UnparsedPublicKey::new(&signature::ED25519, &signer_pub_key);
+        public_key
+            .verify(&sig_structure, cose.signature())
+            .expect("receipt signature must verify under signer's public key");
+    }
+
+    /// Receipt signing is deterministic for Ed25519: the same (canonical
+    /// payload, key) pair MUST produce identical envelope bytes across
+    /// invocations. Different payloads MUST produce different envelopes.
+    /// fs-migs.
+    #[test]
+    fn in_process_signer_is_deterministic_for_ed25519() {
+        let rng = SystemRandom::new();
+        let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).expect("pkcs8");
+        let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse");
+        let signer = InProcessReceiptSigner::new(key_pair, Some(b"kid"));
+
+        let payload_a = b"canonical-receipt-payload-a";
+        let payload_b = b"canonical-receipt-payload-b";
+        let env_a1 = signer.sign_receipt(payload_a).expect("sign a1");
+        let env_a2 = signer.sign_receipt(payload_a).expect("sign a2");
+        let env_b = signer.sign_receipt(payload_b).expect("sign b");
+
+        assert_eq!(env_a1, env_a2, "Ed25519 signing must be deterministic");
+        assert_ne!(env_a1, env_b, "distinct payloads must produce distinct envelopes");
+    }
+
+    /// Tampering the receipt payload must break receipt-signature
+    /// verification — proves the signed bytes commit to receipt content,
+    /// not arbitrary noise. fs-migs.
+    #[test]
+    fn tampered_canonical_payload_breaks_receipt_signature() {
+        let (signer, public_key_bytes) =
+            InProcessReceiptSigner::generate(None).expect("generate signer");
+        let payload = b"original canonical receipt payload";
+        let envelope = signer.sign_receipt(payload).expect("sign");
+        let cose =
+            formspec_signature_cose::decode_cose_sign1_with_profile_id(&envelope).expect("decode");
+        let tampered_payload = b"tampered canonical receipt payload";
+        let sig_structure =
+            formspec_signature_cose::sig_structure_bytes(cose.protected_header(), tampered_payload);
+        let public_key =
+            signature::UnparsedPublicKey::new(&signature::ED25519, &public_key_bytes);
+        public_key
+            .verify(&sig_structure, cose.signature())
+            .expect_err("tampered payload must fail signature verification");
+    }
+
+    /// Canonical receipt-payload bytes use the integrity-canonical domain
+    /// frame and strip `receiptBytes` before JCS encoding. Hash stability
+    /// across runs is implicit (integrity-canonical is byte-stable); the
+    /// explicit assertions here are: receiptBytes is omitted, the bytes
+    /// start with the domain tag, and adding receipt_bytes to the input
+    /// does not change output. fs-migs.
+    #[test]
+    fn canonical_receipt_payload_strips_receipt_bytes_and_uses_domain_frame() {
+        let mut receipt = VerificationReceipt {
+            result: VerificationResult::Verified,
+            method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+            method_registry_version: "1.0.0".into(),
+            adapter: AdapterInfo {
+                id: ADAPTER_ID.into(),
+                version: ADAPTER_VERSION.into(),
+            },
+            key: KeyInfo {
+                r#ref: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=".into(),
+                version: None,
+                snapshot: None,
+            },
+            verified_at: "2026-05-16T00:00:00Z".to_string(),
+            context: None,
+            receipt_bytes: None,
+        };
+        let without = canonical_receipt_payload_bytes(&receipt).expect("without");
+        receipt.receipt_bytes = Some("ignored-bytes".to_string());
+        let with = canonical_receipt_payload_bytes(&receipt).expect("with");
+        assert_eq!(
+            without, with,
+            "receiptBytes must not contribute to the signed preimage"
+        );
+        assert!(
+            with.starts_with(RECEIPT_SIGNED_PAYLOAD_DOMAIN.as_bytes()),
+            "preimage must lead with the receipt-signing domain tag"
+        );
+        assert_eq!(
+            with[RECEIPT_SIGNED_PAYLOAD_DOMAIN.len()],
+            0u8,
+            "domain tag must be NUL-separated from canonical JSON"
+        );
     }
 }
