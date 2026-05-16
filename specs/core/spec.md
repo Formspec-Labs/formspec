@@ -541,15 +541,14 @@ that omits `authoredSignatures` and the domain separation string
 `formspec.response.signed-payload.v1`.
 
 Formspec authored-signature byte production is the normative composition of two
-substrate primitives (per convergence plan §18 Train 3, ratified 2026-05-12):
-`integrity-canonical-json-v1` (RFC 8785 JCS bytes framed as
-`domain || NUL || canonical-json`, source of truth
+substrate primitives: `integrity-canonical-json-v1` (RFC 8785 JCS bytes framed
+as `domain || NUL || canonical-json`, source of truth
 `integrity-stack/crates/integrity-canonical/`) and `integrity-cose` (the
-RFC 9052 COSE_Sign1 envelope and `Sig_structure`, with the Formspec profile
-dispatched by protected-header label `-65539` (`profile_id`) carrying
-`FORMSPEC_PROFILE_ID = 2`, source of truth
-`integrity-stack/crates/integrity-cose/` plus the Trellis §26.2.1 value
-registry). The composition order is fixed:
+RFC 9052 COSE_Sign1 envelope and `Sig_structure`, with the Formspec
+authored-signature method dispatched by protected-header label `-65540`
+(`method_uri`) carrying a URI from the `urn:formspec:sig-method:*` subspace
+of `formspec/specs/registry/signature-method-registry.md`, per ADR 0109).
+The composition order is fixed:
 (1) project the Response by omitting `authoredSignatures`; (2) canonicalize
 under `formspec-response-signing-v1` to obtain `integrity-canonical-json-v1`
 bytes (`formspec.response.signed-payload.v1 || NUL || JCS(payload)`);
@@ -557,19 +556,29 @@ bytes (`formspec.response.signed-payload.v1 || NUL || JCS(payload)`);
 value admitted by the v1 Response schema, and bind the
 result into `signedPayload.digest`; (4) construct the COSE_Sign1
 `Sig_structure` over the protected headers, including protected-header
-label `-65539` (`profile_id`) with value `2` for the Formspec authored-
-signature profile, and the canonical payload bytes; (5) produce
-`signatureValue` by signing the
-`Sig_structure` under the signer's key. Verifiers reverse the composition:
-parse the COSE_Sign1 envelope via `integrity-cose`, confirm the
-`profile_id` protected-header dispatch value equals `FORMSPEC_PROFILE_ID = 2`,
-reconstruct the canonical bytes via `integrity-canonical-json-v1`, and
-re-derive the digest. Neither
-primitive is redefined here; both crates are the byte-level source of truth.
+label `-65540` (`method_uri`) with a value from the
+`urn:formspec:sig-method:*` subspace (e.g.
+`urn:formspec:sig-method:ed25519-cose-sign1@1`), and the canonical payload
+bytes; (5) produce `signatureValue` by signing the `Sig_structure` under the
+signer's key. Verifiers reverse the composition: parse the COSE_Sign1
+envelope via `integrity-cose`, confirm the `method_uri` protected-header
+dispatch value matches the `urn:formspec:sig-method:*` prefix and resolves
+to a registered method, reconstruct the canonical bytes via
+`integrity-canonical-json-v1`, and re-derive the digest. Neither primitive
+is redefined here; both crates are the byte-level source of truth.
 Expanding `signedPayload.digestAlgorithm` beyond `sha-256` is a coordinated
 profile change that must update the Response schema, substrate algorithm
 admission, examples, and fixtures together; implementations MUST NOT treat the
 field as an open algorithm registry in `formspec-response-signing-v1`.
+
+**ADR 0109 surface-split.** Authored-signature envelopes follow the
+consumer detached-signature shape (MAP_3 with `{alg, kid, method_uri}` at
+COSE label `-65540`). The retired protected-header `profile_id` label
+(`-65539`) is permanently tombstoned per ADR 0109 Bound pre-decision #2;
+verifiers MUST reject envelopes presenting it with a named "retired
+profile_id present" error. The companion `urn:formspec:receipt-method:*`
+subspace covers receipt signing per ADR 0111 and MUST NOT overlap with
+the response-signing subspace at the URI prefix level.
 
 A drawn signature image, typed name, or provider callback alone is not
 sufficient signing intent. A conforming implementation MUST NOT claim authored

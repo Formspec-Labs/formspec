@@ -1190,19 +1190,19 @@ profile. Formspec owns the projection rule that omits
 <code>authoredSignatures</code> and the domain separation string
 <code>formspec.response.signed-payload.v1</code>.</p>
 <p>Formspec authored-signature byte production is the normative
-composition of two substrate primitives (per convergence plan §18 Train
-3, ratified 2026-05-12): <code>integrity-canonical-json-v1</code> (RFC
-8785 JCS bytes framed as <code>domain || NUL || canonical-json</code>,
-source of truth
+composition of two substrate primitives:
+<code>integrity-canonical-json-v1</code> (RFC 8785 JCS bytes framed as
+<code>domain || NUL || canonical-json</code>, source of truth
 <code>integrity-stack/crates/integrity-canonical/</code>) and
 <code>integrity-cose</code> (the RFC 9052 COSE_Sign1 envelope and
-<code>Sig_structure</code>, with the Formspec profile dispatched by
-protected-header label <code>-65539</code> (<code>profile_id</code>)
-carrying <code>FORMSPEC_PROFILE_ID = 2</code>, source of truth
-<code>integrity-stack/crates/integrity-cose/</code> plus the Trellis
-§26.2.1 value registry). The composition order is fixed: (1) project the
-Response by omitting <code>authoredSignatures</code>; (2) canonicalize
-under <code>formspec-response-signing-v1</code> to obtain
+<code>Sig_structure</code>, with the Formspec authored-signature method
+dispatched by protected-header label <code>-65540</code>
+(<code>method_uri</code>) carrying a URI from the
+<code>urn:formspec:sig-method:*</code> subspace of
+<code>formspec/specs/registry/signature-method-registry.md</code>, per
+ADR 0109). The composition order is fixed: (1) project the Response by
+omitting <code>authoredSignatures</code>; (2) canonicalize under
+<code>formspec-response-signing-v1</code> to obtain
 <code>integrity-canonical-json-v1</code> bytes
 (<code>formspec.response.signed-payload.v1 || NUL || JCS(payload)</code>);
 (3) digest those bytes with SHA-256, the only
@@ -1210,21 +1210,33 @@ under <code>formspec-response-signing-v1</code> to obtain
 Response schema, and bind the result into
 <code>signedPayload.digest</code>; (4) construct the COSE_Sign1
 <code>Sig_structure</code> over the protected headers, including
-protected-header label <code>-65539</code> (<code>profile_id</code>)
-with value <code>2</code> for the Formspec authored- signature profile,
-and the canonical payload bytes; (5) produce <code>signatureValue</code>
-by signing the <code>Sig_structure</code> under the signer’s key.
-Verifiers reverse the composition: parse the COSE_Sign1 envelope via
-<code>integrity-cose</code>, confirm the <code>profile_id</code>
-protected-header dispatch value equals
-<code>FORMSPEC_PROFILE_ID = 2</code>, reconstruct the canonical bytes
-via <code>integrity-canonical-json-v1</code>, and re-derive the digest.
+protected-header label <code>-65540</code> (<code>method_uri</code>)
+with a value from the <code>urn:formspec:sig-method:*</code> subspace
+(e.g. <code>urn:formspec:sig-method:ed25519-cose-sign1@1</code>), and
+the canonical payload bytes; (5) produce <code>signatureValue</code> by
+signing the <code>Sig_structure</code> under the signer’s key. Verifiers
+reverse the composition: parse the COSE_Sign1 envelope via
+<code>integrity-cose</code>, confirm the <code>method_uri</code>
+protected-header dispatch value matches the
+<code>urn:formspec:sig-method:*</code> prefix and resolves to a
+registered method, reconstruct the canonical bytes via
+<code>integrity-canonical-json-v1</code>, and re-derive the digest.
 Neither primitive is redefined here; both crates are the byte-level
 source of truth. Expanding <code>signedPayload.digestAlgorithm</code>
 beyond <code>sha-256</code> is a coordinated profile change that must
 update the Response schema, substrate algorithm admission, examples, and
 fixtures together; implementations MUST NOT treat the field as an open
 algorithm registry in <code>formspec-response-signing-v1</code>.</p>
+<p><strong>ADR 0109 surface-split.</strong> Authored-signature envelopes
+follow the consumer detached-signature shape (MAP_3 with
+<code>{alg, kid, method_uri}</code> at COSE label <code>-65540</code>).
+The retired protected-header <code>profile_id</code> label
+(<code>-65539</code>) is permanently tombstoned per ADR 0109 Bound
+pre-decision #2; verifiers MUST reject envelopes presenting it with a
+named “retired profile_id present” error. The companion
+<code>urn:formspec:receipt-method:*</code> subspace covers receipt
+signing per ADR 0111 and MUST NOT overlap with the response-signing
+subspace at the URI prefix level.</p>
 <p>A drawn signature image, typed name, or provider callback alone is
 not sufficient signing intent. A conforming implementation MUST NOT
 claim authored signature semantics from <code>signatureValue</code>
