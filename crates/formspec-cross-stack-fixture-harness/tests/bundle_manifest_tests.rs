@@ -531,6 +531,128 @@ fn test_bundle_003_posture_forbids_registered_verified_method() {
 }
 
 #[test]
+fn test_bundle_004_tampered_signature_admission_failed() {
+    use base64::Engine;
+    use formspec_signature_adapter_ring::RingVerifier;
+    use formspec_signature_port::{
+        SignatureMethodRegistry, VerificationResult, Verifier, VerifyRequest,
+    };
+
+    let root = cross_stack_root();
+    let bundles = discover_bundles(root.to_str().unwrap()).unwrap();
+    let b004 = bundles
+        .iter()
+        .find(|b| b.id == "004")
+        .expect("bundle 004 not found");
+
+    let wos = b004
+        .manifest
+        .expected_outcomes
+        .wos
+        .as_ref()
+        .expect("wos outcome missing");
+    assert_eq!(wos.record_kind.as_deref(), Some("signatureAdmissionFailed"));
+    assert_eq!(
+        wos.admission_failed_reason.as_deref(),
+        Some("primitive_verification_failed"),
+        "bundle 004 manifest must pin primitive_verification_failed reason"
+    );
+
+    let fixture = load_verified_response_fixture("004-tampered-signature-failed");
+
+    // Wedge: the COSE_Sign1 signatureValue was byte-mutated, so the ring
+    // verifier MUST report failed. This is the byte-level proof that bundle 004
+    // exercises the tamper path rather than the verified path.
+    let registry_path = formspec_root().join("registries/signature-method-registry.json");
+    let registry: SignatureMethodRegistry =
+        serde_json::from_str(&std::fs::read_to_string(registry_path).expect("read registry"))
+            .expect("parse registry");
+    let signature_bytes = base64::engine::general_purpose::STANDARD
+        .decode(&fixture.signature.signature_value)
+        .expect("decode signatureValue");
+    let verifier = RingVerifier::new();
+    let verification = verifier
+        .verify(
+            &VerifyRequest {
+                signed_bytes: fixture.signed_bytes.clone(),
+                signature_bytes,
+                signature_method: fixture.signature.signature_method.as_str().into(),
+                key_ref: fixture.receipt.key.r#ref.clone(),
+            },
+            &registry,
+        )
+        .expect("ring verification call must complete");
+    assert_eq!(
+        verification.result.to_string(),
+        VerificationResult::Failed.to_string(),
+        "tampered signature byte must drive ring verifier to failed"
+    );
+    assert_eq!(
+        fixture.receipt.result.to_string(),
+        VerificationResult::Failed.to_string(),
+        "bundle 004 receipt must attest failed verification"
+    );
+
+    let bundle_dir = cross_stack_root().join("004-tampered-signature-failed");
+    let wos_bytes =
+        std::fs::read(bundle_dir.join("wos-provenance.cbor")).expect("read wos-provenance.cbor");
+    let wos_bundle: WosProvenanceBundle =
+        ciborium::from_reader(wos_bytes.as_slice()).expect("decode WOS provenance CBOR");
+    assert!(
+        !wos_bundle
+            .records
+            .iter()
+            .any(|record| record.record_kind == "signatureAffirmation"),
+        "failed primitive verification must not admit a SignatureAffirmation"
+    );
+    assert_eq!(wos_bundle.records.len(), 1);
+    let record = &wos_bundle.records[0];
+    assert_eq!(record.record_kind, "signatureAdmissionFailed");
+    let data: WosSignatureAdmissionFailedData =
+        serde_json::from_value(record.data.clone()).expect("signatureAdmissionFailed data");
+    assert_eq!(data.reason, "primitive_verification_failed");
+    assert_eq!(data.signer_id.as_deref(), Some("applicant"));
+    assert_eq!(data.emitted_at, fixture.signature.signed_payload.signed_at);
+    assert_eq!(
+        data.evidence_bindings.response_id,
+        fixture.signature.signed_payload.response_id
+    );
+    assert_eq!(
+        data.evidence_bindings.signed_payload_digest,
+        fixture.signature.signed_payload.digest
+    );
+    assert_eq!(data.evidence_bindings.signature_id, "sig-cross-stack-004");
+    assert_eq!(
+        data.evidence_bindings.signing_intent,
+        fixture.signature.signing_intent
+    );
+
+    let trellis_bytes =
+        std::fs::read(bundle_dir.join("trellis-events.cbor")).expect("read trellis-events.cbor");
+    let trellis: TrellisEventsBundle =
+        ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
+    assert_eq!(trellis.events.len(), 1);
+    let event = &trellis.events[0];
+    assert_eq!(event.event_kind, "wos.signature.signatureAdmissionFailed");
+    assert!(
+        !event.data.custody_hook_present,
+        "failed admission must not create a custody hook"
+    );
+    assert_eq!(
+        event.data.signed_payload_digest,
+        fixture.signature.signed_payload.digest
+    );
+    assert_eq!(
+        event.data.verification_receipt,
+        base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes)
+    );
+    assert_eq!(
+        event.data.admission_failed_reason.as_deref(),
+        Some("primitive_verification_failed")
+    );
+}
+
+#[test]
 fn test_bundle_005_expects_divergence() {
     let root = cross_stack_root();
     let bundles = discover_bundles(root.to_str().unwrap()).unwrap();

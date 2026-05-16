@@ -5,16 +5,20 @@
 //! future cross-stack verifier that needs byte-stable expected values. The
 //! preimage construction is owned by `integrity-canonical`; this module pins
 //! one Response without `authoredSignatures` (handoff and signed-payload
-//! diverge solely because their domain tags differ — projection is a no-op)
-//! and one with `authoredSignatures` (handoff and signed-payload diverge
-//! because of both domain tag AND the `authoredSignatures` strip applied to
-//! the signed-payload projection).
+//! diverge solely because their domain tags differ — projection is a no-op),
+//! one with `authoredSignatures` (handoff and signed-payload diverge because
+//! of both domain tag AND the `authoredSignatures` strip applied to the
+//! signed-payload projection), and one bundle-derived vector pinned from
+//! cross-stack fixture bundle 001 so the canonicalization contract is exercised
+//! against the same byte response the cross-stack harness uses to drive ring
+//! verification (fs-7md4 regression coverage).
 
 use integrity_canonical::{
     DigestAlgorithm, canonical_response_handoff_bytes, canonical_response_signed_payload_bytes,
     compute_digest,
 };
 use serde_json::{Value, json};
+use std::path::PathBuf;
 
 /// One canonicalization vector covering both digest contracts for a Response.
 pub struct CanonicalizationVector {
@@ -90,9 +94,53 @@ pub fn vector_b_with_signatures() -> CanonicalizationVector {
     }
 }
 
+/// Vector C: Bundle-derived. Pinned from cross-stack fixture bundle 001's
+/// canonical `formspec-response.json`. Anchors the canonicalization contract to
+/// the same response bytes the cross-stack harness uses to drive ring
+/// verification — drift between `integrity-canonical` and the bundle response
+/// is caught here before it can propagate into the bundle-byte tests.
+///
+/// `expected_signed_payload_hex` MUST equal
+/// `authoredSignatures[0].signedPayload.digest` from the bundle response
+/// (asserted by `bundle_001_signed_payload_hex_matches_in_file_digest`).
+pub fn vector_c_bundle_001() -> CanonicalizationVector {
+    CanonicalizationVector {
+        name: "vector-c-bundle-001",
+        response: bundle_001_response(),
+        expected_handoff_hex: "6635b196113f2ee762bdf0b0518cb89220cc9a45f48d285a6e2e112ecd99ef3c",
+        expected_signed_payload_hex:
+            "de16829bf9271c3910c4d23cdf5fc5624074516080351ef90fc410cef15d2189",
+    }
+}
+
+/// Loads bundle 001's `formspec-response.json` as a JSON value.
+///
+/// Resolves the path relative to this crate's manifest dir so the loader stays
+/// reproducible across workspaces.
+fn bundle_001_response() -> Value {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("crate dir has a parent")
+        .parent()
+        .expect("crates dir has a parent")
+        .join("tests")
+        .join("fixtures")
+        .join("cross-stack")
+        .join("001-standalone-formspec-verified")
+        .join("formspec-response.json");
+    let bytes = std::fs::read(&path)
+        .unwrap_or_else(|error| panic!("read bundle 001 response at {path:?}: {error}"));
+    serde_json::from_slice(&bytes)
+        .unwrap_or_else(|error| panic!("parse bundle 001 response at {path:?}: {error}"))
+}
+
 /// All pinned vectors.
 pub fn all_vectors() -> Vec<CanonicalizationVector> {
-    vec![vector_a_without_signatures(), vector_b_with_signatures()]
+    vec![
+        vector_a_without_signatures(),
+        vector_b_with_signatures(),
+        vector_c_bundle_001(),
+    ]
 }
 
 /// Recomputes both digests for a vector using `integrity-canonical`.
@@ -141,5 +189,26 @@ mod tests {
                 vector.name
             );
         }
+    }
+
+    #[test]
+    fn bundle_001_signed_payload_hex_matches_in_file_digest() {
+        // The bundle response's in-file `signedPayload.digest` is the byte
+        // authority — vector_c's pinned hex MUST equal it. If this diverges,
+        // either the bundle response was regenerated without updating the
+        // vector or canonicalization drifted; both cases require attention.
+        let vector = vector_c_bundle_001();
+        let in_file_digest = vector
+            .response
+            .get("authoredSignatures")
+            .and_then(|s| s.get(0))
+            .and_then(|s| s.get("signedPayload"))
+            .and_then(|sp| sp.get("digest"))
+            .and_then(|d| d.as_str())
+            .expect("bundle 001 response carries signedPayload.digest");
+        assert_eq!(
+            vector.expected_signed_payload_hex, in_file_digest,
+            "vector-c pinned signed-payload hex must match bundle 001 in-file digest"
+        );
     }
 }
