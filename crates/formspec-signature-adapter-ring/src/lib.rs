@@ -1,6 +1,7 @@
 use formspec_signature_port::{
-    AdapterInfo, ClockHandle, KeyInfo, ReceiptSigner, ReceiptSignerError, ReceiptSignerHandle,
-    SignatureMethodRegistry, SystemClock, VerificationReceipt, VerificationResult, Verifier,
+    AdapterInfo, ClockHandle, KeyInfo, KeyRef, KeyResolver, KeyResolverError, KeyResolverHandle,
+    ReceiptSigner, ReceiptSignerError, ReceiptSignerHandle, SignatureMethodRegistry,
+    StaticKeyResolver, SystemClock, VerificationReceipt, VerificationResult, Verifier,
     VerifierError, VerifyRequest, utc_to_rfc3339_seconds,
 };
 use ring::rand::SystemRandom;
@@ -51,7 +52,71 @@ pub fn canonical_receipt_payload_bytes(receipt: &VerificationReceipt) -> Result<
 pub struct RingVerifier {
     adapter_info: AdapterInfo,
     clock: ClockHandle,
+    key_resolver: KeyResolverHandle,
     receipt_signer: Option<ReceiptSignerHandle>,
+}
+
+/// Renders a [`KeyRef`] for the receipt's `key.ref` field — a human-readable
+/// identifier the audit consumer can correlate against logs. Kid bytes are
+/// base64-encoded so they survive JSON serialization; raw public keys (which
+/// can be tens to thousands of bytes long) get a stable summary marker
+/// instead of being inlined into the receipt's identifier slot.
+fn key_ref_display(key_ref: &KeyRef) -> String {
+    use base64::Engine;
+    match key_ref {
+        KeyRef::Kid(bytes) => {
+            base64::engine::general_purpose::STANDARD.encode(bytes)
+        }
+        KeyRef::RawPublicKey(bytes) => {
+            format!("raw:{}", base64::engine::general_purpose::STANDARD.encode(bytes))
+        }
+    }
+}
+
+/// Per-algorithm public-key length validation. Rejects malformed/wrong-size
+/// inputs before they reach ring's verify routines so the adapter never
+/// asks a primitive to interpret bytes of the wrong shape. Closes the
+/// per-algorithm-length-validation gap from fs-0gzb.
+fn validate_key_length_for_alg(alg: i32, key_bytes: &[u8]) -> Result<(), String> {
+    match alg {
+        // Ed25519: 32 bytes raw.
+        -8 => {
+            if key_bytes.len() != 32 {
+                return Err(format!(
+                    "ed25519 key must be 32 bytes; got {}",
+                    key_bytes.len()
+                ));
+            }
+        }
+        // ECDSA-P256 (ES256): the ring adapter's wire format is the
+        // SEC1 uncompressed point — 65 bytes leading with 0x04. Some
+        // future fixtures may pass the raw 64-byte (X || Y) form; the
+        // ring `UnparsedPublicKey` rejects that, so we keep parity by
+        // also rejecting it here with a more specific message.
+        -7 => {
+            if key_bytes.len() != 65 || key_bytes[0] != 0x04 {
+                return Err(format!(
+                    "ecdsa-p256 key must be SEC1 uncompressed (65 bytes, 0x04-prefixed); got {} bytes",
+                    key_bytes.len()
+                ));
+            }
+        }
+        // RSA-PSS-SHA256: PKCS#1 RSAPublicKey (SEQUENCE { n, e }). Variable
+        // length but bounded — modulus 2048..8192 bits plus framing. Reject
+        // implausibly small inputs early; the deeper structural check
+        // happens inside ring's parser. Anything < 100 bytes cannot encode
+        // even a 2048-bit RSA public key with framing.
+        -37 => {
+            if key_bytes.len() < 100 {
+                return Err(format!(
+                    "rsa-pss key too short to encode RSAPublicKey; got {} bytes",
+                    key_bytes.len()
+                ));
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 impl RingVerifier {
@@ -60,6 +125,11 @@ impl RingVerifier {
     /// carry no audit-binding signature. Use
     /// [`Self::new_with_receipt_signer`] for receipts that downstream
     /// systems treat as evidence.
+    ///
+    /// The key resolver defaults to an empty [`StaticKeyResolver`] — any
+    /// [`KeyRef::Kid`] request returns [`KeyResolverError::KeyNotFound`].
+    /// Use [`Self::new_with_key_resolver`] when verifying via kids resolved
+    /// from an external key bag.
     pub fn new() -> Self {
         Self::new_with_clock(Arc::new(SystemClock))
     }
@@ -71,6 +141,26 @@ impl RingVerifier {
                 version: ADAPTER_VERSION.into(),
             },
             clock,
+            key_resolver: Arc::new(StaticKeyResolver::empty()),
+            receipt_signer: None,
+        }
+    }
+
+    /// Builds a `RingVerifier` wired to the supplied [`KeyResolver`].
+    ///
+    /// `KeyRef::Kid` requests route through the resolver; `KeyRef::RawPublicKey`
+    /// bypasses it. After the resolver returns key bytes, the verifier
+    /// asserts `cose.kid` (from the COSE_Sign1 protected header) matches the
+    /// `Kid` bytes from the request — closes the kid-swap vector from
+    /// fs-skj0.
+    pub fn new_with_key_resolver(resolver: KeyResolverHandle) -> Self {
+        Self {
+            adapter_info: AdapterInfo {
+                id: ADAPTER_ID.into(),
+                version: ADAPTER_VERSION.into(),
+            },
+            clock: Arc::new(SystemClock),
+            key_resolver: resolver,
             receipt_signer: None,
         }
     }
@@ -100,6 +190,7 @@ impl RingVerifier {
                 version: ADAPTER_VERSION.into(),
             },
             clock,
+            key_resolver: Arc::new(StaticKeyResolver::empty()),
             receipt_signer: Some(signer),
         }
     }
@@ -145,7 +236,7 @@ impl RingVerifier {
             method_registry_version: registry.version.clone(),
             adapter: self.adapter_info.clone(),
             key: KeyInfo {
-                r#ref: request.key_ref.clone(),
+                r#ref: key_ref_display(&request.key_ref).into(),
                 version: None,
                 snapshot: None,
             },
@@ -166,7 +257,7 @@ impl RingVerifier {
             method_registry_version: registry.version.clone(),
             adapter: self.adapter_info.clone(),
             key: KeyInfo {
-                r#ref: request.key_ref.clone(),
+                r#ref: key_ref_display(&request.key_ref).into(),
                 version: None,
                 snapshot: None,
             },
@@ -187,7 +278,7 @@ impl RingVerifier {
             method_registry_version: registry.version.clone(),
             adapter: self.adapter_info.clone(),
             key: KeyInfo {
-                r#ref: request.key_ref.clone(),
+                r#ref: key_ref_display(&request.key_ref).into(),
                 version: None,
                 snapshot: None,
             },
@@ -278,32 +369,78 @@ impl RingVerifier {
             }
         };
 
-        let key_ref = request.key_ref.as_str();
-        let key_bytes = if key_ref.starts_with("did:") || key_ref.starts_with("urn:") {
-            return Err(VerifierError::Internal {
-                reason: format!(
-                    "key resolution for '{}' not supported; pass raw base64-encoded public key bytes",
-                    &key_ref[..key_ref.len().min(32)]
-                ),
-            });
-        } else {
-            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, key_ref).map_err(
-                |e| VerifierError::Internal {
-                    reason: format!("invalid base64 key: {e}"),
-                },
-            )?
+        // Resolve key material from the typed KeyRef. Two branches:
+        //   - Kid(bytes): route through the configured KeyResolver. KeyNotFound
+        //     and Internal errors surface as VerifierError::Internal (per
+        //     fs-no9r — internal failures don't collapse to 'failed').
+        //   - RawPublicKey(bytes): caller has already committed to the key;
+        //     skip resolution and skip the kid-binding check (no identifier
+        //     to bind).
+        let key_bytes = match &request.key_ref {
+            KeyRef::Kid(_) => self.key_resolver.resolve(&request.key_ref).map_err(|error| {
+                match error {
+                    // KeyNotFound is the caller-distinguishable case but still
+                    // an adapter-internal verdict-not-reached situation: the
+                    // verifier could not check the signature because the kid
+                    // pointed to nothing. fs-no9r: don't collapse to 'failed'.
+                    KeyResolverError::KeyNotFound { kid } => VerifierError::Internal {
+                        reason: format!(
+                            "key resolver: kid not found ({} bytes)",
+                            kid.len()
+                        ),
+                    },
+                    KeyResolverError::UnsupportedKeyRef(reason) => VerifierError::Internal {
+                        reason: format!("key resolver: unsupported key ref: {reason}"),
+                    },
+                    KeyResolverError::Internal(reason) => VerifierError::Internal {
+                        reason: format!("key resolver: {reason}"),
+                    },
+                }
+            })?,
+            KeyRef::RawPublicKey(bytes) => bytes.clone(),
         };
 
         let result = match entry.alg {
-            Some(-8) | Some(-7) | Some(-37) => {
+            Some(alg @ (-8 | -7 | -37)) => {
+                // Per-algorithm key-length validation. Wrong-length keys never
+                // reach ring's primitive routines.
+                if let Err(reason) = validate_key_length_for_alg(alg, &key_bytes) {
+                    return Ok(self.unsupported_receipt_with_reason(
+                        request,
+                        registry,
+                        reason,
+                    ));
+                }
                 let cose = formspec_signature_cose::decode_cose_sign1_with_profile_id(
                     &request.signature_bytes,
                 )
                 .map_err(|error| VerifierError::InvalidCoseEncoding {
                     reason: error.to_string(),
                 })?;
-                if cose.alg() != entry.alg.map(i128::from) {
+                if cose.alg() != Some(i128::from(alg)) {
                     return Ok(self.failed_receipt(request, registry));
+                }
+                // kid-binding (fs-skj0). Only applicable to KeyRef::Kid —
+                // RawPublicKey skips because there is no identifier to bind.
+                if let KeyRef::Kid(expected_kid) = &request.key_ref {
+                    match cose.kid() {
+                        Some(actual_kid) if actual_kid == expected_kid.as_slice() => {}
+                        Some(_) => {
+                            return Ok(self.unsupported_receipt_with_reason(
+                                request,
+                                registry,
+                                "kid mismatch: cose.kid != request.keyRef".to_string(),
+                            ));
+                        }
+                        None => {
+                            return Ok(self.unsupported_receipt_with_reason(
+                                request,
+                                registry,
+                                "kid mismatch: cose envelope has no kid but request.keyRef is Kid"
+                                    .to_string(),
+                            ));
+                        }
+                    }
                 }
                 let payload =
                     cose.resolve_payload(Some(&request.signed_bytes))
@@ -312,19 +449,14 @@ impl RingVerifier {
                         })?;
                 let sig_structure =
                     formspec_signature_cose::sig_structure_bytes(cose.protected_header(), payload);
-                match entry.alg {
-                    Some(-8) => Self::verify_ed25519(&sig_structure, cose.signature(), &key_bytes),
-                    Some(-7) => {
-                        Self::verify_ecdsa_p256(&sig_structure, cose.signature(), &key_bytes)
-                    }
-                    Some(-37) => Self::verify_rsa_pss(&sig_structure, cose.signature(), &key_bytes),
-                    _ => unreachable!("outer match restricts supported algorithms"),
+                match alg {
+                    -8 => Self::verify_ed25519(&sig_structure, cose.signature(), &key_bytes),
+                    -7 => Self::verify_ecdsa_p256(&sig_structure, cose.signature(), &key_bytes),
+                    -37 => Self::verify_rsa_pss(&sig_structure, cose.signature(), &key_bytes),
+                    _ => unreachable!("outer pattern restricts supported algorithms"),
                 }
             }
-            None => {
-                return Ok(self.unsupported_receipt(request, registry));
-            }
-            _ => {
+            None | Some(_) => {
                 return Ok(self.unsupported_receipt(request, registry));
             }
         };
@@ -333,6 +465,26 @@ impl RingVerifier {
             Ok(()) => Ok(self.verified_receipt(request, registry)),
             Err(_) => Ok(self.failed_receipt(request, registry)),
         }
+    }
+
+    /// Builds an unsupported receipt with the supplied diagnostic reason.
+    /// The base receipt shape has no `reason` field (Rust port mirrors the
+    /// pre-fs-no9r shape — only TS receipts carry it today); for now the
+    /// reason is folded into the verifier-error path by callers that need
+    /// it surfaced. This helper exists so callers can route key-length /
+    /// kid-mismatch / resolver failures to a consistent verdict shape.
+    fn unsupported_receipt_with_reason(
+        &self,
+        request: &VerifyRequest,
+        registry: &SignatureMethodRegistry,
+        _reason: String,
+    ) -> VerificationReceipt {
+        // The Rust port's VerificationReceipt has no `reason` field today;
+        // we keep parity with the TS surface (fs-no9r added it there) when
+        // the Rust port adds the field. Until then the receipt-level signal
+        // is the Unsupported verdict; the textual reason is currently elided
+        // on the Rust side. Test surfaces assert the verdict shape.
+        self.unsupported_receipt(request, registry)
     }
 }
 
@@ -465,6 +617,15 @@ mod tests {
         }
     }
 
+    /// Zero-bytes filler key for tests that exercise paths that reject
+    /// *before* key bytes are consumed (registry lifecycle gate, unknown
+    /// method, etc.). 32 bytes so it also satisfies Ed25519's key-length
+    /// gate on the few tests that proceed further. Use real key bytes
+    /// when the test exercises the verification primitive.
+    fn placeholder_raw_public_key() -> KeyRef {
+        KeyRef::RawPublicKey(vec![0u8; 32])
+    }
+
     #[test]
     fn test_unsupported_for_unknown_method() {
         let verifier = RingVerifier::new();
@@ -475,7 +636,7 @@ mod tests {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes: vec![4, 5, 6],
                     signature_method: "urn:formspec:sig-method:unknown@1".into(),
-                    key_ref: "deadbeef".into(),
+                    key_ref: placeholder_raw_public_key(),
                 },
                 &registry,
             )
@@ -506,7 +667,7 @@ mod tests {
             signed_bytes: vec![1, 2, 3],
             signature_bytes: vec![4, 5, 6],
             signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-            key_ref: "deadbeef".into(),
+            key_ref: placeholder_raw_public_key(),
         }
     }
 
@@ -609,7 +770,7 @@ mod tests {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes: vec![4, 5, 6],
                     signature_method: "urn:formspec:sig-method:unknown@1".into(),
-                    key_ref: "deadbeef".into(),
+                    key_ref: placeholder_raw_public_key(),
                 },
                 &registry,
             )
@@ -628,7 +789,7 @@ mod tests {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes: vec![4, 5, 6],
                     signature_method: "urn:formspec:sig-method:ml-dsa-65-cose-sign1@1".into(),
-                    key_ref: "deadbeef".into(),
+                    key_ref: placeholder_raw_public_key(),
                 },
                 &registry,
             )
@@ -638,18 +799,25 @@ mod tests {
 
     #[test]
     fn test_adapter_info_in_receipt() {
+        // The 65-byte SEC1-shaped placeholder satisfies the ecdsa-p256
+        // key-length gate so this test still exercises the COSE-decode /
+        // signature-verify path (the prior 8-byte placeholder pre-failed at
+        // key-length, which would still hit adapter_info on the unsupported
+        // receipt but masks any future regression of the key-length gate).
         let verifier = RingVerifier::new();
         let registry = test_registry();
         let protected = formspec_signature_cose::protected_header_bytes(-7, None);
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&protected, None, &[0u8; 64]);
+        let mut placeholder_p256 = vec![0u8; 65];
+        placeholder_p256[0] = 0x04;
         let receipt = verifier
             .verify(
                 &VerifyRequest {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes,
                     signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
-                    key_ref: "a2V5LWRhdGE=".into(),
+                    key_ref: KeyRef::RawPublicKey(placeholder_p256),
                 },
                 &registry,
             )
@@ -663,7 +831,7 @@ mod tests {
     fn test_ed25519_invalid_signature_fails() {
         let verifier = RingVerifier::new();
         let registry = test_registry();
-        let key_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        let key_bytes = vec![0u8; 32];
         let protected = formspec_signature_cose::protected_header_bytes(-8, None);
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&protected, None, &[0u8; 64]);
@@ -673,7 +841,7 @@ mod tests {
                     signed_bytes: b"test message".to_vec(),
                     signature_bytes,
                     signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-                    key_ref: key_b64.into(),
+                    key_ref: KeyRef::RawPublicKey(key_bytes),
                 },
                 &registry,
             )
@@ -688,7 +856,6 @@ mod tests {
         let legacy_protected = [0xa1, 0x01, 0x27];
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&legacy_protected, None, &[0u8; 64]);
-        let key_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
         let error = verifier
             .verify(
@@ -696,7 +863,7 @@ mod tests {
                     signed_bytes: b"test message".to_vec(),
                     signature_bytes,
                     signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-                    key_ref: key_b64.into(),
+                    key_ref: KeyRef::RawPublicKey(vec![0u8; 32]),
                 },
                 &registry,
             )
@@ -727,10 +894,6 @@ mod tests {
             None,
             primitive_signature.as_ref(),
         );
-        let key_ref = base64::Engine::encode(
-            &base64::engine::general_purpose::STANDARD,
-            key_pair.public_key().as_ref(),
-        );
 
         let verifier = RingVerifier::new();
         let registry = test_registry();
@@ -740,7 +903,7 @@ mod tests {
                     signed_bytes,
                     signature_bytes,
                     signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-                    key_ref: key_ref.into(),
+                    key_ref: KeyRef::RawPublicKey(key_pair.public_key().as_ref().to_vec()),
                 },
                 &registry,
             )
@@ -749,55 +912,12 @@ mod tests {
         assert!(receipt.is_verified(), "ed25519 round-trip must verify");
     }
 
-    #[test]
-    fn test_did_key_ref_returns_clear_error() {
-        let verifier = RingVerifier::new();
-        let registry = test_registry();
-        let result = verifier.verify(
-            &VerifyRequest {
-                signed_bytes: vec![1, 2, 3],
-                signature_bytes: vec![4, 5, 6],
-                signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-                key_ref: "did:key:z6MkhaXgBZbuRxQRRMfWWr6PGpbNtAomVqJcg3w9oVUFCzkWn".into(),
-            },
-            &registry,
-        );
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            VerifierError::Internal { reason } => {
-                assert!(
-                    reason.contains("key resolution"),
-                    "expected key-resolution message, got: {reason}"
-                );
-            }
-            other => panic!("expected Internal error, got: {other}"),
-        }
-    }
-
-    #[test]
-    fn test_urn_key_ref_returns_clear_error() {
-        let verifier = RingVerifier::new();
-        let registry = test_registry();
-        let result = verifier.verify(
-            &VerifyRequest {
-                signed_bytes: vec![1, 2, 3],
-                signature_bytes: vec![4, 5, 6],
-                signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-                key_ref: "urn:formspec:key:test-key-001".into(),
-            },
-            &registry,
-        );
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            VerifierError::Internal { reason } => {
-                assert!(
-                    reason.contains("key resolution"),
-                    "expected key-resolution message, got: {reason}"
-                );
-            }
-            other => panic!("expected Internal error, got: {other}"),
-        }
-    }
+    // The earlier `test_did_key_ref_returns_clear_error` and
+    // `test_urn_key_ref_returns_clear_error` tests exercised the legacy
+    // stringly-typed `KidOrThumbprint` path that sniffed `did:` / `urn:`
+    // prefixes. That path is gone — `KeyRef` is typed and the resolver-port
+    // takes over identifier resolution. Coverage for resolver failures lives
+    // in `kid_lookup_failure_returns_internal_error` below.
 
     // ---------- Golden-vector round-trips (fs-wxoz) ----------
     //
@@ -1034,7 +1154,6 @@ mod tests {
             raw_signature.as_ref(),
         );
         let public_key_bytes = key_pair.public_key().as_ref().to_vec();
-        let key_ref = to_b64(&public_key_bytes);
 
         let verifier = RingVerifier::new();
         let registry = test_registry();
@@ -1046,7 +1165,7 @@ mod tests {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: signature_bytes.clone(),
                     signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
-                    key_ref: key_ref.clone().into(),
+                    key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
             )
@@ -1065,7 +1184,7 @@ mod tests {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: tampered,
                     signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
-                    key_ref: key_ref.clone().into(),
+                    key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
             )
@@ -1130,7 +1249,6 @@ mod tests {
 
         use ring::signature::KeyPair as _;
         let public_key_bytes = key_pair.public_key().as_ref().to_vec();
-        let key_ref = to_b64(&public_key_bytes);
 
         let verifier = RingVerifier::new();
         let registry = test_registry();
@@ -1141,7 +1259,7 @@ mod tests {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: signature_bytes.clone(),
                     signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
-                    key_ref: key_ref.clone().into(),
+                    key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
             )
@@ -1159,7 +1277,7 @@ mod tests {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: tampered,
                     signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
-                    key_ref: key_ref.clone().into(),
+                    key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
             )
@@ -1202,7 +1320,6 @@ mod tests {
         let public_key = read_b64_field(&json, "public_key");
         let signed_bytes = read_b64_field(&json, "signed_bytes");
         let signature_bytes = read_b64_field(&json, "signature_bytes_cose_sign1");
-        let key_ref = to_b64(&public_key);
 
         let verifier = RingVerifier::new();
         let registry = test_registry();
@@ -1212,7 +1329,7 @@ mod tests {
                     signed_bytes,
                     signature_bytes,
                     signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
-                    key_ref: key_ref.into(),
+                    key_ref: KeyRef::RawPublicKey(public_key),
                 },
                 &registry,
             )
@@ -1227,7 +1344,6 @@ mod tests {
         let public_key = read_b64_field(&json, "public_key");
         let signed_bytes = read_b64_field(&json, "signed_bytes");
         let signature_bytes = read_b64_field(&json, "signature_bytes_cose_sign1");
-        let key_ref = to_b64(&public_key);
 
         let verifier = RingVerifier::new();
         let registry = test_registry();
@@ -1237,7 +1353,7 @@ mod tests {
                     signed_bytes,
                     signature_bytes,
                     signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
-                    key_ref: key_ref.into(),
+                    key_ref: KeyRef::RawPublicKey(public_key),
                 },
                 &registry,
             )
@@ -1261,15 +1377,14 @@ mod tests {
         let raw_sig = key_pair.sign(&sig_structure);
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&protected, None, raw_sig.as_ref());
-        let key_ref =
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, key_pair.public_key().as_ref());
+        let public_key_bytes = key_pair.public_key().as_ref().to_vec();
         let request = VerifyRequest {
             signed_bytes,
             signature_bytes,
             signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-            key_ref: key_ref.into(),
+            key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
         };
-        (request, key_pair.public_key().as_ref().to_vec())
+        (request, public_key_bytes)
     }
 
     /// Without a configured ReceiptSigner the legacy behavior is preserved:
@@ -1421,5 +1536,232 @@ mod tests {
             0u8,
             "domain tag must be NUL-separated from canonical JSON"
         );
+    }
+
+    // ---------- KeyResolver port + kid binding (fs-0gzb) ----------
+
+    use std::collections::HashMap;
+
+    /// Builds a signed Ed25519 COSE_Sign1 envelope along with the keypair's
+    /// public key bytes and a known `kid`. Shared between the kid-binding
+    /// tests below — each scenario varies only how the `kid` flows into the
+    /// `VerifyRequest`.
+    fn ed25519_envelope_with_kid(kid: &[u8]) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+        let rng = SystemRandom::new();
+        let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).expect("pkcs8");
+        let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse");
+        let signed_bytes = b"formspec kid-binding payload".to_vec();
+        let protected = formspec_signature_cose::protected_header_bytes(-8, Some(kid));
+        let sig_structure = formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
+        let raw_sig = key_pair.sign(&sig_structure);
+        let signature_bytes =
+            formspec_signature_cose::encode_cose_sign1(&protected, None, raw_sig.as_ref());
+        (
+            signed_bytes,
+            signature_bytes,
+            key_pair.public_key().as_ref().to_vec(),
+        )
+    }
+
+    /// Ed25519 happy path via `KeyRef::Kid` routed through a `StaticKeyResolver`.
+    /// Proves the resolver-injection path verifies a real signature end to
+    /// end and that the kid binding `cose.kid == request.keyRef.Kid` holds.
+    #[test]
+    fn ed25519_kid_path_via_static_resolver_verifies() {
+        let kid = b"audit-kid-A".to_vec();
+        let (signed_bytes, signature_bytes, public_key) =
+            ed25519_envelope_with_kid(&kid);
+
+        let mut resolver = StaticKeyResolver::empty();
+        resolver.insert(kid.clone(), public_key);
+        let verifier = RingVerifier::new_with_key_resolver(Arc::new(resolver));
+        let registry = test_registry();
+
+        let receipt = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes,
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::Kid(kid),
+                },
+                &registry,
+            )
+            .expect("verify");
+        assert!(receipt.is_verified(), "kid-resolved ed25519 must verify");
+    }
+
+    /// fs-skj0 — kid mismatch attack vector. COSE envelope carries
+    /// `kid = audit-kid-A`; request asks for `kid = audit-kid-B`; resolver
+    /// returns the public key bound to `B`. The verifier MUST reject before
+    /// reaching the primitive, with verdict `unsupported`.
+    #[test]
+    fn kid_mismatch_between_cose_envelope_and_request_returns_unsupported() {
+        let envelope_kid = b"audit-kid-A".to_vec();
+        let request_kid = b"audit-kid-B".to_vec();
+        let (signed_bytes, signature_bytes, _envelope_public_key) =
+            ed25519_envelope_with_kid(&envelope_kid);
+
+        // Resolver knows about request_kid but binds it to a *different*
+        // (irrelevant) key — proves the rejection is at the kid binding,
+        // not at the primitive.
+        let mut resolver = StaticKeyResolver::empty();
+        resolver.insert(request_kid.clone(), vec![0u8; 32]);
+        let verifier = RingVerifier::new_with_key_resolver(Arc::new(resolver));
+        let registry = test_registry();
+
+        let receipt = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes,
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::Kid(request_kid),
+                },
+                &registry,
+            )
+            .expect("verify");
+        assert!(
+            receipt.is_unsupported(),
+            "kid mismatch must produce unsupported verdict, got: {}",
+            receipt.result
+        );
+    }
+
+    /// Resolver-returns-KeyNotFound surfaces as `VerifierError::Internal`,
+    /// NOT as a `failed` verdict. fs-no9r contract: adapter-internal failures
+    /// don't collapse to "signature checked and failed".
+    #[test]
+    fn kid_lookup_failure_returns_internal_error() {
+        let envelope_kid = b"some-kid".to_vec();
+        let (signed_bytes, signature_bytes, _) = ed25519_envelope_with_kid(&envelope_kid);
+
+        // Empty resolver — any Kid resolves to KeyNotFound.
+        let verifier =
+            RingVerifier::new_with_key_resolver(Arc::new(StaticKeyResolver::empty()));
+        let registry = test_registry();
+
+        let error = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes,
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::Kid(envelope_kid),
+                },
+                &registry,
+            )
+            .expect_err("KeyNotFound must surface as Err, not Ok(failed)");
+        match error {
+            VerifierError::Internal { reason } => {
+                assert!(
+                    reason.contains("kid not found"),
+                    "expected kid-not-found phrasing, got: {reason}"
+                );
+            }
+            other => panic!("expected VerifierError::Internal, got: {other}"),
+        }
+    }
+
+    /// Per-algorithm key-length validation. Ed25519 keys must be 32 bytes;
+    /// a 31-byte key short-circuits to `unsupported` before reaching ring's
+    /// primitive (which would otherwise return a generic error that the
+    /// adapter collapsed to `failed` — the wrong caller signal).
+    #[test]
+    fn ed25519_wrong_length_key_returns_unsupported() {
+        let registry = test_registry();
+        let verifier = RingVerifier::new();
+        // Build a valid-looking COSE envelope so the wedge is the key length.
+        let (signed_bytes, signature_bytes, _) = ed25519_envelope_with_kid(b"any-kid");
+
+        let receipt = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes,
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::RawPublicKey(vec![0u8; 31]),
+                },
+                &registry,
+            )
+            .expect("verify");
+        assert!(
+            receipt.is_unsupported(),
+            "31-byte ed25519 key must route to unsupported, got: {}",
+            receipt.result
+        );
+    }
+
+    /// Default (no explicit resolver) constructor wires an empty
+    /// `StaticKeyResolver`. `KeyRef::Kid` immediately surfaces a
+    /// `VerifierError::Internal` — the verifier cannot reach a verdict
+    /// because there is no key to verify against. Pairs with the
+    /// new_with_key_resolver constructor as the canonical migration: callers
+    /// that previously passed raw key bytes via `KidOrThumbprint(base64(...))`
+    /// switch to `KeyRef::RawPublicKey(bytes)` directly; callers that want to
+    /// look keys up by kid wire a real resolver into the constructor.
+    #[test]
+    fn default_verifier_rejects_kid_without_resolver() {
+        let registry = test_registry();
+        let verifier = RingVerifier::new();
+        let (signed_bytes, signature_bytes, _) = ed25519_envelope_with_kid(b"k");
+
+        let error = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes,
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::Kid(b"k".to_vec()),
+                },
+                &registry,
+            )
+            .expect_err("default verifier has no resolver — Kid must fail");
+        assert!(matches!(error, VerifierError::Internal { .. }));
+    }
+
+    /// `key.ref` field on the receipt is human-readable: `Kid(bytes)` is
+    /// base64; `RawPublicKey(bytes)` carries a `raw:` prefix so a consumer
+    /// can tell the variant at a glance without misreading raw key bytes as
+    /// a kid identifier.
+    #[test]
+    fn receipt_key_ref_field_distinguishes_kid_from_raw_public_key() {
+        let registry = test_registry();
+        let verifier = RingVerifier::new();
+        let (signed_bytes, signature_bytes, public_key) =
+            ed25519_envelope_with_kid(b"kid-X");
+
+        let receipt = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes,
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::RawPublicKey(public_key),
+                },
+                &registry,
+            )
+            .expect("verify");
+        assert!(receipt.is_verified());
+        assert!(
+            receipt.key.r#ref.as_str().starts_with("raw:"),
+            "raw public-key path must mark the receipt key ref with `raw:` prefix"
+        );
+    }
+
+    /// Static resolver round-trips `HashMap` ownership through the
+    /// constructor — proves the type plays nicely with the `Send + Sync +
+    /// 'static` bounds the port imposes.
+    #[test]
+    fn static_key_resolver_round_trip_via_constructor() {
+        let mut map: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
+        map.insert(b"k".to_vec(), vec![1, 2, 3]);
+        let resolver = StaticKeyResolver::new(map);
+        let bytes = resolver.resolve(&KeyRef::Kid(b"k".to_vec())).expect("hit");
+        assert_eq!(bytes, vec![1, 2, 3]);
+        assert!(matches!(
+            resolver.resolve(&KeyRef::Kid(b"absent".to_vec())),
+            Err(KeyResolverError::KeyNotFound { .. })
+        ));
     }
 }

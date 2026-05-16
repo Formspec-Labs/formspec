@@ -10,9 +10,12 @@ import {
 } from '@formspec/signature-cose';
 import { WebCryptoVerifier, decodeCoseSign1 } from './index';
 import {
-  kidOrThumbprint,
+  keyRefKid,
+  keyRefRawPublicKey,
+  KeyRef,
   semVer,
   SignatureMethodRegistry,
+  StaticKeyResolver,
   uri,
   VerifierError,
 } from '@formspec/signature-port';
@@ -86,7 +89,26 @@ function hexToBytes(hex: string): Uint8Array {
   return out;
 }
 
+function base64ToBytes(b64: string): Uint8Array {
+  const binString = atob(b64);
+  return Uint8Array.from(binString, (c) => c.charCodeAt(0));
+}
+
+/**
+ * Builds a `KeyRef.rawPublicKey` from a base64-encoded public key fixture
+ * field — the migration shortcut from the old stringly-typed shape to the
+ * new typed `KeyRef`.
+ */
+function keyRefFromBase64PublicKey(b64: string): KeyRef {
+  return keyRefRawPublicKey(base64ToBytes(b64));
+}
+
 describe('WebCryptoVerifier', () => {
+  // Zero-bytes placeholder for tests that fail upstream of key material
+  // (unknown method, deprecated method, alg = null). 32 bytes so it also
+  // satisfies the Ed25519 length gate where the test happens to reach it.
+  const PLACEHOLDER_RAW_KEY = keyRefRawPublicKey(new Uint8Array(32));
+
   it('returns unsupported for unknown method', async () => {
     const verifier = new WebCryptoVerifier();
     const receipt = await verifier.verify(
@@ -94,7 +116,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: new Uint8Array([1, 2, 3]),
         signatureBytes: new Uint8Array([4, 5, 6]),
         signatureMethod: uri('urn:formspec:sig-method:unknown@1'),
-        keyRef: kidOrThumbprint('deadbeef'),
+        keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
     );
@@ -109,7 +131,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: new Uint8Array([1, 2, 3]),
         signatureBytes: new Uint8Array([4, 5, 6]),
         signatureMethod: uri('urn:formspec:sig-method:ml-dsa-65-cose-sign1@1'),
-        keyRef: kidOrThumbprint('deadbeef'),
+        keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
     );
@@ -136,7 +158,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: new Uint8Array([1, 2, 3]),
         signatureBytes: new Uint8Array([4, 5, 6]),
         signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-        keyRef: kidOrThumbprint('deadbeef'),
+        keyRef: PLACEHOLDER_RAW_KEY,
       },
       deprecatedRegistry,
     );
@@ -161,7 +183,6 @@ describe('WebCryptoVerifier', () => {
     );
     const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
     const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
-    const keyRef = kidOrThumbprint(bytesToBase64(publicKey));
 
     const verifier = new WebCryptoVerifier();
     const receipt = await verifier.verify(
@@ -169,7 +190,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes,
         signatureBytes,
         signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-        keyRef,
+        keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
     );
@@ -194,7 +215,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: tampered,
         signatureMethod: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
-        keyRef: kidOrThumbprint(fixture.public_key.base64),
+        keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
     );
@@ -213,7 +234,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
         signatureMethod: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
-        keyRef: kidOrThumbprint(fixture.public_key.base64),
+        keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
     );
@@ -249,7 +270,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes,
         signatureBytes: tampered,
         signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-        keyRef: kidOrThumbprint(bytesToBase64(publicKey)),
+        keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
     );
@@ -289,7 +310,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes,
         signatureBytes,
         signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-        keyRef: kidOrThumbprint(bytesToBase64(wrongPublicKey)),
+        keyRef: keyRefRawPublicKey(wrongPublicKey),
       },
       TEST_REGISTRY,
     );
@@ -308,13 +329,14 @@ describe('WebCryptoVerifier', () => {
     // hit the decode branch specifically and not the importKey-internal-error
     // branch (covered separately below).
     const verifier = new WebCryptoVerifier();
-    const validKeyB64 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
     const receipt = await verifier.verify(
       {
         signedBytes: new TextEncoder().encode('any payload'),
         signatureBytes: new Uint8Array([0xff, 0xff, 0xff, 0xff]),
         signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-        keyRef: kidOrThumbprint(validKeyB64),
+        // Valid-length Ed25519 key so we pass the length gate and reach the
+        // COSE-decode branch specifically.
+        keyRef: keyRefRawPublicKey(new Uint8Array(32)),
       },
       TEST_REGISTRY,
     );
@@ -325,75 +347,68 @@ describe('WebCryptoVerifier', () => {
     expect(receipt.method).toBe('urn:formspec:sig-method:ed25519-cose-sign1@1');
   });
 
-  it('throws VerifierError(internal) when importKey fails — distinct from verify-false (fs-no9r)', async () => {
-    // Wrong-length key bytes (5 raw bytes) make subtle.importKey reject. The
-    // adapter MUST surface this as an internal error, not collapse it into a
-    // 'failed' receipt that would imply "signature was checked and is forged".
-    // An attacker who finds an importKey-crashing input could otherwise mint
-    // a false-positive failure record.
+  it('routes wrong-length Ed25519 keys to unsupported (fs-0gzb per-alg length check)', async () => {
+    // Pre-fs-0gzb: 5-byte key reached `subtle.importKey`, which threw, and the
+    // adapter surfaced that as a thrown VerifierError('internal'). Now the
+    // per-algorithm length gate short-circuits *before* importKey is called,
+    // producing an `unsupported` verdict with a sanitized reason. The new
+    // contract: wrong-shape keys are a request-validity problem (no verdict
+    // reachable, no key import to crash), not an internal adapter error.
     const verifier = new WebCryptoVerifier();
-    const malformedKeyB64 = 'AAECAwQ='; // 5 bytes, not 32 — Ed25519 import rejects.
-    let thrown: unknown;
-    try {
-      await verifier.verify(
-        {
-          signedBytes: new TextEncoder().encode('any payload'),
-          signatureBytes: new Uint8Array([0xff, 0xff, 0xff, 0xff]),
-          signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-          keyRef: kidOrThumbprint(malformedKeyB64),
-        },
-        TEST_REGISTRY,
-      );
-    } catch (e) {
-      thrown = e;
-    }
-    expect(thrown).toBeInstanceOf(VerifierError);
-    expect((thrown as VerifierError).code).toBe('internal');
-    expect((thrown as VerifierError).message).toMatch(/key import failed/i);
+    const receipt = await verifier.verify(
+      {
+        signedBytes: new TextEncoder().encode('any payload'),
+        signatureBytes: new Uint8Array([0xff, 0xff, 0xff, 0xff]),
+        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        keyRef: keyRefRawPublicKey(new Uint8Array(5)),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('unsupported');
+    expect(receipt.reason).toMatch(/ed25519 key must be 32 bytes/i);
   });
 
-  it('produces distinguishable signals for importKey-crash vs verify-failure (fs-no9r)', async () => {
+  it('produces distinguishable signals for length-gate vs verify-failure (fs-no9r + fs-0gzb)', async () => {
     // Paired assertion: same registry, same method, two inputs that previously
-    // collapsed into identical 'failed' receipts. After fs-no9r the caller can
-    // tell them apart — one throws VerifierError, the other returns a
-    // 'failed' verdict.
+    // collapsed into identical 'failed' receipts. Pre-fs-0gzb the length-gate
+    // miss surfaced as a thrown VerifierError; post-fs-0gzb it surfaces as an
+    // `unsupported` verdict (still distinct from `failed`, which is the
+    // load-bearing security property).
     //
     // For the verify-failure half we generate a real keypair (importKey
     // succeeds) but stuff a bogus signature into the COSE envelope so
-    // subtle.verify returns false rather than throwing.
+    // subtle.verify returns false.
     const keyPair = await crypto.subtle.generateKey(
       { name: 'Ed25519' },
       true,
       ['sign', 'verify'],
     );
     const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
-    const validKeyRef = bytesToBase64(publicKey);
     const protectedHeader = protectedHeaderBytes(-8, new TextEncoder().encode('test-kid'));
     // Random non-matching 64-byte signature (deterministic so the test stays stable).
     const bogusSignature = new Uint8Array(64);
     for (let i = 0; i < bogusSignature.length; i += 1) bogusSignature[i] = (i * 7 + 13) & 0xff;
     const cose = encodeCoseSign1(protectedHeader, null, bogusSignature);
     const verifier = new WebCryptoVerifier();
-    const malformedKeyB64 = 'AAECAwQ='; // 5 raw bytes → importKey rejects.
 
-    await expect(
-      verifier.verify(
-        {
-          signedBytes: new TextEncoder().encode('payload'),
-          signatureBytes: cose,
-          signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-          keyRef: kidOrThumbprint(malformedKeyB64),
-        },
-        TEST_REGISTRY,
-      ),
-    ).rejects.toBeInstanceOf(VerifierError);
+    const lengthGateReceipt = await verifier.verify(
+      {
+        signedBytes: new TextEncoder().encode('payload'),
+        signatureBytes: cose,
+        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        keyRef: keyRefRawPublicKey(new Uint8Array(5)),
+      },
+      TEST_REGISTRY,
+    );
+    expect(lengthGateReceipt.result).toBe('unsupported');
+    expect(lengthGateReceipt.reason).toMatch(/ed25519 key must be 32 bytes/i);
 
     const failedReceipt = await verifier.verify(
       {
         signedBytes: new TextEncoder().encode('payload'),
         signatureBytes: cose,
         signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
-        keyRef: kidOrThumbprint(validKeyRef),
+        keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
     );
@@ -412,7 +427,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: new Uint8Array([1]),
         signatureBytes: new Uint8Array([2]),
         signatureMethod: uri('urn:formspec:sig-method:unknown@1'),
-        keyRef: kidOrThumbprint('deadbeef'),
+        keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
     );
@@ -427,18 +442,21 @@ describe('WebCryptoVerifier', () => {
     // get a stable receipt back regardless of key/signature bytes. Lets the
     // assertion focus on adapter-info shape rather than crypto wiring.
     const verifier = new WebCryptoVerifier();
+    const keyBytes = new Uint8Array([1, 2, 3]);
     const receipt = await verifier.verify(
       {
         signedBytes: new Uint8Array([1]),
         signatureBytes: new Uint8Array([2]),
         signatureMethod: uri('urn:formspec:sig-method:unknown@1'),
-        keyRef: kidOrThumbprint('key123'),
+        keyRef: keyRefRawPublicKey(keyBytes),
       },
       TEST_REGISTRY,
     );
     expect(receipt.adapter.id).toBe('urn:formspec:adapter:webcrypto@1');
     expect(receipt.adapter.version).toBe('0.1.0');
-    expect(receipt.key.ref).toBe('key123');
+    // fs-0gzb: KeyRef.rawPublicKey renders as `raw:<base64>` in the receipt
+    // so audit consumers can tell the variant at a glance.
+    expect(receipt.key.ref).toMatch(/^raw:/);
     expect(receipt.verifiedAt).toBeTruthy();
   });
 
@@ -472,7 +490,6 @@ describe('WebCryptoVerifier', () => {
     const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
     const spki = new Uint8Array(await crypto.subtle.exportKey('spki', keyPair.publicKey));
     const pkcs1 = unwrapSpkiToPkcs1RsaPublicKey(spki);
-    const keyRef = kidOrThumbprint(bytesToBase64(pkcs1));
 
     const verifier = new WebCryptoVerifier();
     const receipt = await verifier.verify(
@@ -480,7 +497,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes,
         signatureBytes,
         signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
-        keyRef,
+        keyRef: keyRefRawPublicKey(pkcs1),
       },
       TEST_REGISTRY,
     );
@@ -500,7 +517,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
         signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
-        keyRef: kidOrThumbprint(fixture.public_key.base64),
+        keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
     );
@@ -525,7 +542,7 @@ describe('WebCryptoVerifier', () => {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: tampered,
         signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
-        keyRef: kidOrThumbprint(fixture.public_key.base64),
+        keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
     );
@@ -547,12 +564,122 @@ describe('WebCryptoVerifier', () => {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
         signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
-        keyRef: kidOrThumbprint(rsaFixture.public_key.base64),
+        keyRef: keyRefFromBase64PublicKey(rsaFixture.public_key.base64),
       },
       TEST_REGISTRY,
     );
     expect(receipt.result).toBe('unsupported');
     expect(receipt.reason).toMatch(/cose alg mismatch/i);
+  });
+
+  // ---------- KeyResolver port + kid binding (fs-0gzb / fs-skj0) ----------
+
+  /**
+   * Builds a signed Ed25519 COSE_Sign1 envelope plus the keypair's public
+   * key bytes and the kid embedded in the protected header. Shared between
+   * the kid-binding tests so each scenario varies only how the kid flows
+   * into the `VerifyRequest`.
+   */
+  async function ed25519EnvelopeWithKid(kid: Uint8Array): Promise<{
+    signedBytes: Uint8Array;
+    signatureBytes: Uint8Array;
+    publicKey: Uint8Array;
+  }> {
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'Ed25519' },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('formspec kid-binding payload');
+    const protectedHeader = protectedHeaderBytes(-8, kid);
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'Ed25519' },
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+    const publicKey = new Uint8Array(
+      await crypto.subtle.exportKey('raw', keyPair.publicKey),
+    );
+    return { signedBytes, signatureBytes, publicKey };
+  }
+
+  it('verifies via KeyRef.kid routed through a StaticKeyResolver', async () => {
+    const kid = new TextEncoder().encode('audit-kid-A');
+    const { signedBytes, signatureBytes, publicKey } = await ed25519EnvelopeWithKid(kid);
+
+    const resolver = new StaticKeyResolver();
+    resolver.insert(kid, publicKey);
+    const verifier = new WebCryptoVerifier({ keyResolver: resolver });
+
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        keyRef: keyRefKid(kid),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('verified');
+    // The receipt's key.ref carries the kid (base64) so an audit reader sees
+    // *what was bound*, not the raw key bytes.
+    expect(receipt.key.ref).not.toMatch(/^raw:/);
+  });
+
+  it('returns unsupported when cose.kid disagrees with request.keyRef.Kid (fs-skj0)', async () => {
+    // COSE envelope claims kid = A; request asks for kid = B; resolver binds
+    // B to an irrelevant key. The verifier MUST reject before the primitive
+    // (kid-swap vector). Result: unsupported with `kid mismatch` reason.
+    const envelopeKid = new TextEncoder().encode('audit-kid-A');
+    const requestKid = new TextEncoder().encode('audit-kid-B');
+    const { signedBytes, signatureBytes } = await ed25519EnvelopeWithKid(envelopeKid);
+
+    const resolver = new StaticKeyResolver();
+    resolver.insert(requestKid, new Uint8Array(32));
+    const verifier = new WebCryptoVerifier({ keyResolver: resolver });
+
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        keyRef: keyRefKid(requestKid),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('unsupported');
+    expect(receipt.reason).toMatch(/kid mismatch/i);
+  });
+
+  it('throws VerifierError(internal) when KeyResolver returns key_not_found (fs-no9r contract)', async () => {
+    // Resolver KeyNotFound is an adapter-internal verdict-not-reached state.
+    // Per fs-no9r it MUST NOT collapse to 'failed' (which would imply a real
+    // signature check ran and rejected the bytes).
+    const kid = new TextEncoder().encode('absent-kid');
+    const { signedBytes, signatureBytes } = await ed25519EnvelopeWithKid(kid);
+    const verifier = new WebCryptoVerifier();
+
+    let thrown: unknown;
+    try {
+      await verifier.verify(
+        {
+          signedBytes,
+          signatureBytes,
+          signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+          keyRef: keyRefKid(kid),
+        },
+        TEST_REGISTRY,
+      );
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(VerifierError);
+    expect((thrown as VerifierError).code).toBe('internal');
+    expect((thrown as VerifierError).message).toMatch(/key resolver/i);
   });
 });
 

@@ -10,12 +10,18 @@ import {
   VerifierError,
   VerifyRequest,
   SignatureMethodRegistry,
+  StaticKeyResolver,
+  KeyResolver,
+  KeyResolverError,
+  KeyRef,
   resolveRegistryEntry,
   sanitizeReason,
   type VerificationResult,
   type AdapterInfo,
+  type KidOrThumbprint,
   semVer,
   uri,
+  kidOrThumbprint,
 } from '@formspec/signature-port';
 
 const ADAPTER_ID = 'urn:formspec:adapter:webcrypto@1';
@@ -41,11 +47,23 @@ type AlgOutcome =
   | { kind: 'verdict'; result: VerificationResult }
   | { kind: 'unsupported'; reason: string };
 
+export interface WebCryptoVerifierOptions {
+  /**
+   * Resolves `KeyRef.kid` to public-key bytes. Defaults to an empty
+   * {@link StaticKeyResolver} — any `KeyRef.kid` request fails with
+   * `key_not_found`. Wire a real resolver here when the verifier is meant
+   * to look keys up by identifier.
+   */
+  keyResolver?: KeyResolver;
+}
+
 export class WebCryptoVerifier implements Verifier {
   private adapterInfo: AdapterInfo;
+  private keyResolver: KeyResolver;
 
-  constructor() {
+  constructor(options: WebCryptoVerifierOptions = {}) {
     this.adapterInfo = { id: uri(ADAPTER_ID), version: semVer(ADAPTER_VERSION) };
+    this.keyResolver = options.keyResolver ?? new StaticKeyResolver();
   }
 
   async verify(
@@ -69,10 +87,27 @@ export class WebCryptoVerifier implements Verifier {
       );
     }
 
+    // Resolve key material from the typed KeyRef. `kid` routes through the
+    // resolver; `rawPublicKey` short-circuits (caller has already committed).
+    // Resolver `KeyNotFound` / `Internal` bubble out as VerifierError —
+    // fs-no9r contract: adapter-internal failures never collapse to 'failed'.
+    let keyBytes: Uint8Array;
+    try {
+      keyBytes = await resolveKeyBytes(request.keyRef, this.keyResolver);
+    } catch (e) {
+      if (e instanceof KeyResolverError) {
+        throw new VerifierError(
+          `key resolver: ${sanitizeReason(e.message)}`,
+          'internal',
+        );
+      }
+      throw e;
+    }
+
     // Per-alg dispatch. Internal errors (importKey crash, subtle.verify
     // throwing on malformed key) bubble out as VerifierError — the caller MUST
     // see "adapter crashed" as distinct from "signature failed verification".
-    const outcome = await this.dispatchAlg(request, entry.alg);
+    const outcome = await this.dispatchAlg(request, entry.alg, keyBytes);
 
     if (outcome.kind === 'unsupported') {
       return this.unsupportedReceipt(registry, request, outcome.reason);
@@ -83,7 +118,7 @@ export class WebCryptoVerifier implements Verifier {
       method: request.signatureMethod,
       methodRegistryVersion: registry.version,
       adapter: this.adapterInfo,
-      key: { ref: request.keyRef },
+      key: { ref: keyRefDisplay(request.keyRef) },
       verifiedAt: new Date().toISOString(),
     };
 
@@ -96,6 +131,7 @@ export class WebCryptoVerifier implements Verifier {
   private async dispatchAlg(
     request: VerifyRequest,
     alg: number | null,
+    keyBytes: Uint8Array,
   ): Promise<AlgOutcome> {
     // COSE algorithm identifiers from IANA
     // -8 = EdDSA (Ed25519)
@@ -104,26 +140,36 @@ export class WebCryptoVerifier implements Verifier {
     if (alg === null) {
       return { kind: 'unsupported', reason: 'alg = null (PQC placeholder)' };
     }
+    // Per-algorithm key-length validation. Wrong-length keys never reach
+    // subtle.importKey or subtle.verify — closes the
+    // per-algorithm-length-validation gap from fs-0gzb.
+    const lengthError = validateKeyLengthForAlg(alg, keyBytes);
+    if (lengthError) {
+      return { kind: 'unsupported', reason: lengthError };
+    }
     switch (alg) {
       case -8:
-        return this.verifyEd25519(request);
+        return this.verifyEd25519(request, keyBytes);
       case -7:
-        return this.verifyEcdsaP256(request);
+        return this.verifyEcdsaP256(request, keyBytes);
       case -37:
-        return this.verifyRsaPssSha256(request);
+        return this.verifyRsaPssSha256(request, keyBytes);
       default:
         return { kind: 'unsupported', reason: `unrecognized alg: ${alg}` };
     }
   }
 
-  private async verifyEd25519(request: VerifyRequest): Promise<AlgOutcome> {
+  private async verifyEd25519(
+    request: VerifyRequest,
+    keyBytes: Uint8Array,
+  ): Promise<AlgOutcome> {
     // Ed25519 via Web Crypto — available in Chrome 117+, Safari 17+, Firefox 130+, Node 18+
     // Three distinct failure modes routed to three distinct caller signals:
     //   importKey throws        -> VerifierError('internal')    [thrown]
     //   decodeCoseSign1 throws  -> unsupported with reason       [returned]
     //   subtle.verify -> false  -> 'failed' verdict              [returned]
-    const key = await importRawPublicKey(
-      request.keyRef,
+    const key = await importPublicKey(
+      keyBytes,
       { name: 'Ed25519' },
       'Ed25519',
     );
@@ -134,6 +180,10 @@ export class WebCryptoVerifier implements Verifier {
     }
     if (cose.value.alg !== -8) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -8, got ${cose.value.alg}` };
+    }
+    const kidMismatch = assertKidBinding(request.keyRef, cose.value.kid);
+    if (kidMismatch) {
+      return kidMismatch;
     }
 
     return verdictFromSubtle(async () => {
@@ -148,13 +198,16 @@ export class WebCryptoVerifier implements Verifier {
     }, 'Ed25519');
   }
 
-  private async verifyEcdsaP256(request: VerifyRequest): Promise<AlgOutcome> {
+  private async verifyEcdsaP256(
+    request: VerifyRequest,
+    keyBytes: Uint8Array,
+  ): Promise<AlgOutcome> {
     // ECDSA P-256 via WebCrypto. Key import path: raw SEC1 uncompressed (65 bytes,
     // 0x04 || X || Y) matches the ring adapter's public_key fixture. Signature
     // wire format: IEEE-P1363 r||s (64 bytes) — matches ring's ECDSA_P256_SHA256_FIXED
     // output, which is what we extract from the COSE_Sign1 signature slot.
-    const key = await importRawPublicKey(
-      request.keyRef,
+    const key = await importPublicKey(
+      keyBytes,
       { name: 'ECDSA', namedCurve: 'P-256' },
       'ECDSA-P256',
     );
@@ -165,6 +218,10 @@ export class WebCryptoVerifier implements Verifier {
     }
     if (cose.value.alg !== -7) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -7, got ${cose.value.alg}` };
+    }
+    const kidMismatch = assertKidBinding(request.keyRef, cose.value.kid);
+    if (kidMismatch) {
+      return kidMismatch;
     }
 
     return verdictFromSubtle(async () => {
@@ -179,28 +236,24 @@ export class WebCryptoVerifier implements Verifier {
     }, 'ECDSA-P256');
   }
 
-  private async verifyRsaPssSha256(request: VerifyRequest): Promise<AlgOutcome> {
+  private async verifyRsaPssSha256(
+    request: VerifyRequest,
+    keyBytes: Uint8Array,
+  ): Promise<AlgOutcome> {
     // RSA-PSS SHA-256 via WebCrypto.
     //
     // Wire-format parity with the ring adapter:
-    //   - keyRef carries base64(PKCS#1 RSAPublicKey) — the bare `SEQUENCE { n, e }`
-    //     ring's `key_pair.public_key().as_ref()` returns. This matches the format
-    //     committed under tests/fixtures/golden-vectors/rsa-pss-sha256.json so the
-    //     same fixture verifies cross-runtime.
-    //   - WebCrypto's importKey('spki', ...) needs the SubjectPublicKeyInfo wrapper
-    //     instead; we wrap PKCS#1 -> SPKI here so callers don't have to.
-    //   - Signature wire is the raw RSA-PSS signature (modulus-length bstr) inside
-    //     the COSE_Sign1 envelope, salt = hash length = 32 bytes (PS256 default).
-    let keyBytes: ArrayBuffer;
-    try {
-      keyBytes = base64ToBytes(request.keyRef);
-    } catch (e) {
-      throw new VerifierError(
-        `RSA-PSS-SHA256 key import failed (invalid base64): ${sanitizeReason(String(e))}`,
-        'internal',
-      );
-    }
-    const spki = wrapPkcs1RsaPublicKeyInSpki(new Uint8Array(keyBytes));
+    //   - keyBytes carry PKCS#1 RSAPublicKey — the bare `SEQUENCE { n, e }`
+    //     ring's `key_pair.public_key().as_ref()` returns. This matches the
+    //     committed `rsa-pss-sha256.json` fixture so the same vector verifies
+    //     cross-runtime.
+    //   - WebCrypto's importKey('spki', ...) needs the SubjectPublicKeyInfo
+    //     wrapper instead; we wrap PKCS#1 -> SPKI here so callers don't have
+    //     to.
+    //   - Signature wire is the raw RSA-PSS signature (modulus-length bstr)
+    //     inside the COSE_Sign1 envelope, salt = hash length = 32 bytes (PS256
+    //     default).
+    const spki = wrapPkcs1RsaPublicKeyInSpki(keyBytes);
     let key: CryptoKey;
     try {
       key = await crypto.subtle.importKey(
@@ -223,6 +276,10 @@ export class WebCryptoVerifier implements Verifier {
     }
     if (cose.value.alg !== -37) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -37, got ${cose.value.alg}` };
+    }
+    const kidMismatch = assertKidBinding(request.keyRef, cose.value.kid);
+    if (kidMismatch) {
+      return kidMismatch;
     }
 
     return verdictFromSubtle(async () => {
@@ -247,7 +304,7 @@ export class WebCryptoVerifier implements Verifier {
       method: request.signatureMethod,
       methodRegistryVersion: registry.version,
       adapter: this.adapterInfo,
-      key: { ref: request.keyRef },
+      key: { ref: keyRefDisplay(request.keyRef) },
       verifiedAt: new Date().toISOString(),
       reason: sanitizeReason(reason),
     };
@@ -255,27 +312,137 @@ export class WebCryptoVerifier implements Verifier {
 }
 
 /**
+ * Resolves a {@link KeyRef} to raw key bytes. `KeyRef.kid` flows through the
+ * resolver; `KeyRef.rawPublicKey` short-circuits to the embedded bytes
+ * (caller has already committed to the key, so there is no resolution to do
+ * and no kid to bind against the COSE envelope).
+ *
+ * Resolver errors propagate as-is — the caller (`WebCryptoVerifier.verify`)
+ * funnels them through `VerifierError('internal')` so the adapter contract
+ * stays "thrown = verdict not reached".
+ */
+async function resolveKeyBytes(
+  keyRef: KeyRef,
+  resolver: KeyResolver,
+): Promise<Uint8Array> {
+  if (keyRef.kind === 'rawPublicKey') {
+    return keyRef.publicKey;
+  }
+  return resolver.resolve(keyRef);
+}
+
+/**
+ * fs-skj0 kid-binding check. After COSE decode, assert `cose.kid` matches the
+ * `keyRef.kid` from the request — closes the kid-swap vector. `rawPublicKey`
+ * skips because there is no identifier to bind.
+ *
+ * Returns `null` on bind success or non-applicability; otherwise returns an
+ * `unsupported` outcome that flows into the standard receipt path.
+ */
+function assertKidBinding(
+  keyRef: KeyRef,
+  coseKid: Uint8Array | null,
+): AlgOutcome | null {
+  if (keyRef.kind !== 'kid') {
+    return null;
+  }
+  if (coseKid === null) {
+    return {
+      kind: 'unsupported',
+      reason: 'kid mismatch: cose envelope has no kid but request.keyRef is Kid',
+    };
+  }
+  if (!bytesEqual(keyRef.kid, coseKid)) {
+    return {
+      kind: 'unsupported',
+      reason: 'kid mismatch: cose.kid != request.keyRef',
+    };
+  }
+  return null;
+}
+
+/** Constant-time bytewise comparison (length-aware, not timing-safe — used
+ * only on attacker-controlled identifier bytes for *equality*, not for any
+ * MAC verification). */
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Per-algorithm public-key length validation. Wrong-length keys are rejected
+ * with an `unsupported` verdict before reaching `subtle.importKey` or any
+ * primitive — closes the per-algorithm length-validation gap (fs-0gzb).
+ */
+function validateKeyLengthForAlg(alg: number, keyBytes: Uint8Array): string | null {
+  switch (alg) {
+    case -8:
+      if (keyBytes.length !== 32) {
+        return `ed25519 key must be 32 bytes; got ${keyBytes.length}`;
+      }
+      return null;
+    case -7:
+      if (keyBytes.length !== 65 || keyBytes[0] !== 0x04) {
+        return `ecdsa-p256 key must be SEC1 uncompressed (65 bytes, 0x04-prefixed); got ${keyBytes.length} bytes`;
+      }
+      return null;
+    case -37:
+      if (keyBytes.length < 100) {
+        return `rsa-pss key too short to encode RSAPublicKey; got ${keyBytes.length} bytes`;
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Renders a {@link KeyRef} for the receipt's `key.ref` field — a stable
+ * marker an audit consumer can correlate against logs. `kid` is base64'd;
+ * `rawPublicKey` carries a `raw:` prefix so a consumer can tell the variant
+ * at a glance.
+ */
+function keyRefDisplay(keyRef: KeyRef): KidOrThumbprint {
+  if (keyRef.kind === 'kid') {
+    return kidOrThumbprint(bytesToBase64Uint8(keyRef.kid));
+  }
+  return kidOrThumbprint(`raw:${bytesToBase64Uint8(keyRef.publicKey)}`);
+}
+
+function bytesToBase64Uint8(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    bin += String.fromCharCode(bytes[i]);
+  }
+  return btoa(bin);
+}
+
+/**
  * Wraps `crypto.subtle.importKey('raw', ...)` so a malformed key surfaces as
  * `VerifierError('internal')` — distinct from a forged signature. Sanitizes
  * the underlying message via {@link sanitizeReason} before it leaves the
  * adapter (the raw exception text can echo attacker-supplied bytes).
+ *
+ * Takes raw bytes (post-resolution and post-length-check), not the base64
+ * string the request originally carried — fs-0gzb moved decoding upstream
+ * into {@link resolveKeyBytes}.
  */
-async function importRawPublicKey(
-  keyRef: string,
+async function importPublicKey(
+  keyBytes: Uint8Array,
   algorithm: AlgorithmIdentifier | EcKeyImportParams,
   label: string,
 ): Promise<CryptoKey> {
-  let keyBytes: ArrayBuffer;
   try {
-    keyBytes = base64ToBytes(keyRef);
-  } catch (e) {
-    throw new VerifierError(
-      `${label} key import failed (invalid base64): ${sanitizeReason(String(e))}`,
-      'internal',
+    return await crypto.subtle.importKey(
+      'raw',
+      keyBytes as BufferSource,
+      algorithm,
+      false,
+      ['verify'],
     );
-  }
-  try {
-    return await crypto.subtle.importKey('raw', keyBytes, algorithm, false, ['verify']);
   } catch (e) {
     throw new VerifierError(
       `${label} key import failed: ${sanitizeReason(String(e))}`,
@@ -327,11 +494,6 @@ async function verdictFromSubtle(
     );
   }
   return { kind: 'verdict', result: isValid ? 'verified' : 'failed' };
-}
-
-function base64ToBytes(base64: string): ArrayBuffer {
-  const binString = atob(base64);
-  return Uint8Array.from(binString, (c) => c.charCodeAt(0)).buffer;
 }
 
 /**

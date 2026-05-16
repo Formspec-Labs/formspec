@@ -2,11 +2,60 @@
 // compile time while serializing transparently to/from plain strings.
 export type SemVer = string & { readonly __brand: 'SemVer' };
 export type Uri = string & { readonly __brand: 'Uri' };
+/**
+ * Receipt-side identifier for the key the verification was performed against.
+ *
+ * Kept on `KeyInfo.ref` (audit / display) where a stringly-typed marker is
+ * the right shape — the verifier has already settled the identifier vs
+ * key-material question at that point. The *request* side migrated off this
+ * type to the typed {@link KeyRef} union (fs-0gzb / fs-skj0).
+ */
 export type KidOrThumbprint = string & { readonly __brand: 'KidOrThumbprint' };
 
 export function semVer(s: string): SemVer { return s as SemVer; }
 export function uri(s: string): Uri { return s as Uri; }
 export function kidOrThumbprint(s: string): KidOrThumbprint { return s as KidOrThumbprint; }
+
+/**
+ * Typed key reference passed to {@link Verifier}.
+ *
+ * Replaces the stringly-typed `KidOrThumbprint` that previously rode in
+ * `VerifyRequest.keyRef` (fs-0gzb). The old shape conflated *identifier*
+ * (kid) with *key material* (raw bytes); the adapter base64-decoded the
+ * string and used the result as both. That kept a kid-swap vector live: a
+ * COSE envelope could claim `kid = A` while the caller resolved key bytes
+ * for a different identifier. The two cases are now disjoint variants and
+ * the adapter binds `cose.kid == KeyRef.kid` before any signature primitive
+ * runs.
+ *
+ * Minimal viable set — `Did`, `Urn`, and `Thumbprint` variants are deferred
+ * until a concrete resolver lands.
+ */
+export type KeyRef =
+  | {
+      /** COSE `kid` bytes. The verifier resolves key material via the configured {@link KeyResolver}. */
+      kind: 'kid';
+      kid: Uint8Array;
+    }
+  | {
+      /**
+       * Raw public-key bytes. Bypasses resolution — the caller has already
+       * committed to this exact key. The `cose.kid` ↔ `keyRef` binding check
+       * is skipped because there is no identifier to bind.
+       */
+      kind: 'rawPublicKey';
+      publicKey: Uint8Array;
+    };
+
+/** Helper: build a `KeyRef.Kid` from raw bytes. */
+export function keyRefKid(kid: Uint8Array): KeyRef {
+  return { kind: 'kid', kid };
+}
+
+/** Helper: build a `KeyRef.RawPublicKey` from raw bytes. */
+export function keyRefRawPublicKey(publicKey: Uint8Array): KeyRef {
+  return { kind: 'rawPublicKey', publicKey };
+}
 
 export type VerificationResult = 'verified' | 'failed' | 'unsupported';
 
@@ -67,7 +116,109 @@ export interface VerifyRequest {
   signedBytes: Uint8Array;
   signatureBytes: Uint8Array;
   signatureMethod: Uri;
-  keyRef: KidOrThumbprint;
+  keyRef: KeyRef;
+}
+
+/**
+ * Resolves a {@link KeyRef} to raw public-key bytes.
+ *
+ * Adapters consume this port via constructor injection (e.g.
+ * `new WebCryptoVerifier({ keyResolver })`). The default constructor wires
+ * an empty {@link StaticKeyResolver} — any `KeyRef.kid` resolution returns
+ * `KeyResolverError('key_not_found')`, leaving only the `rawPublicKey` path
+ * live for tests and direct-key callers.
+ *
+ * Async — WebCrypto-backed resolvers are async, so the port is async on the
+ * TS side. The Rust twin is sync.
+ */
+export interface KeyResolver {
+  /**
+   * Returns raw public-key bytes for the given reference.
+   * @throws {KeyResolverError} when the reference is unknown, unsupported,
+   * or the resolver itself errors.
+   */
+  resolve(keyRef: KeyRef): Promise<Uint8Array>;
+
+  /** Stable adapter identifier (URN-shaped) for telemetry / audit. */
+  resolverId(): string;
+}
+
+export type KeyResolverErrorCode =
+  | 'key_not_found'
+  | 'unsupported_key_ref'
+  | 'internal';
+
+export class KeyResolverError extends Error {
+  constructor(public code: KeyResolverErrorCode, message: string) {
+    super(message);
+    this.name = 'KeyResolverError';
+  }
+}
+
+/**
+ * `Map`-backed {@link KeyResolver} for tests and simple in-process composition.
+ *
+ * Resolves `KeyRef.kid` via direct lookup. `KeyRef.rawPublicKey` is rejected
+ * with `unsupported_key_ref` — adapters never route `rawPublicKey` through
+ * a resolver because the caller has already committed to those bytes.
+ *
+ * Production deployments substitute a real resolver (KMS, Trellis-managed
+ * key bag, etc.) at the composition root.
+ */
+export class StaticKeyResolver implements KeyResolver {
+  static readonly RESOLVER_ID = 'urn:formspec:key-resolver:static@1';
+
+  private readonly keys: Map<string, Uint8Array>;
+
+  constructor(keys?: Map<Uint8Array, Uint8Array> | ReadonlyArray<[Uint8Array, Uint8Array]>) {
+    this.keys = new Map();
+    if (keys) {
+      const iterable = keys instanceof Map ? keys.entries() : keys;
+      for (const [kid, publicKey] of iterable) {
+        this.keys.set(byteKey(kid), publicKey);
+      }
+    }
+  }
+
+  /** Inserts a `kid → publicKey` binding. */
+  insert(kid: Uint8Array, publicKey: Uint8Array): void {
+    this.keys.set(byteKey(kid), publicKey);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async resolve(keyRef: KeyRef): Promise<Uint8Array> {
+    if (keyRef.kind === 'kid') {
+      const value = this.keys.get(byteKey(keyRef.kid));
+      if (!value) {
+        throw new KeyResolverError(
+          'key_not_found',
+          `static resolver: kid not found (${keyRef.kid.length} bytes)`,
+        );
+      }
+      return value;
+    }
+    throw new KeyResolverError(
+      'unsupported_key_ref',
+      'rawPublicKey bypasses resolution; adapters must short-circuit',
+    );
+  }
+
+  resolverId(): string {
+    return StaticKeyResolver.RESOLVER_ID;
+  }
+}
+
+/**
+ * Encodes a `Uint8Array` as a `Map` key. `Uint8Array` identity is reference-
+ * based, so we route lookups through a hex string. Internal to
+ * {@link StaticKeyResolver}.
+ */
+function byteKey(bytes: Uint8Array): string {
+  let hex = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    hex += bytes[i].toString(16).padStart(2, '0');
+  }
+  return hex;
 }
 
 export interface RegistryEntry {

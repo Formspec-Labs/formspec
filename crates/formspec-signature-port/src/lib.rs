@@ -1,6 +1,11 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
-use std::{fmt, ops::Deref, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt,
+    ops::Deref,
+    sync::Arc,
+};
 use thiserror::Error;
 
 pub trait ClockPort: Send + Sync + 'static {
@@ -238,13 +243,142 @@ pub struct TrellisAnchorRef {
     pub ledger_scope: String,
 }
 
+/// Typed key reference passed to a [`Verifier`].
+///
+/// Replaces the stringly-typed [`KidOrThumbprint`] that previously rode in
+/// `VerifyRequest.key_ref` (fs-0gzb). The old shape conflated *identifier*
+/// (kid) with *key material* (raw bytes); adapters guessed which by sniffing
+/// `did:` / `urn:` prefixes and base64-decoding the rest. That kept a kid-
+/// swap vector live: a COSE envelope could claim `kid = A` while the caller
+/// resolved key-bytes for a different identifier. The two cases are now
+/// disjoint variants and the adapter binds `cose.kid == KeyRef::Kid(bytes)`
+/// before any signature primitive is invoked.
+///
+/// Minimal viable set — `Did`, `Urn`, and `Thumbprint` variants are deferred
+/// until a concrete resolver lands.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "kind", content = "value")]
+pub enum KeyRef {
+    /// COSE `kid` bytes. The [`Verifier`] resolves key material by this
+    /// identifier via the configured [`KeyResolver`] and then asserts the
+    /// resolved key's `kid` matches these bytes.
+    Kid(#[serde(with = "serde_bytes")] Vec<u8>),
+    /// Raw public-key bytes. Bypasses resolution — the caller has already
+    /// committed to this exact key. The `cose.kid` ↔ `KeyRef` binding check
+    /// is skipped for this variant because there is no identifier to bind.
+    /// Used for test fixtures and bootstrap paths where the verifier is
+    /// handed key bytes directly.
+    RawPublicKey(#[serde(with = "serde_bytes")] Vec<u8>),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyRequest {
     pub signed_bytes: Vec<u8>,
     pub signature_bytes: Vec<u8>,
     pub signature_method: Uri,
-    pub key_ref: KidOrThumbprint,
+    pub key_ref: KeyRef,
+}
+
+/// Resolves a [`KeyRef`] to raw public-key bytes.
+///
+/// Adapters consume this port via constructor injection (e.g.
+/// `RingVerifier::new_with_key_resolver`). The default constructors wire an
+/// empty [`StaticKeyResolver`] — any `KeyRef::Kid` resolution returns
+/// [`KeyResolverError::KeyNotFound`], leaving only the [`KeyRef::RawPublicKey`]
+/// path live for tests and direct-key callers.
+///
+/// Sync. The ring adapter is sync; WebCrypto's TS twin is async. Cross-runtime
+/// portability comes from the byte-level contract, not a shared trait.
+pub trait KeyResolver: Send + Sync + 'static {
+    /// Returns raw public-key bytes for the given reference.
+    ///
+    /// # Errors
+    /// Returns [`KeyResolverError::KeyNotFound`] if the resolver has no
+    /// material for the identifier, [`KeyResolverError::UnsupportedKeyRef`]
+    /// if the variant is not handled (e.g. a future `Did` variant landing in
+    /// a resolver that only handles `Kid`), or [`KeyResolverError::Internal`]
+    /// for adapter-internal failures (I/O against a key service, etc.).
+    fn resolve(&self, key_ref: &KeyRef) -> Result<Vec<u8>, KeyResolverError>;
+
+    /// Stable adapter identifier (URN-shaped) for telemetry / audit.
+    fn resolver_id(&self) -> &str;
+}
+
+/// Shared handle for a boxed [`KeyResolver`] implementation.
+pub type KeyResolverHandle = Arc<dyn KeyResolver>;
+
+#[derive(Debug, Error)]
+pub enum KeyResolverError {
+    #[error("key not found for kid: {} bytes", kid.len())]
+    KeyNotFound { kid: Vec<u8> },
+    #[error("unsupported key reference: {0}")]
+    UnsupportedKeyRef(String),
+    #[error("key resolver internal error: {0}")]
+    Internal(String),
+}
+
+/// HashMap-backed [`KeyResolver`] for tests and simple in-process composition.
+///
+/// Resolves [`KeyRef::Kid`] via direct lookup. [`KeyRef::RawPublicKey`] is
+/// rejected with [`KeyResolverError::UnsupportedKeyRef`] — adapters never
+/// route `RawPublicKey` through a resolver because the caller has already
+/// committed to those bytes. Production deployments substitute a real
+/// resolver (KMS, Trellis-managed key bag, etc.) at the composition root.
+pub struct StaticKeyResolver {
+    keys: HashMap<Vec<u8>, Vec<u8>>,
+    resolver_id: String,
+}
+
+impl StaticKeyResolver {
+    const DEFAULT_ID: &'static str = "urn:formspec:key-resolver:static@1";
+
+    /// Builds an empty resolver. Any `Kid` lookup returns
+    /// [`KeyResolverError::KeyNotFound`].
+    #[must_use]
+    pub fn empty() -> Self {
+        Self::new(HashMap::new())
+    }
+
+    /// Builds a resolver pre-populated with a `kid → public-key-bytes` map.
+    #[must_use]
+    pub fn new(keys: HashMap<Vec<u8>, Vec<u8>>) -> Self {
+        Self {
+            keys,
+            resolver_id: Self::DEFAULT_ID.to_string(),
+        }
+    }
+
+    /// Inserts a single `kid → public-key-bytes` binding, returning the
+    /// previous value if any.
+    pub fn insert(&mut self, kid: Vec<u8>, public_key: Vec<u8>) -> Option<Vec<u8>> {
+        self.keys.insert(kid, public_key)
+    }
+}
+
+impl Default for StaticKeyResolver {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+impl KeyResolver for StaticKeyResolver {
+    fn resolve(&self, key_ref: &KeyRef) -> Result<Vec<u8>, KeyResolverError> {
+        match key_ref {
+            KeyRef::Kid(kid) => self
+                .keys
+                .get(kid)
+                .cloned()
+                .ok_or_else(|| KeyResolverError::KeyNotFound { kid: kid.clone() }),
+            KeyRef::RawPublicKey(_) => Err(KeyResolverError::UnsupportedKeyRef(
+                "RawPublicKey bypasses resolution; adapters must short-circuit".to_string(),
+            )),
+        }
+    }
+
+    fn resolver_id(&self) -> &str {
+        &self.resolver_id
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -595,7 +729,7 @@ mod tests {
             signed_bytes: vec![1, 2, 3],
             signature_bytes: vec![4, 5, 6],
             signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
-            key_ref: "did:key:z6MkhaXgB...".into(),
+            key_ref: KeyRef::Kid(b"kid-1".to_vec()),
         };
         assert_eq!(req.signed_bytes, vec![1, 2, 3]);
         assert_eq!(req.signature_bytes, vec![4, 5, 6]);
@@ -603,6 +737,55 @@ mod tests {
             req.signature_method,
             "urn:formspec:sig-method:ed25519-cose-sign1@1"
         );
-        assert_eq!(req.key_ref, "did:key:z6MkhaXgB...");
+        assert_eq!(req.key_ref, KeyRef::Kid(b"kid-1".to_vec()));
+    }
+
+    /// `StaticKeyResolver::empty()` returns `KeyNotFound` for any `Kid` — this
+    /// is the default backing for verifiers constructed without an explicit
+    /// resolver (existing call sites that pass `RawPublicKey` keep working;
+    /// new `Kid`-bearing requests get a typed not-found error).
+    #[test]
+    fn static_key_resolver_empty_returns_key_not_found_for_kid() {
+        let resolver = StaticKeyResolver::empty();
+        let result = resolver.resolve(&KeyRef::Kid(b"absent".to_vec()));
+        match result {
+            Err(KeyResolverError::KeyNotFound { kid }) => assert_eq!(kid, b"absent"),
+            other => panic!("expected KeyNotFound, got {other:?}"),
+        }
+    }
+
+    /// Populated resolver round-trips a kid to its registered bytes.
+    #[test]
+    fn static_key_resolver_returns_registered_bytes_for_known_kid() {
+        let mut resolver = StaticKeyResolver::empty();
+        resolver.insert(b"kid-A".to_vec(), vec![1, 2, 3, 4]);
+        let bytes = resolver
+            .resolve(&KeyRef::Kid(b"kid-A".to_vec()))
+            .expect("resolve");
+        assert_eq!(bytes, vec![1, 2, 3, 4]);
+    }
+
+    /// `RawPublicKey` must never reach the resolver — adapters short-circuit
+    /// before resolution. If a resolver is invoked with `RawPublicKey` that
+    /// is a caller bug, so the resolver rejects with `UnsupportedKeyRef`.
+    #[test]
+    fn static_key_resolver_rejects_raw_public_key_variant() {
+        let resolver = StaticKeyResolver::empty();
+        let result = resolver.resolve(&KeyRef::RawPublicKey(vec![0u8; 32]));
+        assert!(
+            matches!(result, Err(KeyResolverError::UnsupportedKeyRef(_))),
+            "RawPublicKey must short-circuit before reaching a resolver"
+        );
+    }
+
+    /// Confirms `KeyResolverError` plugs into `std::error::Error` for
+    /// `?`-chaining alongside the other adapter-internal errors.
+    #[test]
+    fn key_resolver_error_is_std_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        let err = KeyResolverError::KeyNotFound {
+            kid: b"k".to_vec(),
+        };
+        assert_error(&err);
     }
 }
