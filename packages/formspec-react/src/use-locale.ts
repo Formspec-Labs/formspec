@@ -3,6 +3,7 @@
 /** @filedesc useLocale — locale management forwarding to FormEngine. */
 import { useCallback } from 'react';
 import { useFormspecContext } from './context';
+import { useSignal } from './use-signal';
 
 export interface UseLocaleResult {
     activeLocale: string;
@@ -15,9 +16,16 @@ export interface UseLocaleResult {
 /**
  * Locale management hook — forwards to engine locale APIs.
  * Provides active locale, available locales, text direction, and locale switching.
+ *
+ * Subscribes to `engine.localeSignal` so React re-renders on any locale
+ * state change (active locale switch, locale doc load).
  */
 export function useLocale(): UseLocaleResult {
     const { engine } = useFormspecContext();
+
+    // Subscribe to the locale tick signal — bumps on setLocale/loadLocale.
+    // The value itself is unused; the subscription drives re-render.
+    useSignal(engine.localeSignal);
 
     const setLocale = useCallback((code: string) => {
         engine.setLocale(code);

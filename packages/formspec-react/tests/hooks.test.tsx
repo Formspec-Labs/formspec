@@ -809,6 +809,73 @@ describe('useLocale', () => {
         expect(Array.isArray(result.current.availableLocales)).toBe(true);
         expect(typeof result.current.direction).toBe('string');
     });
+
+    it('re-renders when engine.setLocale is called', () => {
+        const engine = createFormEngine(testDefinition);
+        const renderCount = { current: 0 };
+        const result = { current: null as any };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        function Inner() {
+            renderCount.current++;
+            result.current = useLocale();
+            return null;
+        }
+
+        flushSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <Inner />
+                </FormspecProvider>
+            );
+        });
+
+        const initialRenders = renderCount.current;
+        const initialLocale = result.current.activeLocale;
+        expect(initialLocale).not.toBe('fr-FR');
+
+        flushSync(() => { engine.setLocale('fr-FR'); });
+
+        expect(result.current.activeLocale).toBe('fr-FR');
+        expect(renderCount.current).toBeGreaterThan(initialRenders);
+    });
+
+    it('re-renders availableLocales when engine.loadLocale is called', () => {
+        const engine = createFormEngine(testDefinition);
+        const result = { current: null as any };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        function Inner() {
+            result.current = useLocale();
+            return null;
+        }
+
+        flushSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <Inner />
+                </FormspecProvider>
+            );
+        });
+
+        expect(result.current.availableLocales).not.toContain('de-DE');
+
+        flushSync(() => {
+            engine.loadLocale({
+                $formspecLocale: 'https://example.com/formspec/locale/1.0',
+                locale: 'de-DE',
+                version: '1.0.0',
+                targetDefinition: { url: 'about:test' },
+                strings: {},
+            });
+        });
+
+        expect(result.current.availableLocales).toContain('de-DE');
+    });
 });
 
 // ── useExternalValidation ────────────────────────────────────────

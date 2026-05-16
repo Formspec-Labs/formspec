@@ -24,7 +24,7 @@ import type {
     RemoteOptionsState,
 } from '../interfaces.js';
 import { preactReactiveRuntime } from '../reactivity/preact-runtime.js';
-import type { EngineReactiveRuntime, EngineSignal } from '../reactivity/types.js';
+import type { EngineReactiveRuntime, EngineSignal, ReadonlyEngineSignal } from '../reactivity/types.js';
 import { LocaleStore, type LocaleDocument } from '../locale.js';
 import { createFieldViewModel, type FieldViewModel } from '../field-view-model.js';
 import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
@@ -104,6 +104,7 @@ export class FormEngine implements IFormEngine {
     public readonly instanceData: Record<string, any> = {};
     public readonly instanceVersion: EngineSignal<number>;
     public readonly structureVersion: EngineSignal<number>;
+    public readonly localeSignal: ReadonlyEngineSignal<number>;
 
     private readonly _rx: EngineReactiveRuntime;
     private readonly _evaluationVersion: EngineSignal<number>;
@@ -158,6 +159,7 @@ export class FormEngine implements IFormEngine {
         // Locale store — direction mode from formPresentation.direction or 'ltr'
         const directionMode = (definition.formPresentation as any)?.direction ?? 'ltr';
         this._localeStore = new LocaleStore(this._rx, directionMode);
+        this.localeSignal = this._localeStore.version;
         this._variableDefs = [...(this.definition.variables ?? [])];
 
         if (runtimeContext) {

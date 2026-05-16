@@ -1,6 +1,6 @@
 /** @filedesc Engine public interfaces and shared exported types. */
 
-import type { EngineSignal } from './reactivity/types.js';
+import type { EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
 import type {
     FormDefinition,
     FormItem,
@@ -395,6 +395,12 @@ export interface IFormEngine {
     getActiveLocale(): string;
     getAvailableLocales(): string[];
     getLocaleDirection(): 'ltr' | 'rtl';
+    /**
+     * Reactive tick signal — increments on any locale state change
+     * (`setLocale`, `loadLocale`). Subscribe to drive re-renders that
+     * consume `getActiveLocale` / `getAvailableLocales` / `getLocaleDirection`.
+     */
+    readonly localeSignal: ReadonlyEngineSignal<number>;
     getFieldVM(path: string): FieldViewModel | undefined;
     getFormVM(): FormViewModel;
     /** Resolve a locale string key with fallback. For component-tier `$component.` keys. */
