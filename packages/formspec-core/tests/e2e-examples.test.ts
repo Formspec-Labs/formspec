@@ -252,23 +252,25 @@ function hydrateMapping(project: any, mapJson: any) {
 }
 
 describe('Formspec Studio E2E Examples Rehydration', () => {
-  let tmpDir: string;
+  // Studio-handler-emitted reconstructions of every example/ project, written to a project-root
+  // scratch dir so a failing run leaves diff-able artifacts on disk. Gitignored (see .gitignore).
+  let reconstructedDir: string;
   let commonRegistry: { url: string; entries: unknown[] };
 
   beforeAll(() => {
     process.env.DIAGNOSE_DEBUG = '1';
-    tmpDir = path.resolve(__dirname, '../../../reconstructed-examples');
-    if (fs.existsSync(tmpDir)) {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
+    reconstructedDir = path.resolve(__dirname, '../../../reconstructed-examples');
+    if (fs.existsSync(reconstructedDir)) {
+      fs.rmSync(reconstructedDir, { recursive: true, force: true });
     }
-    fs.mkdirSync(tmpDir, { recursive: true });
+    fs.mkdirSync(reconstructedDir, { recursive: true });
     const registryDoc = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
     commonRegistry = { url: 'urn:formspec:common', entries: registryDoc.entries ?? [] };
   });
 
   afterAll(() => {
     delete process.env.DIAGNOSE_DEBUG;
-    console.log('RECONSTRUCTED_EXAMPLES saved to:', tmpDir);
+    console.log('RECONSTRUCTED_EXAMPLES saved to:', reconstructedDir);
   });
 
   const examples = fs.readdirSync(EXAMPLES_DIR).filter(d => {
@@ -288,7 +290,9 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
       // Build one project per definition file found in the example
       
       for (const defFile of defFiles) {
-        const prefix = defFile.split('.definition.json')[0];
+        // Strip the .definition.json suffix. For unprefixed files (defFile === 'definition.json')
+        // this yields an empty prefix, so sibling lookups fall through to bare 'theme.json' / 'component.json' / 'mapping.json'.
+        const prefix = defFile.replace(/\.definition\.json$/, '');
         progress(`${ex} / ${prefix}: createRawProject + loadRegistry`);
         const project = createRawProject();
         project.dispatch({ type: 'project.loadRegistry', payload: { registry: commonRegistry } });
@@ -326,9 +330,9 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
           progress(`${ex} / ${prefix}: hydrateMapping done`);
         }
 
-        // Export to tmp
+        // Export to tmp — keep dir names clean when the example has a single unprefixed definition.json.
         progress(`${ex} / ${prefix}: writing artifacts...`);
-        const outDir = path.join(tmpDir, `${ex}-${prefix}`);
+        const outDir = path.join(reconstructedDir, prefix ? `${ex}-${prefix}` : ex);
         fs.mkdirSync(outDir, { recursive: true });
         const exported = project.export();
 

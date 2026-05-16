@@ -992,18 +992,6 @@ Cross-cutting sweeps (Top 7) + per-package cleanup tickets follow. See thoughts/
 
    **Acceptance:** Every example/ subdirectory has a README. examples/README.md table lists every example.
 
-- **FORMSPEC-PR-INFRA-006 — reconstructed-examples/ dirs with .json suffix + purpose unclear** · `fs-bp57` · P2
-
-   **High (visible eyesore).** reconstructed-examples/grant-application-definition.json/ and reconstructed-examples/signature-attestation-definition.json/ — two DIRECTORIES named with .json suffix, containing 4-file artifact sets. Derived from a generator that named directories after the FILE it diffed against, not the project.
-
-   Plus: reconstructed-examples/ has no README, no docs, no obvious purpose. Only consumer is scripts/archived/rehydration-diff.ts (archived). Eight project-shaped directories with 4 JSON files each. To a new visitor: looks like duplicated examples or abandoned scaffolding.
-
-   **Fix:**
-   (a) Rename to grant-application/ + signature-attestation/; verify nothing references old paths.
-   (b) Decide purpose of reconstructed-examples/. Either add README ('these are studio-handler-emitted outputs verified to match examples/') OR archive whole directory under thoughts/archive/.
-
-   **Acceptance:** Renamed directories. reconstructed-examples/ purpose documented or archived.
-
 - **FORMSPEC-PR-ADAPT-004 — Boy-scout cleanups + adapter-author API in formspec-adapters** · `fs-ca6y` · P2
 
    **Medium cluster:**
