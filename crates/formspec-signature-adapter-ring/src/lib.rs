@@ -411,12 +411,14 @@ impl RingVerifier {
                         reason,
                     ));
                 }
-                let cose = formspec_signature_cose::decode_cose_sign1_with_profile_id(
-                    &request.signature_bytes,
-                )
-                .map_err(|error| VerifierError::InvalidCoseEncoding {
-                    reason: error.to_string(),
-                })?;
+                let (cose, _method_uri) =
+                    formspec_signature_cose::decode_cose_sign1_with_method_uri(
+                        &request.signature_bytes,
+                        formspec_signature_cose::FORMSPEC_SIG_METHOD_URI_PREFIX,
+                    )
+                    .map_err(|error| VerifierError::InvalidCoseEncoding {
+                        reason: error.to_string(),
+                    })?;
                 if cose.alg() != Some(i128::from(alg)) {
                     return Ok(self.failed_receipt(request, registry));
                 }
@@ -553,8 +555,18 @@ impl InProcessReceiptSigner {
 
 impl ReceiptSigner for InProcessReceiptSigner {
     fn sign_receipt(&self, canonical_payload: &[u8]) -> Result<Vec<u8>, ReceiptSignerError> {
-        let kid_slice = self.kid.as_deref();
-        let protected = formspec_signature_cose::protected_header_bytes(-8, kid_slice);
+        let kid_slice = self
+            .kid
+            .as_deref()
+            .ok_or_else(|| ReceiptSignerError::KeyUnavailable {
+                reason: "receipt-signing requires a kid per ADR 0109 consumer envelope shape"
+                    .to_string(),
+            })?;
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -8,
+            kid_slice,
+            "urn:formspec:receipt-method:ed25519-cose-sign1@1",
+        );
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(&protected, canonical_payload);
         let signature = self.key_pair.sign(&sig_structure);
@@ -806,7 +818,11 @@ mod tests {
         // receipt but masks any future regression of the key-length gate).
         let verifier = RingVerifier::new();
         let registry = test_registry();
-        let protected = formspec_signature_cose::protected_header_bytes(-7, None);
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -7,
+            b"test-kid",
+            "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
+        );
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&protected, None, &[0u8; 64]);
         let mut placeholder_p256 = vec![0u8; 65];
@@ -832,7 +848,11 @@ mod tests {
         let verifier = RingVerifier::new();
         let registry = test_registry();
         let key_bytes = vec![0u8; 32];
-        let protected = formspec_signature_cose::protected_header_bytes(-8, None);
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -8,
+            b"test-kid",
+            "urn:formspec:sig-method:ed25519-cose-sign1@1",
+        );
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&protected, None, &[0u8; 64]);
         let receipt = verifier
@@ -850,9 +870,11 @@ mod tests {
     }
 
     #[test]
-    fn ring_adapter_rejects_cose_sign1_without_profile_id() {
+    fn ring_adapter_rejects_cose_sign1_without_method_uri() {
         let verifier = RingVerifier::new();
         let registry = test_registry();
+        // Legacy MAP_1 with alg-only — no method_uri (-65540). Post-ADR-0109
+        // verifier rejects envelopes that omit the method URI label.
         let legacy_protected = [0xa1, 0x01, 0x27];
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&legacy_protected, None, &[0u8; 64]);
@@ -867,13 +889,13 @@ mod tests {
                 },
                 &registry,
             )
-            .expect_err("missing profile_id should reject");
+            .expect_err("missing method_uri should reject");
 
         match error {
             VerifierError::InvalidCoseEncoding { reason } => {
                 assert!(
-                    reason.contains("profile_id"),
-                    "expected profile_id rejection, got: {reason}"
+                    reason.contains("method_uri"),
+                    "expected method_uri rejection, got: {reason}"
                 );
             }
             other => panic!("expected InvalidCoseEncoding error, got: {other}"),
@@ -886,7 +908,11 @@ mod tests {
         let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).expect("generate key");
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse key");
         let signed_bytes = b"formspec signed payload".to_vec();
-        let protected = formspec_signature_cose::protected_header_bytes(-8, Some(b"test-kid"));
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -8,
+            b"test-kid",
+            "urn:formspec:sig-method:ed25519-cose-sign1@1",
+        );
         let sig_structure = formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
         let primitive_signature = key_pair.sign(&sig_structure);
         let signature_bytes = formspec_signature_cose::encode_cose_sign1(
@@ -1142,7 +1168,11 @@ mod tests {
         .expect("parse ecdsa pkcs8");
 
         let signed_bytes = b"formspec ecdsa-p256 golden vector payload".to_vec();
-        let protected = formspec_signature_cose::protected_header_bytes(-7, Some(b"test-kid"));
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -7,
+            b"test-kid",
+            "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
+        );
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
         let raw_signature = key_pair
@@ -1227,7 +1257,11 @@ mod tests {
 
         let rng = SystemRandom::new();
         let signed_bytes = b"formspec rsa-pss-sha256 golden vector payload".to_vec();
-        let protected = formspec_signature_cose::protected_header_bytes(-37, Some(b"test-kid"));
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -37,
+            b"test-kid",
+            "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1",
+        );
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
 
@@ -1371,7 +1405,14 @@ mod tests {
         let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).expect("generate key");
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse key");
         let signed_bytes = b"formspec receipt-signing happy path".to_vec();
-        let protected = formspec_signature_cose::protected_header_bytes(-8, Some(b"test-kid"));
+        // Build a response-signing envelope (sig-method prefix). The helper
+        // builds a VerifyRequest whose signature_method is sig-method:ed25519
+        // (line below); the verifier rejects mismatched prefixes per ADR 0109.
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -8,
+            b"test-kid",
+            "urn:formspec:sig-method:ed25519-cose-sign1@1",
+        );
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
         let raw_sig = key_pair.sign(&sig_structure);
@@ -1430,8 +1471,11 @@ mod tests {
         )
         .expect("base64 decode envelope");
 
-        let cose =
-            formspec_signature_cose::decode_cose_sign1_with_profile_id(&envelope).expect("cose decode");
+        let (cose, _) = formspec_signature_cose::decode_cose_sign1_with_method_uri(
+            &envelope,
+            formspec_signature_cose::FORMSPEC_RECEIPT_METHOD_URI_PREFIX,
+        )
+        .expect("cose decode");
         assert_eq!(cose.alg(), Some(-8), "ed25519 EdDSA alg expected");
         let canonical = canonical_receipt_payload_bytes(&VerificationReceipt {
             // Reconstruct the receipt-without-signature view the signer saw.
@@ -1480,11 +1524,14 @@ mod tests {
     #[test]
     fn tampered_canonical_payload_breaks_receipt_signature() {
         let (signer, public_key_bytes) =
-            InProcessReceiptSigner::generate(None).expect("generate signer");
+            InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("generate signer");
         let payload = b"original canonical receipt payload";
         let envelope = signer.sign_receipt(payload).expect("sign");
-        let cose =
-            formspec_signature_cose::decode_cose_sign1_with_profile_id(&envelope).expect("decode");
+        let (cose, _) = formspec_signature_cose::decode_cose_sign1_with_method_uri(
+            &envelope,
+            formspec_signature_cose::FORMSPEC_RECEIPT_METHOD_URI_PREFIX,
+        )
+        .expect("decode");
         let tampered_payload = b"tampered canonical receipt payload";
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(cose.protected_header(), tampered_payload);
@@ -1656,7 +1703,11 @@ mod tests {
         let pkcs8 = signature::Ed25519KeyPair::generate_pkcs8(&rng).expect("pkcs8");
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse");
         let signed_bytes = b"formspec kid-binding payload".to_vec();
-        let protected = formspec_signature_cose::protected_header_bytes(-8, Some(kid));
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -8,
+            kid,
+            "urn:formspec:sig-method:ed25519-cose-sign1@1",
+        );
         let sig_structure = formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
         let raw_sig = key_pair.sign(&sig_structure);
         let signature_bytes =
