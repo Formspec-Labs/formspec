@@ -92,6 +92,22 @@ in the interim.
 
 Post-quantum, hash-based stateless. Optional adapter coverage.
 
+## Receipt-signing methods
+
+The entries below register URI prefixes under `urn:formspec:receipt-method:*` for receipt-signing methods per [ADR 0111](../../thoughts/adr/0111-formspec-receipt-signing-posture.md). These are distinct from the response-signing methods above; the receipt-signing preimage uses `RECEIPT_SIGNED_PAYLOAD_DOMAIN = "formspec.verification.receipt.v1"` rather than the response-signing domain. The two URI subspaces (`urn:formspec:sig-method:*` and `urn:formspec:receipt-method:*`) MUST NOT overlap.
+
+### ed25519-cose-sign1@1 (receipt)
+
+| Field | Value |
+|---|---|
+| `id` | `urn:formspec:receipt-method:ed25519-cose-sign1@1` |
+| `suite` | Ed25519 |
+| `wire` | COSE_Sign1 with alg = -8 (EdDSA); protected header per ADR 0109 consumer detached-signature shape (MAP_3 with `method_uri` at COSE label `-65540`) |
+| `alg` | -8 |
+| `status` | registered |
+
+Reference adapter: `formspec-signature-adapter-ring`'s `new_with_receipt_signer(signer)` constructor. Server-side only; F-8 forbids browser-held receipt-signing keys.
+
 ## Versioning
 
 This document uses semver. Version bumps:
