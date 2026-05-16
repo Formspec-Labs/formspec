@@ -8,6 +8,7 @@ This file holds completed items and completion notes moved out of `TODO.md` so a
 
 ## Resolved
 
+- **FORMSPEC-BENCHMARK-HARNESS-001 closed 2026-05-15** (`fs-l5b9`) — `benchmarks/test_benchmark_harness.py` already exercises four real tasks (`clinical-intake`, `grant-application`, `grant-report`, `invoice`); 15/15 tests pass. The `pytest.skip('no tasks yet')` branches at lines 64/90/103 are vestigial dead arms of `_task_ids() or ["__placeholder__"]` parametrize guards — only hit when the task tree is empty. TODO claim that the harness skipped all tests was stale; no engineering work was required.
 - **Respondent Ledger §6.2 MUST promotion closed 2026-04-22** — `eventHash` / `priorEventHash` are now mandatory when a Respondent Ledger event is wrapped by a Trellis envelope; `priorEventHash = null` is reserved for the first wrapped event.
 - **ADR 0072 Formspec-side implementation closed 2026-04-22** — `attachment.added` / `attachment.replaced` now carry `EvidenceAttachmentBinding`; `attachment.removed` references `priorAttachmentBindingHash` without minting a new binding; schema conditionals and a concrete attachment-binding fixture landed.
 

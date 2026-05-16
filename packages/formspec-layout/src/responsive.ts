@@ -1,11 +1,14 @@
 /**
  * Merge responsive breakpoint overrides onto a component descriptor.
  *
- * Without a breakpoints map, applies only the single active breakpoint's
- * overrides (backwards-compatible behaviour).
+ * When no numeric breakpoints are available — either because no breakpoints
+ * map is supplied or because the map contains only raw media-query strings —
+ * applies the single active breakpoint's overrides directly. This is the v1
+ * default for themes that don't pin numeric minWidths (it is not a deprecated
+ * shim and carries no removal target).
  *
- * With a breakpoints map, performs a mobile-first cumulative cascade per
- * Component Spec §9.3: all breakpoints whose minWidth ≤ the active
+ * When numeric breakpoints are available, performs a mobile-first cumulative
+ * cascade per Component Spec §9.3: all breakpoints whose minWidth ≤ the active
  * breakpoint's minWidth are applied in ascending minWidth order, so later
  * breakpoints win over earlier ones for conflicting keys.
  *

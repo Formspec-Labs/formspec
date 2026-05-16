@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { resolveResponsiveProps } from '../src/responsive';
 
-// ── Backwards compatibility: no breakpoints map ───────────────────────
+// ── Single-breakpoint merge: no numeric breakpoints available ─────────
 
-describe('resolveResponsiveProps — no breakpoints map (backwards compat)', () => {
+describe('resolveResponsiveProps — no breakpoints map (single-breakpoint merge)', () => {
     it('returns comp unchanged when no responsive map', () => {
         const comp = { component: 'Stack', gap: 16 };
         expect(resolveResponsiveProps(comp, 'md')).toBe(comp);
