@@ -140,13 +140,14 @@ function SubmitButtonNode({ node }: { node: LayoutNode }) {
 function WhenGuard({ node }: { node: LayoutNode }) {
     const visible = useWhen(node.when!, node.whenPrefix);
 
-    if (!visible) return null;
-
-    // Render the node without the `when` — strip it to avoid infinite recursion
+    // Render the node without the `when` — strip it to avoid infinite recursion.
+    // useMemo MUST run unconditionally before any early return (rules of hooks).
     const innerNode = useMemo(
         () => ({ ...node, when: undefined, whenPrefix: undefined }),
         [node],
     );
+
+    if (!visible) return null;
 
     return <FormspecNode node={innerNode} />;
 }
