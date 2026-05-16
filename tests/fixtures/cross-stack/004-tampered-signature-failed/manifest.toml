@@ -27,7 +27,7 @@ admission_failed_reason = "primitive_verification_failed"
 
 [expected-outcomes.trellis]
 present = true
-custody_hook_present = true
+custody_hook_present = false
 uca_corroborated = false
 export_present = false
 
