@@ -16,7 +16,12 @@ struct FixtureAuthoredSignature {
     signing_intent: String,
     signature_value: String,
     signature_method: String,
-    verification_receipt: String,
+    /// Optional because bundles that declare `verification_receipt = false` in
+    /// their manifest (005, 006) omit this field. Receipt-bearing bundles
+    /// (001-004) carry it inline; [`load_receipt_fixture`] then asserts the
+    /// inline string byte-matches the bundle's `verification-receipt.cose`.
+    #[serde(default)]
+    verification_receipt: Option<String>,
     signed_payload: FixtureSignedPayload,
 }
 
@@ -32,6 +37,20 @@ struct FixtureSignedPayload {
     signing_intent: String,
 }
 
+/// Response-side bytes plus authored-signature view. No receipt is read; the
+/// caller decides whether the bundle's manifest declares `verification_receipt`
+/// and pulls receipt bytes through [`load_receipt_fixture`] when it does.
+/// Used by receipt-less bundles 005, 006 (fs-5wrh helper factoring).
+#[allow(dead_code)]
+struct ResponseFixture {
+    response_json: serde_json::Value,
+    signature: FixtureAuthoredSignature,
+    signed_bytes: Vec<u8>,
+}
+
+/// Response-side + receipt-side bytes. Used by bundles that declare
+/// `verification_receipt = true` in their manifest. Bundles declaring
+/// `verification_receipt = false` use [`load_response_fixture`] directly.
 struct VerifiedResponseFixture {
     signature: FixtureAuthoredSignature,
     signed_bytes: Vec<u8>,
@@ -60,7 +79,11 @@ struct WosSignatureAffirmationData {
     signing_intent: String,
     custody_hook_eligible: bool,
     primitive_verification: PrimitiveVerification,
-    verification_receipt: String,
+    /// Verified paths embed the COSE_Sign1 receipt bytes (base64). The
+    /// `deferredPendingHelper` path (bundle 006) omits this — no primitive
+    /// verification fired, so there is no receipt to embed.
+    #[serde(default)]
+    verification_receipt: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -104,7 +127,11 @@ struct TrellisEvent {
 #[serde(rename_all = "camelCase")]
 struct TrellisEventData {
     signed_payload_digest: String,
-    verification_receipt: String,
+    /// Optional for the same reason as `WosSignatureAffirmationData` —
+    /// `deferredPendingHelper` events emit no receipt (bundle 006). Receipt-
+    /// bearing events (002, 003, 004) still carry it inline.
+    #[serde(default)]
+    verification_receipt: Option<String>,
     custody_hook_present: bool,
     admission_failed_reason: Option<String>,
 }
@@ -146,21 +173,20 @@ fn cross_stack_root() -> PathBuf {
     root
 }
 
-fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture {
-    use base64::Engine;
-    use formspec_signature_cose::decode_cose_sign1;
+/// Reads a bundle's `formspec-response.json` + `posture-declaration.json`,
+/// validates schema, asserts source-of-truth bindings between the top-level
+/// response and `signedPayload`, and recomputes the canonical signed-payload
+/// digest. Receipt-less: bundles declaring `verification_receipt = false` in
+/// their manifest (e.g. 005, 006) load through here without touching
+/// `verification-receipt.cose` (fs-5wrh helper factoring).
+fn load_response_fixture(bundle_name: &str) -> ResponseFixture {
     use integrity_canonical::{DigestAlgorithm, build_signed_payload};
 
     let bundle_dir = cross_stack_root().join(bundle_name);
     let response_path = bundle_dir.join("formspec-response.json");
-    let receipt_path = bundle_dir.join("verification-receipt.cose");
     let posture_path = bundle_dir.join("posture-declaration.json");
 
     assert!(response_path.exists(), "{bundle_name} response missing");
-    assert!(
-        receipt_path.exists(),
-        "{bundle_name} verification receipt missing"
-    );
     assert!(
         posture_path.exists(),
         "{bundle_name} posture declaration missing"
@@ -203,10 +229,40 @@ fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture 
     let signed_payload = build_signed_payload(&response_json, algorithm).expect("signed payload");
     assert_eq!(signed_payload.digest, signature.signed_payload.digest);
 
+    ResponseFixture {
+        response_json,
+        signature,
+        signed_bytes: signed_payload.canonical_bytes,
+    }
+}
+
+/// Reads a bundle's `verification-receipt.cose`, asserts it byte-matches the
+/// `verificationReceipt` field inlined on the authored signature, and decodes
+/// the COSE_Sign1 payload as a [`formspec_signature_port::VerificationReceipt`].
+/// Caller MUST only invoke this for bundles whose manifest declares
+/// `verification_receipt = true`.
+fn load_receipt_fixture(
+    bundle_name: &str,
+    signature: &FixtureAuthoredSignature,
+) -> (Vec<u8>, formspec_signature_port::VerificationReceipt) {
+    use base64::Engine;
+    use formspec_signature_cose::decode_cose_sign1;
+
+    let bundle_dir = cross_stack_root().join(bundle_name);
+    let receipt_path = bundle_dir.join("verification-receipt.cose");
+    assert!(
+        receipt_path.exists(),
+        "{bundle_name} verification receipt missing"
+    );
+
     let receipt_bytes = std::fs::read(&receipt_path).expect("read receipt");
     let receipt_b64 = base64::engine::general_purpose::STANDARD.encode(&receipt_bytes);
+    let inline_receipt = signature
+        .verification_receipt
+        .as_deref()
+        .expect("receipt-bearing bundle must inline verificationReceipt on the signature");
     assert_eq!(
-        signature.verification_receipt, receipt_b64,
+        inline_receipt, receipt_b64,
         "response verificationReceipt must byte-match verification-receipt.cose"
     );
 
@@ -216,10 +272,22 @@ fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture 
         .expect("receipt must embed its JSON payload");
     let receipt =
         serde_json::from_slice(receipt_payload).expect("parse VerificationReceipt payload");
+    (receipt_bytes, receipt)
+}
 
+/// Composes [`load_response_fixture`] + [`load_receipt_fixture`] for bundles
+/// 001-004 (receipt-bearing happy/admission-failed paths). Receipt-less
+/// bundles 005, 006 call [`load_response_fixture`] directly.
+fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture {
+    let ResponseFixture {
+        response_json: _,
+        signature,
+        signed_bytes,
+    } = load_response_fixture(bundle_name);
+    let (receipt_bytes, receipt) = load_receipt_fixture(bundle_name, &signature);
     VerifiedResponseFixture {
         signature,
-        signed_bytes: signed_payload.canonical_bytes,
+        signed_bytes,
         receipt_bytes,
         receipt,
     }
@@ -252,7 +320,7 @@ fn validate_response_schema(response_json: &serde_json::Value) {
 fn verify_with_ring(fixture: &VerifiedResponseFixture) {
     use base64::Engine;
     use formspec_signature_adapter_ring::RingVerifier;
-    use formspec_signature_port::{SignatureMethodRegistry, Verifier, VerifyRequest};
+    use formspec_signature_port::{KeyRef, SignatureMethodRegistry, Verifier, VerifyRequest};
 
     assert!(
         fixture.receipt.is_verified(),
@@ -270,6 +338,12 @@ fn verify_with_ring(fixture: &VerifiedResponseFixture) {
     let signature_bytes = base64::engine::general_purpose::STANDARD
         .decode(&fixture.signature.signature_value)
         .expect("decode signatureValue");
+    // fs-0gzb migration: receipts carry the raw public key (base64) in
+    // `key.ref`; decode it to KeyRef::RawPublicKey rather than passing the
+    // stringly-typed base64 through the legacy KidOrThumbprint path.
+    let key_bytes = base64::engine::general_purpose::STANDARD
+        .decode(fixture.receipt.key.r#ref.as_str())
+        .expect("decode receipt.key.ref as base64 raw public key");
     let verifier = RingVerifier::new();
     let verification = verifier
         .verify(
@@ -277,7 +351,7 @@ fn verify_with_ring(fixture: &VerifiedResponseFixture) {
                 signed_bytes: fixture.signed_bytes.clone(),
                 signature_bytes,
                 signature_method: fixture.signature.signature_method.as_str().into(),
-                key_ref: fixture.receipt.key.r#ref.clone(),
+                key_ref: KeyRef::RawPublicKey(key_bytes),
             },
             &registry,
         )
@@ -404,8 +478,12 @@ fn test_bundle_002_wos_governed_bytes_match_formspec_receipt() {
     assert!(data.custody_hook_eligible);
     assert_eq!(data.primitive_verification.status, "verified");
     assert_eq!(
-        data.verification_receipt,
-        base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes)
+        data.verification_receipt.as_deref(),
+        Some(
+            base64::engine::general_purpose::STANDARD
+                .encode(&fixture.receipt_bytes)
+                .as_str()
+        )
     );
 
     let trellis_bytes =
@@ -523,8 +601,12 @@ fn test_bundle_003_posture_forbids_registered_verified_method() {
         fixture.signature.signed_payload.digest
     );
     assert_eq!(
-        event.data.verification_receipt,
-        base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes)
+        event.data.verification_receipt.as_deref(),
+        Some(
+            base64::engine::general_purpose::STANDARD
+                .encode(&fixture.receipt_bytes)
+                .as_str()
+        )
     );
     assert_eq!(
         event.data.admission_failed_reason.as_deref(),
@@ -537,7 +619,7 @@ fn test_bundle_004_tampered_signature_admission_failed() {
     use base64::Engine;
     use formspec_signature_adapter_ring::RingVerifier;
     use formspec_signature_port::{
-        SignatureMethodRegistry, VerificationResult, Verifier, VerifyRequest,
+        KeyRef, SignatureMethodRegistry, VerificationResult, Verifier, VerifyRequest,
     };
 
     let root = cross_stack_root();
@@ -572,6 +654,9 @@ fn test_bundle_004_tampered_signature_admission_failed() {
     let signature_bytes = base64::engine::general_purpose::STANDARD
         .decode(&fixture.signature.signature_value)
         .expect("decode signatureValue");
+    let key_bytes = base64::engine::general_purpose::STANDARD
+        .decode(fixture.receipt.key.r#ref.as_str())
+        .expect("decode receipt.key.ref as base64 raw public key");
     let verifier = RingVerifier::new();
     let verification = verifier
         .verify(
@@ -579,7 +664,7 @@ fn test_bundle_004_tampered_signature_admission_failed() {
                 signed_bytes: fixture.signed_bytes.clone(),
                 signature_bytes,
                 signature_method: fixture.signature.signature_method.as_str().into(),
-                key_ref: fixture.receipt.key.r#ref.clone(),
+                key_ref: KeyRef::RawPublicKey(key_bytes),
             },
             &registry,
         )
@@ -645,8 +730,12 @@ fn test_bundle_004_tampered_signature_admission_failed() {
         fixture.signature.signed_payload.digest
     );
     assert_eq!(
-        event.data.verification_receipt,
-        base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes)
+        event.data.verification_receipt.as_deref(),
+        Some(
+            base64::engine::general_purpose::STANDARD
+                .encode(&fixture.receipt_bytes)
+                .as_str()
+        )
     );
     assert_eq!(
         event.data.admission_failed_reason.as_deref(),
@@ -669,6 +758,243 @@ fn test_bundle_005_expects_divergence() {
     assert!(
         fs.expected_errors
             .contains(&"SOURCE_OF_TRUTH_DIVERGENCE".to_string())
+    );
+}
+
+/// Bundle 005 = evidence-divergence-rejected. Schema-valid response; semantic
+/// check fails because `data.consentAcceptedAt` (the data-path consent
+/// timestamp) diverges from `signedPayload.signedAt`. Receipt-less + WOS-less +
+/// Trellis-less per manifest. Exercises [`load_response_fixture`] (no
+/// `verification-receipt.cose` exists for this bundle).
+#[test]
+fn test_bundle_005_response_diverges_from_signed_payload_signed_at() {
+    let root = cross_stack_root();
+    let bundles = discover_bundles(root.to_str().unwrap()).unwrap();
+    let b005 = bundles
+        .iter()
+        .find(|b| b.id == "005")
+        .expect("bundle 005 not found");
+
+    // Bundle 005 declares no receipt + no WOS + no Trellis; only response +
+    // posture are byte-present.
+    assert!(b005.manifest.required_files.formspec_response);
+    assert!(b005.manifest.required_files.posture_declaration);
+    assert!(!b005.manifest.required_files.verification_receipt);
+    assert!(!b005.manifest.required_files.wos_provenance);
+    assert!(!b005.manifest.required_files.trellis_events);
+
+    // load_response_fixture runs schema validation + signedPayload binding
+    // invariants + canonical digest recomputation. Bundle 005 is schema-valid;
+    // the divergence is purely semantic (signedAt source-of-truth mismatch).
+    let fixture = load_response_fixture("005-evidence-divergence-rejected");
+
+    // Source-of-truth divergence: the data-path consent timestamp is
+    // authoritative, but signedPayload.signedAt carries a different value. A
+    // semantic verifier downstream surfaces SOURCE_OF_TRUTH_DIVERGENCE.
+    let consent_accepted_at = fixture
+        .response_json
+        .get("data")
+        .and_then(|d| d.get("consentAcceptedAt"))
+        .and_then(|v| v.as_str())
+        .expect("bundle 005 response data must carry consentAcceptedAt");
+    assert_ne!(
+        consent_accepted_at, fixture.signature.signed_payload.signed_at,
+        "bundle 005 must encode signedAt divergence between data consent path and signedPayload"
+    );
+
+    // Posture admits the method/intent — divergence is the ONLY reason
+    // admission fails. Forbidding the method or intent here would cross
+    // bundle 005's evidence with bundle 003's (method_unsupported) wedge.
+    let bundle_dir = cross_stack_root().join("005-evidence-divergence-rejected");
+    let posture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(bundle_dir.join("posture-declaration.json"))
+            .expect("read posture"),
+    )
+    .expect("parse posture");
+    let allowed_methods = posture["signaturePolicy"]["allowedMethods"]
+        .as_array()
+        .expect("allowedMethods array");
+    assert!(
+        allowed_methods
+            .iter()
+            .any(|m| m.as_str() == Some(fixture.signature.signature_method.as_str())),
+        "bundle 005 posture must admit the signature method"
+    );
+    let allowed_intents = posture["signaturePolicy"]["allowedSigningIntents"]
+        .as_array()
+        .expect("allowedSigningIntents array");
+    assert!(
+        allowed_intents
+            .iter()
+            .any(|i| i.as_str() == Some(fixture.signature.signing_intent.as_str())),
+        "bundle 005 posture must admit the signing intent"
+    );
+
+    // No receipt / WOS / Trellis bytes exist. Asserting absence keeps the
+    // bundle from drifting into the WOS-governed shape over time.
+    assert!(!bundle_dir.join("verification-receipt.cose").exists());
+    assert!(!bundle_dir.join("wos-provenance.cbor").exists());
+    assert!(!bundle_dir.join("trellis-events.cbor").exists());
+}
+
+/// Bundle 006 = deferred-pending-helper. Signature method IS in the production
+/// registry AND in posture allowedMethods, but the signing helper is not
+/// bundled in this deployment, so the primitive verification status is
+/// `deferredPendingHelper`. Posture admits it via
+/// `minimumPrimitiveVerification: "deferredPendingHelper"`. WOS emits
+/// `SignatureAffirmation` (NOT `SignatureAdmissionFailed`), Trellis records
+/// the canonical event literal `wos.kernel.signature_affirmation`. Receipt-
+/// less: no primitive verification ran, so no receipt exists.
+#[test]
+fn test_bundle_006_deferred_pending_helper_path() {
+    use formspec_signature_port::SignatureMethodRegistry;
+
+    let root = cross_stack_root();
+    let bundles = discover_bundles(root.to_str().unwrap()).unwrap();
+    let b006 = bundles
+        .iter()
+        .find(|b| b.id == "006")
+        .expect("bundle 006 not found");
+
+    // Required-file declaration: response + posture + WOS + Trellis, NO
+    // receipt + NO export. This is the discriminant between bundle 006 (a
+    // deferred-but-admitted path) and bundle 005 (a divergence-rejected path
+    // with no WOS/Trellis records).
+    assert!(b006.manifest.required_files.formspec_response);
+    assert!(b006.manifest.required_files.posture_declaration);
+    assert!(b006.manifest.required_files.wos_provenance);
+    assert!(b006.manifest.required_files.trellis_events);
+    assert!(!b006.manifest.required_files.verification_receipt);
+    assert!(!b006.manifest.required_files.trellis_export);
+
+    // Manifest pins the deferred-path discriminants.
+    let wos_outcome = b006
+        .manifest
+        .expected_outcomes
+        .wos
+        .as_ref()
+        .expect("bundle 006 manifest must declare wos outcome");
+    assert_eq!(wos_outcome.record_kind.as_deref(), Some("signatureAffirmation"));
+    assert_eq!(
+        wos_outcome.primitive_verification_status.as_deref(),
+        Some("deferredPendingHelper")
+    );
+
+    // load_response_fixture runs schema validation + signedPayload binding
+    // invariants + canonical digest recomputation. Receipt-less path.
+    let fixture = load_response_fixture("006-deferred-pending-helper");
+
+    // Signature method MUST be in the production registry — the deferred path
+    // is about a *registered* method whose helper isn't bundled, NOT a wholly
+    // unregistered method (that's bundle 003's wedge).
+    let registry_path = formspec_root().join("registries/signature-method-registry.json");
+    let registry: SignatureMethodRegistry =
+        serde_json::from_str(&std::fs::read_to_string(registry_path).expect("read registry"))
+            .expect("parse registry");
+    assert!(
+        registry
+            .entries
+            .iter()
+            .any(|e| e.id.as_str() == fixture.signature.signature_method.as_str()),
+        "bundle 006 signature method must be in the production registry"
+    );
+
+    let bundle_dir = cross_stack_root().join("006-deferred-pending-helper");
+
+    // Posture: admits the method AND lowers minimumPrimitiveVerification to
+    // `deferredPendingHelper`. Either of those alone would flip the bundle's
+    // outcome — both together are load-bearing for the deferred-admit path.
+    let posture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(bundle_dir.join("posture-declaration.json"))
+            .expect("read posture"),
+    )
+    .expect("parse posture");
+    assert_eq!(
+        posture["signaturePolicy"]["minimumPrimitiveVerification"].as_str(),
+        Some("deferredPendingHelper"),
+        "bundle 006 posture MUST lower the floor to deferredPendingHelper"
+    );
+    let allowed_methods = posture["signaturePolicy"]["allowedMethods"]
+        .as_array()
+        .expect("allowedMethods array");
+    assert!(
+        allowed_methods
+            .iter()
+            .any(|m| m.as_str() == Some(fixture.signature.signature_method.as_str())),
+        "bundle 006 posture must admit the signature method (registered + allowed)"
+    );
+
+    // No receipt exists — the discriminant for the deferred-helper path.
+    assert!(
+        !bundle_dir.join("verification-receipt.cose").exists(),
+        "bundle 006 must NOT carry verification-receipt.cose — no primitive ran"
+    );
+    assert!(
+        fixture.signature.verification_receipt.is_none(),
+        "bundle 006 response signature MUST omit inline verificationReceipt"
+    );
+
+    // WOS provenance: signatureAffirmation (NOT admissionFailed), with
+    // primitiveVerification.status = deferredPendingHelper, and no
+    // verificationReceipt embedded.
+    let wos_bytes =
+        std::fs::read(bundle_dir.join("wos-provenance.cbor")).expect("read wos-provenance.cbor");
+    let wos: WosProvenanceBundle =
+        ciborium::from_reader(wos_bytes.as_slice()).expect("decode WOS provenance CBOR");
+    assert_eq!(wos.records.len(), 1);
+    let record = &wos.records[0];
+    assert_eq!(
+        record.record_kind, "signatureAffirmation",
+        "deferred-pending-helper is an AFFIRMATION, not a rejection"
+    );
+    let data: WosSignatureAffirmationData =
+        serde_json::from_value(record.data.clone()).expect("signatureAffirmation data");
+    assert_eq!(data.source_signature_id, "sig-cross-stack-006");
+    assert_eq!(
+        data.signed_payload_digest, fixture.signature.signed_payload.digest,
+        "WOS signedPayloadDigest must match Formspec signedPayload.digest (cross-layer byte equality)"
+    );
+    assert_eq!(data.signing_intent, fixture.signature.signing_intent);
+    assert!(data.custody_hook_eligible);
+    assert_eq!(
+        data.primitive_verification.status, "deferredPendingHelper",
+        "deferred-pending-helper bundle MUST surface deferredPendingHelper status, not verified"
+    );
+    assert!(
+        data.verification_receipt.is_none(),
+        "WOS signatureAffirmation MUST omit verificationReceipt on the deferred path — no primitive fired"
+    );
+
+    // Trellis: canonical event literal (`wos.kernel.signature_affirmation`)
+    // per the WOS canonical substrate registry. Anti-regression wedge against
+    // re-introducing the legacy camelCase `wos.signature.signatureAffirmation`
+    // shim retired in fs-1j21.
+    let trellis_bytes =
+        std::fs::read(bundle_dir.join("trellis-events.cbor")).expect("read trellis-events.cbor");
+    let trellis: TrellisEventsBundle =
+        ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
+    assert_eq!(trellis.events.len(), 1);
+    let event = &trellis.events[0];
+    assert_eq!(
+        event.event_kind, "wos.kernel.signature_affirmation",
+        "bundle 006 trellis event MUST use the canonical WOS substrate literal — \
+         the camelCase `wos.signature.signatureAffirmation` shim was retired with fs-1j21"
+    );
+    assert!(
+        event.data.custody_hook_present,
+        "manifest declares custody_hook_present = true for bundle 006"
+    );
+    assert_eq!(
+        event.data.signed_payload_digest,
+        fixture.signature.signed_payload.digest
+    );
+    assert!(
+        event.data.verification_receipt.is_none(),
+        "trellis event for deferred-pending-helper MUST omit verificationReceipt"
+    );
+    assert!(
+        event.data.admission_failed_reason.is_none(),
+        "affirmation path MUST NOT carry admissionFailedReason"
     );
 }
 

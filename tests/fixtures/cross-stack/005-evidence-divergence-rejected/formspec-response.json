@@ -1,0 +1,49 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.org/forms/cross-stack-signature-005",
+  "definitionVersion": "1.0.0",
+  "id": "resp-cross-stack-005",
+  "status": "completed",
+  "data": {
+    "signerName": "Ada Lovelace",
+    "consentAccepted": true,
+    "consentAcceptedAt": "2026-05-08T11:00:00Z",
+    "benefitProgram": "evidence-divergence-fixture"
+  },
+  "authored": "2026-05-08T11:00:00Z",
+  "authoredSignatures": [
+    {
+      "signatureId": "sig-cross-stack-005",
+      "documentId": "benefitsApplication",
+      "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
+      "signatureValue": "0oRYHqMBJwRTZml4dHVyZS0wMDUtZWQyNTUxOToAAQACAqD2WEDXQtkp8i8zJazrnfiKZMjZBPMKOXVa9hFrPAdxcuwY+CPsuQ1w7Zpl8hJOa0tXg3ZJcTOIA/1oCyXcvmtqttUF",
+      "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+      "signerId": "applicant",
+      "signerName": "Ada Lovelace",
+      "consentAccepted": true,
+      "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
+      "consentVersion": "1.0.0",
+      "affirmationText": "I certify under penalty of perjury that this submission is true and complete.",
+      "signedPayload": {
+        "canonicalization": "formspec-response-signing-v1",
+        "digestAlgorithm": "sha-256",
+        "digest": "e65230fd180fb70def9f666b0414f49dfa34bb5128fd81acba9beccb7cf2be1f",
+        "responseId": "resp-cross-stack-005",
+        "definitionUrl": "https://example.org/forms/cross-stack-signature-005",
+        "definitionVersion": "1.0.0",
+        "signedAt": "2026-05-08T10:00:00Z",
+        "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1"
+      },
+      "documentHash": "f724d236755e33c2969d66c62efcd956e425529d3dcedff47e5ed0877d101ac4",
+      "documentHashAlgorithm": "sha-256",
+      "identityProofRef": "urn:agency.gov:identity-proof:cross-stack-fixture-005",
+      "identityBinding": {
+        "method": "email-otp",
+        "assuranceLevel": "standard",
+        "providerRef": "urn:agency.gov:identity:providers:fixture-email-otp"
+      },
+      "signatureProvider": "urn:formspec:signature-provider:fixture-webcrypto",
+      "ceremonyId": "ceremony-cross-stack-005"
+    }
+  ]
+}
