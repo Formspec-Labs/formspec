@@ -1,4 +1,11 @@
 //! FEL evaluation, analysis, and path utilities (`wasm_bindgen`). `fel-authoring` adds parse/tokenize/print/rewrites/catalog.
+//!
+//! ## `*_inner` test-seam pattern
+//!
+//! Public `#[wasm_bindgen]` entrypoints return `Result<String, JsError>` so JS callers see
+//! thrown errors. Behavior lives in `pub(crate) fn *_inner(...) -> Result<String, String>`
+//! siblings, which native `cargo nextest` tests in [`crate::wasm_tests`] can drive without
+//! linking the `wasm-bindgen` runtime. The wrappers only wrap `String` → `JsError`.
 
 use std::cell::Cell;
 

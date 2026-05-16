@@ -10,7 +10,7 @@
 | `lint` | **yes** (via `full-wasm`) | `formspec-lint` + `lintDocument` / `lintDocumentWithRegistries` (implies `document-api`). |
 | `document-api` | **yes** | `detectDocumentType`, `jsonPointerToJsonPath`, `planSchemaValidation`. |
 | `definition-assembly` | **yes** | `assembleDefinition` (`$ref` / fragments). |
-| `mapping-api` | **yes** | `executeMapping`, `executeMappingDoc`. |
+| `mapping-api` | **yes** | `executeMappingRules`, `executeMappingDocument`. |
 | `registry-api` | **yes** | Registry parse/lookup/lifecycle + `validateExtensionUsage`. |
 | `changelog-api` | **yes** | `generateChangelog`. |
 | `fel-authoring` | **yes** | `parseFEL`, `tokenizeFEL`, `printFEL`, `tryLiftConditionGroup`, `extractDependencies`, FEL rewrites, `rewriteFelForAssembly`, `listBuiltinFunctions`. |
@@ -25,15 +25,17 @@ Sibling binding: **[`formspec-py`](../formspec-py/)** (`formspec_rust`) targets 
 
 | Module | Role |
 |--------|------|
-| `convert` | Item-tree navigation, `json_to_field_map`, lint result JSON, registry status strings, repeat context |
 | `fel` | Always: eval, `prepareFelExpression`, `getFELDependencies`, `analyzeFEL`, path helpers. `fel-authoring`: tokenize/parse/print/rewrites/catalog. |
-| `document` | `document-api`: detect/plan/jsonPointer. `lint`: lintDocument* |
-| `evaluate` | `evaluateDefinition`, `evaluateScreener`, context/trigger/registry parsing |
-| `value_coerce` | `coerceFieldValue` (item/bind/definition/value JSON strings) |
+| `evaluate` | `evaluateDefinition`, `evaluateScreenerDocument`, context/trigger parsing |
 | `definition` | Always: option sets + migrations. `definition-assembly`: `assembleDefinition`. |
-| `mapping` | `mapping-api`: `executeMapping`, `executeMappingDoc` |
+| `value_coerce` | `coerceFieldValue` (item/bind/definition/value JSON strings) |
+| `changeset` | Changeset dependency analysis (key extraction, connected components) |
+| `document` | `document-api`: detect/plan/jsonPointer. `lint`: `lintDocument*`. |
+| `mapping` | `mapping-api`: `executeMappingRules` (rules array) + `executeMappingDocument` (mapping document) |
 | `registry` | `registry-api`: parse/find/lifecycle/well-known + `validateExtensionUsage` |
 | `changelog` | `changelog-api`: `generateChangelog` |
+| `split_abi` | `formspecWasmSplitAbiVersion` — lockstep marker between paired runtime/tools artifacts |
+| `json_host` | Internal: shared JSON parse/stringify helpers for the wasm_bindgen surface |
 | `lib.rs` | Crate docs and `mod` wiring only |
 | `wasm_tests` | Native `cargo nextest run` for string-JSON helpers (`#[cfg(test)]` only) |
 

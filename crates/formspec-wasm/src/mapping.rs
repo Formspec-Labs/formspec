@@ -1,4 +1,8 @@
 //! Runtime mapping rule arrays and mapping documents (`wasm_bindgen`).
+//!
+//! Two entrypoints, distinguished by input shape:
+//! * [`execute_mapping_rules_wasm`] — raw `MappingRule[]` JSON array.
+//! * [`execute_mapping_document_wasm`] — full Mapping Document (rules + defaults + autoMap).
 
 use formspec_core::{
     JsonWireStyle, execute_mapping, execute_mapping_doc, mapping_result_to_json_value,
@@ -10,16 +14,17 @@ use wasm_bindgen::prelude::*;
 
 use crate::json_host::{parse_value_str, to_json_string};
 
-#[wasm_bindgen(js_name = "executeMapping")]
-pub fn execute_mapping_wasm(
+/// Execute a `MappingRule[]` array against `source`. JS name `executeMappingRules`.
+#[wasm_bindgen(js_name = "executeMappingRules")]
+pub fn execute_mapping_rules_wasm(
     rules_json: &str,
     source_json: &str,
     direction: &str,
 ) -> Result<String, JsError> {
-    execute_mapping_inner(rules_json, source_json, direction).map_err(|e| JsError::new(&e))
+    execute_mapping_rules_inner(rules_json, source_json, direction).map_err(|e| JsError::new(&e))
 }
 
-pub(crate) fn execute_mapping_inner(
+pub(crate) fn execute_mapping_rules_inner(
     rules_json: &str,
     source_json: &str,
     direction: &str,
@@ -33,7 +38,18 @@ pub(crate) fn execute_mapping_inner(
     to_json_string(&json)
 }
 
-pub(crate) fn execute_mapping_doc_inner(
+/// Execute a full Mapping Document (rules + defaults + autoMap) against `source`.
+/// JS name `executeMappingDocument`.
+#[wasm_bindgen(js_name = "executeMappingDocument")]
+pub fn execute_mapping_document_wasm(
+    doc_json: &str,
+    source_json: &str,
+    direction: &str,
+) -> Result<String, JsError> {
+    execute_mapping_document_inner(doc_json, source_json, direction).map_err(|e| JsError::new(&e))
+}
+
+pub(crate) fn execute_mapping_document_inner(
     doc_json: &str,
     source_json: &str,
     direction: &str,
@@ -45,13 +61,4 @@ pub(crate) fn execute_mapping_doc_inner(
     let result = execute_mapping_doc(&doc, &source, dir);
     let json = mapping_result_to_json_value(&result, JsonWireStyle::JsCamel);
     to_json_string(&json)
-}
-
-#[wasm_bindgen(js_name = "executeMappingDoc")]
-pub fn execute_mapping_doc_wasm(
-    doc_json: &str,
-    source_json: &str,
-    direction: &str,
-) -> Result<String, JsError> {
-    execute_mapping_doc_inner(doc_json, source_json, direction).map_err(|e| JsError::new(&e))
 }

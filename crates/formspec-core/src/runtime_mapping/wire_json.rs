@@ -24,7 +24,7 @@ pub fn parse_mapping_direction_wire(s: &str) -> Result<MappingDirection, String>
     }
 }
 
-/// Mapping execute result (`executeMapping` / `execute_mapping_doc`).
+/// Mapping execute result (`executeMappingRules` / `executeMappingDocument`).
 pub fn mapping_result_to_json_value(result: &MappingResult, style: JsonWireStyle) -> Value {
     let (rules_key, rule_idx_k, src_k, tgt_k, code_k) = mapping_result_host_keys(style);
 

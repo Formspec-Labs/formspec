@@ -5,15 +5,17 @@
 //! `formspec-eval`, and (feature `lint`) `formspec-lint`.
 //!
 //! ## Layout
-//! - `changeset` — changeset dependency analysis (key extraction, connected components)
-//! - `fel` — FEL eval, tokenize, rewrite, path utilities
-//! - `document` — `document-api`: detect type, schema plan; `lint`: lintDocument*
+//! - `fel` — eval + analysis + path utils always; `fel-authoring`: tokenize/parse/print/rewrites/catalog
 //! - `evaluate` — batch definition evaluation, screener (always in runtime WASM)
 //! - `definition` — always: option sets + migrations; `definition-assembly`: `assembleDefinition`
+//! - `value_coerce` — `coerceFieldValue` (always)
+//! - `changeset` — changeset dependency analysis (key extraction, connected components)
+//! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
 //! - `mapping` — `mapping-api`
 //! - `registry` — `registry-api`
 //! - `changelog` — `changelog-api`
-//! - `fel` — core eval + analysis + path utils always; `fel-authoring`: tokenize/parse/print/rewrites/catalog
+//! - `split_abi` — lockstep ABI version marker between runtime/tools artifacts
+//! - `json_host` — internal JSON parse/stringify helpers
 //! - `wasm_tests` — native `cargo nextest run` coverage (`#[cfg(test)]` only)
 
 #[cfg(feature = "changelog-api")]

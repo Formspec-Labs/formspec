@@ -16,7 +16,7 @@ mod tests {
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
     #[cfg(feature = "mapping-api")]
-    use crate::mapping::execute_mapping_inner;
+    use crate::mapping::execute_mapping_rules_inner;
     #[cfg(feature = "registry-api")]
     use crate::registry::find_registry_entry_inner;
     use crate::value_coerce::coerce_field_value_inner;
@@ -582,12 +582,12 @@ mod tests {
         assert!(result.is_err());
     }
 
-    // ── Finding 67: execute_mapping_inner ────────────────────────
+    // ── Finding 67: execute_mapping_rules_inner ────────────────────────
 
     /// Spec: specs/mapping/mapping-spec.md §3 — Mapping execution returns direction, output, rulesApplied, diagnostics.
     #[cfg(feature = "mapping-api")]
     #[test]
-    fn execute_mapping_inner_output_shape() {
+    fn execute_mapping_rules_inner_output_shape() {
         let rules = json!([
             {
                 "sourcePath": "firstName",
@@ -598,7 +598,7 @@ mod tests {
         .to_string();
         let source = json!({"firstName": "Jane"}).to_string();
 
-        let result = execute_mapping_inner(&rules, &source, "forward").unwrap();
+        let result = execute_mapping_rules_inner(&rules, &source, "forward").unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
 
         assert_eq!(val["direction"], "forward");
@@ -612,8 +612,8 @@ mod tests {
     /// Spec: specs/mapping/mapping-spec.md §3 — Invalid direction returns error.
     #[cfg(feature = "mapping-api")]
     #[test]
-    fn execute_mapping_inner_invalid_direction() {
-        let result = execute_mapping_inner("[]", "{}", "sideways");
+    fn execute_mapping_rules_inner_invalid_direction() {
+        let result = execute_mapping_rules_inner("[]", "{}", "sideways");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("invalid direction"));
     }

@@ -15,6 +15,7 @@ use formspec_eval::{
     AnswerInput, AnswerState, EvalContext, eval_context_from_json_object,
     evaluate_definition_full_with_instances_and_context, evaluate_screener_document,
     evaluation_result_to_json_value_styled, extension_constraints_from_registry_documents,
+    parse_answer_state,
 };
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
@@ -268,11 +269,7 @@ pub fn evaluate_screener_document_py(
                 .as_ref()
                 .and_then(|s| s.get(&key))
                 .and_then(Value::as_str)
-                .map(|s| match s {
-                    "declined" => AnswerState::Declined,
-                    "not-presented" => AnswerState::NotPresented,
-                    _ => AnswerState::Answered,
-                })
+                .map(parse_answer_state)
                 .unwrap_or(AnswerState::Answered);
             (key, AnswerInput { value, state })
         })
@@ -284,11 +281,7 @@ pub fn evaluate_screener_document_py(
             if !answer_inputs.contains_key(key) {
                 let state = state_val
                     .as_str()
-                    .map(|s| match s {
-                        "declined" => AnswerState::Declined,
-                        "not-presented" => AnswerState::NotPresented,
-                        _ => AnswerState::Answered,
-                    })
+                    .map(parse_answer_state)
                     .unwrap_or(AnswerState::Answered);
                 answer_inputs.insert(
                     key.clone(),

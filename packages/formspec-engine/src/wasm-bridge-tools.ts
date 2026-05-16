@@ -241,7 +241,7 @@ export function wasmExecuteMapping(
     direction: 'forward' | 'reverse',
 ): { direction: string; output: any; rulesApplied: number; diagnostics: any[] } {
     assertWasmToolsReadySync();
-    const resultJson = wasmTools().executeMapping(
+    const resultJson = wasmTools().executeMappingRules(
         JSON.stringify(rules),
         JSON.stringify(source),
         direction,
@@ -256,7 +256,7 @@ export function wasmExecuteMappingDoc(
     direction: 'forward' | 'reverse',
 ): { direction: string; output: any; rulesApplied: number; diagnostics: any[] } {
     assertWasmToolsReadySync();
-    const resultJson = wasmTools().executeMappingDoc(
+    const resultJson = wasmTools().executeMappingDocument(
         JSON.stringify(doc),
         JSON.stringify(source),
         direction,

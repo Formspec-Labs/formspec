@@ -6,7 +6,7 @@ use formspec_core::json_object_to_string_map;
 use formspec_eval::{
     AnswerInput, AnswerState, EvalContext, EvalTrigger, eval_host_context_from_json_map,
     evaluate_definition_full_with_instances_and_context, evaluate_screener_document,
-    evaluation_result_to_json_value,
+    evaluation_result_to_json_value, parse_answer_state,
 };
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -146,13 +146,4 @@ fn evaluate_screener_document_inner(
     let record = evaluate_screener_document(&screener, &answers, now_iso.as_deref());
 
     serde_json::to_string(&record).map_err(|e| format!("serialization error: {e}"))
-}
-
-/// Parse an answer state string into the enum.
-fn parse_answer_state(s: &str) -> AnswerState {
-    match s {
-        "declined" => AnswerState::Declined,
-        "not-presented" => AnswerState::NotPresented,
-        _ => AnswerState::Answered,
-    }
 }

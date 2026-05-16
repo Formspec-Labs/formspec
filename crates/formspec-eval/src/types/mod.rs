@@ -11,7 +11,7 @@ mod paths;
 pub use definition::VariableDef;
 pub use determination::{
     AnswerInput, AnswerState, DeterminationRecord, InputEntry, OverrideBlock, PhaseResult,
-    RouteResult, ScreenerRef, ValidityBlock,
+    RouteResult, ScreenerRef, ValidityBlock, parse_answer_state,
 };
 pub use evaluation::{EvalContext, EvalTrigger, EvaluationResult, ValidationResult};
 pub use extensions::ExtensionConstraint;

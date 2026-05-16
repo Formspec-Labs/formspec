@@ -137,6 +137,17 @@ impl AnswerState {
     }
 }
 
+/// Parse a wire string into an [`AnswerState`]. Unknown values fall back to
+/// [`AnswerState::Answered`] — shared by the WASM and Python bindings so the
+/// two surfaces cannot silently disagree on screener answer-state semantics.
+pub fn parse_answer_state(s: &str) -> AnswerState {
+    match s {
+        "declined" => AnswerState::Declined,
+        "not-presented" => AnswerState::NotPresented,
+        _ => AnswerState::Answered,
+    }
+}
+
 /// Input for a single screener item — value + answer state.
 #[derive(Debug, Clone)]
 pub struct AnswerInput {
