@@ -5,7 +5,7 @@ import {
   SPEC_WIDGET_TO_COMPONENT,
   COMPONENT_TO_HINT,
   COMPATIBILITY_MATRIX,
-} from '../src/widget-vocabulary.js';
+} from '@formspec-org/types';
 
 // ── widgetTokenToComponent (existing) ─────────────────────────────
 

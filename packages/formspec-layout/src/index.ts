@@ -41,14 +41,15 @@ export { interpolateParams } from './params.js';
 // Default component mapping
 export { getDefaultComponent } from './defaults.js';
 
-// Widget vocabulary — canonical source of truth for widget ↔ component mappings
+// Widget vocabulary — re-exported from @formspec-org/types as a convenience for
+// consumers that already import from @formspec-org/layout.
 export {
     widgetTokenToComponent,
     KNOWN_COMPONENT_TYPES,
     SPEC_WIDGET_TO_COMPONENT,
     COMPONENT_TO_HINT,
     COMPATIBILITY_MATRIX,
-} from './widget-vocabulary.js';
+} from '@formspec-org/types';
 
 // Form presentation merge (definition + component document)
 export { mergeFormPresentationForPlanning } from './form-presentation.js';

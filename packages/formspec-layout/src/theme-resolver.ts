@@ -16,7 +16,7 @@
  * @module
  */
 
-import { widgetTokenToComponent } from './widget-vocabulary.js';
+import { widgetTokenToComponent } from '@formspec-org/types';
 
 // ── Shared Types ────────────────────────────────────────────────────
 

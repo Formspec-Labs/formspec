@@ -15,7 +15,7 @@ import { resolveResponsiveProps } from './responsive.js';
 import { resolveToken } from './tokens.js';
 import { interpolateParams } from './params.js';
 import { getDefaultComponent } from './defaults.js';
-import { widgetTokenToComponent } from './widget-vocabulary.js';
+import { widgetTokenToComponent } from '@formspec-org/types';
 
 // ── Component category classification ────────────────────────────────
 
