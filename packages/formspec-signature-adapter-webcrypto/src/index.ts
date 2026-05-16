@@ -264,6 +264,10 @@ async function verdictFromSubtle(
   try {
     isValid = await run();
   } catch (e) {
+    // Hard-coded prefix `${label} verify crashed:` is trusted source-text;
+    // only `String(e)` is attacker-influenced and goes through sanitizeReason.
+    // If `label` is ever parameterized from user input, move it inside the
+    // sanitized portion or sanitize the whole composed message.
     throw new VerifierError(
       `${label} verify crashed: ${sanitizeReason(String(e))}`,
       'internal',

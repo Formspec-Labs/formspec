@@ -107,10 +107,17 @@ export class VerifierError extends Error {
  * `String(e)` through this before surfacing it to callers.
  */
 export function sanitizeReason(input: string, maxLen = 200): string {
-  // Replace ASCII control + DEL with single space; collapse runs of whitespace;
-  // trim; cap length. Caller-friendly without leaking raw CBOR/exception bytes.
+  // Replace ASCII control + DEL, bidi-overrides (LRE/RLE/PDF/LRO/RLO,
+  // LRI/RLI/FSI/PDI), invisible joiners (ZWSP/ZWNJ/ZWJ + LRM/RLM),
+  // BOM/ZWNBSP, and soft-hyphen with a single space; collapse runs of
+  // whitespace; trim; cap length. Bidi/invisible chars don't bypass crypto
+  // but let attacker-controlled bytes deceive humans reading the reason in
+  // terminal / HTML log viewers.
   // eslint-disable-next-line no-control-regex
-  const stripped = input.replace(/[\x00-\x1f\x7f]/g, ' ');
+  const stripped = input.replace(
+    /[\x00-\x1f\x7f­​-‏‪-‮⁦-⁩﻿]/g,
+    ' ',
+  );
   const collapsed = stripped.replace(/\s+/g, ' ').trim();
   return collapsed.length > maxLen
     ? `${collapsed.slice(0, maxLen - 1)}…`

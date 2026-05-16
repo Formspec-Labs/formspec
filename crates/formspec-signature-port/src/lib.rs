@@ -164,6 +164,19 @@ impl VerificationReceipt {
     pub fn is_verified(&self) -> bool {
         matches!(self.result, VerificationResult::Verified)
     }
+
+    /// Returns `true` iff the verdict is [`VerificationResult::Failed`]
+    /// (signature was checked and cryptographically rejected).
+    pub fn is_failed(&self) -> bool {
+        matches!(self.result, VerificationResult::Failed)
+    }
+
+    /// Returns `true` iff the verdict is [`VerificationResult::Unsupported`]
+    /// (method not in registry, deprecated, or CBOR malformed — no
+    /// cryptographic verification was attempted).
+    pub fn is_unsupported(&self) -> bool {
+        matches!(self.result, VerificationResult::Unsupported)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

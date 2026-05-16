@@ -1,6 +1,10 @@
 //! Lockstep ABI marker shared by runtime and tools WASM artifacts.
 //!
-//! Bump when the JS↔WASM contract between paired artifacts must change.
+//! Bump when the JS↔WASM byte-protocol contract between paired runtime/tools
+//! artifacts changes — JSON shapes, error envelope, CBOR tagging, the
+//! marshalling seam. NOT the version of the JS-surface API (renamed exports,
+//! added exports, deprecations): npm semver carries that. Mixing the two
+//! roles is a future-bumper foot-gun; see ADR 0050.
 
 use wasm_bindgen::prelude::*;
 

@@ -1,8 +1,13 @@
 /** @filedesc Assist provider implementation: tool catalog, context resolution, profile workflows, and WebMCP registration. */
 
-import type { IFormEngine, RegistryEntry, ValidationResult } from '@formspec-org/engine';
+import type { IFormEngine, RegistryEntry } from '@formspec-org/engine';
 import { resolvePageSequence } from '@formspec-org/layout';
-import type { FormDefinition, FormItem, RegistryDocument } from '@formspec-org/types';
+import type {
+  FormDefinition,
+  FormItem,
+  RegistryDocument,
+  ValidationResult,
+} from '@formspec-org/types';
 import { ContextResolver, collectFieldMetadata, normalizeFieldPath, targetDefinitionMatches } from './context-resolver.js';
 import { AssistError, isAssistError } from './errors.js';
 import { ProfileMatcher } from './profile-matcher.js';

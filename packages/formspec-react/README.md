@@ -12,7 +12,7 @@ React hooks and auto-renderer for Formspec. Composes a [`FormEngine`](../formspe
 
 ```json
 "dependencies": {
-  "@formspec-org/react": "*"
+  "@formspec-org/react": "^0.1.0"
 }
 ```
 

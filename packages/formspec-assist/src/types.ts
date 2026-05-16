@@ -4,10 +4,14 @@ import type {
   FormProgress as EngineFormProgress,
   IFormEngine,
   RegistryEntry,
+} from '@formspec-org/engine';
+import type {
+  ComponentDocument,
+  RegistryDocument,
+  ThemeDocument,
   ValidationReport,
   ValidationResult,
-} from '@formspec-org/engine';
-import type { ComponentDocument, RegistryDocument, ThemeDocument } from '@formspec-org/types';
+} from '@formspec-org/types';
 
 export interface StorageBackend {
   getItem(key: string): string | null;

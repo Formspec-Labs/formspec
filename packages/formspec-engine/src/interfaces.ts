@@ -396,9 +396,15 @@ export interface IFormEngine {
     getAvailableLocales(): string[];
     getLocaleDirection(): 'ltr' | 'rtl';
     /**
-     * Reactive tick signal — increments on any locale state change
-     * (`setLocale`, `loadLocale`). Subscribe to drive re-renders that
-     * consume `getActiveLocale` / `getAvailableLocales` / `getLocaleDirection`.
+     * Reactive tick signal — increments on **active-locale** or
+     * **available-locales** changes (`setLocale`, `loadLocale`). Subscribe to
+     * drive re-renders that consume `getActiveLocale` / `getAvailableLocales`.
+     *
+     * Note: `setDirectionMode` (when exposed) bumps an internal
+     * `_directionVersion` separately; if `getLocaleDirection` consumers need
+     * reactivity for direction-mode changes, expose a `directionSignal` or
+     * fold the two ticks. Today `direction` updates indirectly via the locale
+     * cascade so single-signal subscription is sufficient.
      */
     readonly localeSignal: ReadonlyEngineSignal<number>;
     getFieldVM(path: string): FieldViewModel | undefined;

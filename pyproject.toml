@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "formspec-py"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 description = "Formspec Python package — server-side FEL evaluation, validation, linting, and mapping"
 license = "Apache-2.0"
 readme = "src/formspec/README.md"
