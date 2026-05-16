@@ -16,7 +16,6 @@
       "documentId": "benefitsApplication",
       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
       "signatureValue": "0oRYHqMBJwRTZml4dHVyZS0wMDItZWQyNTUxOToAAQACAqD2WEBjnLViPvSPochP5/q8haxPmYIFXb9gYYag9/BFybwNHDoVZ3OLZN7pvFgILEDB1eYOo9I/lUvR32yJ0tUKjBkG",
-      "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
       "verificationReceipt": "0oRYHqMBJwRTZml4dHVyZS0wMDItcmVjZWlwdDoAAQACAqBZAd17InJlc3VsdCI6InZlcmlmaWVkIiwibWV0aG9kIjoidXJuOmZvcm1zcGVjOnNpZy1tZXRob2Q6ZWQyNTUxOS1jb3NlLXNpZ24xQDEiLCJtZXRob2RSZWdpc3RyeVZlcnNpb24iOiIxLjAuMCIsImFkYXB0ZXIiOnsiaWQiOiJ1cm46Zm9ybXNwZWM6YWRhcHRlcjp3ZWJjcnlwdG9AMSIsInZlcnNpb24iOiIwLjEuMCJ9LCJrZXkiOnsicmVmIjoiSnltc1djM1QxWVp1MTd1bXZ0NHlyN0k3dTVVc3k2VHArRE5aTFZhZ1Q5OD0iLCJzbmFwc2hvdCI6Ikp5bXNXYzNUMVladTE3dW12dDR5cjdJN3U1VXN5NlRwK0ROWkxWYWdUOTg9In0sInZlcmlmaWVkQXQiOiIyMDI2LTA1LTA4VDE3OjQxOjAwWiIsImNvbnRleHQiOnsid2l0bmVzcyI6eyJhbmNob3IiOnsiZXZlbnRIYXNoIjoidFp3VGIzdklRdlhvN1FzVDQzcHhZRURhdHBQVUFjYTQwbk5XenBteGdoQT0iLCJsZWRnZXJTY29wZSI6ImZvcm1zcGVjLWNyb3NzLXN0YWNrLWZpeHR1cmUtMDAyIn19fX1YQDVBb2ynSiqTLlYNRq5T4bBtkOHxjdn0nbs5ty8loEMww+WRsgTV8/6QbjtK4RNZCCfcXZafBHumCPOL6p5Ogwo=",
       "signerId": "applicant",
       "signerName": "Ada Lovelace",

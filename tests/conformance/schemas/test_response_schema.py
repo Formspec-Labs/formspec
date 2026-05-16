@@ -57,7 +57,6 @@ def _minimal_authored_signature() -> dict:
         "documentId": "benefitsApplication",
         "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
         "signatureValue": "0oRWoQExiQEFQnNpZ25lZA==",
-        "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
         "signerId": "applicant",
         "signerName": "Ada Lovelace",
         "consentAccepted": True,
@@ -300,7 +299,6 @@ class TestResponseAuthoredSignatures:
         "documentId",
         "signingIntent",
         "signatureValue",
-        "signatureMethod",
         "signerName",
         "consentAccepted",
         "consentTextRef",
@@ -321,13 +319,16 @@ class TestResponseAuthoredSignatures:
         with pytest.raises(ValidationError, match=f"'{field}' is a required property"):
             _validate_response(doc)
 
-    def test_invalid_signature_method_rejected(self):
+    def test_signature_method_property_is_rejected(self):
+        # Per ADR 0109, JSON `signatureMethod` is deleted; the field is no longer
+        # part of the schema. Any document carrying it must fail under
+        # additionalProperties: false.
         signature = _minimal_authored_signature()
-        signature["signatureMethod"] = "faxed"
+        signature["signatureMethod"] = "urn:formspec:sig-method:ed25519-cose-sign1@1"
         doc = _minimal_response()
         doc["id"] = "resp-2026-0001"
         doc["authoredSignatures"] = [signature]
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError, match="Additional properties are not allowed"):
             _validate_response(doc)
 
     @pytest.mark.parametrize("field", [

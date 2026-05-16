@@ -18,7 +18,6 @@
       },
       "identityProofRef": "urn:agency.gov:identity-proof:cross-stack-fixture-003",
       "signatureId": "sig-cross-stack-003",
-      "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
       "signatureProvider": "urn:formspec:signature-provider:fixture-webcrypto",
       "signatureValue": "0oRYHqMBJwRTZml4dHVyZS0wMDMtZWQyNTUxOToAAQACAqD2WEDQll/9wA7J2W21OJCTftYxzya4fZeAjJS4OdLikBKnn558Nyl9ddZX5RvFlb1Ex6ceFFpDEARhg5IPZXcDiU4A",
       "signedPayload": {

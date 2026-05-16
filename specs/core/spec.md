@@ -650,7 +650,6 @@ where the signature method requires an external verifier.
 >       "documentId": "benefitsApplication",
 >       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
 >       "signatureValue": "0oRWoQExiQEFQnNpZ25lZA==",
->       "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
 >       "signerId": "applicant",
 >       "signerName": "Ada Lovelace",
 >       "consentAccepted": true,

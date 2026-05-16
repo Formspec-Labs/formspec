@@ -124,7 +124,6 @@
         "documentId",
         "signingIntent",
         "signatureValue",
-        "signatureMethod",
         "signerName",
         "consentAccepted",
         "consentTextRef",
@@ -159,17 +158,9 @@
         "signatureValue": {
           "type": "string",
           "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
-          "description": "Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signatureMethod URI selects the cryptographic suite from the Formspec signature-method registry.",
-          "x-lm": { "critical": true, "intent": "COSE_Sign1 signature bytes verified by the selected signature adapter." },
+          "description": "Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signing method is read from the COSE protected-header `method_uri` label (COSE label -65540, per ADR 0109): the URI selects the cryptographic adapter and algorithm from the Formspec signature-method registry. JSON `signatureMethod` is deleted — only the signed COSE-internal selector counts.",
+          "x-lm": { "critical": true, "intent": "COSE_Sign1 signature bytes verified by the adapter routed via the signed protected-header method_uri." },
           "examples": ["0oRWoQExiQEFQnNpZ25lZA=="]
-        },
-        "signatureMethod": {
-          "type": "string",
-          "format": "uri",
-          "pattern": "^urn:formspec:sig-method:[a-z0-9-]+@\\d+$",
-          "description": "URI identifying the cryptographic signature method from the Formspec signature-method registry. Selects the adapter and algorithm for primitive verification.",
-          "x-lm": { "critical": true, "intent": "Registry-bound signature method URI that selects the cryptographic adapter and algorithm." },
-          "examples": ["urn:formspec:sig-method:ed25519-cose-sign1@1"]
         },
         "signerId": {
           "type": "string",
@@ -472,7 +463,6 @@
             "documentId": "benefitsApplication",
             "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
             "signatureValue": "0oRWoQExiQEFQnNpZ25lZA==",
-            "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
             "signerId": "applicant",
             "signerName": "Ada Lovelace",
             "consentAccepted": true,

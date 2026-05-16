@@ -936,7 +936,6 @@ mod tests {
                 "documentId": "d",
                 "signingIntent": "urn:x:y:z",
                 "signatureValue": "AA==",
-                "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
                 "signedPayload": {
                     "canonicalization": "formspec-response-signing-v1",
                     "digestAlgorithm": "sha-256",

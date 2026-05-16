@@ -16,7 +16,6 @@
       "documentId": "benefitsApplication",
       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
       "signatureValue": "0oRYHqMBJwRTZml4dHVyZS0wMDYtZWQyNTUxOToAAQACAqD2WEDXQtkp8i8zJazrnfiKZMjZBPMKOXVa9hFrPAdxcuwY+CPsuQ1w7Zpl8hJOa0tXg3ZJcTOIA/1oCyXcvmtqttUF",
-      "signatureMethod": "urn:formspec:sig-method:ed25519-cose-sign1@1",
       "signerId": "applicant",
       "signerName": "Ada Lovelace",
       "consentAccepted": true,

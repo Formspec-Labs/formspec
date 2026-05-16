@@ -6,11 +6,13 @@
 
 ## Purpose
 
-This registry defines the set of `signatureMethod` URIs that Formspec
-recognizes. Every `signatureMethod` value in a Formspec Response's
-`authoredSignatures[*]` MUST be a URI from this registry. The registry is
-versioned independently of the Formspec Core spec, allowing cryptographic
-suite additions without spec bumps.
+This registry defines the set of signature-method URIs that Formspec
+recognizes. Per ADR 0109, the URI is carried inside the signed COSE protected
+header at label `-65540` (`method_uri`); JSON `signatureMethod` has been
+deleted. Every signature-method URI present in the protected header of a
+Response's `authoredSignatures[*].signatureValue` COSE_Sign1 envelope MUST
+match an entry below. The registry is versioned independently of the Formspec
+Core spec, allowing cryptographic suite additions without spec bumps.
 
 ## Three orthogonal axes
 
