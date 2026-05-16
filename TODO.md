@@ -129,12 +129,6 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
    **Acceptance:** TypeScript types regenerated; downstream policy-studio + formspec-studio regen tracked separately.
 
-- **FORMSPEC-EVAL-VALID-UNTIL-001 — validUntil duration computation** · `fs-cf51` · P4
-
-   formspec-eval/src/screener_eval.rs:522 has TODO: Implement proper duration addition for validUntil. ValidityBlock records resultValidity duration string but sets valid_until to String::new(). _now_str param unused (underscore prefix). Downstream consumers (caching layers, expiry checks) compute themselves today.
-
-   **Acceptance:** Parse ISO 8601 duration (P1Y, P30D), add to now, populate valid_until. Remove _now_str underscore prefix. Unit tests for edge cases (zero duration, leap year, timezone-aware).
-
 - **FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification extension property** · `fs-du1p` · P4
 
    Formalize x-data-classification extension schema from compliance exploration thoughts/research/2026-03-23-compliance-exploration.md §3.3. Sensitivity levels (public/internal/confidential/restricted/pii), categories (PII/PHI/financial), regulatory tags. Independently valuable — classification metadata enables compliance workflows without crypto architecture (ADR-0074).
@@ -153,6 +147,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - ~~**Offline authoring profile in Respondent Ledger companion**~~ `fs-921l` · CLOSED — Respondent Ledger now carries integrityProfile and offlineAuthoring; chained / trellis-wrapped ledgers require paired event hashes on every embedded event; offline buffers use…
 - ~~**ResponseCorrection event in Respondent Ledger §6**~~ `fs-txpb` · CLOSED — response.correction-recorded carries recordKind='responseCorrection' plus target-event hash, corrected-field subset, original/corrected value pairs, reason, and neutral…
+- ~~**FORMSPEC-EVAL-VALID-UNTIL-001 — validUntil duration computation**~~ `fs-cf51` · CLOSED — formspec-eval/src/screener_eval.rs:522 has TODO: Implement proper duration addition for validUntil.
 
 <!-- tk:end -->
 
@@ -167,23 +162,11 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
    **Acceptance:** Remaining Python binding edge cases land in native or Python-side tests; pytest tests/ green.
 
-- **FORMSPEC-LAYOUT-BACKCOMPAT-001 — Document or remove backwards-compat responsive layer** · `fs-e4gd` · P4
+**Recently closed (kept for traceability; archive when stale):**
 
-   packages/formspec-layout/src/responsive.ts:5 declares 'backwards-compatible behaviour' when no breakpoints map is provided. Reframe comment if no-breakpoints path is v1 default; set removal version if migration shim.
-
-   **Acceptance:** Comment accurately reflects product intent (default behavior vs. compat shim).
-
-- **FORMSPEC-TEMPORARY-MAP-001 — Remove temporary map-and-merge in runtime mapping engine** · `fs-fsb2` · P4
-
-   crates/formspec-core/src/runtime_mapping/engine.rs:262 builds a 'temporary map and merge' — should be a named, reusable merge operation, not ad-hoc local. Low urgency; comment signals known tech debt.
-
-   **Acceptance:** Comment says nothing 'temporary'; merge logic extracted to named helper with test.
-
-- **FORMSPEC-BENCHMARK-HARNESS-001 — Populate benchmark task targets or close harness** · `fs-l5b9` · P4
-
-   benchmarks/test_benchmark_harness.py skips all 3 parametrized tests with pytest.skip('no tasks yet') (file lines 64, 90, 103). Either populate benchmark task definitions or delete the harness if benchmarking isn't imminent.
-
-   **Acceptance:** Tests run against real benchmark tasks, OR file deleted with note in COMPLETED.md.
+- ~~**FORMSPEC-LAYOUT-BACKCOMPAT-001 — Document or remove backwards-compat responsive layer**~~ `fs-e4gd` · CLOSED — packages/formspec-layout/src/responsive.ts:5 declares 'backwards-compatible behaviour' when no breakpoints map is provided.
+- ~~**FORMSPEC-TEMPORARY-MAP-001 — Remove temporary map-and-merge in runtime mapping engine**~~ `fs-fsb2` · CLOSED — crates/formspec-core/src/runtime_mapping/engine.rs:262 builds a 'temporary map and merge' — should be a named, reusable merge operation, not ad-hoc local.
+- ~~**FORMSPEC-BENCHMARK-HARNESS-001 — Populate benchmark task targets or close harness**~~ `fs-l5b9` · CLOSED — benchmarks/test_benchmark_harness.py skips all 3 parametrized tests with pytest.skip('no tasks yet') (file lines 64, 90, 103).
 
 <!-- tk:end -->
 
