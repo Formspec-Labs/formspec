@@ -51,6 +51,14 @@ export interface VerificationReceipt {
   adapter: AdapterInfo;
   key: KeyInfo;
   verifiedAt: string;
+  /**
+   * Human-readable diagnostic for non-`verified` verdicts. Always sanitized
+   * (length-capped, control chars stripped) — attacker-controlled bytes from
+   * COSE decoders / WebCrypto exceptions flow through this field. Never
+   * present on `verified` receipts. Adapter-internal errors do NOT use this
+   * field; they throw `VerifierError` with code `'internal'` instead.
+   */
+  reason?: string;
   context?: VerificationContext;
   receiptBytes?: string;
 }
@@ -76,14 +84,37 @@ export interface SignatureMethodRegistry {
   entries: RegistryEntry[];
 }
 
+export type VerifierErrorCode =
+  | 'method_unsupported'
+  | 'verification_failed'
+  | 'invalid_cose'
+  | 'internal';
+
 export class VerifierError extends Error {
   constructor(
     message: string,
-    public code: 'method_unsupported' | 'verification_failed' | 'invalid_cose' | 'internal'
+    public code: VerifierErrorCode,
   ) {
     super(message);
     this.name = 'VerifierError';
   }
+}
+
+/**
+ * Sanitize an attacker-influenced reason string for inclusion in a
+ * `VerificationReceipt.reason` (or `VerifierError.message`). Caps length,
+ * collapses whitespace, strips ASCII control chars. Adapters MUST funnel
+ * `String(e)` through this before surfacing it to callers.
+ */
+export function sanitizeReason(input: string, maxLen = 200): string {
+  // Replace ASCII control + DEL with single space; collapse runs of whitespace;
+  // trim; cap length. Caller-friendly without leaking raw CBOR/exception bytes.
+  // eslint-disable-next-line no-control-regex
+  const stripped = input.replace(/[\x00-\x1f\x7f]/g, ' ');
+  const collapsed = stripped.replace(/\s+/g, ' ').trim();
+  return collapsed.length > maxLen
+    ? `${collapsed.slice(0, maxLen - 1)}…`
+    : collapsed;
 }
 
 export interface Verifier {

@@ -546,7 +546,7 @@ mod tests {
             )
             .expect("verify");
 
-        assert_eq!(receipt.result.to_string(), "verified");
+        assert!(receipt.is_verified(), "ed25519 round-trip must verify");
     }
 
     #[test]
@@ -644,27 +644,78 @@ mod tests {
             .expect("base64 decode")
     }
 
-    /// Reads a committed golden-vector JSON or fails loudly. Skipping silently
-    /// on missing file hides regressions (deleted fixture → green test); the
-    /// `FORMSPEC_REGENERATE_GOLDEN_VECTORS=1` opt-out exists for the path
-    /// where the round-trip test must produce the file before this one
-    /// re-reads it under parallel nextest.
+    /// Reads a committed golden-vector JSON or fails loudly.
+    ///
+    /// Committed fixtures live in `tests/fixtures/golden-vectors/` and are
+    /// checked into the repo. The import tests below read them; if a fixture
+    /// is missing, that is always a real regression (deleted file, broken
+    /// checkout, wrong path). Skipping silently — as the prior `eprintln +
+    /// return` did — masks the regression as a green test run. Always panic.
+    ///
+    /// Workflow for authoring a new vector type:
+    ///   1. Add the round-trip test (it generates + signs + verifies in-process).
+    ///   2. Run `FORMSPEC_REGENERATE_GOLDEN_VECTORS=1 cargo nextest run \
+    ///      -p formspec-signature-adapter-ring` to write the fixture.
+    ///   3. Commit the fixture.
+    ///   4. Add the import test (it reads the now-committed fixture).
+    /// Steps 1–3 happen before step 4, so the import test only ever runs
+    /// against a present fixture in normal operation.
     fn read_committed_vector_or_panic(path: &std::path::Path, name: &str) -> String {
-        if let Ok(json) = std::fs::read_to_string(path) {
-            return json;
-        }
-        if std::env::var_os("FORMSPEC_REGENERATE_GOLDEN_VECTORS").is_some() {
+        std::fs::read_to_string(path).unwrap_or_else(|_| {
             panic!(
-                "{name} not present yet under FORMSPEC_REGENERATE_GOLDEN_VECTORS; \
-                 round-trip test must run before import test on first regen pass"
+                "{name} committed golden vector missing at {}; \
+                 this fixture is committed to the repo and must be present. \
+                 To regenerate, set FORMSPEC_REGENERATE_GOLDEN_VECTORS=1 and \
+                 rerun the round-trip test first to produce the file before \
+                 committing it.",
+                path.display()
             );
-        }
-        panic!(
-            "{name} committed golden vector missing at {}; \
-             this fixture is committed to the repo and must be present. \
-             To regenerate, set FORMSPEC_REGENERATE_GOLDEN_VECTORS=1 and \
-             rerun the round-trip test first.",
-            path.display()
+        })
+    }
+
+    #[test]
+    fn read_committed_vector_or_panic_returns_file_contents_when_present() {
+        let temp_path = std::env::temp_dir().join(format!(
+            "fs-wxoz-helper-{}.json",
+            std::process::id()
+        ));
+        std::fs::write(&temp_path, r#"{"test":"content"}"#).expect("write temp");
+        let contents = read_committed_vector_or_panic(&temp_path, "test.json");
+        std::fs::remove_file(&temp_path).ok();
+        assert_eq!(contents, r#"{"test":"content"}"#);
+    }
+
+    #[test]
+    fn read_committed_vector_or_panic_panics_with_actionable_message_when_missing() {
+        let missing = std::env::temp_dir().join(format!(
+            "fs-wxoz-helper-missing-{}.json",
+            std::process::id()
+        ));
+        // Best-effort cleanup in case a prior run left state on disk.
+        std::fs::remove_file(&missing).ok();
+
+        let result = std::panic::catch_unwind(|| {
+            read_committed_vector_or_panic(&missing, "missing.json")
+        });
+
+        assert!(result.is_err(), "must panic when fixture absent");
+        let err = result.unwrap_err();
+        let msg = err
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| err.downcast_ref::<&'static str>().copied())
+            .unwrap_or("");
+        assert!(
+            msg.contains("missing.json"),
+            "panic message must name the fixture; got: {msg}"
+        );
+        assert!(
+            msg.contains("committed golden vector missing"),
+            "panic message must explain the missing-vector contract; got: {msg}"
+        );
+        assert!(
+            msg.contains("FORMSPEC_REGENERATE_GOLDEN_VECTORS"),
+            "panic message must point to the regenerate env var; got: {msg}"
         );
     }
 
@@ -800,9 +851,8 @@ mod tests {
                 &registry,
             )
             .expect("verify ecdsa");
-        assert_eq!(
-            receipt.result.to_string(),
-            "verified",
+        assert!(
+            receipt.is_verified(),
             "ecdsa-p256 positive round-trip must verify"
         );
 
@@ -896,9 +946,8 @@ mod tests {
                 &registry,
             )
             .expect("verify rsa-pss");
-        assert_eq!(
-            receipt.result.to_string(),
-            "verified",
+        assert!(
+            receipt.is_verified(),
             "rsa-pss-sha256 positive round-trip must verify"
         );
 
@@ -968,7 +1017,7 @@ mod tests {
                 &registry,
             )
             .expect("verify imported ecdsa vector");
-        assert_eq!(receipt.result.to_string(), "verified");
+        assert!(receipt.is_verified());
     }
 
     #[test]
@@ -993,6 +1042,6 @@ mod tests {
                 &registry,
             )
             .expect("verify imported rsa-pss vector");
-        assert_eq!(receipt.result.to_string(), "verified");
+        assert!(receipt.is_verified());
     }
 }

@@ -115,9 +115,10 @@ struct TrellisEventData {
 /// (`crates/formspec-cross-stack-fixture-harness/` → `crates/` → repo root).
 /// `FORMSPEC_ROOT_DIR` env var overrides — set this when the harness moves to
 /// another location relative to the formspec repo, rather than rewriting the
-/// parent walk.
+/// parent walk. Uses `var_os` so non-UTF8 paths work on platforms where
+/// filesystem paths are not guaranteed UTF-8.
 fn formspec_root() -> PathBuf {
-    if let Ok(override_path) = std::env::var("FORMSPEC_ROOT_DIR") {
+    if let Some(override_path) = std::env::var_os("FORMSPEC_ROOT_DIR") {
         return PathBuf::from(override_path);
     }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -251,13 +252,11 @@ fn validate_response_schema(response_json: &serde_json::Value) {
 fn verify_with_ring(fixture: &VerifiedResponseFixture) {
     use base64::Engine;
     use formspec_signature_adapter_ring::RingVerifier;
-    use formspec_signature_port::{
-        SignatureMethodRegistry, VerificationResult, Verifier, VerifyRequest,
-    };
+    use formspec_signature_port::{SignatureMethodRegistry, Verifier, VerifyRequest};
 
-    assert_eq!(
-        fixture.receipt.result.to_string(),
-        VerificationResult::Verified.to_string()
+    assert!(
+        fixture.receipt.is_verified(),
+        "fixture receipt must already attest a verified signature"
     );
     assert_eq!(
         fixture.receipt.method.as_str(),
@@ -283,7 +282,10 @@ fn verify_with_ring(fixture: &VerifiedResponseFixture) {
             &registry,
         )
         .expect("ring verification");
-    assert_eq!(verification.result.to_string(), "verified");
+    assert!(
+        verification.is_verified(),
+        "ring re-verification of a happy-path fixture must succeed"
+    );
 }
 
 #[test]

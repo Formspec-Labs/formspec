@@ -1,6 +1,7 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use std::{fmt, ops::Deref, sync::Arc};
+use thiserror::Error;
 
 pub trait ClockPort: Send + Sync + 'static {
     fn now_utc(&self) -> DateTime<Utc>;
@@ -152,6 +153,19 @@ impl fmt::Display for VerificationResult {
     }
 }
 
+impl VerificationReceipt {
+    /// Returns `true` iff the verdict is [`VerificationResult::Verified`].
+    ///
+    /// Centralizes the verdict check so callers do not stringly-type the
+    /// result (`result.to_string() == "verified"`). The trait contract says
+    /// [`Verifier::verify`] returns `Ok(receipt)` for any *reached* verdict
+    /// (verified/failed/unsupported); callers MUST distinguish "verified"
+    /// from "failed-or-unsupported" — this method is the canonical check.
+    pub fn is_verified(&self) -> bool {
+        matches!(self.result, VerificationResult::Verified)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdapterInfo {
@@ -249,26 +263,42 @@ impl SignatureMethodRegistry {
     }
 }
 
-#[derive(Debug)]
+/// Adapter-internal error surface for [`Verifier::verify`].
+///
+/// **Trait contract (security-critical, see fs-no9r).** `Verifier::verify`
+/// returns:
+///
+/// - `Ok(VerificationReceipt)` for any *reached verdict* —
+///   [`VerificationResult::Verified`], [`VerificationResult::Failed`], or
+///   [`VerificationResult::Unsupported`]. A `Failed` receipt means
+///   "signature was decoded, key was parsed, the crypto primitive said no".
+/// - `Err(VerifierError)` ONLY for *adapter-internal* problems — the
+///   verifier could not reach a verdict. Examples: malformed key bytes that
+///   the adapter cannot import, COSE_Sign1 envelope that cannot be decoded,
+///   internal crypto-library failure.
+///
+/// Collapsing internal errors into `Ok(failed_receipt)` is a security bug:
+/// an attacker who finds an adapter-crashing input would otherwise get a
+/// false-positive "signature checked and failed" record. Callers MUST treat
+/// `Err(_)` as "verdict not reached" and never as "signature is forged".
+#[derive(Debug, Error)]
 pub enum VerifierError {
+    #[error("unsupported method: {method}")]
     MethodUnsupported { method: Uri },
+    #[error("verification failed: {reason}")]
     VerificationFailed { reason: String },
+    #[error("invalid COSE: {reason}")]
     InvalidCoseEncoding { reason: String },
+    #[error("internal error: {reason}")]
     Internal { reason: String },
 }
 
-impl fmt::Display for VerifierError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MethodUnsupported { method } => write!(f, "unsupported method: {method}"),
-            Self::VerificationFailed { reason } => write!(f, "verification failed: {reason}"),
-            Self::InvalidCoseEncoding { reason } => write!(f, "invalid COSE: {reason}"),
-            Self::Internal { reason } => write!(f, "internal error: {reason}"),
-        }
-    }
-}
-
 /// Verify a signature against the given request and registry.
+///
+/// See [`VerifierError`] for the `Ok` vs `Err` contract. Callers checking
+/// the verdict SHOULD use [`VerificationReceipt::is_verified`] rather than
+/// pattern-matching `VerificationResult::Verified` directly — the helper
+/// stays in sync if the enum grows new "verified-with-caveat" variants.
 ///
 /// The registry parameter is not in the original plan §2.4.1 trait signature;
 /// it was added because verifiers need method resolution to determine
@@ -399,6 +429,48 @@ mod tests {
             .to_string(),
             "internal error: adapter crashed"
         );
+    }
+
+    /// Centralizes the verdict check so callers no longer stringly-type
+    /// `receipt.result.to_string() == "verified"`. fs-no9r.
+    #[test]
+    fn is_verified_returns_true_only_for_verified_variant() {
+        let mut receipt = VerificationReceipt {
+            result: VerificationResult::Verified,
+            method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+            method_registry_version: "1.0.0".into(),
+            adapter: AdapterInfo {
+                id: "urn:formspec:adapter:test@1".into(),
+                version: "0.0.0".into(),
+            },
+            key: KeyInfo {
+                r#ref: "k".into(),
+                version: None,
+                snapshot: None,
+            },
+            verified_at: "2026-05-16T00:00:00Z".to_string(),
+            context: None,
+            receipt_bytes: None,
+        };
+        assert!(receipt.is_verified());
+        receipt.result = VerificationResult::Failed;
+        assert!(!receipt.is_verified());
+        receipt.result = VerificationResult::Unsupported;
+        assert!(!receipt.is_verified());
+    }
+
+    /// `VerifierError` must implement `std::error::Error` so callers can
+    /// `?`-chain it into anyhow / custom error enums (fs-no9r / F-P-5).
+    #[test]
+    fn verifier_error_is_std_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        let err = VerifierError::Internal {
+            reason: "adapter crashed".to_string(),
+        };
+        assert_error(&err);
+        // Re-check Display payload to ensure thiserror derivation produced
+        // the same surface text the previous hand-rolled impl did.
+        assert_eq!(err.to_string(), "internal error: adapter crashed");
     }
 
     #[test]
