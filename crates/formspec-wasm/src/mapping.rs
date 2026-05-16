@@ -62,3 +62,29 @@ pub(crate) fn execute_mapping_document_inner(
     let json = mapping_result_to_json_value(&result, JsonWireStyle::JsCamel);
     to_json_string(&json)
 }
+
+// Deprecated aliases preserving the pre-rename JS surface (`executeMapping`,
+// `executeMappingDoc`) for one release. Out-of-monorepo consumers of the
+// generated WASM bindings can migrate to `executeMappingRules` /
+// `executeMappingDocument` (input shape now explicit in the name) before the
+// next major bump.
+
+/// Deprecated: use `executeMappingRules`. JS name `executeMapping`.
+#[wasm_bindgen(js_name = "executeMapping")]
+pub fn execute_mapping_wasm_deprecated(
+    rules_json: &str,
+    source_json: &str,
+    direction: &str,
+) -> Result<String, JsError> {
+    execute_mapping_rules_wasm(rules_json, source_json, direction)
+}
+
+/// Deprecated: use `executeMappingDocument`. JS name `executeMappingDoc`.
+#[wasm_bindgen(js_name = "executeMappingDoc")]
+pub fn execute_mapping_doc_wasm_deprecated(
+    doc_json: &str,
+    source_json: &str,
+    direction: &str,
+) -> Result<String, JsError> {
+    execute_mapping_document_wasm(doc_json, source_json, direction)
+}

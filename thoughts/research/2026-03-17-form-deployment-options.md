@@ -212,7 +212,7 @@ Client-side rendering is static, but **form submission requires Python server-si
 3. **`lint(definition)`** — authoring diagnostics
 4. **Adapters** — serialize to CSV/XML wire formats
 
-The existing reference server (`examples/refrences/server/main.py`) is a FastAPI app with these endpoints:
+The existing reference server (`examples/references/server/main.py`) is a FastAPI app with these endpoints:
 
 | Endpoint | Purpose |
 |---|---|

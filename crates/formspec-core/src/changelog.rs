@@ -22,7 +22,7 @@ pub enum ChangeType {
 
 /// Definition subsystem affected by a change.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChangeTarget {
     Item,
     Bind,
@@ -121,6 +121,9 @@ pub fn generate_changelog(old_def: &Value, new_def: &Value, definition_url: &str
     diff_screener(old_def, new_def, &mut changes);
     diff_migrations(old_def, new_def, &mut changes);
     diff_metadata_keys(old_def, new_def, METADATA_KEYS, &mut changes);
+
+    // Deterministic emission: HashMap-indexed diff order is nondeterministic.
+    changes.sort_by(|a, b| (&a.target, &a.path).cmp(&(&b.target, &b.path)));
 
     let semver_impact = compute_semver_impact(&changes);
 
@@ -797,6 +800,9 @@ pub fn generate_screener_changelog(
 
     // Metadata
     diff_metadata_keys(old_doc, new_doc, SCREENER_METADATA_KEYS, &mut changes);
+
+    // Deterministic emission: HashMap-indexed diff order is nondeterministic.
+    changes.sort_by(|a, b| (&a.target, &a.path).cmp(&(&b.target, &b.path)));
 
     let semver_impact = compute_semver_impact(&changes);
 

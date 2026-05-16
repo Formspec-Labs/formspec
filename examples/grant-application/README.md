@@ -191,4 +191,4 @@ These Formspec features are defined in the specifications but not exercised by t
 - **Recursive custom components** — the two custom components (`ContactField`, `SummaryRow`) use only built-in components in their trees; custom components nesting other custom components is not shown.
 
 For complete feature inventories, see the generated spec summaries:
-`specs/core/spec.llm.md`, `specs/fel/fel-grammar.llm.md`, `specs/theme/theme-spec.llm.md`, `specs/component/component-spec.llm.md`, `specs/mapping/mapping-spec.llm.md`, `specs/registry/extension-registry.llm.md`.
+`specs/core/spec.llm.md`, `specs/theme/theme-spec.llm.md`, `specs/component/component-spec.llm.md`, `specs/mapping/mapping-spec.llm.md`, `specs/registry/extension-registry.llm.md`, and the FEL grammar in the sibling `fel-core` submodule at `../../../fel-core/specs/fel/fel-grammar.llm.md`.

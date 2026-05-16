@@ -66,11 +66,11 @@ CSBG Tribal Annual Report — demonstrates definition derivation and multi-varia
 
 ## grant-application/
 
-Kitchen-sink reference that exercises nearly every Formspec feature across all specification tiers. Includes a Vite dev server, FastAPI backend with 9 endpoints, and a 5-tab developer tools dashboard.
+Kitchen-sink reference artifact set that exercises nearly every Formspec feature across all specification tiers. The live demo (Vite dev server, dashboard) has consolidated into [`references/`](references/) — run `npm run start:references` from the monorepo root. This directory carries the artifacts + static validation.
 
 **Demonstrates:** 6-page wizard, 13 data types, all bind MIPs, nested repeats, variables, 12 validation shapes, screener routing, instances, pre-population, `$ref` composition, version migrations, option sets, 3 mapping adapters (JSON/CSV/XML), extension registry, changelog, responsive components, custom components, and more.
 
-See [`grant-application/README.md`](grant-application/README.md) for full details, running instructions, and feature coverage inventory.
+See [`grant-application/README.md`](grant-application/README.md) for full details, validation instructions, and feature coverage inventory.
 
 | Artifact | Purpose |
 |---|---|
@@ -82,9 +82,11 @@ See [`grant-application/README.md`](grant-application/README.md) for full detail
 | `mapping-csv.json` | CSV export adapter |
 | `mapping-xml.json` | XML export with namespaces and CDATA |
 | `changelog.json` | v1.0 → v1.1 migration (8 changes) |
+| `screener.json` | Eligibility screener routing graph |
 | `contact-fragment.json` | Reusable `$ref` target |
-| `fixtures/` | 4 submission samples (complete, in-progress, amended, stopped) |
-| `server/` | FastAPI backend (FEL evaluation, export, submit, registry) |
+| `grant-bridge.css` | Renderer-side bridging styles |
+| `validate.py` | Static validation entry point |
+| `fixtures/` | Submission samples (complete, in-progress, amended, stopped) |
 
 ---
 
