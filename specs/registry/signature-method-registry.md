@@ -1,4 +1,4 @@
-# Formspec Signature Method Registry v1.0.0
+# Formspec Signature Method Registry v1.1.0
 
 **Status:** Active
 **Date:** 2026-05-08

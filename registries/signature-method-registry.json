@@ -1,6 +1,6 @@
 {
   "$registry": "formspec-signature-method-registry@1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "entries": [
     {
       "id": "urn:formspec:sig-method:ed25519-cose-sign1@1",
@@ -35,6 +35,13 @@
       "suite": "SLH-DSA-128s (FIPS 205)",
       "wire": "COSE_Sign1 with alg = TBD (awaiting IANA PQC registration)",
       "alg": null,
+      "status": "registered"
+    },
+    {
+      "id": "urn:formspec:receipt-method:ed25519-cose-sign1@1",
+      "suite": "Ed25519",
+      "wire": "COSE_Sign1 with alg = -8 (EdDSA); protected header per ADR 0109 consumer detached-signature shape (MAP_3 with method_uri at COSE label -65540)",
+      "alg": -8,
       "status": "registered"
     }
   ]
