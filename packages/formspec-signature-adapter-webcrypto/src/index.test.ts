@@ -550,6 +550,109 @@ describe('WebCryptoVerifier', () => {
     expect(receipt.adapter.id).toBe('urn:formspec:adapter:webcrypto@1');
   });
 
+  it('fails verifying RSA-PSS signature with wrong key (correct format, different key signed it) (fs-g68k)', async () => {
+    // Sign with key A; verify with key B (both valid RSA-PSS PKCS#1 keys,
+    // independently generated). Adapter must reach 'failed' — proving the
+    // verify path actually checks the signature against the supplied key,
+    // not a copy-paste regression that always returns 'verified' on shape
+    // match. Pinned because the positive test alone could pass if subtle.verify
+    // were stubbed.
+    const keyPairA = await crypto.subtle.generateKey(
+      {
+        name: 'RSA-PSS',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: 'SHA-256',
+      },
+      true,
+      ['sign', 'verify'],
+    );
+    const keyPairB = await crypto.subtle.generateKey(
+      {
+        name: 'RSA-PSS',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: 'SHA-256',
+      },
+      true,
+      ['sign', 'verify'],
+    );
+
+    // Sign with A.
+    const signedBytes = new TextEncoder().encode('fs-g68k wrong-key payload');
+    const protectedHeader = protectedHeaderBytes(-37, new TextEncoder().encode('kid-A'));
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'RSA-PSS', saltLength: 32 },
+        keyPairA.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+
+    // Verify under B's public key (wrong key).
+    const spkiB = new Uint8Array(await crypto.subtle.exportKey('spki', keyPairB.publicKey));
+    const pkcs1B = unwrapSpkiToPkcs1RsaPublicKey(spkiB);
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        keyRef: keyRefRawPublicKey(pkcs1B),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('failed');
+  });
+
+  it('fails verifying RSA-PSS signature signed with non-canonical saltLength (fs-g68k)', async () => {
+    // PS256 by COSE/IANA convention uses saltLength = 32 (= hash length).
+    // Signing with a different saltLength (here 48) produces a valid
+    // RSA-PSS signature byte sequence, but verification under the canonical
+    // saltLength = 32 parameter MUST reject. Pinned because a regression
+    // hard-coding saltLength = signature_byte_length / 8 or similar would
+    // accept off-spec signatures.
+    const keyPair = await crypto.subtle.generateKey(
+      {
+        name: 'RSA-PSS',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: 'SHA-256',
+      },
+      true,
+      ['sign', 'verify'],
+    );
+    const signedBytes = new TextEncoder().encode('fs-g68k wrong-saltLength payload');
+    const protectedHeader = protectedHeaderBytes(-37, new TextEncoder().encode('kid'));
+    const sigStructure = sigStructureBytes(protectedHeader, signedBytes);
+    const primitiveSignature = new Uint8Array(
+      await crypto.subtle.sign(
+        { name: 'RSA-PSS', saltLength: 48 }, // Non-canonical
+        keyPair.privateKey,
+        sigStructure as BufferSource,
+      ),
+    );
+    const signatureBytes = encodeCoseSign1(protectedHeader, null, primitiveSignature);
+
+    const spki = new Uint8Array(await crypto.subtle.exportKey('spki', keyPair.publicKey));
+    const pkcs1 = unwrapSpkiToPkcs1RsaPublicKey(spki);
+
+    const verifier = new WebCryptoVerifier();
+    const receipt = await verifier.verify(
+      {
+        signedBytes,
+        signatureBytes,
+        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        keyRef: keyRefRawPublicKey(pkcs1),
+      },
+      TEST_REGISTRY,
+    );
+    expect(receipt.result).toBe('failed');
+  });
+
   it('returns unsupported when COSE alg id disagrees with the requested method (RSA-PSS)', async () => {
     // The adapter pre-checks the COSE alg label against the registry entry's
     // expected alg id BEFORE invoking subtle.verify. Feeding a -7 (ECDSA)
