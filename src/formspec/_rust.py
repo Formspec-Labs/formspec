@@ -172,7 +172,7 @@ def _severity_from_str(raw: str | None) -> Severity:
     if raw == "warning":
         return Severity.WARNING
     if raw == "info":
-        return Severity.WARNING
+        return Severity.INFO
     return Severity.ERROR
 
 

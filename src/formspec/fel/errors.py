@@ -22,9 +22,10 @@ class SourcePos:
 
 
 class Severity(Enum):
-    """Diagnostic severity — ERROR halts nothing but signals a problem; WARNING is advisory."""
+    """Diagnostic severity — ERROR signals a problem; WARNING is advisory; INFO is informational."""
     ERROR = "error"
     WARNING = "warning"
+    INFO = "info"
 
 
 @dataclass(frozen=True)

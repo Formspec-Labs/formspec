@@ -27,8 +27,9 @@ from formspec._rust import (
     apply_migrations_to_response_data,
     rewrite_fel_for_assembly,
     canonical_item_path,
+    _severity_from_str,
 )
-from formspec.fel.errors import FelSyntaxError
+from formspec.fel.errors import FelSyntaxError, Severity
 from formspec.fel.types import FelNumber, FelString, is_null
 
 
@@ -301,3 +302,23 @@ def test_canonical_item_path():
     assert canonical_item_path("$.foo.bar") == "foo.bar"
     assert canonical_item_path("/foo/bar") == "foo.bar"
     assert canonical_item_path("foo.bar") == "foo.bar"
+
+
+# ── Severity mapping ─────────────────────────────────────────────
+
+
+def test_severity_from_str_distinguishes_all_three_levels():
+    """Spec defines three severities; the Python bridge must not collapse info into warning."""
+    assert _severity_from_str("error") is Severity.ERROR
+    assert _severity_from_str("warning") is Severity.WARNING
+    assert _severity_from_str("info") is Severity.INFO
+    # Unknown / missing severities fall back to ERROR (preserves prior fail-loud behavior).
+    assert _severity_from_str(None) is Severity.ERROR
+    assert _severity_from_str("nonsense") is Severity.ERROR
+
+
+def test_severity_info_and_warning_are_distinct_enum_members():
+    """Regression guard: Severity.INFO must not be aliased to Severity.WARNING."""
+    assert Severity.INFO is not Severity.WARNING
+    assert Severity.INFO.value == "info"
+    assert Severity.WARNING.value == "warning"
