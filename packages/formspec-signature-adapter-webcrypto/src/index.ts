@@ -42,11 +42,9 @@ type AlgOutcome =
   | { kind: 'unsupported'; reason: string };
 
 export class WebCryptoVerifier implements Verifier {
-  private receiptSigningKey: CryptoKeyPair | null;
   private adapterInfo: AdapterInfo;
 
-  constructor(receiptSigningKey?: CryptoKeyPair) {
-    this.receiptSigningKey = receiptSigningKey ?? null;
+  constructor() {
     this.adapterInfo = { id: uri(ADAPTER_ID), version: semVer(ADAPTER_VERSION) };
   }
 
@@ -89,11 +87,9 @@ export class WebCryptoVerifier implements Verifier {
       verifiedAt: new Date().toISOString(),
     };
 
-    if (outcome.result === 'verified' && this.receiptSigningKey) {
-      // TODO: sign receipt with COSE_Sign1 using receiptSigningKey
-      // receipt.receiptBytes = await signCoseReceipt(receipt, this.receiptSigningKey);
-    }
-
+    // Receipt signing is gated on FORMSPEC-SIGN-VERIFY-001; when implemented,
+    // it will arrive as a typed ReceiptSigner port (PR-SIG-002), not a
+    // private-key field on this adapter.
     return receipt;
   }
 
