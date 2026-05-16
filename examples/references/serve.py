@@ -2,12 +2,12 @@
 """Static HTTP server for the built references app (stdlib only).
 
 Serves:
-  /              → examples/refrences/dist/
+  /              → examples/references/dist/
   /examples/     → examples/
   /registries/   → registries/
 
-Build first:  cd examples/refrences && npm run build
-Run:          python3 examples/refrences/serve.py
+Build first:  cd examples/references && npm run build
+Run:          python3 examples/references/serve.py
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from urllib.parse import unquote, urlparse
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DIST = ROOT / "examples/refrences/dist"
+DIST = ROOT / "examples/references/dist"
 EXAMPLES = ROOT / "examples"
 REGISTRIES = ROOT / "registries"
 
@@ -93,7 +93,7 @@ def main() -> None:
 
     if not DIST.is_dir():
         raise SystemExit(
-            f"Missing {DIST}. Run: cd examples/refrences && npm run build",
+            f"Missing {DIST}. Run: cd examples/references && npm run build",
         )
 
     server = ThreadingHTTPServer((args.host, args.port), ReferencesHandler)

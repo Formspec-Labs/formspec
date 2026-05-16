@@ -102,14 +102,14 @@ Community development grant application rendered with the **USWDS adapter**. A f
 
 ---
 
-## refrences/
+## references/
 
 Interactive reference dashboard that loads all example definitions and renders them with `<formspec-render>`. Revalidation, mapping export, FEL tools, and changelog run in the browser via **formspec-engine** (Rust/WASM), not the Python package. Runs on port 8082.
 
 **Host page CSS:** Do not apply global `input` / `textarea` / `select` / `button` resets to the whole document — they leak into the live preview and break both the default skin and the **USWDS adapter** (`usa-*` classes + injected integration CSS). Scope shell styling to named classes only (this dashboard follows that rule).
 
 ```bash
-cd examples/refrences
+cd examples/references
 npm run dev    # Vite only (from monorepo root: npm run start:references)
 ```
 

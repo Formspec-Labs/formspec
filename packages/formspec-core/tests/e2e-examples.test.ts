@@ -272,7 +272,7 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
   });
 
   const examples = fs.readdirSync(EXAMPLES_DIR).filter(d => {
-    return fs.statSync(path.join(EXAMPLES_DIR, d)).isDirectory() && d !== 'refrences'; // Ignore typo dir if empty
+    return fs.statSync(path.join(EXAMPLES_DIR, d)).isDirectory() && d !== 'references'; // Skip the live-demo workspace dir
   });
 
   for (const ex of examples) {

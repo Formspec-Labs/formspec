@@ -262,7 +262,7 @@ Layers 2 and 3 require the **Ontology Document sidecar** — a new companion spe
 |---|---|---|
 | [Ontology Specification](../../specs/ontology/ontology-spec.md) | `$formspecOntology` sidecar document format: concepts, vocabularies, alignments, JSON-LD context | Draft |
 | [Ontology Schema](../../schemas/ontology.schema.json) | JSON Schema for the sidecar document | Draft |
-| [Implementation Plan](../../thoughts/plans/2026-03-23-formspec-frame-implementation.md) | Phase-by-phase build sequence for `src/formspec/frame/` | Draft |
+| [Implementation Plan](../../thoughts/archive/plans/2026-03-23-formspec-frame-implementation.md) | Phase-by-phase build sequence for `src/formspec/frame/` | Draft |
 
 The sidecar approach means **zero changes to the definition schema or registry schema**. The ontology document is a new artifact type that targets a definition by URL, versioned independently, and authored by a potentially different party (standards body, data governance team, domain expert).
 

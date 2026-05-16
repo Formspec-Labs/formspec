@@ -9,7 +9,7 @@
   },
   "workspaces": [
     "packages/*",
-    "examples/refrences",
+    "examples/references",
     "examples/react-demo"
   ],
   "scripts": {
