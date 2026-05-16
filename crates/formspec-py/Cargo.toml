@@ -18,7 +18,7 @@ indexmap = "2"
 formspec-core = { path = "../formspec-core" }
 formspec-eval = { path = "../formspec-eval" }
 formspec-lint = { path = "../formspec-lint" }
-pyo3 = { version = "0.28" }
+pyo3 = { version = "0.28", features = ["abi3-py310"] }
 pythonize = "0.28"
 rust_decimal = "1"
 serde = "1"
