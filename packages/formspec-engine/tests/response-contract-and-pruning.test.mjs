@@ -10,7 +10,6 @@ const SIGNATURE_DIGEST = '0123456789abcdef0123456789abcdef0123456789abcdef012345
 const SIGNATURE_INTENT = 'urn:agency.gov:signing-intent:benefits-application-certification:v1';
 const SIGNED_AT = '2026-04-22T12:00:00Z';
 const COSE_SIGN1_BYTES = '0oRWoQExiQEFQnNpZ25lZA==';
-const COSE_SIGN1_METHOD = 'urn:formspec:sig-method:ed25519-cose-sign1@1';
 const responseSchema = JSON.parse(
   readFileSync(new URL('../../../schemas/response.schema.json', import.meta.url), 'utf8')
 );
@@ -146,7 +145,6 @@ test('should include authored signatures in the response envelope and normalize 
         documentId: 'benefitsApplication',
         signingIntent: SIGNATURE_INTENT,
         signatureValue: COSE_SIGN1_BYTES,
-        signatureMethod: COSE_SIGN1_METHOD,
         signedAt: SIGNED_AT,
         consentAccepted: true,
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
@@ -198,7 +196,6 @@ test('should reject authored signatures that disagree on response identity', () 
           documentId: 'benefitsApplication',
           signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
           signatureValue: 'urn:agency.gov:signature:primary',
-          signatureMethod: 'provider-managed',
           signerName: 'Ada Lovelace',
           signedAt: '2026-04-22T12:00:00Z',
           consentAccepted: true,
@@ -216,7 +213,6 @@ test('should reject authored signatures that disagree on response identity', () 
           documentId: 'benefitsApplication',
           signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
           signatureValue: 'urn:agency.gov:signature:secondary',
-          signatureMethod: 'provider-managed',
           signerName: 'Ada Lovelace',
           signedAt: '2026-04-22T12:05:00Z',
           consentAccepted: true,
@@ -253,7 +249,6 @@ test('should reject authored signatures with mismatched signed payload definitio
           documentId: 'benefitsApplication',
           signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
           signatureValue: 'urn:agency.gov:signature:primary',
-          signatureMethod: 'provider-managed',
           signerName: 'Ada Lovelace',
           signedAt: '2026-04-22T12:00:00Z',
           consentAccepted: true,
@@ -290,7 +285,6 @@ test('should reject authored signatures with non-sha-256 signed payload digest a
           documentId: 'benefitsApplication',
           signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
           signatureValue: 'urn:agency.gov:signature:primary',
-          signatureMethod: 'provider-managed',
           signerName: 'Ada Lovelace',
           signedAt: '2026-04-22T12:00:00Z',
           consentAccepted: true,
@@ -326,7 +320,6 @@ test('should reject authored signatures missing signing intent before envelope e
           signatureId: 'sig-2026-0001',
           documentId: 'benefitsApplication',
           signatureValue: 'urn:agency.gov:signature:primary',
-          signatureMethod: 'provider-managed',
           signerName: 'Ada Lovelace',
           signedAt: '2026-04-22T12:00:00Z',
           consentAccepted: true,
@@ -359,7 +352,6 @@ test('should use meta.id when authored signatures provide matching signedPayload
     documentId: 'benefitsApplication',
     signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
     signatureValue: 'urn:agency.gov:signature:primary',
-    signatureMethod: 'provider-managed',
     signerName: 'Ada Lovelace',
     signedAt: '2026-04-22T12:00:00Z',
     consentAccepted: true,
@@ -412,7 +404,6 @@ test('should infer signerName from meta.author.name when omitted on signatures',
         documentId: 'benefitsApplication',
         signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
         signatureValue: 'data:image/png;base64,AAA=',
-        signatureMethod: 'drawn',
         signedAt: '2026-04-22T12:00:00Z',
         consentAccepted: true,
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
@@ -448,7 +439,6 @@ test('should strip unknown properties from authored signature inputs', () => {
         documentId: 'benefitsApplication',
         signingIntent: 'urn:agency.gov:signing-intent:benefits-application-certification:v1',
         signatureValue: 'urn:agency.gov:signature:primary',
-        signatureMethod: 'provider-managed',
         signerName: 'Ada Lovelace',
         signedAt: '2026-04-22T12:00:00Z',
         consentAccepted: true,

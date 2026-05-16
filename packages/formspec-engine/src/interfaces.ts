@@ -278,7 +278,6 @@ export interface AuthoredSignatureInput {
     documentId: string;
     signingIntent: string;
     signatureValue: string;
-    signatureMethod: string;
     signerId?: string;
     signerName?: string;
     signedAt: string;

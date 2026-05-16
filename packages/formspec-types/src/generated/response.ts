@@ -103,13 +103,9 @@ export interface AuthoredSignature {
    */
   signingIntent: string;
   /**
-   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signatureMethod URI selects the cryptographic suite from the Formspec signature-method registry.
+   * Base64-encoded COSE_Sign1 byte string (RFC 9052). Detached payload; canonical signed bytes live in signedPayload.digest. The signing method is read from the COSE protected-header `method_uri` label (COSE label -65540, per ADR 0109): the URI selects the cryptographic adapter and algorithm from the Formspec signature-method registry. JSON `signatureMethod` is deleted — only the signed COSE-internal selector counts.
    */
   signatureValue: string;
-  /**
-   * URI identifying the cryptographic signature method from the Formspec signature-method registry. Selects the adapter and algorithm for primitive verification.
-   */
-  signatureMethod: string;
   /**
    * Stable signer identifier when the signing ceremony supplies one.
    */

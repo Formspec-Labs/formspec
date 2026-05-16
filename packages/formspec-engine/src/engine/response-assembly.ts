@@ -173,7 +173,6 @@ function toNormalizedAuthoredSignatureRecord(
         documentId: signature.documentId,
         signingIntent,
         signatureValue: signature.signatureValue,
-        signatureMethod: signature.signatureMethod,
         signerName: signerName.trim(),
         consentAccepted: signature.consentAccepted,
         consentTextRef: signature.consentTextRef,
