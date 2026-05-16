@@ -4,7 +4,7 @@ use fel_core::{evaluate, fel_to_json, parse};
 use serde_json::Value;
 
 use super::env::build_mapping_env;
-use super::path::{get_by_path, set_by_path, split_path};
+use super::path::{get_by_path, merge_flat_into, set_by_path, split_path};
 use super::transforms::{
     apply_coerce, apply_value_map, eval_fel_with_dollar, value_to_flat_string,
 };
@@ -238,46 +238,16 @@ pub fn execute_mapping(
                         // e.g. flatten address→out.addr produces out["addr.street"], out["addr.city"]
                         let segments = split_path(tgt_path);
                         let last_seg = segments.last().map(|s| s.as_str()).unwrap_or(tgt_path);
-                        // Collect flat key-value pairs first
                         let flat_entries: Vec<(String, Value)> = map
                             .iter()
                             .map(|(k, v)| (format!("{last_seg}.{k}"), v.clone()))
                             .collect();
-                        // Ensure parent container exists, then insert
-                        if segments.len() <= 1 {
-                            // No parent — insert at root level
-                            if let Value::Object(out_map) = &mut output {
-                                for (flat_key, val) in flat_entries {
-                                    out_map.insert(flat_key, val);
-                                }
-                            }
+                        let parent_path = if segments.len() <= 1 {
+                            None
                         } else {
-                            let parent_path: String = segments[..segments.len() - 1].join(".");
-                            // Ensure parent exists
-                            set_by_path(
-                                &mut output,
-                                &parent_path,
-                                Value::Object(serde_json::Map::new()),
-                            );
-                            // Build a temporary map and merge
-                            let flat_map =
-                                Value::Object(flat_entries.into_iter().collect::<serde_json::Map<
-                                    String,
-                                    Value,
-                                >>(
-                                ));
-                            // Navigate to parent and merge
-                            let parent = &get_by_path(&output, &parent_path).clone();
-                            if let Value::Object(existing) = parent {
-                                let mut merged = existing.clone();
-                                if let Value::Object(new_entries) = flat_map {
-                                    for (k, v) in new_entries {
-                                        merged.insert(k, v);
-                                    }
-                                }
-                                set_by_path(&mut output, &parent_path, Value::Object(merged));
-                            }
-                        }
+                            Some(segments[..segments.len() - 1].join("."))
+                        };
+                        merge_flat_into(&mut output, parent_path.as_deref(), flat_entries);
                         rules_applied += 1;
                         continue;
                     }

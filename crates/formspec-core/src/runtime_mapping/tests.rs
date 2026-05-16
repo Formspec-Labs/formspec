@@ -3,7 +3,7 @@
 
 use serde_json::{Value, json};
 
-use super::path::{get_by_path, set_by_path, split_path};
+use super::path::{get_by_path, merge_flat_into, set_by_path, split_path};
 use super::*;
 
 #[test]
@@ -1130,6 +1130,59 @@ fn set_by_path_extends_array_with_nulls() {
     assert_eq!(arr[1], Value::Null);
     assert_eq!(arr[2], Value::Null);
     assert_eq!(arr[3], 99);
+}
+
+/// Spec: mapping/mapping-spec.md §4.7 — Flatten of an object writes dot-prefix
+/// flat keys into the target container. The merge helper backs that behavior:
+/// when no parent path exists, entries land at the root; when a parent path
+/// exists, entries merge into the parent (new entries win on key collision).
+#[test]
+fn merge_flat_into_no_parent_inserts_at_root() {
+    let mut output = Value::Object(serde_json::Map::new());
+    let entries = vec![
+        ("flat.city".to_string(), json!("NYC")),
+        ("flat.zip".to_string(), json!("10001")),
+    ];
+    merge_flat_into(&mut output, None, entries);
+    assert_eq!(output["flat.city"], "NYC");
+    assert_eq!(output["flat.zip"], "10001");
+}
+
+#[test]
+fn merge_flat_into_parent_path_creates_and_merges() {
+    let mut output = Value::Object(serde_json::Map::new());
+    let entries = vec![
+        ("addr.city".to_string(), json!("NYC")),
+        ("addr.zip".to_string(), json!("10001")),
+    ];
+    merge_flat_into(&mut output, Some("out"), entries);
+    assert_eq!(output["out"]["addr.city"], "NYC");
+    assert_eq!(output["out"]["addr.zip"], "10001");
+}
+
+#[test]
+fn merge_flat_into_parent_path_replaces_existing_object() {
+    // The helper calls `set_by_path` on the parent first, which overwrites
+    // whatever was there with a fresh empty object before merging. This
+    // matches the pre-refactor behavior of the Flatten transform: callers
+    // that need to preserve sibling keys must merge at root, not via a
+    // parent path. Documented here so a future change cannot quietly drift.
+    let mut output = json!({
+        "out": {
+            "keep": "original",
+            "addr.city": "OLD"
+        }
+    });
+    let entries = vec![
+        ("addr.city".to_string(), json!("NEW")),
+        ("addr.zip".to_string(), json!("10001")),
+    ];
+    merge_flat_into(&mut output, Some("out"), entries);
+    // Pre-existing keys are wiped by the parent overwrite.
+    assert!(output["out"].get("keep").is_none());
+    // Only the new entries are present.
+    assert_eq!(output["out"]["addr.city"], "NEW");
+    assert_eq!(output["out"]["addr.zip"], "10001");
 }
 /// Spec: mapping/mapping-spec.md §4.6 — UnmappedStrategy::Drop omits target field.
 #[test]

@@ -66,6 +66,46 @@ pub(crate) fn get_by_path<'a>(obj: &'a Value, path: &str) -> &'a Value {
     current
 }
 
+/// Merge flat key/value entries into `output`, either at the root or into an
+/// existing object at `parent_path`. Used by the Flatten transform (mapping
+/// spec §4.7) to attach dot-prefixed flat keys to a target container without
+/// trampling sibling keys already there.
+///
+/// When `parent_path` is `None` and `output` is an object, entries are inserted
+/// at the root. When `parent_path` is `Some`, the parent object is created (via
+/// `set_by_path`) if it does not yet exist, then entries are merged in — new
+/// entries win on key collision, pre-existing unrelated keys are preserved.
+pub(crate) fn merge_flat_into(
+    output: &mut Value,
+    parent_path: Option<&str>,
+    flat_entries: Vec<(String, Value)>,
+) {
+    match parent_path {
+        None => {
+            if let Value::Object(out_map) = output {
+                for (flat_key, val) in flat_entries {
+                    out_map.insert(flat_key, val);
+                }
+            }
+        }
+        Some(parent_path) => {
+            // Ensure parent container exists.
+            set_by_path(output, parent_path, Value::Object(serde_json::Map::new()));
+            // Clone the existing parent map (works around mutable+immutable
+            // borrow conflict on `output`), merge in new entries, write back.
+            let existing = match get_by_path(output, parent_path) {
+                Value::Object(map) => map.clone(),
+                _ => return,
+            };
+            let mut merged = existing;
+            for (flat_key, val) in flat_entries {
+                merged.insert(flat_key, val);
+            }
+            set_by_path(output, parent_path, Value::Object(merged));
+        }
+    }
+}
+
 /// Set a value at a path in a JSON object, creating intermediate objects as needed.
 pub(crate) fn set_by_path(obj: &mut Value, path: &str, value: Value) {
     let segments = split_path(path);
