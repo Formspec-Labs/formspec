@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc ValidationSummary — displays validation results with jump-to-field links. */
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import { useFormspecContext } from './context';

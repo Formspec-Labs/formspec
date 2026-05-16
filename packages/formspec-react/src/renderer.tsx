@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc FormspecForm — auto-renderer that walks LayoutNode tree into React elements. */
 import React, { useState, useCallback, useLayoutEffect, useRef } from 'react';
 import { buildPlatformTheme, emitMergedThemeCssVars } from '@formspec-org/layout';

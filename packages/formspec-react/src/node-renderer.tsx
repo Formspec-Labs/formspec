@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc Recursive LayoutNode renderer — dispatches to field or layout components. */
 import React, { useMemo, useRef, useCallback, useState } from 'react';
 import { signal as createSignal } from '@preact/signals-core';

@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc Default layout component — semantic HTML containers with CSS class structure. */
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {

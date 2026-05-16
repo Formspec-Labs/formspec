@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useRepeatCount — reactive subscription to a repeat group's instance count. */
 import { useMemo } from 'react';
 import { signal } from '@preact/signals-core';

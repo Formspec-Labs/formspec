@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useForm — form-level reactive state (title, validity, submit). */
 import { useMemo, useCallback } from 'react';
 import { useFormspecContext } from './context';

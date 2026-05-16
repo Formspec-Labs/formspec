@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useReplay — event sourcing and deterministic replay for form state. */
 import { useCallback } from 'react';
 import { useFormspecContext } from './context';

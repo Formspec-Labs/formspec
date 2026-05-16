@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useFocusField — programmatic field focus with wizard/tab/collapsible navigation. */
 import { useCallback, useRef } from 'react';
 

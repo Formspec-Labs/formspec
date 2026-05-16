@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useWhen — reactive evaluation of a FEL `when` expression for conditional rendering. */
 import { useMemo } from 'react';
 import { computed } from '@preact/signals-core';

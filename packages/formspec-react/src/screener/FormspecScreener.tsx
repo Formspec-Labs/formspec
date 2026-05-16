@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
 import React from 'react';
 import { useScreener, itemDataType, itemOptions, isItemRequired } from './use-screener';

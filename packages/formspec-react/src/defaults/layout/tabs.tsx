@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc Tabs layout component — WAI-ARIA tabbed panel navigation with keyboard support. */
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutComponentProps } from '../../component-map';

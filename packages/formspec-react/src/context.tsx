@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc FormspecProvider — React context wrapping a FormEngine + optional layout plan. */
 import React, { createContext, useContext, useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { signal } from '@preact/signals-core';

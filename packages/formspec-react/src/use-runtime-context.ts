@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useRuntimeContext — inject runtime context (now, locale, timezone, meta) into the engine. */
 import { useCallback } from 'react';
 import { useFormspecContext } from './context';

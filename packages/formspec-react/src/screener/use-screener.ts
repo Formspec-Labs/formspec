@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useScreener — React hook for the Formspec screener gate. */
 import { useState, useCallback } from 'react';
 import { evalFEL, wasmEvaluateScreenerDocument } from '@formspec-org/engine';

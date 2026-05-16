@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useFieldValue — granular hook for just value + setValue. */
 import { useMemo } from 'react';
 import { useFormspecContext } from './context';

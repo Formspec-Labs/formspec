@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc Wizard layout component — multi-step form navigation with soft validation. */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';

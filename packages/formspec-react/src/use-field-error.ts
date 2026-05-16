@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useFieldError — granular hook for just the first error message. */
 import { useMemo } from 'react';
 import { useFormspecContext } from './context';

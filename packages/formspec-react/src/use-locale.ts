@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useLocale — locale management forwarding to FormEngine. */
 import { useCallback } from 'react';
 import { useFormspecContext } from './context';

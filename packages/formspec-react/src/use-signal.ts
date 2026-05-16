@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc Generic Preact-signal → React bridge via useSyncExternalStore. */
 import { useSyncExternalStore, useRef, useCallback } from 'react';
 import { effect } from '@preact/signals-core';

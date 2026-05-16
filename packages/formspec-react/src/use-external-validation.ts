@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useExternalValidation — inject/clear server-side validation results. */
 import { useCallback } from 'react';
 import { useFormspecContext } from './context';

@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useField — full reactive field state from FieldViewModel. */
 import { useMemo } from 'react';
 import type { FieldViewModel, ResolvedOption, ResolvedValidationResult } from '@formspec-org/engine';

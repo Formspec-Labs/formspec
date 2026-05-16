@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc Default field component — semantic HTML with ARIA, touch-gated errors, and CSS class structure. */
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
 import React, { useMemo, useRef, useEffect, useState } from 'react';

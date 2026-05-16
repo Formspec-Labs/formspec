@@ -1,3 +1,5 @@
+'use client';
+
 /** @filedesc useSubmitPending — tracks async submit state to prevent double-submission. */
 import { useState, useCallback, useMemo } from 'react';
 
