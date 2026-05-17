@@ -19,7 +19,7 @@
       "identityProofRef": "urn:agency.gov:identity-proof:cross-stack-fixture-004",
       "signatureId": "sig-cross-stack-004",
       "signatureProvider": "urn:formspec:signature-provider:fixture-webcrypto",
-      "signatureValue": "0oRYHqMBJwRTZml4dHVyZS0wMDQtZWQyNTUxOToAAQACAqD2WEDXQtkp8i8zJazrnfiKZMjZBPMKOXVa9hFrPAdxcuwY+CLsuQ1w7Zpl8hJOa0tXg3ZJcTOIA/1oCyXcvmtqttUF",
+      "signatureValue": "0oRYS6MBJwRTZml4dHVyZS0wMDQtZWQyNTUxOToAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECMo8UJz4BbB8HZbJHzTG/gj3PgkMLqb/mz9J6KtTvhVA3kiJngYUKkkN0CACXR2SBsxnF2ltkiNy6vG+j9P3YO",
       "signedPayload": {
         "canonicalization": "formspec-response-signing-v1",
         "definitionUrl": "https://example.org/forms/cross-stack-signature-004",
@@ -33,7 +33,7 @@
       "signerId": "applicant",
       "signerName": "Ada Lovelace",
       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
-      "verificationReceipt": "0oRYHqMBJwRTZml4dHVyZS0wMDQtcmVjZWlwdDoAAQACAqBZAUx7InJlc3VsdCI6ImZhaWxlZCIsIm1ldGhvZCI6InVybjpmb3Jtc3BlYzpzaWctbWV0aG9kOmVkMjU1MTktY29zZS1zaWduMUAxIiwibWV0aG9kUmVnaXN0cnlWZXJzaW9uIjoiMS4wLjAiLCJhZGFwdGVyIjp7ImlkIjoidXJuOmZvcm1zcGVjOmFkYXB0ZXI6d2ViY3J5cHRvQDEiLCJ2ZXJzaW9uIjoiMC4xLjAifSwia2V5Ijp7InJlZiI6IlViSC9aWVJmeVRaY1g4bzcyVFJ4RU9rcmF5amVLTFRVUjJIU2JvSkxYWDA9Iiwic25hcHNob3QiOiJVYkgvWllSZnlUWmNYOG83MlRSeEVPa3JheWplS0xUVVIySFNib0pMWFgwPSJ9LCJ2ZXJpZmllZEF0IjoiMjAyNi0wNS0xNlQxNzozMTowMFoifVhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+      "verificationReceipt": "0oRYT6MBJwRTZml4dHVyZS0wMDQtcmVjZWlwdDoAAQADeDB1cm46Zm9ybXNwZWM6cmVjZWlwdC1tZXRob2Q6ZWQyNTUxOS1jb3NlLXNpZ24xQDGgWQFHeyJhZGFwdGVyIjp7ImlkIjoidXJuOmZvcm1zcGVjOmFkYXB0ZXI6cmluZ0AxIiwidmVyc2lvbiI6IjAuMS4wIn0sImtleSI6eyJyZWYiOiJ4dVg4ZlZtTVhITm9ucWdDWXdiTXJsZWF4b3YzYUxJK1ZMQmNkYmphZ21nPSIsInNuYXBzaG90IjoieHVYOGZWbU1YSE5vbnFnQ1l3Yk1ybGVheG92M2FMSStWTEJjZGJqYWdtZz0ifSwibWV0aG9kIjoidXJuOmZvcm1zcGVjOnNpZy1tZXRob2Q6ZWQyNTUxOS1jb3NlLXNpZ24xQDEiLCJtZXRob2RSZWdpc3RyeVZlcnNpb24iOiIxLjEuMCIsInJlc3VsdCI6ImZhaWxlZCIsInZlcmlmaWVkQXQiOiIyMDI2LTA1LTE2VDE3OjMxOjAwWiJ9WEDjDrUupO5aE2lw/W/+L8VdoGrRxe5LxHjZ7KLSOZS86t6obzv32IF5H3VK/v3ne0B360HQNeYk3Gj5DHJjqJsL"
     }
   ],
   "data": {

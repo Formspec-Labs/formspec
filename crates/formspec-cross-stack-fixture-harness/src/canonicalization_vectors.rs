@@ -107,9 +107,8 @@ pub fn vector_c_bundle_001() -> CanonicalizationVector {
     CanonicalizationVector {
         name: "vector-c-bundle-001",
         response: bundle_001_response(),
-        expected_handoff_hex: "6635b196113f2ee762bdf0b0518cb89220cc9a45f48d285a6e2e112ecd99ef3c",
-        expected_signed_payload_hex:
-            "de16829bf9271c3910c4d23cdf5fc5624074516080351ef90fc410cef15d2189",
+        expected_handoff_hex: "f91f501855be59c12a766ebe332b50899d56f73863cdc3519fc74c3be96d46f0",
+        expected_signed_payload_hex: "de16829bf9271c3910c4d23cdf5fc5624074516080351ef90fc410cef15d2189",
     }
 }
 

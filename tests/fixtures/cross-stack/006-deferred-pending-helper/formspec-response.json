@@ -15,7 +15,7 @@
       "signatureId": "sig-cross-stack-006",
       "documentId": "benefitsApplication",
       "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
-      "signatureValue": "0oRYHqMBJwRTZml4dHVyZS0wMDYtZWQyNTUxOToAAQACAqD2WEDXQtkp8i8zJazrnfiKZMjZBPMKOXVa9hFrPAdxcuwY+CPsuQ1w7Zpl8hJOa0tXg3ZJcTOIA/1oCyXcvmtqttUF",
+      "signatureValue": "0oRYS6MBJwRTZml4dHVyZS0wMDYtZWQyNTUxOToAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WECP97Felw63PewlXGXZe1Dj7XAKj2eLbU2oRRl6GSo4tliakgbXawE6gH2RviWc/lFAM8FpZ3zdotGcq6wGcaoJ",
       "signerId": "applicant",
       "signerName": "Ada Lovelace",
       "consentAccepted": true,
