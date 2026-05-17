@@ -13,7 +13,7 @@ const SCHEMAS_DIR = resolve(__dirname, '../../../schemas');
 
 const SCHEMA_FILES = [
   'definition', 'component', 'theme', 'mapping', 'registry',
-  'response', 'validation-report', 'validation-result', 'fel-functions',
+  'response', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
   'token-registry',
 ];
 
@@ -118,11 +118,17 @@ const MIN_VALID = 3;
 // can't reliably satisfy. These get more attempts and a lower bar.
 const HARD_SCHEMAS = new Set(['mapping']);
 
+// Schemas with registry URI or base64 patterns that json-schema-faker does
+// not reliably synthesize from pattern alone. Their committed examples remain
+// subject to the normal validity threshold.
+const EXAMPLE_BACKED_SCHEMAS = new Set(['verification-receipt']);
+
 describe('schema fuzz: random instances validate against resolved schema', () => {
   for (const name of SCHEMA_FILES) {
     test(`${name}`, async () => {
       const resolved = loadResolved(name);
       const isHard = HARD_SCHEMAS.has(name);
+      const needsExamples = EXAMPLE_BACKED_SCHEMAS.has(name);
 
       const ajv = new Ajv2020({ allErrors: true, strict: false });
       addFormats(ajv);
@@ -147,7 +153,15 @@ describe('schema fuzz: random instances validate against resolved schema', () =>
         maxLength: 20,
       });
 
-      const activeGen = isHard ? hardGen : gen;
+      const exampleGen = createGenerator({
+        fillProperties: true,
+        useExamplesValue: true,
+        optionalsProbability: 0.6,
+        maxItems: 3,
+        maxLength: 20,
+      });
+
+      const activeGen = isHard ? hardGen : needsExamples ? exampleGen : gen;
 
       const attempts = isHard ? 50 : MAX_ATTEMPTS;
       const minValid = isHard ? 1 : MIN_VALID;

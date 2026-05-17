@@ -16,9 +16,13 @@ const responseSchema = JSON.parse(
 const validationResultSchema = JSON.parse(
   readFileSync(new URL('../../../schemas/validation-result.schema.json', import.meta.url), 'utf8')
 );
+const verificationReceiptSchema = JSON.parse(
+  readFileSync(new URL('../../../schemas/verification-receipt.schema.json', import.meta.url), 'utf8')
+);
 const ajv = new Ajv2020({ strict: false, allErrors: true });
 addFormats(ajv);
 ajv.addSchema(validationResultSchema);
+ajv.addSchema(verificationReceiptSchema);
 const validateResponse = ajv.compile(responseSchema);
 
 function assertSchemaValidResponse(response) {

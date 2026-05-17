@@ -330,10 +330,21 @@ fn validate_response_schema(response_json: &serde_json::Value) {
             .expect("read validation result schema"),
     )
     .expect("parse validation result schema");
+    let verification_receipt_schema_path =
+        formspec_root().join("schemas/verification-receipt.schema.json");
+    let verification_receipt_schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(verification_receipt_schema_path)
+            .expect("read verification receipt schema"),
+    )
+    .expect("parse verification receipt schema");
     let response_validator = jsonschema::options()
         .with_resource(
             "https://formspec.org/schemas/validationResult/1.0",
             jsonschema::Resource::from_contents(validation_result_schema),
+        )
+        .with_resource(
+            "https://formspec.org/schemas/verification-receipt/1.0",
+            jsonschema::Resource::from_contents(verification_receipt_schema),
         )
         .build(&response_schema)
         .expect("compile response schema");
