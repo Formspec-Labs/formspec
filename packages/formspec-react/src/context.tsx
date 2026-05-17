@@ -89,7 +89,7 @@ export function FormspecProvider({
     const engine = useMemo(() => {
         if (externalEngine) return externalEngine;
         if (!definition) throw new Error('FormspecProvider requires either engine or definition');
-        const eng = createFormEngine(definition, runtimeContext, registryEntries);
+        const eng = createFormEngine(definition, { runtimeContext, registryEntries });
         if (initialData) {
             applyInitialData(eng, initialData);
         }

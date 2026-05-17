@@ -212,6 +212,13 @@ export interface FormEngineRuntimeContext {
     meta?: Record<string, string | number | boolean>;
 }
 
+/** Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createFormEngine`](./engine/init.ts). */
+export interface FormEngineOptions {
+    runtimeContext?: FormEngineRuntimeContext;
+    registryEntries?: RegistryEntry[];
+    reactiveRuntime?: import('./reactivity/types.js').EngineReactiveRuntime;
+}
+
 export interface RegistryEntry {
     name: string;
     category?: string;

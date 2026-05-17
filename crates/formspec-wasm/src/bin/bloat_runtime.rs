@@ -13,5 +13,5 @@ fn main() {
     let doc = json!({});
     let _ = formspec_core::detect_document_type(&doc);
     let data = HashMap::new();
-    let _ = formspec_eval::evaluate_definition(&doc, &data);
+    let _ = formspec_eval::evaluate(&doc, &data, &formspec_eval::EvalOptions::default());
 }

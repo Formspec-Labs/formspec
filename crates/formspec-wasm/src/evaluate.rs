@@ -4,9 +4,8 @@ use std::collections::HashMap;
 
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
-    AnswerInput, AnswerState, EvalContext, EvalTrigger, eval_host_context_from_json_map,
-    evaluate_definition_full_with_instances_and_context, evaluate_screener_document,
-    evaluation_result_to_json_value, parse_answer_state,
+    AnswerInput, AnswerState, EvalContext, EvalOptions, EvalTrigger, eval_host_context_from_json_map,
+    evaluate, evaluate_screener_document, evaluation_result_to_json_value, parse_answer_state,
 };
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -57,14 +56,13 @@ pub(crate) fn evaluate_definition_inner(
         ),
     };
 
-    let result = evaluate_definition_full_with_instances_and_context(
-        &definition,
-        &data,
-        trigger,
-        &constraints,
-        &instances,
-        &context,
-    );
+    let options = EvalOptions::default()
+        .trigger(trigger)
+        .extension_constraints(constraints)
+        .instances(instances)
+        .context(context);
+
+    let result = evaluate(&definition, &data, &options);
 
     let json = evaluation_result_to_json_value(&result);
     to_json_string(&json)

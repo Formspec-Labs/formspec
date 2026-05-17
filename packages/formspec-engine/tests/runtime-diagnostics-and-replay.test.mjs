@@ -45,7 +45,7 @@ function buildReplayDefinition() {
 
 test('should use runtime context now provider for deterministic response/report timestamps', () => {
   const fixedNow = '2026-02-24T12:00:00.000Z';
-  const engine = new FormEngine(buildReplayDefinition(), { now: fixedNow });
+  const engine = new FormEngine(buildReplayDefinition(), { runtimeContext: { now: fixedNow } });
 
   const report = engine.getValidationReport({ mode: 'submit' });
   const response = engine.getResponse({ mode: 'submit' });
@@ -59,10 +59,12 @@ test('should use runtime context now provider for deterministic response/report 
 
 test('should produce diagnostics snapshots with values repeats mips and validation summary', () => {
   const engine = new FormEngine(buildReplayDefinition(), {
-    now: '2026-02-24T12:30:00.000Z',
-    locale: 'en-US',
-    timeZone: 'UTC',
-    seed: 'diag-seed'
+    runtimeContext: {
+      now: '2026-02-24T12:30:00.000Z',
+      locale: 'en-US',
+      timeZone: 'UTC',
+      seed: 'diag-seed',
+    },
   });
 
   engine.setValue('name', 'Snapshot User');
@@ -84,7 +86,9 @@ test('should produce diagnostics snapshots with values repeats mips and validati
 });
 
 test('should apply replay events and return structured replay output', () => {
-  const engine = new FormEngine(buildReplayDefinition(), { now: '2026-02-24T13:00:00.000Z' });
+  const engine = new FormEngine(buildReplayDefinition(), {
+    runtimeContext: { now: '2026-02-24T13:00:00.000Z' },
+  });
 
   const replay = engine.replay([
     { type: 'setValue', path: 'name', value: 'Replay Runner' },

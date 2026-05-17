@@ -306,7 +306,9 @@ export class FormspecRender extends HTMLElement {
             if (this._definition !== val) {
                 return;
             }
-            this.engine = createFormEngine(val, undefined, Array.from(this._registryEntries.values()));
+            this.engine = createFormEngine(val, {
+                registryEntries: Array.from(this._registryEntries.values()),
+            });
 
             // Replay buffered locale documents and active locale
             for (const doc of this._pendingLocaleDocuments) {

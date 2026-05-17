@@ -12,10 +12,9 @@ use formspec_core::{
     resolve_option_sets_on_definition as resolve_option_sets_on_definition_core,
 };
 use formspec_eval::{
-    AnswerInput, AnswerState, EvalContext, eval_context_from_json_object,
-    evaluate_definition_full_with_instances_and_context, evaluate_screener_document,
-    evaluation_result_to_json_value_styled, extension_constraints_from_registry_documents,
-    parse_answer_state,
+    AnswerInput, AnswerState, EvalContext, EvalOptions, eval_context_from_json_object, evaluate,
+    evaluate_screener_document, evaluation_result_to_json_value_styled,
+    extension_constraints_from_registry_documents, parse_answer_state,
 };
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
@@ -151,14 +150,13 @@ pub fn evaluate_def(
         }
     };
 
-    let result = evaluate_definition_full_with_instances_and_context(
-        &definition,
-        &data,
-        eval_trigger,
-        &constraints,
-        &instances_map,
-        &eval_context,
-    );
+    let options = EvalOptions::default()
+        .trigger(eval_trigger)
+        .extension_constraints(constraints)
+        .instances(instances_map)
+        .context(eval_context);
+
+    let result = evaluate(&definition, &data, &options);
 
     // Match TypeScript/WASM and Python tests: validation results use constraintKind / shapeId (see schemas).
     let json = evaluation_result_to_json_value_styled(&result, JsonWireStyle::JsCamel);

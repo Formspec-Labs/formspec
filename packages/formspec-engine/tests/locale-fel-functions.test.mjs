@@ -59,25 +59,25 @@ test('runtimeMeta() returns null for missing key', () => {
 });
 
 test('runtimeMeta() returns string value from meta bag', () => {
-  const engine = new FormEngine(minDef(), { meta: { gender: 'feminine' } });
+  const engine = new FormEngine(minDef(), { runtimeContext: { meta: { gender: 'feminine' } } });
   const fn = engine.compileExpression("runtimeMeta('gender')");
   assert.equal(fn(), 'feminine');
 });
 
 test('runtimeMeta() returns number value from meta bag', () => {
-  const engine = new FormEngine(minDef(), { meta: { retries: 3 } });
+  const engine = new FormEngine(minDef(), { runtimeContext: { meta: { retries: 3 } } });
   const fn = engine.compileExpression("runtimeMeta('retries')");
   assert.equal(fn(), 3);
 });
 
 test('runtimeMeta() returns boolean value from meta bag', () => {
-  const engine = new FormEngine(minDef(), { meta: { isAdmin: true } });
+  const engine = new FormEngine(minDef(), { runtimeContext: { meta: { isAdmin: true } } });
   const fn = engine.compileExpression("runtimeMeta('isAdmin')");
   assert.equal(fn(), true);
 });
 
 test('runtimeMeta() updates when meta changes via setRuntimeContext', () => {
-  const engine = new FormEngine(minDef(), { meta: { role: 'user' } });
+  const engine = new FormEngine(minDef(), { runtimeContext: { meta: { role: 'user' } } });
   const fn = engine.compileExpression("runtimeMeta('role')");
   assert.equal(fn(), 'user');
 
@@ -92,7 +92,7 @@ test('runtimeMeta() with null key returns null (null propagation)', () => {
 });
 
 test('runtimeMeta() enables gender agreement pattern', () => {
-  const engine = new FormEngine(minDef(), { meta: { gender: 'feminine' } });
+  const engine = new FormEngine(minDef(), { runtimeContext: { meta: { gender: 'feminine' } } });
   const fn = engine.compileExpression(
     "if(runtimeMeta('gender') = 'feminine', 'inscrite', 'inscrit')",
   );
@@ -114,7 +114,7 @@ test('pluralCategory() with explicit locale: English other', () => {
 });
 
 test('pluralCategory() with implicit locale from runtime context', () => {
-  const engine = new FormEngine(minDef(), { locale: 'en' });
+  const engine = new FormEngine(minDef(), { runtimeContext: { locale: 'en' } });
   const fn = engine.compileExpression('pluralCategory(1)');
   assert.equal(fn(), 'one');
 });

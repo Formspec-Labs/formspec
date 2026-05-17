@@ -184,10 +184,11 @@ async function handleInitialize(cmd: InitCommand): Promise<void> {
         await initFormspecEngine();
 
         const definition = cmd.definition as Parameters<typeof createFormEngine>[0];
-        engine = createFormEngine(
-            definition,
-            cmd.runtimeContext as Parameters<typeof createFormEngine>[1] | undefined,
-        );
+        engine = createFormEngine(definition, {
+            runtimeContext: cmd.runtimeContext as
+                | NonNullable<Parameters<typeof createFormEngine>[1]>['runtimeContext']
+                | undefined,
+        });
 
         // Load locales
         if (cmd.locales) {

@@ -60,7 +60,7 @@ function normalizeDefinitionForEngine(definition) {
 
 function createKitchenSinkEngine() {
   const definition = normalizeDefinitionForEngine(loadJson(kitchenSinkDefinitionPath));
-  return new FormEngine(definition, { now: '2026-02-24T12:00:00.000Z' });
+  return new FormEngine(definition, { runtimeContext: { now: '2026-02-24T12:00:00.000Z' } });
 }
 
 function populateKitchenSinkMixedData(engine) {

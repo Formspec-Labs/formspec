@@ -69,8 +69,10 @@ console.log(response.data);
 ```typescript
 new FormEngine(
   definition: FormspecDefinition,
-  runtimeContext?: FormEngineRuntimeContext
+  options?: FormEngineOptions
 )
+
+// FormEngineOptions: { runtimeContext?, registryEntries?, reactiveRuntime? }
 ```
 
 #### Reactive Signal Properties

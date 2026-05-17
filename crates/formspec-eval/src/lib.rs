@@ -1,7 +1,7 @@
 //! Formspec Definition Evaluator — 4-phase batch processor.
 //!
 //! ## Layout
-//! The main path is [`pipeline::evaluate_definition_full_with_instances_and_context`]:
+//! The main path is [`pipeline::evaluate`] with [`EvalOptions`]:
 //! 1. [`mod@rebuild`] — definition → item tree, initial values, repeat expansion, wildcard binds
 //! 2. [`mod@recalculate`] — relevance, required, readonly, variables, calculate ([`recalculate()`])
 //! 3. [`mod@revalidate`] — required/type/constraint, extensions, shapes ([`revalidate()`])
@@ -30,6 +30,7 @@ pub mod screener_eval;
 pub mod types;
 
 mod eval_json;
+mod eval_options;
 mod pipeline;
 mod registry_constraints;
 mod runtime_seed;
@@ -40,8 +41,9 @@ pub use eval_json::{
     evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
 };
 pub use nrb::{apply_nrb, resolve_nrb};
+pub use eval_options::EvalOptions;
 pub use pipeline::{
-    evaluate_definition, evaluate_definition_full, evaluate_definition_full_with_context,
+    evaluate, evaluate_definition, evaluate_definition_full, evaluate_definition_full_with_context,
     evaluate_definition_full_with_instances, evaluate_definition_full_with_instances_and_context,
     evaluate_definition_with_context, evaluate_definition_with_trigger,
     evaluate_definition_with_trigger_and_context,

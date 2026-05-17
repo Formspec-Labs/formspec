@@ -29,6 +29,7 @@ export type {
     FELBuiltinFunctionCatalogEntry,
     FELRewriteOptions,
     FormEngineDiagnosticsSnapshot,
+    FormEngineOptions,
     FormEngineRuntimeContext,
     IFormEngine,
     IRuntimeMappingEngine,

@@ -258,7 +258,7 @@ function runFelCase(caseDoc) {
 function runProcessingArtifacts(caseDoc) {
   const definition = normalizeDefinitionForEngine(readJson(path.join(repoRoot, caseDoc.definitionPath)));
   const registryEntries = collectRegistryEntries(caseDoc);
-  const engine = new FormEngine(definition, undefined, registryEntries);
+  const engine = new FormEngine(definition, { registryEntries });
 
   if (caseDoc.skipScreener && typeof engine.skipScreener === 'function') {
     engine.skipScreener();

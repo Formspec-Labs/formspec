@@ -1,16 +1,12 @@
 /** @filedesc Factory for FormEngine instances. */
 
 import type { FormDefinition } from '@formspec-org/types';
-import type { FormEngineRuntimeContext, RegistryEntry } from '../interfaces.js';
-import { preactReactiveRuntime } from '../reactivity/preact-runtime.js';
-import type { EngineReactiveRuntime } from '../reactivity/types.js';
+import type { FormEngineOptions } from '../interfaces.js';
 import { FormEngine } from './FormEngine.js';
 
 export function createFormEngine(
     definition: FormDefinition,
-    context?: FormEngineRuntimeContext,
-    registryEntries?: RegistryEntry[],
-    reactiveRuntime: EngineReactiveRuntime = preactReactiveRuntime,
+    options?: FormEngineOptions,
 ): FormEngine {
-    return new FormEngine(definition, context, registryEntries, reactiveRuntime);
+    return new FormEngine(definition, options);
 }

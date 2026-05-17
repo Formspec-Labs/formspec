@@ -1,5 +1,6 @@
-//! Top-level evaluate_* orchestration (rebuild → recalculate → revalidate → NRB).
+//! Top-level evaluate orchestration (rebuild → recalculate → revalidate → NRB).
 
+use crate::eval_options::EvalOptions;
 use crate::nrb::apply_nrb;
 use crate::rebuild;
 use crate::recalculate::recalculate;
@@ -12,57 +13,92 @@ use crate::{expand_repeat_instances, rebuild_item_tree};
 use serde_json::Value;
 use std::collections::HashMap;
 
-/// Produce the final evaluation result.
+/// Evaluate a definition through the full four-phase pipeline.
+pub fn evaluate(
+    definition: &Value,
+    data: &HashMap<String, Value>,
+    options: &EvalOptions,
+) -> EvaluationResult {
+    evaluate_inner(
+        definition,
+        data,
+        options.trigger,
+        &options.extension_constraints,
+        &options.instances,
+        &options.context,
+    )
+}
+
 /// Evaluate a definition with the default continuous trigger.
+#[deprecated(note = "use evaluate() with EvalOptions::default()")]
 pub fn evaluate_definition(definition: &Value, data: &HashMap<String, Value>) -> EvaluationResult {
-    evaluate_definition_with_context(definition, data, &EvalContext::default())
+    evaluate(definition, data, &EvalOptions::default())
 }
 
 /// Evaluate a definition with an explicit runtime context.
+#[deprecated(note = "use evaluate() with EvalOptions::default().context(ctx)")]
 pub fn evaluate_definition_with_context(
     definition: &Value,
     data: &HashMap<String, Value>,
     context: &EvalContext,
 ) -> EvaluationResult {
-    evaluate_definition_with_trigger_and_context(definition, data, EvalTrigger::Continuous, context)
+    evaluate(
+        definition,
+        data,
+        &EvalOptions::default().context(context.clone()),
+    )
 }
 
 /// Evaluate a definition with an explicit trigger mode for shape timing.
+#[deprecated(note = "use evaluate() with EvalOptions::default().trigger(trigger)")]
 pub fn evaluate_definition_with_trigger(
     definition: &Value,
     data: &HashMap<String, Value>,
     trigger: EvalTrigger,
 ) -> EvaluationResult {
-    evaluate_definition_with_trigger_and_context(definition, data, trigger, &EvalContext::default())
+    evaluate(
+        definition,
+        data,
+        &EvalOptions::default().trigger(trigger),
+    )
 }
 
 /// Evaluate a definition with explicit trigger mode and runtime context.
+#[deprecated(note = "use evaluate() with EvalOptions builder")]
 pub fn evaluate_definition_with_trigger_and_context(
     definition: &Value,
     data: &HashMap<String, Value>,
     trigger: EvalTrigger,
     context: &EvalContext,
 ) -> EvaluationResult {
-    evaluate_definition_full_with_context(definition, data, trigger, &[], context)
+    evaluate(
+        definition,
+        data,
+        &EvalOptions::default()
+            .trigger(trigger)
+            .context(context.clone()),
+    )
 }
 
 /// Evaluate a definition with trigger mode and extension constraints from registries.
+#[deprecated(note = "use evaluate() with EvalOptions builder")]
 pub fn evaluate_definition_full(
     definition: &Value,
     data: &HashMap<String, Value>,
     trigger: EvalTrigger,
     extension_constraints: &[ExtensionConstraint],
 ) -> EvaluationResult {
-    evaluate_definition_full_with_context(
+    evaluate(
         definition,
         data,
-        trigger,
-        extension_constraints,
-        &EvalContext::default(),
+        &EvalOptions::default()
+            .trigger(trigger)
+            .extension_constraints(extension_constraints.to_vec()),
     )
 }
 
 /// Evaluate a definition with trigger mode, extension constraints, and runtime context.
+#[deprecated(note = "use evaluate() with EvalOptions builder")]
 pub fn evaluate_definition_full_with_context(
     definition: &Value,
     data: &HashMap<String, Value>,
@@ -70,17 +106,18 @@ pub fn evaluate_definition_full_with_context(
     extension_constraints: &[ExtensionConstraint],
     context: &EvalContext,
 ) -> EvaluationResult {
-    evaluate_definition_full_with_instances_and_context(
+    evaluate(
         definition,
         data,
-        trigger,
-        extension_constraints,
-        &HashMap::new(),
-        context,
+        &EvalOptions::default()
+            .trigger(trigger)
+            .extension_constraints(extension_constraints.to_vec())
+            .context(context.clone()),
     )
 }
 
 /// Evaluate a definition with trigger mode, extension constraints, and named instances.
+#[deprecated(note = "use evaluate() with EvalOptions builder")]
 pub fn evaluate_definition_full_with_instances(
     definition: &Value,
     data: &HashMap<String, Value>,
@@ -88,18 +125,38 @@ pub fn evaluate_definition_full_with_instances(
     extension_constraints: &[ExtensionConstraint],
     instances: &HashMap<String, Value>,
 ) -> EvaluationResult {
-    evaluate_definition_full_with_instances_and_context(
+    evaluate(
         definition,
         data,
-        trigger,
-        extension_constraints,
-        instances,
-        &EvalContext::default(),
+        &EvalOptions::default()
+            .trigger(trigger)
+            .extension_constraints(extension_constraints.to_vec())
+            .instances(instances.clone()),
     )
 }
 
 /// Evaluate a definition with trigger mode, extension constraints, named instances, and runtime context.
+#[deprecated(note = "use evaluate() with EvalOptions builder")]
 pub fn evaluate_definition_full_with_instances_and_context(
+    definition: &Value,
+    data: &HashMap<String, Value>,
+    trigger: EvalTrigger,
+    extension_constraints: &[ExtensionConstraint],
+    instances: &HashMap<String, Value>,
+    context: &EvalContext,
+) -> EvaluationResult {
+    evaluate(
+        definition,
+        data,
+        &EvalOptions::default()
+            .trigger(trigger)
+            .extension_constraints(extension_constraints.to_vec())
+            .instances(instances.clone())
+            .context(context.clone()),
+    )
+}
+
+fn evaluate_inner(
     definition: &Value,
     data: &HashMap<String, Value>,
     trigger: EvalTrigger,

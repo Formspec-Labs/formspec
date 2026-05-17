@@ -17,6 +17,7 @@ import type {
     EngineReplayEvent,
     EngineReplayResult,
     FormEngineDiagnosticsSnapshot,
+    FormEngineOptions,
     FormEngineRuntimeContext,
     IFormEngine,
     PinnedResponseReference,
@@ -143,12 +144,12 @@ export class FormEngine implements IFormEngine {
         nowProvider: () => new Date(),
     };
 
-    public constructor(
-        definition: FormDefinition,
-        runtimeContext?: FormEngineRuntimeContext,
-        registryEntries?: RegistryEntry[],
-        reactiveRuntime: EngineReactiveRuntime = preactReactiveRuntime,
-    ) {
+    public constructor(definition: FormDefinition, options?: FormEngineOptions) {
+        const {
+            runtimeContext,
+            registryEntries,
+            reactiveRuntime = preactReactiveRuntime,
+        } = options ?? {};
         this._rx = reactiveRuntime;
         this.instanceVersion = this._rx.signal(0);
         this.structureVersion = this._rx.signal(0);
