@@ -36,6 +36,11 @@
       "default": "./dist/fel/fel-api-tools.js"
     }
   },
+  "sideEffects": [
+    "./dist/init-formspec-engine.js",
+    "./dist/wasm-bridge-runtime.js",
+    "./dist/wasm-bridge-tools.js"
+  ],
   "files": [
     "dist",
     "wasm-pkg-runtime",

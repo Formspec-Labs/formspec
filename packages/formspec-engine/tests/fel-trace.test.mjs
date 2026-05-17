@@ -1,7 +1,7 @@
 /** @filedesc FEL trace bridge — wasmEvalFELWithTrace round-trips Rust TraceStep shape to TS. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { wasmEvalFELWithTrace } from '../dist/wasm-bridge.js';
+import { wasmEvalFELWithTrace } from '../dist/wasm-bridge-runtime.js';
 
 test('trace: $a + $b emits two FieldResolved + one BinaryOp', () => {
   const result = wasmEvalFELWithTrace('$a + $b', { a: 3, b: 4 });

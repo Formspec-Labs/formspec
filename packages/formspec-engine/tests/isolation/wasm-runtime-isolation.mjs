@@ -6,7 +6,7 @@ import {
     initFormspecEngineTools,
     isFormspecEngineToolsInitialized,
 } from '../../dist/init-formspec-engine.js';
-import { isWasmToolsReady, wasmTokenizeFEL } from '../../dist/wasm-bridge.js';
+import { isWasmToolsReady, wasmTokenizeFEL } from '../../dist/wasm-bridge-tools.js';
 
 test('initFormspecEngine leaves tools WASM unloaded', async () => {
     await initFormspecEngine();

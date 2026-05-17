@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lintDocument } from '../dist/index.js';
-import { wasmPlanSchemaValidation } from '../dist/wasm-bridge.js';
+import { wasmPlanSchemaValidation } from '../dist/wasm-bridge-tools.js';
 
 test('detects unknown document type and returns E100-style error', () => {
   const result = lintDocument({ foo: 1 });

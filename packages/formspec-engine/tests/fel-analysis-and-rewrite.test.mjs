@@ -8,7 +8,7 @@ import {
   rewriteFELReferences,
   validateExtensionUsage,
 } from '../dist/index.js';
-import { wasmRewriteFELReferences, wasmRewriteMessageTemplate } from '../dist/wasm-bridge.js';
+import { wasmRewriteFELReferences, wasmRewriteMessageTemplate } from '../dist/wasm-bridge-tools.js';
 
 test('analyzeFEL reports parse errors with location metadata', () => {
   const analysis = analyzeFEL('$a +');

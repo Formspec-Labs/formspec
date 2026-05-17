@@ -31,6 +31,10 @@ In `packages/*/package.json`, use a caret range matching the sibling package’s
 
 Use explicit caret ranges in `peerDependencies` when the consuming app must supply the package outside the workspace (same pattern as `@formspec-org/adapters` peer on `@formspec-org/webcomponent`: `^1.0.0`). The `workspace:` protocol is for pnpm/Yarn; this repo uses npm workspaces and does not support `workspace:*` in manifests.
 
+## Package versioning
+
+Published packages do not share one semver line. Runtime packages (`@formspec-org/engine`, `@formspec-org/layout`, `@formspec-org/webcomponent`, `@formspec-org/types`) may sit at `1.x` while integration packages still stabilizing API (`@formspec-org/react` at `0.x`) catch up. Before a public release cut, coordinate a stack-wide bump so `peerDependencies`, changelog entries, and consumer docs stay aligned — especially `@formspec-org/layout` (already `1.0.0`) versus `@formspec-org/react` (`0.1.0` with `^1.0.0` peers on engine/layout). Do not bump one consumer-facing package in isolation without checking dependents.
+
 ## Commit convention
 
 Use semantic prefixes: `feat:`, `fix:`, `build:`, `docs:`, `test:`, `refactor:`.

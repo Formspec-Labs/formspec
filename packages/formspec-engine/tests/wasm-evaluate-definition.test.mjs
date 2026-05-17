@@ -8,9 +8,8 @@ import {
   wasmEvaluateDefinition,
   wasmPrepareFelExpression,
   wasmResolveOptionSetsOnDefinition,
-  wasmRewriteFelForAssembly,
-  wasmTokenizeFEL,
-} from '../dist/wasm-bridge.js';
+} from '../dist/wasm-bridge-runtime.js';
+import { wasmRewriteFelForAssembly, wasmTokenizeFEL } from '../dist/wasm-bridge-tools.js';
 
 test('wasmEvaluateDefinition forwards previousValidations to the batch evaluator', () => {
   const definition = {
