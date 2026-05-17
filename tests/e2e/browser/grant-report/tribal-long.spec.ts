@@ -7,6 +7,12 @@ import {
   isRelevant,
   getValidationReport,
 } from '../helpers/grant-report';
+import {
+  waitForEngineValue,
+  waitForRelevant,
+  waitForValidationMatch,
+  waitForWizardPageTitle,
+} from '../helpers/engine-harness';
 
 // ---------------------------------------------------------------------------
 // Smoke: Initial render and wizard page count
@@ -54,7 +60,7 @@ test.describe('Tribal Long: Smoke', () => {
       if (i < 4) {
         const nextBtn = page.locator('button.formspec-wizard-next').first();
         await nextBtn.click();
-        await page.waitForTimeout(100);
+        await waitForWizardPageTitle(page, expectedPages[i + 1]!);
       }
     }
 
@@ -89,8 +95,9 @@ test.describe('Tribal Long: Wizard Navigation', () => {
       expect(heading?.trim()).toBe(title);
 
       if (title !== 'Review & Submit') {
+        const nextTitle = pages[pages.indexOf(title) + 1]!;
         await page.locator('button.formspec-wizard-next').first().click();
-        await page.waitForTimeout(100);
+        await waitForWizardPageTitle(page, nextTitle);
       }
     }
   });
@@ -105,7 +112,7 @@ test.describe('Tribal Long: Wizard Navigation', () => {
     expect(headingBefore?.trim()).toBe('Expenditure Details');
 
     await page.locator('button.formspec-wizard-prev').first().click();
-    await page.waitForTimeout(100);
+    await waitForWizardPageTitle(page, 'Expenditure Categories');
 
     const headingAfter = await page
       .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
@@ -118,7 +125,7 @@ test.describe('Tribal Long: Wizard Navigation', () => {
     await goToPage(page, 'Demographic Information');
 
     await page.locator('button.formspec-wizard-prev').first().click();
-    await page.waitForTimeout(100);
+    await waitForWizardPageTitle(page, 'Expenditure Details');
 
     const heading = await page
       .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
@@ -146,7 +153,9 @@ test.describe('Tribal Long: Expenditure Category Relevance', () => {
 
   test('selecting categories makes corresponding expenditure fields relevant', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment', 'housing']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
+    await waitForRelevant(page, 'expenditures.housing', true);
+    await waitForRelevant(page, 'expenditures.health', false);
 
     expect(await isRelevant(page, 'expenditures.employment')).toBe(true);
     expect(await isRelevant(page, 'expenditures.housing')).toBe(true);
@@ -155,11 +164,11 @@ test.describe('Tribal Long: Expenditure Category Relevance', () => {
 
   test('deselecting a category removes expenditure field relevance', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
     expect(await isRelevant(page, 'expenditures.employment')).toBe(true);
 
     await engineSetValue(page, 'expenditures.applicableTopics', []);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', false);
     expect(await isRelevant(page, 'expenditures.employment')).toBe(false);
   });
 });
@@ -186,7 +195,7 @@ test.describe('Tribal Long: Expenditure Details Page', () => {
 
   test('detail card for employment appears when employment is selected', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'descriptions.employmentDesc', true);
 
     // The Alert hint should no longer be visible
     const alertText = page.locator(
@@ -201,7 +210,9 @@ test.describe('Tribal Long: Expenditure Details Page', () => {
 
   test('detail cards for housing and health appear when those categories are selected', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['housing', 'health']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'descriptions.housingDesc', true);
+    await waitForRelevant(page, 'descriptions.healthDesc', true);
+    await waitForRelevant(page, 'descriptions.employmentDesc', false);
 
     expect(await isRelevant(page, 'descriptions.housingDesc')).toBe(true);
     expect(await isRelevant(page, 'descriptions.healthDesc')).toBe(true);
@@ -229,7 +240,7 @@ test.describe('Tribal Long: Demographics Grid Auto-Calculation', () => {
   test('sex breakdown total auto-calculates from male + female', async ({ page }) => {
     await engineSetValue(page, 'demographics.sexBreakdown.male', 30);
     await engineSetValue(page, 'demographics.sexBreakdown.female', 20);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'demographics.sexBreakdown.sexTotal', 50);
 
     const sexTotal = await engineValue(page, 'demographics.sexBreakdown.sexTotal');
     expect(sexTotal).toBe(50);
@@ -244,34 +255,31 @@ test.describe('Tribal Long: Demographics Grid Auto-Calculation', () => {
     await engineSetValue(page, 'demographics.employmentStatus.notInLaborForce', 6);
     await engineSetValue(page, 'demographics.employmentStatus.retired', 7);
     await engineSetValue(page, 'demographics.employmentStatus.unknown', 3);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'demographics.employmentStatus.employmentTotal', 40);
 
     const employmentTotal = await engineValue(page, 'demographics.employmentStatus.employmentTotal');
     expect(employmentTotal).toBe(40);
   });
 
   test('sex breakdown total field is readonly', async ({ page }) => {
-    // The sexTotal field is readonly=true via bind — it should not be directly editable
-    const totalInput = page.locator('input[name="demographics.sexBreakdown.sexTotal"]');
-    if (await totalInput.count() > 0) {
-      // If rendered as an input, it should have a readonly or disabled attribute
-      const isReadonly = await totalInput.getAttribute('readonly');
-      const isDisabled = await totalInput.getAttribute('disabled');
-      expect(isReadonly !== null || isDisabled !== null).toBe(true);
+    const field = page.locator('.formspec-field[data-name="demographics.sexBreakdown.sexTotal"]');
+    await expect(field).toBeVisible();
+    const totalInput = field.locator('input');
+    if ((await totalInput.count()) > 0) {
+      await expect(totalInput).toHaveAttribute('readonly', '');
     } else {
-      // If rendered as static text, the field is inherently non-editable — pass
-      expect(true).toBe(true);
+      await expect(field).toHaveClass(/formspec-field--readonly/);
     }
   });
 
   test('employment total field is readonly', async ({ page }) => {
-    const totalInput = page.locator('input[name="demographics.employmentStatus.employmentTotal"]');
-    if (await totalInput.count() > 0) {
-      const isReadonly = await totalInput.getAttribute('readonly');
-      const isDisabled = await totalInput.getAttribute('disabled');
-      expect(isReadonly !== null || isDisabled !== null).toBe(true);
+    const field = page.locator('.formspec-field[data-name="demographics.employmentStatus.employmentTotal"]');
+    await expect(field).toBeVisible();
+    const totalInput = field.locator('input');
+    if ((await totalInput.count()) > 0) {
+      await expect(totalInput).toHaveAttribute('readonly', '');
     } else {
-      expect(true).toBe(true);
+      await expect(field).toHaveClass(/formspec-field--readonly/);
     }
   });
 });
@@ -291,7 +299,7 @@ test.describe('Tribal Long: Shape Constraints', () => {
     await engineSetValue(page, 'demographics.totalServedOver18', 60);
     await engineSetValue(page, 'demographics.sexBreakdown.male', 30);
     await engineSetValue(page, 'demographics.sexBreakdown.female', 20);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'demographics.sexBreakdown.sexTotal', 50);
 
     const report = await getValidationReport(page, 'submit');
     const shapeError = report.results.filter(
@@ -308,7 +316,7 @@ test.describe('Tribal Long: Shape Constraints', () => {
     await engineSetValue(page, 'demographics.totalServedOver18', 50);
     await engineSetValue(page, 'demographics.sexBreakdown.male', 30);
     await engineSetValue(page, 'demographics.sexBreakdown.female', 20);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'demographics.sexBreakdown.sexTotal', 50);
 
     const report = await getValidationReport(page, 'submit');
     const shapeError = report.results.filter(
@@ -331,7 +339,7 @@ test.describe('Tribal Long: Shape Constraints', () => {
     await engineSetValue(page, 'demographics.employmentStatus.notInLaborForce', 0);
     await engineSetValue(page, 'demographics.employmentStatus.retired', 0);
     await engineSetValue(page, 'demographics.employmentStatus.unknown', 0);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'demographics.employmentStatus.employmentTotal', 15);
 
     const report = await getValidationReport(page, 'submit');
     const shapeError = report.results.filter(
@@ -354,7 +362,7 @@ test.describe('Tribal Long: Shape Constraints', () => {
     await engineSetValue(page, 'demographics.employmentStatus.notInLaborForce', 0);
     await engineSetValue(page, 'demographics.employmentStatus.retired', 0);
     await engineSetValue(page, 'demographics.employmentStatus.unknown', 0);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'demographics.employmentStatus.employmentTotal', 15);
 
     const report = await getValidationReport(page, 'submit');
     const shapeError = report.results.filter(
@@ -368,7 +376,11 @@ test.describe('Tribal Long: Shape Constraints', () => {
   test('totalServedOver18 constraint fires when it exceeds totalServed', async ({ page }) => {
     await engineSetValue(page, 'demographics.totalServed', 50);
     await engineSetValue(page, 'demographics.totalServedOver18', 100);
-    await page.waitForTimeout(100);
+    await waitForValidationMatch(
+      page,
+      { path: 'demographics.totalServedOver18', code: 'CONSTRAINT_FAILED' },
+      'continuous'
+    );
 
     const report = await getValidationReport(page, 'continuous');
     const constraintError = report.results.filter(
@@ -390,10 +402,11 @@ test.describe('Tribal Long: Expenditure Total Calculation', () => {
 
   test('total expenditures auto-calculates from selected topics', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment', 'housing']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
+    await waitForRelevant(page, 'expenditures.housing', true);
     await engineSetValue(page, 'expenditures.employment', 45000);
     await engineSetValue(page, 'expenditures.housing', 32000);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'expenditures.total', { amount: 77000, currency: 'USD' });
 
     const total = await engineValue(page, 'expenditures.total');
     // The calculate expression uses moneySum, which returns a money object {amount, currency}
@@ -409,13 +422,13 @@ test.describe('Tribal Long: Expenditure Total Calculation', () => {
   test('adding new topics after interaction does not trigger TYPE_MISMATCH on expenditure fields', async ({ page }) => {
     // Step 1: Select one topic and set its value
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
     await engineSetValue(page, 'expenditures.employment', 45000);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'expenditures.employment', { amount: 45000, currency: 'USD' });
 
     // Step 2: Add a second topic (housing becomes relevant, gets default)
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment', 'housing']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.housing', true);
 
     // The validation report should have NO TYPE_MISMATCH errors on any expenditure field
     const report = await getValidationReport(page, 'continuous');
@@ -429,7 +442,7 @@ test.describe('Tribal Long: Expenditure Total Calculation', () => {
     // Selecting a topic makes its expenditure field relevant with default { amount: "0", currency: "USD" }
     // The default amount is a string "0" — the engine should coerce it to numeric 0
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
 
     const val = await engineValue(page, 'expenditures.employment');
     // The amount must be a number (not string "0") for validateDataType to pass

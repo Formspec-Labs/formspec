@@ -9,6 +9,7 @@ import {
   getResponse,
   getValidationReport,
   goToPage,
+  waitForFormEngine,
 } from './engine-harness';
 import { waitForWasm } from './harness';
 
@@ -52,7 +53,7 @@ export async function mountClinicalIntakeWithScreener(page: Page): Promise<void>
     el.componentDocument = comp;
     el.themeDocument = thm;
   }, { def: definition, scr: screener, comp: component, thm: theme, reg: registry });
-  await page.waitForTimeout(200);
+  await waitForFormEngine(page);
 }
 
 /**
@@ -72,7 +73,7 @@ export async function mountClinicalIntake(page: Page): Promise<void> {
     el.componentDocument = comp;
     el.themeDocument     = thm;
   }, { def: definition, comp: component, thm: theme, reg: registry });
-  await page.waitForTimeout(200);
+  await waitForFormEngine(page);
 }
 
 /**

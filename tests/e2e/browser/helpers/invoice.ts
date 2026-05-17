@@ -2,7 +2,13 @@
 import type { Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
-import { engineSetValue, engineValue, getResponse, getValidationReport } from './engine-harness';
+import {
+  engineSetValue,
+  engineValue,
+  getResponse,
+  getValidationReport,
+  waitForFormEngine,
+} from './engine-harness';
 import { waitForWasm } from './harness';
 
 export { engineSetValue, engineValue, getResponse, getValidationReport };
@@ -31,7 +37,7 @@ export async function mountInvoice(page: Page): Promise<void> {
     el.componentDocument = comp;
     el.themeDocument     = thm;
   }, { def: definition, comp: component, thm: theme, reg: registry });
-  await page.waitForTimeout(200);
+  await waitForFormEngine(page);
 }
 
 /** Programmatically add a repeat instance via engine. Returns new count. */

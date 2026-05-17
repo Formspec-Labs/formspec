@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { waitForWasm } from '../helpers/harness';
 import {
+  waitForEngineValue,
+  waitForFormEngine,
+  waitForRepeatCount,
+  waitForValidationMatch,
+} from '../helpers/engine-harness';
+import {
   loadInvoiceArtifacts,
   mountInvoice,
   engineValue,
@@ -65,7 +71,7 @@ test.describe('Repeat Groups: Line Items DataTable', () => {
     const addBtn = page.locator('button.formspec-datatable-add');
     await expect(addBtn).toBeVisible();
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 2);
 
     const rows = page.locator('.formspec-data-table tbody tr');
     await expect(rows).toHaveCount(2);
@@ -79,9 +85,9 @@ test.describe('Repeat Groups: Line Items DataTable', () => {
 
     const addBtn = page.locator('button.formspec-datatable-add');
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 2);
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 3);
 
     const rows = page.locator('.formspec-data-table tbody tr');
     await expect(rows).toHaveCount(3);
@@ -98,7 +104,7 @@ test.describe('Repeat Groups: Line Items DataTable', () => {
     // Start: 1 row. Add a second.
     const addBtn = page.locator('button.formspec-datatable-add');
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 2);
 
     let rows = page.locator('.formspec-data-table tbody tr');
     await expect(rows).toHaveCount(2);
@@ -112,7 +118,7 @@ test.describe('Repeat Groups: Line Items DataTable', () => {
     // Remove the second row
     const removeButtons = page.locator('button.formspec-datatable-remove');
     await removeButtons.nth(1).click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 1);
 
     rows = page.locator('.formspec-data-table tbody tr');
     await expect(rows).toHaveCount(1);
@@ -131,14 +137,14 @@ test.describe('Repeat Groups: Line Items DataTable', () => {
     // Add two more rows to get 3 total
     const addBtn = page.locator('button.formspec-datatable-add');
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 2);
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 3);
 
     // Remove the middle row (index 1)
     const removeButtons = page.locator('button.formspec-datatable-remove');
     await removeButtons.nth(1).click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 2);
 
     const rows = page.locator('.formspec-data-table tbody tr');
     await expect(rows).toHaveCount(2);
@@ -158,7 +164,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('3');
     await priceInput.fill('100');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'lineItems[0].lineTotal', { amount: 300, currency: 'USD' });
 
     // lineTotal[0] = 3 * 100 = 300
     const lineTotal = await engineValue(page, 'lineItems[0].lineTotal');
@@ -173,7 +179,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput0 = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput0.fill('2');
     await priceInput0.fill('50');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 100, currency: 'USD' });
 
     const subtotalAfterRow0 = await engineValue(page, 'totals.subtotal');
     expect(subtotalAfterRow0).toEqual({ amount: 100, currency: 'USD' });
@@ -181,13 +187,13 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     // Add a second row: qty=1, price=75
     const addBtn = page.locator('button.formspec-datatable-add');
     await addBtn.click();
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'lineItems', 2);
 
     const qtyInput1 = page.locator('input.formspec-datatable-input[name="lineItems[1].quantity"]');
     const priceInput1 = page.locator('input.formspec-datatable-input[name="lineItems[1].unitPrice"]');
     await qtyInput1.fill('1');
     await priceInput1.fill('75');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 175, currency: 'USD' });
 
     // Subtotal = 100 + 75 = 175
     const subtotalAfterRow1 = await engineValue(page, 'totals.subtotal');
@@ -202,7 +208,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('4');
     await priceInput.fill('25');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.grandTotal', { amount: 100, currency: 'USD' });
 
     // With taxRate=0 and discountPercent=0 (both initialValues), grand total = subtotal = 100
     const grandTotal = await engineValue(page, 'totals.grandTotal');
@@ -217,7 +223,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput0 = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput0.fill('5');
     await priceInput0.fill('200');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 1000, currency: 'USD' });
 
     // subtotal = 1000, taxRate=10%, discountPercent=5%
     // taxAmount = 1000 * 10/100 = 100
@@ -225,7 +231,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     // grandTotal = 1000 + 100 - 50 = 1050
     await engineSetValue(page, 'totals.taxRate', 10);
     await engineSetValue(page, 'totals.discountPercent', 5);
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.grandTotal', { amount: 1050, currency: 'USD' });
 
     const subtotal = await engineValue(page, 'totals.subtotal');
     expect(subtotal).toEqual({ amount: 1000, currency: 'USD' });
@@ -248,7 +254,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
 
     await qtyInput.fill('3');
     await priceInput.fill('100');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'lineItems[0].lineTotal', { amount: 300, currency: 'USD' });
 
     // Verify line total is set
     const beforeClear = await engineValue(page, 'lineItems[0].lineTotal');
@@ -258,7 +264,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     await priceInput.fill('');
     // Trigger input event to register the empty value
     await priceInput.dispatchEvent('input');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'lineItems[0].lineTotal', null);
 
     const afterClear = await engineValue(page, 'lineItems[0].lineTotal');
     expect(afterClear).toBeNull();
@@ -274,11 +280,11 @@ test.describe('Tax and Discount Calculations', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('10');
     await priceInput.fill('100');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 1000, currency: 'USD' });
 
     // Set tax rate to 8%
     await engineSetValue(page, 'totals.taxRate', 8);
-    await page.waitForTimeout(50);
+    await waitForEngineValue(page, 'totals.taxAmount', { amount: 80, currency: 'USD' });
 
     // taxAmount = 1000 * 8/100 = 80
     const taxAmount = await engineValue(page, 'totals.taxAmount');
@@ -293,11 +299,12 @@ test.describe('Tax and Discount Calculations', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('2');
     await priceInput.fill('500');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 1000, currency: 'USD' });
 
     // Set discount to 20%
     await engineSetValue(page, 'totals.discountPercent', 20);
-    await page.waitForTimeout(50);
+    await waitForEngineValue(page, 'totals.discountAmount', { amount: 200, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.grandTotal', { amount: 800, currency: 'USD' });
 
     // discountAmount = 1000 * 20/100 = 200
     const discountAmount = await engineValue(page, 'totals.discountAmount');
@@ -324,20 +331,20 @@ test.describe('Tax and Discount Calculations', () => {
       el.componentDocument = comp;
       el.themeDocument = thm;
     }, { def: artifacts.definition, comp: artifacts.component, thm: artifacts.theme, reg: artifacts.registry });
-    await page.waitForTimeout(200);
+    await waitForFormEngine(page);
 
     // Set up a small subtotal: qty=1, price=10 → subtotal=10
     const qtyInput = page.locator('input.formspec-datatable-input[name="lineItems[0].quantity"]');
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('1');
     await priceInput.fill('10');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 10, currency: 'USD' });
 
     // Apply a huge discount: 200% of subtotal
     // discountAmount = 10 * 200/100 = 20
     // grandTotal = 10 + 0 - 20 = -10 → should trigger grandTotalNonNegative warning
     await engineSetValue(page, 'totals.discountPercent', 200);
-    await page.waitForTimeout(100);
+    await waitForValidationMatch(page, { code: 'NEGATIVE_GRAND_TOTAL', severity: 'warning' }, 'continuous');
 
     const report = await getValidationReport(page, 'continuous');
     const hasNegativeWarning = report.results.some(
@@ -377,7 +384,11 @@ test.describe('Validation: Required Fields and Constraints', () => {
 
     // Fill the customer name
     await engineSetValue(page, 'header.customerName', 'Acme Corp');
-    await page.waitForTimeout(50);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const results = el?.getEngine()?.getValidationReport({ mode: 'submit' })?.results ?? [];
+      return !results.some((r: any) => r.path === 'header.customerName' && r.severity === 'error');
+    });
 
     const afterReport = await getValidationReport(page, 'submit');
     const hasErrorAfter = afterReport.results.some(
@@ -391,7 +402,15 @@ test.describe('Validation: Required Fields and Constraints', () => {
 
     // Set a malformed email
     await engineSetValue(page, 'header.customerEmail', 'not-an-email');
-    await page.waitForTimeout(50);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const results = el?.getEngine()?.getValidationReport({ mode: 'continuous' })?.results ?? [];
+      return results.some(
+        (r: any) =>
+          r.path === 'header.customerEmail' &&
+          (r.severity === 'error' || r.code === 'CONSTRAINT_FAILED' || r.code === 'PATTERN_MISMATCH')
+      );
+    });
 
     const report = await getValidationReport(page, 'continuous');
     const emailErrors = report.results.filter(
@@ -435,7 +454,7 @@ test.describe('Validation: Required Fields and Constraints', () => {
       el.componentDocument = comp;
       el.themeDocument = thm;
     }, { def: artifacts.definition, comp: artifacts.component, thm: artifacts.theme, reg: artifacts.registry });
-    await page.waitForTimeout(200);
+    await waitForFormEngine(page);
 
     // Subtotal = 0 (no line items filled), discount = 50% of 0 = 0
     // But set subtotal to something non-zero first, then give a 200% discount
@@ -443,11 +462,15 @@ test.describe('Validation: Required Fields and Constraints', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('1');
     await priceInput.fill('100');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 100, currency: 'USD' });
 
     // 200% discount → discountAmount = 200, subtotal = 100 → discountAmount > subtotal
     await engineSetValue(page, 'totals.discountPercent', 200);
-    await page.waitForTimeout(100);
+    await waitForValidationMatch(
+      page,
+      { code: 'DISCOUNT_EXCEEDS_SUBTOTAL', severity: 'error' },
+      'continuous'
+    );
 
     const report = await getValidationReport(page, 'continuous');
     const discountError = report.results.find(
@@ -463,7 +486,6 @@ test.describe('Response Contract', () => {
 
     // Fill required fields and a line item
     await engineSetValue(page, 'header.customerName', 'Test Customer');
-    await page.waitForTimeout(50);
 
     const qtyInput = page.locator('input.formspec-datatable-input[name="lineItems[0].quantity"]');
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
@@ -471,7 +493,7 @@ test.describe('Response Contract', () => {
     await descInput.fill('Widget');
     await qtyInput.fill('2');
     await priceInput.fill('150');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'totals.subtotal', { amount: 300, currency: 'USD' });
 
     const response = await getResponse(page, 'continuous');
 

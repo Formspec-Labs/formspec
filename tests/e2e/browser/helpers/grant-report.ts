@@ -8,6 +8,7 @@ import {
   getResponse,
   getValidationReport,
   goToPage,
+  waitForFormEngine,
 } from './engine-harness';
 import { waitForWasm } from './harness';
 
@@ -43,7 +44,7 @@ export async function mountTribalShort(page: Page): Promise<void> {
     el.componentDocument = comp;
     el.themeDocument     = thm;
   }, { def: definition, comp: component, thm: theme });
-  await page.waitForTimeout(200);
+  await waitForFormEngine(page);
 }
 
 export async function mountTribalLong(page: Page): Promise<void> {
@@ -57,7 +58,7 @@ export async function mountTribalLong(page: Page): Promise<void> {
     el.componentDocument = comp;
     el.themeDocument     = thm;
   }, { def: definition, comp: component, thm: theme });
-  await page.waitForTimeout(200);
+  await waitForFormEngine(page);
 }
 
 /** Check if a field is relevant. */

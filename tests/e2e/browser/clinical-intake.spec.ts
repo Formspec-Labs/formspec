@@ -11,6 +11,13 @@ import {
   getValidationReport,
   getResponse,
 } from './helpers/clinical-intake';
+import {
+  waitForEngineValue,
+  waitForRelevant,
+  waitForRepeatCount,
+  waitForValidationMatch,
+  waitForWizardPageTitle,
+} from './helpers/engine-harness';
 
 // ── Screener ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +57,6 @@ test.describe('Clinical Intake: Screener', () => {
     await mountClinicalIntakeWithScreener(page);
 
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(200);
 
     // Should still be on the screener — not routed anywhere
     const screener = page.locator('.formspec-screener-fields');
@@ -219,7 +225,7 @@ test.describe('Clinical Intake: Screener', () => {
     await page.locator('[data-name="sChiefComplaint"] select').selectOption('emergency');
     await page.locator('[data-name="sPainLevel"] input[type="number"]').fill('3');
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(200);
+    await expect(page.locator('.formspec-screener-routed')).toBeVisible();
 
     // Screener fields should no longer be visible
     const screenerFields = page.locator('.formspec-screener-fields');
@@ -236,9 +242,8 @@ test.describe('Clinical Intake: Screener', () => {
     await page.locator('[data-name="sChiefComplaint"] select').selectOption('emergency');
     await page.locator('[data-name="sPainLevel"] input[type="number"]').fill('3');
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(200);
-
     const routeResult = page.locator('.formspec-screener-routed');
+    await expect(routeResult).toBeVisible();
     await expect(routeResult).toContainText('Route to Emergency Intake');
   });
 
@@ -248,15 +253,13 @@ test.describe('Clinical Intake: Screener', () => {
     await page.locator('[data-name="sChiefComplaint"] select').selectOption('emergency');
     await page.locator('[data-name="sPainLevel"] input[type="number"]').fill('3');
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(200);
+    await expect(page.locator('.formspec-screener-routed')).toBeVisible();
 
     const backBtn = page.locator('.formspec-screener-routed button');
     await expect(backBtn).toBeVisible();
 
     // Clicking back should return to the screener
     await backBtn.click();
-    await page.waitForTimeout(200);
-
     const screenerFields = page.locator('.formspec-screener-fields');
     await expect(screenerFields).toBeVisible();
   });
@@ -488,13 +491,7 @@ test.describe('Clinical Intake: Wizard Navigation', () => {
     await goToPage(page, 'Current Visit');
 
     await page.locator('button.formspec-wizard-prev').first().click();
-    await page.waitForTimeout(150);
-
-    const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
-      .first()
-      .textContent();
-    expect(heading?.trim()).toBe('Patient Information');
+    await waitForWizardPageTitle(page, 'Patient Information');
   });
 
   test('Patient Information page renders demographic fields', async ({ page }) => {
@@ -583,7 +580,7 @@ test.describe('Clinical Intake: Computed Fields', () => {
   test('assessment.totalConditions increments when a condition repeat instance is added', async ({ page }) => {
     await addRepeatInstance(page, 'medicalHistory.conditions');
     await engineSetValue(page, 'medicalHistory.conditions[0].conditionName', 'Hypertension');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'assessment.totalConditions', 1);
 
     const total = await engineValue(page, 'assessment.totalConditions');
     expect(total).toBe(1);
@@ -594,7 +591,7 @@ test.describe('Clinical Intake: Computed Fields', () => {
     await addRepeatInstance(page, 'medicalHistory.conditions');
     await engineSetValue(page, 'medicalHistory.conditions[0].conditionName', 'Hypertension');
     await engineSetValue(page, 'medicalHistory.conditions[1].conditionName', 'Diabetes');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'assessment.totalConditions', 2);
 
     const total = await engineValue(page, 'assessment.totalConditions');
     expect(total).toBe(2);
@@ -603,7 +600,11 @@ test.describe('Clinical Intake: Computed Fields', () => {
   test('assessment.symptomDuration computes days since onset date', async ({ page }) => {
     // Set onset date to 5 days ago: 2026-03-04
     await engineSetValue(page, 'currentVisit.onsetDate', '2026-03-04');
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const duration = el?.getEngine()?.signals['assessment.symptomDuration']?.value;
+      return typeof duration === 'number' && duration >= 5;
+    });
 
     const duration = await engineValue(page, 'assessment.symptomDuration');
     expect(typeof duration).toBe('number');
@@ -622,7 +623,7 @@ test.describe('Clinical Intake: Computed Fields', () => {
     await engineSetValue(page, 'medicalHistory.conditions[0].severity', 'severe');
     await engineSetValue(page, 'medicalHistory.conditions[1].conditionName', 'Condition B');
     await engineSetValue(page, 'medicalHistory.conditions[1].severity', 'mild');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'assessment.severeConditionCount', 1);
 
     const severeCount = await engineValue(page, 'assessment.severeConditionCount');
     expect(severeCount).toBe(1);
@@ -643,7 +644,8 @@ test.describe('Clinical Intake: Computed Fields', () => {
     await addRepeatInstance(page, 'medicalHistory.conditions[1].medications');
     await engineSetValue(page, 'medicalHistory.conditions[1].medications[0].medDrugName', 'Atorvastatin');
 
-    await page.waitForTimeout(150);
+    await waitForEngineValue(page, 'medicalHistory.conditions[0].condMedCount', 2);
+    await waitForEngineValue(page, 'medicalHistory.conditions[1].condMedCount', 1);
 
     // condMedCount is calculated as count of medication names per condition
     const cond0MedCount = await engineValue(page, 'medicalHistory.conditions[0].condMedCount');
@@ -674,7 +676,7 @@ test.describe('Clinical Intake: Conditional Field Visibility', () => {
 
   test('"other symptoms" text area appears when "other" symptom is selected', async ({ page }) => {
     await engineSetValue(page, 'currentVisit.symptoms', ['other']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'currentVisit.otherSymptoms', true);
 
     const field = page.locator('[data-name="currentVisit.otherSymptoms"]');
     await expect(field).toBeVisible();
@@ -682,11 +684,11 @@ test.describe('Clinical Intake: Conditional Field Visibility', () => {
 
   test('"other symptoms" hides again when "other" is deselected', async ({ page }) => {
     await engineSetValue(page, 'currentVisit.symptoms', ['other']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'currentVisit.otherSymptoms', true);
     await expect(page.locator('[data-name="currentVisit.otherSymptoms"]')).toBeVisible();
 
     await engineSetValue(page, 'currentVisit.symptoms', ['fever']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'currentVisit.otherSymptoms', false);
 
     const field = page.locator('[data-name="currentVisit.otherSymptoms"]');
     const visible = await field.isVisible().catch(() => false);
@@ -702,7 +704,7 @@ test.describe('Clinical Intake: Allergy Relevance', () => {
 
   test('allergies text field is hidden when hasAllergies is false', async ({ page }) => {
     await engineSetValue(page, 'medicalHistory.hasAllergies', false);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'medicalHistory.allergies', false);
 
     const field = page.locator('[data-name="medicalHistory.allergies"]');
     const visible = await field.isVisible().catch(() => false);
@@ -711,7 +713,7 @@ test.describe('Clinical Intake: Allergy Relevance', () => {
 
   test('allergies text field appears when hasAllergies is true', async ({ page }) => {
     await engineSetValue(page, 'medicalHistory.hasAllergies', true);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'medicalHistory.allergies', true);
 
     const field = page.locator('[data-name="medicalHistory.allergies"]');
     await expect(field).toBeVisible();
@@ -782,7 +784,15 @@ test.describe('Clinical Intake: Validation', () => {
 
   test('invalid email value triggers constraint error', async ({ page }) => {
     await engineSetValue(page, 'patient.email', 'notanemail');
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const results = el?.getEngine()?.getValidationReport({ mode: 'continuous' })?.results ?? [];
+      return results.some(
+        (r: any) =>
+          r.path === 'patient.email' &&
+          (r.code === 'CONSTRAINT_FAILED' || r.kind === 'constraint' || r.code === 'PATTERN_MISMATCH')
+      );
+    });
 
     const report = await getValidationReport(page);
     const emailErrors = report.results.filter(
@@ -793,7 +803,15 @@ test.describe('Clinical Intake: Validation', () => {
 
   test('invalid phone value triggers constraint error', async ({ page }) => {
     await engineSetValue(page, 'patient.phone', '555-1234');
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const results = el?.getEngine()?.getValidationReport({ mode: 'continuous' })?.results ?? [];
+      return results.some(
+        (r: any) =>
+          r.path === 'patient.phone' &&
+          (r.code === 'CONSTRAINT_FAILED' || r.kind === 'constraint' || r.code === 'PATTERN_MISMATCH')
+      );
+    });
 
     const report = await getValidationReport(page);
     const phoneErrors = report.results.filter(
@@ -804,7 +822,11 @@ test.describe('Clinical Intake: Validation', () => {
 
   test('onset date in the future triggers constraint error', async ({ page }) => {
     await engineSetValue(page, 'currentVisit.onsetDate', '2099-01-01');
-    await page.waitForTimeout(100);
+    await waitForValidationMatch(
+      page,
+      { path: 'currentVisit.onsetDate', code: 'CONSTRAINT_FAILED' },
+      'continuous'
+    );
 
     const report = await getValidationReport(page, 'continuous');
     const futureErrors = report.results.filter(
@@ -815,8 +837,9 @@ test.describe('Clinical Intake: Validation', () => {
 
   test('allergy detail shape rule fires on submit when hasAllergies is true but allergies is empty', async ({ page }) => {
     await engineSetValue(page, 'medicalHistory.hasAllergies', true);
+    await waitForEngineValue(page, 'medicalHistory.hasAllergies', true);
     // Leave medicalHistory.allergies empty
-    await page.waitForTimeout(100);
+    await waitForValidationMatch(page, { code: 'ALLERGY_DETAIL_REQUIRED' }, 'submit');
 
     const report = await getValidationReport(page, 'submit');
     const allergyShapeError = report.results.find(
@@ -827,7 +850,13 @@ test.describe('Clinical Intake: Validation', () => {
 
   test('allergyDetailRequired shape rule does not fire when hasAllergies is false', async ({ page }) => {
     await engineSetValue(page, 'medicalHistory.hasAllergies', false);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const results = el?.getEngine()?.getValidationReport({ mode: 'submit' })?.results ?? [];
+      return !results.some(
+        (r: any) => r.code === 'ALLERGY_DETAIL_REQUIRED' || r.id === 'allergyDetailRequired'
+      );
+    });
 
     const report = await getValidationReport(page, 'submit');
     const allergyShapeError = report.results.find(
@@ -839,14 +868,20 @@ test.describe('Clinical Intake: Validation', () => {
   test('ValidationSummary becomes populated after Submit is clicked with errors', async ({ page }) => {
     // Navigate to Summary without filling required fields
     await goToPage(page, 'Summary');
-    await page.waitForTimeout(200);
 
     // The ValidationSummary with source:'live' starts hidden until a submit attempt.
     // Click Submit to trigger the latestSubmitDetailSignal, which populates the summary.
     // NOTE: clicking Submit also navigates the wizard to the page with the first error,
     // so we check the summary's visible class via JS rather than Playwright's visibility.
     await page.locator('button.formspec-submit').first().click();
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => {
+      const el = document.querySelector('.formspec-validation-summary');
+      return (
+        el?.classList.contains('formspec-validation-summary--visible') &&
+        (el.childElementCount ?? 0) > 0 &&
+        (el.textContent?.trim().length ?? 0) > 0
+      );
+    });
 
     // Verify the ValidationSummary element received the visible class and contains error text
     const summaryInfo = await page.evaluate(() => {
@@ -897,7 +932,7 @@ test.describe('Clinical Intake: Response Contract', () => {
     await addRepeatInstance(page, 'medicalHistory.conditions');
     await engineSetValue(page, 'medicalHistory.conditions[0].conditionName', 'Hypertension');
     await engineSetValue(page, 'medicalHistory.conditions[0].severity', 'mild');
-    await page.waitForTimeout(100);
+    await waitForRepeatCount(page, 'medicalHistory.conditions', 1);
 
     const response = await getResponse(page, 'continuous');
     expect(Array.isArray(response.data.medicalHistory.conditions)).toBe(true);
@@ -916,12 +951,12 @@ test.describe('Clinical Intake: Nested Repeats (Conditions > Medications)', () =
   test('can add a condition and then add a nested medication to it', async ({ page }) => {
     await addRepeatInstance(page, 'medicalHistory.conditions');
     await engineSetValue(page, 'medicalHistory.conditions[0].conditionName', 'Hypertension');
-    await page.waitForTimeout(50);
+    await waitForRepeatCount(page, 'medicalHistory.conditions', 1);
 
     await addRepeatInstance(page, 'medicalHistory.conditions[0].medications');
     await engineSetValue(page, 'medicalHistory.conditions[0].medications[0].medDrugName', 'Lisinopril');
     await engineSetValue(page, 'medicalHistory.conditions[0].medications[0].medDosage', '10mg');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'medicalHistory.conditions[0].medications[0].medDrugName', 'Lisinopril');
 
     const drugName = await engineValue(page, 'medicalHistory.conditions[0].medications[0].medDrugName');
     expect(drugName).toBe('Lisinopril');
@@ -936,7 +971,7 @@ test.describe('Clinical Intake: Nested Repeats (Conditions > Medications)', () =
     await addRepeatInstance(page, 'medicalHistory.conditions[0].medications');
     await engineSetValue(page, 'medicalHistory.conditions[0].medications[0].medDrugName', 'Lisinopril');
     await engineSetValue(page, 'medicalHistory.conditions[0].medications[1].medDrugName', 'Metformin');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'medicalHistory.conditions[0].condMedCount', 2);
 
     const medCount = await engineValue(page, 'medicalHistory.conditions[0].condMedCount');
     expect(medCount).toBe(2);
@@ -947,7 +982,7 @@ test.describe('Clinical Intake: Nested Repeats (Conditions > Medications)', () =
     await engineSetValue(page, 'medicalHistory.conditions[0].conditionName', 'Diabetes');
     await addRepeatInstance(page, 'medicalHistory.conditions[0].medications');
     await engineSetValue(page, 'medicalHistory.conditions[0].medications[0].medDrugName', 'Metformin');
-    await page.waitForTimeout(100);
+    await waitForEngineValue(page, 'medicalHistory.conditions[0].medications[0].medDrugName', 'Metformin');
 
     const response = await getResponse(page, 'continuous');
     const condition = response.data.medicalHistory.conditions[0];
