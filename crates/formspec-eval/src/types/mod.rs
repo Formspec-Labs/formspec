@@ -3,6 +3,7 @@
 mod definition;
 pub mod determination;
 mod evaluation;
+mod taxonomy;
 mod extensions;
 mod item_tree;
 mod modes;
@@ -14,6 +15,7 @@ pub use determination::{
     RouteResult, ScreenerRef, ValidityBlock, parse_answer_state,
 };
 pub use evaluation::{EvalContext, EvalTrigger, EvaluationResult, ValidationResult};
+pub use taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 pub use extensions::ExtensionConstraint;
 pub use item_tree::ItemInfo;
 pub use modes::{NrbMode, WhitespaceMode};

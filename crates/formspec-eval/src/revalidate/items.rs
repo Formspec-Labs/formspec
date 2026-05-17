@@ -15,7 +15,8 @@ use crate::convert::resolve_value_by_path;
 use crate::fel_json::json_to_runtime_fel_typed;
 use crate::rebuild::detect_repeat_count;
 use crate::types::{
-    ExtensionConstraint, ItemInfo, ValidationResult, resolve_qualified_repeat_refs,
+    ConstraintKind, ExtensionConstraint, ItemInfo, Severity, ValidationCode, ValidationResult,
+    ValidationSource, resolve_qualified_repeat_refs,
 };
 
 use crate::value_predicate::{is_empty_for_required_bind, value_skips_optional_bind_checks};
@@ -45,12 +46,12 @@ pub(super) fn validate_items(
         if item.required && is_empty_for_required_bind(&val) {
             results.push(ValidationResult {
                 path: item.path.clone(),
-                severity: "error".to_string(),
-                constraint_kind: "required".to_string(),
-                code: "REQUIRED".to_string(),
+                severity: Severity::Error,
+                constraint_kind: ConstraintKind::Required,
+                code: ValidationCode::Required,
                 message: "Required".to_string(),
                 constraint: None,
-                source: "bind".to_string(),
+                source: ValidationSource::Bind,
                 shape_id: None,
                 context: None,
             });
@@ -158,12 +159,12 @@ pub(super) fn validate_items(
             if mismatch {
                 results.push(ValidationResult {
                     path: item.path.clone(),
-                    severity: "error".to_string(),
-                    constraint_kind: "type".to_string(),
-                    code: "TYPE_MISMATCH".to_string(),
+                    severity: Severity::Error,
+                    constraint_kind: ConstraintKind::Type,
+                    code: ValidationCode::TypeMismatch,
                     message: format!("Invalid {dt}"),
                     constraint: None,
-                    source: "bind".to_string(),
+                    source: ValidationSource::Bind,
                     shape_id: None,
                     context: None,
                 });
@@ -191,15 +192,15 @@ pub(super) fn validate_items(
                     if !constraint_passes(&result) {
                         results.push(ValidationResult {
                             path: item.path.clone(),
-                            severity: "error".to_string(),
-                            constraint_kind: "constraint".to_string(),
-                            code: "CONSTRAINT_FAILED".to_string(),
+                            severity: Severity::Error,
+                            constraint_kind: ConstraintKind::Constraint,
+                            code: ValidationCode::ConstraintFailed,
                             message: item
                                 .constraint_message
                                 .clone()
                                 .unwrap_or_else(|| format!("Constraint failed: {expr}")),
                             constraint: Some(expr.clone()),
-                            source: "bind".to_string(),
+                            source: ValidationSource::Bind,
                             shape_id: None,
                             context: None,
                         });
@@ -209,15 +210,15 @@ pub(super) fn validate_items(
                     // A constraint that cannot parse must not silently pass.
                     results.push(ValidationResult {
                         path: item.path.clone(),
-                        severity: "error".to_string(),
-                        constraint_kind: "constraint".to_string(),
-                        code: "CONSTRAINT_PARSE_ERROR".to_string(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Constraint,
+                        code: ValidationCode::ConstraintParseError,
                         message: item
                             .constraint_message
                             .clone()
                             .unwrap_or_else(|| format!("Constraint expression error: {e}")),
                         constraint: Some(expr.clone()),
-                        source: "bind".to_string(),
+                        source: ValidationSource::Bind,
                         shape_id: None,
                         context: None,
                     });
@@ -246,12 +247,12 @@ pub(super) fn validate_items(
             {
                 results.push(ValidationResult {
                     path: item.path.clone(),
-                    severity: "error".to_string(),
-                    constraint_kind: "cardinality".to_string(),
-                    code: "MIN_REPEAT".to_string(),
+                    severity: Severity::Error,
+                    constraint_kind: ConstraintKind::Cardinality,
+                    code: ValidationCode::MinRepeat,
                     message: format!("Minimum {min} entries required"),
                     constraint: None,
-                    source: "bind".to_string(),
+                    source: ValidationSource::Bind,
                     shape_id: None,
                     context: None,
                 });
@@ -261,12 +262,12 @@ pub(super) fn validate_items(
             {
                 results.push(ValidationResult {
                     path: item.path.clone(),
-                    severity: "error".to_string(),
-                    constraint_kind: "cardinality".to_string(),
-                    code: "MAX_REPEAT".to_string(),
+                    severity: Severity::Error,
+                    constraint_kind: ConstraintKind::Cardinality,
+                    code: ValidationCode::MaxRepeat,
                     message: format!("Maximum {max} entries allowed"),
                     constraint: None,
-                    source: "bind".to_string(),
+                    source: ValidationSource::Bind,
                     shape_id: None,
                     context: None,
                 });
@@ -327,14 +328,14 @@ fn validate_extension_constraints(
             // Extension not found in any loaded registry
             results.push(ValidationResult {
                 path: item.path.clone(),
-                severity: "error".to_string(),
-                constraint_kind: "constraint".to_string(),
-                code: "UNRESOLVED_EXTENSION".to_string(),
+                severity: Severity::Error,
+                constraint_kind: ConstraintKind::Constraint,
+                code: ValidationCode::UnresolvedExtension,
                 message: format!(
                     "Unresolved extension '{ext_name}': no matching registry entry loaded"
                 ),
                 constraint: None,
-                source: "external".to_string(),
+                source: ValidationSource::External,
                 shape_id: None,
                 context: None,
             });
@@ -346,12 +347,12 @@ fn validate_extension_constraints(
             "retired" => {
                 results.push(ValidationResult {
                     path: item.path.clone(),
-                    severity: "warning".to_string(),
-                    constraint_kind: "constraint".to_string(),
-                    code: "EXTENSION_RETIRED".to_string(),
+                    severity: Severity::Warning,
+                    constraint_kind: ConstraintKind::Constraint,
+                    code: ValidationCode::ExtensionRetired,
                     message: format!("Extension '{ext_name}' is retired"),
                     constraint: None,
-                    source: "external".to_string(),
+                    source: ValidationSource::External,
                     shape_id: None,
                     context: None,
                 });
@@ -363,12 +364,12 @@ fn validate_extension_constraints(
                 };
                 results.push(ValidationResult {
                     path: item.path.clone(),
-                    severity: "info".to_string(),
-                    constraint_kind: "constraint".to_string(),
-                    code: "EXTENSION_DEPRECATED".to_string(),
+                    severity: Severity::Info,
+                    constraint_kind: ConstraintKind::Constraint,
+                    code: ValidationCode::ExtensionDeprecated,
                     message,
                     constraint: None,
-                    source: "external".to_string(),
+                    source: ValidationSource::External,
                     shape_id: None,
                     context: None,
                 });
@@ -381,14 +382,14 @@ fn validate_extension_constraints(
             if !version_satisfies(formspec_version, compat_range) {
                 results.push(ValidationResult {
                     path: item.path.clone(),
-                    severity: "warning".to_string(),
-                    constraint_kind: "constraint".to_string(),
-                    code: "EXTENSION_COMPATIBILITY_MISMATCH".to_string(),
+                    severity: Severity::Warning,
+                    constraint_kind: ConstraintKind::Constraint,
+                    code: ValidationCode::ExtensionCompatibilityMismatch,
                     message: format!(
                         "Extension '{ext_name}' requires formspec version {compat_range}"
                     ),
                     constraint: None,
-                    source: "external".to_string(),
+                    source: ValidationSource::External,
                     shape_id: None,
                     context: None,
                 });
@@ -412,12 +413,12 @@ fn validate_extension_constraints(
                     if !re.is_match(s).unwrap_or(false) {
                         results.push(ValidationResult {
                             path: item.path.clone(),
-                            severity: "error".to_string(),
-                            constraint_kind: "constraint".to_string(),
-                            code: "PATTERN_MISMATCH".to_string(),
+                            severity: Severity::Error,
+                            constraint_kind: ConstraintKind::Constraint,
+                            code: ValidationCode::PatternMismatch,
                             message: format!("Must be a valid {label}"),
                             constraint: None,
-                            source: "external".to_string(),
+                            source: ValidationSource::External,
                             shape_id: None,
                             context: None,
                         });
@@ -432,12 +433,12 @@ fn validate_extension_constraints(
                 if s.chars().count() as u64 > max_len {
                     results.push(ValidationResult {
                         path: item.path.clone(),
-                        severity: "error".to_string(),
-                        constraint_kind: "constraint".to_string(),
-                        code: "MAX_LENGTH_EXCEEDED".to_string(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Constraint,
+                        code: ValidationCode::MaxLengthExceeded,
                         message: format!("{label} must be at most {max_len} characters"),
                         constraint: None,
-                        source: "external".to_string(),
+                        source: ValidationSource::External,
                         shape_id: None,
                         context: None,
                     });
@@ -451,12 +452,12 @@ fn validate_extension_constraints(
                 if n < min {
                     results.push(ValidationResult {
                         path: item.path.clone(),
-                        severity: "error".to_string(),
-                        constraint_kind: "constraint".to_string(),
-                        code: "RANGE_UNDERFLOW".to_string(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Constraint,
+                        code: ValidationCode::RangeUnderflow,
                         message: format!("{label} must be at least {min}"),
                         constraint: None,
-                        source: "external".to_string(),
+                        source: ValidationSource::External,
                         shape_id: None,
                         context: None,
                     });
@@ -470,12 +471,12 @@ fn validate_extension_constraints(
                 if n > max {
                     results.push(ValidationResult {
                         path: item.path.clone(),
-                        severity: "error".to_string(),
-                        constraint_kind: "constraint".to_string(),
-                        code: "RANGE_OVERFLOW".to_string(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Constraint,
+                        code: ValidationCode::RangeOverflow,
                         message: format!("{label} must be at most {max}"),
                         constraint: None,
-                        source: "external".to_string(),
+                        source: ValidationSource::External,
                         shape_id: None,
                         context: None,
                     });

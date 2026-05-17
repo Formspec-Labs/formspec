@@ -79,7 +79,7 @@ pub fn recalculate(
     let invalid_paths: HashSet<String> = previous_validations
         .unwrap_or(&[])
         .iter()
-        .filter(|result| result.severity == "error" && !result.path.is_empty())
+        .filter(|result| result.severity == crate::types::Severity::Error && !result.path.is_empty())
         .map(|result| result.path.clone())
         .collect();
 

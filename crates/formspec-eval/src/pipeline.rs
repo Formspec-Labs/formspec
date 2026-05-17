@@ -180,12 +180,12 @@ pub fn evaluate_definition_full_with_instances_and_context(
     if let Some(cycle_msg) = cycle_err {
         validations.push(ValidationResult {
             path: String::new(),
-            severity: "error".to_string(),
-            constraint_kind: "definition".to_string(),
-            code: "CIRCULAR_DEPENDENCY".to_string(),
+            severity: types::Severity::Error,
+            constraint_kind: types::ConstraintKind::Definition,
+            code: types::ValidationCode::CircularDependency,
             message: cycle_msg,
             constraint: None,
-            source: "definition".to_string(),
+            source: types::ValidationSource::Definition,
             shape_id: None,
             context: None,
         });

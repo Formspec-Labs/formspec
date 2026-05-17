@@ -13,7 +13,8 @@ use formspec_core::wire_keys::evaluation_batch_keys;
 
 use crate::extension_constraints_from_registry_documents;
 use crate::types::{
-    EvalContext, EvalTrigger, EvaluationResult, ExtensionConstraint, ValidationResult,
+    ConstraintKind, EvalContext, EvalTrigger, EvaluationResult, ExtensionConstraint, Severity,
+    ValidationCode, ValidationResult, ValidationSource,
 };
 
 /// Full batch evaluation output as JSON (matches `evaluateDefinition` WASM shape, camelCase).
@@ -51,11 +52,14 @@ fn validation_result_to_json_object(
 ) -> Value {
     let mut m = Map::new();
     m.insert("path".into(), json!(v.path));
-    m.insert("severity".into(), json!(v.severity));
-    m.insert(constraint_kind_key.into(), json!(v.constraint_kind));
-    m.insert("code".into(), json!(v.code));
+    m.insert("severity".into(), json!(v.severity.as_wire_str()));
+    m.insert(
+        constraint_kind_key.into(),
+        json!(v.constraint_kind.as_wire_str()),
+    );
+    m.insert("code".into(), json!(v.code.as_wire_str()));
     m.insert("message".into(), json!(v.message));
-    m.insert("source".into(), json!(v.source));
+    m.insert("source".into(), json!(v.source.as_wire_str()));
     if let Some(ref c) = v.constraint {
         m.insert("constraint".into(), json!(c));
     }
@@ -196,14 +200,23 @@ fn parse_validation_result(value: &Value) -> Result<ValidationResult, String> {
         .as_object()
         .ok_or("validation result must be an object")?;
 
+    let severity = required_string_field(obj, "severity")?;
+    let constraint_kind =
+        required_string_field_either(obj, "constraintKind", "constraint_kind")?;
+    let code = required_string_field(obj, "code")?;
+    let source = required_string_field(obj, "source")?;
+
     Ok(ValidationResult {
         path: required_string_field(obj, "path")?,
-        severity: required_string_field(obj, "severity")?,
-        constraint_kind: required_string_field_either(obj, "constraintKind", "constraint_kind")?,
-        code: required_string_field(obj, "code")?,
+        severity: Severity::parse_wire(&severity)
+            .ok_or_else(|| format!("unknown severity: {severity}"))?,
+        constraint_kind: ConstraintKind::parse_wire(&constraint_kind)
+            .ok_or_else(|| format!("unknown constraint_kind: {constraint_kind}"))?,
+        code: ValidationCode::from_wire(&code),
         message: required_string_field(obj, "message")?,
         constraint: optional_string_field_either(obj, "constraint", "constraint"),
-        source: required_string_field(obj, "source")?,
+        source: ValidationSource::parse_wire(&source)
+            .ok_or_else(|| format!("unknown source: {source}"))?,
         shape_id: optional_string_field_either(obj, "shapeId", "shape_id"),
         context: match obj.get("context") {
             Some(ctx) => {

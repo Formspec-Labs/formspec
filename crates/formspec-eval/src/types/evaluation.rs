@@ -1,5 +1,6 @@
 //! Evaluation trigger, context, and output types.
 
+use super::taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -9,17 +10,17 @@ pub struct ValidationResult {
     /// Path to the field.
     pub path: String,
     /// Severity: error, warning, info.
-    pub severity: String,
+    pub severity: Severity,
     /// Constraint kind: required, constraint, type, cardinality, shape.
-    pub constraint_kind: String,
+    pub constraint_kind: ConstraintKind,
     /// Validation code: REQUIRED, CONSTRAINT_FAILED, TYPE_MISMATCH, etc.
-    pub code: String,
+    pub code: ValidationCode,
     /// Human-readable message.
     pub message: String,
     /// Original constraint expression when available.
     pub constraint: Option<String>,
     /// Source of the validation: bind, shape, definition.
-    pub source: String,
+    pub source: ValidationSource,
     /// Shape ID (for shape validations only).
     pub shape_id: Option<String>,
     /// Evaluated shape failure context values.

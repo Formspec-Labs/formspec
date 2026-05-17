@@ -11,7 +11,10 @@ use crate::rebuild::{
     expand_wildcard_path, instantiate_wildcard_expr, is_wildcard_bind, wildcard_base,
 };
 use crate::recalculate::eval_bool;
-use crate::types::{ItemInfo, ValidationResult, find_item_by_path};
+use crate::types::{
+    ConstraintKind, ItemInfo, Severity, ValidationCode, ValidationResult, ValidationSource,
+    find_item_by_path,
+};
 
 use super::env::{
     bind_repeat_group_arrays, bind_sibling_aliases, restore_repeat_group_arrays,
@@ -91,15 +94,15 @@ pub(super) fn validate_shape(
     if !shape_passes(shape, shapes_by_id, env, &mut visiting) {
         results.push(ValidationResult {
             path: target.to_string(),
-            severity: severity.to_string(),
-            constraint_kind: "shape".to_string(),
-            code: scode.to_string(),
+            severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
+            constraint_kind: ConstraintKind::Shape,
+            code: ValidationCode::from_wire(scode),
             message: interpolate_message(message, env),
             constraint: shape
                 .get("constraint")
                 .and_then(|v| v.as_str())
                 .map(str::to_string),
-            source: "shape".to_string(),
+            source: ValidationSource::Shape,
             shape_id: sid.clone(),
             context: evaluate_shape_context(shape, env, None),
         });
@@ -207,12 +210,12 @@ fn validate_wildcard_shape(
         if !passes {
             results.push(ValidationResult {
                 path: concrete_path.clone(),
-                severity: severity.to_string(),
-                constraint_kind: "shape".to_string(),
-                code: scode.to_string(),
+                severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
+                constraint_kind: ConstraintKind::Shape,
+                code: ValidationCode::from_wire(scode),
                 message: interpolate_message(message, env),
                 constraint: constraint_expr.clone(),
-                source: "shape".to_string(),
+                source: ValidationSource::Shape,
                 shape_id: sid.clone(),
                 context: evaluate_shape_context(shape, env, Some((&base, index))),
             });
