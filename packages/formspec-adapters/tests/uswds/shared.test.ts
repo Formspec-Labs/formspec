@@ -41,6 +41,15 @@ describe('createUSWDSFieldDOM', () => {
         expect(dom.label.classList.contains('usa-sr-only')).toBe(true);
     });
 
+    it('marks item description with formspec-description for aria-describedby binding', () => {
+        const b = mockTextInput({ description: 'Legal name as shown on tax forms' });
+        const dom = createUSWDSFieldDOM(b);
+        const desc = dom.root.querySelector('.formspec-description');
+        expect(desc).toBeTruthy();
+        expect(desc!.id).toBe(`${b.id}-desc`);
+        expect(desc!.classList.contains('usa-hint')).toBe(true);
+    });
+
     it('creates hint when behavior.hint is set', () => {
         const b = mockTextInput({ hint: 'Enter your full name' });
         const dom = createUSWDSFieldDOM(b);

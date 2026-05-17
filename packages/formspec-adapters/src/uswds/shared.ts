@@ -8,8 +8,6 @@ export interface USWDSFieldDOM {
     label: HTMLElement;
     hint: HTMLElement | undefined;
     error: HTMLElement;
-    /** Initial space-separated ID string for aria-describedby. */
-    initialDescribedBy: string;
 }
 
 export interface USWDSFieldOptions {
@@ -57,15 +55,12 @@ export function createUSWDSFieldDOM(
     label.textContent = behavior.label;
     root.appendChild(label);
 
-    const describedByIds: string[] = [];
-
     // Description (from item definition)
     if (behavior.description) {
         const descId = `${fieldId}-desc`;
-        const desc = el('div', { class: 'usa-hint', id: descId });
+        const desc = el('div', { class: 'usa-hint formspec-description', id: descId });
         desc.textContent = behavior.description;
         root.appendChild(desc);
-        describedByIds.push(descId);
     }
 
     // Hint (from component props override)
@@ -75,17 +70,13 @@ export function createUSWDSFieldDOM(
         hint = el('span', { class: 'usa-hint', id: hintId });
         hint.textContent = behavior.hint;
         root.appendChild(hint);
-        describedByIds.push(hintId);
     }
 
-    // Error
+    // Error (live region — not included in aria-describedby; bindSharedFieldEffects owns that)
     const error = createUSWDSError(fieldId);
     root.appendChild(error);
-    describedByIds.push(error.id);
 
-    const initialDescribedBy = describedByIds.join(' ');
-
-    return { root, label, hint, error, initialDescribedBy };
+    return { root, label, hint, error };
 }
 
 /** Removes previously-rendered option elements (marked with data-option-wrapper). */

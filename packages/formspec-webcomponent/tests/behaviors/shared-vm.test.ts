@@ -213,6 +213,51 @@ describe('bindSharedFieldEffects with FieldViewModel', () => {
         disposers.forEach(d => d());
     });
 
+    it('syncs aria-describedby on group container when skipAriaDescribedBy is true', () => {
+        const ctx = makeMinimalBehaviorContext();
+        const { vm } = mockFieldVM({ label: 'Choice', hint: 'Pick one' });
+        const control = document.createElement('div');
+        control.setAttribute('role', 'radiogroup');
+        const hint = document.createElement('span');
+        hint.id = 'field-choice-hint';
+        hint.className = 'formspec-hint';
+        hint.textContent = 'Pick one';
+        const refs = {
+            root: document.createElement('div'),
+            label: document.createElement('legend'),
+            control,
+            error: document.createElement('div'),
+            hint,
+            skipAriaDescribedBy: true,
+        };
+        refs.root.appendChild(refs.label);
+        refs.root.appendChild(control);
+        refs.root.appendChild(hint);
+        refs.root.appendChild(refs.error);
+
+        const disposers = bindSharedFieldEffects(ctx, 'choice', vm, 'fallback', refs);
+        expect(control.getAttribute('aria-describedby')).toBe('field-choice-hint');
+
+        disposers.forEach(d => d());
+    });
+
+    it('syncs aria-describedby from hint id without static initialDescribedBy', () => {
+        const ctx = makeMinimalBehaviorContext();
+        const { vm, setLabel } = mockFieldVM({ label: 'Name', hint: 'Helper text' });
+        const refs = makeFieldRefs();
+        const hint = document.createElement('span');
+        hint.id = 'field-test-hint';
+        hint.className = 'formspec-hint';
+        hint.textContent = 'Helper text';
+        refs.hint = hint;
+        refs.root.appendChild(hint);
+
+        const disposers = bindSharedFieldEffects(ctx, 'test', vm, 'fallback', refs);
+        expect(refs.control.getAttribute('aria-describedby')).toBe('field-test-hint');
+
+        disposers.forEach(d => d());
+    });
+
     it('returns dispose functions that clean up effects', () => {
         const ctx = makeMinimalBehaviorContext();
         const { vm, setLabel } = mockFieldVM({ label: 'A' });

@@ -92,10 +92,10 @@ export function bindSharedFieldEffects(
     // ARIA describedby — supplementary text only (USWDS form templates / file-input pattern).
     // Error text stays in the live role="alert" region; do not reference it here.
     disposers.push(effect(() => {
-        if (refs.skipAriaDescribedBy) return;
+        const ariaTarget = refs.skipAriaDescribedBy ? refs.control : actualInput;
 
         const ids: string[] = [];
-        const existing = actualInput.getAttribute('data-describedby-base');
+        const existing = ariaTarget.getAttribute('data-describedby-base');
         if (existing) ids.push(...existing.split(/\s+/).filter(Boolean));
 
         const descEl = refs.root.querySelector('.formspec-description[id]') as HTMLElement | null;
@@ -113,8 +113,8 @@ export function bindSharedFieldEffects(
         if (toggleOn?.id) ids.push(toggleOn.id);
 
         const finalIds = [...new Set(ids.filter(Boolean))].join(' ');
-        if (finalIds) actualInput.setAttribute('aria-describedby', finalIds);
-        else actualInput.removeAttribute('aria-describedby');
+        if (finalIds) ariaTarget.setAttribute('aria-describedby', finalIds);
+        else ariaTarget.removeAttribute('aria-describedby');
     }));
 
     // Validation display

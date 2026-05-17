@@ -34,7 +34,7 @@ export interface FieldRefs {
     onValidationChange?: (hasError: boolean, message: string) => void;
     /** When true, {@link bindSharedFieldEffects} does not set `readOnly` on the control (combobox manages it). */
     skipSharedReadonlyControl?: boolean;
-    /** When true, {@link bindSharedFieldEffects} does not set `aria-describedby` on the control (groups manage it on container). */
+    /** When true, {@link bindSharedFieldEffects} sets `aria-describedby` on `refs.control` (group container) instead of the inner input. */
     skipAriaDescribedBy?: boolean;
 }
 

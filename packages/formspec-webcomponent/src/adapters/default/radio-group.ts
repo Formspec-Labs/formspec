@@ -12,9 +12,6 @@ export const renderRadioGroup: AdapterRenderFn<RadioGroupBehavior> = (
     container.className = 'formspec-radio-group';
     container.setAttribute('role', 'radiogroup');
     container.setAttribute('aria-labelledby', fieldDOM.label.id);
-    if (fieldDOM.initialDescribedBy) {
-        container.setAttribute('aria-describedby', fieldDOM.initialDescribedBy);
-    }
     if (behavior.orientation) container.dataset.orientation = behavior.orientation;
 
     const optionControls = new Map<string, HTMLInputElement>();

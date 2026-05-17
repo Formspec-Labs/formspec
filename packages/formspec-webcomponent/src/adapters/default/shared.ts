@@ -15,8 +15,6 @@ export interface FieldDOM {
     label: HTMLElement;
     hint: HTMLElement | undefined;
     error: HTMLElement;
-    /** Initial space-separated ID string for aria-describedby. */
-    initialDescribedBy: string;
 }
 
 /**
@@ -99,10 +97,7 @@ export function createFieldDOM(
     error.setAttribute('aria-live', 'polite');
     if (slots.error) actx.applyClassValue(error, slots.error);
 
-    // Supplementary ids only — validation messages use aria-invalid + this live region (not describedby).
-    const initialDescribedBy = [descText ? descId : '', hintId].filter(Boolean).join(' ');
-
-    return { root, label, hint, error, initialDescribedBy };
+    return { root, label, hint, error };
 }
 
 /**

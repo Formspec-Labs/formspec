@@ -100,7 +100,10 @@ Without a VM, subscribes to `change` on `fallbackControl` (native &lt;select&gt;
 
 #### interface `FieldDOM`
 
-- **initialDescribedBy** (`string`): Initial space-separated ID string for aria-describedby.
+- **root** (`HTMLElement`): Field wrapper (or fieldset for groups).
+- **label** (`HTMLElement`): Label or legend element.
+- **hint** (`HTMLElement`, optional): Supplementary hint element.
+- **error** (`HTMLElement`): Live error region (`role="alert"`).
 
 ## `renderSignature: AdapterRenderFn<SignatureBehavior>`
 
@@ -428,6 +431,7 @@ Used by the default adapter to apply comp-level overrides.
 Custom adapters can ignore this — they own their own styling.
 
 ##### `options(): ReadonlyArray<{
+
         value: string;
         label: string;
         keywords?: string[];
@@ -508,6 +512,7 @@ Custom adapters can ignore this — they own their own styling.
 #### interface `FileUploadBehavior`
 
 ##### `files(): ReadonlyArray<{
+
         name: string;
         size: number;
         type: string;
@@ -780,6 +785,7 @@ Selector matching keyboard-focusable elements.
 Formspec form in the browser.
 
 Orchestrates the full rendering pipeline:
+
 - Accepts a definition, optional component document, and optional theme document.
 - Creates and manages a {@link FormEngine} instance for reactive form state.
 - Builds the DOM by walking the component tree (or falling back to definition items).
@@ -840,11 +846,13 @@ buffered and applied when the engine boots.
 
 Set **after** `definition` for immediate loading, or before if
 pre-loading locale bundles before the form definition arrives.
+
 - **(set) locale** (`string`): Set the active locale code. Updates the engine locale if available,
 and sets `lang` and `dir` attributes for accessibility and RTL support.
 
 If the engine hasn't been created yet, the locale code is buffered
 and applied when the engine boots.
+
 - **(get) locale** (`string`): The currently active locale code, or empty string if none set.
 - **findItemByKey** (`(key: string, items?: any[]) => any | null`): @internal
 
@@ -869,6 +877,7 @@ definition has been set yet. Useful for direct engine access in tests
 or advanced integrations.
 
 ##### `getDiagnosticsSnapshot(options?: {
+
         mode?: 'continuous' | 'submit';
     }): import("@formspec-org/engine").FormEngineDiagnosticsSnapshot | null`
 
@@ -876,6 +885,7 @@ Capture a diagnostics snapshot from the engine, including current signal
 values, validation state, and repeat counts.
 
 ##### `applyReplayEvent(event: any): import("@formspec-org/engine").EngineReplayApplyResult | {
+
         ok: boolean;
         event: any;
         error: string;
@@ -884,6 +894,7 @@ values, validation state, and repeat counts.
 Apply a single replay event (e.g. `setValue`, `addRepeat`) to the engine.
 
 ##### `replay(events: any[], options?: {
+
         stopOnError?: boolean;
     }): import("@formspec-org/engine").EngineReplayResult | {
         applied: number;
@@ -906,6 +917,7 @@ Inject a runtime context (e.g. `now`, user metadata) into the engine.
 Mark all registered fields as touched so validation errors become visible.
 
 ##### `submit(options?: {
+
         mode?: 'continuous' | 'submit';
         emitEvent?: boolean;
     }): {
@@ -964,6 +976,7 @@ decrements stylesheet ref-counts, tears down breakpoint listeners,
 and removes the root container.
 
 ## `formatMoney(moneyVal: {
+
     amount: any;
     currency?: string;
 } | null | undefined, locale?: string): string`
@@ -1077,6 +1090,7 @@ Interface for what emitNode/renderActualComponent need from FormspecRender.
 ##### `applyClassValue(el: HTMLElement, classValue: unknown): void`
 
 ##### `resolveWidgetClassSlots(presentation: PresentationBlock): {
+
         root?: unknown;
         label?: unknown;
         control?: unknown;
@@ -1156,6 +1170,7 @@ True when a standalone Screener Document is attached and has at least one item.
 ## `applyClassValue(host: StylingHost, el: HTMLElement, classValue: unknown): void`
 
 ## `resolveWidgetClassSlots(_host: StylingHost, presentation: PresentationBlock): {
+
     root?: unknown;
     label?: unknown;
     control?: unknown;
@@ -1194,6 +1209,7 @@ Emit theme tokens as CSS custom properties on a target element (defaults to docu
 ## `emitTokenProperties(host: StylingHost, container: HTMLElement): void`
 
 ## `touchFieldsInContainer(container: Element, touchedFields: Set<string>, touchedVersion: {
+
     value: number;
 }): void`
 
@@ -1206,6 +1222,7 @@ Used for soft per-page wizard validation: errors become visible without blocking
 Mark all registered fields as touched so validation errors become visible.
 
 ## `submit(host: SubmitHost, options?: {
+
     mode?: 'continuous' | 'submit';
     emitEvent?: boolean;
 }): {
@@ -1329,4 +1346,3 @@ Classifies the screener route relative to the current definition URL.
 ```ts
 type ScreenerRouteType = 'none' | 'internal' | 'external';
 ```
-
