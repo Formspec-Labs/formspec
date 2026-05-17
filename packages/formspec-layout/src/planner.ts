@@ -15,7 +15,7 @@ import { resolveResponsiveProps } from './responsive.js';
 import { resolveToken } from './tokens.js';
 import { interpolateParams } from './params.js';
 import { getDefaultComponent } from './defaults.js';
-import { widgetTokenToComponent } from '@formspec-org/types';
+import { Path, widgetTokenToComponent } from '@formspec-org/types';
 
 // ── Component category classification ────────────────────────────────
 
@@ -926,7 +926,7 @@ function findItemPathByKey(items: any[], key: string, prefix = ''): string | nul
 }
 
 function findItemAtPath(items: any[], path: string): any | null {
-    const segments = path.split('.').filter(Boolean);
+    const segments = Path.parse(path).splitNormalized();
     let current = items;
 
     for (let index = 0; index < segments.length; index += 1) {
@@ -943,8 +943,7 @@ function findItemAtPath(items: any[], path: string): any | null {
 }
 
 function getParentPath(path: string): string {
-    const segments = path.split('.').filter(Boolean);
-    return segments.slice(0, -1).join('.');
+    return Path.parse(path).parentString();
 }
 
 function findComponentNodeByPath(_items: any[], rootNode: any, path: string): any | null {
