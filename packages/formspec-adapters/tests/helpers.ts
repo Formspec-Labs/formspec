@@ -1,4 +1,7 @@
 /** @filedesc Shared mock factories for USWDS adapter tests. */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
 import type {
     FieldBehavior, TextInputBehavior, NumberInputBehavior, RadioGroupBehavior,
@@ -234,4 +237,11 @@ export function mockCanvasContext(): void {
         };
         (proto as any).__mocked = true;
     }
+}
+
+const adaptersPkgRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Compiled USWDS integration stylesheet (fs-fp3e subpath export). */
+export function readUswdsIntegrationCss(): string {
+    return readFileSync(join(adaptersPkgRoot, 'dist/uswds-integration.css'), 'utf8');
 }

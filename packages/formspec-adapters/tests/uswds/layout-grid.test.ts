@@ -121,22 +121,25 @@ describe('renderUSWDSColumns', () => {
     });
 });
 
-describe('USWDS integrationCSS layout grid', () => {
+describe('USWDS integration CSS layout grid', () => {
     it('includes layout grid utilities targeting USWDS row + column cells', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).toContain('.grid-row');
-        expect(integrationCSS).toContain('.grid-row.grid-gap');
-        expect(integrationCSS).toContain('.usa-form-group');
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('.grid-row');
+        expect(css).toContain('.grid-row.grid-gap');
+        expect(css).toContain('.usa-form-group');
     });
 
     it('does not strip USWDS form-group top margin inside grid rows (that spacing is between fields)', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).not.toMatch(/\.grid-row\.grid-gap\s+\.usa-form-group\s*\{[^}]*margin-top:\s*0/);
-        expect(integrationCSS).not.toContain('.formspec-stack.grid-row.grid-gap .usa-form-group{margin-top:1.5rem}');
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).not.toMatch(/\.grid-row\.grid-gap\s+\.usa-form-group\s*\{[^}]*margin-top:\s*0/);
+        expect(css).not.toContain('.formspec-stack.grid-row.grid-gap .usa-form-group{margin-top:1.5rem}');
     });
 
     it('does not re-cap stack rows inside USWDS grid cells to a custom field max width', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).not.toMatch(/\.formspec-stack\.grid-row\.grid-gap>\[class\*=grid-col\]>\.usa-form-group,[^}]*\{max-width:30rem\}/);
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).not.toMatch(/\.formspec-stack\.grid-row\.grid-gap>\[class\*=grid-col\]>\.usa-form-group,[^}]*\{max-width:30rem\}/);
     });
 });

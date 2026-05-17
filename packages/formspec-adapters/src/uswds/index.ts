@@ -39,8 +39,6 @@ import {
     renderUSWDSConditionalGroup,
     renderUSWDSDataTable,
 } from './display-components';
-import { integrationCSS } from './integration-css';
-
 /**
  * USWDS v3 adapter for formspec-webcomponent.
  *
@@ -50,7 +48,6 @@ import { integrationCSS } from './integration-css';
  */
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
-    integrationCSS,
     components: {
         Page: renderUSWDSPage,
         Stack: renderUSWDSStack,

@@ -19,13 +19,13 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./tailwind-formspec-core.css": "./dist/tailwind-formspec-core.css"
+    "./tailwind-formspec-core.css": "./dist/tailwind-formspec-core.css",
+    "./uswds-integration.css": "./dist/uswds-integration.css"
   },
   "files": ["dist"],
   "scripts": {
     "build:css": "node scripts/build-css.mjs",
-    "build:integration-css": "node scripts/generate-integration-css.mjs",
-    "prebuild": "npm run build:css && npm run build:integration-css",
+    "prebuild": "npm run build:css",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"

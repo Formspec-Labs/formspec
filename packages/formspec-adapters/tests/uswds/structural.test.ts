@@ -356,28 +356,37 @@ describe('USWDS Tabs', () => {
 // ── Integration CSS ───────────────────────────────────────────────
 
 describe('Integration CSS', () => {
+    it('does not inject integrationCSS (consumers link ./uswds-integration.css)', async () => {
+        const { uswdsAdapter } = await import('../../src/uswds/index.js');
+        expect(uswdsAdapter.integrationCSS).toBeUndefined();
+    });
+
     it('contains .formspec-required using USWDS error token', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).toContain('.formspec-required');
-        expect(integrationCSS).toMatch(/\.formspec-required\{[^}]*color:#b50909/);
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('.formspec-required');
+        expect(css).toMatch(/\.formspec-required\{[^}]*color:#b50909/);
     });
 
     it('contains wizard layout selectors', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).toContain('.formspec-uswds-wizard__content');
-        expect(integrationCSS).toContain('.formspec-wizard-nav.usa-button-group');
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('.formspec-uswds-wizard__content');
+        expect(css).toContain('.formspec-wizard-nav.usa-button-group');
     });
 
     it('ships usa-alert styles from forwarded package (no custom formspec-alert skin)', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).toContain('.usa-alert');
-        expect(integrationCSS).not.toContain('.formspec-alert');
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('.usa-alert');
+        expect(css).not.toContain('.formspec-alert');
     });
 
     it('uncaps .usa-form max-width when Formspec container is present (theme page grids)', async () => {
-        const { integrationCSS } = await import('../../src/uswds/integration-css');
-        expect(integrationCSS).toContain('.usa-form:has(.formspec-container)');
-        expect(integrationCSS).toMatch(/\.usa-form:has\(\.formspec-container\)\{[^}]*max-width:100%/);
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('.usa-form:has(.formspec-container)');
+        expect(css).toMatch(/\.usa-form:has\(\.formspec-container\)\{[^}]*max-width:100%/);
     });
 });
 

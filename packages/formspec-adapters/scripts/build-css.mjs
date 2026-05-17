@@ -18,7 +18,10 @@ copyFileSync(
 const pkgJson = findPackageJSON('@uswds/uswds', import.meta.url);
 const loadPath = join(dirname(pkgJson), 'packages');
 
+const uswdsOut = join(pkgRoot, 'dist/uswds-formspec.css');
 execSync(
-  `npx sass src/uswds/uswds-formspec.scss dist/uswds-formspec.css --style=compressed --load-path=${loadPath} --quiet-deps`,
+  `npx sass src/uswds/uswds-formspec.scss ${uswdsOut} --style=compressed --load-path=${loadPath} --quiet-deps`,
   { cwd: pkgRoot, stdio: 'inherit' },
 );
+// Public subpath export (fs-fp3e): ship CSS as a file, not a JS string.
+copyFileSync(uswdsOut, join(pkgRoot, 'dist/uswds-integration.css'));
