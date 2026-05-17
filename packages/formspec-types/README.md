@@ -7,16 +7,16 @@ This package is the shared type vocabulary for all Formspec packages. Types map 
 ## Install
 
 ```bash
-npm install formspec-types
+npm install @formspec-org/types
 ```
 
 ## Usage
 
 ```ts
-import type { FormDefinition, FormItem, IntakeHandoff, ValidationReport } from 'formspec-types';
+import type { FormDefinition, FormItem, IntakeHandoff, ValidationReport } from '@formspec-org/types';
 ```
 
-Packages that depend on `formspec-core` or `formspec-studio-core` receive these types as re-exports. Import directly from `formspec-types` only when you need the schema types without pulling in runtime code.
+Packages that depend on `@formspec-org/core` or `formspec-studio-core` receive these types as re-exports. Import directly from `@formspec-org/types` only when you need the schema types without pulling in runtime code.
 
 ## Exported types
 

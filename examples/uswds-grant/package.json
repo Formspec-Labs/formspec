@@ -9,9 +9,9 @@
     "preview": "vite preview --port 8083"
   },
   "dependencies": {
-    "@preact/signals-core": "*",
-    "@formspec-org/engine": "*",
-    "@formspec-org/webcomponent": "*",
-    "@formspec-org/adapters": "*"
+    "@preact/signals-core": "^1.6.0",
+    "@formspec-org/engine": "^1.0.0",
+    "@formspec-org/webcomponent": "^1.0.0",
+    "@formspec-org/adapters": "^0.1.0"
   }
 }

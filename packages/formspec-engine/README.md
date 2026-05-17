@@ -16,7 +16,7 @@ This package lives in the monorepo. Reference it from a sibling package:
 
 ```json
 "dependencies": {
-  "formspec-engine": "*"
+  "@formspec-org/engine": "^1.0.0"
 }
 ```
 
@@ -31,9 +31,9 @@ npm run build
 ## Quick Usage
 
 ```typescript
-import { FormEngine } from 'formspec-engine';
+import { FormEngine } from '@formspec-org/engine';
 
-const engine = new FormEngine({
+const definition = {
   url: 'my-form',
   version: '1.0',
   items: [
@@ -42,7 +42,10 @@ const engine = new FormEngine({
     { key: 'total', type: 'field', dataType: 'decimal', label: 'Total',
       calculate: '$price * $qty' }
   ]
-});
+};
+
+const engine = new FormEngine(definition);
+// Optional: new FormEngine(definition, { runtimeContext: { now: '2026-01-15' } })
 
 // Write values
 engine.setValue('name', 'Alice');
@@ -81,7 +84,7 @@ All signals are `@preact/signals-core` primitives. Read `.value` directly, or re
 
 | Property | Type | Description |
 |---|---|---|
-| `signals` | `Record<string, Signal<any>>` | Field values. Keys are dotted paths with 0-based brackets (`group[0].field`). Writable signals for plain fields; read-only computed signals for `calculate` binds. |
+| `signals` | `Record<string, Signal<FormFieldValue>>` | Field values. Keys are dotted paths with 0-based brackets (`group[0].field`). Writable signals for plain fields; read-only computed signals for `calculate` binds. |
 | `relevantSignals` | `Record<string, Signal<boolean>>` | Visibility per path. `true` by default; computed when a `relevant` FEL expression is set. |
 | `requiredSignals` | `Record<string, Signal<boolean>>` | Required state per path. |
 | `readonlySignals` | `Record<string, Signal<boolean>>` | Readonly state per path. |
@@ -91,7 +94,7 @@ All signals are `@preact/signals-core` primitives. Read `.value` directly, or re
 | `repeats` | `Record<string, Signal<number>>` | Instance count per repeatable group path. |
 | `optionSignals` | `Record<string, Signal<FormspecOption[]>>` | Options per field (inline, optionSets, or remote). |
 | `optionStateSignals` | `Record<string, Signal<RemoteOptionsState>>` | `{ loading, error }` for remote options. |
-| `variableSignals` | `Record<string, Signal<any>>` | Computed variables keyed as `"scope:name"` (e.g. `"#:globalRate"`). |
+| `variableSignals` | `Record<string, Signal<FormFieldValue>>` | Computed variables keyed as `"scope:name"` (e.g. `"#:globalRate"`). |
 | `dependencies` | `Record<string, string[]>` | Dependency graph: path → paths it reads. |
 | `structureVersion` | `Signal<number>` | Increments on structural changes (add/remove repeat). FEL closures read this to re-evaluate after structure changes. |
 

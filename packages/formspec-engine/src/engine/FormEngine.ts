@@ -4,6 +4,7 @@ import type {
     FormDefinition,
     FormInstance,
     FormItem,
+    FormResponse,
     FormVariable,
     OptionEntry,
     ValidationReport,
@@ -19,7 +20,10 @@ import type {
     FormEngineDiagnosticsSnapshot,
     FormEngineOptions,
     FormEngineRuntimeContext,
+    FormFieldValue,
     IFormEngine,
+    JsonRecord,
+    JsonValue,
     PinnedResponseReference,
     RegistryEntry,
     RemoteOptionsState,
@@ -63,6 +67,7 @@ import {
     visibleScopedVariableValues,
     wasmEvaluateDefinitionPayload,
 } from './wasm-fel.js';
+import type { WasmFelContext } from '../wasm-bridge-runtime.js';
 import type { EngineBindConfig } from './helpers.js';
 import {
     appendPath,
@@ -88,10 +93,10 @@ import {
     toValidationResult,
 } from './helpers.js';
 export class FormEngine implements IFormEngine {
-    public static instanceSourceCache = new Map<string, any>();
+    public static instanceSourceCache = new Map<string, JsonValue>();
 
     public readonly definition: FormDefinition;
-    public readonly signals: Record<string, EngineSignal<any>> = {};
+    public readonly signals: Record<string, EngineSignal<FormFieldValue>> = {};
     public readonly relevantSignals: Record<string, EngineSignal<boolean>> = {};
     public readonly requiredSignals: Record<string, EngineSignal<boolean>> = {};
     public readonly readonlySignals: Record<string, EngineSignal<boolean>> = {};
@@ -101,8 +106,8 @@ export class FormEngine implements IFormEngine {
     public readonly repeats: Record<string, EngineSignal<number>> = {};
     public readonly optionSignals: Record<string, EngineSignal<OptionEntry[]>> = {};
     public readonly optionStateSignals: Record<string, EngineSignal<RemoteOptionsState>> = {};
-    public readonly variableSignals: Record<string, EngineSignal<any>> = {};
-    public readonly instanceData: Record<string, any> = {};
+    public readonly variableSignals: Record<string, EngineSignal<FormFieldValue>> = {};
+    public readonly instanceData: JsonRecord = {};
     public readonly instanceVersion: EngineSignal<number>;
     public readonly structureVersion: EngineSignal<number>;
     public readonly localeSignal: ReadonlyEngineSignal<number>;
@@ -130,7 +135,7 @@ export class FormEngine implements IFormEngine {
     private _formViewModel!: FormViewModel;
     private readonly _labelContextSignal: EngineSignal<string | null>;
 
-    private _data: Record<string, any> = {};
+    private _data: JsonRecord = {};
     private _previousEvalResult: EvalResult | null = null;
     private _fullResult: EvalResult | null = null;
     private _labelContext: string | null = null;
@@ -265,12 +270,12 @@ export class FormEngine implements IFormEngine {
         await Promise.allSettled(this._instanceSourceTasks);
     }
 
-    public setInstanceValue(name: string, path: string | undefined, value: any): void {
+    public setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void {
         this.writeInstanceValue(name, path, value);
         this._evaluate();
     }
 
-    public getInstanceData(name: string, path?: string): any {
+    public getInstanceData(name: string, path?: string): FormFieldValue {
         const data = this.instanceData[name];
         if (data === undefined) {
             return undefined;
@@ -282,7 +287,7 @@ export class FormEngine implements IFormEngine {
         return this._bindConfigs[toBasePath(path)]?.disabledDisplay ?? 'hidden';
     }
 
-    public getVariableValue(name: string, scopePath: string): any {
+    public getVariableValue(name: string, scopePath: string): FormFieldValue {
         const visible = visibleScopedVariableValues(scopePath, this._variableDefs, this.variableSignals);
         return visible[name];
     }
@@ -334,8 +339,8 @@ export class FormEngine implements IFormEngine {
                     `${path}[${current}]`,
                     rows[current],
                     (fieldPath, value) => {
-                        const v = cloneValue(value);
-                        this._data[fieldPath] = v;
+                        const v = cloneValue(value) as FormFieldValue;
+                        this._data[fieldPath] = v as JsonValue;
                         if (this.signals[fieldPath]) {
                             this.signals[fieldPath].value = v;
                         }
@@ -348,7 +353,7 @@ export class FormEngine implements IFormEngine {
         this._evaluate();
     }
 
-    public compileExpression(expression: string, currentItemName = ''): () => any {
+    public compileExpression(expression: string, currentItemName = ''): () => FormFieldValue {
         return () => {
             this._evaluationVersion.value;
             this.instanceVersion.value;
@@ -379,7 +384,7 @@ export class FormEngine implements IFormEngine {
         };
     }
 
-    public setValue(name: string, value: any): void {
+    public setValue(name: string, value: FormFieldValue): void {
         if (typeof name !== 'string') {
             throw new TypeError('setValue path cannot be null');
         }
@@ -514,8 +519,8 @@ export class FormEngine implements IFormEngine {
         subject?: { id: string; type?: string };
         authoredSignatures?: AuthoredSignatureInput[];
         mode?: 'continuous' | 'submit';
-    }): any {
-        const data: Record<string, any> = {};
+    }): FormResponse {
+        const data: JsonRecord = {};
         const mode = meta?.mode ?? 'continuous';
         const defaultBehavior = this.definition.nonRelevantBehavior ?? 'remove';
 
@@ -551,11 +556,11 @@ export class FormEngine implements IFormEngine {
             report,
             timestamp: this.nowISO(),
             meta,
-        });
+        }) as unknown as FormResponse;
     }
 
     public getDiagnosticsSnapshot(options?: { mode?: 'continuous' | 'submit' }): FormEngineDiagnosticsSnapshot {
-        const values: Record<string, any> = {};
+        const values: JsonRecord = {};
         const mips: FormEngineDiagnosticsSnapshot['mips'] = {};
         const repeats: Record<string, number> = {};
 
@@ -564,7 +569,7 @@ export class FormEngine implements IFormEngine {
         }
 
         for (const [path, signalRef] of Object.entries(this.signals)) {
-            values[path] = cloneValue(signalRef.value);
+            values[path] = (cloneValue(signalRef.value) ?? null) as JsonValue;
             mips[path] = {
                 relevant: this.relevantSignals[path]?.value ?? true,
                 required: this.requiredSignals[path]?.value ?? false,
@@ -741,7 +746,7 @@ export class FormEngine implements IFormEngine {
         // No-op — WASM-backed engine has no subscriptions to teardown.
     }
 
-    public setRegistryEntries(entries: any[]): void {
+    public setRegistryEntries(entries: RegistryEntry[]): void {
         this._registryEntries.clear();
         for (const entry of entries) {
             if (entry?.name) {
@@ -752,7 +757,7 @@ export class FormEngine implements IFormEngine {
         this._evaluate();
     }
 
-    public migrateResponse(responseData: Record<string, any>, fromVersion: string): Record<string, any> {
+    public migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord {
         return migrateResponseData(this.definition, responseData, fromVersion, {
             nowIso: this.nowISO(),
         });
@@ -801,7 +806,7 @@ export class FormEngine implements IFormEngine {
 
         for (const [name, instance] of Object.entries(instances)) {
             if (instance.data !== undefined) {
-                const seedData = cloneValue(instance.data);
+                const seedData = cloneValue(instance.data) as JsonValue;
                 this.validateInstanceSchema(name, seedData);
                 this.instanceData[name] = seedData;
             }
@@ -828,7 +833,10 @@ export class FormEngine implements IFormEngine {
         }
 
         if (instance.static && FormEngine.instanceSourceCache.has(instance.source)) {
-            this.instanceData[name] = cloneValue(FormEngine.instanceSourceCache.get(instance.source));
+            const cached = FormEngine.instanceSourceCache.get(instance.source);
+            if (cached !== undefined) {
+                this.instanceData[name] = cloneValue(cached) as JsonValue;
+            }
             return;
         }
 
@@ -1010,11 +1018,11 @@ export class FormEngine implements IFormEngine {
         const initial = this.resolveInitialFieldValue(path, item);
         this.signals[path] = this._rx.signal(cloneValue(initial));
         if (!hasExpressionInitial) {
-            this._data[path] = cloneValue(initial);
+            this._data[path] = cloneValue(initial) as JsonValue;
         }
     }
 
-    private resolveInitialFieldValue(path: string, item: FormItem): any {
+    private resolveInitialFieldValue(path: string, item: FormItem): FormFieldValue {
         const prePopulate = item.prePopulate;
         if (prePopulate) {
             const value = this.getInstanceData(prePopulate.instance, prePopulate.path);
@@ -1076,7 +1084,7 @@ export class FormEngine implements IFormEngine {
     private writeInstanceValue(
         instanceName: string,
         path: string | undefined,
-        value: any,
+        value: FormFieldValue,
         options?: { bypassReadonly?: boolean },
     ): void {
         const instance = this.definition.instances?.[instanceName];
@@ -1087,12 +1095,16 @@ export class FormEngine implements IFormEngine {
             throw new Error(`Instance '${instanceName}' is readonly`);
         }
 
-        let nextValue: any;
+        let nextValue: JsonValue;
         if (!path) {
-            nextValue = cloneValue(value);
+            nextValue = cloneValue(value) as JsonValue;
         } else {
-            nextValue = cloneValue(this.instanceData[instanceName] ?? {});
-            setNestedPathValue(nextValue, path, cloneValue(value));
+            nextValue = cloneValue(this.instanceData[instanceName] ?? {}) as JsonValue;
+            setNestedPathValue(
+                nextValue as Record<string, JsonValue>,
+                path,
+                cloneValue(value) as JsonValue,
+            );
         }
         this.validateInstanceSchema(instanceName, nextValue);
         if (deepEqual(this.instanceData[instanceName], nextValue)) {
@@ -1102,7 +1114,7 @@ export class FormEngine implements IFormEngine {
         this.instanceVersion.value += 1;
     }
 
-    private validateInstanceSchema(instanceName: string, data: any): void {
+    private validateInstanceSchema(instanceName: string, data: JsonValue): void {
         const schema = this.definition.instances?.[instanceName]?.schema;
         validateInstanceDataAgainstSchema(
             instanceName,
@@ -1114,11 +1126,11 @@ export class FormEngine implements IFormEngine {
     private evaluateExpression(
         expression: string,
         currentItemPath = '',
-        dataOverride?: Record<string, any>,
+        dataOverride?: JsonRecord,
         resultOverride?: EvalResult | null,
-        scopedVariableOverrides?: Record<string, any>,
+        scopedVariableOverrides?: JsonRecord,
         replaceSelfRef = false,
-    ): any {
+    ): FormFieldValue {
         return safeEvaluateExpression(
             this.normalizeExpressionForWasm(expression, currentItemPath, replaceSelfRef),
             buildWasmFelExpressionContext({
@@ -1324,7 +1336,7 @@ export class FormEngine implements IFormEngine {
         this._fieldViewModels[path] = vm;
     }
 
-    private _buildLocaleFELContext(currentItemPath = ''): any {
+    private _buildLocaleFELContext(currentItemPath = ''): WasmFelContext {
         return buildWasmFelExpressionContext({
             currentItemPath,
             data: this._data,
