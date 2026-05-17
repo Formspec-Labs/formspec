@@ -16,8 +16,10 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
         inputClass: TW.input,
         ariaDescribedBy: describedBy,
         onInputCreated: (input) => {
-            if (behavior.minDate) input.min = behavior.minDate;
-            if (behavior.maxDate) input.max = behavior.maxDate;
+            if (input instanceof HTMLInputElement) {
+                if (behavior.minDate) input.min = behavior.minDate;
+                if (behavior.maxDate) input.max = behavior.maxDate;
+            }
         }
     });
 

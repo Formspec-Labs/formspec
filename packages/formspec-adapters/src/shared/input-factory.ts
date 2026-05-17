@@ -27,15 +27,21 @@ export interface InputSkeletonOptions {
     /** Explicit suffix text (overrides behavior.suffix). */
     suffix?: string;
     /** Hook to customize the input element before it's wrapped. */
-    onInputCreated?: (input: HTMLInputElement | HTMLTextAreaElement) => void;
+    onInputCreated?: (input: InputSkeletonElement) => void;
 }
+
+export type InputSkeletonElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 /** The result of creating an input skeleton. */
 export interface InputSkeletonResult {
     /** The element to be treated as the "control" by the behavior (might be the group wrapper). */
     control: HTMLElement;
-    /** The actual input or textarea element (for focus/validation toggling). */
-    actualInput: HTMLInputElement | HTMLTextAreaElement;
+    /** The actual input, textarea, or select element. */
+    actualInput: InputSkeletonElement;
+    /** The prefix element, if created. */
+    prefixEl?: HTMLElement;
+    /** The suffix element, if created. */
+    suffixEl?: HTMLElement;
 }
 
 /**
@@ -49,21 +55,25 @@ export function createInputSkeleton(
     const b = behavior as any;
     const isTextarea = b.maxLines != null && b.maxLines > 1;
 
-    let actualInput: HTMLInputElement | HTMLTextAreaElement;
+    let actualInput: InputSkeletonElement;
 
     if (isTextarea) {
         const textarea = document.createElement('textarea') as HTMLTextAreaElement;
         textarea.rows = b.maxLines!;
         actualInput = textarea;
     } else {
-        const input = document.createElement(options.tag || 'input') as HTMLInputElement;
+        const input = document.createElement(options.tag || 'input') as
+            | HTMLInputElement
+            | HTMLSelectElement;
         if (options.tag !== 'select') {
-            input.type = options.type || b.resolvedInputType || 'text';
+            (input as HTMLInputElement).type = options.type || b.resolvedInputType || 'text';
         }
-        if (b.inputMode) input.inputMode = b.inputMode;
-        if (b.min != null) input.min = String(b.min);
-        if (b.max != null) input.max = String(b.max);
-        if (b.step != null) input.step = String(b.step);
+        if (input instanceof HTMLInputElement) {
+            if (b.inputMode) input.inputMode = b.inputMode;
+            if (b.min != null) input.min = String(b.min);
+            if (b.max != null) input.max = String(b.max);
+            if (b.step != null) input.step = String(b.step);
+        }
         actualInput = input;
     }
 
@@ -73,7 +83,7 @@ export function createInputSkeleton(
     if (options.inputClass) {
         actualInput.className = options.inputClass;
     }
-    if (b.placeholder) {
+    if (b.placeholder && 'placeholder' in actualInput) {
         actualInput.placeholder = b.placeholder;
     }
     if (options.ariaDescribedBy) {
@@ -81,10 +91,11 @@ export function createInputSkeleton(
     }
 
     // Extension attributes
-    for (const [attr, val] of Object.entries(behavior.extensionAttrs || {})) {
-        if (attr === 'inputMode') actualInput.inputMode = val;
+    for (const [attr, val] of Object.entries(b.extensionAttrs || {})) {
+        const attrValue = String(val);
+        if (attr === 'inputMode' && 'inputMode' in actualInput) actualInput.inputMode = attrValue;
         else if (attr === 'maxLength') (actualInput as HTMLInputElement).maxLength = Number(val);
-        else actualInput.setAttribute(attr, val);
+        else actualInput.setAttribute(attr, attrValue);
     }
 
     options.onInputCreated?.(actualInput);
@@ -95,22 +106,24 @@ export function createInputSkeleton(
     // Prefix / Suffix wrapping
     if (prefix || suffix) {
         const group = el('div', { class: options.groupClass || '' });
+        let prefixEl: HTMLElement | undefined;
+        let suffixEl: HTMLElement | undefined;
         
         if (prefix) {
-            const pEl = el(options.prefixTag || 'div', { class: options.prefixClass || '' });
-            pEl.textContent = prefix;
-            group.appendChild(pEl);
+            prefixEl = el(options.prefixTag || 'div', { class: options.prefixClass || '' });
+            prefixEl.textContent = prefix;
+            group.appendChild(prefixEl);
         }
         
         group.appendChild(actualInput);
         
         if (suffix) {
-            const sEl = el(options.suffixTag || 'div', { class: options.suffixClass || '' });
-            sEl.textContent = suffix;
-            group.appendChild(sEl);
+            suffixEl = el(options.suffixTag || 'div', { class: options.suffixClass || '' });
+            suffixEl.textContent = suffix;
+            group.appendChild(suffixEl);
         }
         
-        return { control: group, actualInput };
+        return { control: group, actualInput, prefixEl, suffixEl };
     }
 
     return { control: actualInput, actualInput };

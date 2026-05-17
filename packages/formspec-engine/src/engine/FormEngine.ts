@@ -425,7 +425,12 @@ export class FormEngine implements IFormEngine {
             results.push(...collectSubmitModeShapeValidationResults(submitResult, this._shapeTiming));
         }
 
-        return buildValidationReportEnvelope(results, this.nowISO());
+        return buildValidationReportEnvelope(
+            results,
+            this.nowISO(),
+            this._definition.url,
+            this._definition.version,
+        );
     }
 
     public evaluateShape(shapeId: string): ValidationResult[] {

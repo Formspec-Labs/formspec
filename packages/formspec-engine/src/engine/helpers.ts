@@ -8,6 +8,7 @@ import type {
     OptionEntry,
     ValidationResult,
 } from '@formspec-org/types';
+import { Path } from '@formspec-org/types';
 import type { EvalValidation } from '../diff.js';
 import type {
     FormEngineRuntimeContext,
@@ -331,7 +332,7 @@ export function getScopeAncestors(scopePath: string): string[] {
     if (!stripped) {
         return [];
     }
-    const parts = stripped.split('.').filter(Boolean);
+    const parts = Path.parse(stripped).splitNormalized();
     const scopes: string[] = [];
     for (let index = 1; index <= parts.length; index += 1) {
         scopes.push(parts.slice(0, index).join('.'));
@@ -787,10 +788,9 @@ export function resolveQualifiedGroupRefs(
     for (let index = 0; index < repeatAncestors.length; index += 1) {
         const ancestor = repeatAncestors[index];
         const groupPath = ancestor.groupPath;
-        // Extract the group name (last segment of the groupPath, without any indices)
-        const groupName = groupPath.includes('.')
-            ? groupPath.split('.').at(-1)!
-            : groupPath;
+        // Extract the group name (last Exact segment of the groupPath, without any indices)
+        const segments = Path.parse(groupPath).splitNormalized();
+        const groupName = segments[segments.length - 1] ?? groupPath;
         const concretePrefix = `${groupPath}[${ancestor.index}]`;
         groupReplacements.push({
             groupName,

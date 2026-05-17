@@ -298,6 +298,8 @@ export function collectSubmitModeShapeValidationResults(
 export function buildValidationReportEnvelope(
     results: ValidationResult[],
     timestamp: string,
+    definitionUrl?: string,
+    definitionVersion?: string,
 ): ValidationReport {
     const finalResults = results.map((result) => {
         if (result.constraintKind === 'cardinality') {
@@ -312,13 +314,22 @@ export function buildValidationReportEnvelope(
         counts[result.severity as keyof typeof counts] += 1;
     }
 
-    return {
+    const report: ValidationReport = {
         $formspecValidationReport: '1.0',
         valid: counts.error === 0,
         results: finalResults,
         counts,
         timestamp,
     };
+
+    if (definitionUrl) {
+        report.definitionUrl = definitionUrl;
+    }
+    if (definitionVersion) {
+        report.definitionVersion = definitionVersion;
+    }
+
+    return report;
 }
 
 export function migrateResponseData(

@@ -26,7 +26,7 @@ export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
         inputClass: 'usa-input',
         groupClass: useTextDate ? 'usa-date-picker' : undefined,
         onInputCreated: (input) => {
-            if (behavior.inputType === 'datetime-local') {
+            if (behavior.inputType === 'datetime-local' && input instanceof HTMLInputElement) {
                 if (behavior.minDate) input.min = behavior.minDate;
                 if (behavior.maxDate) input.max = behavior.maxDate;
             }

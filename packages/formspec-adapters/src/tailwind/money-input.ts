@@ -1,6 +1,5 @@
 /** @filedesc Tailwind adapter for MoneyInput — input group with currency prefix. */
 import type { MoneyInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
-import { el } from '../helpers';
 import { createInputSkeleton } from '../shared/input-factory.js';
 import { createTailwindFieldDOM, TW, toggleInputError, applyAffixRounding } from './shared';
 
@@ -9,14 +8,14 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
 ) => {
     const { root, label, hint, error, describedBy } = createTailwindFieldDOM(behavior);
 
-    const { control, actualInput } = createInputSkeleton(behavior, {
+    const { control, actualInput, prefixEl } = createInputSkeleton(behavior, {
         type: 'number',
         inputClass: TW.input,
         ariaDescribedBy: describedBy,
         groupClass: 'flex rounded-xl shadow-sm',
         prefixClass: 'inline-flex items-center rounded-l-xl border border-r-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
         prefixTag: 'span',
-        prefix: behavior.resolvedCurrency,
+        prefix: behavior.resolvedCurrency ?? undefined,
         onInputCreated: (input) => {
             input.name = `${behavior.fieldPath}__amount`;
             // If fixed currency, it acts as a prefix.
@@ -26,12 +25,9 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     });
 
     // Handle fixed currency prefix attributes
-    if (behavior.resolvedCurrency) {
-        const prefix = control.querySelector(`.${TW.input.split(' ')[0]}`)?.previousElementSibling;
-        if (prefix) {
-            prefix.setAttribute('aria-hidden', 'true');
-        }
-    } else {
+    if (behavior.resolvedCurrency && prefixEl) {
+        prefixEl.setAttribute('aria-hidden', 'true');
+    } else if (!behavior.resolvedCurrency) {
         // Handle editable currency suffix input
         const currencyInput = document.createElement('input') as HTMLInputElement;
         currencyInput.className =
