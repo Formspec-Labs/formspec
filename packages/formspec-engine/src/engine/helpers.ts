@@ -34,6 +34,9 @@ export type EngineBindConfig = FormBind & {
     disabledDisplay?: 'hidden' | 'protected';
 };
 
+/** Writable JSON node while walking dotted/bracket paths (object or array container). */
+type MutableJsonPath = Record<string | number, FormFieldValue | JsonValue[] | JsonRecord>;
+
 type RuntimeNowInput = Date | string | number;
 export function normalizeRemoteOptions(payload: unknown): OptionEntry[] {
     const record = payload !== null && typeof payload === 'object'
@@ -188,7 +191,9 @@ export function cloneValue<T>(value: T): T {
     if (value === null || value === undefined || typeof value !== 'object') {
         return value;
     }
-    const copier = (globalThis as any).structuredClone;
+    const copier = (
+        globalThis as typeof globalThis & { structuredClone?: <T>(value: T) => T }
+    ).structuredClone;
     if (typeof copier === 'function') {
         return copier(value);
     }
@@ -204,7 +209,7 @@ export function normalizeWasmValue<T>(value: T): T {
         return value.map((entry) => normalizeWasmValue(entry)) as T;
     }
     if (value && typeof value === 'object') {
-        const record = value as Record<string, any>;
+        const record = value as Record<string, unknown>;
         if (record.$type === 'money' && 'amount' in record && 'currency' in record) {
             return {
                 $type: 'money',
@@ -245,7 +250,7 @@ export function toWasmContextValue<T>(value: T): T {
         return value.map((entry) => toWasmContextValue(entry)) as T;
     }
     if (value && typeof value === 'object') {
-        const record = value as Record<string, any>;
+        const record = value as Record<string, unknown>;
         return Object.fromEntries(
             Object.entries(record).map(([key, entry]) => [key, toWasmContextValue(entry)]),
         ) as T;
@@ -405,16 +410,16 @@ export function setNestedPathValue(target: JsonRecord, path: string, value: Form
     if (segments.length === 0) {
         return;
     }
-    let current: any = target;
+    let current: MutableJsonPath = target;
     for (let i = 0; i < segments.length - 1; i += 1) {
         const seg = segments[i];
         const nextIsIndex = segments[i + 1].kind === PathSegmentKind.Indexed;
         if (seg.kind === PathSegmentKind.Indexed) {
             current[seg.index] ??= nextIsIndex ? [] : {};
-            current = current[seg.index];
+            current = current[seg.index] as MutableJsonPath;
         } else {
             current[seg.key] ??= nextIsIndex ? [] : {};
-            current = current[seg.key];
+            current = current[seg.key] as MutableJsonPath;
         }
     }
     const last = segments[segments.length - 1];
@@ -431,7 +436,7 @@ export function setExpressionContextValue(target: JsonRecord, path: string, valu
         return;
     }
 
-    let current: any = target;
+    let current: MutableJsonPath = target;
     for (let i = 0; i < segments.length - 1; i += 1) {
         if (current === null || current === undefined || typeof current !== 'object') {
             return;
@@ -444,14 +449,14 @@ export function setExpressionContextValue(target: JsonRecord, path: string, valu
                 return;
             }
             current[seg.index] ??= nextIsIndex ? [] : {};
-            current = current[seg.index];
+            current = current[seg.index] as MutableJsonPath;
         } else {
             const existing = current[seg.key];
             if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
                 return;
             }
             current[seg.key] ??= nextIsIndex ? [] : {};
-            current = current[seg.key];
+            current = current[seg.key] as MutableJsonPath;
         }
     }
 
@@ -473,7 +478,7 @@ export function setResponsePathValue(target: JsonRecord, path: string, value: Fo
         return;
     }
 
-    let current: any = target;
+    let current: MutableJsonPath = target;
     for (let index = 0; index < tokens.length - 1; index += 1) {
         const token = tokens[index];
         const next = tokens[index + 1];
@@ -487,7 +492,7 @@ export function setResponsePathValue(target: JsonRecord, path: string, value: Fo
                 return;
             }
             current[arrayIndex] ??= next?.startsWith('[') ? [] : {};
-            current = current[arrayIndex];
+            current = current[arrayIndex] as MutableJsonPath;
             continue;
         }
 
@@ -501,7 +506,7 @@ export function setResponsePathValue(target: JsonRecord, path: string, value: Fo
             return;
         }
         current[token] ??= next?.startsWith('[') ? [] : {};
-        current = current[token];
+        current = current[token] as MutableJsonPath;
     }
 
     const last = tokens[tokens.length - 1];
@@ -663,31 +668,34 @@ export function safeEvaluateExpression(expression: string, context: WasmFelConte
     }
 }
 
+const INLINE_BIND_KEYS = [
+    'calculate',
+    'constraint',
+    'constraintMessage',
+    'relevant',
+    'required',
+    'readonly',
+    'default',
+    'precision',
+    'disabledDisplay',
+    'whitespace',
+    'nonRelevantBehavior',
+    'remoteOptions',
+    'excludedValue',
+] as const satisfies readonly (keyof EngineBindConfig)[];
+
 export function extractInlineBind(item: FormItem, path: string): EngineBindConfig | null {
     const bind: EngineBindConfig = { path };
     let used = false;
-    for (const key of [
-        'calculate',
-        'constraint',
-        'constraintMessage',
-        'relevant',
-        'required',
-        'readonly',
-        'default',
-        'precision',
-        'disabledDisplay',
-        'whitespace',
-        'nonRelevantBehavior',
-        'remoteOptions',
-        'excludedValue',
-    ] as const) {
-        if ((item as any)[key] !== undefined) {
-            (bind as any)[key] = (item as any)[key];
+    for (const key of INLINE_BIND_KEYS) {
+        const value = item[key as keyof FormItem];
+        if (value !== undefined) {
+            Object.assign(bind, { [key]: value } as Pick<EngineBindConfig, typeof key>);
             used = true;
         }
     }
-    if ((item as any).visible !== undefined && bind.relevant === undefined) {
-        bind.relevant = (item as any).visible;
+    if (item.visible !== undefined && bind.relevant === undefined) {
+        bind.relevant = item.visible;
         used = true;
     }
     return used ? bind : null;
