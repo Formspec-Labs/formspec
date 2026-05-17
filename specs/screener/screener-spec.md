@@ -871,6 +871,11 @@ processors MUST NOT begin a new screening session outside the window.
 Processors SHOULD route respondents who arrive outside the window to the
 `outcome:closed` named outcome.
 
+When the evaluation timestamp is a full RFC 3339 datetime, processors MUST
+compare availability using the **calendar date in that timestamp's stated
+offset** (the date component before the offset), not the UTC calendar date of
+the same instant.
+
 **Conformance Rule (SC-05):** A screening session that was started within
 the availability window MUST be allowed to complete even if the window closes
 during the session. The `evaluationBinding` property (§9.3) determines which
