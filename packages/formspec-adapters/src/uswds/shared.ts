@@ -1,6 +1,7 @@
 /** @filedesc Shared DOM construction for USWDS field adapters — root, label, hint, error. */
 import type { FieldBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
+import { buildOptionList, clearOptionNodes } from '../shared/option-list.js';
 
 export interface USWDSFieldDOM {
     root: HTMLElement;
@@ -87,13 +88,9 @@ export function createUSWDSFieldDOM(
     return { root, label, hint, error, initialDescribedBy };
 }
 
-/**
- * Removes previously-rendered option elements (marked with data-option-wrapper).
- */
+/** Removes previously-rendered option elements (marked with data-option-wrapper). */
 export function clearUSWDSOptions(container: HTMLElement): void {
-    for (const old of Array.from(container.querySelectorAll(':scope > [data-option-wrapper]'))) {
-        old.remove();
-    }
+    clearOptionNodes(container);
 }
 
 /**
@@ -106,33 +103,28 @@ export function buildUSWDSOptions(
     type: 'radio' | 'checkbox',
     inputName: string
 ): Map<string, HTMLInputElement> {
-    clearUSWDSOptions(container);
-    const controls = new Map<string, HTMLInputElement>();
-
-    for (let i = 0; i < options.length; i++) {
-        const opt = options[i];
-        const optId = `${behavior.id}-${i}`;
-
-        const wrapper = el('div', { class: `usa-${type}` });
-        wrapper.setAttribute('data-option-wrapper', '');
-
-        const input = document.createElement('input') as HTMLInputElement;
-        input.className = `usa-${type}__input`;
-        input.id = optId;
-        input.type = type;
-        input.name = inputName;
-        input.value = opt.value;
-        controls.set(opt.value, input);
-
-        const label = el('label', { class: `usa-${type}__label`, for: optId });
-        label.textContent = opt.label;
-
-        wrapper.appendChild(input);
-        wrapper.appendChild(label);
-        container.appendChild(wrapper);
-    }
-
-    return controls;
+    return buildOptionList({
+        behaviorId: behavior.id,
+        options,
+        kind: type,
+        inputName,
+        container,
+        clearContainer: clearUSWDSOptions,
+        renderOption: ({ opt, optId, kind, inputName }) => {
+            const wrapper = el('div', { class: `usa-${kind}` });
+            const input = document.createElement('input') as HTMLInputElement;
+            input.className = `usa-${kind}__input`;
+            input.id = optId;
+            input.type = kind;
+            input.name = inputName;
+            input.value = opt.value;
+            const label = el('label', { class: `usa-${kind}__label`, for: optId });
+            label.textContent = opt.label;
+            wrapper.appendChild(input);
+            wrapper.appendChild(label);
+            return { wrapper, input };
+        },
+    });
 }
 
 /**

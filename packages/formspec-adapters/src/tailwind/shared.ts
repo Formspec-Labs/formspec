@@ -4,6 +4,7 @@
  */
 import type { FieldBehavior } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
+import { buildOptionList } from '../shared/option-list.js';
 
 // ── Semantic Tailwind utility groups — clean and maintainable ──
 // Base styles that can be extended via cssClass or CSS variables.
@@ -133,6 +134,44 @@ export function applyAffixRounding(input: HTMLElement, hasPrefix: boolean, hasSu
         input.classList.remove('rounded-xl');
         input.classList.add('rounded-none', 'rounded-l-xl');
     }
+}
+
+/** Build card-style checkbox/radio options for Tailwind group adapters. */
+export function buildTailwindGroupOptions(
+    behavior: { id: string; fieldPath: string; inputName?: string },
+    container: HTMLElement,
+    options: ReadonlyArray<{ value: string; label: string }>,
+    kind: 'radio' | 'checkbox',
+): Map<string, HTMLInputElement> {
+    const inputName = kind === 'radio' ? (behavior.inputName ?? behavior.fieldPath) : behavior.fieldPath;
+    return buildOptionList({
+        behaviorId: behavior.id,
+        options,
+        kind,
+        inputName,
+        container,
+        clearContainer: (c) => { c.innerHTML = ''; },
+        renderOption: ({ opt, optId, kind }) => {
+            if (kind === 'checkbox') {
+                const { card, input } = createCardOption(optId, opt.label);
+                input.name = inputName;
+                input.value = opt.value;
+                return { wrapper: card, input };
+            }
+            const card = el('label', { class: TW_CARD_OPTION, for: optId });
+            const input = document.createElement('input') as HTMLInputElement;
+            input.className = `${TW.radioSm} rounded-full`;
+            input.id = optId;
+            input.type = 'radio';
+            input.name = inputName;
+            input.value = opt.value;
+            const text = el('span', { class: TW.optionLabelText });
+            text.textContent = opt.label;
+            card.appendChild(input);
+            card.appendChild(text);
+            return { wrapper: card, input };
+        },
+    });
 }
 
 /** Creates a selectable card element for checkbox/radio groups. */

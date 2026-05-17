@@ -1,6 +1,6 @@
 /** @filedesc Tests for createUSWDSFieldDOM shared helper. */
 import { describe, it, expect } from 'vitest';
-import { createUSWDSFieldDOM } from '../../src/uswds/shared';
+import { buildUSWDSOptions, createUSWDSFieldDOM } from '../../src/uswds/shared';
 import type { USWDSFieldDOM } from '../../src/uswds/shared';
 import { mockTextInput, mockRating } from '../helpers';
 
@@ -109,5 +109,21 @@ describe('createUSWDSFieldDOM', () => {
         const domNo = createUSWDSFieldDOM(noHint);
         const ch2 = Array.from(domNo.root.children);
         expect(ch2.indexOf(domNo.label)).toBeLessThan(ch2.indexOf(domNo.error));
+    });
+});
+
+describe('buildUSWDSOptions', () => {
+    it('renders usa-checkbox wrappers with stable ids', () => {
+        const container = document.createElement('div');
+        const controls = buildUSWDSOptions(
+            { id: 'grp-1', fieldPath: 'choices' },
+            container,
+            [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
+            'checkbox',
+            'choices',
+        );
+        expect(controls.size).toBe(2);
+        expect(container.querySelectorAll('.usa-checkbox').length).toBe(2);
+        expect(container.querySelector('#grp-1-1')?.getAttribute('type')).toBe('checkbox');
     });
 });

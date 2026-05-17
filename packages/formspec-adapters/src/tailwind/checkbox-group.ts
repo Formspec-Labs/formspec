@@ -1,35 +1,12 @@
 /** @filedesc Tailwind adapter for CheckboxGroup — card-style multi-select grid. */
 import type { CheckboxGroupBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el, applyCascadeClasses, applyCascadeAccessibility } from '../helpers';
-import { createTailwindError, TW, TW_CARD_OPTION, createCardOption, applyErrorStyling } from './shared';
+import { createTailwindError, TW, applyErrorStyling, buildTailwindGroupOptions } from './shared';
 
 function optionGridClass(columns?: number): string {
     if (columns === 3) return 'grid gap-3 mt-3 sm:grid-cols-2 lg:grid-cols-3';
     if (columns === 2) return 'grid gap-3 mt-3 sm:grid-cols-2';
     return 'grid gap-3 mt-3';
-}
-
-function buildCheckboxOptions(
-    behavior: CheckboxGroupBehavior,
-    container: HTMLElement,
-    options: ReadonlyArray<{ value: string; label: string }>,
-): Map<string, HTMLInputElement> {
-    container.innerHTML = '';
-    const controls = new Map<string, HTMLInputElement>();
-
-    for (let i = 0; i < options.length; i++) {
-        const opt = options[i];
-        const optId = `${behavior.id}-${i}`;
-
-        const { card, input } = createCardOption(optId, opt.label);
-        input.name = behavior.fieldPath;
-        input.value = opt.value;
-        controls.set(opt.value, input);
-
-        container.appendChild(card);
-    }
-
-    return controls;
 }
 
 export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
@@ -86,7 +63,9 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
     }
 
     const optionContainer = el('div', { class: optionGridClass(behavior.columns) });
-    let optionControlsRef = buildCheckboxOptions(behavior, optionContainer, behavior.options());
+    let optionControlsRef = buildTailwindGroupOptions(
+        behavior, optionContainer, behavior.options(), 'checkbox',
+    );
     fieldset.appendChild(optionContainer);
 
     const error = createTailwindError(behavior.id);
@@ -102,7 +81,7 @@ export const renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior> = (
         error,
         optionControls: optionControlsRef,
         rebuildOptions: (_container, newOptions) => {
-            optionControlsRef = buildCheckboxOptions(behavior, optionContainer, newOptions);
+            optionControlsRef = buildTailwindGroupOptions(behavior, optionContainer, newOptions, 'checkbox');
             return optionControlsRef;
         },
         onValidationChange: (hasError) => {

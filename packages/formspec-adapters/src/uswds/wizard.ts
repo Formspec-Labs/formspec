@@ -5,18 +5,18 @@
  * adapter key is a rendering concept — the Wizard schema component type was
  * removed; all page navigation is now driven by formPresentation. */
 import type { WizardBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import {
+    createWizardAnnouncer,
+    createWizardNav,
+    createWizardPanelShell,
+    initWizardRoot,
+    stepTitle,
+} from '../shared/wizard-chrome.js';
 
 export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     behavior, parent, actx
 ) => {
-    const root = document.createElement('div');
-    if (behavior.id) root.id = behavior.id;
-    root.className = 'formspec-wizard';
-    if (behavior.compOverrides.cssClass) actx.applyCssClass(root, behavior.compOverrides);
-    if (behavior.compOverrides.accessibility) actx.applyAccessibility(root, behavior.compOverrides);
-    if (behavior.compOverrides.style) actx.applyStyle(root, behavior.compOverrides.style);
-    parent.appendChild(root);
-
+    const root = initWizardRoot(behavior, parent, actx);
     if (behavior.totalSteps() === 0) return;
 
     const stepContent = document.createElement('div');
@@ -28,7 +28,6 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     let currentStepSpan: HTMLElement | undefined;
     let totalStepsSpan: HTMLElement | undefined;
     let headingText: HTMLElement | undefined;
-    let skipBtn: HTMLButtonElement | undefined;
 
     if (behavior.showProgress) {
         stepIndicator = document.createElement('nav');
@@ -73,58 +72,36 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
     }
 
     const panels: HTMLElement[] = [];
+    const wizardId = behavior.id || 'formspec-wizard';
     for (let i = 0; i < behavior.totalSteps(); i++) {
-        const panel = document.createElement('div');
-        panel.className = 'formspec-wizard-panel';
-        panel.setAttribute('role', 'region');
-        panel.tabIndex = -1;
-        const panelLabelId = `${behavior.id || 'formspec-wizard'}-step-${i + 1}-label`;
-        panel.setAttribute('aria-labelledby', panelLabelId);
-        if (i !== 0) panel.classList.add('formspec-hidden');
-
-        const panelHeading = document.createElement('h2');
-        panelHeading.id = panelLabelId;
-        panelHeading.className = 'usa-step-indicator__heading formspec-uswds-wizard__panel-heading';
-        panelHeading.textContent = behavior.steps[i]?.title || `Step ${i + 1}`;
-        panel.appendChild(panelHeading);
-
+        const panelLabelId = `${wizardId}-step-${i + 1}-label`;
+        const panel = createWizardPanelShell({
+            behavior,
+            index: i,
+            labelledById: panelLabelId,
+            decoratePanel: (panelEl) => {
+                const panelHeading = document.createElement('h2');
+                panelHeading.id = panelLabelId;
+                panelHeading.className =
+                    'usa-step-indicator__heading formspec-uswds-wizard__panel-heading';
+                panelHeading.textContent = stepTitle(behavior.steps, i);
+                panelEl.appendChild(panelHeading);
+            },
+        });
         behavior.renderStep(i, panel);
         stepContent.appendChild(panel);
         panels.push(panel);
     }
 
-    const nav = document.createElement('div');
-    nav.className = 'formspec-wizard-nav usa-button-group';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.type = 'button';
-    prevBtn.className = 'formspec-wizard-prev usa-button usa-button--outline';
-    prevBtn.textContent = 'Previous';
-    nav.appendChild(prevBtn);
-
-    if (behavior.allowSkip) {
-        skipBtn = document.createElement('button');
-        skipBtn.type = 'button';
-        skipBtn.className = 'formspec-wizard-skip usa-button usa-button--unstyled';
-        skipBtn.textContent = 'Skip';
-        skipBtn.addEventListener('click', () => {
-            if (behavior.canGoNext()) behavior.goToStep(behavior.activeStep() + 1);
-        });
-        nav.appendChild(skipBtn);
-    }
-
-    const nextBtn = document.createElement('button');
-    nextBtn.type = 'button';
-    nextBtn.className = 'formspec-wizard-next usa-button';
-    nextBtn.textContent = 'Next';
-    nav.appendChild(nextBtn);
-
+    const { nav, prevButton, nextButton, skipButton } = createWizardNav(behavior, {
+        nav: 'formspec-wizard-nav usa-button-group',
+        prev: 'formspec-wizard-prev usa-button usa-button--outline',
+        next: 'formspec-wizard-next usa-button',
+        skip: 'formspec-wizard-skip usa-button usa-button--unstyled',
+    });
     stepContent.appendChild(nav);
 
-    const announcer = document.createElement('div');
-    announcer.className = 'usa-sr-only';
-    announcer.setAttribute('aria-live', 'polite');
-    announcer.setAttribute('role', 'status');
+    const announcer = createWizardAnnouncer('usa-sr-only');
     stepContent.appendChild(announcer);
 
     if (segmentsList) {
@@ -134,17 +111,16 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
 
             const segLabel = document.createElement('span');
             segLabel.className = 'usa-step-indicator__segment-label';
-            segLabel.textContent = behavior.steps[i]?.title || `Step ${i + 1}`;
+            segLabel.textContent = stepTitle(behavior.steps, i);
             segment.appendChild(segLabel);
 
             segmentsList.appendChild(segment);
         }
         if (currentStepSpan) currentStepSpan.textContent = '1';
         if (totalStepsSpan) totalStepsSpan.textContent = ` of ${behavior.totalSteps()}`;
-        if (headingText) headingText.textContent = behavior.steps[0]?.title || 'Step 1';
+        if (headingText) headingText.textContent = stepTitle(behavior.steps, 0);
     }
 
-    // Collect step indicator elements for bind() to update
     const stepIndicators = segmentsList
         ? Array.from(segmentsList.children) as HTMLElement[]
         : undefined;
@@ -171,16 +147,13 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
                         label.appendChild(sr);
                     }
                 } else {
-                    // Future steps — remove any stale sr-only completed text
                     const sr = seg.querySelector('.usa-sr-only');
                     if (sr) sr.remove();
                 }
             }
         }
         if (currentStepSpan) currentStepSpan.textContent = String(activeIdx + 1);
-        if (headingText) {
-            headingText.textContent = behavior.steps[activeIdx]?.title || `Step ${activeIdx + 1}`;
-        }
+        if (headingText) headingText.textContent = stepTitle(behavior.steps, activeIdx);
     };
 
     const dispose = behavior.bind({
@@ -188,9 +161,10 @@ export const renderWizard: AdapterRenderFn<WizardBehavior> = (
         panels,
         stepIndicators,
         stepContent,
-        prevButton: prevBtn,
-        nextButton: nextBtn,
-        skipButton: skipBtn,
+        prevButton,
+        nextButton,
+        skipButton,
+        announcer,
         onStepChange: (stepIndex) => updateIndicator(stepIndex),
     });
     actx.onDispose(dispose);
