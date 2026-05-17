@@ -187,6 +187,9 @@ function toNormalizedAuthoredSignatureRecord(
     if (signerId !== undefined) {
         record.signerId = signerId;
     }
+    if (signature.verificationReceipt !== undefined) {
+        record.verificationReceipt = signature.verificationReceipt;
+    }
     if (signature.identityProofRef !== undefined) {
         record.identityProofRef = signature.identityProofRef;
     }

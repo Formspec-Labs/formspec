@@ -10,6 +10,15 @@ const SIGNATURE_DIGEST = '0123456789abcdef0123456789abcdef0123456789abcdef012345
 const SIGNATURE_INTENT = 'urn:agency.gov:signing-intent:benefits-application-certification:v1';
 const SIGNED_AT = '2026-04-22T12:00:00Z';
 const COSE_SIGN1_BYTES = '0oRWoQExiQEFQnNpZ25lZA==';
+const STRUCTURED_RECEIPT = Object.freeze({
+  result: 'verified',
+  method: 'urn:formspec:sig-method:ed25519-cose-sign1@1',
+  methodRegistryVersion: '1.0.0',
+  adapter: { id: 'urn:formspec:adapter:ring@1', version: '1.0.0' },
+  key: { ref: 'receipt-kid' },
+  verifiedAt: '2026-05-17T00:00:00Z',
+  receiptBytes: COSE_SIGN1_BYTES
+});
 const responseSchema = JSON.parse(
   readFileSync(new URL('../../../schemas/response.schema.json', import.meta.url), 'utf8')
 );
@@ -149,6 +158,7 @@ test('should include authored signatures in the response envelope and normalize 
         documentId: 'benefitsApplication',
         signingIntent: SIGNATURE_INTENT,
         signatureValue: COSE_SIGN1_BYTES,
+        verificationReceipt: STRUCTURED_RECEIPT,
         signedAt: SIGNED_AT,
         consentAccepted: true,
         consentTextRef: 'urn:agency.gov:consent:esign-benefits:v1',
@@ -178,6 +188,7 @@ test('should include authored signatures in the response envelope and normalize 
   assert.equal(response.authoredSignatures[0].signedPayload.signedAt, SIGNED_AT);
   assert.equal(response.authoredSignatures[0].signedPayload.signingIntent, SIGNATURE_INTENT);
   assert.equal(Object.hasOwn(response.authoredSignatures[0], 'signedAt'), false);
+  assert.deepEqual(response.authoredSignatures[0].verificationReceipt, STRUCTURED_RECEIPT);
   assert.equal(response.authoredSignatures[0].signerId, 'applicant');
   assert.equal(response.authoredSignatures[0].signerName, 'Ada Lovelace');
   assertSchemaValidResponse(response);

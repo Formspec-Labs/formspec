@@ -273,11 +273,45 @@ export interface AuthoredSignatureSignedPayload {
     signingIntent: string;
 }
 
+export interface VerificationReceiptInput {
+    result: 'verified' | 'failed' | 'unsupported';
+    method: string;
+    methodRegistryVersion: string;
+    adapter: {
+        id: string;
+        version: string;
+    };
+    key: {
+        ref: string;
+        version?: string;
+        snapshot?: string;
+    };
+    verifiedAt: string;
+    context?: {
+        revocation?: {
+            kind: 'ocsp' | 'crl' | 'witness';
+            responseHash: string;
+        };
+        timestamping?: {
+            authority: string;
+            receiptHash: string;
+        };
+        witness?: {
+            anchor: {
+                eventHash: string;
+                ledgerScope: string;
+            };
+        };
+    };
+    receiptBytes?: string;
+}
+
 export interface AuthoredSignatureInput {
     signatureId: string;
     documentId: string;
     signingIntent: string;
     signatureValue: string;
+    verificationReceipt?: string | VerificationReceiptInput;
     signerId?: string;
     signerName?: string;
     signedAt: string;

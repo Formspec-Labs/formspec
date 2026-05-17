@@ -18,10 +18,18 @@ struct FixtureAuthoredSignature {
     /// Optional because bundles that declare `verification_receipt = false` in
     /// their manifest (005, 006) omit this field. Receipt-bearing bundles
     /// (001-004) carry it inline; [`load_receipt_fixture`] then asserts the
-    /// inline string byte-matches the bundle's `verification-receipt.cose`.
+    /// inline legacy string or structured `receiptBytes` byte-matches the
+    /// bundle's `verification-receipt.cose`.
     #[serde(default)]
-    verification_receipt: Option<String>,
+    verification_receipt: Option<FixtureVerificationReceipt>,
     signed_payload: FixtureSignedPayload,
+}
+
+#[derive(Clone, serde::Deserialize)]
+#[serde(untagged)]
+enum FixtureVerificationReceipt {
+    LegacyBase64(String),
+    Structured(formspec_signature_port::VerificationReceipt),
 }
 
 #[derive(serde::Deserialize)]
@@ -276,13 +284,8 @@ fn load_receipt_fixture(
     let receipt_b64 = base64::engine::general_purpose::STANDARD.encode(&receipt_bytes);
     let inline_receipt = signature
         .verification_receipt
-        .as_deref()
+        .as_ref()
         .expect("receipt-bearing bundle must inline verificationReceipt on the signature");
-    assert_eq!(
-        inline_receipt, receipt_b64,
-        "response verificationReceipt must byte-match verification-receipt.cose"
-    );
-
     let (receipt_cose, receipt_method) =
         decode_cose_sign1_with_method_uri(&receipt_bytes, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
             .expect("decode receipt cose");
@@ -290,11 +293,36 @@ fn load_receipt_fixture(
         receipt_method, "urn:formspec:receipt-method:ed25519-cose-sign1@1",
         "verification-receipt.cose must use the receipt-method URI subspace"
     );
-    let receipt_payload = receipt_cose
-        .payload()
-        .expect("receipt must embed its JSON payload");
-    let receipt =
-        serde_json::from_slice(receipt_payload).expect("parse VerificationReceipt payload");
+    let receipt = match inline_receipt {
+        FixtureVerificationReceipt::LegacyBase64(inline_b64) => {
+            assert_eq!(
+                inline_b64, &receipt_b64,
+                "response verificationReceipt must byte-match verification-receipt.cose"
+            );
+            let receipt_payload = receipt_cose
+                .payload()
+                .expect("legacy receipt must embed its JSON payload");
+            serde_json::from_slice(receipt_payload).expect("parse VerificationReceipt payload")
+        }
+        FixtureVerificationReceipt::Structured(inline_receipt) => {
+            assert_eq!(
+                inline_receipt.receipt_bytes.as_deref(),
+                Some(receipt_b64.as_str()),
+                "structured response verificationReceipt.receiptBytes must byte-match verification-receipt.cose"
+            );
+            if let Some(receipt_payload) = receipt_cose.payload() {
+                let mut embedded: formspec_signature_port::VerificationReceipt =
+                    serde_json::from_slice(receipt_payload)
+                        .expect("parse embedded VerificationReceipt payload");
+                embedded.receipt_bytes = Some(receipt_b64.clone());
+                assert_eq!(
+                    &embedded, inline_receipt,
+                    "structured verificationReceipt must match embedded receipt payload plus receiptBytes"
+                );
+            }
+            inline_receipt.clone()
+        }
+    };
     (receipt_bytes, receipt)
 }
 
