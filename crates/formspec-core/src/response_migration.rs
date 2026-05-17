@@ -49,14 +49,12 @@ fn flatten_object(value: &Value, prefix: &str, output: &mut Map<String, Value>) 
 
 fn migration_from_version(m: &Map<String, Value>) -> Option<&str> {
     m.get("fromVersion")
-        .or_else(|| m.get("from_version"))
         .and_then(|v| v.as_str())
 }
 
 fn change_kind(change: &Map<String, Value>) -> Option<&str> {
     change
         .get("type")
-        .or_else(|| change.get("change_type"))
         .and_then(|v| v.as_str())
 }
 

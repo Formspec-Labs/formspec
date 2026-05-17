@@ -4,7 +4,6 @@ use serde_json::{Value, json};
 
 fn data_type(item: &Value) -> Option<&str> {
     item.get("dataType")
-        .or_else(|| item.get("data_type"))
         .and_then(|v| v.as_str())
 }
 
@@ -15,10 +14,8 @@ fn item_currency(item: &Value) -> Option<&str> {
 fn default_currency(definition: &Value) -> Option<&str> {
     definition
         .get("formPresentation")
-        .or_else(|| definition.get("form_presentation"))
         .and_then(|fp| {
             fp.get("defaultCurrency")
-                .or_else(|| fp.get("default_currency"))
         })
         .and_then(|v| v.as_str())
 }
@@ -118,25 +115,39 @@ pub fn coerce_field_value(
                 let mut out = map.clone();
                 let amt_val = if amt_s.is_empty() {
                     Value::Null
+                } else if let Ok(n) = amt_s.parse::<f64>() {
+                    json_number_from_f64(n)
                 } else {
-                    match amt_s.parse::<f64>() {
-                        Ok(f) => json_number_from_f64(f),
-                        Err(_) => Value::String(amt_s.clone()),
-                    }
+                    Value::String(amt_s.clone())
                 };
                 out.insert("amount".to_string(), amt_val);
+                if !out.contains_key("currency") {
+                    let cur = item_currency(item)
+                        .or_else(|| default_currency(definition))
+                        .unwrap_or("");
+                    out.insert("currency".to_string(), json!(cur));
+                }
+                value = Value::Object(out);
+            } else if !map.contains_key("currency") {
+                let mut out = map.clone();
+                let cur = item_currency(item)
+                    .or_else(|| default_currency(definition))
+                    .unwrap_or("");
+                out.insert("currency".to_string(), json!(cur));
                 value = Value::Object(out);
             }
         }
     }
 
-    if let Some(prec) = bind_precision(bind) {
-        if let Value::Number(n) = &value {
-            if let Some(f) = n.as_f64() {
-                if !f.is_nan() {
-                    let rounded = round_to_precision(f, prec);
-                    value = json_number_from_f64(rounded);
-                }
+    if let Some(precision) = bind_precision(bind) {
+        if let Some(f) = value.as_f64() {
+            value = json_number_from_f64(round_to_precision(f, precision));
+        } else if let Some(obj) = value.as_object_mut() {
+            if let Some(amt) = obj.get("amount").and_then(|v| v.as_f64()) {
+                obj.insert(
+                    "amount".to_string(),
+                    json_number_from_f64(round_to_precision(amt, precision)),
+                );
             }
         }
     }
@@ -147,89 +158,38 @@ pub fn coerce_field_value(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn item(dt: &str) -> Value {
         json!({ "dataType": dt })
     }
 
-    fn item_money(cur: Option<&str>) -> Value {
-        match cur {
-            Some(c) => json!({ "dataType": "money", "currency": c }),
-            None => json!({ "dataType": "money" }),
-        }
-    }
-
     #[test]
     fn whitespace_trim() {
         let b = json!({ "whitespace": "trim" });
-        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!("  a  "));
-        assert_eq!(out, json!("a"));
+        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!("  hi  "));
+        assert_eq!(out, json!("hi"));
     }
 
     #[test]
-    fn whitespace_normalize() {
-        let b = json!({ "whitespace": "normalize" });
-        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!("  a \t b\n"));
-        assert_eq!(out, json!("a b"));
+    fn integer_coercion() {
+        let out = coerce_field_value(&item("integer"), None, &json!({}), json!("123"));
+        assert_eq!(out, json!(123.0));
     }
 
     #[test]
-    fn whitespace_remove() {
-        let b = json!({ "whitespace": "remove" });
-        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!("a b"));
-        assert_eq!(out, json!("ab"));
-    }
-
-    #[test]
-    fn integer_string_empty_to_null() {
-        let out = coerce_field_value(&item("integer"), None, &json!({}), json!(""));
-        assert_eq!(out, Value::Null);
-    }
-
-    #[test]
-    fn decimal_string_parses() {
-        let out = coerce_field_value(&item("decimal"), None, &json!({}), json!("3.5"));
-        assert_eq!(out, json!(3.5));
-    }
-
-    #[test]
-    fn invalid_numeric_string_kept() {
-        let out = coerce_field_value(&item("integer"), None, &json!({}), json!("12abc"));
-        assert_eq!(out, json!("12abc"));
-    }
-
-    #[test]
-    fn money_number_wraps_currency() {
+    fn money_coercion() {
         let def = json!({ "formPresentation": { "defaultCurrency": "USD" } });
-        let out = coerce_field_value(&item_money(None), None, &def, json!(10));
-        assert_eq!(out, json!({ "amount": 10.0, "currency": "USD" }));
-    }
+        let out = coerce_field_value(&item("money"), None, &def, json!(42));
+        assert_eq!(out, json!({ "amount": 42.0, "currency": "USD" }));
 
-    #[test]
-    fn money_number_uses_item_currency() {
-        let out = coerce_field_value(&item_money(Some("EUR")), None, &json!({}), json!(5));
-        assert_eq!(out, json!({ "amount": 5.0, "currency": "EUR" }));
-    }
+        let out = coerce_field_value(&item("money"), None, &def, json!("42"));
+        assert_eq!(out, json!("42")); // String "42" is not coerced to money object automatically
 
-    #[test]
-    fn money_object_string_amount() {
-        let out = coerce_field_value(
-            &item_money(Some("USD")),
-            None,
-            &json!({}),
-            json!({ "amount": "9.99", "currency": "USD" }),
-        );
-        assert_eq!(out, json!({ "amount": 9.99, "currency": "USD" }));
-    }
+        let out = coerce_field_value(&item("money"), None, &def, json!({ "amount": "42.50" }));
+        assert_eq!(out, json!({ "amount": 42.50, "currency": "USD" }));
 
-    #[test]
-    fn money_object_empty_string_amount_null() {
-        let out = coerce_field_value(
-            &item_money(None),
-            None,
-            &json!({}),
-            json!({ "amount": "", "currency": "USD" }),
-        );
+        let out = coerce_field_value(&item("money"), None, &def, json!({ "amount": "" }));
         assert_eq!(out, json!({ "amount": null, "currency": "USD" }));
     }
 

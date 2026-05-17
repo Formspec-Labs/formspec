@@ -29,27 +29,24 @@ pub fn assembly_fel_rewrite_map_from_value(v: &Value) -> Result<AssemblyFelRewri
 
     let fragment_root_key = obj
         .get("fragmentRootKey")
-        .or_else(|| obj.get("fragment_root_key"))
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string();
 
     let host_group_key = obj
         .get("hostGroupKey")
-        .or_else(|| obj.get("host_group_key"))
         .and_then(|x| x.as_str())
         .ok_or_else(|| "hostGroupKey is required".to_string())?
         .to_string();
 
     let key_prefix = obj
         .get("keyPrefix")
-        .or_else(|| obj.get("key_prefix"))
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string();
 
     let imported_keys: HashSet<String> =
-        match obj.get("importedKeys").or_else(|| obj.get("imported_keys")) {
+        match obj.get("importedKeys") {
             Some(Value::Array(arr)) => arr
                 .iter()
                 .filter_map(|x| x.as_str().map(String::from))
