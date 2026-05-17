@@ -170,6 +170,15 @@ impl LintDiagnostic {
         self
     }
 
+    /// Promote component compatibility warnings to errors when `mode` is [`LintMode::Strict`].
+    pub fn promote_in_strict_mode(&mut self, mode: LintMode) {
+        if mode == LintMode::Strict
+            && matches!(self.code.as_str(), "W800" | "W802" | "W803" | "W804")
+        {
+            self.severity = LintSeverity::Error;
+        }
+    }
+
     /// Whether this diagnostic should be suppressed in the given lint mode.
     pub fn suppressed_in(&self, mode: LintMode) -> bool {
         match mode {

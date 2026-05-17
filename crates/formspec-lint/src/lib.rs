@@ -55,10 +55,7 @@ pub fn lint(doc: &Value) -> LintResult {
 pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
     let mut diagnostics = Vec::new();
 
-    // ── Pass 1: Document type detection ─────────────────────────
-    let doc_type = detect_document_type(doc);
-
-    if doc_type.is_none() {
+    let Some(doc_type) = detect_document_type(doc) else {
         diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
             "E100",
             1,
@@ -70,103 +67,98 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
             diagnostics,
             valid: false,
         };
-    }
+    };
 
-    let doc_type = doc_type.unwrap();
-
-    // ── Pass 1b: Schema validation (E101) ────────────────────────
     diagnostics.extend(schema_validation::validate_schema(doc, doc_type));
 
-    // ── schema_only: return after pass 1 + 1b ───────────────────
     if options.schema_only {
-        sort_diagnostics(&mut diagnostics);
-        diagnostics.retain(|d| !d.suppressed_in(options.mode));
-        let valid = diagnostics
-            .iter()
-            .all(|d| d.severity != LintSeverity::Error);
-        return LintResult {
-            document_type: Some(doc_type),
-            diagnostics,
-            valid,
-        };
+        return finalize_lint_result(doc_type, diagnostics, options);
     }
 
-    // ── Definition passes (2–5) ─────────────────────────────────
-    if doc_type == DocumentType::Definition {
-        // Pass 2: Tree indexing (E200/E201)
-        let mut tree_index = tree::build_item_index(doc);
-        diagnostics.append(&mut tree_index.diagnostics);
-
-        // Pass gating: stop if structural errors exist from pass 2
-        // (skip E101 schema errors from pass 1b — they don't indicate broken structure)
-        if diagnostics
-            .iter()
-            .any(|d| d.severity == LintSeverity::Error && d.pass >= 2)
-        {
-            sort_diagnostics(&mut diagnostics);
-            diagnostics.retain(|d| !d.suppressed_in(options.mode));
-            return LintResult {
-                document_type: Some(doc_type),
-                diagnostics,
-                valid: false,
-            };
+    match doc_type {
+        DocumentType::Definition => {
+            if let Some(result) = lint_definition(doc, options, &mut diagnostics) {
+                return result;
+            }
         }
+        DocumentType::Screener => lint_screener(doc, options, &mut diagnostics),
+        DocumentType::Theme => lint_theme_doc(doc, options, &mut diagnostics),
+        DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),
+        DocumentType::Response => {
+            diagnostics.extend(pass_response::lint_response(doc));
+        }
+        _ => {}
+    }
 
-        // Pass 3: Reference validation (E300/E301/E302/W300)
-        diagnostics.extend(references::check_references(doc, &tree_index));
+    finalize_lint_result(doc_type, diagnostics, options)
+}
 
-        // Pass 3b: Extension resolution (E600/E601/E602)
-        diagnostics.extend(extensions::check_extensions(
-            doc,
-            &options.registry_documents,
+fn lint_definition(
+    doc: &Value,
+    options: &LintOptions,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) -> Option<LintResult> {
+    let mut tree_index = tree::build_item_index(doc);
+    diagnostics.append(&mut tree_index.diagnostics);
+
+    if diagnostics
+        .iter()
+        .any(|d| d.severity == LintSeverity::Error && d.pass >= 2)
+    {
+        return Some(finalize_lint_result(
+            DocumentType::Definition,
+            std::mem::take(diagnostics),
+            options,
         ));
-
-        // Pass 4: Expression compilation (E400)
-        // Pass 5: Dependency cycle detection (E500)
-        if !options.no_fel {
-            let compilation = expressions::compile_expressions(doc);
-            diagnostics.extend(compilation.diagnostics);
-            diagnostics.extend(dependencies::analyze_dependencies(&compilation.compiled));
-        }
     }
 
-    // ── Screener passes ────────────────────────────────────────
-    if doc_type == DocumentType::Screener && !options.no_fel {
-        let compilation = expressions::compile_screener_expressions(doc);
+    diagnostics.extend(references::check_references(doc, &tree_index));
+    diagnostics.extend(extensions::check_extensions(
+        doc,
+        &options.registry_documents,
+    ));
+
+    if !options.no_fel {
+        let compilation = expressions::compile_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
         diagnostics.extend(dependencies::analyze_dependencies(&compilation.compiled));
     }
 
-    // ── Theme pass (6) ──────────────────────────────────────────
-    if doc_type == DocumentType::Theme {
-        diagnostics.extend(pass_theme::lint_theme(
-            doc,
-            options.definition_document.as_ref(),
-        ));
-    }
+    None
+}
 
-    // ── Component pass (7) ──────────────────────────────────────
-    if doc_type == DocumentType::Component {
-        diagnostics.extend(pass_component::lint_component(
-            doc,
-            options.definition_document.as_ref(),
-        ));
+fn lint_screener(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintDiagnostic>) {
+    if !options.no_fel {
+        let compilation = expressions::compile_screener_expressions(doc);
+        diagnostics.extend(compilation.diagnostics);
+        diagnostics.extend(dependencies::analyze_dependencies(&compilation.compiled));
     }
+}
 
-    // ── Response pass (8) ───────────────────────────────────────
-    if doc_type == DocumentType::Response {
-        diagnostics.extend(pass_response::lint_response(doc));
-    }
+fn lint_theme_doc(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintDiagnostic>) {
+    diagnostics.extend(pass_theme::lint_theme(
+        doc,
+        options.definition_document.as_ref(),
+    ));
+}
 
-    // Sort and filter
+fn lint_component_doc(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintDiagnostic>) {
+    diagnostics.extend(pass_component::lint_component(
+        doc,
+        options.definition_document.as_ref(),
+    ));
+}
+
+fn finalize_lint_result(
+    doc_type: DocumentType,
+    mut diagnostics: Vec<LintDiagnostic>,
+    options: &LintOptions,
+) -> LintResult {
     sort_diagnostics(&mut diagnostics);
 
-    // Strict mode: promote component compatibility warnings to errors
     if options.mode == LintMode::Strict {
         for d in &mut diagnostics {
-            if matches!(d.code.as_str(), "W800" | "W802" | "W803" | "W804") {
-                d.severity = LintSeverity::Error;
-            }
+            d.promote_in_strict_mode(options.mode);
         }
     }
 
