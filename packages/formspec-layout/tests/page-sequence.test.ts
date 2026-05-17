@@ -82,6 +82,45 @@ describe('resolvePageSequence', () => {
         ]);
     });
 
+    it('resolves theme regions with bracket-indexed bind paths (fs-i17a)', () => {
+        const definition = {
+            $formspec: '1.0',
+            url: 'https://example.org/forms/repeat',
+            version: '1.0.0',
+            title: 'Repeat',
+            items: [
+                {
+                    key: 'lineItems',
+                    type: 'group',
+                    repeatable: true,
+                    presentation: { layout: { page: 'lines' } },
+                    children: [
+                        { key: 'amount', type: 'field', dataType: 'decimal', label: 'Amount' },
+                    ],
+                },
+            ],
+        } as any;
+
+        const pages = resolvePageSequence(definition, {
+            theme: {
+                $formspecTheme: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'https://example.org/forms/repeat' },
+                pages: [
+                    {
+                        id: 'lines-page',
+                        title: 'Line items',
+                        regions: [{ key: 'lineItems[0].amount' }],
+                    },
+                ],
+            } as any,
+        });
+
+        expect(pages).toEqual([
+            { id: 'lines-page', title: 'Line items', fields: ['lineItems[0].amount'] },
+        ]);
+    });
+
     it('falls back to theme pages when no component pages exist', () => {
         const pages = resolvePageSequence(makeDefinition(), {
             theme: {

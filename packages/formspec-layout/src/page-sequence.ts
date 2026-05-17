@@ -1,6 +1,7 @@
 /** @filedesc Resolves assist-friendly page sequences from the authoritative layout planner. */
 
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
+import { findItemAtPath } from './planner-path-utils.js';
 import { planComponentTree, planDefinitionFallback, preparePlanContext } from './planner.js';
 import type { ComponentTreeNode, LayoutNode, PlanContext } from './types.js';
 
@@ -41,25 +42,6 @@ function flattenUnique(values: string[]): string[] {
         ordered.push(value);
     }
     return ordered;
-}
-
-function findItemAtPath(items: any[], path: string): any | null {
-    const segments = path.split('.').filter(Boolean);
-    let currentItems = items;
-
-    for (let index = 0; index < segments.length; index += 1) {
-        const segment = segments[index];
-        const found = currentItems.find((item: any) => item?.key === segment || item?.name === segment);
-        if (!found) {
-            return null;
-        }
-        if (index === segments.length - 1) {
-            return found;
-        }
-        currentItems = Array.isArray(found.children) ? found.children : [];
-    }
-
-    return null;
 }
 
 function createPlanContext(

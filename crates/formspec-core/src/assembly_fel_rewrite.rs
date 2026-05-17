@@ -242,6 +242,19 @@ mod tests {
         );
     }
 
+    /// SWEEP-002: assembly rewrite map ingest is camelCase-only (no snake_case alias).
+    #[test]
+    fn snake_case_assembly_rewrite_map_keys_are_not_aliased() {
+        let v = json!({
+            "fragment_root_key": "budget",
+            "host_group_key": "projectBudget",
+            "imported_keys": ["budget"],
+            "key_prefix": "proj_"
+        });
+        let err = assembly_fel_rewrite_map_from_value(&v).unwrap_err();
+        assert!(err.contains("hostGroupKey"));
+    }
+
     #[test]
     fn parse_map_from_json() {
         let v = json!({

@@ -195,14 +195,19 @@ fn parse_validation_results(value: &Value) -> Result<Vec<ValidationResult>, Stri
         .collect::<Result<Vec<_>, _>>()
 }
 
+/// Parse a prior validation blob from the WASM/host bridge.
+///
+/// Unlike definition wire readers (SWEEP-002 camelCase-only), this path accepts
+/// `constraintKind` or `constraint_kind` and `shapeId` or `shape_id` so hosts
+/// can round-trip diagnostics without re-serializing. New definition documents
+/// remain camelCase-only at ingest.
 fn parse_validation_result(value: &Value) -> Result<ValidationResult, String> {
     let obj = value
         .as_object()
         .ok_or("validation result must be an object")?;
 
     let severity = required_string_field(obj, "severity")?;
-    let constraint_kind =
-        required_string_field_either(obj, "constraintKind", "constraint_kind")?;
+    let constraint_kind = required_string_field_either(obj, "constraintKind", "constraint_kind")?;
     let code = required_string_field(obj, "code")?;
     let source = required_string_field(obj, "source")?;
 

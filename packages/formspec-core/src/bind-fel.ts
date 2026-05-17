@@ -1,5 +1,7 @@
 /** @filedesc Shared FEL property names on binds and inline item constraints. */
-import type { FieldRule, FormBind, FormItem, FormShape, FormVariable } from '@formspec-org/types';
+import type {
+  FieldRule, FormBind, FormItem, FormShape, FormVariable, ReverseOverride,
+} from '@formspec-org/types';
 import type { MappingState } from './types.js';
 
 export const BIND_FEL_PROPERTIES = [
@@ -109,15 +111,17 @@ export function rewriteMappingRuleFieldRefs(
     const value = rule[prop];
     if (typeof value === 'string') rule[prop] = rewriteExpr(value);
   }
-  const reverse = rule.reverse;
-  if (reverse && typeof reverse === 'object') {
-    const block = reverse as Record<string, unknown>;
-    if (typeof block.sourcePath === 'string') block.sourcePath = rewritePath(block.sourcePath);
-    if (typeof block.targetPath === 'string') block.targetPath = rewritePath(block.targetPath);
-    for (const prop of ['expression', 'condition'] as const) {
-      const value = block[prop];
-      if (typeof value === 'string') block[prop] = rewriteExpr(value);
+  const reverse: ReverseOverride | undefined = rule.reverse;
+  if (reverse) {
+    // Schema omits sourcePath/targetPath on reverse (swapped at runtime), but studio payloads
+    // may still carry them for path rewrites when items move.
+    const reverseRecord = reverse as ReverseOverride & Record<string, unknown>;
+    for (const key of ['sourcePath', 'targetPath'] as const) {
+      const pathValue = reverseRecord[key];
+      if (typeof pathValue === 'string') reverseRecord[key] = rewritePath(pathValue);
     }
+    if (typeof reverse.expression === 'string') reverse.expression = rewriteExpr(reverse.expression);
+    if (typeof reverse.condition === 'string') reverse.condition = rewriteExpr(reverse.condition);
   }
   if (Array.isArray(rule.innerRules)) {
     for (const inner of rule.innerRules) {

@@ -191,7 +191,7 @@ export class FormEngine implements IFormEngine {
             rx: this._rx,
             localeStore: this._localeStore,
             getDefinitionTitle: () => this.definition.title ?? '',
-            getDefinitionDescription: () => (this.definition as any).description,
+            getDefinitionDescription: () => this.definition.description ?? '',
             getPageTitle: () => undefined,
             getPageDescription: () => undefined,
             evalFEL: (expr) => wasmEvalFELWithContext(expr, this._buildLocaleFELContext()),
@@ -1305,7 +1305,7 @@ export class FormEngine implements IFormEngine {
             dataType: item.dataType ?? 'string',
             getItemLabel: () => item.label,
             getItemHint: () => item.hint ?? null,
-            getItemDescription: () => (item as any).description ?? null,
+            getItemDescription: () => item.description ?? null,
             getItemLabels: () => item.labels,
             getLabelContext: () => this._labelContextSignal.value,
             getFieldValue: () => this.signals[path] ?? this._rx.signal(null),
@@ -1316,10 +1316,7 @@ export class FormEngine implements IFormEngine {
             getErrors: () => this.validationResults[basePath] ?? this._rx.signal([]),
             getOptions: () => this.optionSignals[basePath] ?? this._rx.signal([]),
             getOptionsState: () => this.optionStateSignals[basePath] ?? this._rx.signal({ loading: false, error: null }),
-            getOptionSetName: () => {
-                const bindConfig = this._bindConfigs[basePath];
-                return (bindConfig as any)?.optionSet ?? undefined;
-            },
+            getOptionSetName: () => item.optionSet,
             setFieldValue: (value) => this.setValue(path, value),
             evalFEL: (expr) => wasmEvalFELWithContext(expr, this._buildLocaleFELContext(path)),
         });

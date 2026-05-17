@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { findItemAtPath } from '../src/planner-path-utils.js';
 import {
     planComponentTree,
     planDefinitionFallback,
@@ -188,6 +189,21 @@ describe('planComponentTree', () => {
         expect(node.repeatPath).toBe('items');
         expect(node.isRepeatTemplate).toBe(true);
         expect(node.children[0].bindPath).toBe('items[0].description');
+    });
+
+    it('findItemAtPath resolves bracket-indexed paths (fs-i17a)', () => {
+        const items = [
+            {
+                key: 'lineItems',
+                type: 'group',
+                repeatable: true,
+                children: [
+                    { key: 'amount', type: 'field', dataType: 'decimal', label: 'Amount' },
+                ],
+            },
+        ];
+        expect(findItemAtPath(items, 'lineItems[0].amount')?.key).toBe('amount');
+        expect(findItemAtPath(items, 'lineItems.amount')?.key).toBe('amount');
     });
 
     it('expands custom components', () => {

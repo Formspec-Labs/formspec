@@ -42,7 +42,8 @@ impl Serialize for Severity {
 impl<'de> Deserialize<'de> for Severity {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        Self::parse_wire(&s).ok_or_else(|| serde::de::Error::custom(format!("unknown severity: {s}")))
+        Self::parse_wire(&s)
+            .ok_or_else(|| serde::de::Error::custom(format!("unknown severity: {s}")))
     }
 }
 
@@ -278,5 +279,49 @@ impl PartialEq<str> for ValidationSource {
 impl PartialEq<&str> for ValidationSource {
     fn eq(&self, other: &&str) -> bool {
         self.as_wire_str() == *other
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn severity_serde_round_trip() {
+        let v = json!("warning");
+        let sev: Severity = serde_json::from_value(v).unwrap();
+        assert_eq!(sev, Severity::Warning);
+        assert_eq!(serde_json::to_value(sev).unwrap(), json!("warning"));
+    }
+
+    #[test]
+    fn severity_rejects_unknown_wire_value() {
+        let err = serde_json::from_value::<Severity>(json!("critical")).unwrap_err();
+        assert!(err.to_string().contains("unknown severity"));
+    }
+
+    #[test]
+    fn constraint_kind_and_source_round_trip() {
+        let kind: ConstraintKind = serde_json::from_value(json!("type")).unwrap();
+        assert_eq!(kind, ConstraintKind::Type);
+        let source: ValidationSource = serde_json::from_value(json!("external")).unwrap();
+        assert_eq!(source, ValidationSource::External);
+    }
+
+    #[test]
+    fn validation_code_from_wire_and_custom_shape() {
+        assert_eq!(ValidationCode::from_wire("REQUIRED"), ValidationCode::Required);
+        let custom = ValidationCode::from_wire("MY_SHAPE_RULE");
+        assert_eq!(custom.as_wire_str(), "MY_SHAPE_RULE");
+        assert!(matches!(custom, ValidationCode::Shape(_)));
+    }
+
+    #[test]
+    fn validation_code_serde_preserves_shape_code() {
+        let code = ValidationCode::Shape("CUSTOM".into());
+        let wire = serde_json::to_value(&code).unwrap();
+        let back: ValidationCode = serde_json::from_value(wire).unwrap();
+        assert_eq!(back, code);
     }
 }
