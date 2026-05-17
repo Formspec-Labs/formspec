@@ -7,7 +7,7 @@
  *
  * @module handlers/project
  */
-import type { CommandHandler, LocaleState } from '../types.js';
+import type { CommandHandler, LocaleState, ProjectBundle } from '../types.js';
 import type { FormItem } from '@formspec-org/types';
 import { normalizeComponentState } from '../component-documents.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
@@ -17,7 +17,7 @@ import { indexRegistryPayload } from '../registry-index.js';
 export const projectHandlers = {
 
   'project.import': (state, payload) => {
-    const p = payload as Record<string, any>;
+    const p = payload as Partial<ProjectBundle>;
 
     if (p.definition) {
       const def = p.definition as typeof state.definition;
@@ -32,7 +32,7 @@ export const projectHandlers = {
       state.component = normalizeComponentState(state.component, state.definition.url);
     }
     if (p.theme) {
-      state.theme = p.theme;
+      state.theme = p.theme as typeof state.theme;
     }
 
     if (p.mappings) {

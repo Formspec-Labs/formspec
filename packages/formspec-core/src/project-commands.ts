@@ -10,7 +10,15 @@
  * here first — the build will tell you if the keys diverge.
  */
 
-import type { FormItem, FormShape, FormVariable, FormOption, FormInstance } from '@formspec-org/types';
+import type {
+  FormItem,
+  FormShape,
+  FormVariable,
+  FormOption,
+  FormInstance,
+  ProjectBundle,
+  TargetSchema,
+} from '@formspec-org/types';
 import type { ScreenerDocument } from './types.js';
 
 export interface ProjectCommandMap {
@@ -49,12 +57,12 @@ export interface ProjectCommandMap {
   'screener.reorderRoute': { phaseId: string; index: number; direction: 'up' | 'down' };
   'screener.setAvailability': { from?: string | null; until?: string | null };
   'screener.setResultValidity': { duration: string | null };
-  'project.import': Record<string, any>;
+  'project.import': Partial<ProjectBundle>;
   'project.importSubform': { definition: Record<string, unknown>; targetGroupPath?: string; keyPrefix?: string; };
   'project.loadRegistry': { registry: Record<string, unknown> };
   'project.removeRegistry': { url: string };
   'project.publish': { version: string; summary?: string };
-  'mapping.create': { id: string; targetSchema?: any };
+  'mapping.create': { id: string; targetSchema?: TargetSchema };
   'mapping.delete': { id: string };
   'mapping.rename': { oldId: string; newId: string };
   'mapping.select': { id: string };

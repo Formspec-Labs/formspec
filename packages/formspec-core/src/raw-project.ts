@@ -49,6 +49,10 @@ import { HistoryManager } from './history.js';
 import { reconcileComponentTree } from './tree-reconciler.js';
 import { normalizeState } from './state-normalizer.js';
 import {
+  COMPONENT_BASE_PROP_NAMES,
+  COMPONENT_SCHEMA_PROPS,
+} from './generated/component-schema-props.js';
+import {
   fieldPaths as _fieldPaths,
   itemPaths as _itemPaths,
   itemAt as _itemAt,
@@ -88,67 +92,22 @@ import { normalizeBindsFromUnknown } from './definition-binds.js';
 const SELF_MANAGED_GROUP_BINDS = new Set(['Accordion', 'DataTable']);
 
 /**
- * Schema-derived allowlist of valid properties per component type.
- *
- * Every built-in component inherits ComponentBase properties (id, component,
- * when, responsive, style, accessibility, cssClass) plus its own type-specific
- * properties. Only properties in this allowlist survive export; everything else
- * (authoring metadata like widgetHint, repeatable, displayMode, addLabel,
- * removeLabel, dataTableConfig, nodeId, _layout, span, start) is stripped.
- *
- * `bind` and `children` are handled structurally by the export logic and are
- * NOT in the per-type sets — they are added when appropriate.
- *
- * Source of truth: schemas/component.schema.json
+ * Schema-derived allowlist of valid properties per component type (generated from
+ * schemas/component.schema.json). `bind` and `children` are structural — handled
+ * by export logic, not listed in per-type prop sets.
  */
-const COMPONENT_BASE_PROPS = new Set([
-  'id', 'component', 'when', 'responsive', 'style', 'accessibility', 'cssClass',
-]);
+const COMPONENT_BASE_PROPS = new Set(COMPONENT_BASE_PROP_NAMES);
 
-const COMPONENT_SCHEMA_PROPS: Record<string, Set<string>> = {
-  Page:             new Set(['title', 'description']),
-  Stack:            new Set(['direction', 'gap', 'align', 'wrap']),
-  Grid:             new Set(['columns', 'gap', 'rowGap']),
-  Spacer:           new Set(['size']),
-  TextInput:        new Set(['placeholder', 'maxLines', 'inputMode', 'prefix', 'suffix']),
-  NumberInput:      new Set(['placeholder', 'step', 'min', 'max', 'showStepper', 'locale']),
-  DatePicker:       new Set(['placeholder', 'format', 'minDate', 'maxDate', 'showTime']),
-  Select:           new Set(['searchable', 'multiple', 'placeholder', 'clearable']),
-  CheckboxGroup:    new Set(['columns', 'selectAll']),
-  Toggle:           new Set(['onLabel', 'offLabel']),
-  FileUpload:       new Set(['accept', 'maxSize', 'multiple', 'dragDrop']),
-  Heading:          new Set(['level', 'text']),
-  Text:             new Set(['text', 'format']),
-  Divider:          new Set(['label']),
-  Card:             new Set(['title', 'subtitle', 'elevation']),
-  Collapsible:      new Set(['title', 'defaultOpen']),
-  ConditionalGroup: new Set(['fallback']),
-  Columns:          new Set(['widths', 'gap']),
-  Tabs:             new Set(['position', 'tabLabels', 'defaultTab']),
-  SubmitButton:     new Set(['label', 'mode', 'emitEvent', 'pendingLabel', 'disableWhenPending']),
-  Accordion:        new Set(['allowMultiple', 'defaultOpen', 'labels']),
-  RadioGroup:       new Set(['columns', 'orientation']),
-  MoneyInput:       new Set(['placeholder', 'step', 'min', 'max', 'showStepper', 'currency', 'showCurrency', 'locale']),
-  Slider:           new Set(['min', 'max', 'step', 'showValue', 'showTicks']),
-  Rating:           new Set(['max', 'icon', 'allowHalf']),
-  Signature:        new Set(['strokeColor', 'height', 'penWidth', 'clearable']),
-  Alert:            new Set(['severity', 'text', 'dismissible']),
-  Badge:            new Set(['text', 'variant']),
-  ProgressBar:      new Set(['value', 'max', 'label', 'showPercent']),
-  Summary:          new Set(['items']),
-  ValidationSummary: new Set(['source', 'mode', 'showFieldErrors', 'jumpLinks', 'dedupe']),
-  DataTable:        new Set(['columns', 'showRowNumbers', 'allowAdd', 'allowRemove']),
-  Panel:            new Set(['position', 'title', 'width']),
-  Modal:            new Set(['title', 'size', 'trigger', 'triggerLabel', 'closable', 'headingLevel', 'placement']),
-  Popover:          new Set(['triggerBind', 'triggerLabel', 'placement']),
-};
+const COMPONENT_SCHEMA_PROP_SETS: Record<string, Set<string>> = Object.fromEntries(
+  Object.entries(COMPONENT_SCHEMA_PROPS).map(([type, props]) => [type, new Set(props)]),
+);
 
 /**
  * Get the set of schema-valid property names for a component type.
  * For unknown/custom component types, returns ComponentBase props + `params`.
  */
 function allowedPropsFor(componentType: string): Set<string> {
-  const typeProps = COMPONENT_SCHEMA_PROPS[componentType];
+  const typeProps = COMPONENT_SCHEMA_PROP_SETS[componentType];
   if (typeProps) {
     const merged = new Set(COMPONENT_BASE_PROPS);
     for (const p of typeProps) merged.add(p);
@@ -356,11 +315,6 @@ export class RawProject implements IProjectCore {
     this._syncComponentTree(this._state);
   }
 
-  // PERF: This runs on every dispatch (via handler pipeline) and on
-  // restoreState/undo/redo.  reconcileComponentTree is idempotent, so
-  // repeated calls are correct but wasteful when the item tree hasn't
-  // changed.  Consider adding a dirty flag (set when items/component
-  // handlers fire) so reconciliation only runs when needed.
   private _syncComponentTree(state: ProjectState): void {
     if (typeof (state.component as Record<string, unknown>).$formspecComponent !== 'string') {
       (state.component as Record<string, unknown>).$formspecComponent = '1.0';

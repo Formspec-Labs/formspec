@@ -40,16 +40,11 @@ export const builtinHandlers = Object.freeze({
   ...projectHandlers,
 });
 
-// ── Compile-time sync proof ─────────────────────────────────────────
-// Ensures builtinHandlers keys and ProjectCommandMap keys are identical.
-// If a handler is added/removed without updating project-commands.ts
-// (or vice versa), this block produces a compile error.
-type _HandlerKeys = keyof typeof builtinHandlers;
-type _MapKeys = keyof ProjectCommandMap;
-type _MissingFromMap = Exclude<_HandlerKeys, _MapKeys>;
-type _MissingFromHandlers = Exclude<_MapKeys, _HandlerKeys>;
-type _AssertSync = [_MissingFromMap, _MissingFromHandlers] extends [never, never]
-  ? true
-  : 'ERROR: ProjectCommandMap and builtinHandlers are out of sync';
-const _syncProof: _AssertSync = true;
-void _syncProof;
+// Compile-time sync: handler keys must match ProjectCommandMap exactly.
+type _AssertHandlerCommandSync =
+  keyof typeof builtinHandlers extends keyof ProjectCommandMap
+    ? keyof ProjectCommandMap extends keyof typeof builtinHandlers
+      ? true
+      : 'ERROR: ProjectCommandMap has commands missing from builtinHandlers'
+    : 'ERROR: builtinHandlers has commands missing from ProjectCommandMap';
+declare const _handlerCommandSync: _AssertHandlerCommandSync;

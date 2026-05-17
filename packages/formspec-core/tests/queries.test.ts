@@ -573,9 +573,13 @@ describe('allDataTypes', () => {
     expect(types.length).toBe(13);
     expect(types.every(t => t.source === 'core')).toBe(true);
     expect(types.map(t => t.name)).toContain('string');
+    expect(types.map(t => t.name)).toContain('text');
     expect(types.map(t => t.name)).toContain('integer');
+    expect(types.map(t => t.name)).toContain('uri');
     expect(types.map(t => t.name)).toContain('boolean');
     expect(types.map(t => t.name)).toContain('date');
+    expect(types.map(t => t.name)).not.toContain('signature');
+    expect(types.map(t => t.name)).not.toContain('barcode');
   });
 
   it('includes extension dataTypes from loaded registries', () => {

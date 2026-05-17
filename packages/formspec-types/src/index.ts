@@ -25,6 +25,9 @@ export {
 export { Path, PathSegmentKind } from './path-utils.js';
 export type { PathSegment } from './path-utils.js';
 
+export { CORE_FIELD_DATA_TYPES } from './field-data-types.js';
+export type { CoreFieldDataType } from './field-data-types.js';
+
 // Canonical Form-prefixed names (generated schemas use short $def names)
 export type { Shape as FormShape } from './generated/definition.js';
 export type { Variable as FormVariable } from './generated/definition.js';

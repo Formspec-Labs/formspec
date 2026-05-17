@@ -6,6 +6,7 @@
  * and returns a result with no side effects.
  */
 import type { FormBind, FormItem, FormShape } from '@formspec-org/types';
+import { CORE_FIELD_DATA_TYPES, type CoreFieldDataType } from '@formspec-org/types';
 import { itemAtPath, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { editableComponentTree, walkComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
@@ -266,10 +267,10 @@ export function resolveToken(state: ProjectState, key: string): string | number 
  * from loaded registries.
  */
 export function allDataTypes(state: ProjectState): DataTypeInfo[] {
-  const core: DataTypeInfo[] = [
-    'string', 'integer', 'decimal', 'boolean', 'date', 'time', 'dateTime',
-    'money', 'choice', 'multiChoice', 'attachment', 'signature', 'barcode',
-  ].map(name => ({ name, source: 'core' as const }));
+  const core: DataTypeInfo[] = CORE_FIELD_DATA_TYPES.map(name => ({
+    name,
+    source: 'core' as const,
+  }));
 
   for (const reg of state.extensions.registries) {
     for (const entry of Object.values(reg.entries)) {

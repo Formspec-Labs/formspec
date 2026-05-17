@@ -23,7 +23,7 @@ and it does not require every project to have a component document.
 ## Install
 
 ```bash
-npm install formspec-core
+npm install @formspec-org/core
 ```
 
 Runtime dependencies: `formspec-engine`, `formspec-types`, `ajv`

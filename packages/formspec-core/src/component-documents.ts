@@ -29,14 +29,11 @@ export function normalizeComponentState(
   return normalized;
 }
 
-export function getEditableComponentDocument(
-  state: Pick<ProjectState, 'component'>,
-): ComponentState {
-  return state.component;
-}
-
 export function getCurrentComponentDocument(
   state: Pick<ProjectState, 'component'>,
 ): ComponentState {
   return state.component;
 }
+
+/** @deprecated Use {@link getCurrentComponentDocument}. */
+export const getEditableComponentDocument = getCurrentComponentDocument;
