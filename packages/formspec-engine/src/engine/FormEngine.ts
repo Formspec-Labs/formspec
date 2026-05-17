@@ -157,7 +157,7 @@ export class FormEngine implements IFormEngine {
         this.definition = cloneValue(definition);
 
         // Locale store — direction mode from formPresentation.direction or 'ltr'
-        const directionMode = (definition.formPresentation as any)?.direction ?? 'ltr';
+        const directionMode = definition.formPresentation?.direction ?? 'ltr';
         this._localeStore = new LocaleStore(this._rx, directionMode);
         this.localeSignal = this._localeStore.version;
         this._variableDefs = [...(this.definition.variables ?? [])];
@@ -214,8 +214,8 @@ export class FormEngine implements IFormEngine {
         return resolvePinnedDefinition(response, definitions);
     }
 
-    public get formPresentation(): any {
-        return this.definition.formPresentation ?? null;
+    public get formPresentation(): FormDefinition['formPresentation'] {
+        return this.definition.formPresentation;
     }
 
     public setRuntimeContext(context: FormEngineRuntimeContext = {}): void {
@@ -612,8 +612,7 @@ export class FormEngine implements IFormEngine {
                 case 'getResponse':
                     return { ok: true, event, output: this.getResponse({ mode: event.mode }) };
                 default: {
-                    const neverType: never = event;
-                    throw new Error(`Unsupported replay event: ${(neverType as any).type}`);
+                    return assertNeverReplayEvent(event);
                 }
             }
         } catch (error) {
@@ -1348,4 +1347,9 @@ export class FormEngine implements IFormEngine {
             meta: this._runtimeContext.meta,
         });
     }
+}
+
+function assertNeverReplayEvent(event: never): EngineReplayApplyResult {
+    const unreachable = event as EngineReplayEvent;
+    throw new Error(`Unsupported replay event: ${unreachable.type}`);
 }

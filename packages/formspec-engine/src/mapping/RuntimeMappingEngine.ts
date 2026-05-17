@@ -1,7 +1,9 @@
 /** @filedesc Runtime mapping document execution with WASM core and TS adapter formatting. */
 
+import type { FieldRule, MappingDocument } from '@formspec-org/types';
 import type {
     IRuntimeMappingEngine,
+    JsonValue,
     MappingDiagnostic,
     MappingDirection,
     RuntimeMappingResult,
@@ -114,21 +116,21 @@ function mappingSortKeysDeep(obj: any): void {
 }
 
 export class RuntimeMappingEngine implements IRuntimeMappingEngine {
-    private readonly doc: any;
+    private readonly doc: MappingDocument;
 
-    constructor(mappingDocument: any) {
-        this.doc = mappingDocument || {};
+    constructor(mappingDocument: MappingDocument) {
+        this.doc = mappingDocument;
     }
 
-    public forward(source: any): RuntimeMappingResult {
+    public forward(source: JsonValue | string): RuntimeMappingResult {
         return this.execute('forward', source ?? {});
     }
 
-    public reverse(source: any): RuntimeMappingResult {
+    public reverse(source: JsonValue | string): RuntimeMappingResult {
         return this.execute('reverse', source ?? {});
     }
 
-    private execute(direction: MappingDirection, source: any): RuntimeMappingResult {
+    private execute(direction: MappingDirection, source: JsonValue | string): RuntimeMappingResult {
         if (!isWasmToolsReady()) {
             return {
                 direction,
@@ -185,12 +187,18 @@ export class RuntimeMappingEngine implements IRuntimeMappingEngine {
         const csvAdapter = (this.doc.adapters as any)?.csv;
         const isCsv = csvAdapter || (this.doc.targetSchema as any)?.format === 'csv';
         if (isCsv) {
-            const rules = Array.isArray(this.doc.rules) ? this.doc.rules : [];
+            const rules: FieldRule[] = [...this.doc.rules];
             let hasAdapterError = false;
             for (const rule of rules) {
                 const tp = direction === 'forward' ? rule.targetPath : (rule.sourcePath ?? rule.targetPath);
                 if (tp && /[.\[\]]/.test(tp)) {
-                    diagnostics.push({ ruleIndex: rules.indexOf(rule), sourcePath: rule.sourcePath, targetPath: rule.targetPath, errorCode: 'ADAPTER_FAILURE', message: `targetPath "${tp}" is not a simple identifier (CSV requires flat keys)` });
+                    diagnostics.push({
+                        ruleIndex: rules.indexOf(rule),
+                        sourcePath: rule.sourcePath ?? undefined,
+                        targetPath: rule.targetPath ?? undefined,
+                        errorCode: 'ADAPTER_FAILURE',
+                        message: `targetPath "${tp}" is not a simple identifier (CSV requires flat keys)`,
+                    });
                     hasAdapterError = true;
                 }
             }
@@ -210,6 +218,6 @@ export class RuntimeMappingEngine implements IRuntimeMappingEngine {
     }
 }
 
-export function createMappingEngine(mappingDoc: unknown): IRuntimeMappingEngine {
+export function createMappingEngine(mappingDoc: MappingDocument): IRuntimeMappingEngine {
     return new RuntimeMappingEngine(mappingDoc);
 }

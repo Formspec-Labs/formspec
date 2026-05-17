@@ -4,10 +4,21 @@ import type { EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
 import type {
     FormDefinition,
     FormItem,
+    FormResponse,
+    MappingDocument,
     ValidationResult,
     ValidationReport,
     OptionEntry,
 } from '@formspec-org/types';
+
+/** JSON-compatible scalar. */
+export type JsonPrimitive = string | number | boolean | null;
+/** JSON-compatible value crossing engine / mapping boundaries. */
+export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+/** Field or instance slot value (undefined = unset). */
+export type FormFieldValue = JsonValue | undefined;
+/** String-keyed JSON object (response data, instance maps). */
+export type JsonRecord = Record<string, JsonValue>;
 import type { LocaleDocument } from './locale.js';
 import type { FieldViewModel } from './field-view-model.js';
 import type { FormViewModel } from './form-view-model.js';
@@ -210,13 +221,12 @@ export interface RegistryEntry {
     compatibility?: { formspecVersion?: string; mappingDslVersion?: string };
     deprecationNotice?: string;
     baseType?: string;
-    constraints?: {
+    constraints?: Record<string, JsonValue> & {
         pattern?: string;
         maxLength?: number;
-        [key: string]: any;
     };
-    metadata?: Record<string, any>;
-    [key: string]: any;
+    metadata?: JsonRecord;
+    [key: string]: unknown;
 }
 
 export interface PinnedResponseReference {
@@ -311,14 +321,14 @@ export interface FormEngineDiagnosticsSnapshot {
     timestamp: string;
     structureVersion: number;
     repeats: Record<string, number>;
-    values: Record<string, any>;
+    values: JsonRecord;
     mips: Record<string, { relevant: boolean; required: boolean; readonly: boolean; error: string | null }>;
     validation: ValidationReport;
     runtimeContext: { now: string; locale?: string; timeZone?: string; seed?: string | number };
 }
 
 export type EngineReplayEvent =
-    | { type: 'setValue'; path: string; value: any }
+    | { type: 'setValue'; path: string; value: FormFieldValue }
     | { type: 'addRepeatInstance'; path: string }
     | { type: 'removeRepeatInstance'; path: string; index: number }
     | { type: 'evaluateShape'; shapeId: string }
@@ -328,7 +338,7 @@ export type EngineReplayEvent =
 export interface EngineReplayApplyResult {
     ok: boolean;
     event: EngineReplayEvent;
-    output?: any;
+    output?: unknown;
     error?: string;
 }
 
@@ -341,7 +351,7 @@ export interface EngineReplayResult {
 // ── Main engine interface ───────────────────────────────────────────
 
 export interface IFormEngine {
-    readonly signals: Record<string, EngineSignal<any>>;
+    readonly signals: Record<string, EngineSignal<FormFieldValue>>;
     readonly relevantSignals: Record<string, EngineSignal<boolean>>;
     readonly requiredSignals: Record<string, EngineSignal<boolean>>;
     readonly readonlySignals: Record<string, EngineSignal<boolean>>;
@@ -351,8 +361,8 @@ export interface IFormEngine {
     readonly repeats: Record<string, EngineSignal<number>>;
     readonly optionSignals: Record<string, EngineSignal<OptionEntry[]>>;
     readonly optionStateSignals: Record<string, EngineSignal<RemoteOptionsState>>;
-    readonly variableSignals: Record<string, EngineSignal<any>>;
-    readonly instanceData: Record<string, any>;
+    readonly variableSignals: Record<string, EngineSignal<FormFieldValue>>;
+    readonly instanceData: JsonRecord;
     readonly instanceVersion: EngineSignal<number>;
     readonly structureVersion: EngineSignal<number>;
 
@@ -367,18 +377,18 @@ export interface IFormEngine {
     waitForRemoteOptions(): Promise<void>;
     waitForInstanceSources(): Promise<void>;
 
-    setInstanceValue(name: string, path: string | undefined, value: any): void;
-    getInstanceData(name: string, path?: string): any;
+    setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void;
+    getInstanceData(name: string, path?: string): FormFieldValue;
     getDisabledDisplay(path: string): 'hidden' | 'protected';
 
-    getVariableValue(name: string, scopePath: string): any;
+    getVariableValue(name: string, scopePath: string): FormFieldValue;
 
     addRepeatInstance(itemName: string): number | undefined;
     removeRepeatInstance(itemName: string, index: number): void;
 
-    compileExpression(expression: string, currentItemName?: string): () => any;
+    compileExpression(expression: string, currentItemName?: string): () => FormFieldValue;
 
-    setValue(name: string, value: any): void;
+    setValue(name: string, value: FormFieldValue): void;
 
     getValidationReport(options?: { mode?: 'continuous' | 'submit' }): ValidationReport;
     evaluateShape(shapeId: string): ValidationResult[];
@@ -391,7 +401,7 @@ export interface IFormEngine {
         subject?: { id: string; type?: string };
         authoredSignatures?: AuthoredSignatureInput[];
         mode?: 'continuous' | 'submit';
-    }): any;
+    }): FormResponse;
 
     getDiagnosticsSnapshot(options?: { mode?: 'continuous' | 'submit' }): FormEngineDiagnosticsSnapshot;
     applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult;
@@ -428,9 +438,9 @@ export interface IFormEngine {
     injectExternalValidation?(results: Array<{ path: string; severity: string; code: string; message: string; source?: string }>): void;
     clearExternalValidation?(path?: string): void;
 
-    setRegistryEntries?(entries: any[]): void;
+    setRegistryEntries?(entries: RegistryEntry[]): void;
 
-    migrateResponse(responseData: Record<string, any>, fromVersion: string): Record<string, any>;
+    migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord;
 }
 
 // ── Runtime mapping ─────────────────────────────────────────────────
@@ -456,12 +466,12 @@ export interface MappingDiagnostic {
 
 export interface RuntimeMappingResult {
     direction: MappingDirection;
-    output: any;
+    output: JsonValue | string;
     appliedRules: number;
     diagnostics: MappingDiagnostic[];
 }
 
 export interface IRuntimeMappingEngine {
-    forward(source: any): RuntimeMappingResult;
-    reverse(source: any): RuntimeMappingResult;
+    forward(source: JsonValue | string): RuntimeMappingResult;
+    reverse(source: JsonValue | string): RuntimeMappingResult;
 }
