@@ -44,7 +44,7 @@ struct FixtureSignedPayload {
 struct ResponseFixture {
     response_json: serde_json::Value,
     signature: FixtureAuthoredSignature,
-    signature_method: String,
+    method_uri: String,
     signed_bytes: Vec<u8>,
 }
 
@@ -53,7 +53,7 @@ struct ResponseFixture {
 /// `verification_receipt = false` use [`load_response_fixture`] directly.
 struct VerifiedResponseFixture {
     signature: FixtureAuthoredSignature,
-    signature_method: String,
+    method_uri: String,
     signed_bytes: Vec<u8>,
     receipt_bytes: Vec<u8>,
     receipt: formspec_signature_port::VerificationReceipt,
@@ -175,7 +175,7 @@ fn cross_stack_root() -> PathBuf {
 }
 
 /// Decodes the response-signing method URI from `signatureValue`.
-fn signature_method_from_signature_value(signature_value: &str) -> String {
+fn method_uri_from_signature_value(signature_value: &str) -> String {
     use base64::Engine;
     use formspec_signature_cose::{FORMSPEC_SIG_METHOD_URI_PREFIX, extract_method_uri};
 
@@ -241,12 +241,12 @@ fn load_response_fixture(bundle_name: &str) -> ResponseFixture {
         .expect("digest algorithm");
     let signed_payload = build_signed_payload(&response_json, algorithm).expect("signed payload");
     assert_eq!(signed_payload.digest, signature.signed_payload.digest);
-    let signature_method = signature_method_from_signature_value(&signature.signature_value);
+    let method_uri = method_uri_from_signature_value(&signature.signature_value);
 
     ResponseFixture {
         response_json,
         signature,
-        signature_method,
+        method_uri,
         signed_bytes: signed_payload.canonical_bytes,
     }
 }
@@ -305,13 +305,13 @@ fn load_verified_response_fixture(bundle_name: &str) -> VerifiedResponseFixture 
     let ResponseFixture {
         response_json: _,
         signature,
-        signature_method,
+        method_uri,
         signed_bytes,
     } = load_response_fixture(bundle_name);
     let (receipt_bytes, receipt) = load_receipt_fixture(bundle_name, &signature);
     VerifiedResponseFixture {
         signature,
-        signature_method,
+        method_uri,
         signed_bytes,
         receipt_bytes,
         receipt,
@@ -351,10 +351,7 @@ fn verify_with_ring(fixture: &VerifiedResponseFixture) {
         fixture.receipt.is_verified(),
         "fixture receipt must already attest a verified signature"
     );
-    assert_eq!(
-        fixture.receipt.method.as_str(),
-        fixture.signature_method.as_str()
-    );
+    assert_eq!(fixture.receipt.method.as_str(), fixture.method_uri.as_str());
 
     let registry_path = formspec_root().join("registries/signature-method-registry.json");
     let registry: SignatureMethodRegistry =
@@ -375,7 +372,7 @@ fn verify_with_ring(fixture: &VerifiedResponseFixture) {
             &VerifyRequest {
                 signed_bytes: fixture.signed_bytes.clone(),
                 signature_bytes,
-                signature_method: fixture.signature_method.as_str().into(),
+                method_uri: fixture.method_uri.as_str().into(),
                 key_ref: KeyRef::RawPublicKey(key_bytes),
             },
             &registry,
@@ -564,7 +561,7 @@ fn test_bundle_003_posture_forbids_registered_verified_method() {
     assert!(
         !allowed_methods
             .iter()
-            .any(|method| method.as_str() == Some(fixture.signature_method.as_str())),
+            .any(|method| method.as_str() == Some(fixture.method_uri.as_str())),
         "posture must forbid the otherwise registered and verified signature method"
     );
     let allowed_intents = posture["signaturePolicy"]["allowedSigningIntents"]
@@ -688,7 +685,7 @@ fn test_bundle_004_tampered_signature_admission_failed() {
             &VerifyRequest {
                 signed_bytes: fixture.signed_bytes.clone(),
                 signature_bytes,
-                signature_method: fixture.signature_method.as_str().into(),
+                method_uri: fixture.method_uri.as_str().into(),
                 key_ref: KeyRef::RawPublicKey(key_bytes),
             },
             &registry,
@@ -842,7 +839,7 @@ fn test_bundle_005_response_diverges_from_signed_payload_signed_at() {
     assert!(
         allowed_methods
             .iter()
-            .any(|m| m.as_str() == Some(fixture.signature_method.as_str())),
+            .any(|m| m.as_str() == Some(fixture.method_uri.as_str())),
         "bundle 005 posture must admit the signature method"
     );
     let allowed_intents = posture["signaturePolicy"]["allowedSigningIntents"]
@@ -923,7 +920,7 @@ fn test_bundle_006_deferred_pending_helper_path() {
         registry
             .entries
             .iter()
-            .any(|e| e.id.as_str() == fixture.signature_method.as_str()),
+            .any(|e| e.id.as_str() == fixture.method_uri.as_str()),
         "bundle 006 signature method must be in the production registry"
     );
 
@@ -948,7 +945,7 @@ fn test_bundle_006_deferred_pending_helper_path() {
     assert!(
         allowed_methods
             .iter()
-            .any(|m| m.as_str() == Some(fixture.signature_method.as_str())),
+            .any(|m| m.as_str() == Some(fixture.method_uri.as_str())),
         "bundle 006 posture must admit the signature method (registered + allowed)"
     );
 

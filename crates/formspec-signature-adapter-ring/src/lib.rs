@@ -64,11 +64,12 @@ pub struct RingVerifier {
 fn key_ref_display(key_ref: &KeyRef) -> String {
     use base64::Engine;
     match key_ref {
-        KeyRef::Kid(bytes) => {
-            base64::engine::general_purpose::STANDARD.encode(bytes)
-        }
+        KeyRef::Kid(bytes) => base64::engine::general_purpose::STANDARD.encode(bytes),
         KeyRef::RawPublicKey(bytes) => {
-            format!("raw:{}", base64::engine::general_purpose::STANDARD.encode(bytes))
+            format!(
+                "raw:{}",
+                base64::engine::general_purpose::STANDARD.encode(bytes)
+            )
         }
     }
 }
@@ -208,16 +209,16 @@ impl RingVerifier {
         let Some(signer) = self.receipt_signer.as_ref() else {
             return Ok(());
         };
-        let canonical = canonical_receipt_payload_bytes(receipt).map_err(|reason| {
-            VerifierError::Internal {
+        let canonical =
+            canonical_receipt_payload_bytes(receipt).map_err(|reason| VerifierError::Internal {
                 reason: format!("canonical receipt payload: {reason}"),
-            }
-        })?;
-        let envelope = signer
-            .sign_receipt(&canonical)
-            .map_err(|error| VerifierError::Internal {
-                reason: format!("receipt signer rejected payload: {error}"),
             })?;
+        let envelope =
+            signer
+                .sign_receipt(&canonical)
+                .map_err(|error| VerifierError::Internal {
+                    reason: format!("receipt signer rejected payload: {error}"),
+                })?;
         receipt.receipt_bytes = Some(base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
             envelope,
@@ -232,7 +233,7 @@ impl RingVerifier {
     ) -> VerificationReceipt {
         VerificationReceipt {
             result: VerificationResult::Unsupported,
-            method: request.signature_method.clone(),
+            method: request.method_uri.clone(),
             method_registry_version: registry.version.clone(),
             adapter: self.adapter_info.clone(),
             key: KeyInfo {
@@ -253,7 +254,7 @@ impl RingVerifier {
     ) -> VerificationReceipt {
         VerificationReceipt {
             result: VerificationResult::Failed,
-            method: request.signature_method.clone(),
+            method: request.method_uri.clone(),
             method_registry_version: registry.version.clone(),
             adapter: self.adapter_info.clone(),
             key: KeyInfo {
@@ -274,7 +275,7 @@ impl RingVerifier {
     ) -> VerificationReceipt {
         VerificationReceipt {
             result: VerificationResult::Verified,
-            method: request.signature_method.clone(),
+            method: request.method_uri.clone(),
             method_registry_version: registry.version.clone(),
             adapter: self.adapter_info.clone(),
             key: KeyInfo {
@@ -348,7 +349,7 @@ impl RingVerifier {
         request: &VerifyRequest,
         registry: &SignatureMethodRegistry,
     ) -> Result<VerificationReceipt, VerifierError> {
-        let entry = registry.resolve(&request.signature_method);
+        let entry = registry.resolve(&request.method_uri);
         let entry = match entry {
             Some(e) => {
                 // Allowlist: only the literal "registered" lifecycle status
@@ -377,26 +378,26 @@ impl RingVerifier {
         //     skip resolution and skip the kid-binding check (no identifier
         //     to bind).
         let key_bytes = match &request.key_ref {
-            KeyRef::Kid(_) => self.key_resolver.resolve(&request.key_ref).map_err(|error| {
-                match error {
-                    // KeyNotFound is the caller-distinguishable case but still
-                    // an adapter-internal verdict-not-reached situation: the
-                    // verifier could not check the signature because the kid
-                    // pointed to nothing. fs-no9r: don't collapse to 'failed'.
-                    KeyResolverError::KeyNotFound { kid } => VerifierError::Internal {
-                        reason: format!(
-                            "key resolver: kid not found ({} bytes)",
-                            kid.len()
-                        ),
-                    },
-                    KeyResolverError::UnsupportedKeyRef(reason) => VerifierError::Internal {
-                        reason: format!("key resolver: unsupported key ref: {reason}"),
-                    },
-                    KeyResolverError::Internal(reason) => VerifierError::Internal {
-                        reason: format!("key resolver: {reason}"),
-                    },
-                }
-            })?,
+            KeyRef::Kid(_) => self
+                .key_resolver
+                .resolve(&request.key_ref)
+                .map_err(|error| {
+                    match error {
+                        // KeyNotFound is the caller-distinguishable case but still
+                        // an adapter-internal verdict-not-reached situation: the
+                        // verifier could not check the signature because the kid
+                        // pointed to nothing. fs-no9r: don't collapse to 'failed'.
+                        KeyResolverError::KeyNotFound { kid } => VerifierError::Internal {
+                            reason: format!("key resolver: kid not found ({} bytes)", kid.len()),
+                        },
+                        KeyResolverError::UnsupportedKeyRef(reason) => VerifierError::Internal {
+                            reason: format!("key resolver: unsupported key ref: {reason}"),
+                        },
+                        KeyResolverError::Internal(reason) => VerifierError::Internal {
+                            reason: format!("key resolver: {reason}"),
+                        },
+                    }
+                })?,
             KeyRef::RawPublicKey(bytes) => bytes.clone(),
         };
 
@@ -405,11 +406,7 @@ impl RingVerifier {
                 // Per-algorithm key-length validation. Wrong-length keys never
                 // reach ring's primitive routines.
                 if let Err(reason) = validate_key_length_for_alg(alg, &key_bytes) {
-                    return Ok(self.unsupported_receipt_with_reason(
-                        request,
-                        registry,
-                        reason,
-                    ));
+                    return Ok(self.unsupported_receipt_with_reason(request, registry, reason));
                 }
                 let (cose, method_uri) =
                     formspec_signature_cose::decode_cose_sign1_with_method_uri(
@@ -419,13 +416,13 @@ impl RingVerifier {
                     .map_err(|error| VerifierError::InvalidCoseEncoding {
                         reason: error.to_string(),
                     })?;
-                if method_uri != request.signature_method.as_str() {
+                if method_uri != request.method_uri.as_str() {
                     return Ok(self.unsupported_receipt_with_reason(
                         request,
                         registry,
                         format!(
                             "method_uri mismatch: request {:?} != cose {:?}",
-                            request.signature_method.as_str(),
+                            request.method_uri.as_str(),
                             method_uri
                         ),
                     ));
@@ -658,7 +655,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes: vec![4, 5, 6],
-                    signature_method: "urn:formspec:sig-method:unknown@1".into(),
+                    method_uri: "urn:formspec:sig-method:unknown@1".into(),
                     key_ref: placeholder_raw_public_key(),
                 },
                 &registry,
@@ -689,7 +686,7 @@ mod tests {
         VerifyRequest {
             signed_bytes: vec![1, 2, 3],
             signature_bytes: vec![4, 5, 6],
-            signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+            method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
             key_ref: placeholder_raw_public_key(),
         }
     }
@@ -792,7 +789,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes: vec![4, 5, 6],
-                    signature_method: "urn:formspec:sig-method:unknown@1".into(),
+                    method_uri: "urn:formspec:sig-method:unknown@1".into(),
                     key_ref: placeholder_raw_public_key(),
                 },
                 &registry,
@@ -811,7 +808,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes: vec![4, 5, 6],
-                    signature_method: "urn:formspec:sig-method:ml-dsa-65-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ml-dsa-65-cose-sign1@1".into(),
                     key_ref: placeholder_raw_public_key(),
                 },
                 &registry,
@@ -843,7 +840,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: vec![1, 2, 3],
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(placeholder_p256),
                 },
                 &registry,
@@ -871,7 +868,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: b"test message".to_vec(),
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(key_bytes),
                 },
                 &registry,
@@ -895,7 +892,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: b"test message".to_vec(),
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(vec![0u8; 32]),
                 },
                 &registry,
@@ -930,7 +927,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: b"test message".to_vec(),
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(vec![0u8; 32]),
                 },
                 &registry,
@@ -969,7 +966,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(key_pair.public_key().as_ref().to_vec()),
                 },
                 &registry,
@@ -1062,10 +1059,8 @@ mod tests {
 
     #[test]
     fn read_committed_vector_or_panic_returns_file_contents_when_present() {
-        let temp_path = std::env::temp_dir().join(format!(
-            "fs-wxoz-helper-{}.json",
-            std::process::id()
-        ));
+        let temp_path =
+            std::env::temp_dir().join(format!("fs-wxoz-helper-{}.json", std::process::id()));
         std::fs::write(&temp_path, r#"{"test":"content"}"#).expect("write temp");
         let contents = read_committed_vector_or_panic(&temp_path, "test.json");
         std::fs::remove_file(&temp_path).ok();
@@ -1081,9 +1076,8 @@ mod tests {
         // Best-effort cleanup in case a prior run left state on disk.
         std::fs::remove_file(&missing).ok();
 
-        let result = std::panic::catch_unwind(|| {
-            read_committed_vector_or_panic(&missing, "missing.json")
-        });
+        let result =
+            std::panic::catch_unwind(|| read_committed_vector_or_panic(&missing, "missing.json"));
 
         assert!(result.is_err(), "must panic when fixture absent");
         let err = result.unwrap_err();
@@ -1112,10 +1106,7 @@ mod tests {
     fn write_vector(path: &std::path::Path, vector: &GoldenVector<'_>) {
         let mut s = String::new();
         s.push_str("{\n");
-        s.push_str(&format!(
-            "  \"signature_method\": \"{}\",\n",
-            vector.signature_method
-        ));
+        s.push_str(&format!("  \"method_uri\": \"{}\",\n", vector.method_uri));
         s.push_str(&format!("  \"registry_alg\": {},\n", vector.registry_alg));
         s.push_str("  \"adapter\": {\n");
         s.push_str("    \"id\": \"urn:formspec:adapter:ring@1\",\n");
@@ -1127,7 +1118,11 @@ mod tests {
         ));
         s.push_str(&hex_b64_field("public_key", vector.public_key, false));
         s.push_str(&hex_b64_field("signed_bytes", vector.signed_bytes, false));
-        s.push_str(&hex_b64_field("protected_header", vector.protected_header, false));
+        s.push_str(&hex_b64_field(
+            "protected_header",
+            vector.protected_header,
+            false,
+        ));
         s.push_str(&hex_b64_field("sig_structure", vector.sig_structure, false));
         s.push_str(&hex_b64_field("raw_signature", vector.raw_signature, false));
         s.push_str(&hex_b64_field(
@@ -1149,7 +1144,7 @@ mod tests {
     }
 
     struct GoldenVector<'a> {
-        signature_method: &'a str,
+        method_uri: &'a str,
         registry_alg: i32,
         public_key_format: &'a str,
         public_key: &'a [u8],
@@ -1166,10 +1161,14 @@ mod tests {
         // strings. The inner `"base64": "<value>"` is unique per field after
         // its enclosing `"<field>":` opener.
         let anchor = format!("\"{field}\": {{");
-        let start = json.find(&anchor).unwrap_or_else(|| panic!("missing field {field}"));
+        let start = json
+            .find(&anchor)
+            .unwrap_or_else(|| panic!("missing field {field}"));
         let after = &json[start..];
         let b64_anchor = "\"base64\": \"";
-        let b64_start = after.find(b64_anchor).unwrap_or_else(|| panic!("missing base64 for {field}"));
+        let b64_start = after
+            .find(b64_anchor)
+            .unwrap_or_else(|| panic!("missing base64 for {field}"));
         let payload_start = start + b64_start + b64_anchor.len();
         let rest = &json[payload_start..];
         let payload_end = rest.find('"').expect("unterminated base64 string");
@@ -1177,7 +1176,10 @@ mod tests {
     }
 
     fn maybe_regenerate() -> bool {
-        std::env::var("FORMSPEC_REGENERATE_GOLDEN_VECTORS").ok().as_deref() == Some("1")
+        std::env::var("FORMSPEC_REGENERATE_GOLDEN_VECTORS")
+            .ok()
+            .as_deref()
+            == Some("1")
     }
 
     fn flip_inner_signature(cose_bytes: &[u8], raw_sig: &[u8]) -> Vec<u8> {
@@ -1214,16 +1216,10 @@ mod tests {
             b"test-kid",
             "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
         );
-        let sig_structure =
-            formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
-        let raw_signature = key_pair
-            .sign(&rng, &sig_structure)
-            .expect("ecdsa sign");
-        let signature_bytes = formspec_signature_cose::encode_cose_sign1(
-            &protected,
-            None,
-            raw_signature.as_ref(),
-        );
+        let sig_structure = formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
+        let raw_signature = key_pair.sign(&rng, &sig_structure).expect("ecdsa sign");
+        let signature_bytes =
+            formspec_signature_cose::encode_cose_sign1(&protected, None, raw_signature.as_ref());
         let public_key_bytes = key_pair.public_key().as_ref().to_vec();
 
         let verifier = RingVerifier::new();
@@ -1235,7 +1231,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: signature_bytes.clone(),
-                    signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
@@ -1254,7 +1250,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: tampered,
-                    signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
@@ -1271,7 +1267,7 @@ mod tests {
             write_vector(
                 &fixture_dir().join("ecdsa-p256-sha256.json"),
                 &GoldenVector {
-                    signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
+                    method_uri: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
                     registry_alg: -7,
                     public_key_format: "SEC1 uncompressed P-256 (65 bytes, 0x04 prefix)",
                     public_key: &public_key_bytes,
@@ -1303,8 +1299,7 @@ mod tests {
             b"test-kid",
             "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1",
         );
-        let sig_structure =
-            formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
+        let sig_structure = formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
 
         let mut raw_signature = vec![0u8; key_pair.public().modulus_len()];
         key_pair
@@ -1316,11 +1311,8 @@ mod tests {
             )
             .expect("rsa-pss sign");
 
-        let signature_bytes = formspec_signature_cose::encode_cose_sign1(
-            &protected,
-            None,
-            &raw_signature,
-        );
+        let signature_bytes =
+            formspec_signature_cose::encode_cose_sign1(&protected, None, &raw_signature);
 
         use ring::signature::KeyPair as _;
         let public_key_bytes = key_pair.public_key().as_ref().to_vec();
@@ -1333,7 +1325,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: signature_bytes.clone(),
-                    signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
@@ -1351,7 +1343,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes: signed_bytes.clone(),
                     signature_bytes: tampered,
-                    signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
                 },
                 &registry,
@@ -1368,7 +1360,7 @@ mod tests {
             write_vector(
                 &fixture_dir().join("rsa-pss-sha256.json"),
                 &GoldenVector {
-                    signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1",
+                    method_uri: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1",
                     registry_alg: -37,
                     public_key_format: "DER-encoded RSAPublicKey (PKCS#1 SEQUENCE { n, e })",
                     public_key: &public_key_bytes,
@@ -1403,7 +1395,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key),
                 },
                 &registry,
@@ -1427,7 +1419,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key),
                 },
                 &registry,
@@ -1447,15 +1439,14 @@ mod tests {
         let key_pair = signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref()).expect("parse key");
         let signed_bytes = b"formspec receipt-signing happy path".to_vec();
         // Build a response-signing envelope (sig-method prefix). The helper
-        // builds a VerifyRequest whose signature_method is sig-method:ed25519
+        // builds a VerifyRequest whose method_uri is sig-method:ed25519
         // (line below); the verifier rejects mismatched prefixes per ADR 0109.
         let protected = formspec_signature_cose::protected_header_bytes(
             -8,
             b"test-kid",
             "urn:formspec:sig-method:ed25519-cose-sign1@1",
         );
-        let sig_structure =
-            formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
+        let sig_structure = formspec_signature_cose::sig_structure_bytes(&protected, &signed_bytes);
         let raw_sig = key_pair.sign(&sig_structure);
         let signature_bytes =
             formspec_signature_cose::encode_cose_sign1(&protected, None, raw_sig.as_ref());
@@ -1463,7 +1454,7 @@ mod tests {
         let request = VerifyRequest {
             signed_bytes,
             signature_bytes,
-            signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+            method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
             key_ref: KeyRef::RawPublicKey(public_key_bytes.clone()),
         };
         (request, public_key_bytes)
@@ -1475,9 +1466,7 @@ mod tests {
     fn verifier_without_receipt_signer_leaves_receipt_bytes_none() {
         let verifier = RingVerifier::new();
         let (request, _) = verified_ed25519_request();
-        let receipt = verifier
-            .verify(&request, &test_registry())
-            .expect("verify");
+        let receipt = verifier.verify(&request, &test_registry()).expect("verify");
         assert!(receipt.is_verified());
         assert!(
             receipt.receipt_bytes.is_none(),
@@ -1498,19 +1487,15 @@ mod tests {
         );
         let verifier = RingVerifier::new_with_receipt_signer(Arc::new(signer));
         let (request, _) = verified_ed25519_request();
-        let receipt = verifier
-            .verify(&request, &test_registry())
-            .expect("verify");
+        let receipt = verifier.verify(&request, &test_registry()).expect("verify");
         assert!(receipt.is_verified());
         let envelope_b64 = receipt
             .receipt_bytes
             .as_ref()
             .expect("receipt_bytes must be populated when signer is wired");
-        let envelope = base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            envelope_b64,
-        )
-        .expect("base64 decode envelope");
+        let envelope =
+            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, envelope_b64)
+                .expect("base64 decode envelope");
 
         let (cose, _) = formspec_signature_cose::decode_cose_sign1_with_method_uri(
             &envelope,
@@ -1531,8 +1516,7 @@ mod tests {
             .expect("payload resolves");
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(cose.protected_header(), payload);
-        let public_key =
-            signature::UnparsedPublicKey::new(&signature::ED25519, &signer_pub_key);
+        let public_key = signature::UnparsedPublicKey::new(&signature::ED25519, &signer_pub_key);
         public_key
             .verify(&sig_structure, cose.signature())
             .expect("receipt signature must verify under signer's public key");
@@ -1556,7 +1540,10 @@ mod tests {
         let env_b = signer.sign_receipt(payload_b).expect("sign b");
 
         assert_eq!(env_a1, env_a2, "Ed25519 signing must be deterministic");
-        assert_ne!(env_a1, env_b, "distinct payloads must produce distinct envelopes");
+        assert_ne!(
+            env_a1, env_b,
+            "distinct payloads must produce distinct envelopes"
+        );
     }
 
     /// Tampering the receipt payload must break receipt-signature
@@ -1576,8 +1563,7 @@ mod tests {
         let tampered_payload = b"tampered canonical receipt payload";
         let sig_structure =
             formspec_signature_cose::sig_structure_bytes(cose.protected_header(), tampered_payload);
-        let public_key =
-            signature::UnparsedPublicKey::new(&signature::ED25519, &public_key_bytes);
+        let public_key = signature::UnparsedPublicKey::new(&signature::ED25519, &public_key_bytes);
         public_key
             .verify(&sig_structure, cose.signature())
             .expect_err("tampered payload must fail signature verification");
@@ -1690,7 +1676,7 @@ mod tests {
         // Construct an Unsupported verdict by routing through an unknown
         // signature method (registry resolve returns None → unsupported).
         let (mut request, _) = verified_ed25519_request();
-        request.signature_method = "urn:formspec:sig-method:nonexistent@99".into();
+        request.method_uri = "urn:formspec:sig-method:nonexistent@99".into();
 
         let receipt = verifier
             .verify(&request, &test_registry())
@@ -1714,8 +1700,7 @@ mod tests {
     /// unsigned receipt collapses that distinction. fs-abjt.
     #[test]
     fn verifier_with_failing_signer_returns_verifier_error_internal() {
-        let verifier =
-            RingVerifier::new_with_receipt_signer(Arc::new(FailingReceiptSigner));
+        let verifier = RingVerifier::new_with_receipt_signer(Arc::new(FailingReceiptSigner));
         let (request, _) = verified_ed25519_request();
         let err = verifier
             .verify(&request, &test_registry())
@@ -1766,8 +1751,7 @@ mod tests {
     #[test]
     fn ed25519_kid_path_via_static_resolver_verifies() {
         let kid = b"audit-kid-A".to_vec();
-        let (signed_bytes, signature_bytes, public_key) =
-            ed25519_envelope_with_kid(&kid);
+        let (signed_bytes, signature_bytes, public_key) = ed25519_envelope_with_kid(&kid);
 
         let mut resolver = StaticKeyResolver::empty();
         resolver.insert(kid.clone(), public_key);
@@ -1779,7 +1763,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::Kid(kid),
                 },
                 &registry,
@@ -1812,7 +1796,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::Kid(request_kid),
                 },
                 &registry,
@@ -1834,8 +1818,7 @@ mod tests {
         let (signed_bytes, signature_bytes, _) = ed25519_envelope_with_kid(&envelope_kid);
 
         // Empty resolver — any Kid resolves to KeyNotFound.
-        let verifier =
-            RingVerifier::new_with_key_resolver(Arc::new(StaticKeyResolver::empty()));
+        let verifier = RingVerifier::new_with_key_resolver(Arc::new(StaticKeyResolver::empty()));
         let registry = test_registry();
 
         let error = verifier
@@ -1843,7 +1826,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::Kid(envelope_kid),
                 },
                 &registry,
@@ -1876,7 +1859,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(vec![0u8; 31]),
                 },
                 &registry,
@@ -1908,7 +1891,7 @@ mod tests {
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::Kid(b"k".to_vec()),
                 },
                 &registry,
@@ -1925,15 +1908,14 @@ mod tests {
     fn receipt_key_ref_field_distinguishes_kid_from_raw_public_key() {
         let registry = test_registry();
         let verifier = RingVerifier::new();
-        let (signed_bytes, signature_bytes, public_key) =
-            ed25519_envelope_with_kid(b"kid-X");
+        let (signed_bytes, signature_bytes, public_key) = ed25519_envelope_with_kid(b"kid-X");
 
         let receipt = verifier
             .verify(
                 &VerifyRequest {
                     signed_bytes,
                     signature_bytes,
-                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    method_uri: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
                     key_ref: KeyRef::RawPublicKey(public_key),
                 },
                 &registry,

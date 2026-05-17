@@ -1,5 +1,5 @@
 {
-  "signature_method": "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
+  "method_uri": "urn:formspec:sig-method:ecdsa-p256-cose-sign1@1",
   "registry_alg": -7,
   "adapter": {
     "id": "urn:formspec:adapter:ring@1",

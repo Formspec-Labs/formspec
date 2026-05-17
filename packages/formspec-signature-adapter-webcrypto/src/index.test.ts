@@ -80,7 +80,7 @@ function loadRegistry(): SignatureMethodRegistry {
 const TEST_REGISTRY: SignatureMethodRegistry = loadRegistry();
 
 interface RingGoldenVector {
-  signature_method: string;
+  method_uri: string;
   public_key: { hex: string; base64: string };
   signed_bytes: { hex: string; base64: string };
   signature_bytes_cose_sign1: { hex: string; base64: string };
@@ -243,7 +243,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: tampered,
-        methodUri: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
+        methodUri: uri(fixture.method_uri),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -262,7 +262,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
-        methodUri: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
+        methodUri: uri(fixture.method_uri),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -561,7 +561,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
-        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri(fixture.method_uri),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -586,7 +586,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: tampered,
-        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri(fixture.method_uri),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
