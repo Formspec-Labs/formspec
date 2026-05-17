@@ -1,4 +1,4 @@
-"""Method-URI fail-closed parity for ADR 0109 consumer signatures."""
+"""Method-URI fail-closed fixture classification for ADR 0109."""
 
 from __future__ import annotations
 
@@ -103,7 +103,7 @@ def _classify_method(method_uri: str, expected_prefix: str, registered: set[str]
     return "accepted"
 
 
-def test_python_classifies_committed_method_uri_rejection_fixtures() -> None:
+def test_python_fixture_classifier_reads_committed_method_uri_rejections() -> None:
     registered = _registered_methods()
     for path in sorted(FIXTURE_DIR.glob("*.json")):
         fixture = json.loads(path.read_text())

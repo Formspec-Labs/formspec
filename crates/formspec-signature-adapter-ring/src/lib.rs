@@ -411,7 +411,7 @@ impl RingVerifier {
                         reason,
                     ));
                 }
-                let (cose, _method_uri) =
+                let (cose, method_uri) =
                     formspec_signature_cose::decode_cose_sign1_with_method_uri(
                         &request.signature_bytes,
                         formspec_signature_cose::FORMSPEC_SIG_METHOD_URI_PREFIX,
@@ -419,6 +419,17 @@ impl RingVerifier {
                     .map_err(|error| VerifierError::InvalidCoseEncoding {
                         reason: error.to_string(),
                     })?;
+                if method_uri != request.signature_method.as_str() {
+                    return Ok(self.unsupported_receipt_with_reason(
+                        request,
+                        registry,
+                        format!(
+                            "method_uri mismatch: request {:?} != cose {:?}",
+                            request.signature_method.as_str(),
+                            method_uri
+                        ),
+                    ));
+                }
                 if cose.alg() != Some(i128::from(alg)) {
                     return Ok(self.failed_receipt(request, registry));
                 }
@@ -900,6 +911,36 @@ mod tests {
             }
             other => panic!("expected InvalidCoseEncoding error, got: {other}"),
         }
+    }
+
+    #[test]
+    fn ring_adapter_rejects_within_subspace_method_uri_inequality_before_crypto() {
+        let verifier = RingVerifier::new();
+        let registry = test_registry();
+        let protected = formspec_signature_cose::protected_header_bytes(
+            -8,
+            b"test-kid",
+            "urn:formspec:sig-method:ed25519-cose-sign1@99",
+        );
+        let signature_bytes =
+            formspec_signature_cose::encode_cose_sign1(&protected, None, &[0u8; 64]);
+
+        let receipt = verifier
+            .verify(
+                &VerifyRequest {
+                    signed_bytes: b"test message".to_vec(),
+                    signature_bytes,
+                    signature_method: "urn:formspec:sig-method:ed25519-cose-sign1@1".into(),
+                    key_ref: KeyRef::RawPublicKey(vec![0u8; 32]),
+                },
+                &registry,
+            )
+            .expect("method_uri mismatch should reach an unsupported verdict");
+
+        assert!(
+            receipt.is_unsupported(),
+            "method_uri mismatch must reject before invalid signature bytes produce Failed"
+        );
     }
 
     #[test]
