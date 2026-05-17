@@ -126,12 +126,14 @@ def _scan_linter_source_for_codes() -> set[str]:
     import re
 
     src_root = REPO_ROOT / "crates" / "formspec-lint" / "src"
-    code_pattern = re.compile(r'"([EW]\d{3})"')
+    string_pattern = re.compile(r'"([EW]\d{3})"')
+    enum_pattern = re.compile(r"LintCode::([EW]\d{3})")
     codes: set[str] = set()
     for path in src_root.rglob("*.rs"):
         text = path.read_text(encoding="utf-8")
         production_text = _strip_test_modules(text)
-        codes.update(code_pattern.findall(production_text))
+        codes.update(string_pattern.findall(production_text))
+        codes.update(enum_pattern.findall(production_text))
     return codes
 
 
