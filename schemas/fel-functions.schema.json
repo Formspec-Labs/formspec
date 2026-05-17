@@ -1868,6 +1868,66 @@
       ]
     },
     {
+      "name": "formatNumber",
+      "category": "locale",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "number",
+          "description": "Numeric value to format."
+        },
+        {
+          "name": "localeTag",
+          "type": "string",
+          "description": "Optional BCP 47 tag; defaults to locale().",
+          "required": false
+        }
+      ],
+      "returns": "string",
+      "description": "Formats a number using locale decimal and grouping conventions.",
+      "nullHandling": "Null value returns null.",
+      "deterministic": true,
+      "examples": [
+        {
+          "expression": "formatNumber(1234.5, 'en')",
+          "result": "1,234.5"
+        }
+      ]
+    },
+    {
+      "name": "formatDate",
+      "category": "locale",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "any",
+          "description": "FEL date value or ISO 8601 date string."
+        },
+        {
+          "name": "pattern",
+          "type": "string",
+          "description": "short, medium, long, or full; defaults to medium.",
+          "required": false
+        },
+        {
+          "name": "localeTag",
+          "type": "string",
+          "description": "Optional BCP 47 tag; defaults to locale().",
+          "required": false
+        }
+      ],
+      "returns": "string",
+      "description": "Formats a date using a deterministic cross-runtime subset (en/fr month names for medium/long/full; not full CLDR).",
+      "nullHandling": "Null value returns null.",
+      "deterministic": true,
+      "examples": [
+        {
+          "expression": "formatDate('2026-05-17', 'medium', 'en')",
+          "result": "May 17, 2026"
+        }
+      ]
+    },
+    {
       "name": "valid",
       "category": "mip",
       "parameters": [

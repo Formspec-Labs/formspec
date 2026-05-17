@@ -1804,6 +1804,8 @@ cardinal plural rules.
 | `locale` | `locale() → string` | `string` | Returns the active BCP 47 locale tag from the evaluation context, or `null` if the host has not set a locale. |
 | `runtimeMeta` | `runtimeMeta(string) → any` | `any` | Returns the value for `key` from the host-supplied runtime metadata map, or `null` if absent. The key MUST be a string. |
 | `pluralCategory` | `pluralCategory(number, string?) → string` | `string` | Returns the CLDR cardinal plural category for the integer part of `count` (toward zero): one of `zero`, `one`, `two`, `few`, `many`, or `other`. If the optional locale argument is omitted, the active context locale (see `locale()`) is used; if no locale is available, returns `null`. Unsupported or unparseable locale tags SHOULD fall back to English cardinal rules. |
+| `formatNumber` | `formatNumber(number, string?) → string` | `string` | Formats a number using deterministic locale decimal and grouping conventions. If the optional locale argument is omitted, the active context locale is used. Unsupported or unparseable locale tags SHOULD fall back to English formatting. |
+| `formatDate` | `formatDate(any, string?, string?) → string` | `string` | Formats a FEL date value or ISO 8601 date string using the `short`, `medium`, `long`, or `full` pattern. The pattern defaults to `medium`; the optional locale argument defaults to the active context locale. Unsupported or unparseable locale tags SHOULD fall back to English formatting. |
 
 ### 3.6 Dependency Tracking
 

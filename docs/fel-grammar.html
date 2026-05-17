@@ -632,6 +632,12 @@ subscripts may be chained: <code>$a[1].nested[*].value</code> is
 valid.</li>
 </ol>
 <h2 id="conformance">7. Conformance</h2>
+<p>Locale formatting builtins (<code>formatNumber</code>,
+<code>formatDate</code>) and other cataloged functions are not part of
+this grammar; their syntax is <code>Identifier '(' … ')'</code> as in
+§4. Semantics and conformance fixtures are defined in <a
+href="../../docs/SPEC.md"><code>docs/SPEC.md</code></a> and
+<code>conformance/fel-conformance.jsonl</code>.</p>
 <p>A conformant FEL parser:</p>
 <ol type="1">
 <li><strong>MUST</strong> accept all input strings that match the
