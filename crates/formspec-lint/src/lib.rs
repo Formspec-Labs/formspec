@@ -19,6 +19,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
+mod generated;
 mod lint_json;
 mod metadata;
 mod schema_validation;
@@ -40,6 +41,7 @@ use formspec_core::{DocumentType, detect_document_type};
 
 // Re-export public types
 pub use lint_json::lint_result_to_json_value;
+pub use generated::LintCode;
 pub use types::{
     LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
 };
@@ -57,7 +59,7 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
 
     let Some(doc_type) = detect_document_type(doc) else {
         diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
-            "E100",
+            crate::LintCode::E100,
             1,
             "$",
             "Cannot determine document type",
@@ -226,7 +228,7 @@ mod tests {
         let doc = json!({ "random": "data" });
         let result = lint(&doc);
         assert!(!result.valid);
-        assert!(result.diagnostics.iter().any(|d| d.code == "E100"));
+        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E100));
         assert_eq!(result.diagnostics.len(), 1, "Should halt after E100");
     }
 
@@ -246,7 +248,7 @@ mod tests {
             ]
         });
         let result = lint(&def);
-        assert!(result.diagnostics.iter().any(|d| d.code == "E201"));
+        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E201));
         assert_eq!(
             result.diagnostics.iter().filter(|d| d.pass >= 3).count(),
             0,
@@ -300,7 +302,7 @@ mod tests {
             },
         );
         assert_eq!(
-            rt.diagnostics.iter().filter(|d| d.code == "W300").count(),
+            rt.diagnostics.iter().filter(|d| d.code == crate::LintCode::W300).count(),
             1
         );
         let auth = lint_with_options(
@@ -311,7 +313,7 @@ mod tests {
             },
         );
         assert_eq!(
-            auth.diagnostics.iter().filter(|d| d.code == "W300").count(),
+            auth.diagnostics.iter().filter(|d| d.code == crate::LintCode::W300).count(),
             0
         );
     }
@@ -335,7 +337,7 @@ mod tests {
         let e400 = result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E400" && d.path.contains("screener"))
+            .filter(|d| d.code == crate::LintCode::E400 && d.path.contains("screener"))
             .collect::<Vec<_>>();
         assert_eq!(e400.len(), 1);
         assert!(e400[0].path.contains("routes[1]"));
@@ -361,7 +363,7 @@ mod tests {
         let screener_errors = result
             .diagnostics
             .iter()
-            .filter(|d| d.path.contains("screener") && d.code != "E101")
+            .filter(|d| d.path.contains("screener") && d.code != crate::LintCode::E101)
             .count();
         assert_eq!(
             screener_errors, 0,
@@ -421,7 +423,7 @@ mod tests {
         let result = lint(&def);
 
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E201"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E201),
             "E201 should be present"
         );
         assert!(
@@ -459,7 +461,7 @@ mod tests {
         let w300_runtime = runtime_result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "W300")
+            .filter(|d| d.code == crate::LintCode::W300)
             .count();
         assert_eq!(w300_runtime, 1, "Runtime mode should emit W300");
 
@@ -473,7 +475,7 @@ mod tests {
         let w300_authoring = authoring_result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "W300")
+            .filter(|d| d.code == crate::LintCode::W300)
             .count();
         assert_eq!(w300_authoring, 0, "Authoring mode should suppress W300");
     }
@@ -505,7 +507,7 @@ mod tests {
         let e600 = result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E600")
+            .filter(|d| d.code == crate::LintCode::E600)
             .collect::<Vec<_>>();
         assert_eq!(e600.len(), 1);
         assert!(e600[0].message.contains("x-unknown-ext"));
@@ -524,7 +526,7 @@ mod tests {
             result
                 .diagnostics
                 .iter()
-                .filter(|d| d.code == "E600")
+                .filter(|d| d.code == crate::LintCode::E600)
                 .count(),
             1,
             "Should emit E600 for enabled extension with no registries"
@@ -546,13 +548,13 @@ mod tests {
         });
         let result = lint(&theme);
         assert_eq!(result.document_type, Some(DocumentType::Theme));
-        assert!(result.diagnostics.iter().any(|d| d.code == "W704"));
+        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::W704));
         // Expect W704 (missing token ref), W708/W709 (registry checks), plus E101 from schema
         // Filter to only W704 — the core check this test validates
         let w704_count = result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "W704")
+            .filter(|d| d.code == crate::LintCode::W704)
             .count();
         assert_eq!(
             w704_count,
@@ -561,7 +563,7 @@ mod tests {
             result
                 .diagnostics
                 .iter()
-                .filter(|d| d.code == "W704")
+                .filter(|d| d.code == crate::LintCode::W704)
                 .map(|d| (&d.code, &d.message))
                 .collect::<Vec<_>>()
         );
@@ -600,7 +602,7 @@ mod tests {
             runtime_result
                 .diagnostics
                 .iter()
-                .filter(|d| d.code == "W802")
+                .filter(|d| d.code == crate::LintCode::W802)
                 .count(),
             1,
             "Runtime mode should emit W802"
@@ -618,7 +620,7 @@ mod tests {
             authoring_result
                 .diagnostics
                 .iter()
-                .filter(|d| d.code == "W802")
+                .filter(|d| d.code == crate::LintCode::W802)
                 .count(),
             0,
             "Authoring mode should suppress W802"
@@ -635,7 +637,7 @@ mod tests {
         });
         let result = lint(&comp);
         assert_eq!(result.document_type, Some(DocumentType::Component));
-        assert!(result.diagnostics.iter().any(|d| d.code == "E800"));
+        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E800));
     }
 
     /// Cross-pass integration: definition with errors across passes 3, 4, and 5.
@@ -657,15 +659,15 @@ mod tests {
         });
         let result = lint(&def);
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E300"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E300),
             "Should have E300"
         );
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E301"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E301),
             "Should have E301"
         );
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E500"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E500),
             "Should have E500"
         );
         let passes: Vec<u8> = result.diagnostics.iter().map(|d| d.pass).collect();
@@ -723,7 +725,7 @@ mod tests {
             },
         );
         assert!(!result.valid);
-        assert!(result.diagnostics.iter().any(|d| d.code == "E100"));
+        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E100));
     }
 
     // ── no_fel: skips passes 4 and 5 ────────────────────────────
@@ -745,7 +747,7 @@ mod tests {
         });
         let full_result = lint(&def);
         assert!(
-            full_result.diagnostics.iter().any(|d| d.code == "E400"),
+            full_result.diagnostics.iter().any(|d| d.code == crate::LintCode::E400),
             "Full lint should report E400"
         );
 
@@ -757,11 +759,11 @@ mod tests {
             },
         );
         assert!(
-            !result.diagnostics.iter().any(|d| d.code == "E400"),
+            !result.diagnostics.iter().any(|d| d.code == crate::LintCode::E400),
             "no_fel should skip E400"
         );
         assert!(
-            !result.diagnostics.iter().any(|d| d.code == "E500"),
+            !result.diagnostics.iter().any(|d| d.code == crate::LintCode::E500),
             "no_fel should skip E500"
         );
     }
@@ -783,7 +785,7 @@ mod tests {
             },
         );
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E300"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E300),
             "no_fel should still run pass 3 reference checks"
         );
     }
@@ -820,7 +822,7 @@ mod tests {
         let w802 = result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "W802")
+            .filter(|d| d.code == crate::LintCode::W802)
             .collect::<Vec<_>>();
         assert_eq!(w802.len(), 1);
         assert_eq!(
@@ -851,7 +853,7 @@ mod tests {
         let e600: Vec<_> = result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E600")
+            .filter(|d| d.code == crate::LintCode::E600)
             .collect();
         assert_eq!(
             e600.len(),
@@ -876,7 +878,7 @@ mod tests {
         });
         let result = lint(&def);
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E101"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E101),
             "Should emit E101 for invalid dataType 'blob', got: {:?}",
             result
                 .diagnostics
@@ -899,7 +901,7 @@ mod tests {
         });
         let result = lint(&def);
         assert!(
-            !result.diagnostics.iter().any(|d| d.code == "E101"),
+            !result.diagnostics.iter().any(|d| d.code == crate::LintCode::E101),
             "Valid definition should not produce E101, got: {:?}",
             result
                 .diagnostics
@@ -943,7 +945,7 @@ mod tests {
         let result = lint(&resp);
         assert_eq!(result.document_type, Some(DocumentType::Response));
         assert!(
-            result.diagnostics.iter().any(|d| d.code == "E900"),
+            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E900),
             "lint MUST reject pin-mismatch — got codes: {:?}",
             result
                 .diagnostics
@@ -969,7 +971,7 @@ mod tests {
         let e101: Vec<_> = result
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E101")
+            .filter(|d| d.code == crate::LintCode::E101)
             .collect();
         assert!(!e101.is_empty());
         // The path should reference items[0].dataType

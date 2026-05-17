@@ -2,6 +2,8 @@
 
 use serde_json::Value;
 
+use super::modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
+
 /// A node in the evaluation item tree.
 #[derive(Debug, Clone)]
 pub struct ItemInfo {
@@ -38,11 +40,11 @@ pub struct ItemInfo {
     /// Readonly expression (if any).
     pub readonly_expr: Option<String>,
     /// Whitespace normalization mode (if any).
-    pub whitespace: Option<String>,
+    pub whitespace: Option<WhitespaceMode>,
     /// Non-relevant behavior override for this bind.
-    pub nrb: Option<String>,
-    /// Excluded value behavior when non-relevant ("null" or "keep").
-    pub excluded_value: Option<String>,
+    pub nrb: Option<NrbMode>,
+    /// Excluded value behavior when non-relevant.
+    pub excluded_value: Option<ExcludedValueMode>,
     /// Default value to apply on non-relevant → relevant transition when field is empty.
     pub default_value: Option<Value>,
     /// FEL expression default (without `=` prefix) for relevance transitions.

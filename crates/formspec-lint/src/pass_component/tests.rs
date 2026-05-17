@@ -6,7 +6,7 @@ use crate::types::LintDiagnostic;
 use serde_json::json;
 
 fn with_code<'a>(diags: &'a [LintDiagnostic], code: &str) -> Vec<&'a LintDiagnostic> {
-    diags.iter().filter(|d| d.code == code).collect()
+    diags.iter().filter(|d| d.code == *code).collect()
 }
 
     // 1. Empty component — no diagnostics

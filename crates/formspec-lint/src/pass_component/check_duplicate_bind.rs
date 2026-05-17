@@ -10,7 +10,7 @@ use super::PASS;
 pub(crate) fn check_tree_duplicate(state: &mut WalkState<'_>, path: &str, bind: &str) {
     if !state.all_binds.insert(bind.to_string()) {
         state.diags.push(metadata::with_metadata(LintDiagnostic::warning(
-            "W804",
+            crate::LintCode::W804,
             PASS,
             path,
             format!("Duplicate bind in component tree: {bind}"),
@@ -29,7 +29,7 @@ pub(crate) fn check_editable_uniqueness(
     }
     if !state.editable_binds.insert(bind.to_string()) {
         state.diags.push(metadata::with_metadata(LintDiagnostic::warning(
-            "W803",
+            crate::LintCode::W803,
             PASS,
             path,
             format!("Multiple editable inputs bind to the same field: '{bind}'"),

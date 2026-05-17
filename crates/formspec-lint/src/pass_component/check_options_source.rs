@@ -19,7 +19,7 @@ pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str, bind
     };
     if !field_info.has_options {
         state.diags.push(metadata::with_metadata(LintDiagnostic::error(
-            "E803",
+            crate::LintCode::E803,
             PASS,
             path,
             format!(

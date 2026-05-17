@@ -333,7 +333,7 @@ fn try_parse(
         }
         Err(e) => {
             diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
-                "E400",
+                crate::LintCode::E400,
                 4,
                 &expression_path,
                 format!("FEL parse error: {e}"),

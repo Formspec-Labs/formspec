@@ -6,6 +6,8 @@ use serde_json::Value;
 
 use formspec_core::DocumentType;
 
+use crate::generated::LintCode;
+
 // ── Severity ────────────────────────────────────────────────────
 
 /// Severity of a lint diagnostic (sorting, validity, and JSON wire values).
@@ -88,8 +90,8 @@ impl LintMode {
 /// A lint diagnostic.
 #[derive(Debug, Clone)]
 pub struct LintDiagnostic {
-    /// Error/warning code (e.g., "E100", "E201", "W300").
-    pub code: String,
+    /// Error/warning code (e.g., `E100`, `E201`, `W300`).
+    pub code: LintCode,
     /// Pass number (1-8).
     pub pass: u8,
     /// Severity: error, warning, info.
@@ -110,13 +112,13 @@ pub struct LintDiagnostic {
 impl LintDiagnostic {
     /// Create an error diagnostic.
     pub fn error(
-        code: &str,
+        code: LintCode,
         pass: u8,
         path: impl Into<String>,
         message: impl Into<String>,
     ) -> Self {
         Self {
-            code: code.to_string(),
+            code,
             pass,
             severity: LintSeverity::Error,
             path: path.into(),
@@ -128,13 +130,13 @@ impl LintDiagnostic {
 
     /// Create a warning diagnostic.
     pub fn warning(
-        code: &str,
+        code: LintCode,
         pass: u8,
         path: impl Into<String>,
         message: impl Into<String>,
     ) -> Self {
         Self {
-            code: code.to_string(),
+            code,
             pass,
             severity: LintSeverity::Warning,
             path: path.into(),
@@ -145,9 +147,9 @@ impl LintDiagnostic {
     }
 
     /// Create an info diagnostic.
-    pub fn info(code: &str, pass: u8, path: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn info(code: LintCode, pass: u8, path: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
-            code: code.to_string(),
+            code,
             pass,
             severity: LintSeverity::Info,
             path: path.into(),
@@ -173,7 +175,10 @@ impl LintDiagnostic {
     /// Promote component compatibility warnings to errors when `mode` is [`LintMode::Strict`].
     pub fn promote_in_strict_mode(&mut self, mode: LintMode) {
         if mode == LintMode::Strict
-            && matches!(self.code.as_str(), "W800" | "W802" | "W803" | "W804")
+            && matches!(
+                self.code,
+                crate::LintCode::W800 | crate::LintCode::W802 | crate::LintCode::W803 | crate::LintCode::W804
+            )
         {
             self.severity = LintSeverity::Error;
         }
@@ -186,7 +191,7 @@ impl LintDiagnostic {
             LintMode::Authoring => {
                 // W300: incompatible dataType for optionSet (noisy during editing)
                 // W802: compatible-with-warning fallback (authoring mode allows it)
-                self.code == "W300" || self.code == "W802"
+                self.code == crate::LintCode::W300 || self.code == crate::LintCode::W802
             }
         }
     }
@@ -263,7 +268,7 @@ mod tests {
     /// Spec: W300 and W802 are suppressed in Authoring mode but not Runtime.
     #[test]
     fn w300_suppressed_in_authoring_not_runtime() {
-        let diag = LintDiagnostic::warning("W300", 3, "$.test", "test");
+        let diag = LintDiagnostic::warning(crate::LintCode::W300, 3, "$.test", "test");
         assert!(
             diag.suppressed_in(LintMode::Authoring),
             "W300 should be suppressed in Authoring"
@@ -277,7 +282,7 @@ mod tests {
     /// Spec: W802 component compatibility warning suppressed during authoring.
     #[test]
     fn w802_suppressed_in_authoring_not_runtime() {
-        let diag = LintDiagnostic::warning("W802", 7, "$.test", "test");
+        let diag = LintDiagnostic::warning(crate::LintCode::W802, 7, "$.test", "test");
         assert!(
             diag.suppressed_in(LintMode::Authoring),
             "W802 should be suppressed in Authoring"
@@ -291,7 +296,14 @@ mod tests {
     /// Spec: No diagnostics are suppressed in Runtime mode.
     #[test]
     fn runtime_mode_suppresses_nothing() {
-        for code in &["E100", "E300", "W300", "W700", "W802", "E500"] {
+        for code in [
+            crate::LintCode::E100,
+            crate::LintCode::E300,
+            crate::LintCode::W300,
+            crate::LintCode::W700,
+            crate::LintCode::W802,
+            crate::LintCode::E500,
+        ] {
             let diag = LintDiagnostic::warning(code, 1, "$", "test");
             assert!(
                 !diag.suppressed_in(LintMode::Runtime),
@@ -303,8 +315,15 @@ mod tests {
     /// Spec: No diagnostics are suppressed in Strict mode.
     #[test]
     fn strict_mode_suppresses_nothing() {
-        for code in &[
-            "E100", "E300", "W300", "W700", "W802", "E500", "W800", "W804",
+        for code in [
+            crate::LintCode::E100,
+            crate::LintCode::E300,
+            crate::LintCode::W300,
+            crate::LintCode::W700,
+            crate::LintCode::W802,
+            crate::LintCode::E500,
+            crate::LintCode::W800,
+            crate::LintCode::W804,
         ] {
             let diag = LintDiagnostic::warning(code, 1, "$", "test");
             assert!(
@@ -317,7 +336,14 @@ mod tests {
     /// Spec: Only W300 and W802 are suppressed in Authoring; others are not.
     #[test]
     fn authoring_mode_does_not_suppress_other_codes() {
-        for code in &["E100", "E300", "W700", "W704", "E500", "E800"] {
+        for code in [
+            crate::LintCode::E100,
+            crate::LintCode::E300,
+            crate::LintCode::W700,
+            crate::LintCode::W704,
+            crate::LintCode::E500,
+            crate::LintCode::E800,
+        ] {
             let diag = LintDiagnostic::warning(code, 1, "$", "test");
             assert!(
                 !diag.suppressed_in(LintMode::Authoring),
@@ -334,7 +360,7 @@ mod tests {
     /// existing call sites keep working unchanged.
     #[test]
     fn diagnostic_defaults_authoring_metadata_to_none() {
-        let diag = LintDiagnostic::error("E300", 3, "$.binds.0", "bind target missing");
+        let diag = LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.0", "bind target missing");
         assert!(diag.suggested_fix.is_none());
         assert!(diag.spec_ref.is_none());
     }
@@ -343,7 +369,7 @@ mod tests {
     /// LLMs consuming diagnostics need structured repair suggestions, not prose.
     #[test]
     fn diagnostic_with_suggested_fix_attaches_hint() {
-        let diag = LintDiagnostic::error("E300", 3, "$.binds.0", "bind target missing")
+        let diag = LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.0", "bind target missing")
             .with_suggested_fix("change 'amount' to 'quantity'");
         assert_eq!(
             diag.suggested_fix.as_deref(),
@@ -355,7 +381,7 @@ mod tests {
     /// that motivates the rule, enabling spec traceability from every diagnostic.
     #[test]
     fn diagnostic_with_spec_ref_attaches_reference() {
-        let diag = LintDiagnostic::warning("W704", 6, "$.tokens.x", "unresolved token")
+        let diag = LintDiagnostic::warning(crate::LintCode::W704, 6, "$.tokens.x", "unresolved token")
             .with_spec_ref("specs/theme/theme-spec.md#token-cascade");
         assert_eq!(
             diag.spec_ref.as_deref(),
@@ -366,7 +392,7 @@ mod tests {
     /// Spec: Builders compose — a diagnostic can carry both fix and spec ref.
     #[test]
     fn diagnostic_builders_chain() {
-        let diag = LintDiagnostic::error("E300", 3, "$", "bad")
+        let diag = LintDiagnostic::error(crate::LintCode::E300, 3, "$", "bad")
             .with_suggested_fix("fix it")
             .with_spec_ref("specs/core/spec.md#bind-target");
         assert_eq!(diag.suggested_fix.as_deref(), Some("fix it"));
@@ -383,12 +409,12 @@ mod tests {
     #[test]
     fn sort_diagnostics_all_severities_with_duplicates() {
         let mut diags = vec![
-            LintDiagnostic::info("W704", 6, "$.tokens.z", "info z"),
-            LintDiagnostic::error("E300", 3, "$.binds.a", "error a"),
-            LintDiagnostic::warning("W300", 3, "$.binds.b", "warning b"),
-            LintDiagnostic::error("E300", 3, "$.binds.a", "error a duplicate"),
-            LintDiagnostic::warning("W700", 6, "$.tokens.a", "warning a"),
-            LintDiagnostic::error("E710", 6, "$.pages.a", "error page"),
+            LintDiagnostic::info(crate::LintCode::W704, 6, "$.tokens.z", "info z"),
+            LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.a", "error a"),
+            LintDiagnostic::warning(crate::LintCode::W300, 3, "$.binds.b", "warning b"),
+            LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.a", "error a duplicate"),
+            LintDiagnostic::warning(crate::LintCode::W700, 6, "$.tokens.a", "warning a"),
+            LintDiagnostic::error(crate::LintCode::E710, 6, "$.pages.a", "error page"),
         ];
         sort_diagnostics(&mut diags);
 
@@ -417,7 +443,7 @@ mod tests {
         // should keep their original relative order.
         let e300s: Vec<&str> = diags
             .iter()
-            .filter(|d| d.code == "E300" && d.path == "$.binds.a")
+            .filter(|d| d.code == crate::LintCode::E300 && d.path == "$.binds.a")
             .map(|d| d.message.as_str())
             .collect();
         assert_eq!(

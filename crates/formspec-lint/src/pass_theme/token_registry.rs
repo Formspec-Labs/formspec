@@ -100,7 +100,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
 
         if !registry.contains(name) && !name.starts_with("x-") {
             diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                "W708",
+                crate::LintCode::W708,
                 PASS,
                 &path,
                 format!(
@@ -117,7 +117,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
                     let repr = n.to_string();
                     if !is_font_weight(&repr) {
                         diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                            "W702",
+                            crate::LintCode::W702,
                             PASS,
                             &path,
                             format!("Font weight token '{name}' has invalid value: {repr} (expected 100-900 in steps of 100, or 'normal'/'bold')"),
@@ -130,7 +130,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
                         && f <= 0.0
                     {
                         diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                            "W703",
+                            crate::LintCode::W703,
                             PASS,
                             &path,
                             format!("Number token '{name}' must be a positive number, got: {f}"),
@@ -147,7 +147,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
             match token_type {
                 Some("color") if !is_css_color(s) => {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W700",
+                        crate::LintCode::W700,
                         PASS,
                         &path,
                         format!("Color token '{name}' has invalid CSS color value: '{s}'"),
@@ -155,7 +155,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
                 }
                 Some("dimension") if !is_css_length(s) => {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W701",
+                        crate::LintCode::W701,
                         PASS,
                         &path,
                         format!("Dimension token '{name}' has invalid CSS length value: '{s}'"),
@@ -163,7 +163,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
                 }
                 Some("fontWeight") if !is_font_weight(s) => {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W702",
+                        crate::LintCode::W702,
                         PASS,
                         &path,
                         format!("Font weight token '{name}' has invalid value: '{s}' (expected 100-900 in steps of 100, or 'normal'/'bold')"),
@@ -171,7 +171,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
                 }
                 Some("number") if !is_line_height(s) => {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W703",
+                        crate::LintCode::W703,
                         PASS,
                         &path,
                         format!("Number token '{name}' must be a unitless positive number, got: '{s}'"),
@@ -185,7 +185,7 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
     for key in registry.all_keys() {
         if !tokens.contains_key(key.as_str()) {
             diags.push(metadata::with_metadata(LintDiagnostic::info(
-                "W709",
+                crate::LintCode::W709,
                 PASS,
                 "$.tokens",
                 format!(

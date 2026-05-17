@@ -27,7 +27,7 @@ pub(crate) fn check(state: &mut WalkState<'_>, node: &Value, path: &str, comp_ty
             && !provided_params.is_some_and(|p| p.contains_key(param_name))
         {
             state.diags.push(metadata::with_metadata(LintDiagnostic::error(
-                "E806",
+                crate::LintCode::E806,
                 PASS,
                 path,
                 format!("Custom component '{comp_type}' missing required param '{param_name}'"),

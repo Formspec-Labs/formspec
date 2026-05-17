@@ -46,7 +46,7 @@ pub fn lint_response(doc: &Value) -> Vec<LintDiagnostic> {
         if let (Some(top), Some(sp_id)) = (top_id, sp.get("responseId").and_then(Value::as_str)) {
             if sp_id != top {
                 diags.push(with_metadata(LintDiagnostic::error(
-                    "E900",
+                    crate::LintCode::E900,
                     8,
                     format!("{prefix}.responseId"),
                     format!(
@@ -62,7 +62,7 @@ pub fn lint_response(doc: &Value) -> Vec<LintDiagnostic> {
         {
             if sp_url != top {
                 diags.push(with_metadata(LintDiagnostic::error(
-                    "E901",
+                    crate::LintCode::E901,
                     8,
                     format!("{prefix}.definitionUrl"),
                     format!(
@@ -79,7 +79,7 @@ pub fn lint_response(doc: &Value) -> Vec<LintDiagnostic> {
         ) {
             if sp_ver != top {
                 diags.push(with_metadata(LintDiagnostic::error(
-                    "E902",
+                    crate::LintCode::E902,
                     8,
                     format!("{prefix}.definitionVersion"),
                     format!(
@@ -190,7 +190,7 @@ mod tests {
         )]);
         let diags = lint_response(&doc);
         assert_eq!(diags.len(), 3);
-        let codes: Vec<_> = diags.iter().map(|d| d.code.as_str()).collect();
+        let codes: Vec<_> = diags.iter().map(|d| d.code.as_wire_str()).collect();
         assert!(codes.contains(&"E900"));
         assert!(codes.contains(&"E901"));
         assert!(codes.contains(&"E902"));

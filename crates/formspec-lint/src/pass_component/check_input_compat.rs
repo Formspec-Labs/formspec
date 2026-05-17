@@ -17,7 +17,7 @@ pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str, bind
     match field_lookup.get(bind) {
         None => {
             state.diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                "W800",
+                crate::LintCode::W800,
                 PASS,
                 path,
                 format!("Component bind '{bind}' does not resolve to a field in the definition"),
@@ -28,7 +28,7 @@ pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str, bind
                 match classify_compatibility(comp_type, dt) {
                     Compatibility::Incompatible => {
                         state.diags.push(metadata::with_metadata(LintDiagnostic::error(
-                            "E802",
+                            crate::LintCode::E802,
                             PASS,
                             path,
                             format!(
@@ -38,7 +38,7 @@ pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str, bind
                     }
                     Compatibility::CompatibleWithWarning => {
                         state.diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                            "W802",
+                            crate::LintCode::W802,
                             PASS,
                             path,
                             format!(

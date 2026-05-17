@@ -40,7 +40,7 @@ pub fn lint_component(component: &Value, definition: Option<&Value>) -> Vec<Lint
     let root_type = tree.get("component").and_then(|v| v.as_str()).unwrap_or("");
     if root_type.is_empty() || !classification::LAYOUT_ROOTS.contains(&root_type) {
         diags.push(metadata::with_metadata(LintDiagnostic::error(
-            "E800",
+            crate::LintCode::E800,
             PASS,
             "$.tree",
             format!(

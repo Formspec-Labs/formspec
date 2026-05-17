@@ -90,7 +90,7 @@ pub(crate) fn metadata_for(code: &str) -> Option<&'static RuleMetadata> {
 /// Call sites stay terse: `with_metadata(LintDiagnostic::error(...))`. Codes
 /// without tested metadata pass through unchanged.
 pub(crate) fn with_metadata(diag: LintDiagnostic) -> LintDiagnostic {
-    match metadata_for(&diag.code) {
+    match metadata_for(diag.code.as_wire_str()) {
         Some(meta) => diag
             .with_suggested_fix(meta.suggested_fix.as_str())
             .with_spec_ref(meta.spec_ref.as_str()),
@@ -141,15 +141,13 @@ mod tests {
 
     #[test]
     fn with_metadata_decorates_tested_codes() {
-        let d = with_metadata(LintDiagnostic::error("E300", 3, "$", "bad"));
+        let d = with_metadata(LintDiagnostic::error(crate::LintCode::E300, 3, "$", "bad"));
         assert!(d.suggested_fix.is_some());
         assert!(d.spec_ref.is_some());
     }
 
     #[test]
     fn with_metadata_passes_unknown_codes_through() {
-        let d = with_metadata(LintDiagnostic::error("E999", 1, "$", "unknown"));
-        assert!(d.suggested_fix.is_none());
-        assert!(d.spec_ref.is_none());
+        assert!(metadata_for("E999").is_none());
     }
 }

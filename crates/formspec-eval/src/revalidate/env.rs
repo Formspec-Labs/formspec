@@ -15,8 +15,7 @@ use crate::types::ItemInfo;
 pub(super) fn apply_excluded_values_to_env(items: &[ItemInfo], env: &mut FormspecEnvironment) {
     for item in items {
         if !item.relevant
-            && let Some(ref ev) = item.excluded_value
-            && ev == "null"
+            && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
         {
             env.set_field(&item.path, EnvVal::Null);
         }

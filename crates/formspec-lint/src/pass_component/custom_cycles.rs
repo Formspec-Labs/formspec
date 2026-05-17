@@ -69,7 +69,7 @@ pub(crate) fn lint_custom_component_cycles(
     }
     for (from, to) in cycles {
         diags.push(metadata::with_metadata(LintDiagnostic::error(
-            "E807",
+            crate::LintCode::E807,
             PASS,
             format!("$.components.{from}"),
             format!("Custom component reference cycle: '{from}' -> '{to}'"),

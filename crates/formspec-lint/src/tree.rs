@@ -84,7 +84,7 @@ pub fn build_item_index(document: &Value) -> ItemTreeIndex {
             index
                 .diagnostics
                 .push(crate::metadata::with_metadata(LintDiagnostic::error(
-                    "E200",
+                    crate::LintCode::E200,
                     2,
                     &ctx.json_path,
                     format!(
@@ -101,7 +101,7 @@ pub fn build_item_index(document: &Value) -> ItemTreeIndex {
             index
                 .diagnostics
                 .push(crate::metadata::with_metadata(LintDiagnostic::error(
-                    "E201",
+                    crate::LintCode::E201,
                     2,
                     &ctx.json_path,
                     format!("Duplicate item path '{}'", ctx.dotted_path),
@@ -188,7 +188,7 @@ mod tests {
         let e200: Vec<_> = index
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E200")
+            .filter(|d| d.code == crate::LintCode::E200)
             .collect();
         assert_eq!(e200.len(), 1, "Expected one E200 for duplicate key 'name'");
         assert!(e200[0].message.contains("name"));
@@ -199,7 +199,7 @@ mod tests {
         let e201_count = index
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E201")
+            .filter(|d| d.code == crate::LintCode::E201)
             .count();
         assert_eq!(e201_count, 0);
     }
@@ -217,7 +217,7 @@ mod tests {
         let e201: Vec<_> = index
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E201")
+            .filter(|d| d.code == crate::LintCode::E201)
             .collect();
         assert_eq!(
             e201.len(),
@@ -230,7 +230,7 @@ mod tests {
         let e200_count = index
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E200")
+            .filter(|d| d.code == crate::LintCode::E200)
             .count();
         assert_eq!(e200_count, 1);
     }
@@ -310,7 +310,7 @@ mod tests {
         let e200_count = index
             .diagnostics
             .iter()
-            .filter(|d| d.code == "E200")
+            .filter(|d| d.code == crate::LintCode::E200)
             .count();
         assert_eq!(e200_count, 2);
     }

@@ -5,7 +5,10 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::types::{ItemInfo, find_item_by_path_mut, internal_path_to_fel_path};
+use crate::types::{
+    ExcludedValueMode, ItemInfo, NrbMode, WhitespaceMode, find_item_by_path_mut,
+    internal_path_to_fel_path,
+};
 
 use super::item_tree::bool_or_string_expr;
 use super::repeat_data::expand_wildcard_path;
@@ -78,13 +81,13 @@ pub(crate) fn apply_wildcard_binds(
                     item.readonly_expr = Some(inst(&expr));
                 }
                 if let Some(ws) = bind_obj.get("whitespace").and_then(|v| v.as_str()) {
-                    item.whitespace = Some(ws.to_string());
+                    item.whitespace = Some(WhitespaceMode::from_str_lossy(ws));
                 }
                 if let Some(nrb) = bind_obj.get("nonRelevantBehavior").and_then(|v| v.as_str()) {
-                    item.nrb = Some(nrb.to_string());
+                    item.nrb = Some(NrbMode::from_str_lossy(nrb));
                 }
                 if let Some(ev) = bind_obj.get("excludedValue").and_then(|v| v.as_str()) {
-                    item.excluded_value = Some(ev.to_string());
+                    item.excluded_value = ExcludedValueMode::parse_wire(ev);
                 }
                 if let Some(default_val) = bind_obj.get("default") {
                     match default_val {

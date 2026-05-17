@@ -176,7 +176,7 @@ fn emit_diagnostics(
                 chain[0],
             );
 
-            crate::metadata::with_metadata(LintDiagnostic::error("E500", 5, path, message))
+            crate::metadata::with_metadata(LintDiagnostic::error(crate::LintCode::E500, 5, path, message))
         })
         .collect()
 }

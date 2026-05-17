@@ -126,7 +126,7 @@ fn check_extensions_object(
         match registry.lookup(ext_name) {
             None => {
                 out.push(crate::metadata::with_metadata(LintDiagnostic::error(
-                    "E600",
+                    crate::LintCode::E600,
                     PASS,
                     &ext_path,
                     format!("Unresolved extension: {ext_name}"),
@@ -136,7 +136,7 @@ fn check_extensions_object(
                 RegistryEntryStatus::Retired => {
                     let label = info.display_name.as_deref().unwrap_or(ext_name.as_str());
                     out.push(crate::metadata::with_metadata(LintDiagnostic::warning(
-                        "E601",
+                        crate::LintCode::E601,
                         PASS,
                         &ext_path,
                         format!("Extension retired: {label}"),
@@ -146,7 +146,7 @@ fn check_extensions_object(
                     let label = info.display_name.as_deref().unwrap_or(ext_name.as_str());
                     let notice = info.deprecation_notice.as_deref().unwrap_or("deprecated");
                     out.push(crate::metadata::with_metadata(LintDiagnostic::info(
-                        "E602",
+                        crate::LintCode::E602,
                         PASS,
                         &ext_path,
                         format!("Extension deprecated: {label} — {notice}"),
@@ -193,7 +193,7 @@ pub fn check_extensions(document: &Value, registry_documents: &[Value]) -> Vec<L
             .into_iter()
             .map(|(path, name)| {
                 crate::metadata::with_metadata(LintDiagnostic::error(
-                    "E600",
+                    crate::LintCode::E600,
                     PASS,
                     &path,
                     format!("Unresolved extension: {name}"),
@@ -401,7 +401,7 @@ mod tests {
         let diags = check_extensions(&doc, &[reg]);
 
         assert_eq!(diags.len(), 2);
-        assert!(diags.iter().all(|d| d.code == "E600"));
+        assert!(diags.iter().all(|d| d.code == crate::LintCode::E600));
     }
 
     // Extra: draft extension passes (same as active)
@@ -453,7 +453,7 @@ mod tests {
         let diags = check_extensions(&doc, &[]);
 
         assert_eq!(diags.len(), 2);
-        assert!(diags.iter().all(|d| d.code == "E600"));
+        assert!(diags.iter().all(|d| d.code == crate::LintCode::E600));
     }
 
     // Extra: null extension value — treated as disabled

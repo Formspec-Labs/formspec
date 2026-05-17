@@ -30,7 +30,7 @@ use formspec_core::{
 };
 use serde_json::Value;
 
-use crate::types::{ItemInfo, VariableDef};
+use crate::types::{ExcludedValueMode, ItemInfo, NrbMode, VariableDef, WhitespaceMode};
 
 pub(super) fn bool_or_string_expr(value: &Value) -> Option<String> {
     match value {
@@ -234,15 +234,15 @@ fn build_item_info_from_ctx(
         whitespace: Some(&bind)
             .and_then(|b| b.get("whitespace"))
             .and_then(|v| v.as_str())
-            .map(String::from),
+            .map(WhitespaceMode::from_str_lossy),
         nrb: Some(&bind)
             .and_then(|b| b.get("nonRelevantBehavior"))
             .and_then(|v| v.as_str())
-            .map(String::from),
+            .map(NrbMode::from_str_lossy),
         excluded_value: Some(&bind)
             .and_then(|b| b.get("excludedValue"))
             .and_then(|v| v.as_str())
-            .map(String::from),
+            .and_then(ExcludedValueMode::parse_wire),
         default_value: Some(&bind)
             .and_then(|b| b.get("default"))
             .and_then(|v| match v {
@@ -302,5 +302,44 @@ fn build_item_info_from_ctx(
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
         children,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{ExcludedValueMode, NrbMode, WhitespaceMode};
+    use serde_json::json;
+
+    #[test]
+    fn item_tree_parses_whitespace_nrb_and_excluded_value_modes() {
+        let def = json!({
+            "items": [{
+                "key": "name",
+                "dataType": "string",
+                "whitespace": "trim",
+                "nonRelevantBehavior": "empty",
+                "excludedValue": "null"
+            }]
+        });
+        let items = rebuild_item_tree(&def);
+        assert_eq!(items.len(), 1);
+        let item = &items[0];
+        assert_eq!(item.whitespace, Some(WhitespaceMode::Trim));
+        assert_eq!(item.nrb, Some(NrbMode::Empty));
+        assert_eq!(item.excluded_value, Some(ExcludedValueMode::Null));
+    }
+
+    #[test]
+    fn item_tree_omits_invalid_excluded_value() {
+        let def = json!({
+            "items": [{
+                "key": "x",
+                "dataType": "string",
+                "excludedValue": "not-a-mode"
+            }]
+        });
+        let items = rebuild_item_tree(&def);
+        assert!(items[0].excluded_value.is_none());
     }
 }

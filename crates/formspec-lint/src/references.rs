@@ -17,6 +17,7 @@ use serde_json::Value;
 
 use crate::tree::ItemTreeIndex;
 use crate::types::LintDiagnostic;
+use crate::LintCode;
 
 /// Data types compatible with optionSets.
 const OPTION_SET_COMPATIBLE_TYPES: &[&str] =
@@ -47,7 +48,7 @@ fn check_bind_paths(
         for (i, bind) in binds_arr.iter().enumerate() {
             if let Some(path) = bind.get("path").and_then(|v| v.as_str()) {
                 let json_path = format!("$.binds[{i}].path");
-                if let Some(diag) = validate_path(path, &json_path, "Bind", "E300", index) {
+                if let Some(diag) = validate_path(path, &json_path, "Bind", LintCode::E300, index) {
                     diagnostics.push(diag);
                 }
             }
@@ -79,7 +80,7 @@ fn check_shape_targets(
         }
 
         let json_path = format!("$.shapes[{i}].target");
-        if let Some(diag) = validate_path(target, &json_path, "Shape target", "E301", index) {
+        if let Some(diag) = validate_path(target, &json_path, "Shape target", LintCode::E301, index) {
             diagnostics.push(diag);
         }
     }
@@ -113,7 +114,7 @@ fn walk_items_for_option_sets(
         if let Some(option_set_ref) = ctx.item.get("optionSet").and_then(|v| v.as_str()) {
             if !defined_sets.contains(option_set_ref) {
                 diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
-                    "E302",
+                    LintCode::E302,
                     3,
                     format!("{}.optionSet", ctx.json_path),
                     format!("optionSet references undefined set: {option_set_ref}"),
@@ -124,7 +125,7 @@ fn walk_items_for_option_sets(
                 && !OPTION_SET_COMPATIBLE_TYPES.contains(&data_type)
             {
                 diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::warning(
-                    "W300",
+                    LintCode::W300,
                     3,
                     format!("{}.dataType", ctx.json_path),
                     format!(
@@ -156,7 +157,7 @@ fn validate_path(
     path: &str,
     json_path: &str,
     label: &str,
-    error_code: &str,
+    error_code: LintCode,
     index: &ItemTreeIndex,
 ) -> Option<LintDiagnostic> {
     match resolve_path(path, label, index) {
@@ -172,7 +173,7 @@ fn validate_simple_key(
     key: &str,
     json_path: &str,
     label: &str,
-    error_code: &str,
+    error_code: LintCode,
     index: &ItemTreeIndex,
 ) -> Option<LintDiagnostic> {
     if index.by_full_path.contains_key(key) {
@@ -197,7 +198,7 @@ fn resolve_path(path: &str, label: &str, index: &ItemTreeIndex) -> Result<(), St
 
     if p.segments.len() == 1 {
         if let PathSegment::Exact(key) = &p.segments[0] {
-            return validate_simple_key(key, "$", label, "E300", index)
+            return validate_simple_key(key, "$", label, LintCode::E300, index)
                 .map_or(Ok(()), |diag| Err(diag.message));
         }
     }
@@ -299,7 +300,7 @@ mod tests {
     }
 
     fn codes(diags: &[LintDiagnostic]) -> Vec<&str> {
-        diags.iter().map(|d| d.code.as_str()).collect()
+        diags.iter().map(|d| d.code.as_wire_str()).collect()
     }
 
     // ── 1. Valid simple bind path — no E300 ───────────────────
@@ -326,7 +327,7 @@ mod tests {
             "binds": [{ "path": "nonexistent", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1);
         assert!(e300[0].message.contains("nonexistent"));
         assert_eq!(e300[0].path, "$.binds[0].path");
@@ -404,7 +405,7 @@ mod tests {
             "binds": [{ "path": "conditions[*].medications[*].startDate", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1);
         assert!(e300[0].message.contains("non-repeatable"));
     }
@@ -421,7 +422,7 @@ mod tests {
             "binds": [{ "path": "personal[*].name", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1);
         assert!(e300[0].message.contains("non-repeatable"));
     }
@@ -439,7 +440,7 @@ mod tests {
             "binds": [{ "path": "lines[*].nonexistent", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1);
         assert!(e300[0].message.contains("nonexistent"));
     }
@@ -468,7 +469,7 @@ mod tests {
             "shapes": [{ "target": "missing_field", "constraint": "$name != ''" }]
         });
         let diags = lint(&doc);
-        let e301: Vec<_> = diags.iter().filter(|d| d.code == "E301").collect();
+        let e301: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E301).collect();
         assert_eq!(e301.len(), 1);
         assert!(e301[0].message.contains("missing_field"));
         assert_eq!(e301[0].path, "$.shapes[0].target");
@@ -500,7 +501,7 @@ mod tests {
             }
         });
         let diags = lint(&doc);
-        let e302: Vec<_> = diags.iter().filter(|d| d.code == "E302").collect();
+        let e302: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E302).collect();
         assert_eq!(e302.len(), 1);
         assert!(e302[0].message.contains("colors"));
     }
@@ -529,7 +530,7 @@ mod tests {
             "optionSets": { "opts": { "options": [{ "value": "x" }] } }
         });
         let diags = lint(&doc);
-        let w300: Vec<_> = diags.iter().filter(|d| d.code == "W300").collect();
+        let w300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::W300).collect();
         assert_eq!(w300.len(), 1);
         assert!(w300[0].message.contains("boolean"));
     }
@@ -542,7 +543,7 @@ mod tests {
                 "optionSets": { "opts": { "options": [{ "value": "x" }] } }
             });
             let diags = lint(&doc);
-            let w300_count = diags.iter().filter(|d| d.code == "W300").count();
+            let w300_count = diags.iter().filter(|d| d.code == LintCode::W300).count();
             assert_eq!(w300_count, 0, "dataType '{dt}' should not trigger W300");
         }
     }
@@ -611,7 +612,7 @@ mod tests {
             }]
         });
         let diags = lint(&doc);
-        let e302: Vec<_> = diags.iter().filter(|d| d.code == "E302").collect();
+        let e302: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E302).collect();
         assert_eq!(e302.len(), 1, "Should find E302 in nested items");
         assert!(e302[0].message.contains("missing"));
     }
@@ -638,7 +639,7 @@ mod tests {
             "binds": [{ "path": "ghost", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1);
         assert!(e300[0].message.contains("ghost"));
         assert_eq!(e300[0].path, "$.binds[0].path");
@@ -700,7 +701,7 @@ mod tests {
             "binds": [{ "path": "address.nonexistent", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1, "Missing dotted child should emit E300");
         assert!(e300[0].message.contains("address.nonexistent"));
     }
@@ -713,7 +714,7 @@ mod tests {
             "binds": [{ "path": "ghost.field", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(e300.len(), 1, "Unknown base key should emit E300");
         assert!(e300[0].message.contains("ghost.field"));
     }
@@ -750,7 +751,7 @@ mod tests {
             "shapes": [{ "target": "info[*].name", "constraint": "$ != ''" }]
         });
         let diags = lint(&doc);
-        let e301: Vec<_> = diags.iter().filter(|d| d.code == "E301").collect();
+        let e301: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E301).collect();
         assert_eq!(e301.len(), 1);
         assert!(e301[0].message.contains("non-repeatable"));
     }
@@ -807,7 +808,7 @@ mod tests {
             "binds": [{ "path": "personal[*].name", "required": "true" }]
         });
         let diags = lint(&doc);
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(
             e300.len(),
             1,
@@ -842,7 +843,7 @@ mod tests {
         let diags = check_references(&doc, &index);
         // "name" matches by_full_path (top-level item has full_path "name"), so it resolves
         assert!(
-            !diags.iter().any(|d| d.code == "E300"),
+            !diags.iter().any(|d| d.code == LintCode::E300),
             "Top-level 'name' should resolve via by_full_path even though key is ambiguous"
         );
     }
@@ -868,7 +869,7 @@ mod tests {
 
         let diags = check_references(&doc, &index);
         // "x" is ambiguous and NOT a full_path (full_paths are "group1.x" and "group2.x")
-        let e300: Vec<_> = diags.iter().filter(|d| d.code == "E300").collect();
+        let e300: Vec<_> = diags.iter().filter(|d| d.code == LintCode::E300).collect();
         assert_eq!(
             e300.len(),
             1,

@@ -10,7 +10,7 @@ use super::PASS;
 pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str) {
     if should_not_bind(comp_type) {
         state.diags.push(metadata::with_metadata(LintDiagnostic::warning(
-            "W801",
+            crate::LintCode::W801,
             PASS,
             path,
             format!("Layout/container component '{comp_type}' should not declare a bind"),

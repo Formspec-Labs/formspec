@@ -224,7 +224,7 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         .map(|err| {
             let pointer = err.instance_path().as_str();
             let path = json_pointer_to_jsonpath(pointer);
-            crate::metadata::with_metadata(LintDiagnostic::error("E101", 1, path, err.to_string()))
+            crate::metadata::with_metadata(LintDiagnostic::error(crate::LintCode::E101, 1, path, err.to_string()))
         })
         .collect()
 }
@@ -259,7 +259,7 @@ fn validate_component_schema(doc: &Value) -> Vec<LintDiagnostic> {
         let pointer = err.instance_path().as_str();
         let path = json_pointer_to_jsonpath(pointer);
         diags.push(crate::metadata::with_metadata(LintDiagnostic::error(
-            "E101",
+            crate::LintCode::E101,
             1,
             path,
             err.to_string(),
@@ -313,7 +313,7 @@ fn walk_and_validate(
             };
             let path = json_pointer_to_jsonpath(&full_pointer);
             diags.push(crate::metadata::with_metadata(LintDiagnostic::error(
-                "E101",
+                crate::LintCode::E101,
                 1,
                 path,
                 err.to_string(),
@@ -341,7 +341,7 @@ mod tests {
         });
         let diags = validate_schema(&def, DocumentType::Definition);
         assert!(
-            diags.iter().any(|d| d.code == "E101"),
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
             "Should emit E101 for invalid dataType, got: {:?}",
             diags
                 .iter()
@@ -441,7 +441,7 @@ mod tests {
         assert!(
             diags
                 .iter()
-                .any(|d| d.code == "E101" && d.message.contains("title")),
+                .any(|d| d.code == crate::LintCode::E101 && d.message.contains("title")),
             "Should report missing 'title', got: {:?}",
             diags
                 .iter()
@@ -533,7 +533,7 @@ mod tests {
 
         let diags = validate_schema(&handoff, DocumentType::IntakeHandoff);
         assert!(
-            diags.iter().any(|d| d.code == "E101"),
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
             "Public intake with a caseRef should produce E101, got: {:?}",
             diags
                 .iter()
@@ -552,7 +552,7 @@ mod tests {
 
         let diags = validate_schema(&handoff, DocumentType::IntakeHandoff);
         assert!(
-            diags.iter().any(|d| d.code == "E101"),
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
             "Workflow-initiated intake without caseRef should produce E101, got: {:?}",
             diags
                 .iter()
@@ -622,7 +622,7 @@ mod tests {
         assert!(
             diags
                 .iter()
-                .any(|d| d.code == "E101" && d.path.contains("children[0]")),
+                .any(|d| d.code == crate::LintCode::E101 && d.path.contains("children[0]")),
             "Should emit E101 for invalid TextInput property, got: {:?}",
             diags
                 .iter()
@@ -642,7 +642,7 @@ mod tests {
         assert!(
             diags
                 .iter()
-                .any(|d| d.code == "E101" && d.message.contains("version")),
+                .any(|d| d.code == crate::LintCode::E101 && d.message.contains("version")),
             "Should report missing 'version', got: {:?}",
             diags
                 .iter()
@@ -692,7 +692,7 @@ mod tests {
         assert!(
             diags
                 .iter()
-                .any(|d| d.code == "E101" && d.path.contains("children[0]")),
+                .any(|d| d.code == crate::LintCode::E101 && d.path.contains("children[0]")),
             "Should emit E101 for invalid custom component ref property, got: {:?}",
             diags
                 .iter()
@@ -722,7 +722,7 @@ mod tests {
         });
         let diags = validate_schema(&comp, DocumentType::Component);
         assert!(
-            diags.iter().any(|d| d.code == "E101"
+            diags.iter().any(|d| d.code == crate::LintCode::E101
                 && d.path.contains("components")
                 && d.path.contains("children[0]")),
             "Should catch invalid property in custom component template tree, got: {:?}",

@@ -567,6 +567,7 @@ dependencies = [
  "fel-core",
  "formspec-core",
  "jsonschema",
+ "serde",
  "serde_json",
 ]
 

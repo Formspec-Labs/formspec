@@ -3,9 +3,235 @@
 //! Maps directly to `schemas/determination.schema.json`. All types derive
 //! `Serialize` for JSON output via serde.
 
-use serde::Serialize;
+use std::borrow::Cow;
+
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
+
+/// Top-level determination status on the wire.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DeterminationStatus {
+    Completed,
+    Partial,
+    Expired,
+    Unavailable,
+}
+
+impl DeterminationStatus {
+    pub fn as_wire_str(self) -> &'static str {
+        match self {
+            DeterminationStatus::Completed => "completed",
+            DeterminationStatus::Partial => "partial",
+            DeterminationStatus::Expired => "expired",
+            DeterminationStatus::Unavailable => "unavailable",
+        }
+    }
+
+    pub fn parse_wire(s: &str) -> Option<Self> {
+        match s {
+            "completed" => Some(DeterminationStatus::Completed),
+            "partial" => Some(DeterminationStatus::Partial),
+            "expired" => Some(DeterminationStatus::Expired),
+            "unavailable" => Some(DeterminationStatus::Unavailable),
+            _ => None,
+        }
+    }
+}
+
+impl Serialize for DeterminationStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_wire_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for DeterminationStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::parse_wire(&s)
+            .ok_or_else(|| serde::de::Error::custom(format!("unknown determination status: {s}")))
+    }
+}
+
+impl PartialEq<str> for DeterminationStatus {
+    fn eq(&self, other: &str) -> bool {
+        self.as_wire_str() == other
+    }
+}
+
+impl PartialEq<&str> for DeterminationStatus {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_wire_str() == *other
+    }
+}
+
+/// Per-phase evaluation status on the wire.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PhaseStatus {
+    Evaluated,
+    Skipped,
+    UnsupportedStrategy,
+}
+
+impl PhaseStatus {
+    pub fn as_wire_str(self) -> &'static str {
+        match self {
+            PhaseStatus::Evaluated => "evaluated",
+            PhaseStatus::Skipped => "skipped",
+            PhaseStatus::UnsupportedStrategy => "unsupported-strategy",
+        }
+    }
+
+    pub fn parse_wire(s: &str) -> Option<Self> {
+        match s {
+            "evaluated" => Some(PhaseStatus::Evaluated),
+            "skipped" => Some(PhaseStatus::Skipped),
+            "unsupported-strategy" => Some(PhaseStatus::UnsupportedStrategy),
+            _ => None,
+        }
+    }
+}
+
+impl Serialize for PhaseStatus {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_wire_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PhaseStatus {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::parse_wire(&s)
+            .ok_or_else(|| serde::de::Error::custom(format!("unknown phase status: {s}")))
+    }
+}
+
+impl PartialEq<str> for PhaseStatus {
+    fn eq(&self, other: &str) -> bool {
+        self.as_wire_str() == other
+    }
+}
+
+impl PartialEq<&str> for PhaseStatus {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_wire_str() == *other
+    }
+}
+
+/// Phase evaluation strategy (built-ins + screener-declared extensions).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum PhaseStrategy {
+    FirstMatch,
+    FanOut,
+    ScoreThreshold,
+    /// Any other strategy id from the screener document (including `x-*`).
+    Other(String),
+}
+
+impl PhaseStrategy {
+    pub fn from_wire(s: impl Into<String>) -> Self {
+        let s = s.into();
+        match s.as_str() {
+            "first-match" => PhaseStrategy::FirstMatch,
+            "fan-out" => PhaseStrategy::FanOut,
+            "score-threshold" => PhaseStrategy::ScoreThreshold,
+            _ => PhaseStrategy::Other(s),
+        }
+    }
+
+    pub fn as_wire_str(&self) -> Cow<'_, str> {
+        Cow::Borrowed(match self {
+            PhaseStrategy::FirstMatch => "first-match",
+            PhaseStrategy::FanOut => "fan-out",
+            PhaseStrategy::ScoreThreshold => "score-threshold",
+            PhaseStrategy::Other(s) => s.as_str(),
+        })
+    }
+}
+
+impl Serialize for PhaseStrategy {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.as_wire_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for PhaseStrategy {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self::from_wire(s))
+    }
+}
+
+impl PartialEq<str> for PhaseStrategy {
+    fn eq(&self, other: &str) -> bool {
+        self.as_wire_str() == other
+    }
+}
+
+impl PartialEq<&str> for PhaseStrategy {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_wire_str() == *other
+    }
+}
+
+/// Why an eliminated route did not match.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum EliminationReason {
+    ConditionFalse,
+    BelowThreshold,
+    MaxExceeded,
+    NullScore,
+    ExpressionError,
+}
+
+impl EliminationReason {
+    pub fn as_wire_str(self) -> &'static str {
+        match self {
+            EliminationReason::ConditionFalse => "condition-false",
+            EliminationReason::BelowThreshold => "below-threshold",
+            EliminationReason::MaxExceeded => "max-exceeded",
+            EliminationReason::NullScore => "null-score",
+            EliminationReason::ExpressionError => "expression-error",
+        }
+    }
+
+    pub fn parse_wire(s: &str) -> Option<Self> {
+        match s {
+            "condition-false" => Some(EliminationReason::ConditionFalse),
+            "below-threshold" => Some(EliminationReason::BelowThreshold),
+            "max-exceeded" => Some(EliminationReason::MaxExceeded),
+            "null-score" => Some(EliminationReason::NullScore),
+            "expression-error" => Some(EliminationReason::ExpressionError),
+            _ => None,
+        }
+    }
+}
+
+impl Serialize for EliminationReason {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_wire_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for EliminationReason {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::parse_wire(&s)
+            .ok_or_else(|| serde::de::Error::custom(format!("unknown elimination reason: {s}")))
+    }
+}
+
+impl PartialEq<str> for EliminationReason {
+    fn eq(&self, other: &str) -> bool {
+        self.as_wire_str() == other
+    }
+}
+
+impl PartialEq<&str> for EliminationReason {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_wire_str() == *other
+    }
+}
 
 /// The complete evaluation output of a Screener Document.
 #[derive(Debug, Clone, Serialize)]
@@ -21,7 +247,7 @@ pub struct DeterminationRecord {
     /// Version of evaluation logic applied (reflects evaluationBinding).
     pub evaluation_version: String,
     /// `completed`, `partial`, `expired`, or `unavailable`.
-    pub status: String,
+    pub status: DeterminationStatus,
     /// Override route evaluation results.
     pub overrides: OverrideBlock,
     /// Per-phase evaluation results. Empty if overrides halted.
@@ -60,9 +286,9 @@ pub struct PhaseResult {
     /// Phase identifier.
     pub id: String,
     /// `evaluated`, `skipped`, or `unsupported-strategy`.
-    pub status: String,
+    pub status: PhaseStatus,
     /// Strategy used.
-    pub strategy: String,
+    pub strategy: PhaseStrategy,
     /// Routes that matched.
     pub matched: Vec<RouteResult>,
     /// Routes that did not match.
@@ -87,7 +313,7 @@ pub struct RouteResult {
     pub score: Option<f64>,
     /// Elimination reason (eliminated routes only).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub reason: Option<String>,
+    pub reason: Option<EliminationReason>,
     /// Arbitrary metadata from the route.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Value>,
@@ -155,4 +381,48 @@ pub struct AnswerInput {
     pub value: Value,
     /// Answer state.
     pub state: AnswerState,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn determination_status_serde_round_trip() {
+        let status = DeterminationStatus::Partial;
+        let wire = serde_json::to_value(status).unwrap();
+        assert_eq!(wire, json!("partial"));
+        let back: DeterminationStatus = serde_json::from_value(wire).unwrap();
+        assert_eq!(back, status);
+    }
+
+    #[test]
+    fn phase_status_and_strategy_wire_unchanged() {
+        let phase = PhaseResult {
+            id: "p1".into(),
+            status: PhaseStatus::UnsupportedStrategy,
+            strategy: PhaseStrategy::Other("x-custom".into()),
+            matched: vec![],
+            eliminated: vec![],
+            warnings: vec![],
+        };
+        let v = serde_json::to_value(&phase).unwrap();
+        assert_eq!(v["status"], json!("unsupported-strategy"));
+        assert_eq!(v["strategy"], json!("x-custom"));
+    }
+
+    #[test]
+    fn elimination_reason_on_route_result() {
+        let route = RouteResult {
+            target: "urn:t".into(),
+            label: None,
+            message: None,
+            score: None,
+            reason: Some(EliminationReason::BelowThreshold),
+            metadata: None,
+        };
+        let v = serde_json::to_value(&route).unwrap();
+        assert_eq!(v["reason"], json!("below-threshold"));
+    }
 }

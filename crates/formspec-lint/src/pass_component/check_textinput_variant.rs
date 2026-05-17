@@ -32,7 +32,7 @@ pub(crate) fn check(state: &mut WalkState<'_>, node: &Value, path: &str, comp_ty
         .is_some_and(|dt| dt == "string" || dt == "text");
     if !is_string {
         state.diags.push(metadata::with_metadata(LintDiagnostic::error(
-            "E804",
+            crate::LintCode::E804,
             PASS,
             path,
             format!(

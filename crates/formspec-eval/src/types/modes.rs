@@ -1,4 +1,31 @@
-//! NRB and whitespace normalization modes.
+//! NRB, whitespace normalization, and excluded-value modes.
+
+/// Excluded-value behavior when a field is non-relevant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExcludedValueMode {
+    /// Hide from shapes / env as null.
+    Null,
+    /// Keep current value visible to cross-field rules.
+    Keep,
+}
+
+impl ExcludedValueMode {
+    /// Parse definition/bind wire value; unknown strings are rejected.
+    pub fn parse_wire(s: &str) -> Option<Self> {
+        match s {
+            "null" => Some(ExcludedValueMode::Null),
+            "keep" => Some(ExcludedValueMode::Keep),
+            _ => None,
+        }
+    }
+
+    pub fn as_wire_str(self) -> &'static str {
+        match self {
+            ExcludedValueMode::Null => "null",
+            ExcludedValueMode::Keep => "keep",
+        }
+    }
+}
 
 /// NRB (Non-Relevant Behavior) mode.
 #[derive(Debug, Clone, Copy, PartialEq)]

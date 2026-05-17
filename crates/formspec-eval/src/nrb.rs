@@ -13,27 +13,27 @@ use crate::types::{
 pub fn resolve_nrb(path: &str, items: &[ItemInfo], definition_default: &str) -> NrbMode {
     // Look up exact match in items
     if let Some(item) = find_item_by_path(items, path)
-        && let Some(ref nrb) = item.nrb
+        && let Some(nrb) = item.nrb
     {
-        return NrbMode::from_str_lossy(nrb);
+        return nrb;
     }
 
     // Try wildcard version (replace [N] with [*])
     let wildcard_path = to_wildcard_path(path);
     if wildcard_path != path
         && let Some(item) = find_item_by_path(items, &wildcard_path)
-        && let Some(ref nrb) = item.nrb
+        && let Some(nrb) = item.nrb
     {
-        return NrbMode::from_str_lossy(nrb);
+        return nrb;
     }
 
     // Try stripped indices version
     let stripped = strip_indices(path);
     if stripped != path
         && let Some(item) = find_item_by_path(items, &stripped)
-        && let Some(ref nrb) = item.nrb
+        && let Some(nrb) = item.nrb
     {
-        return NrbMode::from_str_lossy(nrb);
+        return nrb;
     }
 
     // Try parent path
@@ -77,8 +77,6 @@ fn collect_non_relevant_with_nrb(
         if !item.relevant && item.item_type != "display" {
             let mode = item
                 .nrb
-                .as_deref()
-                .map(NrbMode::from_str_lossy)
                 .unwrap_or_else(|| NrbMode::from_str_lossy(definition_default));
             result.push((item.path.clone(), mode));
         }
@@ -94,7 +92,7 @@ fn collect_non_relevant_with_nrb(
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    fn make_item(path: &str, nrb: Option<&str>) -> ItemInfo {
+    fn make_item(path: &str, nrb: Option<NrbMode>) -> ItemInfo {
         ItemInfo {
             key: path.split('.').last().unwrap_or(path).to_string(),
             path: path.to_string(),
@@ -113,7 +111,7 @@ mod tests {
             required_expr: None,
             readonly_expr: None,
             whitespace: None,
-            nrb: nrb.map(String::from),
+            nrb,
             excluded_value: None,
             default_value: None,
             default_expression: None,
@@ -132,7 +130,7 @@ mod tests {
         }
     }
 
-    fn make_item_with_parent(path: &str, nrb: Option<&str>, parent: &str) -> ItemInfo {
+    fn make_item_with_parent(path: &str, nrb: Option<NrbMode>, parent: &str) -> ItemInfo {
         let mut item = make_item(path, nrb);
         item.parent_path = Some(parent.to_string());
         item
@@ -140,7 +138,7 @@ mod tests {
 
     #[test]
     fn nrb_resolve_exact_path_match() {
-        let items = vec![make_item("items", Some("keep"))];
+        let items = vec![make_item("items", Some(NrbMode::Keep))];
         let mode = resolve_nrb("items", &items, "remove");
         assert_eq!(
             mode,
@@ -153,7 +151,7 @@ mod tests {
     fn nrb_resolve_wildcard_path_fallback() {
         let items = vec![make_item_with_parent(
             "items[*].total",
-            Some("keep"),
+            Some(NrbMode::Keep),
             "items[*]",
         )];
 
@@ -167,7 +165,7 @@ mod tests {
 
     #[test]
     fn nrb_resolve_stripped_indices_fallback() {
-        let items = vec![make_item_with_parent("items.total", Some("empty"), "items")];
+        let items = vec![make_item_with_parent("items.total", Some(NrbMode::Empty), "items")];
 
         let mode = resolve_nrb("items[0].total", &items, "remove");
         assert_eq!(
@@ -179,7 +177,7 @@ mod tests {
 
     #[test]
     fn nrb_resolve_parent_path_fallback() {
-        let items = vec![make_item("details", Some("keep"))];
+        let items = vec![make_item("details", Some(NrbMode::Keep))];
 
         let mode = resolve_nrb("details.name", &items, "remove");
         assert_eq!(
@@ -203,8 +201,8 @@ mod tests {
 
     #[test]
     fn nrb_resolve_precedence_exact_wins_over_wildcard() {
-        let exact_item = make_item_with_parent("items[0].total", Some("empty"), "items[0]");
-        let wildcard_item = make_item_with_parent("items[*].total", Some("keep"), "items[*]");
+        let exact_item = make_item_with_parent("items[0].total", Some(NrbMode::Empty), "items[0]");
+        let wildcard_item = make_item_with_parent("items[*].total", Some(NrbMode::Keep), "items[*]");
 
         let items = vec![exact_item, wildcard_item];
 

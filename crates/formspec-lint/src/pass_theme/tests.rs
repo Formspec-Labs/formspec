@@ -9,7 +9,7 @@ use serde_json::json;
 
     // Helper: find diagnostics with a specific code
     fn with_code<'a>(diags: &'a [LintDiagnostic], code: &str) -> Vec<&'a LintDiagnostic> {
-        diags.iter().filter(|d| d.code == code).collect()
+        diags.iter().filter(|d| d.code == *code).collect()
     }
 
     // ── 1. Empty theme — no diagnostics ─────────────────────────

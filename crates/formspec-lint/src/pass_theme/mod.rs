@@ -47,7 +47,7 @@ fn lint_pages(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
             && !seen_ids.insert(id.to_string())
         {
             diags.push(metadata::with_metadata(LintDiagnostic::error(
-                "E710",
+                crate::LintCode::E710,
                 PASS,
                 format!("$.pages[{i}].id"),
                 format!("Duplicate page ID: '{id}'"),
@@ -72,7 +72,7 @@ fn lint_pages(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
             for bp_key in responsive.keys() {
                 if !breakpoint_names.contains(bp_key) {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W711",
+                        crate::LintCode::W711,
                         PASS,
                         format!("$.pages[{i}].regions[{j}].responsive.{bp_key}"),
                         format!(
@@ -92,7 +92,7 @@ fn lint_cross_artifact(theme: &Value, definition: &Value, diags: &mut Vec<LintDi
         for key in items.keys() {
             if !item_keys.contains(key.as_str()) {
                 diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                    "W705",
+                    crate::LintCode::W705,
                     PASS,
                     format!("$.items.{key}"),
                     format!(
@@ -113,7 +113,7 @@ fn lint_cross_artifact(theme: &Value, definition: &Value, diags: &mut Vec<LintDi
                     && !item_keys.contains(key)
                 {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W706",
+                        crate::LintCode::W706,
                         PASS,
                         format!("$.pages[{i}].regions[{j}].key"),
                         format!("Page region key '{key}' does not match any definition item path"),
@@ -131,7 +131,7 @@ fn lint_cross_artifact(theme: &Value, definition: &Value, diags: &mut Vec<LintDi
         && target_url != def_url
     {
         diags.push(metadata::with_metadata(LintDiagnostic::warning(
-            "W707",
+            crate::LintCode::W707,
             PASS,
             "$.targetDefinition.url",
             format!(

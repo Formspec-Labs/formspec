@@ -24,7 +24,7 @@ pub fn lint_result_to_json_value(result: &LintResult, style: JsonWireStyle) -> V
         .iter()
         .map(|d| {
             let mut obj = Map::new();
-            obj.insert("code".to_string(), json!(d.code));
+            obj.insert("code".to_string(), json!(d.code.as_wire_str()));
             obj.insert("pass".to_string(), json!(d.pass));
             obj.insert("severity".to_string(), json!(d.severity.as_wire_str()));
             obj.insert("path".to_string(), json!(d.path));
@@ -67,7 +67,7 @@ mod tests {
     /// from the wire payload — existing consumers see no shape change.
     #[test]
     fn wire_omits_authoring_fields_when_absent() {
-        let result = result_with_diag(LintDiagnostic::error("E300", 3, "$", "bad"));
+        let result = result_with_diag(LintDiagnostic::error(crate::LintCode::E300, 3, "$", "bad"));
         let json = lint_result_to_json_value(&result, JsonWireStyle::JsCamel);
         let diag = &json["diagnostics"][0];
         assert!(diag.get("suggestedFix").is_none());
@@ -77,7 +77,7 @@ mod tests {
     /// Spec: camelCase wire emits `suggestedFix` / `specRef`.
     #[test]
     fn wire_emits_camel_case_metadata_when_present() {
-        let diag = LintDiagnostic::error("E300", 3, "$", "bad")
+        let diag = LintDiagnostic::error(crate::LintCode::E300, 3, "$", "bad")
             .with_suggested_fix("rename to 'quantity'")
             .with_spec_ref("specs/core/spec.md#bind-target");
         let json = lint_result_to_json_value(&result_with_diag(diag), JsonWireStyle::JsCamel);
@@ -89,7 +89,7 @@ mod tests {
     /// Spec: snake_case wire emits `suggested_fix` / `spec_ref`.
     #[test]
     fn wire_emits_snake_case_metadata_when_present() {
-        let diag = LintDiagnostic::warning("W704", 6, "$.tokens", "unresolved")
+        let diag = LintDiagnostic::warning(crate::LintCode::W704, 6, "$.tokens", "unresolved")
             .with_suggested_fix("define token 'brand.primary'")
             .with_spec_ref("specs/theme/theme-spec.md#token-cascade");
         let json = lint_result_to_json_value(&result_with_diag(diag), JsonWireStyle::PythonSnake);

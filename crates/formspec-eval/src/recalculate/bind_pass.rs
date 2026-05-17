@@ -19,8 +19,7 @@ pub(crate) fn apply_whitespace_to_items(
     values: &mut HashMap<String, JsonValue>,
 ) {
     for item in items.iter_mut() {
-        if let Some(ref ws) = item.whitespace {
-            let mode = WhitespaceMode::from_str_lossy(ws);
+        if let Some(mode) = item.whitespace {
             if mode != WhitespaceMode::Preserve
                 && let Some(JsonValue::String(s)) = values.get(&item.path)
             {
@@ -96,8 +95,7 @@ pub(crate) fn evaluate_single_item(
     }
 
     if !item.relevant
-        && let Some(ref ev) = item.excluded_value
-        && ev == "null"
+        && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
     {
         env.set_field(&item.path, Value::Null);
     }

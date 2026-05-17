@@ -60,7 +60,7 @@ fn walk_token_refs(
             for token_name in extract_token_refs(s) {
                 if !token_names.contains(token_name) {
                     diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                        "W704",
+                        crate::LintCode::W704,
                         PASS,
                         path,
                         format!(
