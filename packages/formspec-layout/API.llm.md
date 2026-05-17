@@ -62,9 +62,13 @@ Also skips when the root has direct Page children — pageMode wizard/tabs
 synthesizes its own submit via the wizard behavior's Next→Submit button.
 For Accordion (and similar), children are sections — wrap in Stack so submit is not a section.
 
+## `preparePlanContext(ctx: PlanContext): PlanContext`
+
+Returns a context with a fresh per-plan `nextId` generator (see `createNodeIdGenerator`). Prefer this over the legacy module-global counter so concurrent plans do not share IDs.
+
 ## `resetNodeIdCounter(): void`
 
-Reset the ID counter (for testing).
+**Deprecated (testing only).** Resets the legacy module-global ID counter. New code should use `preparePlanContext` instead.
 
 ## `planComponentTree(tree: any, ctx: PlanContext, prefix?: string, customComponentStack?: Set<string>, applyThemePages?: boolean): LayoutNode`
 
