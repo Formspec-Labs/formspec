@@ -72,7 +72,7 @@ build-js: node_modules
 # Uses maturin develop so the in-tree _native.so stays current (pip install writes to
 # site-packages, which is shadowed by the editable src/formspec/ on sys.path).
 build-python: .venv/.deps-stamp
-	.venv/bin/maturin develop --release --manifest-path crates/formspec-py/Cargo.toml
+	.venv/bin/maturin develop --release
 
 # Force-rebuild the Python extension from scratch. Use this when tests pick up
 # stale bindings — typical symptom: a function signature was changed in Rust
@@ -80,7 +80,7 @@ build-python: .venv/.deps-stamp
 # maturin develop with python-source="src" places the .so directly in src/formspec/.
 rebuild-python: .venv/.deps-stamp
 	rm -f src/formspec/_native*.so
-	.venv/bin/maturin develop --release --manifest-path crates/formspec-py/Cargo.toml
+	.venv/bin/maturin develop --release
 
 test-rust:
 	cargo nextest run --workspace

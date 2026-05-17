@@ -9,7 +9,7 @@ use crate::types::determination::{
 
 use super::condition::{
     eval_screener_condition, eval_screener_numeric, elimination_reason_for_condition,
-    phase_warnings_from_eliminated, WARNING_FEL_EXPRESSION_ERROR,
+    phase_warnings_from_eliminated,
 };
 use super::helpers::route_to_result;
 
@@ -176,12 +176,8 @@ pub(crate) fn eval_score_threshold(
 
     let mut matched = Vec::new();
     let mut eliminated = Vec::new();
-    let mut warnings = Vec::new();
 
     for s in &scored {
-        if s.expression_error {
-            warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
-        }
         match s.raw_score {
             None => {
                 let mut result = route_to_result(s.route);
@@ -220,7 +216,7 @@ pub(crate) fn eval_score_threshold(
         }
     }
 
-    warnings.extend(phase_warnings_from_eliminated(&eliminated));
+    let warnings = phase_warnings_from_eliminated(&eliminated);
 
     PhaseResult {
         id: phase_id.to_string(),

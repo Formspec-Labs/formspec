@@ -11,6 +11,9 @@
 //! offset in the string), not the UTC calendar date of the same instant. Example:
 //! `2026-04-01T23:00:00-08:00` is still 2026-04-01 for availability even though the instant
 //! is 2026-04-02 in UTC.
+//!
+//! When `availability` is declared, a missing or unparseable evaluation timestamp MUST NOT
+//! proceed to route evaluation (SC-04): the processor returns status `"unavailable"`.
 
 use std::collections::HashMap;
 

@@ -109,6 +109,37 @@ fn malformed_route_condition_emits_warning_and_expression_error_reason() {
 }
 
 #[test]
+fn malformed_score_expression_emits_single_fel_warning() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "evaluation": [{
+            "id": "scoring",
+            "strategy": "score-threshold",
+            "routes": [{
+                "score": "$x ==",
+                "threshold": 0,
+                "target": "urn:broken"
+            }]
+        }]
+    });
+    let answers = HashMap::new();
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+
+    assert_eq!(
+        det.phases[0]
+            .warnings
+            .iter()
+            .filter(|w| *w == "fel-expression-error")
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn malformed_score_expression_emits_warning_and_expression_error_reason() {
     let screener = json!({
         "$formspecScreener": "1.0",
@@ -485,6 +516,75 @@ fn multiple_overrides_all_evaluated() {
     assert!(det.overrides.halted);
 }
 
+#[test]
+fn override_malformed_terminal_route_does_not_halt_but_emits_fel_warning() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "evaluation": [{
+            "id": "p1",
+            "strategy": "first-match",
+            "routes": [
+                {
+                    "condition": "$x ==",
+                    "target": "outcome:closed",
+                    "override": true,
+                    "terminal": true
+                },
+                { "condition": "true", "target": "urn:normal" }
+            ]
+        }]
+    });
+    let answers = HashMap::new();
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+
+    assert!(!det.overrides.halted);
+    assert_eq!(det.overrides.matched.len(), 0);
+    assert_eq!(det.phases[0].matched[0].target, "urn:normal");
+    assert!(
+        det.phases[0]
+            .warnings
+            .contains(&"fel-expression-error".to_string())
+    );
+}
+
+#[test]
+fn override_malformed_condition_emits_fel_warning_on_first_phase() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "evaluation": [{
+            "id": "p1",
+            "strategy": "first-match",
+            "routes": [
+                {
+                    "condition": "$x ==",
+                    "target": "urn:override-broken",
+                    "override": true
+                },
+                { "condition": "true", "target": "urn:normal" }
+            ]
+        }]
+    });
+    let answers = HashMap::new();
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+
+    assert!(!det.overrides.halted);
+    assert_eq!(det.overrides.matched.len(), 0);
+    assert_eq!(det.phases[0].matched[0].target, "urn:normal");
+    assert!(
+        det.phases[0]
+            .warnings
+            .contains(&"fel-expression-error".to_string())
+    );
+}
+
 // ── activeWhen tests ───────────────────────────────────────────
 
 #[test]
@@ -511,7 +611,71 @@ fn active_when_false_skips_phase() {
     assert_eq!(det.phases[0].matched.len(), 0);
 }
 
+#[test]
+fn active_when_malformed_expression_emits_single_phase_warning() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "evaluation": [{
+            "id": "skipped-phase",
+            "strategy": "first-match",
+            "activeWhen": "$x ==",
+            "routes": [{ "condition": "true", "target": "urn:should-not-match" }]
+        }]
+    });
+    let answers = HashMap::new();
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+
+    assert_eq!(det.phases[0].status, "skipped");
+    assert_eq!(
+        det.phases[0]
+            .warnings
+            .iter()
+            .filter(|w| *w == "fel-expression-error")
+            .count(),
+        1
+    );
+}
+
 // ── Availability tests ─────────────────────────────────────────
+
+#[test]
+fn availability_with_missing_now_returns_unavailable() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "availability": { "from": "2026-01-01", "until": "2026-12-31" },
+        "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
+    });
+    let answers = HashMap::new();
+    let det = evaluate_screener_document(&screener, &answers, None);
+
+    assert_eq!(det.status, "unavailable");
+    assert_eq!(det.phases.len(), 0);
+}
+
+#[test]
+fn availability_with_unparseable_now_returns_unavailable() {
+    let screener = json!({
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "availability": { "from": "2026-01-01", "until": "2026-12-31" },
+        "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
+    });
+    let answers = HashMap::new();
+    let det = evaluate_screener_document(&screener, &answers, Some("not-a-date"));
+
+    assert_eq!(det.status, "unavailable");
+}
 
 #[test]
 fn availability_window_before_start_returns_unavailable() {

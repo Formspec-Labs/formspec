@@ -66,3 +66,16 @@ pub(crate) fn phase_warnings_from_eliminated(eliminated: &[RouteResult]) -> Vec<
         Vec::new()
     }
 }
+
+/// Append a warning code once (phase / document warning lists are code sets).
+pub(crate) fn push_unique_warning(warnings: &mut Vec<String>, code: &str) {
+    if !warnings.iter().any(|w| w == code) {
+        warnings.push(code.to_string());
+    }
+}
+
+pub(crate) fn extend_unique_warnings(target: &mut Vec<String>, source: &[String]) {
+    for code in source {
+        push_unique_warning(target, code);
+    }
+}

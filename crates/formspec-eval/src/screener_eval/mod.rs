@@ -24,7 +24,10 @@ use crate::types::determination::{
 };
 
 use availability::{is_within_availability, make_unavailable, parse_date_from_iso};
-use condition::{eval_screener_condition, WARNING_FEL_EXPRESSION_ERROR};
+use condition::{
+    eval_screener_condition, extend_unique_warnings, push_unique_warning,
+    WARNING_FEL_EXPRESSION_ERROR,
+};
 use helpers::{build_inputs, determine_status, route_to_result, warning_only_phase};
 use strategies::{eval_fan_out, eval_first_match, eval_score_threshold};
 use validity::build_validity;
@@ -60,12 +63,13 @@ pub fn evaluate_screener_document(
     let now_str = now_iso.unwrap_or("");
     let timestamp = now_str.to_string();
 
-    // ── 1. Availability check (§10.1 step 1) ──────────────────────
+    // ── 1. Availability check (§10.1 step 1, SC-04) ───────────────
     if let Some(availability) = screener.get("availability") {
-        if let Some(today) = parse_date_from_iso(now_str) {
-            if !is_within_availability(availability, today) {
-                return make_unavailable(screener_ref, &timestamp, &version, answers);
-            }
+        let Some(today) = parse_date_from_iso(now_str) else {
+            return make_unavailable(screener_ref, &timestamp, &version, answers);
+        };
+        if !is_within_availability(availability, today) {
+            return make_unavailable(screener_ref, &timestamp, &version, answers);
         }
     }
 
@@ -117,7 +121,7 @@ pub fn evaluate_screener_document(
             .unwrap_or("false");
         let cond = eval_screener_condition(condition, &env);
         if cond.expression_error {
-            document_warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
+            push_unique_warning(&mut document_warnings, WARNING_FEL_EXPRESSION_ERROR);
         }
         if cond.truthy {
             let mut result = route_to_result(route);
@@ -184,13 +188,10 @@ pub fn evaluate_screener_document(
         // Check activeWhen
         if let Some(active_when) = phase_val.get("activeWhen").and_then(Value::as_str) {
             let active = eval_screener_condition(active_when, &env);
-            if active.expression_error {
-                document_warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
-            }
             if !active.truthy {
                 let mut warnings = Vec::new();
                 if active.expression_error {
-                    warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
+                    push_unique_warning(&mut warnings, WARNING_FEL_EXPRESSION_ERROR);
                 }
                 phase_results.push(PhaseResult {
                     id: phase_id,
@@ -239,7 +240,7 @@ pub fn evaluate_screener_document(
 
     if !document_warnings.is_empty() {
         if let Some(first) = phase_results.first_mut() {
-            first.warnings.extend(document_warnings);
+            extend_unique_warnings(&mut first.warnings, &document_warnings);
         }
     }
 

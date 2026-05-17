@@ -249,6 +249,22 @@ def test_screener_malformed_route_condition_emits_fel_warning_and_expression_err
     assert "fel-expression-error" in phase["warnings"]
 
 
+def test_screener_availability_without_parseable_now_is_unavailable():
+    """When availability is declared, missing nowIso must not evaluate routes (SC-04)."""
+    screener = {
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "availability": {"from": "2026-01-01", "until": "2026-12-31"},
+        "evaluation": [{"id": "p1", "strategy": "first-match", "routes": []}],
+    }
+    record = evaluate_screener_document(screener, {}, {})
+    assert record["status"] == "unavailable"
+    assert record["phases"] == []
+
+
 # ── Mapping ──────────────────────────────────────────────────────
 
 

@@ -162,6 +162,9 @@ fn str_field<'a>(val: &'a Value, key: &str) -> &'a str {
 ///
 /// O(1) lookup per key — used by `diff_items` / `diff_binds` / `diff_keyed_array`
 /// to avoid quadratic `iter().find()` scans on the modify pass.
+///
+/// Elements without a string `key_field` are omitted. Duplicate keys keep the last
+/// occurrence (stable for changelog diffing; see integration tests).
 fn index_by_key<'a>(arr: &'a [Value], key_field: &str) -> HashMap<&'a str, &'a Value> {
     arr.iter()
         .filter_map(|v| v.get(key_field).and_then(|k| k.as_str()).map(|k| (k, v)))

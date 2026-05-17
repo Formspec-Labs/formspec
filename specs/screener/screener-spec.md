@@ -871,6 +871,12 @@ processors MUST NOT begin a new screening session outside the window.
 Processors SHOULD route respondents who arrive outside the window to the
 `outcome:closed` named outcome.
 
+When `availability` is declared, the evaluation timestamp passed to the
+processor MUST be a valid ISO 8601 date or RFC 3339 datetime. If the timestamp
+is missing or not parseable, the processor MUST NOT evaluate routes and SHOULD
+produce a Determination Record with status `"unavailable"` (same as an
+out-of-window arrival).
+
 When the evaluation timestamp is a full RFC 3339 datetime, processors MUST
 compare availability using the **calendar date in that timestamp's stated
 offset** (the date component before the offset), not the UTC calendar date of
@@ -941,10 +947,11 @@ evaluation time and record that version in the Determination Record's
 A conforming processor evaluates a Screener Document as follows:
 
 1. **Availability check.** If the screener declares an `availability` window
-   and the current date is outside that window, the processor MUST NOT begin
-   evaluation (per SC-04). The processor SHOULD produce a Determination
-   Record with status `"unavailable"` and a single override match targeting
-   `outcome:closed`.
+   and the evaluation timestamp is missing, not parseable, or its calendar date
+   is outside that window, the processor MUST NOT begin evaluation (per SC-04).
+   The processor SHOULD produce a Determination Record with status `"unavailable"`.
+   (A single override match targeting `outcome:closed` is optional for hosts that
+   surface closure UX from overrides.)
 
 2. **Item collection.** The processor presents screener items to the
    respondent and collects values. Binds are evaluated in the screener's
