@@ -1,9 +1,7 @@
 //! Full `evaluate_*` pipeline integration tests.
 
 use formspec_eval::{
-    EvalContext, EvalTrigger, ValidationResult, evaluate_definition,
-    evaluate_definition_full_with_instances, evaluate_definition_full_with_instances_and_context,
-    evaluate_definition_with_context, evaluate_definition_with_trigger,
+    evaluate, EvalContext, EvalOptions, EvalTrigger, ValidationResult,
 };
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -25,7 +23,7 @@ fn test_evaluate_calculate() {
     data.insert("a".to_string(), json!(10));
     data.insert("b".to_string(), json!(20));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("total"), Some(&json!(30)));
 }
 
@@ -48,7 +46,7 @@ fn calculated_value_applies_precision() {
     let mut data = HashMap::new();
     data.insert("price".to_string(), json!(99.99));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("tax"), Some(&json!(7.25)));
 }
 
@@ -74,7 +72,7 @@ fn calculated_money_field_wraps_as_money_object() {
     data.insert("qty".to_string(), json!(5));
     data.insert("rate".to_string(), json!(19.99));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("total"),
         Some(&json!({ "amount": 99.95, "currency": "USD" })),
@@ -93,7 +91,7 @@ fn test_required_validation() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(!result.validations.is_empty());
     assert_eq!(result.validations[0].constraint_kind, "required");
     assert_eq!(result.validations[0].code, "REQUIRED");
@@ -111,7 +109,7 @@ fn required_boolean_bind_sets_required_state() {
         ]
     });
 
-    let result = evaluate_definition(&def, &HashMap::new());
+    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default());
     assert_eq!(result.required.get("zip"), Some(&true));
 }
 
@@ -127,7 +125,7 @@ fn test_relevance_suppresses_validation() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(result.validations.is_empty());
     assert!(result.non_relevant.contains(&"name".to_string()));
 }
@@ -146,7 +144,7 @@ fn test_constraint_validation() {
     let mut data = HashMap::new();
     data.insert("age".to_string(), json!(15));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(!result.validations.is_empty());
     assert!(result.validations[0].message.contains("Constraint failed"));
 }
@@ -169,7 +167,7 @@ fn test_relevance_and_inheritance() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     assert!(
         result.non_relevant.contains(&"parent".to_string()),
@@ -202,7 +200,7 @@ fn test_nrb_remove_mode() {
     let mut data = HashMap::new();
     data.insert("hidden".to_string(), json!("secret"));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         !result.values.contains_key("hidden"),
         "non-relevant field should be removed in 'remove' mode"
@@ -223,7 +221,7 @@ fn test_nrb_empty_mode() {
     let mut data = HashMap::new();
     data.insert("hidden".to_string(), json!("secret"));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("hidden"),
         Some(&Value::Null),
@@ -245,7 +243,7 @@ fn test_nrb_keep_mode() {
     let mut data = HashMap::new();
     data.insert("hidden".to_string(), json!("secret"));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("hidden"),
         Some(&json!("secret")),
@@ -271,7 +269,7 @@ fn test_variable_evaluation_order() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("result"),
         Some(&json!(20)),
@@ -295,7 +293,7 @@ fn test_whitespace_trim() {
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!("  hello world  "));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("name"),
         Some(&json!("hello world")),
@@ -317,7 +315,7 @@ fn test_whitespace_normalize() {
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!("  hello   world  "));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("name"),
         Some(&json!("hello world")),
@@ -339,7 +337,7 @@ fn test_whitespace_remove() {
     let mut data = HashMap::new();
     data.insert("code".to_string(), json!("AB CD EF"));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("code"),
         Some(&json!("ABCDEF")),
@@ -374,7 +372,7 @@ fn test_full_processing_model_integration() {
     let mut data = HashMap::new();
     data.insert("showDetails".to_string(), json!(false));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(result.non_relevant.contains(&"details".to_string()));
     assert!(
         result
@@ -393,7 +391,7 @@ fn test_full_processing_model_integration() {
     data2.insert("details.firstName".to_string(), json!("John"));
     data2.insert("details.lastName".to_string(), json!("Doe"));
 
-    let result2 = evaluate_definition(&def, &data2);
+    let result2 = evaluate(&def, &data2, &EvalOptions::default());
     assert!(result2.non_relevant.is_empty());
     assert!(result2.validations.is_empty());
     assert_eq!(
@@ -423,7 +421,7 @@ fn shape_failing_constraint_produces_validation_result() {
     data.insert("a".to_string(), json!(1));
     data.insert("b".to_string(), json!(10));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1, "one shape violation expected");
     assert_eq!(result.validations[0].constraint_kind, "shape");
     assert_eq!(result.validations[0].path, "b");
@@ -448,7 +446,7 @@ fn shape_severity_warning_is_propagated() {
     let mut data = HashMap::new();
     data.insert("score".to_string(), json!(30));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(
         result.validations[0].severity, "warning",
@@ -476,7 +474,7 @@ fn shape_active_when_false_suppresses_validation() {
     data.insert("mode".to_string(), json!("relaxed"));
     data.insert("value".to_string(), json!(-5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.validations.is_empty(),
         "shape must not fire when activeWhen evaluates to false"
@@ -503,7 +501,7 @@ fn shape_active_when_true_allows_validation() {
     data.insert("mode".to_string(), json!("strict"));
     data.insert("value".to_string(), json!(-5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(result.validations[0].message, "Value must be positive");
 }
@@ -525,7 +523,7 @@ fn shape_passing_constraint_produces_no_result() {
     let mut data = HashMap::new();
     data.insert("x".to_string(), json!(42));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.validations.is_empty(),
         "passing shape constraint must not produce a validation result"
@@ -581,7 +579,7 @@ fn shape_composition_operators_follow_ts_null_semantics() {
     data.insert("contactEmail".to_string(), json!("person@example.org"));
     data.insert("optA".to_string(), json!(true));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     assert!(
         result
@@ -629,7 +627,7 @@ fn constraint_returning_true_passes() {
     let mut data = HashMap::new();
     data.insert("age".to_string(), json!(21));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.validations.is_empty(),
         "constraint returning true must produce no validation error"
@@ -649,7 +647,7 @@ fn constraint_returning_null_passes() {
 
     let data = HashMap::new();
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let constraint_violations: Vec<_> = result
         .validations
         .iter()
@@ -678,7 +676,7 @@ fn bind_constraint_uses_constraint_message_when_present() {
     let mut data = HashMap::new();
     data.insert("amount".to_string(), json!(0));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(result.validations[0].message, "Must be positive");
 }
@@ -697,7 +695,7 @@ fn required_with_empty_string_fails() {
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!(""));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.validations.len(),
         1,
@@ -721,7 +719,7 @@ fn required_with_whitespace_only_string_fails() {
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!("   "));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.validations.len(),
         1,
@@ -746,7 +744,7 @@ fn calculate_continues_when_non_relevant() {
 
     let data = HashMap::new();
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     assert!(result.non_relevant.contains(&"hidden".to_string()));
     assert_eq!(
@@ -778,7 +776,7 @@ fn non_relevant_field_suppresses_validation_even_with_calculate() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     assert!(
         result.validations.is_empty(),
@@ -804,7 +802,7 @@ fn array_style_binds_are_resolved() {
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!("Alice"));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("greeting"),
         Some(&json!("Hello Alice")),
@@ -825,7 +823,7 @@ fn array_style_binds_required_validation() {
 
     let data = HashMap::new();
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.validations.len(),
         1,
@@ -969,7 +967,7 @@ fn repeatable_group_with_indexed_binds() {
     data.insert("items.qty".to_string(), json!(3));
     data.insert("items.price".to_string(), json!(10));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("items.total"),
         Some(&json!(30)),
@@ -991,7 +989,7 @@ fn malformed_fel_in_calculate_degrades_gracefully() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.values.get("x").is_none() || result.values.get("x") == Some(&Value::Null),
         "malformed calculate should degrade gracefully"
@@ -1012,7 +1010,7 @@ fn malformed_fel_in_constraint_degrades_gracefully() {
     let mut data = HashMap::new();
     data.insert("x".to_string(), json!(5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("x"),
         Some(&json!(5)),
@@ -1044,7 +1042,7 @@ fn malformed_fel_in_relevance_degrades_gracefully() {
     let mut data = HashMap::new();
     data.insert("x".to_string(), json!("hello"));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         !result.non_relevant.contains(&"x".to_string()),
         "malformed relevance should default to true (field stays relevant)"
@@ -1065,7 +1063,7 @@ fn validation_result_required_kind_is_bind() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(
         result.validations[0].constraint_kind, "required",
@@ -1089,7 +1087,7 @@ fn validation_result_constraint_kind_is_bind() {
     let mut data = HashMap::new();
     data.insert("age".to_string(), json!(-1));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(
         result.validations[0].constraint_kind, "constraint",
@@ -1115,7 +1113,7 @@ fn validation_result_shape_kind_is_shape() {
     let mut data = HashMap::new();
     data.insert("x".to_string(), json!(5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(
         result.validations[0].constraint_kind, "shape",
@@ -1140,7 +1138,7 @@ fn variable_scoped_to_non_ancestor_is_invisible() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     let val = result.values.get("result");
     assert!(
@@ -1161,7 +1159,7 @@ fn required_with_zero_passes() {
     let mut data = HashMap::new();
     data.insert("count".to_string(), json!(0));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.validations.is_empty(),
         "0 is not empty — required should pass"
@@ -1177,7 +1175,7 @@ fn required_with_false_passes() {
     let mut data = HashMap::new();
     data.insert("flag".to_string(), json!(false));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.validations.is_empty(),
         "false is not empty — required should pass"
@@ -1193,7 +1191,7 @@ fn required_with_empty_array_fails() {
     let mut data = HashMap::new();
     data.insert("tags".to_string(), json!([]));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.validations.len(),
         1,
@@ -1213,7 +1211,7 @@ fn required_with_empty_object_passes() {
     let mut data = HashMap::new();
     data.insert("meta".to_string(), json!({}));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let required_errors: Vec<_> = result
         .validations
         .iter()
@@ -1236,7 +1234,7 @@ fn required_with_non_empty_array_passes() {
     let mut data = HashMap::new();
     data.insert("tags".to_string(), json!(["a"]));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let required_errors: Vec<_> = result
         .validations
         .iter()
@@ -1275,7 +1273,7 @@ fn multiple_shapes_same_path_accumulate() {
     let mut data = HashMap::new();
     data.insert("value".to_string(), json!(-5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_results: Vec<&ValidationResult> = result
         .validations
         .iter()
@@ -1311,7 +1309,7 @@ fn multiple_shapes_both_fail() {
     let mut data = HashMap::new();
     data.insert("value".to_string(), json!(5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_results: Vec<&ValidationResult> = result
         .validations
         .iter()
@@ -1353,7 +1351,7 @@ fn multiple_shapes_preserve_severities() {
     let mut data = HashMap::new();
     data.insert("score".to_string(), json!(150));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_results: Vec<&ValidationResult> = result
         .validations
         .iter()
@@ -1384,7 +1382,7 @@ fn shape_suppressed_when_target_non_relevant() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_results: Vec<&ValidationResult> = result
         .validations
         .iter()
@@ -1414,7 +1412,7 @@ fn shape_root_target_always_evaluated() {
 
     let mut data = HashMap::new();
     data.insert("a".to_string(), json!(1));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_results: Vec<&ValidationResult> = result
         .validations
         .iter()
@@ -1436,7 +1434,7 @@ fn circular_variable_deps_produce_validation_error() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let cycle_errors: Vec<&ValidationResult> = result
         .validations
         .iter()
@@ -1489,7 +1487,7 @@ fn shape_timing_def() -> Value {
 fn trigger_continuous_skips_submit_and_demand_shapes() {
     let def = shape_timing_def();
     let data = HashMap::new();
-    let result = evaluate_definition_with_trigger(&def, &data, EvalTrigger::Continuous);
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous));
     let msgs: Vec<&str> = result
         .validations
         .iter()
@@ -1504,7 +1502,7 @@ fn trigger_continuous_skips_submit_and_demand_shapes() {
 fn trigger_submit_includes_continuous_and_submit_but_not_demand() {
     let def = shape_timing_def();
     let data = HashMap::new();
-    let result = evaluate_definition_with_trigger(&def, &data, EvalTrigger::Submit);
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Submit));
     let msgs: Vec<&str> = result
         .validations
         .iter()
@@ -1519,7 +1517,7 @@ fn trigger_submit_includes_continuous_and_submit_but_not_demand() {
 fn trigger_disabled_skips_all_validation() {
     let def = shape_timing_def();
     let data = HashMap::new();
-    let result = evaluate_definition_with_trigger(&def, &data, EvalTrigger::Disabled);
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Disabled));
     assert!(
         result.validations.is_empty(),
         "disabled trigger should skip all validation"
@@ -1548,7 +1546,7 @@ fn excluded_value_null_hides_from_shapes() {
     data.insert("show".to_string(), json!(false));
     data.insert("extra".to_string(), json!(-5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -1573,7 +1571,7 @@ fn eval_result_includes_required_state() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.required.get("name"), Some(&true));
 }
 
@@ -1589,7 +1587,7 @@ fn eval_result_includes_readonly_state() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.readonly.get("name"), Some(&true));
 }
 
@@ -1609,7 +1607,7 @@ fn eval_with_runtime_context_uses_injected_now() {
         now_iso: Some("2025-06-15T00:00:00".to_string()),
         ..EvalContext::default()
     };
-    let result = evaluate_definition_with_context(&def, &data, &ctx);
+    let result = evaluate(&def, &data, &EvalOptions::default().context(ctx.clone()));
     assert_eq!(result.values.get("d"), Some(&json!("2025-06-15")));
 }
 
@@ -1634,7 +1632,7 @@ fn calculate_fixpoint_cross_field_dependency() {
     let mut data = HashMap::new();
     data.insert("qty".into(), json!(5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("subtotal"), Some(&json!(50)));
     assert_eq!(result.values.get("total"), Some(&json!(55)));
 }
@@ -1668,7 +1666,7 @@ fn or_composition_with_shape_id_reference() {
     let mut data = HashMap::new();
     data.insert("email".to_string(), json!(null));
     data.insert("phone".to_string(), json!(null));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let contactable_errors: Vec<_> = result
         .validations
         .iter()
@@ -1683,7 +1681,7 @@ fn or_composition_with_shape_id_reference() {
     let mut data2 = HashMap::new();
     data2.insert("email".to_string(), json!("a@b.com"));
     data2.insert("phone".to_string(), json!(null));
-    let result2 = evaluate_definition(&def, &data2);
+    let result2 = evaluate(&def, &data2, &EvalOptions::default());
     let contactable_ok: Vec<_> = result2
         .validations
         .iter()
@@ -1714,7 +1712,7 @@ fn shape_validations_include_shape_id() {
     data.insert("a".into(), json!(1));
     data.insert("b".into(), json!(10));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_results: Vec<_> = result
         .validations
         .iter()
@@ -1753,7 +1751,7 @@ fn shape_context_evaluated_on_failure() {
     data.insert("budget".into(), json!(100));
     data.insert("spent".into(), json!(150));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_result = result
         .validations
         .iter()
@@ -1785,14 +1783,14 @@ fn valid_mip_query_reflects_previous_validation_state() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
-    let result2 = evaluate_definition_with_context(
+    let result = evaluate(&def, &data, &EvalOptions::default());
+    let result2 = evaluate(
         &def,
         &data,
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             previous_validations: Some(result.validations.clone()),
             ..EvalContext::default()
-        },
+        }),
     );
 
     assert_eq!(result2.values.get("ageStatus"), Some(&json!("invalid")));
@@ -1815,7 +1813,7 @@ fn valid_mip_query_reflects_current_validation_state() {
         ]
     });
 
-    let result = evaluate_definition(&def, &HashMap::new());
+    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default());
     assert_eq!(result.values.get("status"), Some(&json!("missing")));
 }
 
@@ -1842,7 +1840,7 @@ fn repeat_calculate_has_access_to_index_and_count() {
         ]
     });
 
-    let result = evaluate_definition(&def, &HashMap::new());
+    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default());
     assert_eq!(
         result.values.get("items[0].position"),
         Some(&json!("1 of 2"))
@@ -1880,13 +1878,13 @@ fn host_repeat_counts_satisfy_min_repeat_with_sparse_flat_values() {
         ..EvalContext::default()
     };
 
-    let result = evaluate_definition_full_with_instances_and_context(
+    let result = evaluate(
         &def,
         &data,
-        EvalTrigger::Continuous,
-        &[],
-        &HashMap::new(),
-        &ctx,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .instances(HashMap::new())
+            .context(ctx.clone()),
     );
 
     let min_repeat = result
@@ -1926,7 +1924,7 @@ fn repeat_field_projection_supports_count_where() {
     data.insert("rows[1].score".to_string(), json!(30));
     data.insert("rows[2].score".to_string(), json!(50));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("passing"), Some(&json!(2)));
 }
 
@@ -1961,7 +1959,7 @@ fn qualified_repeat_refs_resolve_to_same_instance() {
     data.insert("line_items[1].qty".to_string(), json!(5));
     data.insert("line_items[1].price".to_string(), json!(20));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("line_items[0].total"), Some(&json!(30)));
     assert_eq!(result.values.get("line_items[1].total"), Some(&json!(100)));
 }
@@ -2011,7 +2009,7 @@ fn qualified_repeat_refs_resolve_to_enclosing_instance() {
     data.insert("orders[1].items[0].qty".to_string(), json!(2));
     data.insert("orders[1].items[0].unit_price".to_string(), json!(100));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("orders[0].items[0].discounted_total"),
         Some(&json!(180)),
@@ -2050,7 +2048,7 @@ fn qualified_repeat_refs_apply_in_relevance_expressions() {
     data.insert("rows[0].show_detail".to_string(), json!(true));
     data.insert("rows[1].show_detail".to_string(), json!(false));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         !result.non_relevant.contains(&"rows[0].detail".to_string()),
         "row 0 detail should stay relevant",
@@ -2104,7 +2102,7 @@ fn calculated_field_reacts_to_final_scoped_variable_values() {
         json!("Personnel"),
     );
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("budget.hasLineItems"),
         Some(&json!("true"))
@@ -2157,7 +2155,7 @@ fn calculated_field_reacts_to_final_global_variable_values() {
         json!({ "amount": 800, "currency": "USD" }),
     );
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("budget.budgetDeviation"),
         Some(&json!({ "amount": 200, "currency": "USD" })),
@@ -2185,7 +2183,7 @@ fn non_relevant_display_calculation_survives_nrb() {
     data.insert("show".to_string(), json!(false));
     data.insert("count".to_string(), json!(42));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("info"), Some(&json!("Items: 42")));
 }
 
@@ -2205,7 +2203,7 @@ fn default_applies_on_relevance_transition() {
 
     let mut data = HashMap::new();
     data.insert("show".to_string(), json!(false));
-    let result1 = evaluate_definition(&def, &data);
+    let result1 = evaluate(&def, &data, &EvalOptions::default());
     assert!(!result1.values.contains_key("amount"));
 }
 
@@ -2229,7 +2227,7 @@ fn bare_dollar_resolves_nested_group_path() {
 
     let mut data = HashMap::new();
     data.insert("expenditures".to_string(), json!({"employment": 45000}));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let errors: Vec<_> = result
         .validations
         .iter()
@@ -2239,7 +2237,7 @@ fn bare_dollar_resolves_nested_group_path() {
 
     let mut data2 = HashMap::new();
     data2.insert("expenditures".to_string(), json!({"employment": -100}));
-    let result2 = evaluate_definition(&def, &data2);
+    let result2 = evaluate(&def, &data2, &EvalOptions::default());
     let errors2: Vec<_> = result2
         .validations
         .iter()
@@ -2259,7 +2257,7 @@ fn initial_value_literal_seeds_missing_field() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("status"), Some(&json!("draft")));
 }
 
@@ -2273,7 +2271,7 @@ fn initial_value_not_applied_when_field_present() {
 
     let mut data = HashMap::new();
     data.insert("status".to_string(), json!("final"));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("status"), Some(&json!("final")));
 }
 
@@ -2288,7 +2286,7 @@ fn initial_value_fel_expression() {
 
     let mut data = HashMap::new();
     data.insert("base".to_string(), json!(10));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("doubled"), Some(&json!(20)));
 }
 
@@ -2300,13 +2298,13 @@ fn initial_value_fel_expression_uses_context_now() {
         ]
     });
 
-    let result = evaluate_definition_with_context(
+    let result = evaluate(
         &def,
         &HashMap::new(),
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             now_iso: Some("2026-03-22T12:00:00.000Z".to_string()),
             ..EvalContext::default()
-        },
+        }),
     );
     assert_eq!(result.values.get("startDate"), Some(&json!("2026-03-22")));
 }
@@ -2338,7 +2336,7 @@ fn wildcard_bind_per_instance_calculate() {
     data.insert("items[1].qty".to_string(), json!(5));
     data.insert("items[1].price".to_string(), json!(3));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("items[0].total"),
         Some(&json!(20)),
@@ -2376,7 +2374,7 @@ fn wildcard_bind_per_instance_constraint() {
     data.insert("rows[1].amount".to_string(), json!(-5));
     data.insert("rows[2].amount".to_string(), json!(50));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let errors: Vec<_> = result
         .validations
         .iter()
@@ -2412,7 +2410,7 @@ fn wildcard_shape_target_expands_to_concrete_paths() {
     data.insert("entries[1].value".to_string(), json!(-3));
     data.insert("entries[2].value".to_string(), json!(7));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2453,7 +2451,7 @@ fn wildcard_shape_row_scoped_sibling_references() {
     data.insert("rows[1].start".to_string(), json!(20));
     data.insert("rows[1].end".to_string(), json!(5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2493,7 +2491,7 @@ fn wildcard_shape_bare_dollar_gt_sibling_row_ref() {
     data.insert("rows[1].min".to_string(), json!(5));
     data.insert("rows[1].max".to_string(), json!(3));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2532,7 +2530,7 @@ fn wildcard_shape_bare_dollar_gt_sibling_nested_rows_array() {
         json!([{"min": 1, "max": 10}, {"min": 5, "max": 3}]),
     );
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2574,7 +2572,7 @@ fn wildcard_shape_active_when_and_constraint_use_current_row_aliases() {
     data.insert("rows[1].age".to_string(), json!(21));
     data.insert("rows[1].isStudent".to_string(), json!(false));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2610,7 +2608,7 @@ fn variables_recompute_from_repeat_calculations() {
     let mut data = HashMap::new();
     data.insert("lines".to_string(), json!([{ "qty": 2, "unit": 50 }]));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.values.get("lines[0].subtotal"), Some(&json!(100)));
     assert_eq!(result.variables.get("grandTotal"), Some(&json!(100)));
 }
@@ -2640,7 +2638,7 @@ fn shape_constraints_can_reference_computed_variables() {
     data.insert("unit".to_string(), json!(50));
     data.insert("requested".to_string(), json!(0));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2679,7 +2677,7 @@ fn shape_constraints_handle_plain_money_field_values() {
         json!({ "amount": 0, "currency": "USD" }),
     );
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let shape_errors: Vec<_> = result
         .validations
         .iter()
@@ -2726,7 +2724,7 @@ fn calculated_money_sum_uses_plain_money_field_values() {
         json!({ "amount": 28000, "currency": "USD" }),
     );
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("total"),
         Some(&json!({ "amount": 105000, "currency": "USD" }))
@@ -2755,7 +2753,7 @@ fn scoped_variable_visible_within_group() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("section.field"),
         Some(&json!(20)),
@@ -2786,7 +2784,7 @@ fn scoped_variable_expression_can_reference_fields_in_scope() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.variables.get("globalRate"), Some(&json!(0.1)));
     assert_eq!(result.variables.get("localTax"), Some(&json!(20)));
     assert_eq!(result.values.get("order.tax"), Some(&json!(20)));
@@ -2814,7 +2812,7 @@ fn scoped_variable_invisible_outside_group() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("section.inner"),
         Some(&json!(20)),
@@ -2854,7 +2852,7 @@ fn wildcard_bind_constraint_can_use_current_field_alias() {
     data.insert("lines[0].quantity".to_string(), json!(2));
     data.insert("lines[1].quantity".to_string(), json!(-1));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let constraint_errors: Vec<_> = result
         .validations
         .iter()
@@ -2907,7 +2905,7 @@ fn nested_repeat_wildcard_bind_constraint_applies_to_concrete_child_items() {
         json!({ "amount": -100, "currency": "USD" }),
     );
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let constraint_errors: Vec<_> = result
         .validations
         .iter()
@@ -2950,7 +2948,7 @@ fn global_scope_variable_visible_everywhere() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("group.nested"),
         Some(&json!(10)),
@@ -2986,7 +2984,7 @@ fn scoped_variable_nearest_scope_wins() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("section.field"),
         Some(&json!(999)),
@@ -3023,7 +3021,7 @@ fn wildcard_bind_array_style() {
     data.insert("rows[0].x".to_string(), json!(5));
     data.insert("rows[1].x".to_string(), json!(10));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("rows[0].doubled"),
         Some(&json!(10)),
@@ -3054,7 +3052,7 @@ fn wildcard_bind_zero_instances() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result.validations.is_empty(),
         "zero instances should produce no validation errors"
@@ -3082,7 +3080,7 @@ fn wildcard_bind_required_per_instance() {
     data.insert("items[0].name".to_string(), json!("Alice"));
     data.insert("items[1].name".to_string(), json!(""));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let req_errors: Vec<_> = result
         .validations
         .iter()
@@ -3115,7 +3113,7 @@ fn wildcard_bind_bare_sibling_relevance_suppresses_required() {
     data.insert("rows[0].enabled".to_string(), json!(false));
     data.insert("rows[0].note".to_string(), json!(""));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let req_errors: Vec<_> = result
         .validations
         .iter()
@@ -3150,7 +3148,7 @@ fn wildcard_bind_bare_sibling_nested_data() {
     let mut data = HashMap::new();
     data.insert("rows".to_string(), json!([{"enabled": false, "note": ""}]));
 
-    let result = evaluate_definition_with_trigger(&def, &data, EvalTrigger::Continuous);
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous));
     let req_errors: Vec<_> = result
         .validations
         .iter()
@@ -3185,7 +3183,7 @@ fn variable_default_scope_is_global() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("group.field"),
         Some(&json!(77)),
@@ -3225,7 +3223,7 @@ fn scoped_variable_visible_inside_repeatable_group() {
     data.insert("section.rows[0].amount".to_string(), json!(100));
     data.insert("section.rows[1].amount".to_string(), json!(200));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("section.rows[0].adjusted"),
         Some(&json!(200)),
@@ -3261,7 +3259,7 @@ fn bare_name_alias_does_not_shadow_top_level_field() {
     data.insert("amount".to_string(), json!(999));
     data.insert("rows[0].amount".to_string(), json!(10));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("amount"),
         Some(&json!(999)),
@@ -3287,13 +3285,7 @@ fn instance_ref_in_calculate_resolves() {
     let data = HashMap::new();
     let mut instances = HashMap::new();
     instances.insert("config".into(), json!({ "defaultRate": 0.15 }));
-    let result = evaluate_definition_full_with_instances(
-        &def,
-        &data,
-        EvalTrigger::Continuous,
-        &[],
-        &instances,
-    );
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
     assert_eq!(result.values.get("rate"), Some(&json!(0.15)));
 }
 
@@ -3311,13 +3303,7 @@ fn instance_ref_in_constraint_resolves() {
     data.insert("amount".into(), json!(500));
     let mut instances = HashMap::new();
     instances.insert("limits".into(), json!({ "maxAmount": 100 }));
-    let result = evaluate_definition_full_with_instances(
-        &def,
-        &data,
-        EvalTrigger::Continuous,
-        &[],
-        &instances,
-    );
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
     assert!(
         result
             .validations
@@ -3341,13 +3327,7 @@ fn instance_ref_in_shape_constraint_resolves() {
     data.insert("total".into(), json!(200));
     let mut instances = HashMap::new();
     instances.insert("rules".into(), json!({ "cap": 100 }));
-    let result = evaluate_definition_full_with_instances(
-        &def,
-        &data,
-        EvalTrigger::Continuous,
-        &[],
-        &instances,
-    );
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
     assert!(result.validations.iter().any(|v| v.code == "OVER_CAP"));
 }
 
@@ -3362,13 +3342,7 @@ fn instance_ref_in_relevant_resolves() {
     let data = HashMap::new();
     let mut instances = HashMap::new();
     instances.insert("flags".into(), json!({ "showExtra": false }));
-    let result = evaluate_definition_full_with_instances(
-        &def,
-        &data,
-        EvalTrigger::Continuous,
-        &[],
-        &instances,
-    );
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
     assert!(result.non_relevant.contains(&"extra".to_string()));
 }
 
@@ -3379,13 +3353,7 @@ fn missing_instance_name_returns_null_not_panic() {
         "items": [{ "key": "val", "type": "field", "dataType": "string", "label": "V" }],
         "binds": [{ "path": "val", "calculate": "@instance('nonexistent').foo" }],
     });
-    let result = evaluate_definition_full_with_instances(
-        &def,
-        &HashMap::new(),
-        EvalTrigger::Continuous,
-        &[],
-        &HashMap::new(),
-    );
+    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default().trigger(EvalTrigger::Continuous));
     // Should not panic — value should be null
     assert!(result.values.get("val").is_none() || result.values.get("val") == Some(&json!(null)));
 }
@@ -3403,12 +3371,12 @@ fn nested_instance_path_resolves() {
         "org".into(),
         json!({ "address": { "city": "Springfield" } }),
     );
-    let result = evaluate_definition_full_with_instances(
+    let result = evaluate(
         &def,
         &HashMap::new(),
-        EvalTrigger::Continuous,
-        &[],
-        &instances,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .instances(instances.clone()),
     );
     assert_eq!(result.values.get("city"), Some(&json!("Springfield")));
 }
@@ -3430,7 +3398,7 @@ fn expression_default_applied_on_relevance_transition() {
     // Pass 1: toggle=false → derived non-relevant
     let mut data = HashMap::new();
     data.insert("toggle".into(), json!(false));
-    let result1 = evaluate_definition(&def, &data);
+    let result1 = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result1.non_relevant.contains(&"derived".to_string()),
         "derived should be non-relevant when toggle=false"
@@ -3438,15 +3406,15 @@ fn expression_default_applied_on_relevance_transition() {
 
     // Pass 2: toggle=true, carry forward non-relevant state → transition fires
     data.insert("toggle".into(), json!(true));
-    let result2 = evaluate_definition_with_context(
+    let result2 = evaluate(
         &def,
         &data,
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             now_iso: None,
             previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
-        },
+        }),
     );
     assert_eq!(
         result2.values.get("derived"),
@@ -3473,22 +3441,22 @@ fn money_literal_default_coerces_string_amount_on_relevance_transition() {
     });
     let mut data = HashMap::new();
     data.insert("show".into(), json!(false));
-    let result1 = evaluate_definition(&def, &data);
+    let result1 = evaluate(&def, &data, &EvalOptions::default());
     assert!(
         result1.non_relevant.contains(&"amount".to_string()),
         "amount non-relevant when show=false"
     );
 
     data.insert("show".into(), json!(true));
-    let result2 = evaluate_definition_with_context(
+    let result2 = evaluate(
         &def,
         &data,
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             now_iso: None,
             previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
-        },
+        }),
     );
     let amount = result2.values.get("amount").expect("amount default");
     assert_eq!(
@@ -3515,15 +3483,15 @@ fn expression_default_does_not_overwrite_user_value() {
     let mut data = HashMap::new();
     data.insert("toggle".into(), json!(true));
     data.insert("name".into(), json!("UserValue"));
-    let result = evaluate_definition_with_context(
+    let result = evaluate(
         &def,
         &data,
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             now_iso: None,
             previous_validations: None,
             previous_non_relevant: Some(vec!["name".to_string()]),
             ..EvalContext::default()
-        },
+        }),
     );
     assert_eq!(
         result.values.get("name"),
@@ -3547,20 +3515,20 @@ fn literal_default_still_works_after_expression_default_change() {
     // Pass 1: toggle=false → status non-relevant
     let mut data = HashMap::new();
     data.insert("toggle".into(), json!(false));
-    let result1 = evaluate_definition(&def, &data);
+    let result1 = evaluate(&def, &data, &EvalOptions::default());
     assert!(result1.non_relevant.contains(&"status".to_string()));
 
     // Pass 2: toggle=true, carry forward non-relevant → literal default fires
     data.insert("toggle".into(), json!(true));
-    let result2 = evaluate_definition_with_context(
+    let result2 = evaluate(
         &def,
         &data,
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             now_iso: None,
             previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
-        },
+        }),
     );
     assert_eq!(
         result2.values.get("status"),
@@ -3588,19 +3556,19 @@ fn expression_default_in_repeat_group() {
     let mut data = HashMap::new();
     data.insert("toggle".into(), json!(false));
     data.insert("items[0].label".into(), Value::Null);
-    let result1 = evaluate_definition(&def, &data);
+    let result1 = evaluate(&def, &data, &EvalOptions::default());
 
     // Pass 2: toggle=true → transition fires expression default in repeat
     data.insert("toggle".into(), json!(true));
-    let result2 = evaluate_definition_with_context(
+    let result2 = evaluate(
         &def,
         &data,
-        &EvalContext {
+        &EvalOptions::default().context(EvalContext {
             now_iso: None,
             previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
-        },
+        }),
     );
     let label = result2.values.get("items[0].label");
     assert_eq!(
@@ -3630,7 +3598,7 @@ fn shape_message_interpolates_expressions() {
     data.insert("budget".to_string(), json!(1000));
     data.insert("limit".to_string(), json!(500));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(
         result.validations[0].message, "Budget 1000 exceeds limit 500",
@@ -3656,7 +3624,7 @@ fn shape_message_plain_text_unchanged() {
     let mut data = HashMap::new();
     data.insert("a".to_string(), json!(5));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(result.validations[0].message, "Value too low");
 }
@@ -3679,7 +3647,7 @@ fn shape_message_escape_braces() {
     let mut data = HashMap::new();
     data.insert("x".to_string(), json!(-1));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(result.validations[0].message, "Use {{ for templates");
 }
@@ -3702,7 +3670,7 @@ fn shape_message_bad_expr_preserved() {
     let mut data = HashMap::new();
     data.insert("x".to_string(), json!(-1));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(result.validations[0].message, "Error: {{!!!bad}}");
 }
@@ -3733,7 +3701,7 @@ fn date_field_compared_to_today_passes_when_future() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate_definition_with_context(&def, &data, &context);
+    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
 
     let shape_errors: Vec<&ValidationResult> = result
         .validations
@@ -3768,7 +3736,7 @@ fn date_field_compared_to_today_fails_when_past() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate_definition_with_context(&def, &data, &context);
+    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
 
     let shape_errors: Vec<&ValidationResult> = result
         .validations
@@ -3801,7 +3769,7 @@ fn date_field_bind_constraint_compares_with_today() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate_definition_with_context(&def, &data, &context);
+    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
 
     let constraint_errors: Vec<&ValidationResult> = result
         .validations
@@ -3836,7 +3804,7 @@ fn datetime_field_coerced_at_context_entry() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate_definition_with_context(&def, &data, &context);
+    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
 
     let shape_errors: Vec<&ValidationResult> = result
         .validations
@@ -3872,7 +3840,7 @@ fn required_condition_sees_calculated_field_value() {
     data.insert("revenue".to_string(), json!(100));
     data.insert("expenses".to_string(), json!(200));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     // net_income should be -100
     assert_eq!(
@@ -3909,7 +3877,7 @@ fn required_condition_not_triggered_when_calculated_field_is_positive() {
     data.insert("revenue".to_string(), json!(500));
     data.insert("expenses".to_string(), json!(200));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     // net_income should be 300
     assert_eq!(result.values.get("net_income"), Some(&json!(300)));
@@ -3943,7 +3911,7 @@ fn required_sees_calculated_value_regardless_of_declaration_order() {
     data.insert("revenue".to_string(), json!(100));
     data.insert("expenses".to_string(), json!(200));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     assert_eq!(result.values.get("net_income"), Some(&json!(-100)));
     assert_eq!(
@@ -3976,7 +3944,7 @@ fn repeat_group_zero_instances_no_required_errors() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     let required_errors: Vec<&ValidationResult> = result
         .validations
@@ -4007,7 +3975,7 @@ fn repeat_group_zero_instances_inline_required_no_errors() {
     });
 
     let data = HashMap::new();
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     let required_errors: Vec<&ValidationResult> = result
         .validations
@@ -4042,7 +4010,7 @@ fn repeat_group_with_instances_required_fires_normally() {
     let mut data = HashMap::new();
     data.insert("items[0].name".to_string(), json!(""));
 
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     let required_errors: Vec<&ValidationResult> = result
         .validations

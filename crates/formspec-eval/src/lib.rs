@@ -42,12 +42,7 @@ pub use eval_json::{
 };
 pub use nrb::{apply_nrb, resolve_nrb};
 pub use eval_options::EvalOptions;
-pub use pipeline::{
-    evaluate, evaluate_definition, evaluate_definition_full, evaluate_definition_full_with_context,
-    evaluate_definition_full_with_instances, evaluate_definition_full_with_instances_and_context,
-    evaluate_definition_with_context, evaluate_definition_with_trigger,
-    evaluate_definition_with_trigger_and_context,
-};
+pub use pipeline::evaluate;
 pub use rebuild::parse_variables;
 pub use rebuild::{expand_repeat_instances, expand_wildcard_path, rebuild_item_tree};
 pub use recalculate::{recalculate, topo_sort_variables};

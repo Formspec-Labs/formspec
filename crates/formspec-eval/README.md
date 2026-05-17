@@ -32,7 +32,7 @@ Cross-cutting:
 
 ### Primary entry points
 
-The main orchestrator is `evaluate_definition_full_with_instances_and_context` in `pipeline.rs`. Thinner wrappers are re-exported at the crate root (`evaluate_definition`, `evaluate_definition_with_context`, …).
+The main orchestrator is [`pipeline::evaluate`](src/pipeline.rs) with [`EvalOptions`](src/eval_options.rs).
 
 ### Source layout (`src/`)
 
@@ -63,7 +63,7 @@ The main orchestrator is `evaluate_definition_full_with_instances_and_context` i
 ## Quick start
 
 ```rust
-use formspec_eval::{evaluate_definition, EvalContext};
+use formspec_eval::{evaluate, EvalContext, EvalOptions};
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -77,7 +77,7 @@ let def = json!({
 });
 let mut data = HashMap::new();
 data.insert("n".into(), json!("hello"));
-let r = evaluate_definition(&def, &data);
+let r = evaluate(&def, &data, &EvalOptions::default());
 assert!(r.values.get("n").is_some());
 ```
 

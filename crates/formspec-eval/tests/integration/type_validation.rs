@@ -8,9 +8,7 @@
 //! - Invalid values that MUST produce TYPE_MISMATCH
 //! - Edge cases at type boundaries
 
-use formspec_eval::{
-    EvalTrigger, ExtensionConstraint, evaluate_definition, evaluate_definition_full,
-};
+use formspec_eval::{evaluate, EvalOptions, EvalTrigger, ExtensionConstraint};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
@@ -34,7 +32,7 @@ fn type_mismatches(data_type: &str, value: Value) -> Vec<String> {
     if !value.is_null() {
         data.insert("field".to_string(), value);
     }
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     result
         .validations
         .iter()
@@ -324,7 +322,7 @@ fn choice_validates_against_options_list() {
     // Valid option
     let mut data = HashMap::new();
     data.insert("color".to_string(), json!("red"));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -337,7 +335,7 @@ fn choice_validates_against_options_list() {
 
     // Invalid option
     data.insert("color".to_string(), json!("purple"));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -371,7 +369,7 @@ fn multichoice_validates_against_options_list() {
     // Valid options
     let mut data = HashMap::new();
     data.insert("colors".to_string(), json!(["red", "blue"]));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -384,7 +382,7 @@ fn multichoice_validates_against_options_list() {
 
     // One invalid option
     data.insert("colors".to_string(), json!(["red", "purple"]));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -531,7 +529,7 @@ fn attachment_validates_accept_mime_types() {
         "photo".to_string(),
         json!({"contentType": "image/png", "url": "https://example.com/photo.png"}),
     );
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -544,7 +542,7 @@ fn attachment_validates_accept_mime_types() {
         "photo".to_string(),
         json!({"contentType": "application/pdf", "url": "https://example.com/doc.pdf"}),
     );
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -579,7 +577,7 @@ fn attachment_accept_wildcard() {
         "file".to_string(),
         json!({"contentType": "image/webp", "url": "https://example.com/photo.webp"}),
     );
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -592,7 +590,7 @@ fn attachment_accept_wildcard() {
         "file".to_string(),
         json!({"contentType": "application/pdf", "url": "https://example.com/doc.pdf"}),
     );
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -608,7 +606,7 @@ fn attachment_accept_wildcard() {
         "file".to_string(),
         json!({"contentType": "text/plain", "url": "https://example.com/file.txt"}),
     );
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -705,7 +703,7 @@ fn choice_with_option_set_validates_against_resolved_options() {
     // Valid: value in options
     let mut data = HashMap::new();
     data.insert("country".to_string(), json!("us"));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -718,7 +716,7 @@ fn choice_with_option_set_validates_against_resolved_options() {
 
     // Invalid: value not in options
     data.insert("country".to_string(), json!("de"));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -736,7 +734,7 @@ fn choice_without_options_accepts_any_string() {
     let def = def_with_field("country", "choice");
     let mut data = HashMap::new();
     data.insert("country".to_string(), json!("anything_goes"));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -767,7 +765,7 @@ fn multichoice_with_options_validates_array_elements() {
     // Valid: all values in options
     let mut data = HashMap::new();
     data.insert("countries".to_string(), json!(["us", "gb"]));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -780,7 +778,7 @@ fn multichoice_with_options_validates_array_elements() {
 
     // Invalid: one value not in options
     data.insert("countries".to_string(), json!(["us", "de"]));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -809,7 +807,7 @@ fn choice_null_value_skips_validation() {
     });
 
     let data = HashMap::new(); // no value = null
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -856,7 +854,7 @@ fn choice_empty_string_skips_type_validation() {
 
     let mut data = HashMap::new();
     data.insert("status".to_string(), json!(""));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -890,7 +888,7 @@ fn multichoice_empty_array_skips_type_validation() {
 
     let mut data = HashMap::new();
     data.insert("tags".to_string(), json!([]));
-    let result = evaluate_definition(&def, &data);
+    let result = evaluate(&def, &data, &EvalOptions::default());
     let mismatches: Vec<_> = result
         .validations
         .iter()
@@ -939,7 +937,7 @@ fn extension_max_length_counts_characters_not_bytes() {
 
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!("你好世界")); // 4 chars, 12 bytes
-    let result = evaluate_definition_full(&def, &data, EvalTrigger::Continuous, &ext);
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).extension_constraints(ext.to_vec()));
     let max_len_errors: Vec<_> = result
         .validations
         .iter()
@@ -989,7 +987,7 @@ fn extension_results_use_spec_valid_constraint_kind_and_source() {
 
     let mut data = HashMap::new();
     data.insert("email".to_string(), json!("not-an-email"));
-    let result = evaluate_definition_full(&def, &data, EvalTrigger::Continuous, &ext);
+    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).extension_constraints(ext.to_vec()));
     let ext_results: Vec<_> = result
         .validations
         .iter()
