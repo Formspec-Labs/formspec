@@ -37,7 +37,7 @@
   "devDependencies": {
     "@preact/signals-core": "^1.8.0",
     "@uswds/uswds": "^3.11.0",
-    "@formspec-org/webcomponent": "*",
+    "@formspec-org/webcomponent": "^1.0.0",
     "happy-dom": "^17.6.1",
     "sass": "^1.86.0",
     "typescript": "^5.0.0"

@@ -16,14 +16,15 @@
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "scripts": {
-    "build": "tsc",
+    "codegen:component-props": "node ../../scripts/generate-component-schema-props.mjs",
+    "build": "npm run codegen:component-props && tsc",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "ajv": "^8.18.0",
-    "@formspec-org/engine": "*",
-    "@formspec-org/types": "*"
+    "@formspec-org/engine": "^1.0.0",
+    "@formspec-org/types": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

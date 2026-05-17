@@ -27,9 +27,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@formspec-org/engine": "*",
-    "@formspec-org/layout": "*",
-    "@formspec-org/types": "*"
+    "@formspec-org/engine": "^1.0.0",
+    "@formspec-org/layout": "^1.0.0",
+    "@formspec-org/types": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

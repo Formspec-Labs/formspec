@@ -25,6 +25,12 @@ You also acknowledge that the maintainers may offer the project (including your 
 
 We follow red-green-refactor. Every bugfix or feature starts with a failing test. See the "Development Workflow" section in [CLAUDE.md](CLAUDE.md) for details.
 
+## Package dependency versions
+
+In `packages/*/package.json`, use a caret range matching the sibling package’s declared version for `dependencies` and `devDependencies` on other `@formspec-org/*` packages (for example `^1.0.0` for `@formspec-org/engine`, `^0.1.0` for `@formspec-org/types`). npm workspaces symlink siblings when the range matches; Changesets bumps these on release. Do not use `"*"` — it claims compatibility with every past and future version.
+
+Use explicit caret ranges in `peerDependencies` when the consuming app must supply the package outside the workspace (same pattern as `@formspec-org/adapters` peer on `@formspec-org/webcomponent`: `^1.0.0`). The `workspace:` protocol is for pnpm/Yarn; this repo uses npm workspaces and does not support `workspace:*` in manifests.
+
 ## Commit convention
 
 Use semantic prefixes: `feat:`, `fix:`, `build:`, `docs:`, `test:`, `refactor:`.
