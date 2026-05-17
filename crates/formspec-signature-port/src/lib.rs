@@ -1,11 +1,6 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt,
-    ops::Deref,
-    sync::Arc,
-};
+use std::{collections::HashMap, fmt, ops::Deref, sync::Arc};
 use thiserror::Error;
 
 pub trait ClockPort: Send + Sync + 'static {
@@ -528,6 +523,7 @@ pub type ReceiptSignerHandle = Arc<dyn ReceiptSigner>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn test_verification_receipt_json_roundtrip() {
@@ -783,9 +779,81 @@ mod tests {
     #[test]
     fn key_resolver_error_is_std_error() {
         fn assert_error<E: std::error::Error>(_: &E) {}
-        let err = KeyResolverError::KeyNotFound {
-            kid: b"k".to_vec(),
-        };
+        let err = KeyResolverError::KeyNotFound { kid: b"k".to_vec() };
         assert_error(&err);
+    }
+
+    #[test]
+    fn method_uri_rejection_fixtures_resolve_to_expected_port_reason() {
+        let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("tests")
+            .join("fixtures")
+            .join("signature-method-uri-fail-closed");
+        let registry_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("registries")
+            .join("signature-method-registry.json");
+        let registry: SignatureMethodRegistry = serde_json::from_slice(
+            &std::fs::read(&registry_path)
+                .unwrap_or_else(|error| panic!("read registry {registry_path:?}: {error}")),
+        )
+        .expect("registry json");
+
+        for fixture_name in [
+            "unknown-exact.json",
+            "unknown-prefix.json",
+            "receipt-on-response.json",
+            "sig-on-receipt.json",
+        ] {
+            let fixture_path = fixture_dir.join(fixture_name);
+            let fixture: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(&fixture_path)
+                    .unwrap_or_else(|error| panic!("read fixture {fixture_path:?}: {error}")),
+            )
+            .expect("fixture json");
+            let method_uri = fixture["methodUri"].as_str().expect("methodUri");
+            let expected_prefix = fixture["expectedPrefix"].as_str().expect("expectedPrefix");
+            let expected_reason = fixture["expectedReason"].as_str().expect("expectedReason");
+
+            let actual = if !method_uri.starts_with(expected_prefix) {
+                "wrong_method_uri_prefix"
+            } else if registry.resolve(method_uri).is_none() {
+                "method_unsupported"
+            } else {
+                "accepted"
+            };
+
+            assert_eq!(actual, expected_reason, "{fixture_name}");
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn unknown_sig_method_exact_values_do_not_resolve(
+            suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
+        ) {
+            let known = "urn:formspec:sig-method:ed25519-cose-sign1@1";
+            let candidate = format!("urn:formspec:sig-method:unknown-{suffix}");
+            prop_assume!(candidate != known);
+            let registry = SignatureMethodRegistry {
+                version: "1.0.0".into(),
+                entries: vec![RegistryEntry {
+                    id: known.into(),
+                    suite: "Ed25519".into(),
+                    wire: "COSE_Sign1 with alg = -8".into(),
+                    alg: Some(-8),
+                    status: "registered".into(),
+                    deprecation_notice: None,
+                }],
+            };
+
+            prop_assert!(
+                registry.resolve(&candidate).is_none(),
+                "unregistered value in the sig-method prefix must not resolve"
+            );
+        }
     }
 }

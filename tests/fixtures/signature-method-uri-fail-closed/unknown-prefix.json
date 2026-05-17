@@ -1,0 +1,9 @@
+{
+  "id": "unknown-prefix",
+  "description": "Method URI outside the Formspec response-signing prefix.",
+  "methodUri": "urn:example:sig-method:ed25519-cose-sign1@1",
+  "expectedPrefix": "urn:formspec:sig-method:",
+  "expectedReason": "wrong_method_uri_prefix",
+  "protectedHeaderHex": "a301270450aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3a00010003782b75726e3a6578616d706c653a7369672d6d6574686f643a656432353531392d636f73652d7369676e314031",
+  "signatureBytesCoseSign1Hex": "d2845847a301270450aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3a00010003782b75726e3a6578616d706c653a7369672d6d6574686f643a656432353531392d636f73652d7369676e314031a0f6584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "receipt-on-response",
+  "description": "Receipt-signing method URI routed through the response-signing verifier path.",
+  "methodUri": "urn:formspec:receipt-method:ed25519-cose-sign1@1",
+  "expectedPrefix": "urn:formspec:sig-method:",
+  "expectedReason": "wrong_method_uri_prefix",
+  "protectedHeaderHex": "a301270450aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3a00010003783075726e3a666f726d737065633a726563656970742d6d6574686f643a656432353531392d636f73652d7369676e314031",
+  "signatureBytesCoseSign1Hex": "d284584ca301270450aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3a00010003783075726e3a666f726d737065633a726563656970742d6d6574686f643a656432353531392d636f73652d7369676e314031a0f6584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+}

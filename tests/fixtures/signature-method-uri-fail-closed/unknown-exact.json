@@ -1,0 +1,9 @@
+{
+  "id": "unknown-exact",
+  "description": "Unregistered exact value inside the Formspec response-signing method URI prefix.",
+  "methodUri": "urn:formspec:sig-method:ed25519-cose-sign1@99",
+  "expectedPrefix": "urn:formspec:sig-method:",
+  "expectedReason": "method_unsupported",
+  "protectedHeaderHex": "a301270450aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3a00010003782d75726e3a666f726d737065633a7369672d6d6574686f643a656432353531392d636f73652d7369676e31403939",
+  "signatureBytesCoseSign1Hex": "d2845849a301270450aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3a00010003782d75726e3a666f726d737065633a7369672d6d6574686f643a656432353531392d636f73652d7369676e31403939a0f6584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+}

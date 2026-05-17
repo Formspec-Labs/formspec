@@ -11,3 +11,5 @@ integrity-cose = { path = "../../../integrity-stack/crates/integrity-cose" }
 integrity-verify = { path = "../../../integrity-stack/crates/integrity-verify" }
 
 [dev-dependencies]
+proptest = "1"
+serde_json = "1"

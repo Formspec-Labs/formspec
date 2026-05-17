@@ -44,6 +44,10 @@ const RING_RSA_PSS_FIXTURE_PATH = resolve(
   __dirname,
   '../../../crates/formspec-signature-adapter-ring/tests/fixtures/golden-vectors/rsa-pss-sha256.json',
 );
+const METHOD_URI_FIXTURE_DIR = resolve(
+  __dirname,
+  '../../../tests/fixtures/signature-method-uri-fail-closed',
+);
 
 interface RegistryFileEntry {
   id: string;
@@ -81,6 +85,12 @@ interface RingGoldenVector {
   signed_bytes: { hex: string; base64: string };
   signature_bytes_cose_sign1: { hex: string; base64: string };
 }
+interface MethodUriFixture {
+  id: string;
+  methodUri: string;
+  expectedReason: 'method_unsupported' | 'wrong_method_uri_prefix';
+  signatureBytesCoseSign1Hex: string;
+}
 
 function loadRingEcdsaFixture(): RingGoldenVector {
   return JSON.parse(readFileSync(RING_ECDSA_FIXTURE_PATH, 'utf8')) as RingGoldenVector;
@@ -88,6 +98,12 @@ function loadRingEcdsaFixture(): RingGoldenVector {
 
 function loadRingRsaPssFixture(): RingGoldenVector {
   return JSON.parse(readFileSync(RING_RSA_PSS_FIXTURE_PATH, 'utf8')) as RingGoldenVector;
+}
+
+function loadMethodUriFixture(name: string): MethodUriFixture {
+  return JSON.parse(
+    readFileSync(resolve(METHOD_URI_FIXTURE_DIR, `${name}.json`), 'utf8'),
+  ) as MethodUriFixture;
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -1004,6 +1020,38 @@ describe('WebCryptoVerifier', () => {
     );
 
     expect(receipt.result).toBe('verified');
+  });
+
+  it('rejects the committed method_uri fixtures with distinct reasons', async () => {
+    const verifier = new WebCryptoVerifier();
+
+    const unknownExact = loadMethodUriFixture('unknown-exact');
+    const unsupported = await verifier.verify(
+      {
+        signedBytes: new TextEncoder().encode('fixture payload'),
+        signatureBytes: hexToBytes(unknownExact.signatureBytesCoseSign1Hex),
+        signatureMethod: uri(unknownExact.methodUri),
+        keyRef: PLACEHOLDER_RAW_KEY,
+      },
+      TEST_REGISTRY,
+    );
+    expect(unsupported.result).toBe('unsupported');
+    expect(unsupported.reason).toMatch(/method not in registry/);
+
+    for (const name of ['unknown-prefix', 'receipt-on-response']) {
+      const fixture = loadMethodUriFixture(name);
+      const prefixRejected = await verifier.verify(
+        {
+          signedBytes: new TextEncoder().encode('fixture payload'),
+          signatureBytes: hexToBytes(fixture.signatureBytesCoseSign1Hex),
+          signatureMethod: uri(SIG_METHOD_ED25519),
+          keyRef: PLACEHOLDER_RAW_KEY,
+        },
+        TEST_REGISTRY,
+      );
+      expect(prefixRejected.result).toBe('unsupported');
+      expect(prefixRejected.reason).toMatch(/does not match expected prefix/);
+    }
   });
 });
 

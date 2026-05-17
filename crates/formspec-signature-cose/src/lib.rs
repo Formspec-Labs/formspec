@@ -133,6 +133,7 @@ pub fn extract_method_uri(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     const SIG_METHOD_ED25519: &str = "urn:formspec:sig-method:ed25519-cose-sign1@1";
     const RECEIPT_METHOD_ED25519: &str = "urn:formspec:receipt-method:ed25519-cose-sign1@1";
@@ -197,8 +198,8 @@ mod tests {
         let protected = integrity_cose::protected_header_bytes_for_alg(-8, Some(&[0xAA; 16]));
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
-        let error =
-            decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_SIG_METHOD_URI_PREFIX).unwrap_err();
+        let error = decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_SIG_METHOD_URI_PREFIX)
+            .unwrap_err();
 
         assert_eq!(error, FormspecCoseError::MissingMethodUri);
     }
@@ -210,9 +211,8 @@ mod tests {
         let protected = protected_header_bytes(-8, &[0xAA; 16], SIG_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
-        let error =
-            decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
-                .unwrap_err();
+        let error = decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
+            .unwrap_err();
 
         match error {
             FormspecCoseError::WrongMethodUriPrefix {
@@ -233,8 +233,8 @@ mod tests {
         let protected = protected_header_bytes(-8, &[0xAA; 16], RECEIPT_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
-        let error =
-            decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_SIG_METHOD_URI_PREFIX).unwrap_err();
+        let error = decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_SIG_METHOD_URI_PREFIX)
+            .unwrap_err();
 
         match error {
             FormspecCoseError::WrongMethodUriPrefix {
@@ -269,5 +269,154 @@ mod tests {
                 0x01, 0x27, 0x40, 0x43, b'a', b'b', b'c',
             ]
         );
+    }
+
+    fn hex_to_bytes(hex: &str) -> Vec<u8> {
+        assert_eq!(hex.len() % 2, 0, "fixture hex must have even length");
+        (0..hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&hex[offset..offset + 2], 16).expect("fixture hex"))
+            .collect()
+    }
+
+    #[test]
+    fn method_uri_rejection_fixtures_decode_with_expected_reason() {
+        let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("tests")
+            .join("fixtures")
+            .join("signature-method-uri-fail-closed");
+
+        for fixture_name in [
+            "unknown-exact.json",
+            "unknown-prefix.json",
+            "receipt-on-response.json",
+            "sig-on-receipt.json",
+        ] {
+            let fixture_path = fixture_dir.join(fixture_name);
+            let fixture: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(&fixture_path)
+                    .unwrap_or_else(|error| panic!("read fixture {fixture_path:?}: {error}")),
+            )
+            .expect("fixture json");
+            let method_uri = fixture["methodUri"].as_str().expect("methodUri");
+            let expected_prefix = match fixture["expectedPrefix"].as_str().expect("expectedPrefix")
+            {
+                FORMSPEC_SIG_METHOD_URI_PREFIX => FORMSPEC_SIG_METHOD_URI_PREFIX,
+                FORMSPEC_RECEIPT_METHOD_URI_PREFIX => FORMSPEC_RECEIPT_METHOD_URI_PREFIX,
+                other => panic!("unsupported expectedPrefix in {fixture_name}: {other}"),
+            };
+            let expected_reason = fixture["expectedReason"].as_str().expect("expectedReason");
+            let protected = protected_header_bytes(-8, &[0xAA; 16], method_uri);
+            assert_eq!(
+                protected,
+                hex_to_bytes(
+                    fixture["protectedHeaderHex"]
+                        .as_str()
+                        .expect("protectedHeaderHex")
+                ),
+                "{fixture_name} protected header bytes"
+            );
+            let bytes = hex_to_bytes(
+                fixture["signatureBytesCoseSign1Hex"]
+                    .as_str()
+                    .expect("signatureBytesCoseSign1Hex"),
+            );
+            assert_eq!(
+                bytes,
+                encode_cose_sign1(&protected, None, &[0u8; 64]),
+                "{fixture_name} COSE_Sign1 bytes"
+            );
+
+            let actual = match decode_cose_sign1_with_method_uri(&bytes, expected_prefix) {
+                Ok((_, decoded_uri)) if decoded_uri == method_uri => "accepted_by_prefix_gate",
+                Ok((_, decoded_uri)) => panic!(
+                    "{fixture_name} decoded unexpected method_uri {decoded_uri:?}; expected {method_uri:?}"
+                ),
+                Err(FormspecCoseError::WrongMethodUriPrefix { .. }) => "wrong_method_uri_prefix",
+                Err(FormspecCoseError::MissingMethodUri) => "missing_method_uri",
+                Err(FormspecCoseError::Decode(error)) => {
+                    panic!("{fixture_name} failed fixture COSE decode: {error}")
+                }
+            };
+
+            match expected_reason {
+                "method_unsupported" => assert_eq!(actual, "accepted_by_prefix_gate"),
+                "wrong_method_uri_prefix" => assert_eq!(actual, "wrong_method_uri_prefix"),
+                other => panic!("unsupported expectedReason in {fixture_name}: {other}"),
+            }
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn wrong_method_uri_prefix_rejects_before_signature_verification(
+            suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
+        ) {
+            let method_uri = format!("urn:example:sig-method:{suffix}");
+            let protected = protected_header_bytes(-8, &[0xAA; 16], &method_uri);
+            let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
+
+            let error = decode_cose_sign1_with_method_uri(
+                &encoded,
+                FORMSPEC_SIG_METHOD_URI_PREFIX,
+            )
+            .expect_err("wrong prefix must reject");
+
+            prop_assert_eq!(
+                error,
+                FormspecCoseError::WrongMethodUriPrefix {
+                    expected_prefix: FORMSPEC_SIG_METHOD_URI_PREFIX,
+                    got: method_uri,
+                }
+            );
+        }
+
+        #[test]
+        fn receipt_method_uri_on_response_path_rejects_before_signature_verification(
+            suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
+        ) {
+            let method_uri = format!("{FORMSPEC_RECEIPT_METHOD_URI_PREFIX}{suffix}");
+            let protected = protected_header_bytes(-8, &[0xAA; 16], &method_uri);
+            let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
+
+            let error = decode_cose_sign1_with_method_uri(
+                &encoded,
+                FORMSPEC_SIG_METHOD_URI_PREFIX,
+            )
+            .expect_err("receipt method routed through response path must reject");
+
+            prop_assert_eq!(
+                error,
+                FormspecCoseError::WrongMethodUriPrefix {
+                    expected_prefix: FORMSPEC_SIG_METHOD_URI_PREFIX,
+                    got: method_uri,
+                }
+            );
+        }
+
+        #[test]
+        fn sig_method_uri_on_receipt_path_rejects_before_signature_verification(
+            suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
+        ) {
+            let method_uri = format!("{FORMSPEC_SIG_METHOD_URI_PREFIX}{suffix}");
+            let protected = protected_header_bytes(-8, &[0xAA; 16], &method_uri);
+            let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
+
+            let error = decode_cose_sign1_with_method_uri(
+                &encoded,
+                FORMSPEC_RECEIPT_METHOD_URI_PREFIX,
+            )
+            .expect_err("sig method routed through receipt path must reject");
+
+            prop_assert_eq!(
+                error,
+                FormspecCoseError::WrongMethodUriPrefix {
+                    expected_prefix: FORMSPEC_RECEIPT_METHOD_URI_PREFIX,
+                    got: method_uri,
+                }
+            );
+        }
     }
 }
