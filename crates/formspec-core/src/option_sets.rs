@@ -124,4 +124,19 @@ mod tests {
             json!(["CA", "Calif"])
         );
     }
+
+    /// Core readers are camelCase-only; snake_case field names are not aliased (SWEEP-002).
+    #[test]
+    fn snake_case_option_set_key_is_ignored() {
+        let mut def = json!({
+            "items": [
+                { "key": "a", "type": "field", "dataType": "choice", "option_set": "countries" }
+            ],
+            "optionSets": {
+                "countries": [{ "value": "us", "label": "USA" }]
+            }
+        });
+        resolve_option_sets_on_definition(&mut def);
+        assert!(def["items"][0].get("options").is_none());
+    }
 }

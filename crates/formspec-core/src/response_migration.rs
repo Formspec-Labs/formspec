@@ -87,9 +87,10 @@ fn parse_semver_tuple(v: &str) -> (u32, u32, u32) {
 
 /// Apply ordered definition migrations to response field data.
 ///
-/// Expects `definition.migrations` as an array of objects with `fromVersion` (or `from_version`)
-/// and `changes`. Each change uses `type` (or `change_type`): `rename`, `remove`, `add`, or
-/// `transform`. Matches `migrateResponseData` in `packages/formspec-engine/src/engine/response-assembly.ts`.
+/// Expects `definition.migrations` as an array of objects with camelCase `fromVersion` and
+/// `changes`. Each change uses `type`: `rename`, `remove`, `add`, or `transform`. Snake_case
+/// keys are not read here — normalize at the FFI boundary if a host still emits them.
+/// Matches `migrateResponseData` in `packages/formspec-engine/src/engine/response-assembly.ts`.
 ///
 /// Non-object `response_data` is returned unchanged. Missing or non-array `migrations` returns a
 /// clone of `response_data` when it is an object, otherwise the original value.
@@ -268,6 +269,22 @@ mod tests {
         let out = apply_migrations_to_response_data(&def, data, "1.0.0", "2020-01-01T00:00:00Z");
         assert_eq!(out["name"], json!("alice"));
         assert_eq!(out["nickname"], json!("ALICE"));
+    }
+
+    /// Migrations use camelCase keys only; snake_case `from_version` is not matched (SWEEP-002).
+    #[test]
+    fn snake_case_from_version_is_ignored() {
+        let def = json!({
+            "items": [],
+            "migrations": [{
+                "from_version": "1.0.0",
+                "changes": [{ "type": "rename", "from": "name", "to": "fullName" }]
+            }]
+        });
+        let data = json!({ "name": "John" });
+        let out = apply_migrations_to_response_data(&def, data.clone(), "1.0.0", "2020-01-01T00:00:00Z");
+        assert_eq!(out["name"], json!("John"));
+        assert!(out.get("fullName").is_none());
     }
 
     #[test]

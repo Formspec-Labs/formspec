@@ -22,7 +22,7 @@ pub struct AssemblyFelRewriteMap {
     pub key_prefix: String,
 }
 
-/// Parse a JSON object into [`AssemblyFelRewriteMap`] (camelCase or snake_case keys).
+/// Parse a JSON object into [`AssemblyFelRewriteMap`] (camelCase keys only).
 pub fn assembly_fel_rewrite_map_from_value(v: &Value) -> Result<AssemblyFelRewriteMap, String> {
     let obj = v
         .as_object()
