@@ -5,6 +5,7 @@ import {
   decodeCoseSign1WithMethodUri,
   resolvePayload,
   sigStructureBytes,
+  type CoseSign1,
 } from '@formspec/signature-cose';
 import {
   Verifier,
@@ -518,7 +519,7 @@ async function importPublicKey(
 function decodeCoseEnvelope(
   signatureBytes: Uint8Array,
 ):
-  | { kind: 'value'; value: ReturnType<typeof decodeCoseSign1> }
+  | { kind: 'value'; value: CoseSign1 }
   | { kind: 'unsupported'; reason: string } {
   try {
     const { cose } = decodeCoseSign1WithMethodUri(signatureBytes, FORMSPEC_SIG_METHOD_URI_PREFIX);
