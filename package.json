@@ -10,7 +10,8 @@
   "workspaces": [
     "packages/*",
     "examples/references",
-    "examples/react-demo"
+    "examples/react-demo",
+    "examples/uswds-grant"
   ],
   "scripts": {
     "build": "npm run build --workspace=@formspec-org/types && npm run build --workspace=@formspec-org/layout && npm run build --workspace=@formspec-org/engine && npm run build --workspace=@formspec-org/assist && npm run build --workspace=@formspec-org/core && npm run build --workspace=@formspec-org/webcomponent && npm run build --workspace=@formspec-org/adapters && npm run build --workspace=@formspec-org/react",

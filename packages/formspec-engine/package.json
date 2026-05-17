@@ -63,7 +63,7 @@
   },
   "dependencies": {
     "@preact/signals-core": "^1.6.0",
-    "@formspec-org/types": "^0.1.0"
+    "@formspec-org/types": "*"
   },
   "devDependencies": {
     "fast-check": "^4.6.0",

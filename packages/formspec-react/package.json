@@ -38,8 +38,8 @@
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
-    "@formspec-org/engine": "^1.0.0",
-    "@formspec-org/layout": "^1.0.0",
+    "@formspec-org/engine": "*",
+    "@formspec-org/layout": "*",
     "happy-dom": "^17.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
