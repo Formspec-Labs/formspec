@@ -113,7 +113,7 @@ def test_runner_scores_reference_against_itself(task_id: str):
 def test_definition_pass_title_constant_matches_validator_output():
     """Guard F5: the runner's `has_definition` check keys off a hardcoded-ish
     title. Assert the validator actually emits that exact title so a rename
-    in validate.py breaks loudly here, not silently in score_task.
+    in validate/models.py breaks loudly here, not silently in score_task.
     """
     # Use the invoice task — any clean reference works for this probe.
     task_ids = _task_ids()
@@ -128,7 +128,7 @@ def test_definition_pass_title_constant_matches_validator_output():
     assert DEFINITION_LINTING_TITLE in titles, (
         f"validator did not emit expected pass title {DEFINITION_LINTING_TITLE!r}; "
         f"got {titles}. If the title was renamed intentionally, update the "
-        f"constant in validate.py so the benchmark runner picks it up."
+        f"constant in validate/models.py so the benchmark runner picks it up."
     )
 
 
