@@ -349,10 +349,8 @@ fn diff_binds(old_def: &Value, new_def: &Value, changes: &mut Vec<Change>) {
     let new_binds = index_binds_by_path(new_def);
 
     // O(1) lookup keyed by &str borrowed from the owning Vec entries.
-    let old_map: HashMap<&str, &Value> =
-        old_binds.iter().map(|(k, v)| (k.as_str(), v)).collect();
-    let new_map: HashMap<&str, &Value> =
-        new_binds.iter().map(|(k, v)| (k.as_str(), v)).collect();
+    let old_map: HashMap<&str, &Value> = old_binds.iter().map(|(k, v)| (k.as_str(), v)).collect();
+    let new_map: HashMap<&str, &Value> = new_binds.iter().map(|(k, v)| (k.as_str(), v)).collect();
 
     // Added
     for (&path, &val) in &new_map {
@@ -722,12 +720,7 @@ const METADATA_KEYS: &[&str] = &[
 ];
 
 /// Diff a fixed set of top-level metadata keys, emitting `Cosmetic` changes.
-fn diff_metadata_keys(
-    old_def: &Value,
-    new_def: &Value,
-    keys: &[&str],
-    changes: &mut Vec<Change>,
-) {
+fn diff_metadata_keys(old_def: &Value, new_def: &Value, keys: &[&str], changes: &mut Vec<Change>) {
     for &key in keys {
         let old_val = old_def.get(key);
         let new_val = new_def.get(key);

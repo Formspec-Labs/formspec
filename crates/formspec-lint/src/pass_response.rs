@@ -57,10 +57,9 @@ pub fn lint_response(doc: &Value) -> Vec<LintDiagnostic> {
         }
 
         // E901: definitionUrl mismatch
-        if let (Some(top), Some(sp_url)) = (
-            top_def_url,
-            sp.get("definitionUrl").and_then(Value::as_str),
-        ) {
+        if let (Some(top), Some(sp_url)) =
+            (top_def_url, sp.get("definitionUrl").and_then(Value::as_str))
+        {
             if sp_url != top {
                 diags.push(with_metadata(LintDiagnostic::error(
                     "E901",
@@ -133,8 +132,11 @@ mod tests {
     #[test]
     fn aligned_pins_produce_no_diagnostics() {
         let mut doc = base_response();
-        doc["authoredSignatures"] =
-            Value::Array(vec![signature("resp-1", "https://example.org/forms/x", "1.0.0")]);
+        doc["authoredSignatures"] = Value::Array(vec![signature(
+            "resp-1",
+            "https://example.org/forms/x",
+            "1.0.0",
+        )]);
         assert!(lint_response(&doc).is_empty());
     }
 

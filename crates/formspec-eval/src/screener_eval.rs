@@ -564,7 +564,8 @@ impl Iso8601Duration {
     /// (preserves offset). Time units use fixed `TimeDelta` seconds.
     /// Returns `None` on arithmetic overflow.
     fn add_to(self, dt: DateTime<FixedOffset>) -> Option<DateTime<FixedOffset>> {
-        let total_months = u32::try_from(u64::from(self.years) * 12 + u64::from(self.months)).ok()?;
+        let total_months =
+            u32::try_from(u64::from(self.years) * 12 + u64::from(self.months)).ok()?;
         let total_days = u64::from(self.weeks) * 7 + u64::from(self.days);
         let total_seconds = self
             .hours
@@ -673,9 +674,7 @@ fn parse_iso8601_duration(s: &str) -> Option<Iso8601Duration> {
 
 /// Read one `[digits][unit-letter]` component. Digits are non-negative integer
 /// (no sign, no decimal). Unit is a single ASCII uppercase letter.
-fn read_component(
-    iter: &mut std::iter::Peekable<std::str::Chars<'_>>,
-) -> Option<(u64, char)> {
+fn read_component(iter: &mut std::iter::Peekable<std::str::Chars<'_>>) -> Option<(u64, char)> {
     let mut digits = String::new();
     while let Some(&c) = iter.peek() {
         if c.is_ascii_digit() {

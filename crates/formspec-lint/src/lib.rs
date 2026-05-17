@@ -953,7 +953,11 @@ mod tests {
         assert!(
             result.diagnostics.iter().any(|d| d.code == "E900"),
             "lint MUST reject pin-mismatch — got codes: {:?}",
-            result.diagnostics.iter().map(|d| &d.code).collect::<Vec<_>>()
+            result
+                .diagnostics
+                .iter()
+                .map(|d| &d.code)
+                .collect::<Vec<_>>()
         );
         assert!(!result.valid);
     }
