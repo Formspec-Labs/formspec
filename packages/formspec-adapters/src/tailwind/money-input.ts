@@ -1,42 +1,38 @@
 /** @filedesc Tailwind adapter for MoneyInput — input group with currency prefix. */
 import type { MoneyInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
-import { createTailwindFieldDOM, TW, toggleInputError } from './shared';
+import { createInputSkeleton } from '../shared/input-factory.js';
+import { createTailwindFieldDOM, TW, toggleInputError, applyAffixRounding } from './shared';
 
 export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     behavior, parent, actx
 ) => {
     const { root, label, hint, error, describedBy } = createTailwindFieldDOM(behavior);
 
-    const container = el('div', { class: 'flex rounded-xl shadow-sm' });
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        type: 'number',
+        inputClass: TW.input,
+        ariaDescribedBy: describedBy,
+        groupClass: 'flex rounded-xl shadow-sm',
+        prefixClass: 'inline-flex items-center rounded-l-xl border border-r-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
+        prefixTag: 'span',
+        prefix: behavior.resolvedCurrency,
+        onInputCreated: (input) => {
+            input.name = `${behavior.fieldPath}__amount`;
+            // If fixed currency, it acts as a prefix.
+            // If editable currency, we'll manually append the currency input as a suffix.
+            applyAffixRounding(input, !!behavior.resolvedCurrency, !behavior.resolvedCurrency);
+        }
+    });
 
+    // Handle fixed currency prefix attributes
     if (behavior.resolvedCurrency) {
-        const prefix = el('span', {
-            class: 'inline-flex items-center rounded-l-xl border border-r-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
-            'aria-hidden': 'true',
-        });
-        prefix.textContent = behavior.resolvedCurrency;
-        container.appendChild(prefix);
-    }
-
-    const amountInput = document.createElement('input') as HTMLInputElement;
-    amountInput.className = TW.input;
-    amountInput.id = behavior.id;
-    amountInput.name = `${behavior.fieldPath}__amount`;
-    amountInput.type = 'number';
-    if (behavior.placeholder) amountInput.placeholder = behavior.placeholder;
-    if (behavior.step != null) amountInput.step = String(behavior.step);
-    if (behavior.min != null) amountInput.min = String(behavior.min);
-    if (behavior.max != null) amountInput.max = String(behavior.max);
-    amountInput.setAttribute('aria-describedby', describedBy);
-
-    if (behavior.resolvedCurrency) {
-        amountInput.classList.remove('rounded-xl');
-        amountInput.classList.add('rounded-none', 'rounded-r-xl');
-    }
-    container.appendChild(amountInput);
-
-    if (!behavior.resolvedCurrency) {
+        const prefix = control.querySelector(`.${TW.input.split(' ')[0]}`)?.previousElementSibling;
+        if (prefix) {
+            prefix.setAttribute('aria-hidden', 'true');
+        }
+    } else {
+        // Handle editable currency suffix input
         const currencyInput = document.createElement('input') as HTMLInputElement;
         currencyInput.className =
             'block w-20 rounded-r-xl border border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-2 py-2.5 text-sm text-[var(--formspec-tw-text)] shadow-sm focus:border-[color:var(--formspec-tw-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--formspec-tw-accent-ring)]';
@@ -44,19 +40,17 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
         currencyInput.placeholder = 'Currency';
         currencyInput.name = `${behavior.fieldPath}__currency`;
         currencyInput.setAttribute('aria-label', 'Currency code');
-        amountInput.classList.remove('rounded-xl');
-        amountInput.classList.add('rounded-none', 'rounded-l-xl');
-        container.appendChild(currencyInput);
+        control.appendChild(currencyInput);
     }
 
-    root.appendChild(container);
+    root.appendChild(control);
     root.appendChild(error);
     parent.appendChild(root);
 
     const dispose = behavior.bind({
-        root, label, control: container, hint, error,
+        root, label, control, hint, error,
         onValidationChange: (hasError) => {
-            toggleInputError(amountInput, hasError);
+            toggleInputError(actualInput, hasError);
         },
     });
     actx.onDispose(dispose);

@@ -1,20 +1,22 @@
 /** @filedesc Tailwind adapter for Select — renders styled dropdown. */
 import type { SelectBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { createInputSkeleton } from '../shared/input-factory.js';
 import { createTailwindFieldDOM, TW, toggleInputError } from './shared';
 
 export const renderSelect: AdapterRenderFn<SelectBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-
     const { root, label, hint, error, describedBy } = createTailwindFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    const select = document.createElement('select') as HTMLSelectElement;
-    select.className = TW.input;
-    select.id = behavior.id;
-    select.name = behavior.fieldPath;
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        tag: 'select',
+        inputClass: TW.input,
+        ariaDescribedBy: describedBy,
+    });
+    const select = actualInput as HTMLSelectElement;
 
     // Placeholder / empty option
     const placeholderOpt = document.createElement('option');
@@ -31,7 +33,6 @@ export const renderSelect: AdapterRenderFn<SelectBehavior> = (
         select.appendChild(option);
     }
 
-    select.setAttribute('aria-describedby', describedBy);
     root.appendChild(select);
     root.appendChild(error);
     parent.appendChild(root);

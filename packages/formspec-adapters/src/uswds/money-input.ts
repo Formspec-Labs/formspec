@@ -3,31 +3,38 @@ import type { MoneyInputBehavior, AdapterRenderFn } from '@formspec-org/webcompo
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
+import { createInputSkeleton } from '../shared/input-factory.js';
+
 export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     behavior, parent, actx
 ) => {
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
-    const amountInput = document.createElement('input') as HTMLInputElement;
-    amountInput.className = 'usa-input formspec-money-amount';
-    amountInput.id = behavior.id;
-    amountInput.name = `${behavior.fieldPath}__amount`;
-    amountInput.type = 'number';
-    if (behavior.placeholder) amountInput.placeholder = behavior.placeholder;
-    if (behavior.step != null) amountInput.step = String(behavior.step);
-    if (behavior.min != null) amountInput.min = String(behavior.min);
-    if (behavior.max != null) amountInput.max = String(behavior.max);
-
     let container: HTMLElement;
+    let amountInput: HTMLInputElement;
 
     if (behavior.resolvedCurrency) {
-        const group = el('div', { class: 'usa-input-group' });
-        const prefix = el('div', { class: 'usa-input-prefix' });
-        prefix.textContent = behavior.resolvedCurrency;
-        group.appendChild(prefix);
-        group.appendChild(amountInput);
-        container = group;
+        const skeleton = createInputSkeleton(behavior, {
+            type: 'number',
+            inputClass: 'usa-input formspec-money-amount',
+            groupClass: 'usa-input-group',
+            prefixClass: 'usa-input-prefix',
+            prefix: behavior.resolvedCurrency,
+        });
+        skeleton.actualInput.name = `${behavior.fieldPath}__amount`;
+        container = skeleton.control;
+        amountInput = skeleton.actualInput as HTMLInputElement;
     } else {
+        amountInput = document.createElement('input') as HTMLInputElement;
+        amountInput.className = 'usa-input formspec-money-amount';
+        amountInput.id = behavior.id;
+        amountInput.name = `${behavior.fieldPath}__amount`;
+        amountInput.type = 'number';
+        if (behavior.placeholder) amountInput.placeholder = behavior.placeholder;
+        if (behavior.step != null) amountInput.step = String(behavior.step);
+        if (behavior.min != null) amountInput.min = String(behavior.min);
+        if (behavior.max != null) amountInput.max = String(behavior.max);
+
         const currencyInput = document.createElement('input') as HTMLInputElement;
         currencyInput.className = 'usa-input usa-input--2xs formspec-money-currency-input';
         currencyInput.type = 'text';
@@ -54,7 +61,7 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     const dispose = behavior.bind({
         root, label, control: container, hint, error,
         onValidationChange: (hasError) => {
-            applyUSWDSValidationState(root, label, hasError);
+            applyUSWDSValidationState(root, label, hasError, amountInput);
             if (container.classList.contains('usa-input-group')) {
                 container.classList.toggle('usa-input-group--error', hasError);
             }

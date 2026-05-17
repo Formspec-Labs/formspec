@@ -2,19 +2,21 @@
 import type { SelectBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
+import { createInputSkeleton } from '../shared/input-factory.js';
+
 export const renderSelect: AdapterRenderFn<SelectBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    const select = document.createElement('select') as HTMLSelectElement;
-    select.className = 'usa-select';
-    select.id = behavior.id;
-    select.name = behavior.fieldPath;
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        tag: 'select',
+        inputClass: 'usa-select',
+    });
+    const select = actualInput as HTMLSelectElement;
 
     // Placeholder / empty option
     const placeholderOpt = document.createElement('option');

@@ -2,32 +2,29 @@
 import type { NumberInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
+import { createInputSkeleton } from '../shared/input-factory.js';
+
 export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    const input = document.createElement('input') as HTMLInputElement;
-    input.className = 'usa-input';
-    input.type = 'number';
-    input.id = behavior.id;
-    input.name = behavior.fieldPath;
-    if (behavior.step != null) input.step = String(behavior.step);
-    if (behavior.min != null) input.min = String(behavior.min);
-    if (behavior.max != null) input.max = String(behavior.max);
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        type: 'number',
+        inputClass: 'usa-input',
+    });
 
-    root.appendChild(input);
+    root.appendChild(control);
 
     parent.appendChild(root);
 
     const dispose = behavior.bind({
-        root, label, control: input, hint, error,
+        root, label, control, hint, error,
         onValidationChange: (hasError) => {
-            applyUSWDSValidationState(root, label, hasError, input);
+            applyUSWDSValidationState(root, label, hasError, actualInput);
         },
     });
     actx.onDispose(dispose);

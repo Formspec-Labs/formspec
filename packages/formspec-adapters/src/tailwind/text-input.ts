@@ -1,88 +1,38 @@
 /** @filedesc Tailwind adapter for TextInput — renders styled input or textarea. */
 import type { TextInputBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
 import { el } from '../helpers';
-import { createTailwindFieldDOM, TW, toggleInputError, applyErrorStyling } from './shared';
+import { createInputSkeleton } from '../shared/input-factory.js';
+import { createTailwindFieldDOM, TW, toggleInputError, applyAffixRounding } from './shared';
 
 export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-    const isTextarea = behavior.maxLines != null && behavior.maxLines > 1;
-
     const { root, label, hint, error, describedBy } = createTailwindFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    let control: HTMLElement;
-
-    if (isTextarea) {
-        const textarea = document.createElement('textarea') as HTMLTextAreaElement;
-        textarea.className = TW.input;
-        textarea.id = behavior.id;
-        textarea.name = behavior.fieldPath;
-        textarea.rows = behavior.maxLines!;
-        if (behavior.placeholder) textarea.placeholder = behavior.placeholder;
-        textarea.setAttribute('aria-describedby', describedBy);
-        control = textarea;
-    } else {
-        const input = document.createElement('input') as HTMLInputElement;
-        input.className = TW.input;
-        input.id = behavior.id;
-        input.name = behavior.fieldPath;
-        input.type = behavior.resolvedInputType || 'text';
-        if (behavior.placeholder) input.placeholder = behavior.placeholder;
-        if (behavior.inputMode) input.inputMode = behavior.inputMode;
-        for (const [attr, val] of Object.entries(behavior.extensionAttrs)) {
-            if (attr === 'inputMode') input.inputMode = val;
-            else if (attr === 'maxLength') input.maxLength = Number(val);
-            else input.setAttribute(attr, val);
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        inputClass: TW.input,
+        ariaDescribedBy: describedBy,
+        groupClass: 'flex rounded-xl shadow-sm',
+        prefixClass: 'inline-flex items-center rounded-l-xl border border-r-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
+        prefixTag: 'span',
+        suffixClass: 'inline-flex items-center rounded-r-xl border border-l-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
+        suffixTag: 'span',
+        onInputCreated: (input) => {
+            applyAffixRounding(input, !!behavior.prefix, !!behavior.suffix);
         }
-        input.setAttribute('aria-describedby', describedBy);
-
-        if (behavior.prefix || behavior.suffix) {
-            const group = el('div', { class: 'flex rounded-xl shadow-sm' });
-            if (behavior.prefix) {
-                const prefixEl = el('span', {
-                    class: 'inline-flex items-center rounded-l-xl border border-r-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
-                });
-                prefixEl.textContent = behavior.prefix;
-                group.appendChild(prefixEl);
-                input.classList.remove('rounded-xl');
-                input.classList.add('rounded-none', 'rounded-r-xl');
-            }
-            group.appendChild(input);
-            if (behavior.suffix) {
-                const suffixEl = el('span', {
-                    class: 'inline-flex items-center rounded-r-xl border border-l-0 border-[color:var(--formspec-tw-border)] bg-[var(--formspec-tw-surface-muted)] px-3 text-sm text-[var(--formspec-tw-muted)]',
-                });
-                suffixEl.textContent = behavior.suffix;
-                group.appendChild(suffixEl);
-                if (!behavior.prefix) {
-                    input.classList.remove('rounded-xl');
-                    input.classList.add('rounded-none', 'rounded-l-xl');
-                } else {
-                    input.classList.remove('rounded-r-xl');
-                    input.classList.add('rounded-none');
-                }
-            }
-            root.appendChild(group);
-            control = group;
-        } else {
-            control = input;
-        }
-    }
+    });
 
     if (!control.parentElement) root.appendChild(control);
     root.appendChild(error);
     parent.appendChild(root);
 
-    const actualInput = control.querySelector('input') || control.querySelector('textarea') || control;
-
     const dispose = behavior.bind({
         root, label, control, hint, error,
         onValidationChange: (hasError) => {
             toggleInputError(actualInput, hasError);
-            // Additional container styling can be added via applyErrorStyling(root, hasError) if desired
         },
     });
     actx.onDispose(dispose);

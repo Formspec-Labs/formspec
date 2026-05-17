@@ -121,6 +121,20 @@ export function toggleInputError(input: HTMLElement, hasError: boolean): void {
     }
 }
 
+/** Adjusts input rounding classes when prefix/suffix elements are present. */
+export function applyAffixRounding(input: HTMLElement, hasPrefix: boolean, hasSuffix: boolean): void {
+    if (hasPrefix && hasSuffix) {
+        input.classList.remove('rounded-xl', 'rounded-l-xl', 'rounded-r-xl');
+        input.classList.add('rounded-none');
+    } else if (hasPrefix) {
+        input.classList.remove('rounded-xl');
+        input.classList.add('rounded-none', 'rounded-r-xl');
+    } else if (hasSuffix) {
+        input.classList.remove('rounded-xl');
+        input.classList.add('rounded-none', 'rounded-l-xl');
+    }
+}
+
 /** Creates a selectable card element for checkbox/radio groups. */
 export function createCardOption(id: string, labelText: string): { card: HTMLElement; input: HTMLInputElement; label: HTMLElement } {
     const card = el('label', { class: TW_CARD_OPTION, for: id });

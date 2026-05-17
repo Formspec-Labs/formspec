@@ -1,33 +1,34 @@
 /** @filedesc Tailwind adapter for DatePicker — renders native date input with Tailwind styling. */
 import type { DatePickerBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';
+import { createInputSkeleton } from '../shared/input-factory.js';
 import { createTailwindFieldDOM, TW, toggleInputError } from './shared';
 
 export const renderDatePicker: AdapterRenderFn<DatePickerBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-
     const { root, label, hint, error, describedBy } = createTailwindFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    const input = document.createElement('input') as HTMLInputElement;
-    input.className = TW.input;
-    input.type = behavior.inputType;
-    input.id = behavior.id;
-    input.name = behavior.fieldPath;
-    if (behavior.minDate) input.min = behavior.minDate;
-    if (behavior.maxDate) input.max = behavior.maxDate;
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        type: behavior.inputType,
+        inputClass: TW.input,
+        ariaDescribedBy: describedBy,
+        onInputCreated: (input) => {
+            if (behavior.minDate) input.min = behavior.minDate;
+            if (behavior.maxDate) input.max = behavior.maxDate;
+        }
+    });
 
-    input.setAttribute('aria-describedby', describedBy);
-    root.appendChild(input);
+    root.appendChild(control);
     root.appendChild(error);
     parent.appendChild(root);
 
     const dispose = behavior.bind({
-        root, label, control: input, hint, error,
+        root, label, control: actualInput, hint, error,
         onValidationChange: (hasError) => {
-            toggleInputError(input, hasError);
+            toggleInputError(actualInput, hasError);
         },
     });
     actx.onDispose(dispose);

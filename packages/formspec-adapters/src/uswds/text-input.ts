@@ -3,74 +3,31 @@ import type { TextInputBehavior, AdapterRenderFn } from '@formspec-org/webcompon
 import { el } from '../helpers';
 import { applyUSWDSValidationState, createUSWDSFieldDOM } from './shared';
 
+import { createInputSkeleton } from '../shared/input-factory.js';
+
 export const renderTextInput: AdapterRenderFn<TextInputBehavior> = (
     behavior, parent, actx
 ) => {
     const p = behavior.presentation;
-    const isTextarea = behavior.maxLines != null && behavior.maxLines > 1;
-
     const { root, label, hint, error } = createUSWDSFieldDOM(behavior);
 
     if (p.labelPosition === 'start') root.style.display = 'flex';
 
-    // Control
-    let control: HTMLElement;
-
-    if (isTextarea) {
-        const textarea = document.createElement('textarea') as HTMLTextAreaElement;
-        textarea.className = 'usa-textarea';
-        textarea.id = behavior.id;
-        textarea.name = behavior.fieldPath;
-        textarea.rows = behavior.maxLines!;
-        if (behavior.placeholder) textarea.placeholder = behavior.placeholder;
-        control = textarea;
-    } else {
-        const input = document.createElement('input') as HTMLInputElement;
-        input.className = 'usa-input';
-        input.id = behavior.id;
-        input.name = behavior.fieldPath;
-        input.type = behavior.resolvedInputType || 'text';
-        if (behavior.placeholder) input.placeholder = behavior.placeholder;
-        if (behavior.inputMode) input.inputMode = behavior.inputMode;
-        for (const [attr, val] of Object.entries(behavior.extensionAttrs)) {
-            if (attr === 'inputMode') input.inputMode = val;
-            else if (attr === 'maxLength') input.maxLength = Number(val);
-            else input.setAttribute(attr, val);
-        }
-
-        // Prefix/suffix: USWDS uses usa-input-prefix/usa-input-suffix
-        if (behavior.prefix || behavior.suffix) {
-            const group = el('div', { class: 'usa-input-group' });
-            if (behavior.prefix) {
-                const prefixEl = el('div', { class: 'usa-input-prefix' });
-                prefixEl.textContent = behavior.prefix;
-                group.appendChild(prefixEl);
-            }
-            group.appendChild(input);
-            if (behavior.suffix) {
-                const suffixEl = el('div', { class: 'usa-input-suffix' });
-                suffixEl.textContent = behavior.suffix;
-                group.appendChild(suffixEl);
-            }
-            root.appendChild(group);
-            // control is the wrapper — bind() finds the deepest input inside
-            control = group;
-        } else {
-            control = input;
-        }
-    }
+    const { control, actualInput } = createInputSkeleton(behavior, {
+        inputClass: behavior.maxLines != null && behavior.maxLines > 1 ? 'usa-textarea' : 'usa-input',
+        groupClass: 'usa-input-group',
+        prefixClass: 'usa-input-prefix',
+        suffixClass: 'usa-input-suffix',
+    });
 
     if (!control.parentElement) root.appendChild(control);
 
     parent.appendChild(root);
 
-    // Find the actual input element for error-class toggling
-    const actualInput = control.querySelector('input') || control.querySelector('textarea') || control;
-
     const dispose = behavior.bind({
         root, label, control, hint, error,
         onValidationChange: (hasError) => {
-            applyUSWDSValidationState(root, label, hasError, actualInput as HTMLElement);
+            applyUSWDSValidationState(root, label, hasError, actualInput);
         },
     });
     actx.onDispose(dispose);
