@@ -3,7 +3,8 @@
 
 use serde_json::{Value, json};
 
-use super::path::{get_by_path, merge_flat_into, set_by_path, split_path};
+use super::path::{get_by_path, merge_flat_into, set_by_path};
+use crate::path_utils::Path;
 use super::*;
 
 #[test]
@@ -300,12 +301,22 @@ fn test_coerce_integer() {
 }
 
 #[test]
-fn test_split_path() {
-    assert_eq!(split_path("a.b.c"), vec!["a", "b", "c"]);
-    assert_eq!(split_path("a[0].b"), vec!["a", "0", "b"]);
+fn test_path_parse() {
     assert_eq!(
-        split_path("items[0].children[1].key"),
-        vec!["items", "0", "children", "1", "key"]
+        Path::parse("a.b.c")
+            .segments
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>(),
+        vec!["a", "b", "c"]
+    );
+    assert_eq!(
+        Path::parse("a[0].b")
+            .segments
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>(),
+        vec!["a", "[0]", "b"]
     );
 }
 

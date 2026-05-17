@@ -8,6 +8,8 @@ use serde_json::Value as JsonValue;
 use super::json_fel::json_to_runtime_fel;
 use crate::types::ItemInfo;
 
+use formspec_core::path_utils::{Path, PathSegment};
+
 pub(crate) fn restore_instance_aliases(
     env: &mut FormspecEnvironment,
     alias_names: &[String],
@@ -45,18 +47,20 @@ pub(crate) fn apply_instance_aliases(
             continue;
         }
 
-        if let Some(bracket_pos) = relative.find('[') {
-            let group_name = &relative[..bracket_pos];
-            if !group_name.contains('.') && seen_groups.insert(group_name.to_string()) {
-                saved_values.insert(group_name.to_string(), env.data.get(group_name).cloned());
-                let group_path = format!("{instance_prefix}.{group_name}");
-                if let Some(array) = build_repeat_group_array(&group_path, values) {
-                    env.set_field(group_name, json_to_runtime_fel(&array));
-                } else {
-                    env.data.remove(group_name);
+        let p = Path::parse(relative);
+        if let Some(PathSegment::Exact(group_name)) = p.segments.get(0) {
+            if p.segments.get(1).is_some_and(|s| matches!(s, PathSegment::Indexed(_))) {
+                if !group_name.contains('.') && seen_groups.insert(group_name.to_string()) {
+                    saved_values.insert(group_name.to_string(), env.data.get(group_name).cloned());
+                    let group_path = format!("{instance_prefix}.{group_name}");
+                    if let Some(array) = build_repeat_group_array(&group_path, values) {
+                        env.set_field(group_name, json_to_runtime_fel(&array));
+                    } else {
+                        env.data.remove(group_name);
+                    }
+                    alias_names.push(group_name.to_string());
+                    nested_groups.push(group_name.to_string());
                 }
-                alias_names.push(group_name.to_string());
-                nested_groups.push(group_name.to_string());
             }
         }
     }
@@ -81,14 +85,19 @@ pub(crate) fn refresh_nested_group_aliases(
 }
 
 fn parse_repeat_instance_prefix(prefix: &str) -> Option<(String, usize)> {
-    if !prefix.ends_with(']') {
+    let p = Path::parse(prefix);
+    if p.segments.is_empty() {
         return None;
     }
-    let bracket = prefix.rfind('[')?;
-    let index = prefix[bracket + 1..prefix.len() - 1]
-        .parse::<usize>()
-        .ok()?;
-    Some((prefix[..bracket].to_string(), index))
+    let last = p.segments.last()?;
+    if let PathSegment::Indexed(idx) = last {
+        let mut group_path_segs = p.segments.clone();
+        group_path_segs.pop();
+        let group_path = Path { segments: group_path_segs }.to_string();
+        Some((group_path, *idx))
+    } else {
+        None
+    }
 }
 
 pub(crate) fn push_repeat_context_for_instance(
@@ -167,17 +176,17 @@ pub(crate) fn build_repeat_group_array(
 }
 
 pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: JsonValue) {
-    let tokens = tokenize_json_path(path);
-    if tokens.is_empty() {
+    let p = Path::parse(path);
+    if p.segments.is_empty() {
         *target = value;
         return;
     }
 
     let mut current = target;
-    for index in 0..tokens.len() - 1 {
-        let next_is_index = matches!(tokens[index + 1], JsonPathToken::Index(_));
-        match &tokens[index] {
-            JsonPathToken::Key(key) => {
+    for i in 0..p.segments.len() - 1 {
+        let next_is_index = matches!(p.segments[i + 1], PathSegment::Indexed(_));
+        match &p.segments[i] {
+            PathSegment::Exact(key) => {
                 if !current.is_object() {
                     *current = JsonValue::Object(serde_json::Map::new());
                 }
@@ -190,7 +199,7 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
                     }
                 });
             }
-            JsonPathToken::Index(array_index) => {
+            PathSegment::Indexed(array_index) => {
                 if !current.is_array() {
                     *current = JsonValue::Array(vec![]);
                 }
@@ -207,11 +216,12 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
                 }
                 current = &mut array[*array_index];
             }
+            _ => {} // Skip wildcards/specials for JSON building
         }
     }
 
-    match &tokens[tokens.len() - 1] {
-        JsonPathToken::Key(key) => {
+    match &p.segments[p.segments.len() - 1] {
+        PathSegment::Exact(key) => {
             if !current.is_object() {
                 *current = JsonValue::Object(serde_json::Map::new());
             }
@@ -220,7 +230,7 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
                 .expect("object ensured above")
                 .insert(key.clone(), value);
         }
-        JsonPathToken::Index(array_index) => {
+        PathSegment::Indexed(array_index) => {
             if !current.is_array() {
                 *current = JsonValue::Array(vec![]);
             }
@@ -230,54 +240,6 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
             }
             array[*array_index] = value;
         }
+        _ => {} // Skip wildcards/specials
     }
-}
-
-#[derive(Clone)]
-enum JsonPathToken {
-    Key(String),
-    Index(usize),
-}
-
-fn tokenize_json_path(path: &str) -> Vec<JsonPathToken> {
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    let chars: Vec<char> = path.chars().collect();
-    let mut index = 0;
-
-    while index < chars.len() {
-        match chars[index] {
-            '.' => {
-                if !current.is_empty() {
-                    tokens.push(JsonPathToken::Key(std::mem::take(&mut current)));
-                }
-                index += 1;
-            }
-            '[' => {
-                if !current.is_empty() {
-                    tokens.push(JsonPathToken::Key(std::mem::take(&mut current)));
-                }
-                let mut close = index + 1;
-                while close < chars.len() && chars[close] != ']' {
-                    close += 1;
-                }
-                if close > index + 1
-                    && let Ok(array_index) = path[index + 1..close].parse::<usize>()
-                {
-                    tokens.push(JsonPathToken::Index(array_index));
-                }
-                index = close.saturating_add(1);
-            }
-            ch => {
-                current.push(ch);
-                index += 1;
-            }
-        }
-    }
-
-    if !current.is_empty() {
-        tokens.push(JsonPathToken::Key(current));
-    }
-
-    tokens
 }

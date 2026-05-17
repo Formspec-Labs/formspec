@@ -370,26 +370,11 @@ function RepeatAccordion({ node }: { node: LayoutNode }) {
     );
 }
 
-function findItemLabel(items: Array<any>, key: string): string | undefined {
-    for (const item of items) {
-        if (item?.key === key) return item.label;
-        if (Array.isArray(item?.children)) {
-            const nested = findItemLabel(item.children, key);
-            if (nested) return nested;
-        }
-    }
-    return undefined;
-}
+import { findItemByKey } from './context.js';
 
-function findItemByKey(items: Array<any>, key: string): any | undefined {
-    for (const item of items) {
-        if (item?.key === key) return item;
-        if (Array.isArray(item?.children)) {
-            const nested = findItemByKey(item.children, key);
-            if (nested) return nested;
-        }
-    }
-    return undefined;
+function findItemLabel(items: Array<any>, key: string): string | undefined {
+    const item = findItemByKey(items, key);
+    return item?.label;
 }
 
 /** Renders a display node — checks for user override before built-in rendering. */

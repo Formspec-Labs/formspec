@@ -188,39 +188,25 @@ fn validate_simple_key(
     )))
 }
 
-#[derive(Clone, Copy)]
-enum SegmentKind<'a> {
-    Exact(&'a str),
-    Wildcard(&'a str),
-    Indexed(&'a str),
-}
-
-fn parse_segment(segment: &str) -> SegmentKind<'_> {
-    if let Some(key) = segment.strip_suffix("[*]") {
-        SegmentKind::Wildcard(key)
-    } else if let Some((key, suffix)) = segment.split_once('[') {
-        if suffix.starts_with("@index") && suffix.ends_with(']') {
-            SegmentKind::Indexed(key)
-        } else {
-            SegmentKind::Exact(segment)
-        }
-    } else {
-        SegmentKind::Exact(segment)
-    }
-}
+use formspec_core::path_utils::{Path, PathSegment};
 
 fn resolve_path(path: &str, label: &str, index: &ItemTreeIndex) -> Result<(), String> {
-    if !path.contains('.') && !path.contains('[') {
-        return validate_simple_key(path, "$", label, "E300", index)
-            .map_or(Ok(()), |diag| Err(diag.message));
+    let p = Path::parse(path);
+    if p.segments.is_empty() {
+        return Ok(());
     }
 
-    let mut segments = path.split('.');
-    let first = segments.next().unwrap_or(path);
-    let mut current = resolve_root_segment(path, first, label, index)?;
+    if p.segments.len() == 1 {
+        if let PathSegment::Exact(key) = &p.segments[0] {
+            return validate_simple_key(key, "$", label, "E300", index)
+                .map_or(Ok(()), |diag| Err(diag.message));
+        }
+    }
 
-    for segment in segments {
-        current = resolve_child_segment(path, label, current, segment, index)?;
+    let mut current = resolve_root_segment(path, &p.segments[0], label, index)?;
+
+    for seg in &p.segments[1..] {
+        current = resolve_child_segment(path, label, current, seg, index)?;
     }
 
     Ok(())
@@ -228,24 +214,28 @@ fn resolve_path(path: &str, label: &str, index: &ItemTreeIndex) -> Result<(), St
 
 fn resolve_root_segment<'a>(
     path: &str,
-    segment: &str,
+    segment: &PathSegment,
     label: &str,
     index: &'a ItemTreeIndex,
 ) -> Result<&'a crate::tree::ItemRef, String> {
-    let parsed = parse_segment(segment);
-    let current = match parsed {
-        SegmentKind::Exact(key) | SegmentKind::Wildcard(key) | SegmentKind::Indexed(key) => index
-            .by_full_path
-            .get(key)
-            .or_else(|| {
-                index.by_key.get(key).filter(|item_ref| {
-                    !index.ambiguous_keys.contains(key) && item_ref.parent_full_path.is_none()
-                })
-            })
-            .ok_or_else(|| format!("{label} references unknown item: {path}"))?,
+    let key = match segment {
+        PathSegment::Exact(k) => k,
+        PathSegment::Wildcard => return Err(format!("{label} references unknown item: {path}")),
+        PathSegment::Indexed(_) => return Err(format!("{label} references unknown item: {path}")),
+        PathSegment::Special(k) => k,
     };
 
-    ensure_repeatable_if_needed(label, current.full_path.as_str(), current, parsed)?;
+    let current = index
+        .by_full_path
+        .get(key)
+        .or_else(|| {
+            index.by_key.get(key).filter(|item_ref| {
+                !index.ambiguous_keys.contains(key) && item_ref.parent_full_path.is_none()
+            })
+        })
+        .ok_or_else(|| format!("{label} references unknown item: {path}"))?;
+
+    ensure_repeatable_if_needed(label, current.full_path.as_str(), current, segment)?;
     Ok(current)
 }
 
@@ -253,19 +243,28 @@ fn resolve_child_segment<'a>(
     path: &str,
     label: &str,
     parent: &'a crate::tree::ItemRef,
-    segment: &str,
+    segment: &PathSegment,
     index: &'a ItemTreeIndex,
 ) -> Result<&'a crate::tree::ItemRef, String> {
-    let parsed = parse_segment(segment);
-    let child_key = match parsed {
-        SegmentKind::Exact(key) | SegmentKind::Wildcard(key) | SegmentKind::Indexed(key) => key,
+    // If current segment is Index/Wildcard, it doesn't resolve to a NEW item,
+    // but rather validates the current item is repeatable.
+    if matches!(segment, PathSegment::Wildcard | PathSegment::Indexed(_)) {
+        ensure_repeatable_if_needed(label, &parent.full_path, parent, segment)?;
+        return Ok(parent);
+    }
+
+    let child_key = match segment {
+        PathSegment::Exact(k) => k,
+        PathSegment::Special(k) => k,
+        _ => unreachable!(),
     };
+
     let child_path = format!("{}.{}", parent.full_path, child_key);
     let child = index
         .by_full_path
         .get(&child_path)
         .ok_or_else(|| format!("{label} references unknown item: {path}"))?;
-    ensure_repeatable_if_needed(label, &child_path, child, parsed)?;
+    ensure_repeatable_if_needed(label, &child_path, child, segment)?;
     Ok(child)
 }
 
@@ -273,9 +272,9 @@ fn ensure_repeatable_if_needed(
     label: &str,
     path: &str,
     item_ref: &crate::tree::ItemRef,
-    segment: SegmentKind<'_>,
+    segment: &PathSegment,
 ) -> Result<(), String> {
-    if matches!(segment, SegmentKind::Wildcard(_) | SegmentKind::Indexed(_))
+    if matches!(segment, PathSegment::Wildcard | PathSegment::Indexed(_))
         && !item_ref.is_repeatable
     {
         return Err(format!(

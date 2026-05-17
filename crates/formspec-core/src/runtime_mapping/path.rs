@@ -4,62 +4,37 @@ use serde_json::Value;
 
 // ── Path utilities ──────────────────────────────────────────────
 
-/// Split a dotted/bracketed path into segments.
-pub(crate) fn split_path(path: &str) -> Vec<String> {
-    let mut segments = Vec::new();
-    let mut current = String::new();
+use crate::path_utils::{Path, PathSegment};
 
-    for c in path.chars() {
-        match c {
-            '.' => {
-                if !current.is_empty() {
-                    segments.push(std::mem::take(&mut current));
-                }
-            }
-            '[' => {
-                if !current.is_empty() {
-                    segments.push(std::mem::take(&mut current));
-                }
-            }
-            ']' => {
-                if !current.is_empty() {
-                    segments.push(std::mem::take(&mut current));
-                }
-            }
-            _ => current.push(c),
-        }
-    }
-    if !current.is_empty() {
-        segments.push(current);
-    }
-    segments
-}
+// ── Path utilities ──────────────────────────────────────────────
 
 /// Get a value at a path in a JSON object.
 /// Supports `[*]` wildcard: when `*` is encountered on an array, returns the array itself.
 pub(crate) fn get_by_path<'a>(obj: &'a Value, path: &str) -> &'a Value {
-    let segments = split_path(path);
+    let p = Path::parse(path);
     let mut current = obj;
-    for seg in &segments {
-        if seg == "*" {
-            // Wildcard: return the current value if it's an array, else null
-            return if current.is_array() {
-                current
-            } else {
-                &Value::Null
-            };
-        }
-        match current {
-            Value::Object(map) => {
-                current = map.get(seg.as_str()).unwrap_or(&Value::Null);
-            }
-            Value::Array(arr) => {
-                if let Ok(idx) = seg.parse::<usize>() {
-                    current = arr.get(idx).unwrap_or(&Value::Null);
+    for seg in &p.segments {
+        match seg {
+            PathSegment::Wildcard => {
+                // Wildcard: return the current value if it's an array, else null
+                return if current.is_array() {
+                    current
                 } else {
-                    return &Value::Null;
-                }
+                    &Value::Null
+                };
             }
+            PathSegment::Exact(key) => match current {
+                Value::Object(map) => {
+                    current = map.get(key).unwrap_or(&Value::Null);
+                }
+                _ => return &Value::Null,
+            },
+            PathSegment::Indexed(idx) => match current {
+                Value::Array(arr) => {
+                    current = arr.get(*idx).unwrap_or(&Value::Null);
+                }
+                _ => return &Value::Null,
+            },
             _ => return &Value::Null,
         }
     }
@@ -117,60 +92,64 @@ pub(crate) fn merge_flat_into(
 
 /// Set a value at a path in a JSON object, creating intermediate objects as needed.
 pub(crate) fn set_by_path(obj: &mut Value, path: &str, value: Value) {
-    let segments = split_path(path);
-    if segments.is_empty() {
+    let p = Path::parse(path);
+    if p.segments.is_empty() {
         return;
     }
 
     let mut current = obj;
-    for (i, seg) in segments.iter().enumerate() {
-        if i == segments.len() - 1 {
+    for (i, seg) in p.segments.iter().enumerate() {
+        if i == p.segments.len() - 1 {
             // Last segment — set the value
             match current {
                 Value::Object(map) => {
-                    map.insert(seg.clone(), value);
+                    if let PathSegment::Exact(key) = seg {
+                        map.insert(key.clone(), value);
+                    }
                     return;
                 }
                 Value::Array(arr) => {
-                    if let Ok(idx) = seg.parse::<usize>() {
-                        while arr.len() <= idx {
+                    if let PathSegment::Indexed(idx) = seg {
+                        while arr.len() <= *idx {
                             arr.push(Value::Null);
                         }
-                        arr[idx] = value;
-                        return;
+                        arr[*idx] = value;
                     }
+                    return;
                 }
                 _ => return,
             }
         } else {
             // Intermediate segment — ensure container exists
-            let next_is_index = segments
-                .get(i + 1)
-                .is_some_and(|s| s.parse::<usize>().is_ok());
+            let next_is_index = matches!(p.segments.get(i + 1), Some(PathSegment::Indexed(_)));
             match current {
                 Value::Object(map) => {
-                    if !map.contains_key(seg.as_str()) {
-                        if next_is_index {
-                            map.insert(seg.clone(), Value::Array(vec![]));
-                        } else {
-                            map.insert(seg.clone(), Value::Object(serde_json::Map::new()));
-                        }
-                    }
-                    current = map.get_mut(seg.as_str()).unwrap();
-                }
-                Value::Array(arr) => {
-                    if let Ok(idx) = seg.parse::<usize>() {
-                        while arr.len() <= idx {
-                            arr.push(Value::Null);
-                        }
-                        if arr[idx].is_null() {
+                    if let PathSegment::Exact(key) = seg {
+                        if !map.contains_key(key) {
                             if next_is_index {
-                                arr[idx] = Value::Array(vec![]);
+                                map.insert(key.clone(), Value::Array(vec![]));
                             } else {
-                                arr[idx] = Value::Object(serde_json::Map::new());
+                                map.insert(key.clone(), Value::Object(serde_json::Map::new()));
                             }
                         }
-                        current = &mut arr[idx];
+                        current = map.get_mut(key).unwrap();
+                    } else {
+                        return;
+                    }
+                }
+                Value::Array(arr) => {
+                    if let PathSegment::Indexed(idx) = seg {
+                        while arr.len() <= *idx {
+                            arr.push(Value::Null);
+                        }
+                        if arr[*idx].is_null() {
+                            if next_is_index {
+                                arr[*idx] = Value::Array(vec![]);
+                            } else {
+                                arr[*idx] = Value::Object(serde_json::Map::new());
+                            }
+                        }
+                        current = &mut arr[*idx];
                     } else {
                         return;
                     }

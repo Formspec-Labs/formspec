@@ -313,14 +313,16 @@ function applyInitialData(engine: IFormEngine, data: Record<string, any>, prefix
     }
 }
 
+import { Path } from '@formspec-org/types';
+
 /** Recursive item lookup by dotted key path. */
 export function findItemByKey(items: any[], key: string): any | null {
-    const parts = key.split('.');
+    const segments = Path.parse(key).splitNormalized();
     let current = items;
-    for (let i = 0; i < parts.length; i++) {
-        const found = current.find((item: any) => item.key === parts[i]);
+    for (let i = 0; i < segments.length; i++) {
+        const found = current.find((item: any) => item.key === segments[i]);
         if (!found) return null;
-        if (i === parts.length - 1) return found;
+        if (i === segments.length - 1) return found;
         current = found.children || [];
     }
     return null;

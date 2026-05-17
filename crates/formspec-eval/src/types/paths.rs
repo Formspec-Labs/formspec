@@ -31,77 +31,42 @@ pub(crate) fn find_item_by_path_mut<'a>(
     None
 }
 
+use formspec_core::path_utils::{Path, PathSegment};
+
 pub(crate) fn strip_indices(path: &str) -> String {
-    let mut result = String::new();
-    let mut chars = path.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if ch == '[' {
-            for inner in chars.by_ref() {
-                if inner == ']' {
-                    break;
-                }
-            }
-        } else {
-            result.push(ch);
-        }
-    }
-
-    result
+    Path::parse(path).strip_indices()
 }
 
 pub(crate) fn to_wildcard_path(path: &str) -> String {
-    let mut result = String::new();
-    let mut chars = path.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if ch == '[' {
-            let mut segment = String::new();
-            let mut closed = false;
-
-            for inner in chars.by_ref() {
-                if inner == ']' {
-                    closed = true;
-                    break;
-                }
-                segment.push(inner);
-            }
-
-            result.push('[');
-            if closed && !segment.is_empty() && segment.chars().all(|inner| inner.is_ascii_digit())
-            {
-                result.push('*');
-            } else {
-                result.push_str(&segment);
-            }
-            if closed {
-                result.push(']');
-            }
-        } else {
-            result.push(ch);
-        }
-    }
-
-    result
+    Path::parse(path).to_wildcard_string()
 }
 
 pub(crate) fn parent_path(path: &str) -> Option<String> {
-    path.rfind('.').map(|pos| path[..pos].to_string())
+    let p = Path::parse(path);
+    if p.segments.is_empty() {
+        return None;
+    }
+    Some(p.parent_string())
 }
 
 fn repeat_ancestors(path: &str) -> Vec<(String, String)> {
     let mut ancestors = Vec::new();
-    let mut prefix = Vec::new();
+    let p = Path::parse(path);
+    let mut current_segments = Vec::new();
 
-    for segment in path.split('.') {
-        prefix.push(segment.to_string());
-        if let Some(bracket_pos) = segment.find('[')
-            && segment.ends_with(']')
-            && segment[bracket_pos + 1..segment.len() - 1]
-                .chars()
-                .all(|ch| ch.is_ascii_digit())
-        {
-            ancestors.push((segment[..bracket_pos].to_string(), prefix.join(".")));
+    for seg in p.segments {
+        current_segments.push(seg.clone());
+        if let PathSegment::Indexed(_) = seg {
+            // Found an indexed segment. The group name is the segment immediately preceding it.
+            if current_segments.len() >= 2 {
+                if let PathSegment::Exact(group_name) = &current_segments[current_segments.len() - 2] {
+                    let prefix = Path {
+                        segments: current_segments.clone(),
+                    }
+                    .to_string();
+                    ancestors.push((group_name.clone(), prefix));
+                }
+            }
         }
     }
 
@@ -158,44 +123,7 @@ fn replace_qualified_group_ref(
 }
 
 pub(crate) fn internal_path_to_fel_path(path: &str) -> String {
-    let mut result = String::new();
-    let mut chars = path.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        if ch != '[' {
-            result.push(ch);
-            continue;
-        }
-
-        let mut index = String::new();
-        let mut closed = false;
-        while let Some(inner) = chars.peek().copied() {
-            chars.next();
-            if inner == ']' {
-                closed = true;
-                break;
-            }
-            index.push(inner);
-        }
-
-        if closed
-            && !index.is_empty()
-            && index.chars().all(|digit| digit.is_ascii_digit())
-            && let Ok(parsed) = index.parse::<usize>()
-        {
-            result.push('[');
-            result.push_str(&(parsed + 1).to_string());
-            result.push(']');
-        } else {
-            result.push('[');
-            result.push_str(&index);
-            if closed {
-                result.push(']');
-            }
-        }
-    }
-
-    result
+    Path::parse(path).to_fel_string()
 }
 
 pub(crate) fn resolve_qualified_repeat_refs(expression: &str, current_item_path: &str) -> String {

@@ -4,7 +4,8 @@ use fel_core::{evaluate, fel_to_json, parse};
 use serde_json::Value;
 
 use super::env::build_mapping_env;
-use super::path::{get_by_path, merge_flat_into, set_by_path, split_path};
+use crate::path_utils::Path;
+use super::path::{get_by_path, merge_flat_into, set_by_path};
 use super::transforms::{
     apply_coerce, apply_value_map, eval_fel_with_dollar, value_to_flat_string,
 };
@@ -236,16 +237,16 @@ pub fn execute_mapping(
                     Value::Object(map) => {
                         // Dot-prefix: write to container[targetKey.subkey] as flat keys
                         // e.g. flatten address→out.addr produces out["addr.street"], out["addr.city"]
-                        let segments = split_path(tgt_path);
-                        let last_seg = segments.last().map(|s| s.as_str()).unwrap_or(tgt_path);
+                        let p = Path::parse(tgt_path);
+                        let last_seg = p.leaf_key();
                         let flat_entries: Vec<(String, Value)> = map
                             .iter()
                             .map(|(k, v)| (format!("{last_seg}.{k}"), v.clone()))
                             .collect();
-                        let parent_path = if segments.len() <= 1 {
+                        let parent_path = if p.segments.len() <= 1 {
                             None
                         } else {
-                            Some(segments[..segments.len() - 1].join("."))
+                            Some(p.parent_string())
                         };
                         merge_flat_into(&mut output, parent_path.as_deref(), flat_entries);
                         rules_applied += 1;

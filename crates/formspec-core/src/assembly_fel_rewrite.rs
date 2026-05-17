@@ -82,19 +82,20 @@ pub(crate) fn assembly_prefix_path(
     prefix: &str,
     imported_keys: &HashSet<String>,
 ) -> String {
-    let segments = split_path_segments(path);
-    let rewritten: Vec<String> = segments
-        .into_iter()
-        .map(|segment| {
-            let base = segment_base(&segment);
-            if imported_keys.contains(base) {
-                format!("{prefix}{segment}")
-            } else {
-                segment
+    let p = Path::parse(path);
+    let mut rewritten = Vec::new();
+    for segment in p.segments {
+        match segment {
+            PathSegment::Exact(s) if imported_keys.contains(&s) => {
+                rewritten.push(PathSegment::Exact(format!("{prefix}{s}")));
             }
-        })
-        .collect();
-    join_path_segments(&rewritten)
+            _ => rewritten.push(segment),
+        }
+    }
+    Path {
+        segments: rewritten,
+    }
+    .to_string()
 }
 
 fn make_rewrite_options(map: &AssemblyFelRewriteMap) -> RewriteOptions {
@@ -121,114 +122,71 @@ fn make_rewrite_options(map: &AssemblyFelRewriteMap) -> RewriteOptions {
     }
 }
 
+use crate::path_utils::{Path, PathSegment};
+
 fn rewrite_field_path(path: &str, map: &AssemblyFelRewriteMap) -> String {
-    let segments = split_path_segments(path);
-    if segments.is_empty() {
+    let p = Path::parse(path);
+    if p.segments.is_empty() {
         return path.to_string();
     }
 
-    let first_base = segment_base(&segments[0]);
+    let first_base = match &p.segments[0] {
+        PathSegment::Exact(s) => s.as_str(),
+        _ => return path.to_string(),
+    };
+
     let should_replace_root = (!map.fragment_root_key.is_empty()
         && first_base == map.fragment_root_key)
         || (map.fragment_root_key.is_empty()
-            && segments.len() > 1
+            && p.segments.len() > 1
             && map.imported_keys.contains(first_base));
 
     let mut rewritten = Vec::new();
-    let mut iter = segments.into_iter();
+    let mut iter = p.segments.into_iter();
     if should_replace_root {
-        rewritten.push(map.host_group_key.clone());
+        rewritten.push(PathSegment::Exact(map.host_group_key.clone()));
         iter.next();
     }
 
     for segment in iter {
-        let base = segment_base(&segment);
-        if map.imported_keys.contains(base) {
-            rewritten.push(format!("{}{}", map.key_prefix, segment));
-        } else {
-            rewritten.push(segment);
+        match segment {
+            PathSegment::Exact(s) if map.imported_keys.contains(&s) => {
+                rewritten.push(PathSegment::Exact(format!("{}{}", map.key_prefix, s)));
+            }
+            _ => rewritten.push(segment),
         }
     }
 
     if !should_replace_root && rewritten.is_empty() {
-        rewritten.push(path.to_string());
-    } else if !should_replace_root {
-        return join_path_segments(
-            &split_path_segments(path)
-                .into_iter()
-                .map(|segment| {
-                    let base = segment_base(&segment);
-                    if map.imported_keys.contains(base) {
-                        format!("{}{}", map.key_prefix, segment)
-                    } else {
-                        segment
-                    }
-                })
-                .collect::<Vec<_>>(),
-        );
+        path.to_string()
+    } else {
+        Path {
+            segments: rewritten,
+        }
+        .to_string()
     }
-
-    join_path_segments(&rewritten)
 }
 
 fn rewrite_current_path(path: &str, map: &AssemblyFelRewriteMap) -> String {
-    let segments = split_path_segments(path);
-    let rewritten: Vec<String> = segments
-        .into_iter()
-        .map(|segment| {
-            let base = segment_base(&segment);
-            if map.imported_keys.contains(base) {
-                format!("{}{}", map.key_prefix, segment)
-            } else {
-                segment
-            }
-        })
-        .collect();
-    join_path_segments(&rewritten)
-}
+    let p = Path::parse(path);
+    if p.segments.is_empty() {
+        return path.to_string();
+    }
 
-fn split_path_segments(path: &str) -> Vec<String> {
-    let mut segments = Vec::new();
-    let mut current = String::new();
-    let mut bracket_depth = 0usize;
-    for ch in path.chars() {
-        match ch {
-            '.' if bracket_depth == 0 => {
-                if !current.is_empty() {
-                    segments.push(current.clone());
-                    current.clear();
-                }
+    let mut rewritten = Vec::new();
+    for segment in p.segments {
+        match segment {
+            PathSegment::Exact(s) if map.imported_keys.contains(&s) => {
+                rewritten.push(PathSegment::Exact(format!("{}{}", map.key_prefix, s)));
             }
-            '[' => {
-                bracket_depth += 1;
-                current.push(ch);
-            }
-            ']' => {
-                bracket_depth = bracket_depth.saturating_sub(1);
-                current.push(ch);
-            }
-            _ => current.push(ch),
+            _ => rewritten.push(segment),
         }
     }
-    if !current.is_empty() {
-        segments.push(current);
-    }
-    segments
-}
 
-fn join_path_segments(segments: &[String]) -> String {
-    let mut result = String::new();
-    for (index, segment) in segments.iter().enumerate() {
-        if index > 0 && !segment.starts_with('[') {
-            result.push('.');
-        }
-        result.push_str(segment);
+    Path {
+        segments: rewritten,
     }
-    result
-}
-
-fn segment_base(segment: &str) -> &str {
-    segment.split('[').next().unwrap_or(segment)
+    .to_string()
 }
 
 #[cfg(test)]

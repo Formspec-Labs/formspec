@@ -21,6 +21,10 @@ export {
   widgetTokenToComponent,
 } from './widget-vocabulary.js';
 
+// Path utilities — shared dotted path parsing and normalization
+export { Path, PathSegmentKind } from './path-utils.js';
+export type { PathSegment } from './path-utils.js';
+
 // Backwards-compatible aliases (consumers use Form-prefixed names)
 export type { Shape as FormShape } from './generated/definition.js';
 export type { Variable as FormVariable } from './generated/definition.js';
