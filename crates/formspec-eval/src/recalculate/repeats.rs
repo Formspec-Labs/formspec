@@ -49,7 +49,10 @@ pub(crate) fn apply_instance_aliases(
 
         let p = Path::parse(relative);
         if let Some(PathSegment::Exact(group_name)) = p.segments.get(0) {
-            if p.segments.get(1).is_some_and(|s| matches!(s, PathSegment::Indexed(_))) {
+            if p.segments
+                .get(1)
+                .is_some_and(|s| matches!(s, PathSegment::Indexed(_)))
+            {
                 if !group_name.contains('.') && seen_groups.insert(group_name.to_string()) {
                     saved_values.insert(group_name.to_string(), env.data.get(group_name).cloned());
                     let group_path = format!("{instance_prefix}.{group_name}");
@@ -93,7 +96,10 @@ fn parse_repeat_instance_prefix(prefix: &str) -> Option<(String, usize)> {
     if let PathSegment::Indexed(idx) = last {
         let mut group_path_segs = p.segments.clone();
         group_path_segs.pop();
-        let group_path = Path { segments: group_path_segs }.to_string();
+        let group_path = Path {
+            segments: group_path_segs,
+        }
+        .to_string();
         Some((group_path, *idx))
     } else {
         None
@@ -175,6 +181,13 @@ pub(crate) fn build_repeat_group_array(
     Some(JsonValue::Array(rows))
 }
 
+/// Build the nested-object path under `target` and write `value` at the leaf.
+///
+/// Path semantics follow [`Path::parse`]. `Exact` and `Indexed` segments build
+/// objects and arrays respectively. `Wildcard` and `Special` segments are
+/// **elided** (no-op): they are not valid in a concrete data-path and would
+/// have no defined write target. Pass concrete paths only — repeat-group data
+/// contexts emit `[Indexed(_)]`, never `[Wildcard]` or `[Special]`.
 pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: JsonValue) {
     let p = Path::parse(path);
     if p.segments.is_empty() {
@@ -216,7 +229,11 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
                 }
                 current = &mut array[*array_index];
             }
-            _ => {} // Skip wildcards/specials for JSON building
+            PathSegment::Special(_) | PathSegment::Wildcard => {
+                // Specials and wildcards are not supported in concrete data-path building.
+                // We skip them to avoid panics, but they shouldn't be reachable in a well-formed
+                // repeat-group data context.
+            }
         }
     }
 
@@ -240,6 +257,54 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
             }
             array[*array_index] = value;
         }
-        _ => {} // Skip wildcards/specials
+        PathSegment::Special(_) | PathSegment::Wildcard => {
+            // No-op for special/wildcard leaves in JSON building.
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::missing_docs_in_private_items)]
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn set_nested_json_path_object() {
+        let mut target = json!({});
+        set_nested_json_path(&mut target, "a.b.c", json!(42));
+        assert_eq!(target, json!({"a": {"b": {"c": 42}}}));
+    }
+
+    #[test]
+    fn set_nested_json_path_indexed() {
+        let mut target = json!({});
+        set_nested_json_path(&mut target, "rows[0].name", json!("Alice"));
+        set_nested_json_path(&mut target, "rows[1].name", json!("Bob"));
+        assert_eq!(
+            target,
+            json!({"rows": [{"name": "Alice"}, {"name": "Bob"}]})
+        );
+    }
+
+    /// F-8 regression: Wildcard and Special segments are elided silently
+    /// (matching the pre-refactor `tokenize_json_path` behavior of dropping
+    /// non-numeric bracket content). `a[*].b` writes to `a.b`.
+    #[test]
+    fn set_nested_json_path_elides_wildcard_and_special() {
+        let mut target = json!({});
+        set_nested_json_path(&mut target, "a[*].b", json!(1));
+        assert_eq!(target, json!({"a": {"b": 1}}));
+
+        let mut target2 = json!({});
+        set_nested_json_path(&mut target2, "a[@index].b", json!(2));
+        assert_eq!(target2, json!({"a": {"b": 2}}));
+    }
+
+    #[test]
+    fn set_nested_json_path_empty_path_replaces_target() {
+        let mut target = json!({"keep": 1});
+        set_nested_json_path(&mut target, "", json!(99));
+        assert_eq!(target, json!(99));
     }
 }

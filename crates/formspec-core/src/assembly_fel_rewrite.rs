@@ -6,6 +6,7 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
+use crate::path_utils::{Path, PathSegment};
 use crate::{RewriteOptions, rewrite_fel_source_references, rewrite_message_template};
 
 /// Maps fragment item keys to host paths during `$ref` assembly (see TS `RewriteMap`).
@@ -45,16 +46,15 @@ pub fn assembly_fel_rewrite_map_from_value(v: &Value) -> Result<AssemblyFelRewri
         .unwrap_or("")
         .to_string();
 
-    let imported_keys: HashSet<String> =
-        match obj.get("importedKeys") {
-            Some(Value::Array(arr)) => arr
-                .iter()
-                .filter_map(|x| x.as_str().map(String::from))
-                .collect(),
-            _ => {
-                return Err("importedKeys must be a JSON array of strings".to_string());
-            }
-        };
+    let imported_keys: HashSet<String> = match obj.get("importedKeys") {
+        Some(Value::Array(arr)) => arr
+            .iter()
+            .filter_map(|x| x.as_str().map(String::from))
+            .collect(),
+        _ => {
+            return Err("importedKeys must be a JSON array of strings".to_string());
+        }
+    };
 
     Ok(AssemblyFelRewriteMap {
         fragment_root_key,
@@ -121,8 +121,6 @@ fn make_rewrite_options(map: &AssemblyFelRewriteMap) -> RewriteOptions {
         })),
     }
 }
-
-use crate::path_utils::{Path, PathSegment};
 
 fn rewrite_field_path(path: &str, map: &AssemblyFelRewriteMap) -> String {
     let p = Path::parse(path);

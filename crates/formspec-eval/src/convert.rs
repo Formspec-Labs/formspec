@@ -1,63 +1,42 @@
 //! Value resolution helpers for dotted paths and nested objects.
 
+use formspec_core::path_utils::{Path, PathSegment};
 use serde_json::Value;
 use std::collections::HashMap;
 
 /// Resolve a value from a flat HashMap by dotted path, walking nested objects if needed.
 /// Returns an owned Value because the result may not exist in the HashMap.
 pub fn resolve_value_by_path(values: &HashMap<String, Value>, path: &str) -> Value {
-    // Try flat lookup first
     if let Some(val) = values.get(path) {
         return val.clone();
     }
-    // Walk nested objects/arrays, handling indexed segments like "rows[0]"
-    let segments: Vec<&str> = path.split('.').collect();
-    let (root_key, root_index) = parse_path_segment(segments[0]);
-    if let Some(root) = values.get(root_key) {
-        let mut current = match root_index {
-            Some(idx) => match root.as_array().and_then(|a| a.get(idx)) {
-                Some(v) => v,
-                None => return Value::Null,
-            },
-            None => root,
-        };
-        for seg in &segments[1..] {
-            let (key, index) = parse_path_segment(seg);
-            match current {
+    let parsed = Path::parse(path);
+    let mut iter = parsed.segments.iter();
+    let root_key = match iter.next() {
+        Some(PathSegment::Exact(s)) => s,
+        _ => return Value::Null,
+    };
+    let Some(root) = values.get(root_key.as_str()) else {
+        return Value::Null;
+    };
+    let mut current = root;
+    for seg in iter {
+        current = match seg {
+            PathSegment::Exact(key) => match current {
                 Value::Object(map) => match map.get(key) {
-                    Some(v) => {
-                        current = match index {
-                            Some(idx) => match v.as_array().and_then(|a| a.get(idx)) {
-                                Some(el) => el,
-                                None => return Value::Null,
-                            },
-                            None => v,
-                        };
-                    }
+                    Some(v) => v,
                     None => return Value::Null,
                 },
                 _ => return Value::Null,
-            }
-        }
-        return current.clone();
+            },
+            PathSegment::Indexed(idx) => match current.as_array().and_then(|a| a.get(*idx)) {
+                Some(v) => v,
+                None => return Value::Null,
+            },
+            _ => return Value::Null,
+        };
     }
-    Value::Null
-}
-
-/// Parse a path segment like "rows[0]" into ("rows", Some(0)) or "name" into ("name", None).
-fn parse_path_segment(seg: &str) -> (&str, Option<usize>) {
-    if let Some(bracket_pos) = seg.find('[') {
-        let key = &seg[..bracket_pos];
-        let rest = &seg[bracket_pos + 1..];
-        if let Some(idx_str) = rest.strip_suffix(']')
-            && let Ok(idx) = idx_str.parse::<usize>()
-        {
-            return (key, Some(idx));
-        }
-        (key, None)
-    } else {
-        (seg, None)
-    }
+    current.clone()
 }
 
 #[cfg(test)]

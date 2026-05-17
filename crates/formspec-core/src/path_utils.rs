@@ -31,6 +31,22 @@ impl PathSegment {
             _ => None,
         }
     }
+
+    /// Returns the segment's content as a bracket-free flat key fragment.
+    ///
+    /// Use this when composing flat dotted keys where bracket syntax is not
+    /// wanted in the output (e.g. mapping flatten transform):
+    /// `Exact("name")` → `"name"`, `Indexed(0)` → `"0"`, `Wildcard` → `"*"`,
+    /// `Special("@index")` → `"@index"`.
+    ///
+    /// For round-trippable serialization use [`Display`] / [`Path::to_string`].
+    pub fn flat_key(&self) -> String {
+        match self {
+            PathSegment::Exact(s) | PathSegment::Special(s) => s.clone(),
+            PathSegment::Indexed(i) => i.to_string(),
+            PathSegment::Wildcard => "*".to_string(),
+        }
+    }
 }
 
 impl fmt::Display for PathSegment {
@@ -58,7 +74,18 @@ impl Path {
     }
 
     /// Parse a dotted path string into a Path object.
+    ///
     /// Handles `a.b.c`, `a[0].b`, `a[*].b`, and `a[@index]`.
+    ///
+    /// **Bracket content is parsed semantically, not preserved textually.**
+    /// `[01]` parses as `Indexed(1)` and serializes back as `[1]` — the leading
+    /// zero is lost. Non-numeric, non-`*` bracket content becomes `Special` and
+    /// is preserved verbatim.
+    ///
+    /// **Malformed input is silently normalized:** consecutive dots (`a..b`),
+    /// leading dots (`.a`), and trailing dots (`a.`) collapse to the empty
+    /// segments being dropped. An unclosed bracket (`a[`) is treated as part
+    /// of the preceding segment.
     pub fn parse(s: &str) -> Self {
         if s.is_empty() {
             return Self::default();
@@ -135,7 +162,12 @@ impl Path {
     pub fn to_wildcard_string(&self) -> String {
         let mut result = String::new();
         for (i, seg) in self.segments.iter().enumerate() {
-            if i > 0 && !matches!(seg, PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)) {
+            if i > 0
+                && !matches!(
+                    seg,
+                    PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)
+                )
+            {
                 result.push('.');
             }
             match seg {
@@ -156,7 +188,12 @@ impl Path {
     pub fn to_fel_string(&self) -> String {
         let mut result = String::new();
         for (i, seg) in self.segments.iter().enumerate() {
-            if i > 0 && !matches!(seg, PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)) {
+            if i > 0
+                && !matches!(
+                    seg,
+                    PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)
+                )
+            {
                 result.push('.');
             }
             match seg {
@@ -178,13 +215,20 @@ impl Path {
     }
 
     /// Returns the parent path as a string.
+    ///
+    /// Operates on parsed segments, so malformed inputs are normalized: a
+    /// trailing dot is dropped (`"field."` parses to one segment, so parent is
+    /// `""`, not `"field"` as a pure `rfind('.')` would yield).
     pub fn parent_string(&self) -> String {
         if self.segments.is_empty() {
             return String::new();
         }
         let mut parent_segs = self.segments.clone();
         parent_segs.pop();
-        Path { segments: parent_segs }.to_string()
+        Path {
+            segments: parent_segs,
+        }
+        .to_string()
     }
 
     /// Returns the last segment as a string (the "leaf key").
@@ -208,7 +252,12 @@ impl FromStr for Path {
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, seg) in self.segments.iter().enumerate() {
-            if i > 0 && !matches!(seg, PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)) {
+            if i > 0
+                && !matches!(
+                    seg,
+                    PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)
+                )
+            {
                 write!(f, ".")?;
             }
             write!(f, "{}", seg)?;
@@ -217,7 +266,7 @@ impl fmt::Display for Path {
     }
 }
 
-// ── Legacy compatibility helpers (to be phased out) ──────────────────
+// ── String facades over Path ─────────────────────────────────────────
 
 /// Strip repeat indices from a single path segment: `lineItems[0]` → `lineItems`.
 pub fn normalize_path_segment(segment: &str) -> &str {
@@ -413,7 +462,7 @@ mod tests {
     fn test_path_display() {
         let p = Path::parse("items[0].total");
         assert_eq!(p.to_string(), "items[0].total");
-        
+
         let p2 = Path::parse("a.b[*].c");
         assert_eq!(p2.to_string(), "a.b[*].c");
     }
@@ -436,5 +485,434 @@ mod tests {
         assert_eq!(p.to_fel_string(), "a[1].b");
     }
 
-    // ... (rest of the tests from previous version, updated for new return types)
+    // ── PathSegment::flat_key (F-3 regression guard) ─────────────────
+
+    #[test]
+    fn flat_key_strips_brackets() {
+        assert_eq!(PathSegment::Exact("name".into()).flat_key(), "name");
+        assert_eq!(PathSegment::Indexed(0).flat_key(), "0");
+        assert_eq!(PathSegment::Indexed(42).flat_key(), "42");
+        assert_eq!(PathSegment::Wildcard.flat_key(), "*");
+        assert_eq!(PathSegment::Special("@index".into()).flat_key(), "@index");
+    }
+
+    // ── String facades — parity with pre-refactor behavior ────
+
+    #[test]
+    fn test_normalize_segment() {
+        assert_eq!(normalize_path_segment("items[0]"), "items");
+        assert_eq!(normalize_path_segment("items[*]"), "items");
+        assert_eq!(normalize_path_segment("field"), "field");
+    }
+
+    #[test]
+    fn test_normalize_indexed_path() {
+        assert_eq!(
+            normalize_indexed_path("group[0].items[1].field"),
+            "group.items.field"
+        );
+        assert_eq!(normalize_indexed_path("simple"), "simple");
+        assert_eq!(normalize_indexed_path("a[0].b[*].c"), "a.b.c");
+    }
+
+    #[test]
+    fn test_split_normalized_path() {
+        assert_eq!(split_normalized_path("a.b.c"), vec!["a", "b", "c"]);
+        assert_eq!(split_normalized_path("a[0].b"), vec!["a", "b"]);
+        assert_eq!(split_normalized_path("single"), vec!["single"]);
+    }
+
+    // ── Tree navigation ───────────────────────────────────────────────
+
+    struct TestItem {
+        key: String,
+        kids: Vec<TestItem>,
+    }
+
+    impl TreeItem for TestItem {
+        fn key(&self) -> &str {
+            &self.key
+        }
+        fn children(&self) -> &[TestItem] {
+            &self.kids
+        }
+    }
+
+    fn item(key: &str, children: Vec<TestItem>) -> TestItem {
+        TestItem {
+            key: key.to_string(),
+            kids: children,
+        }
+    }
+
+    fn leaf(key: &str) -> TestItem {
+        TestItem {
+            key: key.to_string(),
+            kids: vec![],
+        }
+    }
+
+    #[test]
+    fn test_item_at_path() {
+        let tree = vec![
+            item("personal", vec![leaf("name"), leaf("email")]),
+            item("address", vec![leaf("city"), leaf("zip")]),
+        ];
+        assert_eq!(item_at_path(&tree, "personal.name").unwrap().key(), "name");
+        assert_eq!(item_at_path(&tree, "address.city").unwrap().key(), "city");
+        assert!(item_at_path(&tree, "personal.phone").is_none());
+        assert!(item_at_path(&tree, "missing").is_none());
+    }
+
+    #[test]
+    fn test_item_location_at_path() {
+        let tree = vec![item("group", vec![leaf("field1"), leaf("field2")])];
+        let loc = item_location_at_path(&tree, "group.field2").unwrap();
+        assert_eq!(loc.item.key(), "field2");
+        assert_eq!(loc.index, 1);
+        assert_eq!(loc.parent.len(), 2);
+    }
+
+    #[test]
+    fn test_parent_path() {
+        assert_eq!(parent_path("group.child.field"), "group.child");
+        assert_eq!(parent_path("group.field"), "group");
+        assert_eq!(parent_path("field"), "");
+    }
+
+    #[test]
+    fn test_leaf_key() {
+        assert_eq!(leaf_key("group.child.field"), "field");
+        assert_eq!(leaf_key("field"), "field");
+    }
+
+    // ── Empty string edge cases ──────────────────────────────────────
+
+    #[test]
+    fn empty_string_normalize_segment() {
+        assert_eq!(normalize_path_segment(""), "");
+    }
+
+    #[test]
+    fn empty_string_normalize_indexed_path() {
+        assert_eq!(normalize_indexed_path(""), "");
+    }
+
+    #[test]
+    fn empty_string_split_normalized_path() {
+        assert!(split_normalized_path("").is_empty());
+    }
+
+    #[test]
+    fn empty_string_item_at_path() {
+        let tree = vec![leaf("field")];
+        assert!(item_at_path(&tree, "").is_none());
+    }
+
+    #[test]
+    fn empty_string_item_location_at_path() {
+        let tree = vec![leaf("field")];
+        assert!(item_location_at_path(&tree, "").is_none());
+    }
+
+    #[test]
+    fn empty_string_parent_path() {
+        assert_eq!(parent_path(""), "");
+    }
+
+    #[test]
+    fn empty_string_leaf_key() {
+        assert_eq!(leaf_key(""), "");
+    }
+
+    // ── Deeply nested tree traversal (3+ levels) ────────────────────
+
+    #[test]
+    fn deeply_nested_item_at_path() {
+        let tree = vec![item(
+            "level1",
+            vec![item("level2", vec![item("level3", vec![leaf("target")])])],
+        )];
+        let found = item_at_path(&tree, "level1.level2.level3.target").unwrap();
+        assert_eq!(found.key(), "target");
+    }
+
+    #[test]
+    fn deeply_nested_item_location_at_path() {
+        let tree = vec![item("a", vec![item("b", vec![leaf("c1"), leaf("c2")])])];
+        let loc = item_location_at_path(&tree, "a.b.c2").unwrap();
+        assert_eq!(loc.item.key(), "c2");
+        assert_eq!(loc.index, 1);
+        assert_eq!(loc.parent.len(), 2);
+    }
+
+    // ── parent_path edge cases ───────────────────────────────────────
+
+    /// F-2: New behavior — `parent_path(".field")` returns `""`. Old
+    /// `rfind('.')` returned `""` as well; the new parser correctly drops
+    /// the empty leading segment.
+    #[test]
+    fn parent_path_leading_dot() {
+        assert_eq!(parent_path(".field"), "");
+    }
+
+    /// F-2: Behavior change made intentional. Old `rfind('.')` returned
+    /// `"field"` for `"field."`; the new parser treats `"field."` as one
+    /// segment (`[Exact("field")]`), so the parent is `""`. This is the
+    /// canonical behavior — a trailing dot is malformed input and the
+    /// normalized parse drops it.
+    #[test]
+    fn parent_path_trailing_dot() {
+        assert_eq!(parent_path("field."), "");
+    }
+
+    #[test]
+    fn parent_path_deep() {
+        assert_eq!(parent_path("a.b.c.d.e"), "a.b.c.d");
+    }
+
+    /// F-2/F-9 parity: leaf_key on malformed input.
+    #[test]
+    fn leaf_key_trailing_dot() {
+        // Trailing dot is normalized away, so leaf is the surviving segment.
+        assert_eq!(leaf_key("field."), "field");
+    }
+
+    /// Spec: core/spec.md §5.3 (RFC 6901) — `01` is a valid key, not array
+    /// index 1. Dotted segments without brackets are preserved verbatim.
+    #[test]
+    fn normalize_leading_zero_segment_preserved() {
+        assert_eq!(normalize_indexed_path("items.01.key"), "items.01.key");
+    }
+
+    /// F-7: `[01]` parses as `Indexed(1)` — leading zero in bracket content
+    /// is lost. `to_wildcard_string` still converts to `[*]`; `to_fel_string`
+    /// serializes as `[2]` (1-based). Round-trip through Display loses the
+    /// literal `01` representation. This is intentional; bracket content is
+    /// parsed semantically, not preserved textually.
+    #[test]
+    fn leading_zero_in_brackets_parses_as_index() {
+        let p = Path::parse("a[01].b");
+        assert_eq!(p.segments[1], PathSegment::Indexed(1));
+        assert_eq!(p.to_string(), "a[1].b");
+        assert_eq!(p.to_wildcard_string(), "a[*].b");
+        assert_eq!(p.to_fel_string(), "a[2].b");
+    }
+
+    /// Spec: core/spec.md §4.3.3 — `normalize_indexed_path` is idempotent.
+    #[test]
+    fn normalize_indexed_path_idempotent() {
+        let paths = [
+            "group[0].items[1].field",
+            "a[0].b[*].c",
+            "simple",
+            "deep.nested.path",
+            "items[0].children[1].key[2]",
+            "",
+        ];
+        for path in &paths {
+            let once = normalize_indexed_path(path);
+            let twice = normalize_indexed_path(&once);
+            assert_eq!(once, twice, "idempotence failed for input '{path}'");
+        }
+    }
+
+    // ── Parser malformed-input handling ──────────────────────────────
+
+    #[test]
+    fn parse_consecutive_dots() {
+        let p = Path::parse("a..b");
+        assert_eq!(p.segments.len(), 2);
+        assert_eq!(p.to_string(), "a.b");
+    }
+
+    #[test]
+    fn parse_leading_dot() {
+        let p = Path::parse(".a");
+        assert_eq!(p.segments.len(), 1);
+        assert_eq!(p.to_string(), "a");
+    }
+
+    #[test]
+    fn parse_trailing_dot() {
+        let p = Path::parse("a.");
+        assert_eq!(p.segments.len(), 1);
+        assert_eq!(p.to_string(), "a");
+    }
+
+    #[test]
+    fn parse_unclosed_bracket() {
+        // Unclosed `[` is permissive — `Path::parse` does not error. The
+        // preceding key is committed at the `[`, and the bracket plus
+        // remainder forms a second `Exact` segment starting with `[`.
+        let p = Path::parse("a[unclosed");
+        assert_eq!(p.segments.len(), 2);
+        assert_eq!(p.segments[0], PathSegment::Exact("a".into()));
+        if let PathSegment::Exact(s) = &p.segments[1] {
+            assert!(
+                s.starts_with('['),
+                "second segment should preserve '[', got {s:?}"
+            );
+            assert!(s.contains("unclosed"));
+        } else {
+            panic!("expected Exact segment, got {:?}", p.segments[1]);
+        }
+    }
+
+    // ── Property-based equivalence (F-5) ─────────────────────────────
+
+    /// Previous-string oracle: pre-refactor `normalize_indexed_path` (split-then-strip).
+    /// Property tests assert `Path::parse(x).strip_indices()` agrees with this.
+    fn previous_normalize_indexed_path(path: &str) -> String {
+        path.split('.')
+            .map(|seg| match seg.find('[') {
+                Some(idx) => &seg[..idx],
+                None => seg,
+            })
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(".")
+    }
+
+    /// Previous-string oracle: pre-refactor `to_wildcard_path` from `formspec-eval`.
+    /// Replaces only fully-numeric bracket contents with `*`.
+    fn previous_to_wildcard_path(path: &str) -> String {
+        let mut result = String::new();
+        let mut chars = path.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '[' {
+                let mut seg = String::new();
+                let mut closed = false;
+                for inner in chars.by_ref() {
+                    if inner == ']' {
+                        closed = true;
+                        break;
+                    }
+                    seg.push(inner);
+                }
+                result.push('[');
+                if closed && !seg.is_empty() && seg.chars().all(|c| c.is_ascii_digit()) {
+                    result.push('*');
+                } else {
+                    result.push_str(&seg);
+                }
+                if closed {
+                    result.push(']');
+                }
+            } else {
+                result.push(ch);
+            }
+        }
+        result
+    }
+
+    /// Previous-string oracle: pre-refactor `internal_path_to_fel_path` from
+    /// `formspec-eval` — 1-base only fully-numeric bracket indices.
+    fn previous_internal_path_to_fel_path(path: &str) -> String {
+        let mut result = String::new();
+        let mut chars = path.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch != '[' {
+                result.push(ch);
+                continue;
+            }
+            let mut idx = String::new();
+            let mut closed = false;
+            while let Some(inner) = chars.peek().copied() {
+                chars.next();
+                if inner == ']' {
+                    closed = true;
+                    break;
+                }
+                idx.push(inner);
+            }
+            if closed
+                && !idx.is_empty()
+                && idx.chars().all(|c| c.is_ascii_digit())
+                && let Ok(parsed) = idx.parse::<usize>()
+            {
+                result.push('[');
+                result.push_str(&(parsed + 1).to_string());
+                result.push(']');
+            } else {
+                result.push('[');
+                result.push_str(&idx);
+                if closed {
+                    result.push(']');
+                }
+            }
+        }
+        result
+    }
+
+    proptest::proptest! {
+        /// strip_indices matches the previous normalize_indexed_path oracle on
+        /// well-formed paths (no leading zeros, no empty brackets, no
+        /// non-ASCII keys).
+        #[test]
+        fn prop_strip_indices_matches_previous(
+            path in r"[a-z][a-z0-9_]{0,5}(\[[1-9][0-9]{0,2}\])?(\.[a-z][a-z0-9_]{0,5}(\[[1-9][0-9]{0,2}\])?){0,4}"
+        ) {
+            let new_result = Path::parse(&path).strip_indices();
+            let previous = previous_normalize_indexed_path(&path);
+            proptest::prop_assert_eq!(new_result, previous);
+        }
+
+        /// to_wildcard_string matches previous_to_wildcard_path for purely
+        /// numeric bracket content.
+        #[test]
+        fn prop_to_wildcard_matches_previous(
+            path in r"[a-z][a-z0-9]{0,5}(\[[1-9][0-9]{0,2}\])?(\.[a-z][a-z0-9]{0,5}(\[[1-9][0-9]{0,2}\])?){0,4}"
+        ) {
+            let new_result = Path::parse(&path).to_wildcard_string();
+            let previous = previous_to_wildcard_path(&path);
+            proptest::prop_assert_eq!(new_result, previous);
+        }
+
+        /// to_fel_string matches previous_internal_path_to_fel_path for purely
+        /// numeric bracket content.
+        #[test]
+        fn prop_to_fel_matches_previous(
+            path in r"[a-z][a-z0-9]{0,5}(\[[1-9][0-9]{0,2}\])?(\.[a-z][a-z0-9]{0,5}(\[[1-9][0-9]{0,2}\])?){0,4}"
+        ) {
+            let new_result = Path::parse(&path).to_fel_string();
+            let previous = previous_internal_path_to_fel_path(&path);
+            proptest::prop_assert_eq!(new_result, previous);
+        }
+
+        /// strip_indices is idempotent on any well-formed path.
+        #[test]
+        fn prop_strip_indices_idempotent(
+            path in r"[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?(\.[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?){0,4}"
+        ) {
+            let once = Path::parse(&path).strip_indices();
+            let twice = Path::parse(&once).strip_indices();
+            proptest::prop_assert_eq!(once, twice);
+        }
+
+        /// Parse-Display round-trip for well-formed paths. Stable wrt
+        /// re-parsing: `parse(display(parse(x))) == parse(x)`.
+        #[test]
+        fn prop_parse_display_stable(
+            path in r"[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?(\.[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?){0,4}"
+        ) {
+            let first = Path::parse(&path);
+            let displayed = first.to_string();
+            let second = Path::parse(&displayed);
+            proptest::prop_assert_eq!(first, second);
+        }
+
+        /// flat_key never contains brackets — F-3 guard.
+        #[test]
+        fn prop_flat_key_has_no_brackets(
+            path in r"[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?(\.[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?){0,4}"
+        ) {
+            let p = Path::parse(&path);
+            for seg in &p.segments {
+                let flat = seg.flat_key();
+                proptest::prop_assert!(!flat.contains('['), "flat_key contained '[': {flat}");
+                proptest::prop_assert!(!flat.contains(']'), "flat_key contained ']': {flat}");
+            }
+        }
+    }
 }

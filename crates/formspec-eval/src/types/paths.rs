@@ -2,6 +2,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use super::item_tree::ItemInfo;
+use formspec_core::path_utils::{Path, PathSegment};
 use std::collections::HashMap;
 
 pub(crate) fn find_item_by_path<'a>(items: &'a [ItemInfo], path: &str) -> Option<&'a ItemInfo> {
@@ -31,8 +32,6 @@ pub(crate) fn find_item_by_path_mut<'a>(
     None
 }
 
-use formspec_core::path_utils::{Path, PathSegment};
-
 pub(crate) fn strip_indices(path: &str) -> String {
     Path::parse(path).strip_indices()
 }
@@ -59,7 +58,9 @@ fn repeat_ancestors(path: &str) -> Vec<(String, String)> {
         if let PathSegment::Indexed(_) = seg {
             // Found an indexed segment. The group name is the segment immediately preceding it.
             if current_segments.len() >= 2 {
-                if let PathSegment::Exact(group_name) = &current_segments[current_segments.len() - 2] {
+                if let PathSegment::Exact(group_name) =
+                    &current_segments[current_segments.len() - 2]
+                {
                     let prefix = Path {
                         segments: current_segments.clone(),
                     }

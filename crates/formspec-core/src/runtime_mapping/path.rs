@@ -2,8 +2,6 @@
 
 use serde_json::Value;
 
-// ── Path utilities ──────────────────────────────────────────────
-
 use crate::path_utils::{Path, PathSegment};
 
 // ── Path utilities ──────────────────────────────────────────────

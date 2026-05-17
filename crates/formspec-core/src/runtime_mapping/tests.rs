@@ -4,8 +4,8 @@
 use serde_json::{Value, json};
 
 use super::path::{get_by_path, merge_flat_into, set_by_path};
-use crate::path_utils::Path;
 use super::*;
+use crate::path_utils::Path;
 
 #[test]
 fn test_preserve_transform() {
@@ -371,6 +371,33 @@ fn test_flatten_object_with_multi_segment_target_path() {
     let result = execute_mapping(&rules, &source, MappingDirection::Forward);
     assert_eq!(result.output["out"]["addr.city"], "NYC");
     assert_eq!(result.output["out"]["addr.zip"], "10001");
+}
+
+/// F-3 regression: when the flatten target ends in an `[index]`, the
+/// generated flat keys must use the bare numeric segment (`0.street`), not
+/// the bracketed form (`[0].street`). Pre-refactor `split_path` produced
+/// `"0"` for an indexed last segment; the new `Path::parse(..).leaf_key()`
+/// would have produced `"[0]"`. The engine now uses
+/// [`PathSegment::flat_key`] to preserve old wire output.
+#[test]
+fn test_flatten_object_with_indexed_target_path() {
+    let rules = vec![rule(
+        Some("addr"),
+        "out.items[0]",
+        TransformType::Flatten {
+            separator: ".".to_string(),
+        },
+    )];
+    let source = json!({ "addr": { "street": "Main", "zip": "10001" } });
+    let result = execute_mapping(&rules, &source, MappingDirection::Forward);
+    // Bare numeric "0" prefix, not bracketed "[0]".
+    assert!(
+        result.output["out"]["items"].is_object(),
+        "expected merge_flat_into to attach under out.items, got {:?}",
+        result.output
+    );
+    assert_eq!(result.output["out"]["items"]["0.street"], "Main");
+    assert_eq!(result.output["out"]["items"]["0.zip"], "10001");
 }
 
 #[test]

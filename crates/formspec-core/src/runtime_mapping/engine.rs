@@ -4,12 +4,12 @@ use fel_core::{evaluate, fel_to_json, parse};
 use serde_json::Value;
 
 use super::env::build_mapping_env;
-use crate::path_utils::Path;
 use super::path::{get_by_path, merge_flat_into, set_by_path};
 use super::transforms::{
     apply_coerce, apply_value_map, eval_fel_with_dollar, value_to_flat_string,
 };
 use super::types::*;
+use crate::path_utils::Path;
 
 /// Execute a set of mapping rules in a given direction.
 pub fn execute_mapping(
@@ -237,8 +237,14 @@ pub fn execute_mapping(
                     Value::Object(map) => {
                         // Dot-prefix: write to container[targetKey.subkey] as flat keys
                         // e.g. flatten address→out.addr produces out["addr.street"], out["addr.city"]
+                        // Use flat_key() not leaf_key(): indexed targets must yield "0" not "[0]"
+                        // so generated flat keys are "0.street" not "[0].street".
                         let p = Path::parse(tgt_path);
-                        let last_seg = p.leaf_key();
+                        let last_seg = p
+                            .segments
+                            .last()
+                            .map(|s| s.flat_key())
+                            .unwrap_or_else(|| tgt_path.to_string());
                         let flat_entries: Vec<(String, Value)> = map
                             .iter()
                             .map(|(k, v)| (format!("{last_seg}.{k}"), v.clone()))

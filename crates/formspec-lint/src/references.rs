@@ -11,6 +11,7 @@
 
 use std::collections::HashSet;
 
+use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::visit_definition_items_json;
 use serde_json::Value;
 
@@ -188,8 +189,6 @@ fn validate_simple_key(
     )))
 }
 
-use formspec_core::path_utils::{Path, PathSegment};
-
 fn resolve_path(path: &str, label: &str, index: &ItemTreeIndex) -> Result<(), String> {
     let p = Path::parse(path);
     if p.segments.is_empty() {
@@ -274,8 +273,7 @@ fn ensure_repeatable_if_needed(
     item_ref: &crate::tree::ItemRef,
     segment: &PathSegment,
 ) -> Result<(), String> {
-    if matches!(segment, PathSegment::Wildcard | PathSegment::Indexed(_))
-        && !item_ref.is_repeatable
+    if matches!(segment, PathSegment::Wildcard | PathSegment::Indexed(_)) && !item_ref.is_repeatable
     {
         return Err(format!(
             "{label} uses wildcard on non-repeatable group: {path}"
