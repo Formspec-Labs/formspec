@@ -14,7 +14,7 @@ fn options_from_set_entry(entry: &Value) -> Value {
     }
 }
 
-fn visit_items(items: &mut [Value], sets: &Map<String, Value>) {
+fn visit_and_resolve_items(items: &mut [Value], sets: &Map<String, Value>) {
     for item in items.iter_mut() {
         let Some(obj) = item.as_object_mut() else {
             continue;
@@ -28,7 +28,7 @@ fn visit_items(items: &mut [Value], sets: &Map<String, Value>) {
             }
         }
         if let Some(Value::Array(children)) = obj.get_mut("children") {
-            visit_items(children, sets);
+            visit_and_resolve_items(children, sets);
         }
     }
 }
@@ -49,7 +49,7 @@ pub fn resolve_option_sets_on_definition(definition: &mut Value) {
     };
 
     if let Some(Value::Array(items)) = definition.get_mut("items") {
-        visit_items(items, &sets);
+        visit_and_resolve_items(items, &sets);
     }
 }
 

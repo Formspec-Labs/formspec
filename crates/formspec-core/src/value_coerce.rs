@@ -172,6 +172,20 @@ mod tests {
     }
 
     #[test]
+    fn whitespace_normalize() {
+        let b = json!({ "whitespace": "normalize" });
+        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!("  hi   there  "));
+        assert_eq!(out, json!("hi there"));
+    }
+
+    #[test]
+    fn whitespace_remove() {
+        let b = json!({ "whitespace": "remove" });
+        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!(" h i "));
+        assert_eq!(out, json!("hi"));
+    }
+
+    #[test]
     fn integer_coercion() {
         let out = coerce_field_value(&item("integer"), None, &json!({}), json!("123"));
         assert_eq!(out, json!(123.0));
