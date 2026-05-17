@@ -36,6 +36,7 @@ export const localeHandlers = {
     const locale = normalizeBcp47(rawLocale);
 
     const localeState: LocaleState = {
+      $formspecLocale: '1.0',
       locale,
       version: (doc.version as string) ?? '0.1.0',
       targetDefinition: (doc.targetDefinition as LocaleState['targetDefinition']) ?? { url: '' },

@@ -185,20 +185,29 @@ pub(crate) fn build_repeat_group_array(
 ///
 /// Path semantics follow [`Path::parse`]. `Exact` and `Indexed` segments build
 /// objects and arrays respectively. `Wildcard` and `Special` segments are
-/// **elided** (no-op): they are not valid in a concrete data-path and would
-/// have no defined write target. Pass concrete paths only — repeat-group data
-/// contexts emit `[Indexed(_)]`, never `[Wildcard]` or `[Special]`.
+/// **filtered out upfront** (no-op): they are not valid in a concrete data-path
+/// and would have no defined write target. Pass concrete paths only —
+/// repeat-group data contexts emit `[Indexed(_)]`, never `[Wildcard]` or
+/// `[Special]`. The upfront filter ensures the `next_is_index` lookahead sees
+/// only real container segments; without it, a `Wildcard` between an `Exact`
+/// and an `Indexed` would create the wrong container type and then overwrite
+/// it on the next step.
 pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: JsonValue) {
-    let p = Path::parse(path);
-    if p.segments.is_empty() {
+    // Filter to concrete segments only — see fn docstring.
+    let segments: Vec<PathSegment> = Path::parse(path)
+        .segments
+        .into_iter()
+        .filter(|s| matches!(s, PathSegment::Exact(_) | PathSegment::Indexed(_)))
+        .collect();
+    if segments.is_empty() {
         *target = value;
         return;
     }
 
     let mut current = target;
-    for i in 0..p.segments.len() - 1 {
-        let next_is_index = matches!(p.segments[i + 1], PathSegment::Indexed(_));
-        match &p.segments[i] {
+    for i in 0..segments.len() - 1 {
+        let next_is_index = matches!(segments[i + 1], PathSegment::Indexed(_));
+        match &segments[i] {
             PathSegment::Exact(key) => {
                 if !current.is_object() {
                     *current = JsonValue::Object(serde_json::Map::new());
@@ -229,15 +238,11 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
                 }
                 current = &mut array[*array_index];
             }
-            PathSegment::Special(_) | PathSegment::Wildcard => {
-                // Specials and wildcards are not supported in concrete data-path building.
-                // We skip them to avoid panics, but they shouldn't be reachable in a well-formed
-                // repeat-group data context.
-            }
+            _ => unreachable!("filter above leaves only Exact and Indexed"),
         }
     }
 
-    match &p.segments[p.segments.len() - 1] {
+    match &segments[segments.len() - 1] {
         PathSegment::Exact(key) => {
             if !current.is_object() {
                 *current = JsonValue::Object(serde_json::Map::new());
@@ -257,9 +262,7 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
             }
             array[*array_index] = value;
         }
-        PathSegment::Special(_) | PathSegment::Wildcard => {
-            // No-op for special/wildcard leaves in JSON building.
-        }
+        _ => unreachable!("filter above leaves only Exact and Indexed"),
     }
 }
 
@@ -299,6 +302,24 @@ mod tests {
         let mut target2 = json!({});
         set_nested_json_path(&mut target2, "a[@index].b", json!(2));
         assert_eq!(target2, json!({"a": {"b": 2}}));
+    }
+
+    /// F-8 (review-2): a Wildcard between an Exact and an Indexed must not
+    /// cause the intermediate container to be created with the wrong type
+    /// (Object) and then overwritten by the next Indexed step. The upfront
+    /// filter strips Wildcard/Special so the lookahead sees the true next
+    /// concrete segment. `a[*][0]` after filter is `a[0]` → Array.
+    #[test]
+    fn set_nested_json_path_wildcard_between_exact_and_indexed() {
+        let mut target = json!({});
+        set_nested_json_path(&mut target, "a[*][0]", json!("first"));
+        // After filter: segments are [Exact("a"), Indexed(0)] → a is an Array.
+        assert_eq!(target, json!({"a": ["first"]}));
+
+        // Same shape with Special instead of Wildcard.
+        let mut target2 = json!({});
+        set_nested_json_path(&mut target2, "a[@idx][0]", json!("second"));
+        assert_eq!(target2, json!({"a": ["second"]}));
     }
 
     #[test]

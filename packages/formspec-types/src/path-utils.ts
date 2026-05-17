@@ -62,13 +62,13 @@ export class Path {
           const content = s.slice(start, end);
           if (content === '*') {
             segments.push({ kind: PathSegmentKind.Wildcard });
+          } else if (/^\d+$/.test(content)) {
+            // Strict non-negative integer to match Rust `content.parse::<usize>()`.
+            // `parseInt` is too lenient: it accepts `0abc`, `-5`, `1e3`, etc.,
+            // and would produce silent cross-runtime drift vs Rust.
+            segments.push({ kind: PathSegmentKind.Indexed, index: Number(content) });
           } else {
-            const idx = parseInt(content, 10);
-            if (!Number.isNaN(idx)) {
-              segments.push({ kind: PathSegmentKind.Indexed, index: idx });
-            } else {
-              segments.push({ kind: PathSegmentKind.Special, content });
-            }
+            segments.push({ kind: PathSegmentKind.Special, content });
           }
           i = end + 1;
         } else {

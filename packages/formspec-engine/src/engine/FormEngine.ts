@@ -428,8 +428,8 @@ export class FormEngine implements IFormEngine {
         return buildValidationReportEnvelope(
             results,
             this.nowISO(),
-            this._definition.url,
-            this._definition.version,
+            this.definition.url,
+            this.definition.version,
         );
     }
 

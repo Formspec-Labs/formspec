@@ -220,15 +220,13 @@ impl Path {
     /// trailing dot is dropped (`"field."` parses to one segment, so parent is
     /// `""`, not `"field"` as a pure `rfind('.')` would yield).
     pub fn parent_string(&self) -> String {
-        if self.segments.is_empty() {
+        if self.segments.len() <= 1 {
             return String::new();
         }
-        let mut parent_segs = self.segments.clone();
-        parent_segs.pop();
-        Path {
-            segments: parent_segs,
-        }
-        .to_string()
+        let mut out = String::new();
+        Self::write_segments(&self.segments[..self.segments.len() - 1], &mut out)
+            .expect("writing to String cannot fail");
+        out
     }
 
     /// Returns the last segment as a string (the "leaf key").
@@ -238,6 +236,19 @@ impl Path {
             Some(seg) => seg.to_string(),
             None => String::new(),
         }
+    }
+
+    /// Serialize a segment slice using the standard Path dot/bracket layout.
+    /// Shared by [`Display`] and [`Self::parent_string`] to avoid cloning the
+    /// segment vec just to drop the tail.
+    fn write_segments(segments: &[PathSegment], out: &mut impl fmt::Write) -> fmt::Result {
+        for (i, seg) in segments.iter().enumerate() {
+            if i > 0 && matches!(seg, PathSegment::Exact(_)) {
+                out.write_char('.')?;
+            }
+            write!(out, "{seg}")?;
+        }
+        Ok(())
     }
 }
 
@@ -251,18 +262,7 @@ impl FromStr for Path {
 
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (i, seg) in self.segments.iter().enumerate() {
-            if i > 0
-                && !matches!(
-                    seg,
-                    PathSegment::Indexed(_) | PathSegment::Wildcard | PathSegment::Special(_)
-                )
-            {
-                write!(f, ".")?;
-            }
-            write!(f, "{}", seg)?;
-        }
-        Ok(())
+        Self::write_segments(&self.segments, f)
     }
 }
 
@@ -906,6 +906,72 @@ mod tests {
         #[test]
         fn prop_flat_key_has_no_brackets(
             path in r"[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?(\.[a-z][a-z0-9]{0,5}(\[[0-9]{1,3}\]|\[\*\])?){0,4}"
+        ) {
+            let p = Path::parse(&path);
+            for seg in &p.segments {
+                let flat = seg.flat_key();
+                proptest::prop_assert!(!flat.contains('['), "flat_key contained '[': {flat}");
+                proptest::prop_assert!(!flat.contains(']'), "flat_key contained ']': {flat}");
+            }
+        }
+
+        // ── Broader range proptests — beyond the ASCII-alpha well-formed
+        //    subset above. These cover the edge cases that the original
+        //    review (F-7) flagged: leading-zero brackets, Special bracket
+        //    content, mixed Wildcard/Indexed/Special segments.
+
+        /// Bracket content matching `^\d+$` always parses to `Indexed`,
+        /// including leading-zero forms like `[01]` (semantic parse, not
+        /// textual preservation — F-7).
+        #[test]
+        fn prop_pure_digit_brackets_parse_as_indexed(
+            digits in r"0*[0-9]{1,3}"
+        ) {
+            let path = format!("a[{digits}].b");
+            let p = Path::parse(&path);
+            proptest::prop_assert_eq!(p.segments.len(), 3);
+            let expected = digits.parse::<usize>().unwrap();
+            proptest::prop_assert_eq!(&p.segments[1], &PathSegment::Indexed(expected));
+        }
+
+        /// Bracket content that does NOT match `^\d+$` and is not `*` always
+        /// parses to `Special` with content preserved verbatim.
+        #[test]
+        fn prop_non_digit_brackets_parse_as_special(
+            content in r"@[a-z]{1,4}|[a-z]+[0-9]+|-[0-9]+"
+        ) {
+            let path = format!("a[{content}].b");
+            let p = Path::parse(&path);
+            proptest::prop_assert_eq!(p.segments.len(), 3);
+            proptest::prop_assert_eq!(&p.segments[1], &PathSegment::Special(content));
+        }
+
+        /// Round-trip stability across the *broader* grammar — including
+        /// Wildcard/Special segments and mixed paths. parse(display(p)) == p.
+        #[test]
+        fn prop_parse_display_stable_broad(
+            path in r"[a-z][a-z0-9_]{0,5}(\[(?:[0-9]{1,3}|\*|@[a-z]{1,4})\])?(\.[a-z][a-z0-9_]{0,5}(\[(?:[0-9]{1,3}|\*|@[a-z]{1,4})\])?){0,4}"
+        ) {
+            let first = Path::parse(&path);
+            let displayed = first.to_string();
+            let second = Path::parse(&displayed);
+            proptest::prop_assert_eq!(first, second);
+        }
+
+        /// strip_indices remains idempotent across the broader grammar.
+        #[test]
+        fn prop_strip_indices_idempotent_broad(
+            path in r"[a-z][a-z0-9_]{0,5}(\[(?:[0-9]{1,3}|\*|@[a-z]{1,4})\])?(\.[a-z][a-z0-9_]{0,5}(\[(?:[0-9]{1,3}|\*|@[a-z]{1,4})\])?){0,4}"
+        ) {
+            let once = Path::parse(&path).strip_indices();
+            let twice = Path::parse(&once).strip_indices();
+            proptest::prop_assert_eq!(once, twice);
+        }
+
+        /// flat_key never contains brackets even on the broader grammar.
+        #[test]
+        fn prop_flat_key_has_no_brackets_broad(
+            path in r"[a-z][a-z0-9_]{0,5}(\[(?:[0-9]{1,3}|\*|@[a-z]{1,4})\])?(\.[a-z][a-z0-9_]{0,5}(\[(?:[0-9]{1,3}|\*|@[a-z]{1,4})\])?){0,4}"
         ) {
             let p = Path::parse(&path);
             for seg in &p.segments {

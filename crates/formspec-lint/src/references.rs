@@ -217,11 +217,14 @@ fn resolve_root_segment<'a>(
     label: &str,
     index: &'a ItemTreeIndex,
 ) -> Result<&'a crate::tree::ItemRef, String> {
+    // Only Exact roots have a meaningful key lookup. Wildcard/Indexed/Special
+    // at the root position are invalid — no item is named `[*]`, `[0]`, or
+    // `[@index]`. Pre-refactor `Special(k) => k` allowed lookups by special
+    // tokens like `@index`, which never matched anything but was not an
+    // explicit reject. Tightened here to match the other non-Exact arms.
     let key = match segment {
         PathSegment::Exact(k) => k,
-        PathSegment::Wildcard => return Err(format!("{label} references unknown item: {path}")),
-        PathSegment::Indexed(_) => return Err(format!("{label} references unknown item: {path}")),
-        PathSegment::Special(k) => k,
+        _ => return Err(format!("{label} references unknown item: {path}")),
     };
 
     let current = index

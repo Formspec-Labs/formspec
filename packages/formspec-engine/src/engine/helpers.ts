@@ -8,7 +8,7 @@ import type {
     OptionEntry,
     ValidationResult,
 } from '@formspec-org/types';
-import { Path } from '@formspec-org/types';
+import { Path, PathSegmentKind } from '@formspec-org/types';
 import type { EvalValidation } from '../diff.js';
 import type {
     FormEngineRuntimeContext,
@@ -340,91 +340,101 @@ export function getScopeAncestors(scopePath: string): string[] {
     return scopes;
 }
 
+// ── Path navigation helpers (shared via `Path`) ──────────────────────
+//
+// All three of `getNestedValue`, `setNestedPathValue`, `setExpressionContextValue`
+// walk a path through nested objects/arrays. They now share the same parser
+// (`Path.parse`) and filter out Wildcard/Special segments — those are not
+// concrete data-path elements. Pre-refactor regex tokenizer would silently
+// look up `obj["*"]` for a wildcard, producing garbage; the typed walk
+// returns undefined / no-op instead.
+
+function concreteSegments(path: string): Array<{ kind: PathSegmentKind.Exact; key: string } | { kind: PathSegmentKind.Indexed; index: number }> {
+    const out: Array<{ kind: PathSegmentKind.Exact; key: string } | { kind: PathSegmentKind.Indexed; index: number }> = [];
+    for (const seg of Path.parse(path).segments) {
+        if (seg.kind === PathSegmentKind.Exact || seg.kind === PathSegmentKind.Indexed) {
+            out.push(seg);
+        }
+    }
+    return out;
+}
+
 export function getNestedValue(target: any, path: string): any {
-    const tokens = path.match(/[^.[\]]+|\[(\d+)\]/g) ?? [];
+    const segments = concreteSegments(path);
     let current = target;
-    for (const token of tokens) {
+    for (const seg of segments) {
         if (current === null || current === undefined) {
             return undefined;
         }
-        if (token.startsWith('[')) {
-            const index = Number(token.slice(1, -1));
-            current = current[index];
-        } else {
-            current = current[token];
-        }
+        current = seg.kind === PathSegmentKind.Indexed ? current[seg.index] : current[seg.key];
     }
     return current;
 }
 
 export function setNestedPathValue(target: Record<string, any>, path: string, value: any): void {
-    const tokens = path.match(/[^.[\]]+|\[(\d+)\]/g) ?? [];
-    let current: any = target;
-    for (let index = 0; index < tokens.length - 1; index += 1) {
-        const token = tokens[index];
-        const next = tokens[index + 1];
-        if (token.startsWith('[')) {
-            const arrayIndex = Number(token.slice(1, -1));
-            current[arrayIndex] ??= next?.startsWith('[') ? [] : {};
-            current = current[arrayIndex];
-            continue;
-        }
-        current[token] ??= next?.startsWith('[') ? [] : {};
-        current = current[token];
-    }
-    const last = tokens[tokens.length - 1];
-    if (!last) {
+    const segments = concreteSegments(path);
+    if (segments.length === 0) {
         return;
     }
-    if (last.startsWith('[')) {
-        current[Number(last.slice(1, -1))] = value;
+    let current: any = target;
+    for (let i = 0; i < segments.length - 1; i += 1) {
+        const seg = segments[i];
+        const nextIsIndex = segments[i + 1].kind === PathSegmentKind.Indexed;
+        if (seg.kind === PathSegmentKind.Indexed) {
+            current[seg.index] ??= nextIsIndex ? [] : {};
+            current = current[seg.index];
+        } else {
+            current[seg.key] ??= nextIsIndex ? [] : {};
+            current = current[seg.key];
+        }
+    }
+    const last = segments[segments.length - 1];
+    if (last.kind === PathSegmentKind.Indexed) {
+        current[last.index] = value;
     } else {
-        current[last] = value;
+        current[last.key] = value;
     }
 }
 
 export function setExpressionContextValue(target: Record<string, any>, path: string, value: any): void {
-    const tokens = path.match(/[^.[\]]+|\[(\d+)\]/g) ?? [];
-    if (tokens.length === 0) {
+    const segments = concreteSegments(path);
+    if (segments.length === 0) {
         return;
     }
 
     let current: any = target;
-    for (let index = 0; index < tokens.length - 1; index += 1) {
+    for (let i = 0; i < segments.length - 1; i += 1) {
         if (current === null || current === undefined || typeof current !== 'object') {
             return;
         }
-
-        const token = tokens[index];
-        const next = tokens[index + 1];
-        if (token.startsWith('[')) {
-            const arrayIndex = Number(token.slice(1, -1));
-            const existing = current[arrayIndex];
+        const seg = segments[i];
+        const nextIsIndex = segments[i + 1].kind === PathSegmentKind.Indexed;
+        if (seg.kind === PathSegmentKind.Indexed) {
+            const existing = current[seg.index];
             if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
                 return;
             }
-            current[arrayIndex] ??= next?.startsWith('[') ? [] : {};
-            current = current[arrayIndex];
-            continue;
+            current[seg.index] ??= nextIsIndex ? [] : {};
+            current = current[seg.index];
+        } else {
+            const existing = current[seg.key];
+            if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
+                return;
+            }
+            current[seg.key] ??= nextIsIndex ? [] : {};
+            current = current[seg.key];
         }
-
-        const existing = current[token];
-        if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
-            return;
-        }
-        current[token] ??= next?.startsWith('[') ? [] : {};
-        current = current[token];
     }
 
     if (current === null || current === undefined || typeof current !== 'object') {
         return;
     }
 
-    const last = tokens[tokens.length - 1];
-    if (last.startsWith('[')) {
-        current[Number(last.slice(1, -1))] = value;
+    const last = segments[segments.length - 1];
+    if (last.kind === PathSegmentKind.Indexed) {
+        current[last.index] = value;
     } else {
-        current[last] = value;
+        current[last.key] = value;
     }
 }
 

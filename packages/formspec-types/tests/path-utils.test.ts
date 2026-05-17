@@ -46,6 +46,18 @@ describe('Path.parse', () => {
     expect(p.segments[1]).toEqual(indexed(1));
     expect(p.toString()).toBe('a[1].b');
   });
+
+  // Cross-runtime parity: Rust uses `content.parse::<usize>()` which rejects
+  // any non-pure-digit string. TS must match — lenient `parseInt` would
+  // silently accept `0abc` as 0, `-5` as -5, `1e3` as 1, etc.
+  it('rejects non-pure-digit bracket content as Special (parity with Rust)', () => {
+    expect(Path.parse('a[0abc].b').segments[1]).toEqual(special('0abc'));
+    expect(Path.parse('a[123x].b').segments[1]).toEqual(special('123x'));
+    expect(Path.parse('a[-5].b').segments[1]).toEqual(special('-5'));
+    expect(Path.parse('a[+1].b').segments[1]).toEqual(special('+1'));
+    expect(Path.parse('a[1e5].b').segments[1]).toEqual(special('1e5'));
+    expect(Path.parse('a[ 5 ].b').segments[1]).toEqual(special(' 5 '));
+  });
 });
 
 describe('Path.toString', () => {
