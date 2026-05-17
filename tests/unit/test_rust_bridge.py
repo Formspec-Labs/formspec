@@ -15,6 +15,7 @@ from formspec._rust import (
     detect_document_type,
     LintDiagnostic,
     evaluate_definition,
+    evaluate_screener_document,
     ProcessingResult,
     execute_mapping,
     MappingResult,
@@ -211,6 +212,41 @@ def test_evaluate_definition_validation_keys_match_wasm_camel_case():
         f"constraint_kind only: pip install --no-build-isolation ./crates/formspec-py). keys={sorted(keys)}"
     )
     assert "constraint_kind" not in keys
+
+
+# ── Screener (fs-zs72) ───────────────────────────────────────────
+
+
+def test_screener_malformed_route_condition_emits_fel_warning_and_expression_error():
+    """Malformed route FEL must surface fel-expression-error, not silent condition-false."""
+    screener = {
+        "$formspecScreener": "1.0",
+        "url": "urn:test:screener",
+        "version": "1.0.0",
+        "title": "Test",
+        "items": [],
+        "evaluation": [
+            {
+                "id": "routing",
+                "strategy": "first-match",
+                "routes": [
+                    {
+                        "condition": "$x ==",
+                        "target": "urn:broken",
+                    }
+                ],
+            }
+        ],
+    }
+    record = evaluate_screener_document(
+        screener, {}, {"nowIso": "2026-04-01T10:00:00Z"}
+    )
+    assert isinstance(record, dict)
+    phase = record["phases"][0]
+    assert phase["matched"] == []
+    assert len(phase["eliminated"]) == 1
+    assert phase["eliminated"][0]["reason"] == "expression-error"
+    assert "fel-expression-error" in phase["warnings"]
 
 
 # ── Mapping ──────────────────────────────────────────────────────
