@@ -8,4 +8,7 @@ export type {
     ScreenerRoute,
     ScreenerRouteType,
     ScreenerStateSnapshot,
+    ScreenerDocumentInput,
+    ScreenerAnswers,
+    ScreenerFieldValue,
 } from './types';
