@@ -161,7 +161,7 @@ export interface AssistProvider {
   loadProfile(profile: UserProfile): void;
   getFieldHelp(path: string, audience?: 'human' | 'agent' | 'both'): FieldHelp;
   getProgress(): FormProgress;
-  matchProfile(profileId?: string): ProfileMatch[];
+  matchProfile(profileRef?: string): ProfileMatch[];
   invokeTool(name: string, input: Record<string, unknown>): Promise<ToolResult>;
   getTools(): ToolDeclaration[];
 }

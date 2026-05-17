@@ -529,14 +529,14 @@ describe('Assist provider tools', () => {
       now: () => new Date('2026-03-26T12:00:00.000Z'),
     });
 
-    const matchResult = await provider.invokeTool('formspec.profile.match', { profileId: 'secondary' });
+    const matchResult = await provider.invokeTool('formspec.profile.match', { profileRef: 'secondary' });
     expect(matchResult.isError).not.toBe(true);
     expect(JSON.parse(matchResult.content[0].text).matches.find((match: { path: string }) => match.path === 'organization.ein').value)
       .toBe('98-7654321');
 
     engine.getFieldVM('organization.ein')?.setValue('11-1111111');
     engine.getFieldVM('organization.name')?.setValue('New Org');
-    const learnResult = await provider.invokeTool('formspec.profile.learn', { profileId: 'secondary' });
+    const learnResult = await provider.invokeTool('formspec.profile.learn', { profileRef: 'secondary' });
     expect(learnResult.isError).not.toBe(true);
 
     const learnedMatches = provider.matchProfile('secondary');

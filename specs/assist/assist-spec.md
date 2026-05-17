@@ -227,9 +227,9 @@ The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` 
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
-| `formspec.profile.match` | `{ profileId?: string }` | `{ matches: ProfileMatch[] }` | Suggests reusable values. |
+| `formspec.profile.match` | `{ profileRef?: string }` | `{ matches: ProfileMatch[] }` | Suggests reusable values. |
 | `formspec.profile.apply` | `{ matches: Array<{ path: string, value: unknown }>, confirm?: boolean }` | `ProfileApplyResult` | `confirm: true` requires human-in-the-loop. When `confirm` is `true` and the provider has no confirmation mechanism, the provider MUST return an error with code `x-confirmation-required`. The provider MUST NOT silently apply values without confirmation when confirmation was explicitly requested. |
-| `formspec.profile.learn` | `{ profileId?: string }` | `{ savedConcepts: number, savedFields: number }` | Saves concept-bound values and permitted fallbacks. |
+| `formspec.profile.learn` | `{ profileRef?: string }` | `{ savedConcepts: number, savedFields: number }` | Saves concept-bound values and permitted fallbacks. |
 
 ### 3.6 Optional Navigation Tools
 

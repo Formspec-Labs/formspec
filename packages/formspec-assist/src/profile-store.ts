@@ -31,10 +31,10 @@ export class ProfileStore {
     this.storage = storage ?? defaultStorage();
   }
 
-  public load(profileId?: string): UserProfile | undefined {
+  public load(profileRef?: string): UserProfile | undefined {
     const profiles = this.readAll();
-    if (profileId) {
-      return profiles.find((profile) => profile.id === profileId);
+    if (profileRef) {
+      return profiles.find((profile) => profile.id === profileRef);
     }
     return profiles[0];
   }

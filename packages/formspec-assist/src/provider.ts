@@ -343,7 +343,7 @@ function buildToolDeclarations(): ToolDeclaration[] {
     {
       name: 'formspec.profile.match',
       description: 'Match profile values to form fields.',
-      inputSchema: { type: 'object', properties: { profileId: { type: 'string' } }, additionalProperties: false },
+      inputSchema: { type: 'object', properties: { profileRef: { type: 'string' } }, additionalProperties: false },
       annotations: { readOnlyHint: true },
     },
     {
@@ -370,7 +370,7 @@ function buildToolDeclarations(): ToolDeclaration[] {
     {
       name: 'formspec.profile.learn',
       description: 'Learn reusable values from the current form state.',
-      inputSchema: { type: 'object', properties: { profileId: { type: 'string' } }, additionalProperties: false },
+      inputSchema: { type: 'object', properties: { profileRef: { type: 'string' } }, additionalProperties: false },
     },
     {
       name: 'formspec.form.pages',
@@ -489,9 +489,9 @@ class AssistProviderImpl implements AssistProvider {
     };
   }
 
-  public matchProfile(_profileId?: string): ProfileMatch[] {
+  public matchProfile(_profileRef?: string): ProfileMatch[] {
     return this.matcher.match(
-      this.resolveProfile(_profileId),
+      this.resolveProfile(_profileRef),
       this.engine.getFieldPaths().filter((path) => {
         const vm = this.engine.getFieldVM(path);
         return this.engine.isPathRelevant(path) && !!vm && !vm.readonly.value;
@@ -558,7 +558,7 @@ class AssistProviderImpl implements AssistProvider {
         });
       case 'formspec.profile.match':
         return (input) => ({
-          matches: this.matchProfile(typeof input.profileId === 'string' ? input.profileId : undefined),
+          matches: this.matchProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined),
         });
       case 'formspec.profile.apply':
         return (input) => this.applyProfileMatches(
@@ -566,7 +566,7 @@ class AssistProviderImpl implements AssistProvider {
           input.confirm === true,
         );
       case 'formspec.profile.learn':
-        return (input) => this.learnProfile(typeof input.profileId === 'string' ? input.profileId : undefined);
+        return (input) => this.learnProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined);
       case 'formspec.form.pages':
         return () => ({
           pages: this.getPageProgress(),
@@ -734,16 +734,16 @@ class AssistProviderImpl implements AssistProvider {
     };
   }
 
-  private learnProfile(profileId?: string): { savedConcepts: number; savedFields: number } {
+  private learnProfile(profileRef?: string): { savedConcepts: number; savedFields: number } {
     const definition = this.engine.getDefinition();
     const timestamp = this.now().toISOString();
-    const targetProfileId = profileId ?? this.currentProfile?.id ?? 'default';
-    const profile = this.profileStore.load(targetProfileId) ?? (
-      this.currentProfile && this.currentProfile.id === targetProfileId
+    const targetProfileRef = profileRef ?? this.currentProfile?.id ?? 'default';
+    const profile = this.profileStore.load(targetProfileRef) ?? (
+      this.currentProfile && this.currentProfile.id === targetProfileRef
         ? this.currentProfile
         : {
-          id: targetProfileId,
-          label: targetProfileId === 'default' ? 'Default' : targetProfileId,
+          id: targetProfileRef,
+          label: targetProfileRef === 'default' ? 'Default' : targetProfileRef,
           created: timestamp,
           updated: timestamp,
           concepts: {},
@@ -751,8 +751,8 @@ class AssistProviderImpl implements AssistProvider {
         }
     );
     const mutableProfile = profile ?? {
-      id: targetProfileId,
-      label: targetProfileId === 'default' ? 'Default' : targetProfileId,
+      id: targetProfileRef,
+      label: targetProfileRef === 'default' ? 'Default' : targetProfileRef,
       created: timestamp,
       updated: timestamp,
       concepts: {},
@@ -791,7 +791,7 @@ class AssistProviderImpl implements AssistProvider {
       }
     }
     mutableProfile.updated = timestamp;
-    if (!profileId || this.currentProfile?.id === targetProfileId || !this.currentProfile) {
+    if (!profileRef || this.currentProfile?.id === targetProfileRef || !this.currentProfile) {
       this.currentProfile = mutableProfile;
     }
     this.profileStore.save(mutableProfile);
@@ -880,9 +880,9 @@ class AssistProviderImpl implements AssistProvider {
     return hasEmpty ? { reason: 'empty' } : null;
   }
 
-  private resolveProfile(profileId?: string): UserProfile | undefined {
-    if (profileId) {
-      return this.profileStore.load(profileId);
+  private resolveProfile(profileRef?: string): UserProfile | undefined {
+    if (profileRef) {
+      return this.profileStore.load(profileRef);
     }
     return this.currentProfile ?? this.profileStore.load('default') ?? this.profileStore.load();
   }
