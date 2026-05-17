@@ -588,12 +588,10 @@ dependencies = [
 name = "formspec-signature-adapter-ring"
 version = "0.1.0"
 dependencies = [
- "base64",
  "formspec-signature-cose",
  "formspec-signature-port",
- "integrity-canonical",
+ "integrity-signature-ring",
  "ring",
- "serde_json",
 ]
 
 [[package]]
@@ -963,6 +961,18 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "integrity-signature-ring"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "integrity-canonical",
+ "integrity-cose",
+ "integrity-signature",
+ "ring",
+ "serde_json",
 ]
 
 [[package]]
