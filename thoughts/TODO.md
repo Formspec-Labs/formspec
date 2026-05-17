@@ -118,12 +118,6 @@ Items from the 2026-05-14 swarm extraction that complete in a single session eac
 
    **Acceptance:** add_group action wired in structure.ts:52-79; project.addWizardPage() callable.
 
-- **Immediate — Plan uswds ARIA DescribedBy (~3h)** · `fs-6ezg` · P1
-
-   From swarm extraction 2026-05-14. ~3h. Move aria-describedby management into bindSharedFieldEffects, remove from all 26+ adapters. P0 M4 (PLAN-008+009) is the shipping unit.
-
-   **Acceptance:** aria-describedby management moved into bindSharedFieldEffects; 26+ per-adapter copies removed.
-
 - **Immediate — ADR 0030 Theme pages gap (~2h, closes only remaining ~90% ADR)** · `fs-qbci` · P1
 
    From swarm extraction 2026-05-14. ~2h. Add pages + regions to main theme.json (exists only in theme-pdf.json). Closes the only remaining ~90% ADR. Companion to M2 (P0 Theme pages + regions + responsive).
@@ -148,11 +142,10 @@ Items from the 2026-05-14 swarm extraction that complete in a single session eac
 
    **Acceptance:** §3.10.3 inserted; §3.10 retitled; docs:check passes.
 
-- **Immediate — ADR 0048 formatNumber/formatDate FEL (~2h)** · `fs-wm71` · P1
+**Recently closed (kept for traceability; archive when stale):**
 
-   From swarm extraction 2026-05-14. ~2h. P0 M5 is the shipping unit (0048-012 + 0048-013).
-
-   **Acceptance:** fel-core/src/evaluator/core.rs dispatch registers formatNumber + formatDate; tests cover one inequality.
+- ~~**Immediate — Plan uswds ARIA DescribedBy (~3h)**~~ `fs-6ezg` · CLOSED — **Merged into fs-pd72 (2026-05-17).** P0 M4 is the canonical shipping unit; do not execute this row separately.
+- ~~**Immediate — ADR 0048 formatNumber/formatDate FEL (~2h)**~~ `fs-wm71` · CLOSED — **Merged into fs-8vu5 (2026-05-17).** P0 M5 is the canonical shipping unit; do not execute this row separately.
 
 <!-- tk:end -->
 
@@ -225,12 +218,6 @@ P0 deep-dive 2026-05-14 grouped 24 individual tickets into 8 merge groups (M1-M8
 
    **Acceptance:** Tickets 0029-003, 0029-015, 0029-017, 0031-023 close. All three definition.json copies (example, benchmark reference, engine fixture) converge.
 
-- **M5 — formatNumber + formatDate FEL (~2h)** · `fs-8vu5` · P0
-
-   Fix together or neither works. Test: cargo nextest run -p fel-core — formatNumber(1234.5) returns '1,234.5'.
-
-   **Acceptance:** Tickets 0048-012, 0048-013 close together. Same locale-formatting module, same dispatch table.
-
 - **M7 — Spec advisories prose §3.10.3 + §3.10 retitle (~1h)** · `fs-9nnv` · P0
 
    Single spec edit. Test: npm run docs:check — generated artifacts pass freshness check.
@@ -243,18 +230,6 @@ P0 deep-dive 2026-05-14 grouped 24 individual tickets into 8 merge groups (M1-M8
 
    **Acceptance:** Tickets 0030-032, 0030-033, 0030-034 close together. Pages need regions; regions need responsive — ship as one commit.
 
-- **M3 — MCP addWizardPage (~1.5h)** · `fs-mgdq` · P0
-
-   add_group handler + registration + registry.json prerequisite. Scope: 0031-005 has zero independent value — 11 dependent tickets blocked on it. Either ship with first dependent (0031-006) or skeleton that passes schema validation. Test: packages/formspec-mcp/tests/structure.test.ts — add_group creates definition group + sets wizard mode.
-
-   **Acceptance:** Tickets PLAN-001, PLAN-002, 0031-005 close. add_group handler + registration + registry.json entry (prerequisite for dependent P1 M13 tickets).
-
-- **M4 — ARIA describedBy cleanup (~1h)** · `fs-pd72` · P0
-
-   Default + USWDS adapters, same dead code pattern. One commit. Test: Playwright E2E — aria-describedby on inputs stays in sync with desc/hint changes.
-
-   **Acceptance:** Tickets PLAN-008, PLAN-009 close. Default + USWDS adapters use bindSharedFieldEffects; manual aria-describedby sets removed.
-
 - **P0 Standalone — 0040-013 outputSchema (~3h)** · `fs-rls6` · P0
 
    Independent of other P0 work. Test: packages/formspec-mcp/tests/ — every tool validates response against outputSchema.
@@ -266,6 +241,12 @@ P0 deep-dive 2026-05-14 grouped 24 individual tickets into 8 merge groups (M1-M8
    Share AdapterContext injection; data-formspec-* prerequisite for toolparamdescription integration. Scope-expansion: add toolAnnotations to AdapterContext (shared type) so ALL adapters (default, USWDS, Tailwind) pick up data-formspec-* + toolparamdescription without per-adapter work. Test: Playwright E2E — [data-formspec-path] count = field count.
 
    **Acceptance:** Tickets 0053-017, 0053-018 close. data-formspec-* + toolparamdescription emitted via AdapterContext.toolAnnotations.
+
+**Recently closed (kept for traceability; archive when stale):**
+
+- ~~**M5 — formatNumber + formatDate FEL (~2h)**~~ `fs-8vu5` · CLOSED — **Canonical ticket.** Merged duplicate **fs-wm71**.
+- ~~**M3 — MCP wizard authoring alignment (~1.5h) — RESHAPED**~~ `fs-mgdq` · CLOSED — **Architecture review (2026-05-17): RECONSIDER.** Did **not** restore `addWizardPage` / `add_group`; aligned docs with component-tree `Page` + `pageMode` wizard model.
+- ~~**M4 — ARIA describedBy cleanup (~1h)**~~ `fs-pd72` · CLOSED — **Canonical ticket.** Merged duplicate **fs-6ezg**.
 
 <!-- tk:end -->
 
@@ -415,12 +396,6 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
 
    **Acceptance:** Tickets PLAN-012, PLAN-014, PLAN-015, PLAN-017 close. DataTable in widget catalog + UI toggle + column config + SubmitButton palette entry.
 
-- **M18 — Registry Python facade (~1h)** · `fs-fhly` · P2
-
-   Test: python3 -c 'from formspec.registry import Registry' — import succeeds; Registry.load() round-trips through Rust.
-
-   **Acceptance:** Ticket 0031-018 closes. src/formspec/registry.py wraps Rust bridge.
-
 - **M20 — PAGED_ROOT_NON_GROUP fix + tests (~2h)** · `fs-gdv2` · P2
 
    Add themePlacedKeys set, differentiate message, add test. Test: packages/formspec-core/tests/diagnostics.test.ts — theme-placed item fires diagnostic with 'theme-placed' wording.
@@ -444,6 +419,10 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
    Blocked on SPEC-089 (M7). Add one-sentence cross-ref once §3.10.3 exists.
 
    **Acceptance:** Ticket SPEC-091 closes once §3.10.3 exists. One-sentence cross-ref.
+
+**Recently closed (kept for traceability; archive when stale):**
+
+- ~~**M18 — Registry Python facade (~1h)**~~ `fs-fhly` · CLOSED — M18 — Registry Python facade (~1h)
 
 <!-- tk:end -->
 
@@ -499,12 +478,6 @@ P3 deep-dive 2026-05-14: 16 tickets grouped. Per-field currency, SummaryRow inst
 
    **Acceptance:** Tickets 0031-012..0031-016 close. deprecationNotice, specUrl/schemaUrl, examples, mappingDslVersion, extensions all on registry.json.
 
-- **M26 — ValidationReport metadata (~30min, highest RoI in P3)** · `fs-od7k` · P3
-
-   3-line fix wiring definition.url/version through engine. Highest-RoI ticket in this batch — fixes real traceability hole for multi-definition deployments.
-
-   **Acceptance:** Ticket 0030-043 closes. definition.url + version wired through engine.
-
 - **M23 — Per-field currency on requestedAmount (~1h)** · `fs-vkpn` · P3
 
    Add currency to requestedAmount + optional 2nd money field. Scope-expansion: consider adding 2nd money field (euPortion with EUR) for genuine mixed-currency demo.
@@ -516,6 +489,10 @@ P3 deep-dive 2026-05-14: 16 tickets grouped. Per-field currency, SummaryRow inst
    SIGNIFICANTLY LARGER than 1-line descriptions suggest. Requires: (1) DocumentType::Locale recognition + $formspecLocale marker detection in schema_validator.rs; (2) pass_locale.rs (pass 9 in pipeline); (3) LintOptions expansion (locale documents, definition documents); (4) FEL {{expression}} extraction — if spec supports arbitrary FEL not just variable refs, L301 becomes full FEL parse; (5) Python-side validate_all() integration. ~6h basic; likely more for FEL expression support.
 
    **Acceptance:** Tickets 0048-014..0048-017 close. New DocumentType::Locale + pass_locale.rs (pass 9) + LintOptions expansion + FEL extraction + Python validate_all() integration.
+
+**Recently closed (kept for traceability; archive when stale):**
+
+- ~~**M26 — ValidationReport metadata (~30min) — CLOSURE ONLY**~~ `fs-od7k` · CLOSED — **Architecture review (2026-05-17): RECONSIDER → reshape as test + ticket closure.** Engine wiring was **already done**; work was test + tracking only.
 
 <!-- tk:end -->
 
