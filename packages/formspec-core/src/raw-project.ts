@@ -6,6 +6,7 @@ import type {
 import type {
   ProjectState,
   ProjectOptions,
+  ComponentState,
   ThemeState,
   MappingState,
   LocaleState,
@@ -87,6 +88,11 @@ import {
 import { itemAtPath, evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
 import { indexRegistryPayload } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
+import {
+  withComponentEnvelope,
+  withMappingEnvelope,
+  withThemeEnvelope,
+} from './document-envelopes.js';
 
 /** Components that manage their own group path binding and MUST keep their bind on export. */
 const SELF_MANAGED_GROUP_BINDS = new Set(['Accordion', 'DataTable']);
@@ -96,7 +102,7 @@ const SELF_MANAGED_GROUP_BINDS = new Set(['Accordion', 'DataTable']);
  * schemas/component.schema.json). `bind` and `children` are structural — handled
  * by export logic, not listed in per-type prop sets.
  */
-const COMPONENT_BASE_PROPS = new Set(COMPONENT_BASE_PROP_NAMES);
+const COMPONENT_BASE_PROPS: Set<string> = new Set(COMPONENT_BASE_PROP_NAMES);
 
 const COMPONENT_SCHEMA_PROP_SETS: Record<string, Set<string>> = Object.fromEntries(
   Object.entries(COMPONENT_SCHEMA_PROPS).map(([type, props]) => [type, new Set(props)]),
@@ -109,12 +115,12 @@ const COMPONENT_SCHEMA_PROP_SETS: Record<string, Set<string>> = Object.fromEntri
 function allowedPropsFor(componentType: string): Set<string> {
   const typeProps = COMPONENT_SCHEMA_PROP_SETS[componentType];
   if (typeProps) {
-    const merged = new Set(COMPONENT_BASE_PROPS);
+    const merged = new Set<string>(COMPONENT_BASE_PROPS);
     for (const p of typeProps) merged.add(p);
     return merged;
   }
   // Custom component or unrecognized: allow base props + params (CustomComponentRef)
-  const custom = new Set(COMPONENT_BASE_PROPS);
+  const custom = new Set<string>(COMPONENT_BASE_PROPS);
   custom.add('params');
   return custom;
 }
@@ -340,29 +346,29 @@ export class RawProject implements IProjectCore {
   get state(): Readonly<ProjectState> { return this._state; }
 
   get definition(): Readonly<FormDefinition> {
-    return this._state.definition as unknown as Readonly<FormDefinition>;
+    return this._state.definition;
   }
 
   get component(): Readonly<ComponentDocument> {
     if (this._cachedComponentForState !== this._state) {
-      this._cachedComponent = this._state.component as unknown as ComponentDocument;
+      this._cachedComponent = this._state.component as ComponentDocument;
       this._cachedComponentForState = this._state;
     }
-    return this._cachedComponent as Readonly<ComponentDocument>;
+    return this._cachedComponent!;
   }
 
   get theme(): Readonly<ThemeDocument> {
-    return this._state.theme as unknown as Readonly<ThemeDocument>;
+    return this._state.theme as unknown as ThemeDocument;
   }
 
   get mappings(): Readonly<Record<string, MappingDocument>> {
-    return this._state.mappings as unknown as Readonly<Record<string, MappingDocument>>;
+    return this._state.mappings as Readonly<Record<string, MappingDocument>>;
   }
 
   /** Returns the mapping document for the currently selected integration. */
   get mapping(): Readonly<MappingDocument> {
     const id = this._state.selectedMappingId || 'default';
-    return (this._state.mappings[id] || {}) as unknown as Readonly<MappingDocument>;
+    return (this._state.mappings[id] ?? {}) as MappingDocument;
   }
 
   get locales(): Readonly<Record<string, LocaleState>> {
@@ -434,32 +440,23 @@ export class RawProject implements IProjectCore {
 
     const exportMappings: Record<string, MappingDocument> = {};
     for (const [id, m] of Object.entries(this._state.mappings)) {
-      const { rules, targetSchema, definitionRef, definitionVersion, ...restMapping } = m;
-      exportMappings[id] = {
-        version: '0.1.0',
-        definitionRef: definitionRef ?? url,
-        definitionVersion: definitionVersion ?? '>=0.0.0',
-        targetSchema: targetSchema ?? { format: 'json' },
-        rules: rules ?? [],
-        ...restMapping,
-      } as MappingDocument;
+      exportMappings[id] = withMappingEnvelope(m, url);
     }
 
     const bundle: ProjectBundle = {
-      definition: this._state.definition as unknown as FormDefinition,
+      definition: this._state.definition,
       component: {
-        $formspecComponent: '1.0',
-        version: '0.1.0',
-        targetDefinition: { url },
-        ...restComponent,
-        tree: cleanedTree,
-      } as unknown as ComponentDocument,
+        ...withComponentEnvelope(
+          { ...restComponent, tree: cleanedTree ?? undefined },
+          url,
+        ),
+      },
       theme: {
-        $formspecTheme: '1.0',
-        version: '0.1.0',
-        ...restTheme,
-        targetDefinition: themeTarget ?? { url },
-      } as ThemeDocument,
+        ...withThemeEnvelope(
+          { ...restTheme, targetDefinition: themeTarget ?? { url } },
+          url,
+        ),
+      },
       mappings: exportMappings,
     };
 
