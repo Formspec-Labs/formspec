@@ -1,7 +1,6 @@
 /** @filedesc WebCrypto adapter implementing the Verifier interface for Ed25519 COSE_Sign1 verification. */
 import {
   FORMSPEC_SIG_METHOD_URI_PREFIX,
-  decodeCoseSign1,
   decodeCoseSign1WithMethodUri,
   resolvePayload,
   sigStructureBytes,
