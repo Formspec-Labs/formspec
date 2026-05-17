@@ -31,22 +31,6 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
    **Acceptance:** Formspec, WOS, Trellis Rust, Trellis Python, and TypeScript adapter tests consume the same canonical payload/COSE/receipt vectors for all overlapping behavior.
 
-- **FORMSPEC-CBOR-CROSS-ENCODER-RECONCILIATION-001 - Reconcile cbor2 canonical mode and integrity-cbor map-key ordering** · `fs-qwyb` · P1
-
-   Empirical finding (trellis-scout review of session 2026-05-16): cbor2.dumps(canonical=True) and integrity-cbor::json_to_dcbor_bytes produce BYTE-DIFFERENT output for the committed cross-stack bundles 002/003/004/006 (trellis-events.cbor + wos-provenance.cbor). Concretely, bundle 002's outer map has keys 'records' (len 7) and '$wosProvenanceBundle' (len 20); cbor2 orders 'records' first (RFC 7049 §3.9 length-first); integrity-cbor orders '$wosProvenanceBundle' first because its sort is content-bytewise without the length prefix participating in the ordering (despite the code at integrity-stack/crates/integrity-cbor/src/lib.rs:338 claiming to sort by encoded_cbor_key_bytes which includes the major-type prefix).
-
-   Today no production consumer re-encodes the bundles; the harness uses ciborium::de::from_reader (read-only). The divergence is DORMANT but will bite when: (1) a future Rust bundle generator emits trellis-events.cbor via integrity-cbor; (2) fs-bmyq cross-adapter byte-equivalence harness runs Rust-side re-encoding; (3) any Trellis verifier consults the canonical event registry to re-derive bundle bytes.
-
-   Empirical proof landed: formspec/crates/formspec-cross-stack-fixture-harness/tests/cbor_canonical_parity.rs has an #[ignore]'d cross_stack_bundles_match_integrity_cbor_byte_authority parity test (target shape) + a passing cross_encoder_ordering_diverges_on_committed_bundles regression check (catches a silent fix).
-
-   Resolution requires a Trellis-expert decision: which sort discipline should integrity-cbor implement — RFC 7049 §3.9 length-first, RFC 8949 §4.2 bytewise-on-deterministic-encoding (the dCBOR standard per Trellis Core §5), or something else? Then coordinated regen of every committed Rust fixture that depended on the current sort + every Python-authored fixture that depended on cbor2's sort. ADR 0004 (Rust as byte authority) pins Rust as the canonical encoder — so cbor2 should match integrity-cbor's output, meaning bundles 002/003/004/006 may need regeneration once integrity-cbor's sort is verified against Trellis Core §5.
-
-   **Acceptance:**
-     - integrity-cbor::json_to_dcbor_bytes(...) produces byte-identical output to whichever canonical encoder Python uses (cbor2 with the matching mode, OR a Python re-export of integrity-cbor's Rust output).
-     - The ignored parity test promotes to load-bearing; the regression check inverts (asserts equality, not divergence).
-     - Every cross-stack bundle that re-encodes through integrity-cbor matches its committed bytes.
-     - Trellis Core §5 / ADR 0004 byte-authority discipline reaffirmed.
-
 **P2 — standard:**
 
 - **Cross-adapter byte-equivalence harness — webcrypto + trellis consume ring vectors** · `fs-bmyq` · P2
@@ -165,6 +149,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 **Recently closed (kept for traceability; archive when stale):**
 
+- ~~**FORMSPEC-CBOR-CROSS-ENCODER-RECONCILIATION-001 - Reconcile cbor2 canonical mode and integrity-cbor map-key ordering**~~ `fs-qwyb` · CLOSED — Empirical finding (trellis-scout review of session 2026-05-16): cbor2.dumps(canonical=True) and integrity-cbor::json_to_dcbor_bytes produce BYTE-DIFFERENT output for the committed…
 - ~~**FORMSPEC-CANONICALIZATION-001 — Consume integrity-canonical + remove WOS shim + bundle regression vectors**~~ `fs-7md4` · CLOSED — **Status reframed 2026-05-15 after scout audit.** The earlier acceptance named a `formspec-canonical` Rust+TS crate that does not exist.
 - ~~**FORMSPEC-SIGNATURE-ADAPTER-WEBCRYPTO-001 — In-tree default TS adapter**~~ `fs-n6vp` · CLOSED — WebCrypto adapter for ed25519, ecdsa-p256, rsa-pss-sha256.
 - ~~**FORMSPEC-WIRE-COSE-SIGN1-001 — Wire migration to COSE_Sign1**~~ `fs-w8sm` · CLOSED — signatureValue strictly typed as base64-encoded COSE_Sign1.
