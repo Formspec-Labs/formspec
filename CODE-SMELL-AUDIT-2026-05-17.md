@@ -10,9 +10,9 @@
 
 | Status | Items |
 |--------|--------|
-| **Fixed on HEAD** | Plane tracking removed from `CLAUDE.md` (use `tk` + `TODO.md`); CI cache/timeouts (`ci.yml`, `docs-check.yml`); DEBUG `console.log` removed from `clinical-intake.spec.ts`; spec ADR + `../core/spec.md` links; `signature-canvas` listener cleanup; `raw-project` envelope helpers (no `as unknown as` in getters); `SubmitResult` typed; E2E `engine-harness.ts` + helper dedupe; `validate.py` `_lint_artifacts_pass`; money-test docstring; large-tree lint assertion; `.gitignore` duplicate `target/` |
-| **Already fixed before pass** | WASM `fel.rs` thread_local side-channel gone; `assembly_fel_rewrite` uses `Arc`; `formspec-py` `python_to_fel` → `PyTypeError`; `CanonicalizationVector` / `RingVerifier` have `Debug` |
-| **Open (ticketed)** | Webcomponent `any` hub; react file splits; `helpers.ts` / wasm bridges; `fel_analysis` / `execute_mapping` refactors; schema tightening; E2E `waitForTimeout` migration; audit footer arithmetic |
+| **Fixed on HEAD** | Plane removed from `CLAUDE.md`; CI timeouts + setup caches + `rust-cache`; validate → `formspec/validate/` package; `execute_mapping` → `engine_helpers` + eval `evaluate()` only; hub typing (`fs-tz1m`, 1 prod `any` on `findItemByKey`); `default-field` / `node-renderer` splits; `helpers.ts` boundary types; `viewThemeDocument()` / zero `as unknown as` in `raw-project`; screener React typed; `SubmitResult` typed; E2E harness + clinical-intake / invoice / tribal-long (125 Playwright); spec dates; audit rows reconciled (`fs-qkud`) |
+| **Already fixed before pass** | WASM `fel.rs` in-band eval envelope; `assembly_fel_rewrite` `Arc`; `formspec-py` `PyTypeError`; `Debug` on vector types |
+| **Open (tk `fs-kabu`)** | `fs-prql` — ~76 `waitForTimeout` left in other E2E/component specs; `fs-gfqf` — `use-screener` extensions test after typing; `fs-mbiw` — `fel_rewrite_exact` / `fel_analysis`; `fs-2iwf` / `fs-l0c5` — schema (needs spec sign-off for ledger slots) |
 
 Scout validation: section footers and some rows are stale — do not ticket from footer totals alone.
 
@@ -43,17 +43,17 @@ Scout validation: section footers and some rows are stale — do not ticket from
 | TS core+webcomponent+adapters+assist | 3 | 20+ | 26+ |
 | TS react+signature | 4 | 57 | 74 |
 | Python source+tests | — | 13 | 20+ |
-| Tests + storybook | 2 | 14 | 20 |
+| Tests + storybook | — | 11 | 20 |
 | Schemas/config/build | 3 | 12 | 15 |
-| Specs/docs/examples | 1 | 6 | 11 |
+| Specs/docs/examples | — | 2 | 11 |
 
 ### Top 5 Priority Fixes
 
 1. **Type the webcomponent public surface** — `element.ts`, `behaviors/types.ts`, and `rendering/emit-node.ts` propagate `any` to every consumer (~80+ instances)
-2. **Eliminate `as unknown as` double casts** in `raw-project.ts` (9 instances) — fix the root cause (`[key: string]: unknown` index signatures on state types)
-3. **Add CI caching and timeouts** — every CI run does full `pip install` + `npm install` + Rust compile from scratch; no `timeout-minutes` on any job
-4. **Split `default-field.tsx` (1400 lines) and `node-renderer.tsx` (1069 lines)** — extract per-component renderers into separate files
-5. *(Historical)* Plane.so issue-tracking in `CLAUDE.md` — **removed**; backlog is `tk` + `TODO.md` only
+2. **Split `default-field.tsx` (1400 lines) and `node-renderer.tsx` (1069 lines)** — extract per-component renderers into separate files
+3. **Grant-app / grant-report E2E sleeps** — clinical-intake + invoice + tribal-long migrated; grant-app specs still use `waitForTimeout`
+4. **Webcomponent screener listener cleanup** — `rendering/screener.ts` still adds listeners without teardown (see §4f)
+5. **Rust `fel_analysis` / `execute_mapping` size** — largest functions in core crate (see §1 Major)
 
 ---
 
@@ -215,21 +215,11 @@ Scout validation: section footers and some rows are stale — do not ticket from
 | `webcomponent/src/rendering/screener.ts` | — | ~10 | Screener rendering with `any` for screener document, seed answers |
 | `adapters/src/uswds/display-components.ts` | — | 8 | Display component rendering with `any` for money formatting, definition access |
 
-### 4b. `as unknown as` Double Casts
+### 4b. `as unknown as` Double Casts — **fixed in `raw-project.ts` / screener handlers**
 
-| File | Line | Severity | Snippet |
-|------|------|----------|---------|
-| `core/src/raw-project.ts` | 343 | Major | `return this._state.definition as unknown as Readonly<FormDefinition>;` |
-| `core/src/raw-project.ts` | 348 | Major | `this._cachedComponent = this._state.component as unknown as ComponentDocument;` |
-| `core/src/raw-project.ts` | 355 | Major | `return this._state.theme as unknown as Readonly<ThemeDocument>;` |
-| `core/src/raw-project.ts` | 359 | Major | `return this._state.mappings as unknown as Readonly<Record<string, MappingDocument>>;` |
-| `core/src/raw-project.ts` | 365 | Major | `return (this._state.mappings[id] \|\| {}) as unknown as Readonly<MappingDocument>;` |
-| `core/src/raw-project.ts` | 449 | Major | `definition: this._state.definition as unknown as FormDefinition,` |
-| `core/src/raw-project.ts` | 456 | Major | `} as unknown as ComponentDocument,` |
-| `core/src/handlers/screener.ts` | 36 | Major | `state.screener = payload as unknown as ScreenerDocument;` |
-| `core/src/handlers/screener.ts` | 48 | Major | `const doc = screener as unknown as Record<string, unknown>;` |
+**HEAD:** Zero `as unknown as` in `raw-project.ts` / screener handlers. Theme view uses `viewThemeDocument()` in `document-envelopes.ts` (one centralized bridge); component/mappings use single `as`. `themeStateFromDocument()` on import.
 
-**Root cause:** `ComponentState`/`ThemeState`/`MappingState` internal types have `[key: string]: unknown` index signatures, making them incompatible with canonical types from `@formspec-org/types`.
+**Remaining (out of scope for P1-003):** `handlers/locale.ts`, `handlers/definition-variables.ts`, `queries/registry-queries.ts` still use `as unknown as Record<string, unknown>` for dynamic property writes.
 
 ### 4c. Non-null Assertions (`!`)
 
@@ -262,7 +252,7 @@ Scout validation: section footers and some rows are stale — do not ticket from
 
 | File | Line(s) | Severity | Description |
 |------|---------|----------|-------------|
-| `webcomponent/src/adapters/signature-canvas.ts` | 87-103 | Major | 8 event listeners (mouse + touch) added to canvas but never removed in `dispose()`. Only `ResizeObserver` is disconnected. |
+| `webcomponent/src/adapters/signature-canvas.ts` | — | — | **Fixed** — listeners removed in `dispose()` |
 | `webcomponent/src/rendering/screener.ts` | 245, 257, 273, 289, 310, 430 | Major | Screener adds `addEventListener` on dynamically created elements with no `removeEventListener` calls |
 
 ### 4g. Files > 500 Lines
@@ -339,15 +329,15 @@ Scout validation: section footers and some rows are stale — do not ticket from
 | `context.tsx` | 29, 31, 43, 54, 56-64 | **Major** | `themeDocument?: any;` / `componentDocument?: any;` / `registryEntries: Map<string, any>;` / `definition?: any;` | Provider props all erased |
 | `context.tsx` | 295, 320 | **Major** | `data: Record<string, any>` / `items: any[], key: string): any` | Helper functions with erased params/returns |
 | `node-renderer.tsx` | 375, 599-610, 641-655, 681, 909, 960-966 | **Major** | `items: Array<any>` / `function formatMoney(value: any, locale)` / `fieldDef?: any` | Display node helpers all erased |
-| `use-screener.ts` | 12-14, 20-22, 32-35, 37-38, 59-68, 77-78, 97-98, 112, 177 | **Major** | `function itemDataType(item: any): string` / `function itemOptions(item: any): any[]` / `function firstMatchedRouteFromDetermination(determination: any)` | All screener helpers erased |
+| `use-screener.ts` | — | — | **Fixed** — typed with `FormItem`, `ScreenerDocumentInput`, `DeterminationRecord`, `ScreenerAnswers` |
 | `use-field.ts` | 22, 40, 50, 94 | **Minor** | `value: any;` / `setValue(value: any): void;` / `onChange: (e: { target: { value: any } }) => void;` | Field value and event types erased |
 | `use-form.ts` | 20-21 | **Minor** | `submit(options?: SubmitOptions): any;` / `getResponse(meta?: Record<string, any>): any;` | Return types erased |
 | `use-field-value.ts` | 9-10 | **Minor** | `value: any;` / `setValue(value: any): void;` | Field value erased |
 | `use-replay.ts` | 8 | **Minor** | `{ type: 'setValue'; path: string; value: any }` | Replay event value erased |
 | `default-field.tsx` | 26, 286-287, 529, 641 | **Major** | `const attrs: Record<string, any> = {};` / `extensionAttrs: Record<string, any>` / `common: Record<string, any>` / `fieldDef?: any` | All field prop types erased |
 | `renderer.tsx` | 73, 77 | **Major** | `screenerDocument?: any;` / `screenerSeedAnswers?: Record<string, any>;` | Screener props erased |
-| `screener/types.ts` | 8, 16, 21, 23, 25 | **Major** | `extensions?: Record<string, any>;` / `answers: Record<string, any>;` / `seedAnswers`, `screenerDocument`, `onRoute` all `any` | User-facing hook options erased |
-| `screener/FormspecScreener.tsx` | 10, 27, 88, 101 | **Major** | `screenerDocument?: any;` / `items: any[]` / `screener: any` / `as any` | Component props and state erased |
+| `screener/types.ts` | — | — | **Fixed** — `ScreenerDocument`, `ScreenerAnswers`, typed hook options/result |
+| `screener/FormspecScreener.tsx` | — | — | **Fixed** — `FormspecScreenerProps` extends typed `UseScreenerOptions` |
 
 ### 5b. `as` Type Assertions
 
@@ -493,19 +483,16 @@ No crypto algorithm validation gaps, key-material leaks, or weak error handling 
 
 ### Critical
 
-| # | File | Line | Category | Code | Description |
-|---|------|------|----------|------|-------------|
-| 1 | `tests/e2e/browser/clinical-intake.spec.ts` | 792 | `debug_output` | `console.log('DEBUG: report.results:', JSON.stringify(report.results, null, 2));` | Debug logging left in committed test. Leaks full validation payloads to test output. |
-| 2 | `tests/e2e/browser/clinical-intake.spec.ts` | 806 | `debug_output` | `console.log('DEBUG: phone report.results:', JSON.stringify(report.results, null, 2));` | Same pattern for phone validation. |
+*(None on HEAD — former DEBUG `console.log` rows in `clinical-intake.spec.ts` removed.)*
 
 ### Major
 
 | # | File | Line(s) | Category | Description |
 |---|------|---------|----------|-------------|
-| 3 | `tests/e2e/browser/grant-report/tribal-long.spec.ts` | 263, 274 | `tautological_assertion` | `expect(true).toBe(true)` in else branches — hides missing assertion paths |
-| 4 | `tests/e2e/browser/clinical-intake.spec.ts` | 28 occurrences | `flaky_test` | 28 hardcoded `waitForTimeout(100)` calls — timing-dependent, can cause CI flakes |
-| 5 | `tests/e2e/browser/smoke/invoice.spec.ts` | 31 occurrences | `flaky_test` | 31 hardcoded sleeps in 489 lines — one every ~16 lines |
-| 6 | `tests/e2e/browser/grant-report/tribal-long.spec.ts` | 22 occurrences | `flaky_test` | Same pattern, 22 sleeps |
+| 3 | `tests/e2e/browser/grant-report/tribal-long.spec.ts` | — | `flaky_test` | ~~`expect(true)` else branches~~ **fixed** — readonly asserted via input `readonly` or `.formspec-field--readonly` |
+| 4 | `tests/e2e/browser/clinical-intake.spec.ts` | — | `flaky_test` | ~~28× `waitForTimeout`~~ **migrated** — `engine-harness` locator/engine waits |
+| 5 | `tests/e2e/browser/smoke/invoice.spec.ts` | — | `flaky_test` | ~~31× `waitForTimeout`~~ **migrated** — same harness helpers |
+| 6 | `tests/e2e/browser/grant-report/tribal-long.spec.ts` | 22 occurrences | `flaky_test` | Hardcoded sleeps remain — migrate when touching grant-report E2E |
 | 7 | `tests/e2e/browser/grant-app/budget-ui.spec.ts` | 11 occurrences | `flaky_test` | Same pattern |
 | 8 | `tests/e2e/browser/helpers/grant-app.ts` | 27, 52, 60, 68, 79, 87, 95, 103, 111, 119, 127 | `any_type` | 11 `as any` / `: any` casts — `document.querySelector('formspec-render')` untyped |
 | 9 | `tests/e2e/browser/helpers/clinical-intake.ts` | 31, 51, 96, 104, 110, 112, 120, 131, 139 | `any_type` | 9 `as any` casts — same pattern |
@@ -535,7 +522,7 @@ No crypto algorithm validation gaps, key-material leaks, or weak error handling 
 | 28 | `tests/e2e/browser/grant-app/project-phases-ui.spec.ts` | 17-27, 43-54, 70-90 | `duplicate_code` | Three tests duplicate same 10-line field-filling preamble |
 | 29 | All `grant-app/` specs | — | `performance` | Each `beforeEach` calls `mountGrantApplication(page)` which re-reads 5 JSON fixtures from disk via `fs.readFileSync`. Could be cached at module scope |
 
-**Test+storybook totals: 2 critical, 14 major, 20 minor (36 findings)**
+**Test+storybook totals: 0 critical, 11 major, 20 minor (31 findings; rows 3–5 fixed on HEAD — do not re-ticket)**
 
 ---
 
@@ -563,8 +550,8 @@ No crypto algorithm validation gaps, key-material leaks, or weak error handling 
 | 9 | `schemas/conformance-suite.schema.json` | 31 | `missing_required` | `inputData` is optional with no conditional requirement — conformance case can pass with zero meaningful content |
 | 10 | `schemas/respondent-ledger.schema.json` | 149 | `missing_validation` | `events` array doesn't enforce `minItems: 1`; events without hashes pass validation silently without integrityProfile |
 | 11 | `schemas/fel-functions.schema.json` | 24, 174 | `redundancy` | 3 version markers doing the same thing: `properties.version` + root `$formspecFelFunctions` + instance `version` |
-| 12 | `.github/workflows/ci.yml` | 9-86 | `no_cache` | No `actions/cache` for npm, pip, or cargo in any of 4 CI jobs — full install + compile from scratch each run |
-| 13 | `.github/workflows/ci.yml` | 9-86 | `no_timeout` | No `timeout-minutes` on any CI job — default 360 minutes |
+| 12 | `.github/workflows/ci.yml` | 9-86 | `no_cache` | **Remediated:** `setup-node`/`setup-python` `cache:` + `Swatinem/rust-cache@v2` on all jobs (not `actions/cache` directly) |
+| 13 | `.github/workflows/ci.yml` | 9-86 | `no_timeout` | **Remediated:** `timeout-minutes` on all four CI jobs (60–120) |
 | 14 | `.github/workflows/ci.yml` | 35 | `incomplete_setup` | `python-tests` job sets up rust-toolchain but NOT `targets: wasm32-unknown-unknown` — will fail if any dev-dep transitively needs wasm |
 | 15 | `.github/workflows/ci.yml` + `publish.yml` | multiple | `duplication` | All jobs repeat same checkout + setup boilerplate (~8 steps each). Should extract into composite action. |
 | 16 | `Makefile` | 131 | `missing_phony` | `docs` target missing from `.PHONY` — if `docs` file exists, Make skips execution |
@@ -599,11 +586,11 @@ No crypto algorithm validation gaps, key-material leaks, or weak error handling 
 
 | # | File | Line | Category | Description |
 |---|------|------|----------|-------------|
-| 2 | `specs/component/component-spec.md` | 4 vs 15 | `date_mismatch` | Frontmatter date `2026-04-09` vs body date `2025-01-14` — over 1 year gap |
-| 3 | `specs/mapping/mapping-spec.md` | 4 vs 11 | `date_mismatch` | Frontmatter `2026-04-09` vs body `2025-07-10` — 9 month gap |
-| 4 | `specs/registry/extension-registry.md` | 4 vs 11 | `date_mismatch` | Frontmatter `2026-04-09` vs body `2025-07-10` — 9 month gap |
-| 5 | `specs/registry/changelog-spec.md` | 4 vs 10 | `date_mismatch` | Frontmatter `2026-04-09` vs body `2025-07` — 9 month gap |
-| 6 | `specs/component/component-spec.md` | 3 vs 15 | `version_mismatch` | Frontmatter `1.0.0-draft.1` vs body `1.0.0` — different semver semantics |
+| 2 | `specs/component/component-spec.md` | — | `date_mismatch` | ~~Frontmatter vs body date/version~~ **fixed** — body aligned to `2026-04-09` / `1.0.0-draft.1` |
+| 3 | `specs/mapping/mapping-spec.md` | — | `date_mismatch` | ~~body `2025-07-10`~~ **fixed** |
+| 4 | `specs/registry/extension-registry.md` | — | `date_mismatch` | ~~body `2025-07-10`~~ **fixed** |
+| 5 | `specs/registry/changelog-spec.md` | — | `date_mismatch` | ~~body `2025-07`~~ **fixed** |
+| 6 | `specs/component/component-spec.md` | — | `version_mismatch` | ~~body `1.0.0`~~ **fixed** (see row 2) |
 | 7 | `specs/audit/respondent-ledger-spec.md` | 445 | `broken_link` | `[ADR 0072](../../thoughts/adr/0072-...)` — ADR lives at stack root, not inside formspec submodule |
 | 8 | `specs/registry/signature-method-registry.md` | 99 | `broken_link` | `[ADR 0111](../../thoughts/adr/0111-...)` — same issue |
 | 9 | `specs/core/spec.md` | ~§4.7, ~§7.5 | `deprecated_content` | Contains deprecated screener routing sections that duplicate standalone `specs/screener/screener-spec.md` |
@@ -626,7 +613,7 @@ No crypto algorithm validation gaps, key-material leaks, or weak error handling 
 | 21 | `examples/references/tools.html` | 302-476+ | `inline_styles` | 41 instances of inline CSS — poor example for a design-system project |
 | 22 | `specs/screener/screener-spec.md` | 1514, 1541, 1601, 2049 | `stale_content` | Embedded screener deprecation notices and migration appendix — migration incomplete |
 
-**Specs+docs+examples totals: 1 critical, 6 major, 11 minor (18 findings)**
+**Specs+docs+examples totals: 0 critical, 2 major, 11 minor (13 findings; date/version rows 2–6 fixed on HEAD)**
 
 ---
 

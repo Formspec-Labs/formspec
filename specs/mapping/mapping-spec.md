@@ -8,7 +8,7 @@ status: draft
 # Formspec Mapping DSL v1.0 — Bidirectional Data Transformation for Formspec Responses
 
 **Version:** 1.0.0-draft.1  
-**Date:** 2025-07-10  
+**Date:** 2026-04-09  
 **Editors:** Formspec Working Group  
 **Companion to:** Formspec v1.0 — A JSON-Native Declarative Form Standard  
 

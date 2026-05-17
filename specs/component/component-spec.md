@@ -15,8 +15,8 @@ Document format — a sidecar JSON document that describes a **parallel
 presentation tree** of UI components bound to a Formspec Definition's items.
 
 **Status:** Draft Companion Specification
-**Version:** 1.0.0
-**Date:** 2025-01-14
+**Version:** 1.0.0-draft.1
+**Date:** 2026-04-09
 **Depends on:** Formspec Core Specification v1.0 (../core/spec.md), Formspec Theme
 Specification v1.0 (theme-spec.md), FEL Normative Grammar v1.0
 (shipped with the `fel-core` crate at `../../../fel-core/specs/fel/fel-grammar.md`)

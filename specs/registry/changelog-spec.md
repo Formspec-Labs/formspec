@@ -7,7 +7,7 @@ status: draft
 
 # Formspec Changelog Format v1.0
 
-**Status:** Draft · **Companion to:** Formspec v1.0 · **Date:** 2025-07
+**Status:** Draft · **Companion to:** Formspec v1.0 · **Date:** 2026-04-09
 
 ---
 
