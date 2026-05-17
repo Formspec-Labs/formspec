@@ -10,7 +10,7 @@ status: draft
 ## Status of This Document
 
 This document is a **Draft** companion specification to the
-[Formspec v1.0 Core Specification](spec.md). It defines the Formspec Theme
+[Formspec v1.0 Core Specification](../core/spec.md). It defines the Formspec Theme
 Document format — a sidecar JSON document that controls how a Formspec
 Definition is rendered.
 

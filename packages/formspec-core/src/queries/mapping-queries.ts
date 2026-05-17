@@ -3,6 +3,8 @@ import { createMappingEngine } from '@formspec-org/engine';
 import type { MappingDocument } from '@formspec-org/types';
 import type { ProjectState, MappingPreviewParams, MappingPreviewResult } from '../types.js';
 
+type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
+
 /**
  * Executes a mapping transformation simulation (preview) using the current project state.
  * This is a pure query and does not modify the state.
@@ -33,13 +35,13 @@ export function previewMapping(
   if (Array.isArray(ruleIndices) && Array.isArray(mappingDoc.rules)) {
     mappingDoc.rules = ruleIndices
       .map((index: number) => mappingDoc.rules[index])
-      .filter((rule: unknown) => rule !== undefined);
+      .filter((rule: unknown) => rule !== undefined) as MappingDocument['rules'];
   }
 
   const runtime = createMappingEngine(mappingDoc);
   const result = direction === 'reverse'
-    ? runtime.reverse(sampleData)
-    : runtime.forward(sampleData);
+    ? runtime.reverse(sampleData as JsonValue | string)
+    : runtime.forward(sampleData as JsonValue | string);
 
   return {
     output: result.output,

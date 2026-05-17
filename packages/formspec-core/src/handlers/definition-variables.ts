@@ -41,7 +41,7 @@ export const definitionVariablesHandlers = {
     const variable = state.definition.variables?.find(v => v.name === name);
     if (!variable) throw new Error(`Variable not found: ${name}`);
 
-    (variable as Record<string, unknown>)[property] = value;
+    (variable as unknown as Record<string, unknown>)[property] = value;
     return { rebuildComponentTree: false };
   },
 

@@ -41,7 +41,7 @@ export function browseExtensions(state: ProjectState, filter?: ExtensionFilter):
 export function resolveExtension(state: ProjectState, name: string): Record<string, unknown> | undefined {
   for (const reg of state.extensions.registries) {
     const entry = reg.entries[name];
-    if (entry) return entry as Record<string, unknown>;
+    if (entry) return entry as unknown as Record<string, unknown>;
   }
   return undefined;
 }

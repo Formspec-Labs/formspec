@@ -10,14 +10,14 @@ status: draft
 ## Status of This Document
 
 This document is a **Draft** companion specification to the
-[Formspec v1.0 Core Specification](spec.md). It defines the Formspec Component
+[Formspec v1.0 Core Specification](../core/spec.md). It defines the Formspec Component
 Document format — a sidecar JSON document that describes a **parallel
 presentation tree** of UI components bound to a Formspec Definition's items.
 
 **Status:** Draft Companion Specification
 **Version:** 1.0.0
 **Date:** 2025-01-14
-**Depends on:** Formspec Core Specification v1.0 (spec.md), Formspec Theme
+**Depends on:** Formspec Core Specification v1.0 (../core/spec.md), Formspec Theme
 Specification v1.0 (theme-spec.md), FEL Normative Grammar v1.0
 (shipped with the `fel-core` crate at `../../../fel-core/specs/fel/fel-grammar.md`)
 

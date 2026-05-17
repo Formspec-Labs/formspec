@@ -342,7 +342,10 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
         fs.writeFileSync(path.join(outDir, 'definition.json'), JSON.stringify(exported.definition, null, 2));
         fs.writeFileSync(path.join(outDir, 'theme.json'), JSON.stringify(exported.theme, null, 2));
         fs.writeFileSync(path.join(outDir, 'component.json'), JSON.stringify(exported.component, null, 2));
-        fs.writeFileSync(path.join(outDir, 'mapping.json'), JSON.stringify(exported.mappings?.default ?? project.mapping, null, 2));
+        const defaultMapping = exported.mappings?.default ?? project.mapping;
+        if ((defaultMapping as any)?.rules?.length > 0) {
+          fs.writeFileSync(path.join(outDir, 'mapping.json'), JSON.stringify(defaultMapping, null, 2));
+        }
 
         // TS engine validator (in-memory)
         progress(`${ex} / ${prefix}: diagnose...`);

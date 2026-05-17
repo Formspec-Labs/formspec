@@ -42,6 +42,8 @@ pub fn compute_dependency_groups(entries: &[RecordedEntry]) -> Vec<DependencyGro
         }
     }
 
+    // Inlined union-find (path compression + union by rank) — avoids a graph crate dep
+    // for a single connected-components pass over changeset entry indices.
     let mut parent: Vec<usize> = (0..n).collect();
     let mut rank: Vec<usize> = vec![0; n];
 

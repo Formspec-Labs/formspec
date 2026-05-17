@@ -32,7 +32,7 @@ export const projectHandlers = {
       state.component = normalizeComponentState(state.component, state.definition.url);
     }
     if (p.theme) {
-      state.theme = p.theme as typeof state.theme;
+      state.theme = p.theme as unknown as typeof state.theme;
     }
 
     if (p.mappings) {

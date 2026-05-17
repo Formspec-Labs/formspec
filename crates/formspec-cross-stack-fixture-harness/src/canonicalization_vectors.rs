@@ -21,6 +21,7 @@ use serde_json::{Value, json};
 use std::path::PathBuf;
 
 /// One canonicalization vector covering both digest contracts for a Response.
+#[derive(Debug, Clone, PartialEq)]
 pub struct CanonicalizationVector {
     /// Friendly name for diagnostics.
     pub name: &'static str,

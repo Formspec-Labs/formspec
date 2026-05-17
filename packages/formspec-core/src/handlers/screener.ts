@@ -1,7 +1,7 @@
 /** @filedesc Command handlers for standalone Screener Documents: metadata, items, binds, phases, and routes. */
 import type { CommandHandler, ProjectState } from '../types.js';
-import type { FormBind, FormItem, ScreenerDocument, Phase, Route } from '@formspec-org/types';
-import { setRecordProperty } from '../record-mutate.js';
+import type { Bind, FormItem, ScreenerDocument, Phase, Route } from '@formspec-org/types';
+import { asMutableRecord, setRecordProperty } from '../record-mutate.js';
 
 function getScreener(state: ProjectState): ScreenerDocument {
   if (!state.screener) throw new Error('No screener document loaded');
@@ -33,7 +33,7 @@ export const screenerHandlers = {
   // ── Document lifecycle ─────────────────────────────────────────
 
   'screener.setDocument': (state, payload) => {
-    state.screener = payload as unknown as ScreenerDocument;
+    state.screener = payload as ScreenerDocument;
     return { rebuildComponentTree: false };
   },
 
@@ -45,13 +45,9 @@ export const screenerHandlers = {
   'screener.setMetadata': (state, payload) => {
     const screener = getScreener(state);
     const p = payload as Record<string, unknown>;
-    const doc = screener as unknown as Record<string, unknown>;
+    const doc = asMutableRecord(screener);
     for (const [key, value] of Object.entries(p)) {
-      if (value === null || value === undefined) {
-        delete doc[key];
-      } else {
-        doc[key] = value;
-      }
+      setRecordProperty(doc, key, value);
     }
     return { rebuildComponentTree: false };
   },
@@ -100,7 +96,7 @@ export const screenerHandlers = {
     const screener = getScreener(state);
     const item = screener.items.find(it => it.key === key);
     if (!item) throw new Error(`Screener item not found: ${key}`);
-    setRecordProperty(item as Record<string, unknown>, property, value);
+    setRecordProperty(asMutableRecord(item), property, value);
     return { rebuildComponentTree: false };
   },
 
@@ -121,14 +117,15 @@ export const screenerHandlers = {
 
     if (!screener.binds) screener.binds = [];
 
-    let bind: FormBind | undefined = screener.binds.find(b => b.path === path);
+    const binds = screener.binds;
+    let bind: Bind | undefined = binds.find(b => b.path === path);
     if (!bind) {
       bind = { path };
-      screener.binds.push(bind);
+      binds.push(bind);
     }
 
     for (const [key, value] of Object.entries(properties)) {
-      setRecordProperty(bind as Record<string, unknown>, key, value);
+      setRecordProperty(asMutableRecord(bind), key, value);
     }
 
     return { rebuildComponentTree: false };
@@ -185,7 +182,7 @@ export const screenerHandlers = {
     if (!PHASE_ALLOWED_PROPS.has(property)) throw new Error(`Cannot set phase property: ${property}`);
     const screener = getScreener(state);
     const phase = getPhase(screener, phaseId);
-    setRecordProperty(phase as Record<string, unknown>, property, value);
+    setRecordProperty(asMutableRecord(phase), property, value);
     return { rebuildComponentTree: false };
   },
 
@@ -216,7 +213,7 @@ export const screenerHandlers = {
     const route = phase.routes[index];
     if (!route) throw new Error(`Route not found at index ${index} in phase ${phaseId}`);
 
-    setRecordProperty(route as Record<string, unknown>, property, value);
+    setRecordProperty(asMutableRecord(route), property, value);
     return { rebuildComponentTree: false };
   },
 

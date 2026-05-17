@@ -6,10 +6,6 @@ use fel_core::{
     evaluate, fel_to_json, formspec_environment_from_json_map, parse, reject_undefined_functions,
 };
 
-fn clone_json(value: &Value) -> Value {
-    value.clone()
-}
-
 /// Flatten nested JSON into dotted / bracket paths (matches `flattenObject` in `helpers.ts`).
 fn flatten_object(value: &Value, prefix: &str, output: &mut Map<String, Value>) {
     match value {
@@ -23,7 +19,7 @@ fn flatten_object(value: &Value, prefix: &str, output: &mut Map<String, Value>) 
                 flatten_object(entry, &path, output);
             }
             if !prefix.is_empty() {
-                output.insert(prefix.to_string(), clone_json(value));
+                output.insert(prefix.to_string(), value.clone());
             }
         }
         Value::Object(map) => {
@@ -36,12 +32,12 @@ fn flatten_object(value: &Value, prefix: &str, output: &mut Map<String, Value>) 
                 flatten_object(entry, &path, output);
             }
             if !prefix.is_empty() {
-                output.insert(prefix.to_string(), clone_json(value));
+                output.insert(prefix.to_string(), value.clone());
             }
         }
         _ => {
             if !prefix.is_empty() {
-                output.insert(prefix.to_string(), clone_json(value));
+                output.insert(prefix.to_string(), value.clone());
             }
         }
     }
@@ -105,7 +101,7 @@ pub fn apply_migrations_to_response_data(
     };
     let Some(Value::Array(migrations)) = def_root.get("migrations") else {
         return match response_data {
-            Value::Object(_) => clone_json(&response_data),
+            Value::Object(_) => response_data.clone(),
             _ => response_data,
         };
     };

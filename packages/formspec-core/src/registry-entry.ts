@@ -1,8 +1,10 @@
 /** @filedesc Narrow loaded extension registry entries without casts in call sites. */
 
 export interface RegistryEntryShape {
+  [key: string]: unknown;
   category?: string;
   name?: string;
+  status?: string;
   baseType?: string;
   source?: string;
   functionCategory?: string;

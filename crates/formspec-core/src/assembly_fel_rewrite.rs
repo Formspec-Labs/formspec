@@ -3,6 +3,7 @@
 //! Shared by the assembler and the WASM `rewriteFelForAssembly` entry point.
 
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use serde_json::Value;
 
@@ -99,9 +100,10 @@ pub(crate) fn assembly_prefix_path(
 }
 
 fn make_rewrite_options(map: &AssemblyFelRewriteMap) -> RewriteOptions {
-    let field_map = map.clone();
-    let current_map = map.clone();
-    let navigation_map = map.clone();
+    let shared = Arc::new(map.clone());
+    let field_map = Arc::clone(&shared);
+    let current_map = Arc::clone(&shared);
+    let navigation_map = shared;
 
     RewriteOptions {
         rewrite_field_path: Some(Box::new(move |path| {

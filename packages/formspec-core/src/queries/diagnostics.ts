@@ -14,6 +14,16 @@ import { dependencyGraph } from './dependency-graph.js';
 import { flattenItems } from './versioning.js';
 import type { ProjectState, Diagnostic, Diagnostics } from '../types.js';
 
+type ExtensionRegistryEntry = {
+  name: string;
+  category?: string;
+  version?: string;
+  status?: string;
+  description?: string;
+  compatibility?: { formspecVersion?: string; mappingDslVersion?: string };
+  [key: string]: unknown;
+};
+
 /**
  * On-demand multi-pass validation of the current project state.
  */
@@ -102,11 +112,14 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
 
   // Extension diagnostics
   log('extensions...');
-  const extensionLookup = new Map<string, Record<string, unknown>>();
+  const extensionLookup = new Map<string, ExtensionRegistryEntry>();
   for (const registry of state.extensions.registries) {
     for (const [name, entry] of Object.entries(registry.entries)) {
-      if (!extensionLookup.has(name)) {
-        extensionLookup.set(name, entry as Record<string, unknown>);
+      if (!extensionLookup.has(name) && entry !== null && typeof entry === 'object') {
+        extensionLookup.set(name, {
+          name,
+          ...(entry as Record<string, unknown>),
+        });
       }
     }
   }
@@ -218,7 +231,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   const selectors = state.theme.selectors;
   if (Array.isArray(selectors)) {
     for (let i = 0; i < selectors.length; i++) {
-      const selector = selectors[i];
+      const selector = selectors[i] as { match?: { type?: unknown; dataType?: unknown } } | undefined;
       const match = selector?.match;
       if (!match || typeof match !== 'object') continue;
       const hasMatch = itemRows.some((row) => {

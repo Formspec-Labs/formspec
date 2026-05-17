@@ -442,7 +442,7 @@ Response's canonical fact, the Response prevails.
 
 ### 6.9 EvidenceAttachmentBinding object
 
-`EvidenceAttachmentBinding` is the canonical Formspec-originated attachment-binding record adopted by [ADR 0072](../../thoughts/adr/0072-stack-evidence-integrity-and-attachment-binding.md).
+`EvidenceAttachmentBinding` is the canonical Formspec-originated attachment-binding record adopted by [ADR 0072](../../../thoughts/adr/0072-stack-evidence-integrity-and-attachment-binding.md).
 
 For `attachment.added` and `attachment.replaced`, the event **MUST** carry an `attachmentBinding` object with exactly these fields:
 

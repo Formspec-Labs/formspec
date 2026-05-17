@@ -29,11 +29,13 @@ export function statistics(state: ProjectState): ProjectStatistics {
   let componentNodeCount = 0;
   const tree = getCurrentComponentDocument(state).tree;
   if (tree) {
-    const queue = [tree];
+    const queue: Array<{ children?: unknown[] }> = [tree as { children?: unknown[] }];
     while (queue.length > 0) {
       const node = queue.shift()!;
       componentNodeCount += 1;
-      if (Array.isArray(node.children)) queue.push(...node.children);
+      if (Array.isArray(node.children)) {
+        queue.push(...node.children.map((child) => child as { children?: unknown[] }));
+      }
     }
   }
 

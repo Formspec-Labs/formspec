@@ -231,7 +231,10 @@ pub(crate) fn python_to_fel(py: Python, obj: &Bound<'_, PyAny>) -> PyResult<Valu
         }
         return Ok(Value::Object(entries));
     }
-    Ok(Value::Null)
+    Err(pyo3::exceptions::PyTypeError::new_err(format!(
+        "cannot convert Python type '{}' to FEL value",
+        obj.get_type().name()?
+    )))
 }
 
 pub(crate) fn fel_to_python(py: Python, val: &Value) -> PyResult<PyObject> {

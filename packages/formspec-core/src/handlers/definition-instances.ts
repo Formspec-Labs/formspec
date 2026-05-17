@@ -30,6 +30,12 @@ import {
 } from '../bind-fel.js';
 import { setRecordProperty } from '../record-mutate.js';
 
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object'
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
 /**
  * Monotonically increasing counter for auto-generating instance names when the
  * caller does not provide one.
@@ -47,13 +53,13 @@ export const definitionInstancesHandlers = {
     const name = (p.name as string) ?? `instance_${++instanceCounter}`;
     const instance: FormInstance = {};
 
-    if (p.source !== undefined) instance.source = p.source;
-    if (p.schema !== undefined) instance.schema = p.schema;
-    if (p.data !== undefined) instance.data = p.data;
-    if (p.static !== undefined) instance.static = p.static;
-    if (p.readonly !== undefined) instance.readonly = p.readonly;
-    if (p.description !== undefined) instance.description = p.description;
-    if (p.extensions !== undefined) instance.extensions = p.extensions;
+    if (typeof p.source === 'string') instance.source = p.source;
+    if (objectRecord(p.schema)) instance.schema = p.schema as Record<string, string>;
+    if (objectRecord(p.data)) instance.data = p.data as Record<string, unknown>;
+    if (typeof p.static === 'boolean') instance.static = p.static;
+    if (typeof p.readonly === 'boolean') instance.readonly = p.readonly;
+    if (typeof p.description === 'string') instance.description = p.description;
+    if (objectRecord(p.extensions)) instance.extensions = p.extensions as {};
 
     state.definition.instances[name] = instance;
     return { rebuildComponentTree: false };

@@ -96,7 +96,7 @@ Post-quantum, hash-based stateless. Optional adapter coverage.
 
 ## Receipt-signing methods
 
-The entries below register URI prefixes under `urn:formspec:receipt-method:*` for receipt-signing methods per [ADR 0111](../../thoughts/adr/0111-formspec-receipt-signing-posture.md). These are distinct from the response-signing methods above; the receipt-signing preimage uses `RECEIPT_SIGNED_PAYLOAD_DOMAIN = "formspec.verification.receipt.v1"` rather than the response-signing domain. The two URI subspaces (`urn:formspec:sig-method:*` and `urn:formspec:receipt-method:*`) MUST NOT overlap.
+The entries below register URI prefixes under `urn:formspec:receipt-method:*` for receipt-signing methods per [ADR 0111](../../../thoughts/adr/0111-formspec-receipt-signing-posture.md). These are distinct from the response-signing methods above; the receipt-signing preimage uses `RECEIPT_SIGNED_PAYLOAD_DOMAIN = "formspec.verification.receipt.v1"` rather than the response-signing domain. The two URI subspaces (`urn:formspec:sig-method:*` and `urn:formspec:receipt-method:*`) MUST NOT overlap.
 
 ### ed25519-cose-sign1@1 (receipt)
 

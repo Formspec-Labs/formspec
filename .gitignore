@@ -29,8 +29,6 @@ dist-playground/
 # Generated API docs (make api-docs)
 docs/api/
 form-builder/dist-types/
-target/
-
 
 .ralph/
 *.egg-info/

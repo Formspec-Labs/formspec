@@ -917,18 +917,10 @@ fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
     }
 }
 
-/// Parse a dotted path string back into a FieldRef AST node.
-fn parse_field_ref_from_path(path: &str) -> Expr {
-    let parts: Vec<&str> = path.split('.').collect();
-    if parts.is_empty() {
-        return Expr::FieldRef {
-            name: None,
-            path: vec![],
-        };
-    }
-    let name = Some(parts[0].to_string());
+/// Tail segments after the first dotted path component (shared by field/var re-parse).
+fn parse_dotted_path_tail(parts: &[&str]) -> Vec<PathSegment> {
     let mut segments = Vec::new();
-    for &part in &parts[1..] {
+    for &part in parts {
         if let Some(idx_str) = part.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
             if idx_str == "*" {
                 segments.push(PathSegment::Wildcard);
@@ -941,10 +933,21 @@ fn parse_field_ref_from_path(path: &str) -> Expr {
             segments.push(PathSegment::Dot(part.to_string()));
         }
     }
-    Expr::FieldRef {
-        name,
-        path: segments,
+    segments
+}
+
+/// Parse a dotted path string back into a FieldRef AST node.
+fn parse_field_ref_from_path(path: &str) -> Expr {
+    let parts: Vec<&str> = path.split('.').collect();
+    if parts.is_empty() {
+        return Expr::FieldRef {
+            name: None,
+            path: vec![],
+        };
     }
+    let name = Some(parts[0].to_string());
+    let segments = parse_dotted_path_tail(&parts[1..]);
+    Expr::FieldRef { name, path: segments }
 }
 
 /// Parse a dotted path string back into a bare-identifier [`Expr::VarRef`] node.
@@ -957,24 +960,8 @@ fn parse_var_ref_from_path(path: &str) -> Expr {
         };
     }
     let name = parts[0].to_string();
-    let mut segments = Vec::new();
-    for &part in &parts[1..] {
-        if let Some(idx_str) = part.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
-            if idx_str == "*" {
-                segments.push(PathSegment::Wildcard);
-            } else if let Ok(idx) = idx_str.parse::<usize>() {
-                segments.push(PathSegment::Index(idx));
-            } else {
-                segments.push(PathSegment::Dot(part.to_string()));
-            }
-        } else {
-            segments.push(PathSegment::Dot(part.to_string()));
-        }
-    }
-    Expr::VarRef {
-        name,
-        path: segments,
-    }
+    let segments = parse_dotted_path_tail(&parts[1..]);
+    Expr::VarRef { name, path: segments }
 }
 
 fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {

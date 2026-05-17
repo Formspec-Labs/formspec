@@ -12,6 +12,8 @@
 import type { CommandHandler, ProjectState, MappingState } from '../types.js';
 import type { FieldRule, FormItem, TargetSchema } from '@formspec-org/types';
 
+type EditableFieldRule = FieldRule & { innerRules?: FieldRule[] };
+
 /** Helper to resolve the target mapping record from state and payload. */
 function getMapping(state: ProjectState, mappingId?: string): MappingState {
   const id = mappingId || state.selectedMappingId || 'default';
@@ -249,7 +251,7 @@ export const mappingHandlers = {
     const rules = mapping.rules;
     if (!rules?.[p.ruleIndex]) throw new Error(`Rule not found at index: ${p.ruleIndex}`);
 
-    const rule = rules[p.ruleIndex];
+    const rule = rules[p.ruleIndex] as EditableFieldRule;
     if (!rule.innerRules) rule.innerRules = [];
 
     const inner = newFieldRule(p);
@@ -272,8 +274,9 @@ export const mappingHandlers = {
     };
     const mapping = getMapping(state, mappingId);
     const rules = mapping.rules;
-    if (!rules?.[ruleIndex]?.innerRules?.[innerIndex]) throw new Error('Inner rule not found');
-    rules[ruleIndex].innerRules![innerIndex][property] = value;
+    const innerRules = (rules?.[ruleIndex] as EditableFieldRule | undefined)?.innerRules;
+    if (!innerRules?.[innerIndex]) throw new Error('Inner rule not found');
+    innerRules[innerIndex][property] = value;
     return { rebuildComponentTree: false };
   },
 
@@ -281,8 +284,9 @@ export const mappingHandlers = {
     const { mappingId, ruleIndex, innerIndex } = payload as { mappingId?: string; ruleIndex: number; innerIndex: number };
     const mapping = getMapping(state, mappingId);
     const rules = mapping.rules;
-    if (!rules?.[ruleIndex]?.innerRules) throw new Error('Inner rules not found');
-    rules[ruleIndex].innerRules!.splice(innerIndex, 1);
+    const innerRules = (rules?.[ruleIndex] as EditableFieldRule | undefined)?.innerRules;
+    if (!innerRules) throw new Error('Inner rules not found');
+    innerRules.splice(innerIndex, 1);
     return { rebuildComponentTree: false };
   },
 
@@ -295,8 +299,8 @@ export const mappingHandlers = {
     };
     const mapping = getMapping(state, mappingId);
     const rules = mapping.rules;
-    if (!rules?.[ruleIndex]?.innerRules) throw new Error('Inner rules not found');
-    const inner = rules[ruleIndex].innerRules!;
+    const inner = (rules?.[ruleIndex] as EditableFieldRule | undefined)?.innerRules;
+    if (!inner) throw new Error('Inner rules not found');
     const target = direction === 'up' ? innerIndex - 1 : innerIndex + 1;
     if (target < 0 || target >= inner.length) return { rebuildComponentTree: false };
     [inner[innerIndex], inner[target]] = [inner[target], inner[innerIndex]];
