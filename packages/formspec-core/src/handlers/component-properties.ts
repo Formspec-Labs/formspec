@@ -263,7 +263,7 @@ export const componentPropertiesHandlers = {
   'component.setDocumentProperty': (state, payload) => {
     const { property, value } = payload as { property: string; value: unknown };
     if (value === null) {
-      delete (state.component as any)[property];
+      delete state.component[property];
     } else {
       // Normalize bind paths in tree to strip repeat indices
       if (property === 'tree' && value && typeof value === 'object') {
@@ -279,7 +279,7 @@ export const componentPropertiesHandlers = {
         };
         normalizeBinds(value as Record<string, unknown>);
       }
-      (state.component as any)[property] = value;
+      state.component[property] = value;
     }
     return { rebuildComponentTree: false };
   },

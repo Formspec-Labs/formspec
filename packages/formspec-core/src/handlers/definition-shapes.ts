@@ -52,7 +52,7 @@ export const definitionShapesHandlers = {
     const shape = state.definition.shapes?.find(s => s.id === id);
     if (!shape) throw new Error(`Shape not found: ${id}`);
 
-    (shape as any)[property] = value;
+    (shape as Record<string, unknown>)[property] = value;
     return { rebuildComponentTree: false };
   },
 
@@ -71,7 +71,7 @@ export const definitionShapesHandlers = {
     if (p.mode === 'not') {
       shape.not = p.ref!;
     } else {
-      (shape as any)[p.mode] = p.refs;
+      (shape as Record<string, unknown>)[p.mode] = p.refs;
     }
 
     return { rebuildComponentTree: false };

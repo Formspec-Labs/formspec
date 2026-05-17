@@ -43,7 +43,7 @@ const CONTAINER_COMPONENTS = new Set([
 export function defaultComponentType(item: FormItem): string {
   switch (item.type) {
     case 'field':
-      if ((item as any).optionSet || Array.isArray((item as any).options)) return 'Select';
+      if (item.optionSet || Array.isArray(item.options)) return 'Select';
       switch (item.dataType) {
         case 'choice': return 'Select';
         case 'multiChoice': return 'CheckboxGroup';
@@ -57,7 +57,7 @@ export function defaultComponentType(item: FormItem): string {
         case 'attachment': return 'FileUpload';
         default: return 'TextInput';
       }
-    case 'group': return (item as any).repeatable ? 'Accordion' : 'Stack';
+    case 'group': return item.repeatable ? 'Accordion' : 'Stack';
     case 'display': return 'Text';
     default: return 'TextInput';
   }
@@ -166,7 +166,7 @@ export function reconcileComponentTree(
           node = { ...existing, text: item.label ?? '' };
           existingBound.delete(itemPath);
         } else {
-          const hintComponent = widgetTokenToComponent((item as any).presentation?.widgetHint);
+          const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
           node = { component: hintComponent ?? 'Text', bind: item.key, text: item.label ?? '' };
         }
       } else {
@@ -180,7 +180,7 @@ export function reconcileComponentTree(
       }
     } else {
       const existing = existingBound.get(itemPath);
-      const hintComponent = widgetTokenToComponent((item as any).presentation?.widgetHint);
+      const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
       if (existing) {
         node = { ...existing };
         // Update component if widgetHint resolves to a different component

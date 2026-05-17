@@ -2,7 +2,7 @@
 import type { SchemaValidator } from '@formspec-org/engine/fel-tools';
 import type {
   FormItem, FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
-  ScreenerDocument,
+  ScreenerDocument, FieldRule, TargetSchema,
 } from '@formspec-org/types';
 
 // ── Schema-derived types (re-exported from formspec-types) ──────────
@@ -55,8 +55,8 @@ export interface ThemeState {
  * Handlers read/write rules, targetSchema, adapters, etc.
  */
 export interface MappingState {
-  rules?: unknown[];
-  targetSchema?: Record<string, unknown>;
+  rules?: FieldRule[];
+  targetSchema?: TargetSchema;
   definitionRef?: string;
   definitionVersion?: string;
   direction?: 'forward' | 'reverse' | 'both';

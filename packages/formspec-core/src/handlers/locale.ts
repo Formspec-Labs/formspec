@@ -108,7 +108,7 @@ export const localeHandlers = {
       throw new Error(`Invalid locale metadata property: ${property}`);
     }
     const locale = getLocale(state, localeId);
-    (locale as any)[property] = value;
+    (locale as Record<string, unknown>)[property] = value;
     return { rebuildComponentTree: false };
   },
 

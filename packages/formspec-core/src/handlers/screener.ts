@@ -1,6 +1,7 @@
 /** @filedesc Command handlers for standalone Screener Documents: metadata, items, binds, phases, and routes. */
 import type { CommandHandler, ProjectState } from '../types.js';
-import type { FormItem, ScreenerDocument, Phase, Route } from '@formspec-org/types';
+import type { FormBind, FormItem, ScreenerDocument, Phase, Route } from '@formspec-org/types';
+import { setRecordProperty } from '../record-mutate.js';
 
 function getScreener(state: ProjectState): ScreenerDocument {
   if (!state.screener) throw new Error('No screener document loaded');
@@ -68,12 +69,12 @@ export const screenerHandlers = {
     };
     if (p.dataType) item.dataType = p.dataType as FormItem['dataType'];
     if (p.options) item.options = p.options as FormItem['options'];
-    if (p.extensions) (item as any).extensions = p.extensions;
+    if (p.extensions) item.extensions = p.extensions as FormItem['extensions'];
 
     if (p.insertIndex !== undefined) {
-      screener.items.splice(p.insertIndex as number, 0, item as any);
+      screener.items.splice(p.insertIndex as number, 0, item);
     } else {
-      screener.items.push(item as any);
+      screener.items.push(item);
     }
     return { rebuildComponentTree: false };
   },
@@ -82,11 +83,11 @@ export const screenerHandlers = {
     const { key } = payload as { key: string };
     const screener = getScreener(state);
 
-    screener.items = screener.items.filter((it: any) => it.key !== key);
+    screener.items = screener.items.filter(it => it.key !== key);
 
     // Clean up binds referencing deleted item
     if (screener.binds) {
-      screener.binds = screener.binds.filter((b: any) => b.path !== key);
+      screener.binds = screener.binds.filter(b => b.path !== key);
       if (screener.binds.length === 0) delete screener.binds;
     }
 
@@ -97,13 +98,9 @@ export const screenerHandlers = {
     const { key, property, value } = payload as { key: string; property: string; value: unknown };
     if (!ITEM_ALLOWED_PROPS.has(property)) throw new Error(`Cannot set screener item property: ${property}`);
     const screener = getScreener(state);
-    const item = screener.items.find((it: any) => it.key === key);
+    const item = screener.items.find(it => it.key === key);
     if (!item) throw new Error(`Screener item not found: ${key}`);
-    if (value === null || value === undefined) {
-      delete (item as any)[property];
-    } else {
-      (item as any)[property] = value;
-    }
+    setRecordProperty(item as Record<string, unknown>, property, value);
     return { rebuildComponentTree: false };
   },
 
@@ -124,18 +121,14 @@ export const screenerHandlers = {
 
     if (!screener.binds) screener.binds = [];
 
-    let bind = screener.binds.find((b: any) => b.path === path) as any;
+    let bind: FormBind | undefined = screener.binds.find(b => b.path === path);
     if (!bind) {
       bind = { path };
       screener.binds.push(bind);
     }
 
     for (const [key, value] of Object.entries(properties)) {
-      if (value === null) {
-        delete bind[key];
-      } else {
-        bind[key] = value;
-      }
+      setRecordProperty(bind as Record<string, unknown>, key, value);
     }
 
     return { rebuildComponentTree: false };
@@ -192,11 +185,7 @@ export const screenerHandlers = {
     if (!PHASE_ALLOWED_PROPS.has(property)) throw new Error(`Cannot set phase property: ${property}`);
     const screener = getScreener(state);
     const phase = getPhase(screener, phaseId);
-    if (value === null || value === undefined) {
-      delete (phase as any)[property];
-    } else {
-      (phase as any)[property] = value;
-    }
+    setRecordProperty(phase as Record<string, unknown>, property, value);
     return { rebuildComponentTree: false };
   },
 
@@ -227,11 +216,7 @@ export const screenerHandlers = {
     const route = phase.routes[index];
     if (!route) throw new Error(`Route not found at index ${index} in phase ${phaseId}`);
 
-    if (value === null || value === undefined) {
-      delete (route as any)[property];
-    } else {
-      (route as any)[property] = value;
-    }
+    setRecordProperty(route as Record<string, unknown>, property, value);
     return { rebuildComponentTree: false };
   },
 

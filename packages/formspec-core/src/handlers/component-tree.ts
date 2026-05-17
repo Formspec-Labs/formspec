@@ -118,7 +118,7 @@ export const componentTreeHandlers = {
     state.component.tree = reconcileComponentTree(
       state.definition,
       state.component.tree,
-    ) as any;
+    );
     return { rebuildComponentTree: false };
   },
 

@@ -1,5 +1,6 @@
 /** @filedesc Mapping-specific state queries: bidirectional transform evaluation. */
 import { createMappingEngine } from '@formspec-org/engine';
+import type { MappingDocument } from '@formspec-org/types';
 import type { ProjectState, MappingPreviewParams, MappingPreviewResult } from '../types.js';
 
 /**
@@ -26,7 +27,7 @@ export function previewMapping(
   const target = state.mappings[id] || { rules: [] };
 
   // Clone mapping to avoid accidental mutations during simulation
-  const mappingDoc = structuredClone(target) as any;
+  const mappingDoc = structuredClone(target) as MappingDocument;
 
   // Optional: filter rules if requested
   if (Array.isArray(ruleIndices) && Array.isArray(mappingDoc.rules)) {

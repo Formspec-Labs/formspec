@@ -18,6 +18,7 @@
 import type { CommandHandler } from '../types.js';
 import { resolveItemLocation } from './helpers.js';
 import type { FormBind, FormItem } from '@formspec-org/types';
+import { setRecordProperty } from '../record-mutate.js';
 
 // ── setBind helpers ──────────────────────────────────────────────────
 
@@ -158,11 +159,7 @@ export const definitionBindsHandlers = {
 
     // Apply properties — null removes
     for (const [key, value] of Object.entries(properties)) {
-      if (value === null) {
-        delete (bind as any)[key];
-      } else {
-        (bind as any)[key] = value;
-      }
+      setRecordProperty(bind as Record<string, unknown>, key, value);
     }
 
     // If only 'path' remains, remove the bind entry
@@ -223,14 +220,14 @@ export const definitionBindsHandlers = {
 
     if (value === null) {
       if (loc.item.extensions) {
-        delete (loc.item.extensions as any)[extension];
+        delete (loc.item.extensions as Record<string, unknown>)[extension];
         if (Object.keys(loc.item.extensions).length === 0) {
           delete loc.item.extensions;
         }
       }
     } else {
       loc.item.extensions = loc.item.extensions || {};
-      (loc.item.extensions as any)[extension] = value;
+      (loc.item.extensions as Record<string, unknown>)[extension] = value;
     }
 
     return { rebuildComponentTree: false };

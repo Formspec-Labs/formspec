@@ -17,7 +17,8 @@
  * @module definition-optionsets
  */
 import type { CommandHandler } from '../types.js';
-import type { FormItem } from '@formspec-org/types';
+import type { FormItem, FormOption, OptionSet } from '@formspec-org/types';
+import { setRecordProperty } from '../record-mutate.js';
 
 export const definitionOptionsetsHandlers = {
 
@@ -27,12 +28,11 @@ export const definitionOptionsetsHandlers = {
       state.definition.optionSets = {};
     }
     if (p.options) {
-      state.definition.optionSets[p.name] = { options: p.options } as any;
+      state.definition.optionSets[p.name] = { options: p.options as FormOption[] };
     } else if (p.source) {
-      state.definition.optionSets[p.name] = { source: p.source } as any;
+      state.definition.optionSets[p.name] = { source: p.source };
     } else {
-      // Create empty option set if neither options nor source provided
-      state.definition.optionSets[p.name] = { options: [] } as any;
+      state.definition.optionSets[p.name] = { options: [] };
     }
     return { rebuildComponentTree: false };
   },
@@ -42,11 +42,7 @@ export const definitionOptionsetsHandlers = {
     const optionSets = state.definition.optionSets;
     if (!optionSets?.[name]) return { rebuildComponentTree: false };
 
-    if (value === null || value === undefined) {
-      delete (optionSets[name] as any)[property];
-    } else {
-      (optionSets[name] as any)[property] = value;
-    }
+    setRecordProperty(optionSets[name] as Record<string, unknown>, property, value);
     return { rebuildComponentTree: false };
   },
 
@@ -62,8 +58,9 @@ export const definitionOptionsetsHandlers = {
       for (const item of items) {
         if (item.optionSet === name) {
           delete item.optionSet;
-          if (options && 'options' in (options as any) && Array.isArray((options as any).options)) {
-            item.options = (options as any).options;
+          const optionSet: OptionSet = options;
+          if (Array.isArray(optionSet.options)) {
+            item.options = optionSet.options;
           }
         }
         if (item.children) inlineRefs(item.children);
@@ -100,7 +97,7 @@ export const definitionOptionsetsHandlers = {
     if (!state.definition.optionSets) {
       state.definition.optionSets = {};
     }
-    state.definition.optionSets[name] = { options: item.options } as any;
+    state.definition.optionSets[name] = { options: item.options };
 
     // Replace inline options with a named reference
     delete item.options;

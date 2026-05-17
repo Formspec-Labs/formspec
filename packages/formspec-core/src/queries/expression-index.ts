@@ -1,7 +1,7 @@
 /**
  * Pure query functions for FEL expression indexing, parsing, and reference resolution.
  */
-import type { FormItem } from '@formspec-org/types';
+import type { FormInstance, FormItem, FormShape, FormVariable } from '@formspec-org/types';
 import {
   analyzeFEL,
   analyzeFELWithFieldTypes,
@@ -11,6 +11,10 @@ import {
 } from '@formspec-org/engine/fel-runtime';
 import { getBuiltinFELFunctionCatalog } from '@formspec-org/engine/fel-tools';
 import { getCurrentComponentDocument } from '../component-documents.js';
+import { forEachBindFelExpression, forEachItemFelExpression } from '../bind-fel.js';
+import { currentComponentTree } from '../component-tree.js';
+import { registryEntry } from '../registry-entry.js';
+import type { MappingState } from '../types.js';
 import { itemAt, fieldPaths as getFieldPaths } from './field-queries.js';
 import type {
   ProjectState,
@@ -237,7 +241,7 @@ export function felFunctionCatalog(state: ProjectState): FELFunctionEntry[] {
 
   for (const reg of state.extensions.registries) {
     for (const entry of Object.values(reg.entries)) {
-      const e = entry as any;
+      const e = registryEntry(entry);
       if (e.category === 'function' && typeof e.name === 'string' && !seen.has(e.name)) {
         catalog.push({
           name: e.name,
@@ -266,14 +270,14 @@ export function availableReferences(state: ProjectState, context?: string | FELP
     for (const item of items) {
       const path = prefix ? `${prefix}.${item.key}` : item.key;
       if (item.type === 'field') {
-        fields.push({ path, dataType: (item as any).dataType ?? 'string', label: item.label });
+        fields.push({ path, dataType: item.dataType ?? 'string', label: item.label });
       }
       if (item.children) walk(item.children, path);
     }
   };
   walk(state.definition.items, '');
 
-  const variables = (state.definition.variables ?? []).map((v: any) => ({
+  const variables = (state.definition.variables ?? []).map((v: FormVariable) => ({
     name: v.name,
     expression: v.expression ?? '',
   }));
@@ -282,7 +286,8 @@ export function availableReferences(state: ProjectState, context?: string | FELP
   const inst = state.definition.instances;
   if (inst) {
     for (const [name, entry] of Object.entries(inst)) {
-      instances.push({ name, source: (entry as any).source });
+      const instance: FormInstance = entry;
+      instances.push({ name, source: instance.source });
     }
   }
 
@@ -295,7 +300,7 @@ export function availableReferences(state: ProjectState, context?: string | FELP
     for (let i = parts.length; i > 0; i--) {
       const candidate = parts.slice(0, i).join('.');
       const item = itemAt(state, candidate);
-      if (item?.type === 'group' && (item as any).repeatable) {
+      if (item?.type === 'group' && item.repeatable) {
         contextRefs.push('@current', '@index', '@count');
         innermostRepeatPath = candidate;
         break;
@@ -337,22 +342,22 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
 
   // Bind expressions
   for (const bind of def.binds ?? []) {
-    const b = bind as any;
-    for (const prop of ['calculate', 'relevant', 'required', 'readonly', 'constraint']) {
-      pushExpression(b[prop], 'definition', `binds[${b.path}].${prop}`);
-    }
-    if (typeof b.default === 'string' && b.default.startsWith('=')) {
-      pushExpression(b.default.slice(1), 'definition', `binds[${b.path}].default`);
+    forEachBindFelExpression(bind, (prop, expression) => {
+      pushExpression(expression, 'definition', `binds[${bind.path}].${prop}`);
+    });
+    const defaultValue = bind.default;
+    if (typeof defaultValue === 'string' && defaultValue.startsWith('=')) {
+      pushExpression(defaultValue.slice(1), 'definition', `binds[${bind.path}].default`);
     }
   }
 
   // Shape expressions
   for (const shape of def.shapes ?? []) {
-    const s = shape as any;
+    const s: FormShape = shape;
     pushExpression(s.constraint, 'definition', `shapes[${s.id}].constraint`);
     pushExpression(s.activeWhen, 'definition', `shapes[${s.id}].activeWhen`);
     if (s.context && typeof s.context === 'object') {
-      for (const [key, value] of Object.entries(s.context as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(s.context)) {
         if (typeof value === 'string') {
           pushExpression(value, 'definition', `shapes[${s.id}].context.${key}`);
         }
@@ -362,8 +367,8 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
 
   // Variable expressions
   for (const v of def.variables ?? []) {
-    const va = v as any;
-    pushExpression(va.expression, 'definition', `variables[${va.name}]`);
+    const variable: FormVariable = v;
+    pushExpression(variable.expression, 'definition', `variables[${variable.name}]`);
   }
 
   // Item-level FEL-bearing properties
@@ -373,14 +378,11 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
       if (itemVisited.has(item as object)) continue;
       itemVisited.add(item as object);
       const path = prefix ? `${prefix}.${item.key}` : item.key;
-      const dynamic = item as any;
-      for (const prop of ['relevant', 'required', 'readonly', 'calculate', 'constraint']) {
-        if (typeof dynamic[prop] === 'string') {
-          pushExpression(dynamic[prop], 'definition', `items[${path}].${prop}`);
-        }
-      }
-      if (typeof dynamic.initialValue === 'string' && dynamic.initialValue.startsWith('=')) {
-        pushExpression(dynamic.initialValue.slice(1), 'definition', `items[${path}].initialValue`);
+      forEachItemFelExpression(item, (prop, expression) => {
+        pushExpression(expression, 'definition', `items[${path}].${prop}`);
+      });
+      if (typeof item.initialValue === 'string' && item.initialValue.startsWith('=')) {
+        pushExpression(item.initialValue.slice(1), 'definition', `items[${path}].initialValue`);
       }
       if (item.children) walkItems(item.children, path);
     }
@@ -389,7 +391,8 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
 
   // Mapping rule expressions
   for (const [mid, m] of Object.entries(state.mappings)) {
-    const rules = (m as any).rules as any[] | undefined;
+    const mapping: MappingState = m;
+    const rules = mapping.rules;
     if (rules) {
       for (let i = 0; i < rules.length; i++) {
         const rule = rules[i];
@@ -428,15 +431,16 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
     }
   };
 
-  const componentDoc = getCurrentComponentDocument(state) as any;
-  if (componentDoc.tree) {
-    walkComponentNode(componentDoc.tree, 'tree');
+  const componentDoc = getCurrentComponentDocument(state);
+  const tree = currentComponentTree(state);
+  if (tree) {
+    walkComponentNode(tree, 'tree');
   }
 
   const templateRegistry = componentDoc.components;
   if (templateRegistry && typeof templateRegistry === 'object') {
     for (const [name, template] of Object.entries(templateRegistry as Record<string, unknown>)) {
-      const templateTree = (template as any)?.tree;
+      const templateTree = (template as { tree?: unknown } | undefined)?.tree;
       if (templateTree) {
         walkComponentNode(templateTree, `components[${name}].tree`);
       }

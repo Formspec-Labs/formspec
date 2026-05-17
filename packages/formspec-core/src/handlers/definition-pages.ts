@@ -15,6 +15,7 @@
  * @module definition-pages
  */
 import type { CommandHandler } from '../types.js';
+import { setRecordProperty } from '../record-mutate.js';
 import { resolveItemLocation } from './helpers.js';
 
 export const definitionPagesHandlers = {
@@ -22,11 +23,7 @@ export const definitionPagesHandlers = {
   'definition.setDefinitionProperty': (state, payload) => {
     const { property, value } = payload as { property: string; value: unknown };
 
-    if (value === null || value === undefined) {
-      delete (state.definition as any)[property];
-    } else {
-      (state.definition as any)[property] = value;
-    }
+    setRecordProperty(state.definition as Record<string, unknown>, property, value);
 
     return { rebuildComponentTree: false };
   },
@@ -53,11 +50,11 @@ export const definitionPagesHandlers = {
     if (!loc) throw new Error(`Item not found: ${path}`);
 
     if (ref === null) {
-      delete (loc.item as any).$ref;
-      delete (loc.item as any).keyPrefix;
+      delete loc.item.$ref;
+      delete loc.item.keyPrefix;
     } else {
-      (loc.item as any).$ref = ref;
-      if (keyPrefix) (loc.item as any).keyPrefix = keyPrefix;
+      loc.item.$ref = ref;
+      if (keyPrefix) loc.item.keyPrefix = keyPrefix;
     }
 
     return { rebuildComponentTree: true };

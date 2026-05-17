@@ -19,7 +19,16 @@
  */
 import type { CommandHandler } from '../types.js';
 import { rewriteFELReferences } from '@formspec-org/engine/fel-tools';
-import type { FormItem } from '@formspec-org/types';
+import type { FormInstance, FormItem } from '@formspec-org/types';
+import {
+  allMappingRules,
+  rewriteBindFelExpressions,
+  rewriteItemFelExpressions,
+  rewriteMappingRuleFieldRefs,
+  rewriteShapeFelExpressions,
+  rewriteVariableExpression,
+} from '../bind-fel.js';
+import { setRecordProperty } from '../record-mutate.js';
 
 /**
  * Monotonically increasing counter for auto-generating instance names when the
@@ -36,7 +45,7 @@ export const definitionInstancesHandlers = {
     }
 
     const name = (p.name as string) ?? `instance_${++instanceCounter}`;
-    const instance: Record<string, unknown> = {};
+    const instance: FormInstance = {};
 
     if (p.source !== undefined) instance.source = p.source;
     if (p.schema !== undefined) instance.schema = p.schema;
@@ -46,7 +55,7 @@ export const definitionInstancesHandlers = {
     if (p.description !== undefined) instance.description = p.description;
     if (p.extensions !== undefined) instance.extensions = p.extensions;
 
-    state.definition.instances[name] = instance as any;
+    state.definition.instances[name] = instance;
     return { rebuildComponentTree: false };
   },
 
@@ -55,11 +64,7 @@ export const definitionInstancesHandlers = {
     const instances = state.definition.instances;
     if (!instances?.[name]) throw new Error(`Instance not found: ${name}`);
 
-    if (value === null || value === undefined) {
-      delete (instances[name] as any)[property];
-    } else {
-      (instances[name] as any)[property] = value;
-    }
+    setRecordProperty(instances[name] as Record<string, unknown>, property, value);
 
     return { rebuildComponentTree: false };
   },
@@ -79,94 +84,32 @@ export const definitionInstancesHandlers = {
         },
       });
 
-    // Binds
     for (const bind of state.definition.binds ?? []) {
-      const b = bind as any;
-      for (const prop of ['calculate', 'relevant', 'required', 'readonly', 'constraint']) {
-        if (b[prop] && typeof b[prop] === 'string') {
-          b[prop] = rewrite(b[prop]);
-        }
-      }
-      if (typeof b.default === 'string' && b.default.startsWith('=')) {
-        b.default = '=' + rewrite(b.default.slice(1));
-      }
+      rewriteBindFelExpressions(bind, rewrite);
     }
-
-    // Shapes
     for (const shape of state.definition.shapes ?? []) {
-      const s = shape as any;
-      if (s.constraint && typeof s.constraint === 'string') s.constraint = rewrite(s.constraint);
-      if (s.activeWhen && typeof s.activeWhen === 'string') s.activeWhen = rewrite(s.activeWhen);
-      if (s.context && typeof s.context === 'object') {
-        for (const [key, value] of Object.entries(s.context as Record<string, unknown>)) {
-          if (typeof value === 'string') s.context[key] = rewrite(value);
-        }
-      }
+      rewriteShapeFelExpressions(shape, path => path, rewrite);
     }
-
-    // Variables
-    for (const v of state.definition.variables ?? []) {
-      const va = v as any;
-      if (va.expression && typeof va.expression === 'string') va.expression = rewrite(va.expression);
+    for (const variable of state.definition.variables ?? []) {
+      rewriteVariableExpression(variable, rewrite);
     }
-
-    // Item-level FEL-bearing properties.
-    const rewriteItemExpressions = (items: FormItem[]) => {
+    const walkItems = (items: FormItem[]) => {
       for (const item of items) {
-        const dynamic = item as any;
-        for (const prop of ['relevant', 'required', 'readonly', 'calculate', 'constraint']) {
-          if (typeof dynamic[prop] === 'string') {
-            dynamic[prop] = rewrite(dynamic[prop]);
-          }
-        }
-        if (typeof dynamic.initialValue === 'string' && dynamic.initialValue.startsWith('=')) {
-          dynamic.initialValue = '=' + rewrite(dynamic.initialValue.slice(1));
-        }
-        if (item.children) rewriteItemExpressions(item.children);
+        rewriteItemFelExpressions(item, rewrite);
+        if (item.children) walkItems(item.children);
       }
     };
-    rewriteItemExpressions(state.definition.items);
-
-    // Screener evaluation routes (condition + score expressions).
+    walkItems(state.definition.items);
     if (state.screener) {
       for (const phase of state.screener.evaluation) {
         for (const route of phase.routes) {
-          if (typeof (route as any).condition === 'string') {
-            (route as any).condition = rewrite((route as any).condition);
-          }
-          if (typeof (route as any).score === 'string') {
-            (route as any).score = rewrite((route as any).score);
-          }
+          if (typeof route.condition === 'string') route.condition = rewrite(route.condition);
+          if (typeof route.score === 'string') route.score = rewrite(route.score);
         }
       }
     }
-
-    // Mapping expressions — rewrite across all mapping documents.
-    const allMappingRules: any[] = Object.values(state.mappings).flatMap((m: any) => m.rules ?? []);
-    if (allMappingRules.length) {
-      for (const rule of allMappingRules) {
-        for (const prop of ['expression', 'condition']) {
-          if (typeof rule[prop] === 'string') {
-            rule[prop] = rewrite(rule[prop]);
-          }
-        }
-        if (rule.reverse && typeof rule.reverse === 'object') {
-          for (const prop of ['expression', 'condition']) {
-            if (typeof rule.reverse[prop] === 'string') {
-              rule.reverse[prop] = rewrite(rule.reverse[prop]);
-            }
-          }
-        }
-        if (Array.isArray(rule.innerRules)) {
-          for (const inner of rule.innerRules) {
-            for (const prop of ['expression', 'condition']) {
-              if (typeof inner[prop] === 'string') {
-                inner[prop] = rewrite(inner[prop]);
-              }
-            }
-          }
-        }
-      }
+    for (const rule of allMappingRules(state.mappings)) {
+      rewriteMappingRuleFieldRefs(rule, path => path, rewrite);
     }
 
     return { rebuildComponentTree: false };

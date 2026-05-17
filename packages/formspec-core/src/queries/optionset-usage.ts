@@ -10,7 +10,7 @@ export function optionSetUsageCount(state: ProjectState, name: string): number {
 
   function walk(items: FormItem[]): void {
     for (const item of items) {
-      if ((item as any).optionSet === name) {
+      if (item.optionSet === name) {
         count++;
       }
       if (item.children) walk(item.children);

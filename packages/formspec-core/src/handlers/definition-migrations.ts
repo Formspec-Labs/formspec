@@ -64,7 +64,7 @@ export const definitionMigrationsHandlers = {
       fromVersion: string; property: string; value: unknown;
     };
     const descriptor = findMigration(state, fromVersion);
-    (descriptor as any)[property] = value;
+    (descriptor as Record<string, unknown>)[property] = value;
     return { rebuildComponentTree: false };
   },
 
@@ -97,7 +97,7 @@ export const definitionMigrationsHandlers = {
     const rule = descriptor.fieldMap?.[index];
     if (!rule) throw new Error(`Rule not found at index: ${index}`);
 
-    (rule as any)[property] = value;
+    (rule as Record<string, unknown>)[property] = value;
     return { rebuildComponentTree: false };
   },
 
@@ -113,7 +113,7 @@ export const definitionMigrationsHandlers = {
     const { fromVersion, defaults } = payload as { fromVersion: string; defaults: Record<string, unknown> };
     const descriptor = findMigration(state, fromVersion);
 
-    (descriptor as any).defaults = defaults;
+    (descriptor as Record<string, unknown>).defaults = defaults;
     return { rebuildComponentTree: false };
   },
 } satisfies Record<string, CommandHandler>;

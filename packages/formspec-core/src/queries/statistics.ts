@@ -27,7 +27,7 @@ export function statistics(state: ProjectState): ProjectStatistics {
   const expressionCount = allExpressions(state).length;
 
   let componentNodeCount = 0;
-  const tree = getCurrentComponentDocument(state).tree as any;
+  const tree = getCurrentComponentDocument(state).tree;
   if (tree) {
     const queue = [tree];
     while (queue.length > 0) {

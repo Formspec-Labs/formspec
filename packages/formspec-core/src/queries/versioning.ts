@@ -36,9 +36,9 @@ export function flattenItems(items: FormItem[], prefix = '', visited?: WeakSet<o
     const path = prefix ? `${prefix}.${item.key}` : item.key;
     const parentPath = prefix;
     const withoutChildren = { ...(item as Record<string, unknown>) };
-    delete (withoutChildren as any).children;
+    delete withoutChildren.children;
     const signatureSource = { ...withoutChildren };
-    delete (signatureSource as any).key;
+    delete signatureSource.key;
     rows.push({
       path,
       parentPath,

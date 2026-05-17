@@ -8,7 +8,7 @@ import type { FormShape } from '@formspec-org/types';
  * constraint expression. Includes severity when not the default "error".
  */
 export function describeShapeConstraint(shape: FormShape): string {
-  const s = shape as any;
+  const s = shape;
   const target = s.target ?? '?';
   const severity = s.severity as string | undefined;
 

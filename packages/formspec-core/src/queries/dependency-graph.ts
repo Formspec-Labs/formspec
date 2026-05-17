@@ -6,13 +6,21 @@ import {
   getFELDependencies,
   normalizeIndexedPath,
 } from '@formspec-org/engine/fel-runtime';
+import type { FormBind, FormShape, FormVariable } from '@formspec-org/types';
+import { BIND_FEL_PROPERTIES, bindFelExpression, forEachBindFelExpression } from '../bind-fel.js';
 import { fieldPaths as getFieldPaths } from './field-queries.js';
 import { allExpressions } from './expression-index.js';
 import type {
   ProjectState,
   DependencyGraph,
   FieldDependents,
+  MappingState,
 } from '../types.js';
+
+function bindDefaultFel(bind: FormBind): string | undefined {
+  const value = bind.default;
+  return typeof value === 'string' && value.startsWith('=') ? value.slice(1) : undefined;
+}
 
 /**
  * Reverse lookup: find all binds, shapes, variables, and mapping rules that
@@ -29,20 +37,20 @@ export function fieldDependents(state: ProjectState, fieldPath: string): FieldDe
 
   // Check binds
   for (const bind of def.binds ?? []) {
-    const b = bind as any;
-    for (const prop of ['calculate', 'relevant', 'required', 'readonly', 'constraint']) {
-      if (typeof b[prop] === 'string' && expressionReferencesField(b[prop])) {
-        result.binds.push({ path: b.path, property: prop });
+    forEachBindFelExpression(bind, (prop, expression) => {
+      if (expressionReferencesField(expression)) {
+        result.binds.push({ path: bind.path, property: prop });
       }
-    }
-    if (typeof b.default === 'string' && b.default.startsWith('=') && expressionReferencesField(b.default.slice(1))) {
-      result.binds.push({ path: b.path, property: 'default' });
+    });
+    const defaultExpr = bindDefaultFel(bind);
+    if (defaultExpr !== undefined && expressionReferencesField(defaultExpr)) {
+      result.binds.push({ path: bind.path, property: 'default' });
     }
   }
 
   // Check shapes
   for (const shape of def.shapes ?? []) {
-    const s = shape as any;
+    const s: FormShape = shape;
     if (typeof s.constraint === 'string' && expressionReferencesField(s.constraint)) {
       result.shapes.push({ id: s.id, property: 'constraint' });
     }
@@ -50,7 +58,7 @@ export function fieldDependents(state: ProjectState, fieldPath: string): FieldDe
       result.shapes.push({ id: s.id, property: 'activeWhen' });
     }
     if (s.context && typeof s.context === 'object') {
-      for (const [key, value] of Object.entries(s.context as Record<string, unknown>)) {
+      for (const [key, value] of Object.entries(s.context)) {
         if (typeof value === 'string' && expressionReferencesField(value)) {
           result.shapes.push({ id: s.id, property: `context.${key}` });
         }
@@ -60,15 +68,16 @@ export function fieldDependents(state: ProjectState, fieldPath: string): FieldDe
 
   // Check variables
   for (const v of def.variables ?? []) {
-    const va = v as any;
-    if (typeof va.expression === 'string' && expressionReferencesField(va.expression)) {
-      result.variables.push(va.name);
+    const variable: FormVariable = v;
+    if (typeof variable.expression === 'string' && expressionReferencesField(variable.expression)) {
+      result.variables.push(variable.name);
     }
   }
 
   // Check mapping rules
   for (const [mid, m] of Object.entries(state.mappings)) {
-    const rules = (m as any).rules as any[] | undefined;
+    const mapping: MappingState = m;
+    const rules = mapping.rules;
     if (rules) {
       for (let i = 0; i < rules.length; i++) {
         const rule = rules[i];
@@ -89,8 +98,8 @@ export function fieldDependents(state: ProjectState, fieldPath: string): FieldDe
     for (const phase of state.screener.evaluation) {
       for (let i = 0; i < phase.routes.length; i++) {
         const route = phase.routes[i];
-        const condition = (route as any).condition;
-        const score = (route as any).score;
+        const condition = route.condition;
+        const score = route.score;
         if (
           (typeof condition === 'string' && expressionReferencesField(condition)) ||
           (typeof score === 'string' && expressionReferencesField(score))
@@ -115,10 +124,10 @@ export function variableDependents(state: ProjectState, variableName: string): s
   };
 
   for (const bind of state.definition.binds ?? []) {
-    const b = bind as any;
-    for (const prop of ['calculate', 'relevant', 'required', 'readonly', 'constraint']) {
-      if (typeof b[prop] === 'string' && referencesVariable(b[prop])) {
-        paths.push(b.path);
+    for (const prop of BIND_FEL_PROPERTIES) {
+      const expr = bindFelExpression(bind, prop);
+      if (expr !== undefined && referencesVariable(expr)) {
+        paths.push(bind.path);
         break;
       }
     }
@@ -161,39 +170,38 @@ export function dependencyGraph(state: ProjectState): DependencyGraph {
 
   // Add variable nodes
   for (const v of def.variables ?? []) {
-    const va = v as any;
-    addNode(va.name, 'variable');
+    const variable: FormVariable = v;
+    addNode(variable.name, 'variable');
   }
 
   // Add shape nodes
   for (const s of def.shapes ?? []) {
-    addNode((s as any).id, 'shape');
+    const shape: FormShape = s;
+    addNode(shape.id, 'shape');
   }
 
   // Build edges from binds
   for (const bind of def.binds ?? []) {
-    const b = bind as any;
-    for (const prop of ['calculate', 'relevant', 'required', 'readonly', 'constraint']) {
-      if (typeof b[prop] === 'string') {
-        addExpressionEdges(b[prop], b.path, prop);
-      }
-    }
-    if (typeof b.default === 'string' && b.default.startsWith('=')) {
-      addExpressionEdges(b.default.slice(1), b.path, 'default');
+    forEachBindFelExpression(bind, (prop, expression) => {
+      addExpressionEdges(expression, bind.path, prop);
+    });
+    const defaultExpr = bindDefaultFel(bind);
+    if (defaultExpr !== undefined) {
+      addExpressionEdges(defaultExpr, bind.path, 'default');
     }
   }
 
   // Build edges from variables
   for (const v of def.variables ?? []) {
-    const va = v as any;
-    if (typeof va.expression === 'string') {
-      addExpressionEdges(va.expression, va.name, 'variable');
+    const variable: FormVariable = v;
+    if (typeof variable.expression === 'string') {
+      addExpressionEdges(variable.expression, variable.name, 'variable');
     }
   }
 
   // Build edges from shapes
   for (const shape of def.shapes ?? []) {
-    const s = shape as any;
+    const s: FormShape = shape;
     if (typeof s.constraint === 'string') {
       addExpressionEdges(s.constraint, s.id, 'shape.constraint');
     }

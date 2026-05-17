@@ -5,9 +5,10 @@
  * Every function receives `state: ProjectState` as its first parameter
  * and returns a result with no side effects.
  */
-import type { FormItem, FormShape } from '@formspec-org/types';
+import type { FormBind, FormItem, FormShape } from '@formspec-org/types';
 import { itemAtPath, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
-import { getCurrentComponentDocument, getEditableComponentDocument } from '../component-documents.js';
+import { editableComponentTree, walkComponentTree } from '../component-tree.js';
+import { registryEntry } from '../registry-entry.js';
 import type {
   ProjectState,
   ItemFilter,
@@ -73,13 +74,13 @@ export function responseSchemaRows(state: ProjectState): ResponseSchemaRow[] {
   const rows: ResponseSchemaRow[] = [];
   const binds = state.definition.binds ?? [];
 
-  const getBindFor = (path: string) => binds.find((b: any) => b.path === path) as any | undefined;
+  const getBindFor = (path: string) => binds.find(b => b.path === path);
 
   const jsonTypeForItem = (item: FormItem): ResponseSchemaRow['jsonType'] => {
     if (item.type === 'group') {
-      return (item as any).repeatable ? 'array<object>' : 'object';
+      return item.repeatable ? 'array<object>' : 'object';
     }
-    const dataType = (item as any).dataType as string | undefined;
+    const dataType = item.dataType;
     if (dataType === 'integer' || dataType === 'decimal') return 'number';
     if (dataType === 'boolean') return 'boolean';
     return 'string';
@@ -124,7 +125,7 @@ export function instanceNames(state: ProjectState): string[] {
  * All variable names declared in the definition.
  */
 export function variableNames(state: ProjectState): string[] {
-  return (state.definition.variables ?? []).map((v: any) => v.name);
+  return (state.definition.variables ?? []).map(v => v.name);
 }
 
 /**
@@ -135,7 +136,7 @@ export function optionSetUsage(state: ProjectState, name: string): string[] {
   const walk = (items: FormItem[], prefix: string) => {
     for (const item of items) {
       const path = prefix ? `${prefix}.${item.key}` : item.key;
-      if ((item as any).optionSet === name) {
+      if (item.optionSet === name) {
         paths.push(path);
       }
       if (item.children) walk(item.children, path);
@@ -156,9 +157,12 @@ export function searchItems(state: ProjectState, filter: ItemFilter): ItemSearch
       const path = prefix ? `${prefix}.${item.key}` : item.key;
       let match = true;
       if (filter.type && item.type !== filter.type) match = false;
-      if (filter.dataType && (item as any).dataType !== filter.dataType) match = false;
+      if (filter.dataType && item.dataType !== filter.dataType) match = false;
       if (filter.label && !(item.label ?? '').toLowerCase().includes(filter.label.toLowerCase())) match = false;
-      if (filter.hasExtension && !(item as any).extensions?.[filter.hasExtension]) match = false;
+      if (filter.hasExtension) {
+        const ext = item.extensions as Record<string, unknown> | undefined;
+        if (!ext?.[filter.hasExtension]) match = false;
+      }
       if (match) results.push(Object.assign({ path }, item));
       if (item.children) walk(item.children, path);
     }
@@ -181,16 +185,18 @@ export function effectivePresentation(state: ProjectState, fieldKey: string): Re
   if (defaults) Object.assign(result, defaults);
 
   // Tier 2: selectors (document order)
-  const selectors = state.theme.selectors as any[] | undefined;
-  if (selectors) {
-    for (const sel of selectors) {
-      const match = sel.match;
-      if (!match) continue;
-      let matches = true;
-      if (match.type && item.type !== match.type) matches = false;
-      if (match.dataType && (item as any).dataType !== match.dataType) matches = false;
-      if (matches) Object.assign(result, sel.apply);
-    }
+  for (const sel of state.theme.selectors ?? []) {
+    if (typeof sel !== 'object' || sel === null) continue;
+    const selector = sel as {
+      match?: { type?: string; dataType?: string };
+      apply?: Record<string, unknown>;
+    };
+    const match = selector.match;
+    if (!match) continue;
+    let matches = true;
+    if (match.type && item.type !== match.type) matches = false;
+    if (match.dataType && item.dataType !== match.dataType) matches = false;
+    if (matches && selector.apply) Object.assign(result, selector.apply);
   }
 
   // Tier 3: per-item overrides
@@ -206,9 +212,9 @@ export function effectivePresentation(state: ProjectState, fieldKey: string): Re
 export function bindFor(state: ProjectState, path: string): Record<string, unknown> | undefined {
   const binds = state.definition.binds;
   if (!binds) return undefined;
-  const bind = binds.find((b: any) => b.path === path);
+  const bind = binds.find(b => b.path === path);
   if (!bind) return undefined;
-  const { path: _, ...props } = bind as any;
+  const { path: _path, ...props } = bind;
   return Object.keys(props).length > 0 ? props : undefined;
 }
 
@@ -216,15 +222,13 @@ export function bindFor(state: ProjectState, path: string): Record<string, unkno
  * Find the component tree node bound to a field key.
  */
 export function componentFor(state: ProjectState, fieldKey: string): Record<string, unknown> | undefined {
-  const tree = getEditableComponentDocument(state).tree as any;
+  const tree = editableComponentTree(state);
   if (!tree) return undefined;
-  const queue = [tree];
-  while (queue.length > 0) {
-    const node = queue.shift()!;
-    if (node.bind === fieldKey) return node;
-    if (node.children) queue.push(...node.children);
-  }
-  return undefined;
+  let found: Record<string, unknown> | undefined;
+  walkComponentTree(tree, node => {
+    if (!found && node.bind === fieldKey) found = node;
+  });
+  return found;
 }
 
 /**
@@ -233,14 +237,11 @@ export function componentFor(state: ProjectState, fieldKey: string): Record<stri
 export function unboundItems(state: ProjectState): string[] {
   const fieldKeys = fieldPaths(state);
   const boundKeys = new Set<string>();
-  const tree = getEditableComponentDocument(state).tree as any;
+  const tree = editableComponentTree(state);
   if (tree) {
-    const queue = [tree];
-    while (queue.length > 0) {
-      const node = queue.shift()!;
+    walkComponentTree(tree, node => {
       if (node.bind) boundKeys.add(node.bind);
-      if (node.children) queue.push(...node.children);
-    }
+    });
   }
   return fieldKeys.filter(p => !boundKeys.has(p));
 }
@@ -272,8 +273,8 @@ export function allDataTypes(state: ProjectState): DataTypeInfo[] {
 
   for (const reg of state.extensions.registries) {
     for (const entry of Object.values(reg.entries)) {
-      const e = entry as any;
-      if (e.category === 'dataType') {
+      const e = registryEntry(entry);
+      if (e.category === 'dataType' && typeof e.name === 'string') {
         core.push({
           name: e.name,
           source: 'extension',
@@ -292,10 +293,10 @@ export function allDataTypes(state: ProjectState): DataTypeInfo[] {
  * A shape matches if its `target` equals the path (exact) or matches via wildcard (`[*]`).
  */
 export function shapesForPath(state: ProjectState, path: string): FormShape[] {
-  const shapes = (state.definition.shapes ?? []) as FormShape[];
+  const shapes = state.definition.shapes ?? [];
   const normalized = normalizeIndexedPath(path);
-  return shapes.filter(s => {
-    const target = (s as any).target as string | undefined;
+  return shapes.filter((s: FormShape) => {
+    const target = s.target;
     if (!target) return false;
     if (target === path || target === normalized) return true;
     // Wildcard match: target "items[*].amount" matches path "items.amount"
@@ -327,8 +328,7 @@ export function normalizeBinds(state: ProjectState, path: string): NormalizedBin
 
   // Collect from binds
   const binds = state.definition.binds ?? [];
-  for (const b of binds) {
-    const bind = b as any;
+  for (const bind of binds) {
     if (bind.path !== path) continue;
     for (const [key, val] of Object.entries(bind)) {
       if (key === 'path') continue;
@@ -337,7 +337,7 @@ export function normalizeBinds(state: ProjectState, path: string): NormalizedBin
   }
 
   // Overlay from item's prePopulate/initialValue
-  const item = itemAt(state, path) as any;
+  const item = itemAt(state, path);
   if (item) {
     if (item.prePopulate !== undefined) result.prePopulate = item.prePopulate;
     if (item.initialValue !== undefined) result.initialValue = item.initialValue;

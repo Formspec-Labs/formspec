@@ -111,7 +111,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
     }
   }
   for (const issue of validateExtensionUsage(state.definition.items, {
-    resolveEntry: (name) => extensionLookup.get(name) as any,
+    resolveEntry: (name) => extensionLookup.get(name),
   })) {
     extensions.push({
       artifact: 'definition',
@@ -139,7 +139,8 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   ]);
   log('component tree...');
   const componentNodeKeySet = new Set<string>();
-  const tree = getCurrentComponentDocument(state).tree as any;
+  const componentDoc = getCurrentComponentDocument(state);
+  const tree = componentDoc.tree;
   if (tree) {
     const visited = new WeakSet<object>();
     const queue: unknown[] = [tree];
@@ -190,7 +191,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   // Consistency: stale mapping rule source paths
   log('consistency mapping/theme...');
   for (const [mid, m] of Object.entries(state.mappings)) {
-    const rules = (m as any).rules as any[] | undefined;
+    const rules = m.rules;
     if (rules) {
       for (let i = 0; i < rules.length; i++) {
         const sp = rules[i].sourcePath;
@@ -214,16 +215,15 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   }
 
   // Consistency: theme selector matches and stale item/page references
-  const selectors = (state.theme as any).selectors as any[] | undefined;
+  const selectors = state.theme.selectors;
   if (Array.isArray(selectors)) {
     for (let i = 0; i < selectors.length; i++) {
       const selector = selectors[i];
       const match = selector?.match;
       if (!match || typeof match !== 'object') continue;
       const hasMatch = itemRows.some((row) => {
-        const asAny = row.item as any;
         if (typeof match.type === 'string' && row.item.type !== match.type) return false;
-        if (typeof match.dataType === 'string' && asAny.dataType !== match.dataType) return false;
+        if (typeof match.dataType === 'string' && row.item.dataType !== match.dataType) return false;
         return true;
       });
       if (!hasMatch) {
@@ -238,7 +238,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
     }
   }
 
-  const themeItems = (state.theme as any).items as Record<string, unknown> | undefined;
+  const themeItems = state.theme.items;
   if (themeItems) {
     for (const key of Object.keys(themeItems)) {
       if (!itemKeySet.has(key) && !itemPathSet.has(key)) {
@@ -255,9 +255,15 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
 
   // Consistency: stale bound keys inside component tree Page nodes
   // Page nodes live as children of the component tree root with component === 'Page'.
-  const pageNodes: any[] = tree?.children?.filter((c: any) => c.component === 'Page') ?? [];
+  const rootChildren = Array.isArray((tree as { children?: unknown[] } | undefined)?.children)
+    ? (tree as { children: unknown[] }).children
+    : [];
+  const pageNodes = rootChildren.filter(
+    (c): c is { component?: string; children?: { bind?: string }[] } =>
+      typeof c === 'object' && c !== null && (c as { component?: string }).component === 'Page',
+  );
   for (let i = 0; i < pageNodes.length; i++) {
-    const pageChildren = pageNodes[i]?.children as any[] | undefined;
+    const pageChildren = pageNodes[i]?.children;
     if (!Array.isArray(pageChildren)) continue;
     for (let j = 0; j < pageChildren.length; j++) {
       const key = pageChildren[j]?.bind;
@@ -274,12 +280,12 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   }
 
   // Consistency: root-level non-group items in paged definitions
-  const defPageMode = (state.definition as any).formPresentation?.pageMode;
+  const defPageMode = state.definition.formPresentation?.pageMode;
   if (defPageMode === 'wizard' || defPageMode === 'tabs') {
     // Build set of item keys placed on Page nodes in the component tree
     const pagePlacedKeys = new Set<string>();
     for (const pageNode of pageNodes) {
-      for (const child of (pageNode.children ?? []) as any[]) {
+      for (const child of pageNode.children ?? []) {
         if (typeof child.bind === 'string') pagePlacedKeys.add(child.bind);
       }
     }

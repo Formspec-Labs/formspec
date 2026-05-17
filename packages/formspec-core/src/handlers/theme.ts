@@ -18,6 +18,7 @@
  */
 import type { CommandHandler } from '../types.js';
 import type { ThemeState } from '../types.js';
+import { setRecordProperty } from '../record-mutate.js';
 
 function ensureItems(theme: ThemeState): Record<string, any> {
   if (!theme.items) theme.items = {};
@@ -80,7 +81,7 @@ export const themeHandlers = {
   'theme.setSelector': (state, payload) => {
     const { index, match, apply } = payload as { index: number; match?: unknown; apply?: unknown };
     if (!state.theme.selectors?.[index]) throw new Error(`Selector not found at index: ${index}`);
-    const sel = state.theme.selectors[index] as any;
+    const sel = state.theme.selectors[index] as { match?: unknown; apply?: unknown };
     if (match !== undefined) sel.match = match;
     if (apply !== undefined) sel.apply = apply;
     return { rebuildComponentTree: false };
@@ -184,22 +185,14 @@ export const themeHandlers = {
 
   'theme.setDocumentProperty': (state, payload) => {
     const { property, value } = payload as { property: string; value: unknown };
-    if (value === null) {
-      delete (state.theme as any)[property];
-    } else {
-      (state.theme as any)[property] = value;
-    }
+    setRecordProperty(state.theme, property, value);
     return { rebuildComponentTree: false };
   },
 
   'theme.setExtension': (state, payload) => {
     const { key, value } = payload as { key: string; value: unknown };
     if (!state.theme.extensions) state.theme.extensions = {};
-    if (value === null) {
-      delete (state.theme.extensions as any)[key];
-    } else {
-      (state.theme.extensions as any)[key] = value;
-    }
+    setRecordProperty(state.theme.extensions, key, value);
     return { rebuildComponentTree: false };
   },
 

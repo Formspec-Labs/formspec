@@ -33,7 +33,7 @@ export function buildSearchIndex(state: ProjectState): SearchIndexEntry[] {
         path,
         label: item.label || item.key,
         type: item.type,
-        dataType: (item as any).dataType,
+        dataType: item.dataType,
       });
       if (item.children?.length) {
         walk(item.children, path);

@@ -10,7 +10,7 @@
  * @module handlers/mapping
  */
 import type { CommandHandler, ProjectState, MappingState } from '../types.js';
-import type { FormItem } from '@formspec-org/types';
+import type { FieldRule, FormItem, TargetSchema } from '@formspec-org/types';
 
 /** Helper to resolve the target mapping record from state and payload. */
 function getMapping(state: ProjectState, mappingId?: string): MappingState {
@@ -21,10 +21,32 @@ function getMapping(state: ProjectState, mappingId?: string): MappingState {
   return state.mappings[id];
 }
 
+function mappingRecordProperty(mapping: MappingState, property: string, value: unknown): void {
+  if (value === null) {
+    delete mapping[property];
+  } else {
+    mapping[property] = value;
+  }
+}
+
+function newFieldRule(partial: {
+  sourcePath?: string;
+  targetPath?: string;
+  transform?: FieldRule['transform'];
+}): FieldRule {
+  const rule: FieldRule = { transform: partial.transform ?? 'preserve' };
+  if (partial.sourcePath !== undefined) rule.sourcePath = partial.sourcePath;
+  if (partial.targetPath !== undefined) rule.targetPath = partial.targetPath;
+  return rule;
+}
+
 export const mappingHandlers = {
 
   'mapping.create': (state, payload) => {
-    const { id, targetSchema, ...rest } = payload as { id: string; targetSchema?: any };
+    const { id, targetSchema, ...rest } = payload as {
+      id: string;
+      targetSchema?: TargetSchema;
+    };
     if (state.mappings[id]) throw new Error(`Mapping already exists: ${id}`);
     state.mappings[id] = {
       rules: [],
@@ -63,18 +85,14 @@ export const mappingHandlers = {
   'mapping.setProperty': (state, payload) => {
     const { mappingId, property, value } = payload as { mappingId?: string; property: string; value: unknown };
     const mapping = getMapping(state, mappingId);
-    if (value === null) {
-      delete (mapping as any)[property];
-    } else {
-      (mapping as any)[property] = value;
-    }
+    mappingRecordProperty(mapping, property, value);
     return { rebuildComponentTree: false };
   },
 
   'mapping.setTargetSchema': (state, payload) => {
     const { mappingId, property, value } = payload as { mappingId?: string; property: string; value: unknown };
     const mapping = getMapping(state, mappingId);
-    if (!mapping.targetSchema) mapping.targetSchema = {};
+    if (!mapping.targetSchema) mapping.targetSchema = { format: 'json' };
     if (value === null) {
       delete mapping.targetSchema[property];
     } else {
@@ -84,27 +102,35 @@ export const mappingHandlers = {
   },
 
   'mapping.addRule': (state, payload) => {
-    const p = payload as { mappingId?: string; sourcePath?: string; targetPath?: string; transform?: string; insertIndex?: number };
+    const p = payload as {
+      mappingId?: string;
+      sourcePath?: string;
+      targetPath?: string;
+      transform?: FieldRule['transform'];
+      insertIndex?: number;
+    };
     const mapping = getMapping(state, p.mappingId);
     if (!mapping.rules) mapping.rules = [];
 
-    const rule: any = {};
-    if (p.sourcePath !== undefined) rule.sourcePath = p.sourcePath;
-    if (p.targetPath !== undefined) rule.targetPath = p.targetPath;
-    rule.transform = p.transform ?? 'preserve';
+    const rule = newFieldRule(p);
 
     if (p.insertIndex !== undefined) {
-      (mapping.rules as any[]).splice(p.insertIndex, 0, rule);
+      mapping.rules.splice(p.insertIndex, 0, rule);
     } else {
-      (mapping.rules as any[]).push(rule);
+      mapping.rules.push(rule);
     }
     return { rebuildComponentTree: false };
   },
 
   'mapping.setRule': (state, payload) => {
-    const { mappingId, index, property, value } = payload as { mappingId?: string; index: number; property: string; value: unknown };
+    const { mappingId, index, property, value } = payload as {
+      mappingId?: string;
+      index: number;
+      property: string;
+      value: unknown;
+    };
     const mapping = getMapping(state, mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules?.[index]) throw new Error(`Rule not found at index: ${index}`);
     rules[index][property] = value;
     return { rebuildComponentTree: false };
@@ -114,7 +140,7 @@ export const mappingHandlers = {
     const { mappingId, index } = payload as { mappingId?: string; index: number };
     const mapping = getMapping(state, mappingId);
     if (!mapping.rules) return { rebuildComponentTree: false };
-    (mapping.rules as any[]).splice(index, 1);
+    mapping.rules.splice(index, 1);
     return { rebuildComponentTree: false };
   },
 
@@ -128,7 +154,7 @@ export const mappingHandlers = {
   'mapping.reorderRule': (state, payload) => {
     const { mappingId, index, direction } = payload as { mappingId?: string; index: number; direction: 'up' | 'down' };
     const mapping = getMapping(state, mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules) return { rebuildComponentTree: false };
     const target = direction === 'up' ? index - 1 : index + 1;
     if (target < 0 || target >= rules.length) return { rebuildComponentTree: false };
@@ -139,15 +165,15 @@ export const mappingHandlers = {
   'mapping.setAdapter': (state, payload) => {
     const { mappingId, format, config } = payload as { mappingId?: string; format: string; config: unknown };
     const mapping = getMapping(state, mappingId);
-    if (!(mapping as any).adapters) (mapping as any).adapters = {};
-    (mapping as any).adapters[format] = config;
+    if (!mapping.adapters) mapping.adapters = {};
+    mapping.adapters[format] = config;
     return { rebuildComponentTree: false };
   },
 
   'mapping.setDefaults': (state, payload) => {
     const { mappingId, defaults } = payload as { mappingId?: string; defaults: Record<string, unknown> };
     const mapping = getMapping(state, mappingId);
-    (mapping as any).defaults = defaults;
+    mapping.defaults = defaults;
     return { rebuildComponentTree: false };
   },
 
@@ -156,17 +182,15 @@ export const mappingHandlers = {
     const mapping = getMapping(state, p.mappingId);
     if (!mapping.rules) mapping.rules = [];
 
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
 
     if (p.replace) {
-      // Remove previously auto-generated rules
       for (let i = rules.length - 1; i >= 0; i--) {
         if (rules[i]['x-autoGenerated']) rules.splice(i, 1);
       }
     }
 
-    // Collect all field paths
-    const covered = new Set(rules.map((r: any) => r.sourcePath));
+    const covered = new Set(rules.map(r => r.sourcePath));
     const fieldPaths: string[] = [];
     const walk = (items: FormItem[], prefix: string) => {
       for (const item of items) {
@@ -195,18 +219,14 @@ export const mappingHandlers = {
   'mapping.setExtension': (state, payload) => {
     const { mappingId, key, value } = payload as { mappingId?: string; key: string; value: unknown };
     const mapping = getMapping(state, mappingId);
-    if (value === null) {
-      delete (mapping as any)[key];
-    } else {
-      (mapping as any)[key] = value;
-    }
+    mappingRecordProperty(mapping, key, value);
     return { rebuildComponentTree: false };
   },
 
   'mapping.setRuleExtension': (state, payload) => {
     const { mappingId, index, key, value } = payload as { mappingId?: string; index: number; key: string; value: unknown };
     const mapping = getMapping(state, mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules?.[index]) throw new Error(`Rule not found at index: ${index}`);
     if (value === null) {
       delete rules[index][key];
@@ -218,20 +238,21 @@ export const mappingHandlers = {
 
   'mapping.addInnerRule': (state, payload) => {
     const p = payload as {
-      mappingId?: string; ruleIndex: number; sourcePath?: string; targetPath?: string;
-      transform?: string; insertIndex?: number;
+      mappingId?: string;
+      ruleIndex: number;
+      sourcePath?: string;
+      targetPath?: string;
+      transform?: FieldRule['transform'];
+      insertIndex?: number;
     };
     const mapping = getMapping(state, p.mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules?.[p.ruleIndex]) throw new Error(`Rule not found at index: ${p.ruleIndex}`);
 
     const rule = rules[p.ruleIndex];
     if (!rule.innerRules) rule.innerRules = [];
 
-    const inner: any = {};
-    if (p.sourcePath !== undefined) inner.sourcePath = p.sourcePath;
-    if (p.targetPath !== undefined) inner.targetPath = p.targetPath;
-    inner.transform = p.transform ?? 'preserve';
+    const inner = newFieldRule(p);
 
     if (p.insertIndex !== undefined) {
       rule.innerRules.splice(p.insertIndex, 0, inner);
@@ -243,32 +264,39 @@ export const mappingHandlers = {
 
   'mapping.setInnerRule': (state, payload) => {
     const { mappingId, ruleIndex, innerIndex, property, value } = payload as {
-      mappingId?: string; ruleIndex: number; innerIndex: number; property: string; value: unknown;
+      mappingId?: string;
+      ruleIndex: number;
+      innerIndex: number;
+      property: string;
+      value: unknown;
     };
     const mapping = getMapping(state, mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules?.[ruleIndex]?.innerRules?.[innerIndex]) throw new Error('Inner rule not found');
-    rules[ruleIndex].innerRules[innerIndex][property] = value;
+    rules[ruleIndex].innerRules![innerIndex][property] = value;
     return { rebuildComponentTree: false };
   },
 
   'mapping.deleteInnerRule': (state, payload) => {
     const { mappingId, ruleIndex, innerIndex } = payload as { mappingId?: string; ruleIndex: number; innerIndex: number };
     const mapping = getMapping(state, mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules?.[ruleIndex]?.innerRules) throw new Error('Inner rules not found');
-    rules[ruleIndex].innerRules.splice(innerIndex, 1);
+    rules[ruleIndex].innerRules!.splice(innerIndex, 1);
     return { rebuildComponentTree: false };
   },
 
   'mapping.reorderInnerRule': (state, payload) => {
     const { mappingId, ruleIndex, innerIndex, direction } = payload as {
-      mappingId?: string; ruleIndex: number; innerIndex: number; direction: 'up' | 'down';
+      mappingId?: string;
+      ruleIndex: number;
+      innerIndex: number;
+      direction: 'up' | 'down';
     };
     const mapping = getMapping(state, mappingId);
-    const rules = mapping.rules as any[];
+    const rules = mapping.rules;
     if (!rules?.[ruleIndex]?.innerRules) throw new Error('Inner rules not found');
-    const inner = rules[ruleIndex].innerRules;
+    const inner = rules[ruleIndex].innerRules!;
     const target = direction === 'up' ? innerIndex - 1 : innerIndex + 1;
     if (target < 0 || target >= inner.length) return { rebuildComponentTree: false };
     [inner[innerIndex], inner[target]] = [inner[target], inner[innerIndex]];
