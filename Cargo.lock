@@ -538,6 +538,7 @@ dependencies = [
  "integrity-bundle-fixtures",
  "integrity-canonical",
  "integrity-cbor",
+ "integrity-cose",
  "jsonschema",
  "serde",
  "serde_json",

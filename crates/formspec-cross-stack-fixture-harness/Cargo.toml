@@ -17,6 +17,7 @@ ciborium = "0.2"
 formspec-signature-adapter-ring = { path = "../formspec-signature-adapter-ring" }
 formspec-signature-cose = { path = "../formspec-signature-cose" }
 formspec-signature-port = { path = "../formspec-signature-port" }
+integrity-cose = { path = "../../../integrity-stack/crates/integrity-cose" }
 integrity-cbor = { path = "../../../integrity-stack/crates/integrity-cbor", features = ["json"] }
 jsonschema = { version = "0.45", default-features = false }
 serde = { version = "1", features = ["derive"] }

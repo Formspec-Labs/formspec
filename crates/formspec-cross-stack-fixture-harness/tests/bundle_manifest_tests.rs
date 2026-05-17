@@ -306,17 +306,43 @@ fn load_receipt_fixture(
             serde_json::from_slice(receipt_payload).expect("parse VerificationReceipt payload")
         }
         FixtureVerificationReceipt::Structured(inline_receipt) => {
-            structured_receipt_from_cose(&receipt_cose, &receipt_b64, inline_receipt)
-                .expect("structured verificationReceipt must bind receiptBytes to its body")
+            let receipt_signing_public_key =
+                load_receipt_signing_public_key(&bundle_dir, bundle_name);
+            structured_receipt_from_cose(
+                &receipt_cose,
+                &receipt_b64,
+                inline_receipt,
+                receipt_signing_public_key,
+            )
+            .expect("structured verificationReceipt must bind receiptBytes to its body")
         }
     };
     (receipt_bytes, receipt)
+}
+
+fn load_receipt_signing_public_key(bundle_dir: &std::path::Path, bundle_name: &str) -> [u8; 32] {
+    use base64::Engine;
+
+    let path = bundle_dir.join("receipt-signing-public-key.b64");
+    let encoded = std::fs::read_to_string(&path).unwrap_or_else(|error| {
+        panic!(
+            "{bundle_name} structured verificationReceipt requires {}: {error}",
+            path.display()
+        )
+    });
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded.trim())
+        .expect("decode receipt-signing-public-key.b64");
+    bytes
+        .try_into()
+        .expect("receipt-signing-public-key.b64 must decode to a 32-byte Ed25519 public key")
 }
 
 fn structured_receipt_from_cose(
     receipt_cose: &formspec_signature_cose::CoseSign1,
     receipt_b64: &str,
     inline_receipt: &formspec_signature_port::VerificationReceipt,
+    receipt_signing_public_key: [u8; 32],
 ) -> Result<formspec_signature_port::VerificationReceipt, String> {
     if inline_receipt.receipt_bytes.as_deref() != Some(receipt_b64) {
         return Err(
@@ -333,6 +359,23 @@ fn structured_receipt_from_cose(
         .map_err(|error| {
             format!("COSE receipt payload does not match structured receipt body: {error}")
         })?;
+    let signature: [u8; 64] = receipt_cose
+        .signature()
+        .try_into()
+        .map_err(|_| "COSE receipt signature must be 64 bytes".to_string())?;
+    let sig_structure = formspec_signature_cose::sig_structure_bytes(
+        receipt_cose.protected_header(),
+        &canonical_payload,
+    );
+    if !integrity_cose::verify_ed25519_signature(
+        receipt_signing_public_key,
+        &sig_structure,
+        signature,
+    ) {
+        return Err(
+            "COSE receipt signature does not verify over structured receipt body".to_string(),
+        );
+    }
     Ok(inline_receipt.clone())
 }
 
@@ -389,7 +432,8 @@ fn structured_receipt_accepts_detached_canonical_receipt_bytes() {
     };
     use formspec_signature_port::ReceiptSigner;
 
-    let (signer, _) = InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("signer");
+    let (signer, receipt_public_key) =
+        InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("signer");
     let mut receipt = sample_verification_receipt(None);
     let canonical = formspec_signature_adapter_ring::canonical_receipt_payload_bytes(&receipt)
         .expect("canonical receipt payload");
@@ -400,10 +444,54 @@ fn structured_receipt_accepts_detached_canonical_receipt_bytes() {
         decode_cose_sign1_with_method_uri(&receipt_bytes, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
             .expect("decode detached receipt");
 
-    let parsed = structured_receipt_from_cose(&receipt_cose, &receipt_b64, &receipt)
-        .expect("structured receipt should use canonical detached payload");
+    let parsed = structured_receipt_from_cose(
+        &receipt_cose,
+        &receipt_b64,
+        &receipt,
+        receipt_public_key.try_into().expect("32-byte public key"),
+    )
+    .expect("structured receipt should use canonical detached payload");
 
     assert_eq!(parsed, receipt);
+}
+
+#[test]
+fn structured_receipt_rejects_detached_signature_over_different_body() {
+    use base64::Engine;
+    use formspec_signature_adapter_ring::InProcessReceiptSigner;
+    use formspec_signature_cose::{
+        FORMSPEC_RECEIPT_METHOD_URI_PREFIX, decode_cose_sign1_with_method_uri,
+    };
+    use formspec_signature_port::ReceiptSigner;
+
+    let (signer, receipt_public_key) =
+        InProcessReceiptSigner::generate(Some(b"receipt-kid")).expect("signer");
+    let signed_receipt = sample_verification_receipt(None);
+    let signed_canonical =
+        formspec_signature_adapter_ring::canonical_receipt_payload_bytes(&signed_receipt)
+            .expect("canonical signed receipt payload");
+    let receipt_bytes = signer
+        .sign_receipt(&signed_canonical)
+        .expect("sign original receipt body");
+    let receipt_b64 = base64::engine::general_purpose::STANDARD.encode(&receipt_bytes);
+    let mut claimed_receipt = sample_verification_receipt(Some(receipt_b64.clone()));
+    claimed_receipt.verified_at = "2026-05-17T00:01:00Z".to_string();
+    let (receipt_cose, _) =
+        decode_cose_sign1_with_method_uri(&receipt_bytes, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
+            .expect("decode detached receipt");
+
+    let error = structured_receipt_from_cose(
+        &receipt_cose,
+        &receipt_b64,
+        &claimed_receipt,
+        receipt_public_key.try_into().expect("32-byte public key"),
+    )
+    .expect_err("detached receipt signature must bind the structured receipt body");
+
+    assert!(
+        error.contains("signature does not verify"),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
@@ -427,7 +515,7 @@ fn structured_receipt_rejects_embedded_payload_that_differs_from_body() {
         decode_cose_sign1_with_method_uri(&receipt_bytes, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
             .expect("decode embedded receipt");
 
-    let error = structured_receipt_from_cose(&receipt_cose, &receipt_b64, &receipt)
+    let error = structured_receipt_from_cose(&receipt_cose, &receipt_b64, &receipt, [0; 32])
         .expect_err("embedded receipt payload must match the structured receipt body");
 
     assert!(
@@ -601,6 +689,19 @@ fn test_bundle_001_has_expected_shape() {
 fn test_bundle_001_bytes_verify_with_ring_adapter() {
     let fixture = load_verified_response_fixture("001-standalone-formspec-verified");
     verify_with_ring(&fixture);
+}
+
+#[test]
+fn test_bundle_008_structured_detached_receipt_verifies() {
+    let fixture = load_verified_response_fixture("008-structured-detached-receipt");
+    verify_with_ring(&fixture);
+    assert!(
+        matches!(
+            fixture.signature.verification_receipt,
+            Some(FixtureVerificationReceipt::Structured(_))
+        ),
+        "bundle 008 must exercise the structured verificationReceipt branch"
+    );
 }
 
 #[test]

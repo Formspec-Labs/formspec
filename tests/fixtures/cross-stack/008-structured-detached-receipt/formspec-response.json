@@ -1,0 +1,70 @@
+{
+  "$formspecResponse": "1.0",
+  "authored": "2026-05-08T17:30:00Z",
+  "authoredSignatures": [
+    {
+      "affirmationText": "I certify under penalty of perjury that this submission is true and complete.",
+      "ceremonyId": "ceremony-cross-stack-001",
+      "consentAccepted": true,
+      "consentTextRef": "urn:agency.gov:consent:esign-benefits:v1",
+      "consentVersion": "1.0.0",
+      "documentHash": "f724d236755e33c2969d66c62efcd956e425529d3dcedff47e5ed0877d101ac4",
+      "documentHashAlgorithm": "sha-256",
+      "documentId": "benefitsApplication",
+      "identityBinding": {
+        "assuranceLevel": "standard",
+        "method": "email-otp",
+        "providerRef": "urn:agency.gov:identity:providers:fixture-email-otp"
+      },
+      "identityProofRef": "urn:agency.gov:identity-proof:cross-stack-fixture-001",
+      "signatureId": "sig-cross-stack-001",
+      "signatureProvider": "urn:formspec:signature-provider:fixture-webcrypto",
+      "signatureValue": "0oRYS6MBJwRTZml4dHVyZS0wMDEtZWQyNTUxOToAAQADeCx1cm46Zm9ybXNwZWM6c2lnLW1ldGhvZDplZDI1NTE5LWNvc2Utc2lnbjFAMaD2WEBczSFjV72ghbVDcaaWb2itz3JUclhx7zABDzT/wBk5jwzBANu5qXF8w45QMD2XQ5917Ydy4+qzi/BxXVpVhhcA",
+      "signedPayload": {
+        "canonicalization": "formspec-response-signing-v1",
+        "definitionUrl": "https://example.org/forms/cross-stack-signature-001",
+        "definitionVersion": "1.0.0",
+        "digest": "de16829bf9271c3910c4d23cdf5fc5624074516080351ef90fc410cef15d2189",
+        "digestAlgorithm": "sha-256",
+        "responseId": "resp-cross-stack-001",
+        "signedAt": "2026-05-08T17:30:00Z",
+        "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1"
+      },
+      "signerId": "applicant",
+      "signerName": "Ada Lovelace",
+      "signingIntent": "urn:agency.gov:signing-intent:benefits-application-certification:v1",
+      "verificationReceipt": {
+        "adapter": {
+          "id": "urn:formspec:adapter:ring@1",
+          "version": "0.1.0"
+        },
+        "context": {
+          "witness": {
+            "anchor": {
+              "eventHash": "CyDJGj8zL5R7IbeHO/n0d1oQXC6ZxlYY+7UgrcB26NI=",
+              "ledgerScope": "formspec-cross-stack-fixture-001"
+            }
+          }
+        },
+        "key": {
+          "ref": "rJZeQ1/vSZb9ubDikBfgdGTja71QF/6t5ZoDQhcgYV4=",
+          "snapshot": "rJZeQ1/vSZb9ubDikBfgdGTja71QF/6t5ZoDQhcgYV4="
+        },
+        "method": "urn:formspec:sig-method:ed25519-cose-sign1@1",
+        "methodRegistryVersion": "1.1.0",
+        "receiptBytes": "0oRYT6MBJwRTZml4dHVyZS0wMDgtcmVjZWlwdDoAAQADeDB1cm46Zm9ybXNwZWM6cmVjZWlwdC1tZXRob2Q6ZWQyNTUxOS1jb3NlLXNpZ24xQDGg9lhAAWPdqZlL1lnlOTBfGOQCkfsV28yI/yqKFrm6x/a24q/9Lavp+gdK6mk7RgBoZ7IvgXHz/tZxTNZFFvdcRUU7Cg==",
+        "result": "verified",
+        "verifiedAt": "2026-05-08T17:31:00Z"
+      }
+    }
+  ],
+  "data": {
+    "benefitProgram": "cross-stack-fixture",
+    "consentAccepted": true,
+    "signerName": "Ada Lovelace"
+  },
+  "definitionUrl": "https://example.org/forms/cross-stack-signature-001",
+  "definitionVersion": "1.0.0",
+  "id": "resp-cross-stack-001",
+  "status": "completed"
+}

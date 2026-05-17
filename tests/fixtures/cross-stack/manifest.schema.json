@@ -12,8 +12,8 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^00[1-7]$",
-          "description": "Bundle identifier (001-007)"
+          "pattern": "^00[1-8]$",
+          "description": "Bundle identifier (001-008)"
         },
         "name": {
           "type": "string",
