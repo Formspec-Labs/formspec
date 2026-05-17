@@ -10,6 +10,7 @@
 import type { CommandHandler, LocaleState, ProjectBundle } from '../types.js';
 import type { FormItem } from '@formspec-org/types';
 import { normalizeComponentState } from '../component-documents.js';
+import { themeStateFromDocument } from '../document-envelopes.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
 import { normalizeBcp47 } from '@formspec-org/engine';
 import { indexRegistryPayload } from '../registry-index.js';
@@ -32,7 +33,7 @@ export const projectHandlers = {
       state.component = normalizeComponentState(state.component, state.definition.url);
     }
     if (p.theme) {
-      state.theme = p.theme as unknown as typeof state.theme;
+      state.theme = themeStateFromDocument(p.theme);
     }
 
     if (p.mappings) {

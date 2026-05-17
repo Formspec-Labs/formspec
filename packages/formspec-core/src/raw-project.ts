@@ -92,6 +92,7 @@ import {
   withComponentEnvelope,
   withMappingEnvelope,
   withThemeEnvelope,
+  viewThemeDocument,
 } from './document-envelopes.js';
 
 /** Components that manage their own group path binding and MUST keep their bind on export. */
@@ -358,7 +359,7 @@ export class RawProject implements IProjectCore {
   }
 
   get theme(): Readonly<ThemeDocument> {
-    return this._state.theme as unknown as ThemeDocument;
+    return viewThemeDocument(this._state.theme);
   }
 
   get mappings(): Readonly<Record<string, MappingDocument>> {

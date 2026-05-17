@@ -24,6 +24,28 @@ export function withThemeEnvelope(body: ThemeState, definitionUrl: string): Them
   } as ThemeDocument;
 }
 
+/**
+ * View working theme state as a ThemeDocument (same object reference; envelope
+ * fields are added only at export via {@link withThemeEnvelope}).
+ */
+export function viewThemeDocument(theme: ThemeState): ThemeDocument {
+  return theme as unknown as ThemeDocument;
+}
+
+/** Strip envelope fields from an imported theme document into working state. */
+export function themeStateFromDocument(doc: ThemeDocument): ThemeState {
+  const {
+    $formspecTheme: _v,
+    url: _url,
+    version: _version,
+    name: _name,
+    title: _title,
+    description: _description,
+    ...rest
+  } = doc;
+  return rest as ThemeState;
+}
+
 export function withMappingEnvelope(body: MappingState, definitionUrl: string): MappingDocument {
   const { rules, targetSchema, definitionRef, definitionVersion, ...rest } = body;
   return {

@@ -180,6 +180,18 @@ describe('RawProject', () => {
       expect(parsed.extensions.registries[0].entries['x-test']).toBeDefined();
     });
 
+    it('theme getter exposes ThemeDocument fields from working state', () => {
+      const raw = createRawProject({
+        seed: {
+          theme: {
+            targetDefinition: { url: 'urn:formspec:def-1' },
+            defaults: { labelPosition: 'top' },
+          },
+        },
+      });
+      expect(raw.theme.defaults?.labelPosition).toBe('top');
+    });
+
     it('registry queries work after JSON round-trip and re-seeding', () => {
       const raw = createRawProject();
       raw.dispatch({
