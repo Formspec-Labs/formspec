@@ -31,6 +31,22 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
    **Acceptance:** Formspec, WOS, Trellis Rust, Trellis Python, and TypeScript adapter tests consume the same canonical payload/COSE/receipt vectors for all overlapping behavior.
 
+- **FORMSPEC-CBOR-CROSS-ENCODER-RECONCILIATION-001 - Reconcile cbor2 canonical mode and integrity-cbor map-key ordering** · `fs-qwyb` · P1
+
+   Empirical finding (trellis-scout review of session 2026-05-16): cbor2.dumps(canonical=True) and integrity-cbor::json_to_dcbor_bytes produce BYTE-DIFFERENT output for the committed cross-stack bundles 002/003/004/006 (trellis-events.cbor + wos-provenance.cbor). Concretely, bundle 002's outer map has keys 'records' (len 7) and '$wosProvenanceBundle' (len 20); cbor2 orders 'records' first (RFC 7049 §3.9 length-first); integrity-cbor orders '$wosProvenanceBundle' first because its sort is content-bytewise without the length prefix participating in the ordering (despite the code at integrity-stack/crates/integrity-cbor/src/lib.rs:338 claiming to sort by encoded_cbor_key_bytes which includes the major-type prefix).
+
+   Today no production consumer re-encodes the bundles; the harness uses ciborium::de::from_reader (read-only). The divergence is DORMANT but will bite when: (1) a future Rust bundle generator emits trellis-events.cbor via integrity-cbor; (2) fs-bmyq cross-adapter byte-equivalence harness runs Rust-side re-encoding; (3) any Trellis verifier consults the canonical event registry to re-derive bundle bytes.
+
+   Empirical proof landed: formspec/crates/formspec-cross-stack-fixture-harness/tests/cbor_canonical_parity.rs has an #[ignore]'d cross_stack_bundles_match_integrity_cbor_byte_authority parity test (target shape) + a passing cross_encoder_ordering_diverges_on_committed_bundles regression check (catches a silent fix).
+
+   Resolution requires a Trellis-expert decision: which sort discipline should integrity-cbor implement — RFC 7049 §3.9 length-first, RFC 8949 §4.2 bytewise-on-deterministic-encoding (the dCBOR standard per Trellis Core §5), or something else? Then coordinated regen of every committed Rust fixture that depended on the current sort + every Python-authored fixture that depended on cbor2's sort. ADR 0004 (Rust as byte authority) pins Rust as the canonical encoder — so cbor2 should match integrity-cbor's output, meaning bundles 002/003/004/006 may need regeneration once integrity-cbor's sort is verified against Trellis Core §5.
+
+   **Acceptance:**
+     - integrity-cbor::json_to_dcbor_bytes(...) produces byte-identical output to whichever canonical encoder Python uses (cbor2 with the matching mode, OR a Python re-export of integrity-cbor's Rust output).
+     - The ignored parity test promotes to load-bearing; the regression check inverts (asserts equality, not divergence).
+     - Every cross-stack bundle that re-encodes through integrity-cbor matches its committed bytes.
+     - Trellis Core §5 / ADR 0004 byte-authority discipline reaffirmed.
+
 **P2 — standard:**
 
 - **Cross-adapter byte-equivalence harness — webcrypto + trellis consume ring vectors** · `fs-bmyq` · P2
@@ -41,11 +57,11 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - **FORMSPEC-SIGNATURE-ADAPTER-TRELLIS-001 — Trellis-side Formspec signature handling** · `fs-fmc9` · P2
    links T4-SIG-RECEIPT-001 — signed receipt + cross-adapter byte… `fs-m4v5`, Trellis #19 — TRELLIS-CERTIFICATE-RECEIPT-EMBEDDING-001:… `fs-qlgh`, Cross-adapter byte-equivalence harness — webcrypto +… `fs-bmyq`
 
-   **Status reframed 2026-05-15 after scout audit.** The earlier "LANDED" claim that named a `trellis-formspec-signature` Verifier crate was fossil text from the pre-convergence plan; that crate does not exist and was deliberately abandoned. Per archived signature-wire-convergence plan F-5 (`thoughts/archive/plans/2026-05-09-signature-wire-convergence-plan.md:381-385`), Trellis does NOT carry an independent Verifier port — verification routes through `integrity-verify` (substrate primitive), and the Trellis bridge lives in `trellis-admission-formspec` which calls `integrity_verify::FORMSPEC_PROFILE_ID` for byte-integrity attestation only.
+   **Status reframed 2026-05-16 after ADR 0109.** The earlier "LANDED" claim that named a `trellis-formspec-signature` Verifier crate was fossil text from the pre-convergence plan; that crate does not exist and was deliberately abandoned. Per archived signature-wire-convergence plan F-5 (`thoughts/archive/plans/2026-05-09-signature-wire-convergence-plan.md:381-385`), Trellis does NOT carry an independent Verifier port. Post-ADR-0109, consumer signature dispatch is method-URI based and lives above Trellis admission through `integrity-cose` plus the Formspec method registry.
 
    LANDED:
    - Companion spec `trellis/specs/companion/formspec-signature-corroboration.md` (status: "Accepted, implementation deferred to adapter integration follow-up").
-   - `trellis/crates/trellis-admission-formspec` bridge crate using `integrity_verify::FORMSPEC_PROFILE_ID`.
+   - `trellis/crates/trellis-admission-formspec` bridge crate for Formspec aggregate append events.
    - Ed25519 COSE_Sign1 verification via shared `integrity-cose` (renamed from `formspec-signature-cose`).
 
    REMAINING (re-scoped):
@@ -535,10 +551,12 @@ Cross-cutting sweeps (Top 7) + per-package cleanup tickets follow. See thoughts/
 
    **High (cross-stack).** Two related findings about how crypto deps and alg ids are typed across the workspace.
 
+   **Status update 2026-05-16:** ADR 0109 closed one of the original findings by deletion: the retired integer dispatch path was removed from `formspec-signature-cose` entirely. The closed finding below records that closure for traceability. The remaining four findings stand.
+
    **Findings:**
    - formspec-signature-port/src/lib.rs:236 — RegistryEntry.alg: Option<i32>. integrity-cose stores COSE alg as i128 (matching CBOR major-0/major-1 range). Formspec registry truncates. `i128::from(alg)` at adapter (-adapter-ring/src/lib.rs:179) papers over it. Future neg alg id outside i32 silently loses fidelity.
    - formspec-signature-cose/src/lib.rs:53 — protected_header_bytes takes alg: i32, widens to i128 before forwarding. Public signature width disagrees with byte authority.
-   - formspec-signature-cose/src/lib.rs:84-89 — `expect("decode guarantees profile_id")` panic site inside extract_profile_id. Internal invariant — replace with FormspecCoseError::Decode internal-invariant variant. Panics in crypto paths are DoS.
+   - ~~formspec-signature-cose/src/lib.rs:84-89 — panic site inside the retired integer-dispatch extractor. Internal invariant — replace with FormspecCoseError::Decode internal-invariant variant. Panics in crypto paths are DoS.~~ **Closed by ADR 0109 (P3-T3, 2026-05-16):** the extractor and retired dispatch field no longer exist in the crate.
    - formspec-signature-cose/src/lib.rs:23 — FormspecCoseError::Decode(String) flattens typed CoseError. #[from] CoseError via thiserror or Decode { source: CoseError }.
    - formspec-signature-adapter-ring/Cargo.toml:12-13 — ring and base64 pinned per-crate (also appears in formspec-cross-stack-fixture-harness, formspec-wasm). Three independent pins for security-critical deps. Move to [workspace.dependencies].
 
@@ -781,23 +799,6 @@ Cross-cutting sweeps (Top 7) + per-package cleanup tickets follow. See thoughts/
    - packages/formspec-react/src/defaults/fields/default-field.tsx (1398 lines) — split: defaults/fields/controls/{select,combobox-select,date-picker,number-input,money-input,slider,rating,signature,file-upload,checkbox-group,toggle}.tsx. Keep default-field.tsx as dispatch.
 
    **Acceptance:** node-renderer.tsx <300 lines (dispatch only). default-field.tsx <300 lines (dispatch only). All extracted files <400 lines. Public API unchanged; tests pass.
-
-- **FORMSPEC-PR-PY-AUDIT-PARSE-ANSWER-STATE — Audit pure-Python src/formspec/ for parallel parse_answer_state-like code** · `fs-iphx` · P2
-
-   **Medium (potential silent drift).** Cross-runtime-parity architect flagged: fs-9m35 (commit ba51aa22) lifted `parse_answer_state` from formspec-wasm + formspec-py inline duplicates into shared `formspec-eval`. The lift was byte-verified for the Rust-side Python binding (`_rust.py` path). But the pure-Python reference evaluator at `src/formspec/` MAY have its own parallel parser outside the lift's scope.
-
-   **Risk:** if pure-Python path has its own `'declined' | 'not-presented' | _ => 'answered'` parser, that's another parallel implementation — exact same architectural defect the lift was supposed to fix.
-
-   **Site to audit:** `src/formspec/` (the pure-Python reference evaluator that doesn't go through the Rust bridge).
-
-   **Approach:**
-   1. Grep: `grep -rn '"declined"\\|"not-presented"\\|AnswerState' src/formspec/ --include='*.py'`
-   2. If found: lift the parser into a shared location (formspec/_diagnostics.py or similar leaf module) so all consumers — Rust bridge AND pure-Python — agree on one definition.
-   3. If not found: document explicitly in a comment somewhere that the pure-Python path does not need answer-state parsing (e.g., because it never touches Screener Determination Records). Close the audit with a 'verified absent' note.
-
-   **Acceptance:** Either lift completed and verified, or documented absence in pure-Python codebase.
-
-   **Acceptance:** Audit complete: either parse_answer_state-like code lifted to a shared location, or absence documented with grep evidence.
 
 - **FORMSPEC-PR-WC-004 — Remove formspec-layout re-exports from webcomponent index** · `fs-j17o` · P2
 
@@ -1045,27 +1046,6 @@ Cross-cutting sweeps (Top 7) + per-package cleanup tickets follow. See thoughts/
 
    **Acceptance:** All listed cleanups landed.
 
-- **FORMSPEC-PR-SIG-003-TESTS — RSA-PSS bidirectional parity + missing negative tests** · `fs-g68k` · P3
-
-   **Low.** fs-0krt review (commit d94fe89b) surfaced test-coverage gaps for the new RSA-PSS verifier in formspec-signature-adapter-webcrypto:
-
-   **Gap 1: Asymmetric cross-runtime parity.** Current tests verify ring-produced signatures under WebCrypto (ring→TS). No test for the reverse direction (WebCrypto-signs → ring-verifies). For PSS this is low-severity (only saltLength=32 parameter divergence surface, and both sides agree), but the receipt-signing story (fs-migs, now landed) will need bidirectional fixtures generally.
-
-   **Gap 2: Missing negative tests for RSA path:**
-   - Invalid base64 keyRef → should throw `VerifierError('internal')`. The RSA path has its own try/catch (line 195-202), distinct from `importRawPublicKey`. A copy-paste regression deleting the try/catch would go uncaught.
-   - Wrong key (a different RSA key from the signature) → 'failed' (defense-in-depth; tampered-signature test covers the failure-routing path but not the wrong-key path).
-   - Wrong saltLength signature (signed with saltLength != 32) → 'failed' (would need to sign with saltLength != 32).
-
-   **Site:** packages/formspec-signature-adapter-webcrypto/src/index.test.ts
-
-   **Bonus (DRY):** The RSA path duplicates base64-decode try/catch instead of factoring a shared `decodeBase64KeyOrThrow(label)` helper used by both RSA and Ed25519 paths. Minor.
-
-   **Approach:** Add the 3 negative tests + factor the helper. For bidirectional parity, this would need a TS-side ring-equivalent or a Node-callable signing harness — defer if cross-stack tooling not available; document gap.
-
-   **Acceptance:**
-     - Negative tests added (invalid-base64, wrong-key, wrong-saltLength) where feasible. base64 decode helper factored.
-     - Bidirectional parity either added or documented as deferred with reason.
-
 - **FORMSPEC-PR-REACT-010 — Rationalize 5 thin-delegator hooks** · `fs-mehm` · P3
 
    **Medium.** use-diagnostics, use-external-validation, use-locale, use-replay, use-runtime-context each wrap 1-2 engine method calls in useCallback and return them. They add a hook layer for no reactive value — consumers could call engine.applyReplayEvent(...) directly.
@@ -1085,22 +1065,6 @@ Cross-cutting sweeps (Top 7) + per-package cleanup tickets follow. See thoughts/
    - packages/formspec-layout/src/planner.ts:229 — JSON.parse(JSON.stringify(customDef.tree)) for deep clone. Use structuredClone (Node 17+, browsers, ESM-friendly).
 
    **Acceptance:** All listed cleanups landed. Internal helpers moved to internal subpath.
-
-- **FORMSPEC-PR-REACT-007-TEST — Regression test for WhenGuard rules-of-hooks fix** · `fs-nn23` · P3
-
-   **Low (hygiene).** fs-eiz7 (commit 81032347) fixed a rules-of-hooks violation in WhenGuard by moving useMemo before the conditional return — but no regression test was added. eslint-plugin-react-hooks would have caught the original violation if enabled, but a unit test that toggles `when` true→false→true on a node would lock in correct hook order against future regressions.
-
-   **Site:** packages/formspec-react/src/node-renderer.tsx — WhenGuard component.
-
-   **Approach:** Add a test in packages/formspec-react/tests/ that:
-   1. Renders a node with `when: true` evaluating to false → WhenGuard returns null.
-   2. Toggles state so `when` evaluates to true → WhenGuard re-renders with inner node.
-   3. Toggles back to false → React doesn't error about hook order.
-   4. The implicit assertion is no 'Rendered fewer/more hooks than during the previous render' error from React.
-
-   Per CLAUDE.md: 'a fix without a test is an unverified claim.'
-
-   **Acceptance:** Test added under packages/formspec-react/tests/. Test exercises true→false→true toggle and passes (React does not throw rules-of-hooks error).
 
 - **FORMSPEC-PR-TS-011 — formspec-types boy-scout sweep** · `fs-qfai` · P3
 
@@ -1178,12 +1142,15 @@ Cross-cutting sweeps (Top 7) + per-package cleanup tickets follow. See thoughts/
 - ~~**FORMSPEC-PR-SIG-002-TESTS — Coverage gaps in ReceiptSigner port + adapter**~~ `fs-abjt` · CLOSED — **Medium (security-critical contract not tested).** fs-migs review (commit a6f8cd0f) surfaced two test gaps that leave load-bearing contracts unverified:
 - ~~**FORMSPEC-PR-INFRA-006 — reconstructed-examples/ dirs with .json suffix + purpose unclear**~~ `fs-bp57` · CLOSED — **High (visible eyesore).** reconstructed-examples/grant-application-definition.json/ and reconstructed-examples/signature-attestation-definition.json/ — two DIRECTORIES named…
 - ~~**FORMSPEC-PR-REACT-007 — WhenGuard violates rules of hooks**~~ `fs-eiz7` · CLOSED — **Medium.** packages/formspec-react/src/node-renderer.tsx:138-150: WhenGuard strips when from the node and recurses through FormspecNode.
+- ~~**FORMSPEC-PR-PY-AUDIT-PARSE-ANSWER-STATE — Audit pure-Python src/formspec/ for parallel parse_answer_state-like code**~~ `fs-iphx` · CLOSED — **Medium (potential silent drift).** Cross-runtime-parity architect flagged: fs-9m35 (commit ba51aa22) lifted `parse_answer_state` from formspec-wasm + formspec-py inline…
 - ~~**FORMSPEC-PR-RUST-002 — Changelog O(N²) → HashMap-indexed diffs**~~ `fs-ohvl` · CLOSED — **High.** crates/formspec-core/src/changelog.rs:175-176,214,344-347,390,458-459,496: diff_items/diff_binds/diff_keyed_array use Vec<(&str, &Value)> + iter().find(|(k,_)| k == key)…
 - ~~**FORMSPEC-PR-TS-006 — Two near-identical engine entry barrels**~~ `fs-q4ry` · CLOSED — **Medium.** packages/formspec-engine/src/engine-render-entry.ts overlaps ~90% with packages/formspec-engine/src/index.ts.
 - ~~**FORMSPEC-PR-REACT-006 — useLocale needs signal subscription (silent re-render bug)**~~ `fs-xyx4` · CLOSED — **High (quiet correctness bug).** packages/formspec-react/src/use-locale.ts:17-35: activeLocale, availableLocales, and direction are read synchronously inside the hook, NOT via…
 - ~~**FORMSPEC-PR-INFRA-010 — Cross-platform bash scripts in build chain + dead duplicates**~~ `fs-91v2` · CLOSED — **Medium/Low cluster:**
 - scripts/copy-layout-css-assets.sh — bash, called from packages/formspec-{webcomponent,layout}/package.json build steps.
+- ~~**FORMSPEC-PR-SIG-003-TESTS — RSA-PSS bidirectional parity + missing negative tests**~~ `fs-g68k` · CLOSED — **Low.** fs-0krt review (commit d94fe89b) surfaced test-coverage gaps for the new RSA-PSS verifier in formspec-signature-adapter-webcrypto:
 - ~~**FORMSPEC-PR-SIG-002-POLISH — ReceiptSigner API polish (trait bound + kid encoding)**~~ `fs-h2aq` · CLOSED — **Low.** fs-migs review (commit a6f8cd0f) surfaced two small API-design nits:
+- ~~**FORMSPEC-PR-REACT-007-TEST — Regression test for WhenGuard rules-of-hooks fix**~~ `fs-nn23` · CLOSED — **Low (hygiene).** fs-eiz7 (commit 81032347) fixed a rules-of-hooks violation in WhenGuard by moving useMemo before the conditional return — but no regression test was added.…
 
 <!-- tk:end -->
 
