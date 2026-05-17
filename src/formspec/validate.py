@@ -20,7 +20,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from formspec._rust import (
     evaluate_definition,
@@ -283,29 +283,49 @@ def discover_artifacts(
 # ── Validation passes ────────────────────────────────────────────────────────
 
 
-def _lint_pass(
+def _lint_artifacts_pass(
     title: str,
     artifacts: list[ArtifactFile],
+    *,
+    all_defs: dict[str, ArtifactFile] | None = None,
+    target_def_url: Callable[[ArtifactFile], str] | None = None,
     **lint_kwargs: Any,
 ) -> PassResult:
-    """Run lint() on each artifact and collect results."""
+    """Run lint() on each artifact; optionally attach paired definition context."""
     if not artifacts:
         return PassResult(title=title, empty=True)
 
     pr = PassResult(title=title)
-    for a in artifacts:
-        diags = lint(a.doc, **lint_kwargs)
+    for artifact in artifacts:
+        kwargs = dict(lint_kwargs)
+        label = artifact.path.name
+        if all_defs is not None and target_def_url is not None:
+            paired_def = all_defs.get(target_def_url(artifact))
+            if paired_def:
+                kwargs["component_definition"] = paired_def.doc
+                label = f"{label} (def: {paired_def.path.name})"
+
+        diags = lint(artifact.doc, **kwargs)
         errors = [d for d in diags if d.severity == "error"]
         warnings = [d for d in diags if d.severity == "warning"]
         pr.items.append(
             PassItemResult(
-                label=a.path.name,
+                label=label,
                 error_count=len(errors),
                 warning_count=len(warnings),
                 diagnostics=diags,
             )
         )
     return pr
+
+
+def _lint_pass(
+    title: str,
+    artifacts: list[ArtifactFile],
+    **lint_kwargs: Any,
+) -> PassResult:
+    """Run lint() on each artifact and collect results."""
+    return _lint_artifacts_pass(title, artifacts, **lint_kwargs)
 
 
 def _pass_definition_linting(arts: DiscoveredArtifacts) -> PassResult:
@@ -322,105 +342,36 @@ def _pass_sidecar_linting(arts: DiscoveredArtifacts) -> PassResult:
 
 
 def _pass_theme_linting(arts: DiscoveredArtifacts) -> PassResult:
-    if not arts.themes:
-        return PassResult(title="Theme linting (with definition context)", empty=True)
-
     all_defs = {**arts.definitions, **arts.fragments}
-    pr = PassResult(title="Theme linting (with definition context)")
-    for theme in arts.themes:
-        paired_def = all_defs.get(theme.target_def_url)
-        kwargs: dict[str, Any] = {}
-        if paired_def:
-            kwargs["component_definition"] = paired_def.doc
-
-        diags = lint(theme.doc, **kwargs)
-        errors = [d for d in diags if d.severity == "error"]
-        warnings = [d for d in diags if d.severity == "warning"]
-
-        label = theme.path.name
-        if paired_def:
-            label += f" (def: {paired_def.path.name})"
-
-        pr.items.append(
-            PassItemResult(
-                label=label,
-                error_count=len(errors),
-                warning_count=len(warnings),
-                diagnostics=diags,
-            )
-        )
-    return pr
+    return _lint_artifacts_pass(
+        "Theme linting (with definition context)",
+        arts.themes,
+        all_defs=all_defs,
+        target_def_url=_artifact_target_def_url,
+    )
 
 
 def _pass_component_linting(arts: DiscoveredArtifacts) -> PassResult:
-    if not arts.components:
-        return PassResult(title="Component linting (with definition context)", empty=True)
-
     all_defs = {**arts.definitions, **arts.fragments}
-    pr = PassResult(title="Component linting (with definition context)")
-    for comp in arts.components:
-        paired_def = all_defs.get(comp.target_def_url)
-        kwargs: dict[str, Any] = {}
-        if paired_def:
-            kwargs["component_definition"] = paired_def.doc
+    return _lint_artifacts_pass(
+        "Component linting (with definition context)",
+        arts.components,
+        all_defs=all_defs,
+        target_def_url=_artifact_target_def_url,
+    )
 
-        diags = lint(comp.doc, **kwargs)
-        errors = [d for d in diags if d.severity == "error"]
-        warnings = [d for d in diags if d.severity == "warning"]
 
-        label = comp.path.name
-        if paired_def:
-            label += f" (def: {paired_def.path.name})"
-
-        pr.items.append(
-            PassItemResult(
-                label=label,
-                error_count=len(errors),
-                warning_count=len(warnings),
-                diagnostics=diags,
-            )
-        )
-    return pr
+def _artifact_target_def_url(artifact: ArtifactFile) -> str:
+    url = getattr(artifact, "target_def_url", "")
+    return url if isinstance(url, str) else ""
 
 
 def _pass_response_schema(arts: DiscoveredArtifacts) -> PassResult:
-    if not arts.responses:
-        return PassResult(title="Response fixture schema validation", empty=True)
-
-    pr = PassResult(title="Response fixture schema validation")
-    for resp in arts.responses:
-        diags = lint(resp.doc)
-        errors = [d for d in diags if d.severity == "error"]
-        warnings = [d for d in diags if d.severity == "warning"]
-        pr.items.append(
-            PassItemResult(
-                label=resp.path.name,
-                error_count=len(errors),
-                warning_count=len(warnings),
-                diagnostics=diags,
-            )
-        )
-    return pr
+    return _lint_artifacts_pass("Response fixture schema validation", arts.responses)
 
 
 def _pass_intake_handoff_schema(arts: DiscoveredArtifacts) -> PassResult:
-    if not arts.intake_handoffs:
-        return PassResult(title="Intake handoff schema validation", empty=True)
-
-    pr = PassResult(title="Intake handoff schema validation")
-    for handoff in arts.intake_handoffs:
-        diags = lint(handoff.doc)
-        errors = [d for d in diags if d.severity == "error"]
-        warnings = [d for d in diags if d.severity == "warning"]
-        pr.items.append(
-            PassItemResult(
-                label=handoff.path.name,
-                error_count=len(errors),
-                warning_count=len(warnings),
-                diagnostics=diags,
-            )
-        )
-    return pr
+    return _lint_artifacts_pass("Intake handoff schema validation", arts.intake_handoffs)
 
 
 def _pass_signed_payload_validation(arts: DiscoveredArtifacts) -> PassResult:

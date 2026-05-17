@@ -106,8 +106,9 @@ def test_component_validation_completes_on_large_tree() -> None:
     """
     doc = json.loads((_EXAMPLES_DIR / "grant-application" / "component.json").read_text())
     assert detect_document_type(doc) == "component"
-    # Rust linter should complete without hanging; may report semantic diags
-    lint(doc)
+    # Rust linter must finish in bounded time; grant-app tree may carry semantic warnings
+    diagnostics = lint(doc)
+    assert isinstance(diagnostics, list)
 
 
 @_with_timeout(10)

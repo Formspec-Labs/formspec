@@ -267,15 +267,10 @@ class TestDefinitionItem:
         assert dt["enum"] == expected
 
     def test_s4_2_3__money_datatype_has_description(self):
-        """The dataType property (or a MoneyValue $def) must document the money
-        value shape ({amount, currency}).
+        """Money dataType must be documented via MoneyValue $def or dataType description.
 
-        This test FAILS until the definition schema adds either:
-          - a 'description' field on the dataType property that mentions the
-            {amount, currency} object shape, OR
-          - a 'MoneyValue' entry in $defs with description + examples.
-
-        Currently the dataType schema is a bare enum with no per-value docs.
+        Satisfied when definition.schema.json defines MoneyValue with a description,
+        or when the field-branch dataType property description names amount/currency.
         """
         branch = _find_allof_branch(self.ITEM["allOf"], "type", "field")
         dt = branch["then"]["properties"]["dataType"]
