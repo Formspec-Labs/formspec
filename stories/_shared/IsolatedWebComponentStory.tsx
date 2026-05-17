@@ -6,6 +6,7 @@ import type { RenderAdapter } from '@formspec-org/webcomponent';
 import formspecDefaultCssUrl from '../../packages/formspec-webcomponent/src/formspec-default.css?url';
 import formspecLayoutCssUrl from '../../packages/formspec-webcomponent/src/formspec-layout.css?url';
 import uswdsCssUrl from '@uswds/uswds/css/uswds.css?url';
+import uswdsIntegrationCssUrl from '@formspec-org/adapters/uswds-integration.css?url';
 import type { StoryAppearance } from './storyAppearance';
 
 if (!customElements.get('formspec-render')) {
@@ -81,7 +82,7 @@ export function IsolatedWebComponentStory({
     const stylesheets = useMemo(() => {
         const urls = [formspecLayoutCssUrl];
         if (adapter?.name === 'uswds') {
-            urls.push(uswdsCssUrl);
+            urls.push(uswdsCssUrl, uswdsIntegrationCssUrl);
         } else {
             urls.push(formspecDefaultCssUrl);
         }
@@ -105,9 +106,8 @@ export function IsolatedWebComponentStory({
                 }
             `,
         ];
-        if (adapter?.integrationCSS) styles.push(adapter.integrationCSS);
         return styles;
-    }, [adapter]);
+    }, []);
 
     const { hostRef, mountNode } = useShadowRoot(stylesheets, inlineStyles);
 

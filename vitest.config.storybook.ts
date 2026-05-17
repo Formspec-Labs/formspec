@@ -32,7 +32,11 @@ export default defineConfig({
             { find: '@formspec-org/webcomponent/formspec-default.css', replacement: `${pkg('formspec-webcomponent')}/formspec-default.css` },
             { find: '@formspec-org/webcomponent/formspec-layout.css', replacement: `${pkg('formspec-webcomponent')}/formspec-layout.css` },
             { find: '@formspec-org/webcomponent', replacement: `${pkg('formspec-webcomponent')}/index.ts` },
-            // Adapters
+            // Adapters — CSS subpath before base (dist artifact from build:css)
+            {
+                find: '@formspec-org/adapters/uswds-integration.css',
+                replacement: path.resolve(__dirname, 'packages/formspec-adapters/dist/uswds-integration.css'),
+            },
             { find: '@formspec-org/adapters', replacement: `${pkg('formspec-adapters')}/index.ts` },
         ],
     },
