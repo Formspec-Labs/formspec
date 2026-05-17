@@ -73,7 +73,7 @@
         "digestAlgorithm": {
           "type": "string",
           "const": "sha-256",
-          "description": "Digest algorithm used to hash the canonical signed payload. Prod-MVP signed-payload commitments use sha-256 only.",
+          "description": "Digest algorithm used to hash the canonical signed payload. Initial signed-payload commitments use sha-256 only.",
           "examples": ["sha-256"]
         },
         "digest": {

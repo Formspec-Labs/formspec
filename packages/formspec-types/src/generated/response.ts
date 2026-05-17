@@ -183,7 +183,7 @@ export interface AuthoredSignatureSignedPayload {
    */
   canonicalization: 'formspec-response-signing-v1';
   /**
-   * Digest algorithm used to hash the canonical signed payload. Prod-MVP signed-payload commitments use sha-256 only.
+   * Digest algorithm used to hash the canonical signed payload. Initial signed-payload commitments use sha-256 only.
    */
   digestAlgorithm: 'sha-256';
   /**
