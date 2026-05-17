@@ -29,6 +29,8 @@ const CHANGELOG_SCHEMA: &str = include_str!("../schemas/changelog.schema.json");
 const REGISTRY_SCHEMA: &str = include_str!("../schemas/registry.schema.json");
 const VALIDATION_REPORT_SCHEMA: &str = include_str!("../schemas/validation-report.schema.json");
 const VALIDATION_RESULT_SCHEMA: &str = include_str!("../schemas/validation-result.schema.json");
+const VERIFICATION_RECEIPT_SCHEMA: &str =
+    include_str!("../schemas/verification-receipt.schema.json");
 const SCREENER_SCHEMA: &str = include_str!("../schemas/screener.schema.json");
 const DETERMINATION_SCHEMA: &str = include_str!("../schemas/determination.schema.json");
 const TOKEN_REGISTRY_SCHEMA: &str = include_str!("../schemas/token-registry.schema.json");
@@ -53,6 +55,10 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
     (
         TOKEN_REGISTRY_SCHEMA,
         "https://formspec.org/schemas/token-registry/1.0",
+    ),
+    (
+        VERIFICATION_RECEIPT_SCHEMA,
+        "https://formspec.org/schemas/verification-receipt/1.0",
     ),
 ];
 

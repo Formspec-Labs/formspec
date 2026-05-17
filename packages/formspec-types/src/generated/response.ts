@@ -6,8 +6,9 @@
  */
 
 /* eslint-disable */
+import type { VerificationReceipt as FormspecVerificationReceipt } from './verification-receipt.js';
 import type { ValidationResult as FormspecValidationResult } from './validation-result.js';
-export type { FormspecValidationResult };
+export type { FormspecVerificationReceipt, FormspecValidationResult };
 /**
  * A Formspec Response document — a completed or in-progress Instance pinned to a specific Definition version (§2.1.6). A Response is the canonical record of captured form data: the filled-in form. It references exactly one Definition by the immutable tuple (definitionUrl, definitionVersion). A conformant processor MUST reject a Response whose definitionVersion does not match any known Definition at the given definitionUrl. Responses are always validated against their pinned Definition version, even if a newer version exists (Response Pinning Rule VP-01). The tuple (definitionUrl, definitionVersion) identifies the Definition pin this Response is bound to (Response Pinning Rule VP-01); the Response record itself is identified by its 'id' when present, and byte identity of any signed-payload commitment is carried by the relevant signedPayload.digest, not by the Definition pin. A Response MAY also carry authored signature evidence records that bind one or more signer/document acts to the canonical response envelope.
  */
@@ -128,9 +129,9 @@ export interface AuthoredSignature {
     value: string;
   };
   /**
-   * Optional base64-encoded COSE_Sign1 VerificationReceipt. Present when a verifier has produced a signed receipt for this signature.
+   * Optional verification receipt evidence. Legacy responses may carry base64 COSE bytes with an embedded payload. Production detached receipt signing carries a structured VerificationReceipt object with base64 COSE receiptBytes.
    */
-  verificationReceipt?: string;
+  verificationReceipt?: string | FormspecVerificationReceipt;
   /**
    * Whether the signer explicitly accepted the declared consent text as part of the signing act.
    */

@@ -957,6 +957,7 @@ name = "integrity-signature"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "integrity-canonical",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -968,7 +969,6 @@ name = "integrity-signature-ring"
 version = "0.1.0"
 dependencies = [
  "base64",
- "integrity-canonical",
  "integrity-cose",
  "integrity-signature",
  "ring",
