@@ -89,7 +89,9 @@ export function useCheckboxGroup(ctx: BehaviorContext, comp: any): CheckboxGroup
             disposers.push(effect(() => {
                 const sig = ctx.engine.signals[fieldPath];
                 if (!sig) return;
-                const val: string[] = Array.isArray(sig.value) ? sig.value : [];
+                const val: string[] = Array.isArray(sig.value)
+                    ? sig.value.filter((value): value is string => typeof value === 'string')
+                    : [];
                 if (currentOptionControls) {
                     for (const [optVal, cb] of currentOptionControls) {
                         cb.checked = val.includes(optVal);

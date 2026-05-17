@@ -111,7 +111,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== selectEl) {
-                    (selectEl as HTMLSelectElement).value = val ?? '';
+                    (selectEl as HTMLSelectElement).value = val == null ? '' : String(val);
                 }
             }));
 

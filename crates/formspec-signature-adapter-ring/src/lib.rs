@@ -48,6 +48,12 @@ pub struct RingVerifier {
     inner: integrity_signature_ring::RingVerifier,
 }
 
+impl std::fmt::Debug for RingVerifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RingVerifier").finish_non_exhaustive()
+    }
+}
+
 impl RingVerifier {
     #[must_use]
     pub fn new() -> Self {
@@ -120,6 +126,13 @@ impl Verifier for RingVerifier {
 /// In-process Formspec receipt signer facade.
 pub struct InProcessReceiptSigner {
     inner: integrity_signature_ring::InProcessReceiptSigner,
+}
+
+impl std::fmt::Debug for InProcessReceiptSigner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InProcessReceiptSigner")
+            .finish_non_exhaustive()
+    }
 }
 
 impl InProcessReceiptSigner {

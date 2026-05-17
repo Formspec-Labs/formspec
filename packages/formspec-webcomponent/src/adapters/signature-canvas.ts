@@ -83,24 +83,34 @@ export function createSignatureCanvas(config: SignatureCanvasConfig): SignatureC
 
     const cancelStroke = () => { drawing = false; };
 
-    // ── Mouse events ───────────────────────────────────────────────
-    canvas.addEventListener('mousedown', (e) => beginStroke(getPos(e)));
-    canvas.addEventListener('mousemove', (e) => continueStroke(getPos(e)));
-    canvas.addEventListener('mouseup', endStroke);
-    canvas.addEventListener('mouseleave', cancelStroke);
+    const onMouseDown = (e: MouseEvent) => beginStroke(getPos(e));
+    const onMouseMove = (e: MouseEvent) => continueStroke(getPos(e));
+    const onMouseUp = () => endStroke();
+    const onMouseLeave = () => cancelStroke();
 
-    // ── Touch events ───────────────────────────────────────────────
-    canvas.addEventListener('touchstart', (e) => {
+    const onTouchStart = (e: TouchEvent) => {
         e.preventDefault();
         beginStroke(getPos(e.touches[0]));
-    }, { passive: false });
-    canvas.addEventListener('touchmove', (e) => {
+    };
+    const onTouchMove = (e: TouchEvent) => {
         if (!drawing) return;
         e.preventDefault();
         continueStroke(getPos(e.touches[0]));
-    }, { passive: false });
-    canvas.addEventListener('touchend', endStroke);
-    canvas.addEventListener('touchcancel', cancelStroke);
+    };
+    const onTouchEnd = () => endStroke();
+    const onTouchCancel = () => cancelStroke();
+
+    // ── Mouse events ───────────────────────────────────────────────
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+
+    // ── Touch events ───────────────────────────────────────────────
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    canvas.addEventListener('touchcancel', onTouchCancel);
 
     // ── Clear + dispose ────────────────────────────────────────────
     const clear = () => {
@@ -110,7 +120,17 @@ export function createSignatureCanvas(config: SignatureCanvasConfig): SignatureC
         }));
     };
 
-    const dispose = () => { ro.disconnect(); };
+    const dispose = () => {
+        ro.disconnect();
+        canvas.removeEventListener('mousedown', onMouseDown);
+        canvas.removeEventListener('mousemove', onMouseMove);
+        canvas.removeEventListener('mouseup', onMouseUp);
+        canvas.removeEventListener('mouseleave', onMouseLeave);
+        canvas.removeEventListener('touchstart', onTouchStart);
+        canvas.removeEventListener('touchmove', onTouchMove);
+        canvas.removeEventListener('touchend', onTouchEnd);
+        canvas.removeEventListener('touchcancel', onTouchCancel);
+    };
 
     return { canvas, clear, dispose };
 }

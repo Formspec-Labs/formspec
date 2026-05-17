@@ -2,6 +2,7 @@
 import { signal } from '@preact/signals-core';
 import { createFormEngine, type FormEngine, type IFormEngine, type LocaleDocument } from '@formspec-org/engine/render';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
+import type { ThemeDocument as SchemaThemeDocument } from '@formspec-org/types';
 import { globalRegistry } from './registry';
 import {
     ValidationTargetMetadata,
@@ -626,7 +627,7 @@ export class FormspecRender extends HTMLElement {
                 this._componentDocument?.formPresentation,
             ),
             componentDocument: this._componentDocument,
-            theme: this._themeDocument || this.getEffectiveTheme(),
+            theme: (this._themeDocument || this.getEffectiveTheme()) as unknown as SchemaThemeDocument,
             activeBreakpoint: this.activeBreakpoint,
             findItem: (key: string) => this.findItemByKey(key),
             isComponentAvailable: (type: string) => !!globalRegistry.get(type),

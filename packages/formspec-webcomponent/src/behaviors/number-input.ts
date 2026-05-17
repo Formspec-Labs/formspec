@@ -70,7 +70,7 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== bindableInput) {
-                    (bindableInput as HTMLInputElement).value = val ?? '';
+                    (bindableInput as HTMLInputElement).value = val == null ? '' : String(val);
                 }
             }));
 

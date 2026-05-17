@@ -72,12 +72,14 @@ export function useRating(ctx: BehaviorContext, comp: any): RatingBehavior {
             const stars = refs.control.querySelectorAll('.formspec-rating-star');
             disposers.push(effect(() => {
                 const sig = ctx.engine.signals[fieldPath];
-                const val = sig?.value ?? 0;
+                const rawValue = sig?.value;
+                const value = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0);
+                const ratingValue = Number.isFinite(value) ? value : 0;
                 stars.forEach((star, idx) => {
                     const fullValue = idx + 1;
                     const halfValue = idx + 0.5;
-                    const isSelected = fullValue <= val;
-                    const isHalfSelected = allowHalf && !isSelected && halfValue <= val;
+                    const isSelected = fullValue <= ratingValue;
+                    const isHalfSelected = allowHalf && !isSelected && halfValue <= ratingValue;
                     star.classList.toggle('formspec-rating-star--selected', isSelected);
                     star.classList.toggle('formspec-rating-star--half', isHalfSelected);
                     star.textContent = (isSelected || isHalfSelected) ? selectedIcon : unselectedIcon;

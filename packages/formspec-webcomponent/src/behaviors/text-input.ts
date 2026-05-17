@@ -90,7 +90,7 @@ export function useTextInput(ctx: BehaviorContext, comp: any): TextInputBehavior
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== inputEl) {
-                    (inputEl as HTMLInputElement).value = val ?? '';
+                    (inputEl as HTMLInputElement).value = val == null ? '' : String(val);
                 }
             }));
 

@@ -74,7 +74,7 @@ export function useDatePicker(ctx: BehaviorContext, comp: any): DatePickerBehavi
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== bindableInput) {
-                    (bindableInput as HTMLInputElement).value = val ?? '';
+                    (bindableInput as HTMLInputElement).value = val == null ? '' : String(val);
                 }
             }));
 
