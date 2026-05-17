@@ -1,8 +1,18 @@
 /** @filedesc Shared utilities for behavior hooks: path resolution, ID generation, token stripping, shared bind helpers. */
 import { effect, Signal } from '@preact/signals-core';
 import { type PresentationBlock, COMPATIBILITY_MATRIX } from '@formspec-org/layout';
+import type { RegistryEntry } from '@formspec-org/types';
 import type { ResolvedPresentationBlock, FieldRefs, BehaviorContext } from './types';
 import type { FieldViewModel } from '@formspec-org/engine';
+
+/** Registry entry metadata is an open object in schema; narrow for behavior reads. */
+export function readRegistryMetadata(entry: RegistryEntry | undefined): Record<string, unknown> {
+    return (entry?.metadata ?? {}) as Record<string, unknown>;
+}
+
+export function readRegistryConstraints(entry: RegistryEntry | undefined): Record<string, unknown> {
+    return (entry?.constraints ?? {}) as Record<string, unknown>;
+}
 
 /** Build full field path from bind key and prefix. */
 export function resolveFieldPath(bind: string, prefix: string): string {

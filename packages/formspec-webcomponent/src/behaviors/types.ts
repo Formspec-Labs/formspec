@@ -2,16 +2,24 @@
 import type { Signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { FieldViewModel } from '@formspec-org/engine';
-import type { PresentationBlock, ItemDescriptor } from '@formspec-org/layout';
-import type { ValidationReport, FormResponse } from '@formspec-org/types';
+import type { PresentationBlock, ItemDescriptor, LayoutNode } from '@formspec-org/layout';
+import type { FormDefinition, FormItem, RegistryEntry } from '@formspec-org/types';
+import type {
+    ComponentDescriptor,
+    ComponentPresentationOverrides,
+    SubmitDetail,
+    TokenResolvable,
+} from '../hub-types.js';
 
 /**
  * Pre-resolved PresentationBlock — all $token. references already
  * substituted with concrete values. Adapters never need token resolution.
  */
+export type { SubmitDetail };
+
 export interface ResolvedPresentationBlock {
     widget?: string;
-    widgetConfig?: Record<string, any>;
+    widgetConfig?: Record<string, unknown>;
     labelPosition?: 'top' | 'start' | 'hidden';
     style?: Record<string, string>;
     accessibility?: { role?: string; description?: string; liveRegion?: string };
@@ -38,12 +46,6 @@ export interface FieldRefs {
     skipAriaDescribedBy?: boolean;
 }
 
-/** Returned by every field behavior hook. */
-export interface SubmitDetail {
-    response: FormResponse;
-    validationReport: ValidationReport;
-}
-
 export interface FieldBehavior {
     fieldPath: string;
     id: string;
@@ -64,14 +66,10 @@ export interface FieldBehavior {
      * Used by the default adapter to apply comp-level overrides.
      * Custom adapters can ignore this — they own their own styling.
      */
-    compOverrides: {
-        cssClass?: any;
-        style?: any;
-        accessibility?: any;
-    };
+    compOverrides: ComponentPresentationOverrides;
     remoteOptionsState: { loading: boolean; error: string | null };
     options(): ReadonlyArray<{ value: string; label: string; keywords?: string[] }>;
-    setValue(val: any): void;
+    setValue(val: unknown): void;
     touch(): void;
     bind(refs: FieldRefs): () => void;
 }
@@ -180,10 +178,10 @@ export interface DataTableRefs {
 }
 
 export interface DataTableBehavior {
-    comp: any;
+    comp: ComponentDescriptor;
     host: import('../adapters/display-host').DisplayHostSlice;
     id?: string;
-    compOverrides: { cssClass?: any; style?: any; accessibility?: any };
+    compOverrides: ComponentPresentationOverrides;
     bindKey: string;
     fullName: string;
     columns: ReadonlyArray<{ header: string; bind: string; min?: number; max?: number; step?: number }>;
@@ -232,7 +230,7 @@ export interface WizardRefs {
 
 export interface WizardBehavior {
     id?: string;
-    compOverrides: { cssClass?: any; style?: any; accessibility?: any };
+    compOverrides: ComponentPresentationOverrides;
     steps: ReadonlyArray<{ id: string; title: string }>;
     showSideNav: boolean;
     showProgress: boolean;
@@ -259,7 +257,7 @@ export interface TabsRefs {
 
 export interface TabsBehavior {
     id?: string;
-    compOverrides: { cssClass?: any; style?: any; accessibility?: any };
+    compOverrides: ComponentPresentationOverrides;
     tabLabels: string[];
     tabCount: number;
     position: 'top' | 'bottom';
@@ -276,21 +274,22 @@ export interface TabsBehavior {
  */
 export interface BehaviorContext {
     engine: IFormEngine;
-    definition: any;
+    definition: FormDefinition | null;
     prefix: string;
     cleanupFns: Array<() => void>;
     touchedFields: Set<string>;
     touchedVersion: Signal<number>;
     latestSubmitDetailSignal: Signal<SubmitDetail | null>;
-    resolveToken: (val: any) => any;
+    resolveToken: (val: TokenResolvable) => TokenResolvable;
     resolveItemPresentation: (item: ItemDescriptor) => PresentationBlock;
     resolveWidgetClassSlots: (presentation: PresentationBlock) => {
         root?: unknown; label?: unknown; control?: unknown; hint?: unknown; error?: unknown;
     };
-    findItemByKey: (key: string) => any | null;
-    renderComponent: (comp: any, parent: HTMLElement, prefix?: string) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- planner snapshots vs schema FormItem
+    findItemByKey: (key: string) => any;
+    renderComponent: (comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
     submit: (options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }) => SubmitDetail | null;
-    registryEntries: Map<string, any>;
+    registryEntries: Map<string, RegistryEntry>;
     rerender: () => void;
     /** Resolve the FieldViewModel for a component's bound field. Returns undefined if no VM exists. */
     getFieldVM: (fieldPath: string) => FieldViewModel | undefined;

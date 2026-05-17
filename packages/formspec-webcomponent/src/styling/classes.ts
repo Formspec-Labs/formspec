@@ -3,7 +3,9 @@ import type { PresentationBlock } from '@formspec-org/layout';
 import type { StylingHost } from './index';
 import { resolveToken } from './tokens';
 
-export function applyCssClass(host: StylingHost, el: HTMLElement, comp: any): void {
+import type { ComponentPresentationSource } from '../hub-types.js';
+
+export function applyCssClass(host: StylingHost, el: HTMLElement, comp: ComponentPresentationSource): void {
     if (!comp.cssClass) return;
     const classes = Array.isArray(comp.cssClass) ? comp.cssClass : [comp.cssClass];
     for (const cls of classes) {

@@ -4,7 +4,9 @@ import type { StylingHost } from './index';
 /** Counter for generating unique IDs for accessibility description elements. */
 let a11yDescIdCounter = 0;
 
-export function applyAccessibility(_host: StylingHost, el: HTMLElement, comp: any): void {
+import type { ComponentPresentationSource } from '../hub-types.js';
+
+export function applyAccessibility(_host: StylingHost, el: HTMLElement, comp: ComponentPresentationSource): void {
     if (!comp.accessibility) return;
     const a11y = comp.accessibility;
     if (a11y.role) el.setAttribute('role', a11y.role);

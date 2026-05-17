@@ -1,9 +1,22 @@
 /** @filedesc TextInput behavior hook — extracts reactive state for text/textarea fields. */
 import { effect } from '@preact/signals-core';
+import type { ComponentDescriptor } from '../hub-types.js';
 import type { TextInputBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints } from './shared';
 
-export function useTextInput(ctx: BehaviorContext, comp: any): TextInputBehavior {
+/** Field bind and TextInput props are spread onto {@link ComponentDescriptor} at render time. */
+type TextInputComp = ComponentDescriptor & {
+    bind: string;
+    labelOverride?: string;
+    hintOverride?: string;
+    placeholder?: string;
+    inputMode?: string;
+    maxLines?: number;
+    prefix?: string;
+    suffix?: string;
+};
+
+export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInputBehavior {
     const fieldPath = resolveFieldPath(comp.bind, ctx.prefix);
     const id = comp.id || toFieldId(fieldPath);
     const item = ctx.findItemByKey(comp.bind);
@@ -22,21 +35,21 @@ export function useTextInput(ctx: BehaviorContext, comp: any): TextInputBehavior
             if (!extEnabled) continue;
             const entry = ctx.registryEntries.get(extName);
             if (!entry) continue;
-            const meta = entry.metadata;
-            const constraints = entry.constraints;
-            if (meta?.inputType) {
-                resolvedInputType = meta.inputType;
-            } else if (meta?.inputMode === 'email') {
+            const meta = readRegistryMetadata(entry);
+            const constraints = readRegistryConstraints(entry);
+            if (meta.inputType) {
+                resolvedInputType = String(meta.inputType);
+            } else if (meta.inputMode === 'email') {
                 resolvedInputType = 'email';
-            } else if (meta?.inputMode === 'tel') {
+            } else if (meta.inputMode === 'tel') {
                 resolvedInputType = 'tel';
             }
-            if (meta?.inputMode && !comp.inputMode) extensionAttrs.inputMode = meta.inputMode;
-            if (meta?.autocomplete) extensionAttrs.autocomplete = meta.autocomplete;
-            if (meta?.sensitive) extensionAttrs.autocomplete = 'off';
-            if (constraints?.maxLength != null) extensionAttrs.maxLength = String(constraints.maxLength);
-            if (constraints?.pattern) extensionAttrs.pattern = constraints.pattern;
-            if (meta?.mask && !comp.placeholder) extensionAttrs.placeholder = meta.mask;
+            if (meta.inputMode && !comp.inputMode) extensionAttrs.inputMode = String(meta.inputMode);
+            if (meta.autocomplete) extensionAttrs.autocomplete = String(meta.autocomplete);
+            if (meta.sensitive) extensionAttrs.autocomplete = 'off';
+            if (constraints.maxLength != null) extensionAttrs.maxLength = String(constraints.maxLength);
+            if (constraints.pattern) extensionAttrs.pattern = String(constraints.pattern);
+            if (meta.mask && !comp.placeholder) extensionAttrs.placeholder = String(meta.mask);
         }
     }
 
@@ -67,7 +80,7 @@ export function useTextInput(ctx: BehaviorContext, comp: any): TextInputBehavior
         resolvedInputType,
         extensionAttrs,
 
-        setValue(val: any): void {
+        setValue(val: string): void {
             ctx.engine.setValue(fieldPath, val);
         },
 

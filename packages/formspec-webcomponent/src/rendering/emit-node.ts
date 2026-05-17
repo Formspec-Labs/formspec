@@ -1,59 +1,21 @@
 /** @filedesc Walks a LayoutNode tree and emits DOM via component plugin dispatch. */
-import { effect, Signal } from '@preact/signals-core';
-import type { IFormEngine } from '@formspec-org/engine/render';
+import { effect } from '@preact/signals-core';
 import { globalRegistry } from '../registry';
-import {
-    RenderContext,
-    ValidationTargetMetadata,
-} from '../types';
+import type { RenderContext } from '../types';
 import type { BehaviorContext } from '../behaviors/types';
 import type { AdapterContext } from '../adapters/types';
+import type { ComponentDescriptor, RenderHost } from '../hub-types.js';
 import {
     PresentationBlock,
     ItemDescriptor,
     mergeFormPresentationForPlanning,
     type LayoutNode,
 } from '@formspec-org/layout';
+import type { ValidationResult } from '@formspec-org/types';
 import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
 
-/**
- * Interface for what emitNode/renderActualComponent need from FormspecRender.
- */
-export interface RenderHost {
-    engine: IFormEngine;
-    _definition: any;
-    _componentDocument: any;
-    _themeDocument: any;
-    cleanupFns: Array<() => void>;
-    touchedFields: Set<string>;
-    touchedVersion: Signal<number>;
-    _submitPendingSignal: Signal<boolean>;
-    _latestSubmitDetailSignal: Signal<any>;
-    resolveToken(val: any): any;
-    resolveItemPresentation(itemDesc: ItemDescriptor): PresentationBlock;
-    applyStyle(el: HTMLElement, style: any): void;
-    applyCssClass(el: HTMLElement, comp: any): void;
-    applyClassValue(el: HTMLElement, classValue: unknown): void;
-    resolveWidgetClassSlots(presentation: PresentationBlock): {
-        root?: unknown;
-        label?: unknown;
-        control?: unknown;
-        hint?: unknown;
-        error?: unknown;
-    };
-    applyAccessibility(el: HTMLElement, comp: any): void;
-    applyClassValue(el: HTMLElement, classValue: unknown): void;
-    findItemByKey(key: string, items?: any[]): any | null;
-    _registryEntries: Map<string, any>;
-    submit(options?: any): any;
-    resolveValidationTarget(resultOrPath: any): ValidationTargetMetadata;
-    focusField(path: string): boolean;
-    setSubmitPending(pending: boolean): void;
-    isSubmitPending(): boolean;
-    render(): void;
-    activeBreakpoint: string | null;
-}
+export type { RenderHost } from '../hub-types.js';
 
 /**
  * Walk a LayoutNode tree from the planner and emit DOM.
@@ -211,7 +173,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         return;
     }
 
-    const comp: any = {
+    const comp: ComponentDescriptor = {
         component: node.component,
         ...node.props,
     };
@@ -244,7 +206,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
 /**
  * Render a component, handling LayoutNode objects by delegating to emitNode.
  */
-export function renderComponent(host: RenderHost, comp: any, parent: HTMLElement, prefix = ''): void {
+export function renderComponent(host: RenderHost, comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix = ''): void {
     if (comp && typeof comp === 'object' && 'category' in comp && 'id' in comp) {
         emitNode(host, comp as LayoutNode, parent, prefix);
         return;
@@ -255,7 +217,7 @@ export function renderComponent(host: RenderHost, comp: any, parent: HTMLElement
 /**
  * Look up a component plugin and invoke its render function with a full RenderContext.
  */
-export function renderActualComponent(host: RenderHost, comp: any, parent: HTMLElement, prefix = ''): void {
+export function renderActualComponent(host: RenderHost, comp: ComponentDescriptor, parent: HTMLElement, prefix = ''): void {
     const componentType = comp.component;
     const plugin = globalRegistry.get(componentType);
 
@@ -264,18 +226,18 @@ export function renderActualComponent(host: RenderHost, comp: any, parent: HTMLE
         componentDocument: host._componentDocument,
         themeDocument: host._themeDocument,
         prefix,
-        submit: (opts?: any) => host.submit(opts),
-        resolveValidationTarget: (r: any) => host.resolveValidationTarget(r),
+        submit: (opts) => host.submit(opts),
+        resolveValidationTarget: (r) => host.resolveValidationTarget(r),
         focusField: (p: string) => host.focusField(p),
         submitPendingSignal: host._submitPendingSignal,
         latestSubmitDetailSignal: host._latestSubmitDetailSignal,
         setSubmitPending: (pending: boolean) => host.setSubmitPending(pending),
         isSubmitPending: () => host.isSubmitPending(),
-        renderComponent: (comp: any, parent: HTMLElement, pfx?: string) => renderComponent(host, comp, parent, pfx),
-        resolveToken: (val: any) => host.resolveToken(val),
-        applyStyle: (el: HTMLElement, style: any) => host.applyStyle(el, style),
-        applyCssClass: (el: HTMLElement, comp: any) => host.applyCssClass(el, comp),
-        applyAccessibility: (el: HTMLElement, comp: any) => host.applyAccessibility(el, comp),
+        renderComponent: (comp, parent, pfx) => renderComponent(host, comp, parent, pfx),
+        resolveToken: (val) => host.resolveToken(val),
+        applyStyle: (el, style) => host.applyStyle(el, style),
+        applyCssClass: (el, comp) => host.applyCssClass(el, comp),
+        applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
         resolveItemPresentation: (itemDesc: ItemDescriptor) => host.resolveItemPresentation(itemDesc),
         cleanupFns: host.cleanupFns,
         findItemByKey: (key: string) => host.findItemByKey(key),
@@ -290,21 +252,21 @@ export function renderActualComponent(host: RenderHost, comp: any, parent: HTMLE
             touchedFields: host.touchedFields,
             touchedVersion: host.touchedVersion,
             latestSubmitDetailSignal: host._latestSubmitDetailSignal,
-            resolveToken: (v: any) => host.resolveToken(v),
+            resolveToken: (v) => host.resolveToken(v),
             resolveItemPresentation: (item: ItemDescriptor) => host.resolveItemPresentation(item),
             resolveWidgetClassSlots: (p: PresentationBlock) => host.resolveWidgetClassSlots(p),
             findItemByKey: (key: string) => host.findItemByKey(key),
-            renderComponent: (comp: any, parent: HTMLElement, pfx?: string) => renderComponent(host, comp, parent, pfx),
-            submit: (opts?: any) => host.submit(opts),
+            renderComponent: (comp, parent, pfx) => renderComponent(host, comp, parent, pfx),
+            submit: (opts) => host.submit(opts),
             registryEntries: host._registryEntries,
             rerender: () => host.render(),
             getFieldVM: (fieldPath: string) => host.engine.getFieldVM(fieldPath),
         },
         adapterContext: {
             onDispose: (fn: () => void) => host.cleanupFns.push(fn),
-            applyCssClass: (el: HTMLElement, comp: any) => host.applyCssClass(el, comp),
-            applyStyle: (el: HTMLElement, style: any) => host.applyStyle(el, style),
-            applyAccessibility: (el: HTMLElement, comp: any) => host.applyAccessibility(el, comp),
+            applyCssClass: (el, comp) => host.applyCssClass(el, comp),
+            applyStyle: (el, style) => host.applyStyle(el, style),
+            applyAccessibility: (el, comp) => host.applyAccessibility(el, comp),
             applyClassValue: (el: HTMLElement, classValue: unknown) => host.applyClassValue(el, classValue),
         },
     };
@@ -321,7 +283,7 @@ export function renderActualComponent(host: RenderHost, comp: any, parent: HTMLE
     }
 
     if (plugin) {
-        plugin.render(comp, parent, ctx);
+        plugin.render(comp as LayoutNode, parent, ctx);
     } else {
         console.warn(`Unknown component type: ${componentType} (custom components should be expanded by planner)`);
     }
@@ -341,24 +303,24 @@ function effectiveFormPresentation(host: RenderHost): Record<string, unknown> {
  * Detect whether a Stack comp should render as a wizard based on pageMode.
  * True when children are Pages and formPresentation.pageMode === 'wizard'.
  */
-function isPageModeWizard(host: RenderHost, comp: any): boolean {
+function isPageModeWizard(host: RenderHost, comp: ComponentDescriptor): boolean {
     const pageMode = effectiveFormPresentation(host).pageMode;
     if (pageMode !== 'wizard') return false;
-    const children: any[] = comp.children;
+    const children = comp.children;
     if (!Array.isArray(children) || children.length === 0) return false;
-    return children.some((c: any) => c.component === 'Page');
+    return children.some((c) => typeof c === 'object' && c !== null && (c as ComponentDescriptor).component === 'Page');
 }
 
 /**
  * Detect whether a Stack comp should render as tabs based on pageMode.
  * True when children are Pages and formPresentation.pageMode === 'tabs'.
  */
-function isPageModeTabs(host: RenderHost, comp: any): boolean {
+function isPageModeTabs(host: RenderHost, comp: ComponentDescriptor): boolean {
     const pageMode = effectiveFormPresentation(host).pageMode;
     if (pageMode !== 'tabs') return false;
-    const children: any[] = comp.children;
+    const children = comp.children;
     if (!Array.isArray(children) || children.length === 0) return false;
-    return children.some((c: any) => c.component === 'Page');
+    return children.some((c) => typeof c === 'object' && c !== null && (c as ComponentDescriptor).component === 'Page');
 }
 
 /**
@@ -366,10 +328,10 @@ function isPageModeTabs(host: RenderHost, comp: any): boolean {
  * Renders orphan (non-Page) children normally, then synthesizes a wizard-like
  * comp from the Page children and routes through the wizard behavior/adapter.
  */
-function renderPageModeWizard(host: RenderHost, comp: any, parent: HTMLElement, ctx: RenderContext): void {
-    const allChildren: any[] = comp.children || [];
-    const orphans = allChildren.filter((c: any) => c.component !== 'Page');
-    const pageChildren = allChildren.filter((c: any) => c.component === 'Page');
+function renderPageModeWizard(host: RenderHost, comp: ComponentDescriptor, parent: HTMLElement, ctx: RenderContext): void {
+    const allChildren = (Array.isArray(comp.children) ? comp.children : []) as ComponentDescriptor[];
+    const orphans = allChildren.filter((c) => c.component !== 'Page');
+    const pageChildren = allChildren.filter((c) => c.component === 'Page');
 
     // Render orphan children (non-Page nodes) as plain layout
     for (const orphan of orphans) {
@@ -399,10 +361,10 @@ function renderPageModeWizard(host: RenderHost, comp: any, parent: HTMLElement, 
  * Renders orphan (non-Page) children normally, then synthesizes a tabs-like
  * comp from the Page children and routes through the tabs behavior/adapter.
  */
-function renderPageModeTabs(host: RenderHost, comp: any, parent: HTMLElement, ctx: RenderContext): void {
-    const allChildren: any[] = comp.children || [];
-    const orphans = allChildren.filter((c: any) => c.component !== 'Page');
-    const pageChildren = allChildren.filter((c: any) => c.component === 'Page');
+function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent: HTMLElement, ctx: RenderContext): void {
+    const allChildren = (Array.isArray(comp.children) ? comp.children : []) as ComponentDescriptor[];
+    const orphans = allChildren.filter((c) => c.component !== 'Page');
+    const pageChildren = allChildren.filter((c) => c.component === 'Page');
 
     // Render orphan children (non-Page nodes) as plain layout
     for (const orphan of orphans) {
@@ -413,7 +375,7 @@ function renderPageModeTabs(host: RenderHost, comp: any, parent: HTMLElement, ct
     const tabsComp = {
         component: 'Tabs',
         children: pageChildren,
-        tabLabels: pageChildren.map((p: any) => p.title || p.props?.title),
+        tabLabels: pageChildren.map((p) => String(p.title ?? (p.props as { title?: string } | undefined)?.title ?? '')),
         position: formPres.tabPosition || 'top',
         defaultTab: formPres.defaultTab ?? 0,
         cssClass: comp.cssClass,

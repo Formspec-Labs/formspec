@@ -2,14 +2,25 @@
 import { signal } from '@preact/signals-core';
 import { createFormEngine, type FormEngine, type IFormEngine, type LocaleDocument } from '@formspec-org/engine/render';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
-import type { ThemeDocument as SchemaThemeDocument } from '@formspec-org/types';
+import type {
+    ComponentDocument,
+    FormDefinition,
+    FormItem,
+    RegistryDocument,
+    RegistryEntry,
+    ScreenerDocument,
+    ThemeDocument as SchemaThemeDocument,
+    ValidationResult,
+} from '@formspec-org/types';
+import type { EngineReplayEvent } from '@formspec-org/engine';
 import { globalRegistry } from './registry';
 import {
-    ValidationTargetMetadata,
     ScreenerRoute,
     ScreenerRouteType,
     ScreenerStateSnapshot,
 } from './types';
+import type { ComponentDescriptor, ComponentPresentationSource, FormDataRecord, SubmitDetail } from './hub-types';
+import type { SubmitHost } from './submit';
 import {
     ThemeDocument,
     PresentationBlock,
@@ -36,7 +47,7 @@ import {
 } from './rendering/screener';
 import { applyResponseDataToEngine } from './hydrate-response-data';
 import { setupBreakpoints as setupBreakpointsFn, cleanupBreakpoints, createBreakpointState, type BreakpointState } from './rendering/breakpoints';
-import { emitNode as emitNodeFn } from './rendering/emit-node';
+import { emitNode as emitNodeFn, type RenderHost as EmitRenderHost } from './rendering/emit-node';
 import {
     resolveToken as resolveTokenFn,
     resolveItemPresentation as resolveItemPresentationFn,
@@ -94,10 +105,10 @@ export class FormspecRender extends HTMLElement {
     }
 
     // ── Internal state ────────────────────────────────────────────────
-    /** @internal */ _definition: any;
-    /** @internal */ _componentDocument: any;
+    /** @internal */ _definition: FormDefinition | null = null;
+    /** @internal */ _componentDocument: ComponentDocument | null = null;
     /** @internal */ _themeDocument: ThemeDocument | null = null;
-    /** @internal */ _registryEntries: Map<string, any> = new Map();
+    /** @internal */ _registryEntries: Map<string, RegistryEntry> = new Map();
     /** @internal */ engine: IFormEngine | null = null;
     /** @internal */ cleanupFns: Array<() => void> = [];
     private _breakpoints: BreakpointState = createBreakpointState();
@@ -131,42 +142,46 @@ export class FormspecRender extends HTMLElement {
     /** The route selected by the screener, if any. */
     /** @internal */ _screenerRoute: ScreenerRoute | null = null;
     /** Standalone Screener Document. */
-    /** @internal */ _screenerDocument: any | null = null;
+    /** @internal */ _screenerDocument: ScreenerDocument | null = null;
     /** Backing store for the `screenerSeedAnswers` property. */
-    private _screenerSeedAnswers: Record<string, any> | null = null;
+    private _screenerSeedAnswers: FormDataRecord | null = null;
     /**
      * Full response `data` to apply on the next {@link definition} load (screener keys + main form).
      * Prefer this over separate engine hydration — consumed once when the engine is created.
      */
-    private _initialData: Record<string, any> | null = null;
+    private _initialData: FormDataRecord | null = null;
     /** Whether to auto-inject a SubmitButton node into the layout plan. Defaults to true. */
     private _showSubmit = true;
     /** Shared pending state for submit flows (e.g. async host submits). */
-    private _submitPendingSignal = signal(false);
+    /** @internal */ _submitPendingSignal = signal(false);
     /** Latest submit detail payload (`{ response, validationReport }`). */
-    private _latestSubmitDetailSignal = signal<{
-        response: any;
-        validationReport: {
-            valid: boolean;
-            results: any[];
-            counts: { error: number; warning: number; info: number };
-            timestamp: string;
-        };
-    } | null>(null);
+    private _latestSubmitDetailSignal = signal<SubmitDetail | null>(null);
 
     // ── Styling delegators ────────────────────────────────────────────
-    private get _stylingHost(): StylingHost { return this as any; }
+    private get _stylingHost(): StylingHost {
+        return this;
+    }
 
-    /** @internal */ resolveToken = (val: any): any => resolveTokenFn(this._stylingHost, val);
+    private get _renderHost(): EmitRenderHost {
+        return this as unknown as EmitRenderHost;
+    }
+
+    private get _submitHost(): SubmitHost {
+        return this as unknown as SubmitHost;
+    }
+
+    /** @internal */ resolveToken = (val: unknown): unknown => resolveTokenFn(this._stylingHost, val);
     /** @internal */ resolveItemPresentation = (itemDesc: ItemDescriptor): PresentationBlock => resolveItemPresentationFn(this._stylingHost, itemDesc);
-    /** @internal */ applyStyle = (el: HTMLElement, style: any): void => applyStyleFn(this._stylingHost, el, style);
-    /** @internal */ applyCssClass = (el: HTMLElement, comp: any): void => applyCssClassFn(this._stylingHost, el, comp);
+    /** @internal */ applyStyle = (el: HTMLElement, style: Record<string, string | number> | undefined): void => applyStyleFn(this._stylingHost, el, style);
+    /** @internal */ applyCssClass = (el: HTMLElement, comp: ComponentPresentationSource): void => applyCssClassFn(this._stylingHost, el, comp);
     /** @internal */ applyClassValue = (el: HTMLElement, classValue: unknown): void => applyClassValueFn(this._stylingHost, el, classValue);
     /** @internal */ resolveWidgetClassSlots = (presentation: PresentationBlock) => resolveWidgetClassSlotsFn(this._stylingHost, presentation);
-    /** @internal */ applyAccessibility = (el: HTMLElement, comp: any): void => applyAccessibilityFn(this._stylingHost, el, comp);
+    /** @internal */ applyAccessibility = (el: HTMLElement, comp: ComponentPresentationSource): void => applyAccessibilityFn(this._stylingHost, el, comp);
 
     // ── Navigation delegators ─────────────────────────────────────────
-    private get _navHost(): NavigationHost { return this as any; }
+    private get _navHost(): NavigationHost {
+        return this;
+    }
 
     // ── Screener helpers ──────────────────────────────────────────────
     private isInternalScreenerTarget(target: string): boolean {
@@ -191,7 +206,7 @@ export class FormspecRender extends HTMLElement {
         };
     }
 
-    /** @internal */ emitScreenerStateChange(reason: string, answers?: Record<string, any>): void {
+    /** @internal */ emitScreenerStateChange(reason: string, answers?: FormDataRecord): void {
         this.dispatchEvent(new CustomEvent('formspec-screener-state-change', {
             detail: {
                 ...this.getScreenerState(),
@@ -207,7 +222,7 @@ export class FormspecRender extends HTMLElement {
      * Optional: only screener keys when you have no full `data` blob. Prefer {@link initialData}
      * with the same shape as `response.data` so screener + main form hydrate in one step.
      */
-    set screenerSeedAnswers(val: Record<string, any> | null | undefined) {
+    set screenerSeedAnswers(val: FormDataRecord | null | undefined) {
         if (val != null && typeof val === 'object' && !Array.isArray(val)) {
             this._screenerSeedAnswers = { ...val };
         } else {
@@ -215,7 +230,7 @@ export class FormspecRender extends HTMLElement {
         }
     }
 
-    get screenerSeedAnswers(): Record<string, any> | null {
+    get screenerSeedAnswers(): FormDataRecord | null {
         return this._screenerSeedAnswers;
     }
 
@@ -225,7 +240,7 @@ export class FormspecRender extends HTMLElement {
      * {@link definition} on a new element. Set {@link screenerDocument} first so screener keys in
      * `data` are split out for the gate; the rest is applied to the engine.
      */
-    set initialData(val: Record<string, any> | null | undefined) {
+    set initialData(val: FormDataRecord | null | undefined) {
         if (val != null && typeof val === 'object' && !Array.isArray(val)) {
             this._initialData = { ...val };
         } else {
@@ -233,7 +248,7 @@ export class FormspecRender extends HTMLElement {
         }
     }
 
-    get initialData(): Record<string, any> | null {
+    get initialData(): FormDataRecord | null {
         return this._initialData;
     }
 
@@ -260,7 +275,7 @@ export class FormspecRender extends HTMLElement {
         }
     }
 
-    private scheduleRender() {
+    /** @internal */ scheduleRender() {
         if (this._renderPending) return;
         this._renderPending = true;
         Promise.resolve().then(() => {
@@ -296,7 +311,7 @@ export class FormspecRender extends HTMLElement {
      * Set the form definition. Creates a new {@link FormEngine} instance and
      * schedules a re-render. Throws if engine initialization fails.
      */
-    set definition(val: any) {
+    set definition(val: FormDefinition) {
         this._definition = val;
         this._screenerCompleted = false;
         this._screenerRoute = null;
@@ -353,7 +368,7 @@ export class FormspecRender extends HTMLElement {
     }
 
     /** The currently loaded form definition object. */
-    get definition() {
+    get definition(): FormDefinition | null {
         return this._definition;
     }
 
@@ -361,13 +376,13 @@ export class FormspecRender extends HTMLElement {
      * Set the component document (component tree, custom components, tokens,
      * breakpoints). Schedules a re-render.
      */
-    set componentDocument(val: any) {
+    set componentDocument(val: ComponentDocument | null) {
         this._componentDocument = val;
         this.scheduleRender();
     }
 
     /** The currently loaded component document. */
-    get componentDocument() {
+    get componentDocument(): ComponentDocument | null {
         return this._componentDocument;
     }
 
@@ -403,18 +418,18 @@ export class FormspecRender extends HTMLElement {
      * generically instead of hardcoding per-extension behaviour.
      */
     /** Set the standalone Screener Document. */
-    set screenerDocument(doc: any | null) {
+    set screenerDocument(doc: ScreenerDocument | null) {
         this._screenerDocument = doc ?? null;
         this._screenerCompleted = false;
         this._screenerRoute = null;
         this.scheduleRender();
     }
 
-    get screenerDocument(): any | null {
+    get screenerDocument(): ScreenerDocument | null {
         return this._screenerDocument;
     }
 
-    set registryDocuments(docs: any | any[]) {
+    set registryDocuments(docs: RegistryDocument | RegistryDocument[]) {
         this._registryEntries.clear();
         const docList = Array.isArray(docs) ? docs : docs ? [docs] : [];
         for (const doc of docList) {
@@ -429,7 +444,7 @@ export class FormspecRender extends HTMLElement {
     }
 
     /** The current registry entry lookup (extension name → entry). */
-    get registryEntries(): Map<string, any> {
+    get registryEntries(): Map<string, RegistryEntry> {
         return this._registryEntries;
     }
 
@@ -492,7 +507,7 @@ export class FormspecRender extends HTMLElement {
     /**
      * Apply a single replay event (e.g. `setValue`, `addRepeat`) to the engine.
      */
-    applyReplayEvent(event: any) {
+    applyReplayEvent(event: EngineReplayEvent) {
         if (!this.engine?.applyReplayEvent) {
             return { ok: false, event, error: 'Engine unavailable' };
         }
@@ -502,7 +517,7 @@ export class FormspecRender extends HTMLElement {
     /**
      * Replay a sequence of events against the engine in order.
      */
-    replay(events: any[], options?: { stopOnError?: boolean }) {
+    replay(events: EngineReplayEvent[], options?: { stopOnError?: boolean }) {
         if (!this.engine?.replay) {
             return { applied: 0, results: [], errors: [{ index: 0, event: null, error: 'Engine unavailable' }] };
         }
@@ -512,7 +527,7 @@ export class FormspecRender extends HTMLElement {
     /**
      * Inject a runtime context (e.g. `now`, user metadata) into the engine.
      */
-    setRuntimeContext(context: any) {
+    setRuntimeContext(context: Record<string, unknown>) {
         this.engine?.setRuntimeContext?.(context);
     }
 
@@ -520,7 +535,7 @@ export class FormspecRender extends HTMLElement {
      * Mark all registered fields as touched so validation errors become visible.
      */
     touchAllFields() {
-        touchAllFieldsFn(this as any);
+        touchAllFieldsFn(this._submitHost);
     }
 
     /**
@@ -528,14 +543,14 @@ export class FormspecRender extends HTMLElement {
      * Optionally dispatches `formspec-submit` with `{ response, validationReport }`.
      */
     submit(options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }) {
-        return submitFn(this as any, options);
+        return submitFn(this._submitHost, options);
     }
 
     /**
      * Resolve a validation result/path to a navigation target with metadata.
      */
-    resolveValidationTarget(resultOrPath: any): ValidationTargetMetadata {
-        return resolveValidationTargetFn(this as any, resultOrPath);
+    resolveValidationTarget(resultOrPath: string | ValidationResult) {
+        return resolveValidationTargetFn(this._submitHost, resultOrPath);
     }
 
     /**
@@ -543,12 +558,12 @@ export class FormspecRender extends HTMLElement {
      * whenever the value changes.
      */
     setSubmitPending(pending: boolean): void {
-        setSubmitPendingFn(this as any, pending);
+        setSubmitPendingFn(this._submitHost, pending);
     }
 
     /** Returns the current shared submit pending state. */
     isSubmitPending(): boolean {
-        return isSubmitPendingFn(this as any);
+        return isSubmitPendingFn(this._submitHost);
     }
 
     /**
@@ -582,7 +597,7 @@ export class FormspecRender extends HTMLElement {
     render() {
         this.cleanup();
         if (!this.engine || !this._definition) return;
-        setupBreakpointsFn(this as any, this._breakpoints);
+        setupBreakpointsFn(this, this._breakpoints);
 
         if (this._componentDocument) {
             if (this._componentDocument.$formspecComponent !== '1.0') {
@@ -616,7 +631,7 @@ export class FormspecRender extends HTMLElement {
         }
 
         if (hasActiveScreener(this._screenerDocument) && !this._screenerCompleted) {
-            renderScreener(this as any as ScreenerHost, container);
+            renderScreener(this as ScreenerHost, container);
             return;
         }
 
@@ -626,7 +641,7 @@ export class FormspecRender extends HTMLElement {
                 this._definition.formPresentation,
                 this._componentDocument?.formPresentation,
             ),
-            componentDocument: this._componentDocument,
+            componentDocument: this._componentDocument ?? undefined,
             theme: (this._themeDocument || this.getEffectiveTheme()) as unknown as SchemaThemeDocument,
             activeBreakpoint: this.activeBreakpoint,
             findItem: (key: string) => this.findItemByKey(key),
@@ -634,9 +649,12 @@ export class FormspecRender extends HTMLElement {
         });
 
         if (this._componentDocument && this._componentDocument.tree) {
-            const plan = planComponentTree(this._componentDocument.tree, planCtx);
+            const plan = planComponentTree(
+                this._componentDocument.tree as unknown as Parameters<typeof planComponentTree>[0],
+                planCtx,
+            );
             if (this._showSubmit) ensureSubmitButton(plan, planCtx.nextId);
-            emitNodeFn(this as any, plan, container, '');
+            emitNodeFn(this._renderHost, plan, container, '');
         } else {
             const plans = planDefinitionFallback(this._definition.items, planCtx);
             // Always wrap in a root Stack — needed for pageMode detection and submit button injection
@@ -649,7 +667,7 @@ export class FormspecRender extends HTMLElement {
                 children: plans,
             };
             if (this._showSubmit) ensureSubmitButton(wrapperNode, planCtx.nextId);
-            emitNodeFn(this as any, wrapperNode, container, '');
+            emitNodeFn(this._renderHost, wrapperNode, container, '');
         }
     }
 
@@ -674,7 +692,7 @@ export class FormspecRender extends HTMLElement {
         this.scheduleRender();
     }
 
-    /** @internal */ findItemByKey = (key: string, items: any[] = this._definition?.items ?? []): any | null => {
+    /** @internal */ findItemByKey = (key: string, items: FormItem[] = this._definition?.items ?? []): FormItem | null => {
         if (key == null || typeof key !== 'string') return null;
         const dot = key.indexOf('.');
         if (dot !== -1) {

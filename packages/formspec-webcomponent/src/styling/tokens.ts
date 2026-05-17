@@ -5,7 +5,7 @@ import {
 } from '@formspec-org/layout';
 import type { StylingHost } from './index';
 
-export function resolveToken(host: StylingHost, val: any): any {
+export function resolveToken(host: StylingHost, val: unknown): unknown {
     return resolveTokenBase(
         val,
         host._componentDocument?.tokens,

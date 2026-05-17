@@ -10,21 +10,20 @@ import {
 } from '@formspec-org/types';
 import type { BehaviorContext } from './behaviors/types';
 import type { AdapterContext } from './adapters/types';
+import type {
+    ComponentPresentationSource,
+    SubmitDetail,
+    TokenResolvable,
+    ValidationTargetMetadata,
+} from './hub-types.js';
 
-/** Metadata describing where a validation result points and whether it is jumpable. */
-export interface ValidationTargetMetadata {
-    path: string;
-    label: string;
-    formLevel: boolean;
-    jumpable: boolean;
-    fieldElement?: HTMLElement | null;
-}
+export type { ValidationTargetMetadata } from './hub-types.js';
 
 /** Selected screener route target (if any). */
 export interface ScreenerRoute {
     target: string;
     label?: string;
-    extensions?: Record<string, any>;
+    extensions?: Record<string, unknown>;
 }
 
 /** Classifies the screener route relative to the current definition URL. */
@@ -75,10 +74,7 @@ export interface RenderContext {
     submitPendingSignal: Signal<boolean>;
 
     /** Latest renderer submit detail (`{ response, validationReport }`), or null before first submit. */
-    latestSubmitDetailSignal: Signal<{
-        response: FormResponse;
-        validationReport: ValidationReport;
-    } | null>;
+    latestSubmitDetailSignal: Signal<SubmitDetail | null>;
 
     /** Set shared submit pending state and emit change event when it toggles. */
     setSubmitPending: (pending: boolean) => void;
@@ -87,19 +83,19 @@ export interface RenderContext {
     isSubmitPending: () => boolean;
 
     /** Recursively render a child component descriptor into a parent element. */
-    renderComponent: (comp: LayoutNode, parent: HTMLElement, prefix?: string) => void;
+    renderComponent: (comp: LayoutNode | import('./hub-types.js').ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
 
     /** Resolve a `$token.xxx` reference against component and theme token maps. Non-token values pass through unchanged. */
-    resolveToken: (val: any) => any;
+    resolveToken: (val: TokenResolvable) => TokenResolvable;
 
     /** Apply an inline style object to an element, resolving token references in values. */
-    applyStyle: (el: HTMLElement, style: Record<string, any>) => void;
+    applyStyle: (el: HTMLElement, style: Record<string, string | number> | undefined) => void;
 
     /** Apply `cssClass` entries from a component descriptor to an element's classList. */
-    applyCssClass: (el: HTMLElement, comp: LayoutNode) => void;
+    applyCssClass: (el: HTMLElement, comp: ComponentPresentationSource) => void;
 
     /** Apply accessibility attributes (role, aria-description, aria-live) from a component descriptor. */
-    applyAccessibility: (el: HTMLElement, comp: LayoutNode) => void;
+    applyAccessibility: (el: HTMLElement, comp: ComponentPresentationSource) => void;
 
     /** Resolve the effective PresentationBlock for a definition item via the 5-level theme cascade. */
     resolveItemPresentation: (item: ItemDescriptor) => PresentationBlock;

@@ -10,7 +10,7 @@ import {
 } from '@formspec-org/types';
 import { normalizeFieldPath, externalPathToInternal, findFieldElement } from '../navigation/index.js';
 import type { NavigationHost } from '../navigation/index.js';
-import type { ValidationTargetMetadata } from '../types.js';
+import type { SubmitDetail, ValidationTargetMetadata } from '../hub-types.js';
 
 export interface SubmitHost extends NavigationHost {
     engine: IFormEngine | null;
@@ -18,10 +18,7 @@ export interface SubmitHost extends NavigationHost {
     touchedFields: Set<string>;
     touchedVersion: Signal<number>;
     _submitPendingSignal: Signal<boolean>;
-    _latestSubmitDetailSignal: Signal<{
-        response: FormResponse;
-        validationReport: ValidationReport;
-    } | null>;
+    _latestSubmitDetailSignal: Signal<SubmitDetail | null>;
     dispatchEvent(event: Event): boolean;
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
     focusField?(path: string): void;
@@ -81,7 +78,7 @@ export function touchAllFields(host: SubmitHost): void {
 export function submit(
     host: SubmitHost,
     options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean },
-) {
+): SubmitDetail | null {
     if (!host.engine) return null;
     const mode = options?.mode || 'submit';
     const emitEvent = options?.emitEvent !== false;

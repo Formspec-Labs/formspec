@@ -1,8 +1,10 @@
 /** @filedesc Responsive breakpoint matching via matchMedia listeners. */
 import { signal } from '@preact/signals-core';
 
+import type { ComponentDocument } from '@formspec-org/types';
+
 export interface BreakpointHost {
-    _componentDocument: any;
+    _componentDocument: ComponentDocument | null;
     scheduleRender(): void;
 }
 

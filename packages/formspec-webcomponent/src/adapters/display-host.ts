@@ -1,16 +1,19 @@
 /** @filedesc Host slice passed to display/special adapter renderers (engine, prefix, validation helpers). */
-import type { RenderContext, ValidationTargetMetadata } from '../types';
+import type { LayoutNode } from '@formspec-org/layout';
+import type { FormItem, ValidationResult } from '@formspec-org/types';
 import type { IFormEngine } from '@formspec-org/engine/render';
+import type { ComponentDescriptor, TokenResolvable } from '../hub-types.js';
+import type { RenderContext, ValidationTargetMetadata } from '../types';
 
 export interface DisplayHostSlice {
     engine: IFormEngine;
     prefix: string;
     cleanupFns: Array<() => void>;
-    resolveCompText(comp: any, prop: string, fallback: string): string;
-    renderComponent(comp: any, parent: HTMLElement, prefix?: string): void;
-    resolveToken(val: any): any;
-    findItemByKey(key: string, items?: any[]): any | null;
-    resolveValidationTarget(resultOrPath: any): ValidationTargetMetadata;
+    resolveCompText(comp: ComponentDescriptor, prop: string, fallback: string): string;
+    renderComponent(comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string): void;
+    resolveToken(val: TokenResolvable): TokenResolvable;
+    findItemByKey(key: string, items?: FormItem[]): FormItem | null;
+    resolveValidationTarget(resultOrPath: string | ValidationResult): ValidationTargetMetadata;
     focusField(path: string): boolean;
     latestSubmitDetailSignal: RenderContext['latestSubmitDetailSignal'];
     touchedVersion: RenderContext['touchedVersion'];
