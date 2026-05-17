@@ -26,6 +26,11 @@ mod tests {
         parse_mapping_rules_from_value as parse_mapping_rules_inner,
     };
 
+    fn fel_eval_value(result_json: &str) -> Value {
+        let envelope: Value = serde_json::from_str(result_json).unwrap();
+        envelope.get("value").cloned().expect("value key")
+    }
+
     fn minimal_definition() -> Value {
         json!({
             "title": "Test",
@@ -60,8 +65,9 @@ mod tests {
     #[test]
     fn eval_fel_inner_arithmetic() {
         let result = eval_fel_inner("1 + 2", "{}").unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!(3));
+        assert_eq!(fel_eval_value(&result), json!(3));
+        let envelope: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(envelope["hasErrorDiagnostics"], json!(false));
     }
 
     /// `analyzeFEL` JSON mirrors `fel_analysis_to_json_value` — errors are structured objects.
@@ -81,8 +87,7 @@ mod tests {
     fn eval_fel_inner_with_field_injection() {
         let fields = json!({"age": 25}).to_string();
         let result = eval_fel_inner("$age + 5", &fields).unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!(30));
+        assert_eq!(fel_eval_value(&result), json!(30));
     }
 
     /// Spec: specs/core/spec.md §3.2 — String concatenation via & operator.
@@ -90,8 +95,7 @@ mod tests {
     fn eval_fel_inner_string_concat() {
         let fields = json!({"first": "Jane", "last": "Doe"}).to_string();
         let result = eval_fel_inner("$first & ' ' & $last", &fields).unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!("Jane Doe"));
+        assert_eq!(fel_eval_value(&result), json!("Jane Doe"));
     }
 
     /// Spec: specs/core/spec.md §3.2 — Invalid FEL expression returns parse error.
@@ -113,8 +117,7 @@ mod tests {
     #[test]
     fn eval_fel_inner_empty_fields() {
         let result = eval_fel_inner("42", "").unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!(42));
+        assert_eq!(fel_eval_value(&result), json!(42));
     }
 
     // ── evalFELWithTrace: bridges `fel_core::evaluate_with` + trace through WASM ──
@@ -818,8 +821,7 @@ mod tests {
     #[test]
     fn eval_fel_inner_null_fields_string() {
         let result = eval_fel_inner("42", "null").unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!(42));
+        assert_eq!(fel_eval_value(&result), json!(42));
     }
 
     /// Spec: specs/core/spec.md §3.8.3 — Non-ASCII field names and values.
@@ -827,8 +829,7 @@ mod tests {
     fn eval_fel_inner_non_ascii_field_values() {
         let fields = json!({"greeting": "Bonjour"}).to_string();
         let result = eval_fel_inner("$greeting", &fields).unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!("Bonjour"));
+        assert_eq!(fel_eval_value(&result), json!("Bonjour"));
     }
 
     /// Spec: specs/core/spec.md §3.8.3 — Unicode field values (CJK, emoji).
@@ -836,8 +837,10 @@ mod tests {
     fn eval_fel_inner_unicode_field_values() {
         let fields = json!({"name": "\u{4F60}\u{597D}\u{4E16}\u{754C}"}).to_string();
         let result = eval_fel_inner("$name", &fields).unwrap();
-        let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val, json!("\u{4F60}\u{597D}\u{4E16}\u{754C}"));
+        assert_eq!(
+            fel_eval_value(&result),
+            json!("\u{4F60}\u{597D}\u{4E16}\u{754C}")
+        );
     }
 
     // ── Conversion helpers: json_to_fel and fel_to_json ─────────

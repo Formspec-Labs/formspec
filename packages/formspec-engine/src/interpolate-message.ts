@@ -1,6 +1,10 @@
 /** @filedesc Template string interpolator for locale {{expr}} sequences (spec §3.3.1). */
 
-import { isWasmReady, wasmConsumeLastEvalErrorDiagnostics, wasmFelExprIsInterpolationStaticLiteral } from './wasm-bridge-runtime.js';
+import {
+  type FelEvalResult,
+  isWasmReady,
+  wasmFelExprIsInterpolationStaticLiteral,
+} from './wasm-bridge-runtime.js';
 
 export interface InterpolationWarning {
   expression: string;
@@ -56,11 +60,10 @@ export function interpolateMessage(
 
     // Rule 2 / 3a: error recovery and null-without-binding preservation
     try {
-      const raw = evaluator(expr);
-      // Rule 2: error-severity diagnostics → preserve literal.
-      // The WASM evaluator records diagnostics in a side-channel flag;
-      // consumeLastEvalErrorDiagnostics reads and resets it atomically.
-      if (isWasmReady() && wasmConsumeLastEvalErrorDiagnostics()) {
+      const outcome = evaluator(expr);
+      const { raw, hasErrorDiagnostics } = unwrapFelEvalOutcome(outcome);
+      // Rule 2: error-severity diagnostics → preserve literal (in-band from WASM eval).
+      if (hasErrorDiagnostics) {
         segments.push(match[0]);
         warnings.push({
           expression: expr,
@@ -94,6 +97,25 @@ export function interpolateMessage(
   const text = joined.replace(new RegExp(SENTINEL_OPEN, 'g'), '{{');
 
   return { text, warnings };
+}
+
+function unwrapFelEvalOutcome(outcome: unknown): {
+  raw: unknown;
+  hasErrorDiagnostics: boolean;
+} {
+  if (
+    outcome !== null &&
+    typeof outcome === 'object' &&
+    'value' in outcome &&
+    'hasErrorDiagnostics' in outcome
+  ) {
+    const envelope = outcome as FelEvalResult;
+    return {
+      raw: envelope.value,
+      hasErrorDiagnostics: envelope.hasErrorDiagnostics,
+    };
+  }
+  return { raw: outcome, hasErrorDiagnostics: false };
 }
 
 /** Locale §3.3.1 rule 3a — requires runtime WASM for the static-literal predicate. */

@@ -99,10 +99,30 @@ export function getWasmModule(): WasmModule {
 // Typed wrappers — runtime `formspec_wasm_runtime` only
 // ---------------------------------------------------------------------------
 
-/** Evaluate a FEL expression with optional field values. Returns the evaluated result. */
+/** In-band result from `evalFEL` / `evalFELWithContext` (Locale §3.3.1 rule 2). */
+export interface FelEvalResult {
+    value: unknown;
+    hasErrorDiagnostics: boolean;
+}
+
+function parseFelEvalEnvelope(resultJson: string): FelEvalResult {
+    const parsed = JSON.parse(resultJson) as FelEvalResult;
+    if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'value' in parsed &&
+        typeof parsed.hasErrorDiagnostics === 'boolean'
+    ) {
+        return parsed;
+    }
+    throw new Error(
+        'evalFEL returned unexpected JSON (expected { value, hasErrorDiagnostics })',
+    );
+}
+
+/** Evaluate a FEL expression with optional field values. Returns the evaluated value. */
 export function wasmEvalFEL(expression: string, fields: Record<string, any> = {}): any {
-    const resultJson = wasm().evalFEL(expression, JSON.stringify(fields));
-    return JSON.parse(resultJson);
+    return parseFelEvalEnvelope(wasm().evalFEL(expression, JSON.stringify(fields))).value;
 }
 
 /** FEL evaluation context for the richer WASM evaluator. */
@@ -125,10 +145,18 @@ export interface WasmFelContext {
     meta?: Record<string, string | number | boolean>;
 }
 
-/** Evaluate a FEL expression with full FormspecEnvironment context. */
-export function wasmEvalFELWithContext(expression: string, context: WasmFelContext): any {
+/** Evaluate a FEL expression with full FormspecEnvironment context (value + diagnostics flag). */
+export function wasmEvalFELWithContextEnvelope(
+    expression: string,
+    context: WasmFelContext,
+): FelEvalResult {
     const resultJson = wasm().evalFELWithContext(expression, JSON.stringify(context));
-    return JSON.parse(resultJson);
+    return parseFelEvalEnvelope(resultJson);
+}
+
+/** Evaluate a FEL expression with full FormspecEnvironment context. Returns the value only. */
+export function wasmEvalFELWithContext(expression: string, context: WasmFelContext): any {
+    return wasmEvalFELWithContextEnvelope(expression, context).value;
 }
 
 /**
@@ -190,6 +218,8 @@ export type FelTraceStep =
 export interface FelTraceResult {
     /** Evaluated value (JSON-projected — no FEL type tags). */
     value: unknown;
+    /** True when error-severity diagnostics were recorded (Locale §3.3.1 rule 2). */
+    hasErrorDiagnostics: boolean;
     /** Diagnostics emitted during evaluation. */
     diagnostics: Array<Record<string, unknown>>;
     /** Ordered trace steps, appended in evaluation order. */
@@ -214,15 +244,6 @@ export function wasmEvalFELWithTrace(
 /** Locale §3.3.1 — true if the expression AST is only literals and unary `not` / `!` / `-`. */
 export function wasmFelExprIsInterpolationStaticLiteral(expression: string): boolean {
     return wasm().felExprIsInterpolationStaticLiteral(expression);
-}
-
-/**
- * Locale §3.3.1 rule 2 — read and reset the error-diagnostics flag.
- * Returns `true` if the most recent WASM FEL eval recorded error-severity
- * diagnostics. The flag is reset to `false` after reading.
- */
-export function wasmConsumeLastEvalErrorDiagnostics(): boolean {
-    return wasm().consumeLastEvalErrorDiagnostics();
 }
 
 /** Normalize FEL source before evaluation (bare `$`, repeat qualifiers, repeat aliases). */
