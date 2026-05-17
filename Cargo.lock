@@ -610,12 +610,7 @@ dependencies = [
 name = "formspec-signature-port"
 version = "0.1.0"
 dependencies = [
- "chrono",
- "proptest",
- "serde",
- "serde_bytes",
- "serde_json",
- "thiserror",
+ "integrity-signature",
 ]
 
 [[package]]
@@ -955,6 +950,17 @@ dependencies = [
  "integrity-cbor",
  "rand_core 0.6.4",
  "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "integrity-signature"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_bytes",
  "serde_json",
  "thiserror",
 ]
