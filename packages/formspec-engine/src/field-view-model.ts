@@ -79,7 +79,7 @@ export interface FieldViewModelDeps {
     getOptionsState: () => EngineSignal<{ loading: boolean; error: string | null }>;
     getOptionSetName: () => string | undefined;
     setFieldValue: (value: any) => void;
-    evalFEL: (expr: string) => unknown;
+    evalFEL: (expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown;
 }
 
 // ── Code synthesis table (§3.1.4) ───────────────────────────────────

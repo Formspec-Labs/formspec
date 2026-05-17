@@ -4,6 +4,7 @@ import type { FormVariable } from '@formspec-org/types';
 import type { ValidationResult } from '@formspec-org/types';
 import type { EvalResult, EvalValidation } from '../diff.js';
 import type { WasmFelContext } from '../wasm-bridge-runtime.js';
+import type { FormFieldValue } from '../interfaces.js';
 import type { EngineSignal } from '../reactivity/types.js';
 import type { EngineBindConfig } from './helpers.js';
 import {
@@ -111,12 +112,12 @@ export function resolveFelFieldValueForWasm(
     value: unknown,
     bindConfigs: Record<string, EngineBindConfig>,
     fieldIsIrrelevant: (path: string) => boolean,
-): unknown {
+): FormFieldValue {
     const bind = bindConfigs[toBasePath(path)];
     if (bind?.excludedValue === 'null' && fieldIsIrrelevant(path)) {
         return null;
     }
-    return value;
+    return value as FormFieldValue;
 }
 
 export function visibleScopedVariableValues(

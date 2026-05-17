@@ -1,6 +1,6 @@
 /** @filedesc Validate instance JSON against optional per-instance schema (datatype strings). */
 
-import { getNestedValue, validateDataType } from './helpers.js';
+import { getNestedValue, isJsonRecord, validateDataType } from './helpers.js';
 
 export function validateInstanceDataAgainstSchema(
     instanceName: string,
@@ -8,6 +8,9 @@ export function validateInstanceDataAgainstSchema(
     schema: Record<string, unknown> | undefined,
 ): void {
     if (!schema || typeof schema !== 'object') {
+        return;
+    }
+    if (!isJsonRecord(data)) {
         return;
     }
     for (const [path, dataType] of Object.entries(schema)) {

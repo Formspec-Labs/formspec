@@ -12,6 +12,9 @@ import { Path, PathSegmentKind } from '@formspec-org/types';
 import type { EvalValidation } from '../diff.js';
 import type {
     FormEngineRuntimeContext,
+    FormFieldValue,
+    JsonRecord,
+    JsonValue,
     MappingDiagnostic,
     MappingDirection,
     RuntimeMappingResult,
@@ -32,14 +35,22 @@ export type EngineBindConfig = FormBind & {
 };
 
 type RuntimeNowInput = Date | string | number;
-export function normalizeRemoteOptions(payload: any): OptionEntry[] {
-    const options = Array.isArray(payload) ? payload : Array.isArray(payload?.options) ? payload.options : null;
+export function normalizeRemoteOptions(payload: unknown): OptionEntry[] {
+    const record = payload !== null && typeof payload === 'object'
+        ? payload as Record<string, unknown>
+        : null;
+    const options = Array.isArray(payload)
+        ? payload
+        : record && Array.isArray(record.options)
+            ? record.options
+            : null;
     if (!options) {
         throw new Error('Remote options response must be an array or { options: [...] }');
     }
     return options
-        .filter((option: any) => option && typeof option === 'object' && option.value !== undefined && option.label !== undefined)
-        .map((option: any) => {
+        .filter((option): option is Record<string, unknown> =>
+            !!option && typeof option === 'object' && 'value' in option && 'label' in option)
+        .map((option) => {
             const base: OptionEntry = {
                 value: String(option.value),
                 label: String(option.label),
@@ -77,9 +88,9 @@ export function toValidationResults(results: EvalValidation[]): ValidationResult
 
 export function toRuntimeMappingResult(result: {
     direction: string;
-    output: any;
+    output: JsonValue;
     rulesApplied: number;
-    diagnostics: any[];
+    diagnostics: MappingDiagnostic[];
 }): RuntimeMappingResult {
     return {
         direction: result.direction as MappingDirection,
@@ -89,7 +100,7 @@ export function toRuntimeMappingResult(result: {
     };
 }
 
-export function emptyValueForItem(item: FormItem): any {
+export function emptyValueForItem(item: FormItem): FormFieldValue {
     if (item.type !== 'field') {
         return null;
     }
@@ -113,7 +124,7 @@ export function emptyValueForItem(item: FormItem): any {
     }
 }
 
-export function coerceInitialValue(item: FormItem, value: any): any {
+export function coerceInitialValue(item: FormItem, value: FormFieldValue): FormFieldValue {
     if (item.dataType === 'boolean' && value === '') {
         return false;
     }
@@ -123,7 +134,7 @@ export function coerceInitialValue(item: FormItem, value: any): any {
     if (item.dataType === 'money' && typeof value === 'number') {
         return { amount: value, currency: item.currency ?? '' };
     }
-    if (item.dataType === 'money' && value && typeof value === 'object' && typeof value.amount === 'string') {
+    if (item.dataType === 'money' && isJsonRecord(value) && typeof value.amount === 'string') {
         const parsed = value.amount === '' ? null : Number(value.amount);
         return {
             ...value,
@@ -137,8 +148,8 @@ export function coerceFieldValue(
     item: FormItem,
     bind: EngineBindConfig | undefined,
     definition: FormDefinition,
-    value: any,
-): any {
+    value: FormFieldValue,
+): FormFieldValue {
     if (value === undefined) {
         return undefined;
     }
@@ -149,10 +160,10 @@ export function coerceFieldValue(
         JSON.stringify(definition),
         JSON.stringify(value),
     );
-    return JSON.parse(out);
+    return JSON.parse(out) as FormFieldValue;
 }
 
-export function validateDataType(value: any, dataType: string): boolean {
+export function validateDataType(value: FormFieldValue, dataType: string): boolean {
     switch (dataType) {
         case 'string':
             return typeof value === 'string';
@@ -163,7 +174,7 @@ export function validateDataType(value: any, dataType: string): boolean {
         case 'decimal':
             return typeof value === 'number' && !Number.isNaN(value);
         case 'money':
-            return value && typeof value === 'object' && typeof value.amount === 'number';
+            return isJsonRecord(value) && typeof value.amount === 'number';
         case 'array':
             return Array.isArray(value);
         case 'object':
@@ -182,6 +193,10 @@ export function cloneValue<T>(value: T): T {
         return copier(value);
     }
     return JSON.parse(JSON.stringify(value));
+}
+
+export function isJsonRecord(value: unknown): value is JsonRecord {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 export function normalizeWasmValue<T>(value: T): T {
@@ -206,17 +221,21 @@ export function normalizeWasmValue<T>(value: T): T {
 
 export function tagMoneyByPath(
     path: string,
-    value: any,
+    value: FormFieldValue,
     bindConfigs: Record<string, EngineBindConfig>,
     fieldDataTypes: Record<string, string | undefined> = {},
-): any {
+): FormFieldValue {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-    const record = value as Record<string, any>;
+    const record = value as Record<string, unknown>;
     if (record.$type === 'money') return value;
     const bind = bindConfigs[toBasePath(path)];
-    const dataType = fieldDataTypes[toBasePath(path)] ?? (bind as any)?.dataType;
+    const dataType = fieldDataTypes[toBasePath(path)];
     if (dataType === 'money' && 'amount' in record && 'currency' in record) {
-        return { $type: 'money', amount: record.amount, currency: record.currency };
+        return {
+            $type: 'money',
+            amount: record.amount as JsonValue,
+            currency: record.currency as JsonValue,
+        };
     }
     return value;
 }
@@ -359,19 +378,29 @@ function concreteSegments(path: string): Array<{ kind: PathSegmentKind.Exact; ke
     return out;
 }
 
-export function getNestedValue(target: any, path: string): any {
+export function getNestedValue(target: unknown, path: string): FormFieldValue {
     const segments = concreteSegments(path);
-    let current = target;
+    let current: unknown = target;
     for (const seg of segments) {
         if (current === null || current === undefined) {
             return undefined;
         }
-        current = seg.kind === PathSegmentKind.Indexed ? current[seg.index] : current[seg.key];
+        if (seg.kind === PathSegmentKind.Indexed) {
+            if (!Array.isArray(current)) {
+                return undefined;
+            }
+            current = current[seg.index];
+            continue;
+        }
+        if (!isJsonRecord(current)) {
+            return undefined;
+        }
+        current = current[seg.key];
     }
-    return current;
+    return current as FormFieldValue;
 }
 
-export function setNestedPathValue(target: Record<string, any>, path: string, value: any): void {
+export function setNestedPathValue(target: JsonRecord, path: string, value: FormFieldValue): void {
     const segments = concreteSegments(path);
     if (segments.length === 0) {
         return;
@@ -396,7 +425,7 @@ export function setNestedPathValue(target: Record<string, any>, path: string, va
     }
 }
 
-export function setExpressionContextValue(target: Record<string, any>, path: string, value: any): void {
+export function setExpressionContextValue(target: JsonRecord, path: string, value: FormFieldValue): void {
     const segments = concreteSegments(path);
     if (segments.length === 0) {
         return;
@@ -438,7 +467,7 @@ export function setExpressionContextValue(target: Record<string, any>, path: str
     }
 }
 
-export function setResponsePathValue(target: Record<string, any>, path: string, value: any): void {
+export function setResponsePathValue(target: JsonRecord, path: string, value: FormFieldValue): void {
     const tokens = path.match(/[^.[\]]+|\[(\d+)\]/g) ?? [];
     if (tokens.length === 0) {
         return;
@@ -530,7 +559,7 @@ export function replaceBareCurrentFieldRefs(expression: string, currentFieldName
     return output;
 }
 
-export function flattenObject(value: any, prefix = '', output: Record<string, any> = {}): Record<string, any> {
+export function flattenObject(value: JsonValue, prefix = '', output: JsonRecord = {}): JsonRecord {
     if (Array.isArray(value)) {
         value.forEach((entry, index) => {
             const path = `${prefix}[${index}]`;
@@ -557,8 +586,11 @@ export function flattenObject(value: any, prefix = '', output: Record<string, an
     return output;
 }
 
-export function buildGroupSnapshotForPath(prefix: string, signals: Record<string, EngineSignal<any>>): Record<string, any> {
-    const snapshot: Record<string, any> = {};
+export function buildGroupSnapshotForPath(
+    prefix: string,
+    signals: Record<string, EngineSignal<FormFieldValue>>,
+): JsonRecord {
+    const snapshot: JsonRecord = {};
     for (const [path, signalRef] of Object.entries(signals)) {
         if (!path.startsWith(`${prefix}.`)) {
             continue;
@@ -572,11 +604,15 @@ export function buildGroupSnapshotForPath(prefix: string, signals: Record<string
     return snapshot;
 }
 
-export function buildRepeatCollection(groupPath: string, count: number, signals: Record<string, EngineSignal<any>>): any[] {
-    const rows: any[] = [];
+export function buildRepeatCollection(
+    groupPath: string,
+    count: number,
+    signals: Record<string, EngineSignal<FormFieldValue>>,
+): JsonValue[] {
+    const rows: JsonValue[] = [];
     for (let index = 0; index < count; index += 1) {
         const prefix = `${groupPath}[${index}]`;
-        const row: Record<string, any> = {};
+        const row: JsonRecord = {};
         for (const [path, signalRef] of Object.entries(signals)) {
             if (!path.startsWith(`${prefix}.`)) {
                 continue;
@@ -619,7 +655,7 @@ export function isEmptyValue(value: unknown): boolean {
     return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
 }
 
-export function safeEvaluateExpression(expression: string, context: WasmFelContext): any {
+export function safeEvaluateExpression(expression: string, context: WasmFelContext): FormFieldValue {
     try {
         return wasmEvalFELWithContext(expression, context);
     } catch {
@@ -732,10 +768,13 @@ export function topoSortKeys<T extends { key: string }>(
     return ordered;
 }
 
-export function snapshotSignals(signals: Record<string, EngineSignal<any>>): Record<string, any> {
-    const snapshot: Record<string, any> = {};
+export function snapshotSignals(signals: Record<string, EngineSignal<FormFieldValue>>): JsonRecord {
+    const snapshot: JsonRecord = {};
     for (const [path, signalRef] of Object.entries(signals)) {
-        snapshot[path] = cloneValue(signalRef.value);
+        const value = signalRef.value;
+        if (value !== undefined) {
+            snapshot[path] = cloneValue(value);
+        }
     }
     return snapshot;
 }
@@ -744,8 +783,8 @@ export function toFelIndexedPath(path: string): string {
     return path.replace(/\[(\d+)\]/g, (_match, index) => `[${Number(index) + 1}]`);
 }
 
-export function buildRepeatValueAliases(valuesByPath: Record<string, any>): Array<[string, any[]]> {
-    const grouped = new Map<string, Array<{ index: number; value: any }>>();
+export function buildRepeatValueAliases(valuesByPath: JsonRecord): Array<[string, FormFieldValue[]]> {
+    const grouped = new Map<string, Array<{ index: number; value: FormFieldValue }>>();
     for (const [path, value] of Object.entries(valuesByPath)) {
         const match = path.match(/^(.*)\[(\d+)\]\.([^.[\]]+)$/);
         if (!match) {

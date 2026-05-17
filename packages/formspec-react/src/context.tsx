@@ -5,6 +5,7 @@ import React, { createContext, useContext, useMemo, useEffect, useRef, useCallba
 import { signal } from '@preact/signals-core';
 import type { ReadonlyEngineSignal } from '@formspec-org/engine';
 import type { IFormEngine } from '@formspec-org/engine';
+import type { FormResponse, ValidationReport } from '@formspec-org/types';
 import { createFormEngine } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import {
@@ -17,8 +18,8 @@ import {
 import type { ComponentMap } from './component-map';
 
 export interface SubmitResult {
-    response: any;
-    validationReport: any;
+    response: FormResponse;
+    validationReport: ValidationReport;
 }
 
 export interface FormspecContextValue {

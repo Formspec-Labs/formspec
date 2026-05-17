@@ -29,7 +29,7 @@ export interface FormViewModelDeps {
   /** Returns page description from theme pages */
   getPageDescription: (pageId: string) => string | undefined;
   /** Evaluates a FEL expression in the form-level (global) context */
-  evalFEL: (expr: string) => unknown;
+  evalFEL: (expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown;
   /** Returns total validation error/warning/info counts */
   getValidationCounts: () => { errors: number; warnings: number; infos: number };
   /** Returns whether form is valid (no errors) */

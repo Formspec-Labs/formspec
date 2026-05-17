@@ -36,6 +36,7 @@ import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
     wasmEvaluateDefinition,
     wasmEvalFELWithContext,
+    wasmEvalFELWithContextEnvelope,
 } from '../wasm-bridge-runtime.js';
 import {
     resolveOptionSetsOnDefinition,
@@ -80,6 +81,7 @@ import {
     getAncestorBasePaths,
     getNestedValue,
     getScopeAncestors,
+    isJsonRecord,
     isEmptyValue,
     makeValidationResult,
     normalizeRemoteOptions,
@@ -149,12 +151,17 @@ export class FormEngine implements IFormEngine {
         nowProvider: () => new Date(),
     };
 
-    public constructor(definition: FormDefinition, options?: FormEngineOptions) {
+    public constructor(
+        definition: FormDefinition,
+        optionsOrRuntimeContext?: FormEngineOptions | FormEngineRuntimeContext,
+        legacyRegistryEntries?: RegistryEntry[],
+    ) {
+        const options = FormEngine.normalizeConstructorOptions(optionsOrRuntimeContext, legacyRegistryEntries);
         const {
             runtimeContext,
             registryEntries,
             reactiveRuntime = preactReactiveRuntime,
-        } = options ?? {};
+        } = options;
         this._rx = reactiveRuntime;
         this.instanceVersion = this._rx.signal(0);
         this.structureVersion = this._rx.signal(0);
@@ -200,7 +207,8 @@ export class FormEngine implements IFormEngine {
             getDefinitionDescription: () => this.definition.description ?? '',
             getPageTitle: () => undefined,
             getPageDescription: () => undefined,
-            evalFEL: (expr) => wasmEvalFELWithContext(expr, this._buildLocaleFELContext()),
+            evalFEL: (expr) =>
+                wasmEvalFELWithContextEnvelope(expr, this._buildLocaleFELContext()),
             getValidationCounts: () => {
                 const report = this.getValidationReport();
                 return {
@@ -220,8 +228,8 @@ export class FormEngine implements IFormEngine {
         return resolvePinnedDefinition(response, definitions);
     }
 
-    public get formPresentation(): FormDefinition['formPresentation'] {
-        return this.definition.formPresentation;
+    public get formPresentation(): FormDefinition['formPresentation'] | null {
+        return this.definition.formPresentation ?? null;
     }
 
     public setRuntimeContext(context: FormEngineRuntimeContext = {}): void {
@@ -280,7 +288,10 @@ export class FormEngine implements IFormEngine {
         if (data === undefined) {
             return undefined;
         }
-        return path ? getNestedValue(data, path) : data;
+        if (!path) {
+            return data;
+        }
+        return isJsonRecord(data) ? getNestedValue(data, path) : undefined;
     }
 
     public getDisabledDisplay(path: string): 'hidden' | 'protected' {
@@ -408,7 +419,11 @@ export class FormEngine implements IFormEngine {
 
         const bind = this._bindConfigs[basePath];
         const nextValue = coerceFieldValue(item, bind, this.definition, value);
-        this._data[name] = cloneValue(nextValue);
+        if (nextValue === undefined) {
+            delete this._data[name];
+        } else {
+            this._data[name] = cloneValue(nextValue);
+        }
         this._evaluate();
     }
 
@@ -767,6 +782,28 @@ export class FormEngine implements IFormEngine {
         return this._runtimeContext.nowProvider().toISOString();
     }
 
+    private static normalizeConstructorOptions(
+        optionsOrRuntimeContext?: FormEngineOptions | FormEngineRuntimeContext,
+        legacyRegistryEntries?: RegistryEntry[],
+    ): FormEngineOptions {
+        const maybeOptions = optionsOrRuntimeContext as FormEngineOptions | undefined;
+        const hasOptionsShape = maybeOptions !== undefined && (
+            Object.prototype.hasOwnProperty.call(maybeOptions, 'runtimeContext')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'registryEntries')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'reactiveRuntime')
+        );
+        if (hasOptionsShape) {
+            return {
+                ...maybeOptions,
+                registryEntries: maybeOptions.registryEntries ?? legacyRegistryEntries,
+            };
+        }
+        return {
+            runtimeContext: optionsOrRuntimeContext as FormEngineRuntimeContext | undefined,
+            registryEntries: legacyRegistryEntries,
+        };
+    }
+
     private initializeOptionSignals(): void {
         const visit = (items: FormItem[], prefix = ''): void => {
             for (const item of items) {
@@ -1042,7 +1079,7 @@ export class FormEngine implements IFormEngine {
         }
 
         if (item.initialValue !== undefined) {
-            return coerceInitialValue(item, item.initialValue);
+            return coerceInitialValue(item, item.initialValue as FormFieldValue);
         }
 
         return emptyValueForItem(item);
@@ -1331,7 +1368,8 @@ export class FormEngine implements IFormEngine {
             getOptionsState: () => this.optionStateSignals[basePath] ?? this._rx.signal({ loading: false, error: null }),
             getOptionSetName: () => item.optionSet,
             setFieldValue: (value) => this.setValue(path, value),
-            evalFEL: (expr) => wasmEvalFELWithContext(expr, this._buildLocaleFELContext(path)),
+            evalFEL: (expr) =>
+                wasmEvalFELWithContextEnvelope(expr, this._buildLocaleFELContext(path)),
         });
         this._fieldViewModels[path] = vm;
     }
