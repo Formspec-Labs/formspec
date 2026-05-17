@@ -14,6 +14,7 @@ from formspec._rust import (
     well_known_registry_url,
     RegistryInfo,
 )
+from formspec.registry import Registry
 
 
 # ---------------------------------------------------------------------------
@@ -89,6 +90,23 @@ def _registry_doc():
 # ===========================================================================
 # Registry parsing
 # ===========================================================================
+
+class TestRegistryFacade:
+    def test_load_and_find_one(self):
+        reg = Registry.load(_registry_doc())
+        entry = reg.find_one("x-currency", version="1.0.0")
+        assert entry is not None
+        assert entry["version"] == "1.0.0"
+
+    def test_validate_delegates_to_rust(self):
+        reg = Registry(_registry_doc())
+        assert isinstance(reg.validate(), list)
+
+    def test_find_sorts_by_semver_descending(self):
+        reg = Registry(_registry_doc())
+        versions = [e["version"] for e in reg.find("x-currency")]
+        assert versions == ["2.0.0", "1.0.0", "0.9.0"]
+
 
 class TestRegistryParsing:
     def test_parses_entry_count(self):

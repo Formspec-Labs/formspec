@@ -1,0 +1,25 @@
+{
+  "$formspecRegistry": "1.0",
+  "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
+  "publisher": {
+    "name": "Grant Application Example",
+    "url": "https://example.gov",
+    "contact": "grants@example.gov"
+  },
+  "published": "2026-05-17T00:00:00Z",
+  "entries": [
+    {
+      "name": "x-formspec-ein",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Employer Identification Number (EIN) in XX-XXXXXXX format for grant applicant identification.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^\\d{2}-\\d{7}$"
+      }
+    }
+  ]
+}
