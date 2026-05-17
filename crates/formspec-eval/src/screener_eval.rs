@@ -459,13 +459,15 @@ fn eval_score_threshold(
         }
     }
 
+    warnings.extend(phase_warnings_from_eliminated(&eliminated));
+
     PhaseResult {
         id: phase_id.to_string(),
         status: "evaluated".to_string(),
         strategy: strategy.to_string(),
         matched,
         eliminated,
-        warnings: Vec::new(),
+        warnings,
     }
 }
 
@@ -912,8 +914,6 @@ mod tests {
     }
 
     #[test]
-
-    #[test]
     fn malformed_route_condition_emits_warning_and_expression_error_reason() {
         let screener = json!({
             "$formspecScreener": "1.0",
@@ -946,6 +946,41 @@ mod tests {
         );
     }
 
+    #[test]
+    fn malformed_score_expression_emits_warning_and_expression_error_reason() {
+        let screener = json!({
+            "$formspecScreener": "1.0",
+            "url": "urn:test:screener",
+            "version": "1.0.0",
+            "title": "Test",
+            "items": [],
+            "evaluation": [{
+                "id": "scoring",
+                "strategy": "score-threshold",
+                "routes": [{
+                    "score": "$x ==",
+                    "threshold": 0,
+                    "target": "urn:broken"
+                }]
+            }]
+        });
+        let answers = HashMap::new();
+        let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+
+        assert_eq!(det.phases[0].matched.len(), 0);
+        assert_eq!(det.phases[0].eliminated.len(), 1);
+        assert_eq!(
+            det.phases[0].eliminated[0].reason.as_deref(),
+            Some("expression-error")
+        );
+        assert!(
+            det.phases[0]
+                .warnings
+                .contains(&"fel-expression-error".to_string())
+        );
+    }
+
+    #[test]
     fn first_match_falls_through_to_default() {
         let screener = simple_screener();
         let mut answers = HashMap::new();
