@@ -29,8 +29,8 @@ describe('generated types smoke test', () => {
     expect(mapping).toBeDefined();
   });
 
-  it('backwards-compatible aliases resolve to schema types', () => {
-    // These Form-prefixed names alias the schema $defs names
+  it('Form-prefixed canonical types resolve to schema types', () => {
+    // Form-prefixed exports alias generated $def names (Shape, Variable, …)
     const item = {} as FormItem;
     const bind = {} as FormBind;
     const shape = {} as FormShape;

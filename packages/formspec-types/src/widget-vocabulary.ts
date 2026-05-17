@@ -6,59 +6,55 @@
  * or re-exported through formspec-layout).
  */
 
-export const KNOWN_COMPONENT_TYPES = new Set([
-    'TextInput', 'NumberInput', 'Select', 'Toggle',
-    'DatePicker', 'RadioGroup', 'CheckboxGroup', 'Slider', 'Rating',
-    'FileUpload', 'Signature', 'MoneyInput',
-    'Stack', 'Card', 'Accordion', 'Collapsible',
-    'Heading', 'Text', 'Divider', 'Alert',
-    'Tabs', 'Page',
-]);
+/** Tier 1 widget tokens (normalized keys) and primary camelCase hint per component. */
+const WIDGET_HINT_ENTRIES = [
+    { component: 'TextInput', primaryHint: 'textInput', widgets: ['textinput', 'textarea', 'richtext', 'password', 'color', 'dateinput', 'datetimeinput', 'timeinput', 'urlinput'] },
+    { component: 'NumberInput', primaryHint: 'numberInput', widgets: ['numberinput', 'stepper'] },
+    { component: 'Slider', primaryHint: 'slider', widgets: ['slider'] },
+    { component: 'Rating', primaryHint: 'rating', widgets: ['rating'] },
+    { component: 'Toggle', primaryHint: 'toggle', widgets: ['checkbox', 'toggle', 'yesno'] },
+    { component: 'DatePicker', primaryHint: 'datePicker', widgets: ['datepicker', 'datetimepicker', 'timepicker'] },
+    { component: 'Select', primaryHint: 'dropdown', widgets: ['dropdown', 'autocomplete'] },
+    { component: 'RadioGroup', primaryHint: 'radio', widgets: ['radio', 'segmented', 'likert'] },
+    { component: 'CheckboxGroup', primaryHint: 'checkboxGroup', widgets: ['checkboxgroup', 'multiselect'] },
+    { component: 'FileUpload', primaryHint: 'fileUpload', widgets: ['fileupload', 'camera'] },
+    { component: 'Signature', primaryHint: 'signature', widgets: ['signature'] },
+    { component: 'MoneyInput', primaryHint: 'moneyInput', widgets: ['moneyinput'] },
+    { component: 'Stack', primaryHint: 'section', widgets: ['section', 'tab'] },
+    { component: 'Card', primaryHint: 'card', widgets: ['card'] },
+    { component: 'Accordion', primaryHint: 'accordion', widgets: ['accordion'] },
+    { component: 'Heading', primaryHint: 'heading', widgets: ['heading'] },
+    { component: 'Text', primaryHint: 'paragraph', widgets: ['paragraph'] },
+    { component: 'Divider', primaryHint: 'divider', widgets: ['divider'] },
+    { component: 'Alert', primaryHint: 'banner', widgets: ['banner'] },
+] as const;
+
+/** Layout components with no Tier 1 widgetHint — known for schema/planner checks only. */
+const LAYOUT_ONLY_COMPONENT_TYPES = ['Collapsible', 'Tabs', 'Page'] as const;
+
+function buildSpecWidgetToComponent(): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const { component, widgets } of WIDGET_HINT_ENTRIES) {
+        for (const widget of widgets) {
+            map[widget] = component;
+        }
+    }
+    return map;
+}
+
+function buildComponentToHint(): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const { component, primaryHint } of WIDGET_HINT_ENTRIES) {
+        map[component] = primaryHint;
+    }
+    return map;
+}
 
 /**
  * Spec-normative Tier 1 widgetHint → Tier 3 component name.
  * Keys are always lowercase (normalized). Values are PascalCase component names.
  */
-export const SPEC_WIDGET_TO_COMPONENT: Record<string, string> = {
-    textinput: 'TextInput',
-    textarea: 'TextInput',
-    richtext: 'TextInput',
-    password: 'TextInput',
-    color: 'TextInput',
-    numberinput: 'NumberInput',
-    stepper: 'NumberInput',
-    slider: 'Slider',
-    rating: 'Rating',
-    checkbox: 'Toggle',
-    toggle: 'Toggle',
-    yesno: 'Toggle',
-    datepicker: 'DatePicker',
-    datetimepicker: 'DatePicker',
-    timepicker: 'DatePicker',
-    dateinput: 'TextInput',
-    datetimeinput: 'TextInput',
-    timeinput: 'TextInput',
-    dropdown: 'Select',
-    radio: 'RadioGroup',
-    autocomplete: 'Select',
-    segmented: 'RadioGroup',
-    likert: 'RadioGroup',
-    checkboxgroup: 'CheckboxGroup',
-    multiselect: 'CheckboxGroup',
-    fileupload: 'FileUpload',
-    camera: 'FileUpload',
-    signature: 'Signature',
-    moneyinput: 'MoneyInput',
-    urlinput: 'TextInput',
-    section: 'Stack',
-    card: 'Card',
-    accordion: 'Accordion',
-    tab: 'Stack',
-    heading: 'Heading',
-    paragraph: 'Text',
-    divider: 'Divider',
-    banner: 'Alert',
-};
+export const SPEC_WIDGET_TO_COMPONENT: Record<string, string> = buildSpecWidgetToComponent();
 
 /**
  * Reverse map: PascalCase component → canonical camelCase hint.
@@ -69,27 +65,12 @@ export const SPEC_WIDGET_TO_COMPONENT: Record<string, string> = {
  * Note: SPEC_WIDGET_TO_COMPONENT keys are all-lowercase (normalized for lookup).
  * These values are camelCase (the authoring/storage form).
  */
-export const COMPONENT_TO_HINT: Record<string, string> = {
-    TextInput: 'textInput',
-    NumberInput: 'numberInput',
-    Toggle: 'toggle',
-    DatePicker: 'datePicker',
-    Select: 'dropdown',
-    RadioGroup: 'radio',
-    CheckboxGroup: 'checkboxGroup',
-    Slider: 'slider',
-    Rating: 'rating',
-    FileUpload: 'fileUpload',
-    Signature: 'signature',
-    MoneyInput: 'moneyInput',
-    Stack: 'section',
-    Card: 'card',
-    Accordion: 'accordion',
-    Heading: 'heading',
-    Text: 'paragraph',
-    Divider: 'divider',
-    Alert: 'banner',
-};
+export const COMPONENT_TO_HINT: Record<string, string> = buildComponentToHint();
+
+export const KNOWN_COMPONENT_TYPES = new Set<string>([
+    ...WIDGET_HINT_ENTRIES.map((entry) => entry.component),
+    ...LAYOUT_ONLY_COMPONENT_TYPES,
+]);
 
 /**
  * Widget compatibility matrix: dataType → ordered list of compatible components.

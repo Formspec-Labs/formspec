@@ -1,8 +1,8 @@
 # formspec-types
 
-TypeScript types generated from the Formspec JSON schemas. Zero runtime dependencies.
+TypeScript types generated from the Formspec JSON schemas. No npm runtime dependencies.
 
-This package is the shared type vocabulary for all Formspec packages. Types map directly to their source schema in `schemas/`.
+This package is the shared type vocabulary for all Formspec packages. Types map directly to their source schema in `schemas/`. It also ships a small widget-vocabulary module (`widget-vocabulary.ts`) with lookup tables used at runtime by layout and engine packages.
 
 ## Install
 
@@ -31,9 +31,15 @@ Packages that depend on `formspec-core` or `formspec-studio-core` receive these 
 | `FormVariable` | A computed variable with a FEL expression |
 | `FormInstance` | An external data source instance |
 | `FormOption` | A single choice option `{ value, label }` |
-| `FormScreener` | Pre-form screener with fields and routing rules |
 
-The augmented types above (`FormItem`, `FormBind`, `FormDefinition`, `FormScreener`) extend the generated schema types with properties that the JSON Schema expresses conditionally (via `if/then`) and that code-generation cannot fully represent. Raw generated types are also available as `Item`, `Bind`, `FormDefinition` (generated), `Screener`, `Shape`, `Variable`, `Instance`, `OptionEntry`, `Route`, `Presentation`, `FELExpression`.
+The augmented types above (`FormItem`, `FormBind`, `FormDefinition`) extend the generated schema types with properties that the JSON Schema expresses conditionally (via `if/then`) and that code-generation cannot fully represent. Raw generated types are also available as `Item`, `Bind`, `FormDefinition` (generated), `Shape`, `Variable`, `Instance`, `OptionEntry`, `Route`, `Presentation`, `FELExpression`.
+
+### Screener (`schemas/screener.schema.json`)
+
+| Type | Description |
+|------|-------------|
+| `ScreenerDocument` | Pre-form screener with fields and routing rules |
+| `FormScreenerPhase` | One stage in the screener evaluation pipeline (canonical name for generated `Phase`) |
 
 ### Component (`schemas/component.schema.json`)
 
@@ -70,8 +76,8 @@ The augmented types above (`FormItem`, `FormBind`, `FormDefinition`, `FormScreen
 
 ## Design notes
 
-- **Schema-accurate** — `FormItem.dataType` accepts any `string`, not a narrow literal union. Extension registries add data types beyond the 14 core built-ins, so the type must stay open.
-- **Zero dependencies** — pure type declarations, no runtime code.
+- **Schema-accurate** — `FormItem.dataType` accepts any `string`, not a narrow literal union. Extension registries add data types beyond the 13 core built-ins, so the type must stay open.
+- **No npm runtime dependencies** — types are compile-time only; the widget vocabulary module is plain JS constants with no package dependencies.
 - **Single source of truth** — `formspec-core` and `formspec-studio-core` both re-export from here, so all packages share identical definitions with no boundary casts.
 
 ## Regenerating types
