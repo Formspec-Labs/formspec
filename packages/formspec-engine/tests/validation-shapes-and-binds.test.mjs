@@ -86,6 +86,14 @@ test('should return ValidationReport with valid boolean, counts, results, and ti
   assert.match(report.timestamp, /^\d{4}-\d{2}-\d{2}T/); // ISO 8601
 });
 
+test('should pin definition url and version on ValidationReport', () => {
+  const engine = createGrantEngine();
+  const report = getValidationReport(engine, 'continuous');
+
+  assert.equal(report.definitionUrl, 'https://example.gov/forms/grant-application');
+  assert.equal(report.definitionVersion, '1.0.0');
+});
+
 // ── Shape: budgetMatch (context block) ───────────────────────────────
 
 test('should surface BUDGET_MISMATCH shape with full ValidationResult contract', () => {
