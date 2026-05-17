@@ -6,10 +6,11 @@ import { signal } from '@preact/signals-core';
 import type { ReadonlyEngineSignal } from '@formspec-org/engine';
 import type { IFormEngine } from '@formspec-org/engine';
 import { createFormEngine } from '@formspec-org/engine';
-import type { LayoutNode, PlanContext } from '@formspec-org/layout';
+import type { LayoutNode } from '@formspec-org/layout';
 import {
     planDefinitionFallback,
     planComponentTree,
+    preparePlanContext,
     ensureSubmitButton,
     mergeFormPresentationForPlanning,
 } from '@formspec-org/layout';
@@ -153,14 +154,14 @@ export function FormspecProvider({
         const def = engine.getDefinition();
         const items = def.items || [];
 
-        const planCtx: PlanContext = {
+        const planCtx = preparePlanContext({
             items,
             formPresentation: mergedFormPresentation,
             componentDocument,
             theme: themeDocument,
             activeBreakpoint,
             findItem: (key: string) => findItemByKey(items, key),
-        };
+        });
 
         let root: LayoutNode;
         if (componentDocument?.tree) {
@@ -178,7 +179,7 @@ export function FormspecProvider({
             };
         }
 
-        if (onSubmit) ensureSubmitButton(root);
+        if (onSubmit) ensureSubmitButton(root, planCtx.nextId);
         return root;
     }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, mergedFormPresentation]);
 

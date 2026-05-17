@@ -2,18 +2,19 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
     planComponentTree,
     planDefinitionFallback,
-    resetNodeIdCounter,
+    createNodeIdGenerator,
+    preparePlanContext,
     ensureSubmitButton,
     type PlanContext,
     type LayoutNode,
 } from '../src/index';
 
 function makeCtx(overrides: Partial<PlanContext> = {}): PlanContext {
-    return {
+    return preparePlanContext({
         items: [],
         findItem: () => null,
         ...overrides,
-    };
+    });
 }
 
 function findItems(items: any[], key: string): any | null {
@@ -38,10 +39,6 @@ function findItemByPath(items: any[], path: string): any | null {
     }
     return null;
 }
-
-beforeEach(() => {
-    resetNodeIdCounter();
-});
 
 // ── planComponentTree ────────────────────────────────────────────────
 
@@ -99,6 +96,26 @@ describe('planComponentTree', () => {
 
         const ids = [node.id, node.children[0].id, node.children[1].id];
         expect(new Set(ids).size).toBe(3);
+    });
+
+    it('isolates ID sequences across separate plan invocations', () => {
+        const tree = { component: 'TextInput', bind: 'a' };
+        const first = planComponentTree(tree, makeCtx());
+        const second = planComponentTree(tree, makeCtx());
+
+        expect(first.id).toBe('textinput-1');
+        expect(second.id).toBe('textinput-1');
+        expect(first.id).toBe(second.id);
+    });
+
+    it('continues ID sequence within a shared PlanContext', () => {
+        const nextId = createNodeIdGenerator();
+        const ctx = makeCtx({ nextId });
+        const first = planComponentTree({ component: 'Text', text: 'a' }, ctx);
+        const second = planComponentTree({ component: 'Text', text: 'b' }, ctx);
+
+        expect(first.id).toBe('text-1');
+        expect(second.id).toBe('text-2');
     });
 
     it('resolves token values in gap and style', () => {
@@ -899,7 +916,7 @@ describe('grant-application integration', () => {
     }
 
     it('plans the full component tree', () => {
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items: definition.items,
             formPresentation: definition.formPresentation,
             componentDocument: component,
@@ -907,7 +924,7 @@ describe('grant-application integration', () => {
             activeBreakpoint: null,
             findItem: makeFindItem(definition.items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const node = planComponentTree(component.tree, ctx);
 
@@ -924,7 +941,7 @@ describe('grant-application integration', () => {
     });
 
     it('expands custom components (ContactField)', () => {
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items: definition.items,
             formPresentation: definition.formPresentation,
             componentDocument: component,
@@ -932,7 +949,7 @@ describe('grant-application integration', () => {
             activeBreakpoint: null,
             findItem: makeFindItem(definition.items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const node = planComponentTree(component.tree, ctx);
 
@@ -952,7 +969,7 @@ describe('grant-application integration', () => {
     });
 
     it('all nodes are JSON-serializable', () => {
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items: definition.items,
             formPresentation: definition.formPresentation,
             componentDocument: component,
@@ -960,7 +977,7 @@ describe('grant-application integration', () => {
             activeBreakpoint: null,
             findItem: makeFindItem(definition.items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const node = planComponentTree(component.tree, ctx);
         const json = JSON.stringify(node);
@@ -971,13 +988,13 @@ describe('grant-application integration', () => {
     });
 
     it('plans the definition fallback path', () => {
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items: definition.items,
             formPresentation: definition.formPresentation,
             theme,
             findItem: makeFindItem(definition.items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const nodes = planDefinitionFallback(definition.items, ctx);
         expect(nodes.length).toBeGreaterThan(0);
@@ -1006,7 +1023,7 @@ describe('grant-application integration', () => {
             { key: 'certify', type: 'field', dataType: 'boolean', label: 'Certify' },
         ];
 
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items,
             theme: {
                 pages: [
@@ -1022,7 +1039,7 @@ describe('grant-application integration', () => {
             },
             findItem: makeFindItem(items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const nodes = planDefinitionFallback(items, ctx);
         expect(nodes[0].component).toBe('Page');
@@ -1048,7 +1065,7 @@ describe('grant-application integration', () => {
             },
         ];
 
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items,
             theme: {
                 pages: [
@@ -1063,7 +1080,7 @@ describe('grant-application integration', () => {
             },
             findItem: makeFindItem(items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const nodes = planDefinitionFallback(items, ctx);
 
@@ -1102,7 +1119,7 @@ describe('grant-application integration', () => {
             },
         ];
 
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items,
             theme: {
                 pages: [
@@ -1117,7 +1134,7 @@ describe('grant-application integration', () => {
             },
             findItem: makeFindItem(items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const nodes = planDefinitionFallback(items, ctx);
 
@@ -1149,7 +1166,7 @@ describe('grant-application integration', () => {
             },
         ];
 
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items,
             theme: {
                 pages: [
@@ -1164,7 +1181,7 @@ describe('grant-application integration', () => {
             },
             findItem: makeFindItem(items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const nodes = planDefinitionFallback(items, ctx);
 
@@ -1218,7 +1235,7 @@ describe('grant-application integration', () => {
             ],
         };
 
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items,
             componentDocument: { tree },
             theme: {
@@ -1235,7 +1252,7 @@ describe('grant-application integration', () => {
             },
             findItem: makeFindItem(items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const node = planComponentTree(tree, ctx);
         expect(node.children[0].component).toBe('Page');
@@ -1260,7 +1277,7 @@ describe('grant-application integration', () => {
             ],
         };
 
-        const ctx: PlanContext = {
+        const ctx = makeCtx({
             items,
             componentDocument: { tree },
             theme: {
@@ -1277,7 +1294,7 @@ describe('grant-application integration', () => {
             },
             findItem: makeFindItem(items),
             isComponentAvailable: () => true,
-        };
+        });
 
         const node = planComponentTree(tree, ctx);
         expect(node.component).toBe('Stack');

@@ -55,7 +55,15 @@ export {
 export { mergeFormPresentationForPlanning } from './form-presentation.js';
 
 // Layout planner
-export { planComponentTree, planDefinitionFallback, resetNodeIdCounter, planContains, ensureSubmitButton } from './planner.js';
+export {
+    planComponentTree,
+    planDefinitionFallback,
+    planContains,
+    ensureSubmitButton,
+    createNodeIdGenerator,
+    preparePlanContext,
+} from './planner.js';
+export type { NodeIdGenerator } from './types.js';
 export { resolvePageSequence } from './page-sequence.js';
 export type { PageSequenceEntry } from './page-sequence.js';
 

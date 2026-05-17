@@ -1,5 +1,19 @@
 /** @filedesc Core layout plan types: LayoutNode and PlanContext interfaces. */
+import type {
+    ComponentDocument,
+    FormDefinition,
+    FormItem,
+    ThemeDocument,
+} from '@formspec-org/types';
 import type { PresentationBlock } from './theme-resolver.js';
+
+export type { FormItem };
+
+/** Generates unique layout node IDs for a single plan invocation. */
+export type NodeIdGenerator = (prefix: string) => string;
+
+/** Component document tree node — runtime shape is wider than generated `AnyComponent`. */
+export type ComponentTreeNode = Record<string, unknown> & { component: string };
 
 /**
  * A JSON-serializable layout plan node. Produced by the planner and consumed
@@ -89,22 +103,25 @@ export interface LayoutNode {
  */
 export interface PlanContext {
     /** The definition items array. */
-    items: any[];
+    items: FormItem[];
 
     /** Definition-level formPresentation block. */
-    formPresentation?: any;
+    formPresentation?: FormDefinition['formPresentation'];
 
     /** The loaded component document (tree, components, tokens, breakpoints). */
-    componentDocument?: any;
+    componentDocument?: ComponentDocument;
 
     /** The loaded theme document. */
-    theme?: any;
+    theme?: ThemeDocument;
 
     /** Currently active breakpoint name, or null. */
     activeBreakpoint?: string | null;
 
+    /** Generates unique layout node IDs for this plan invocation. */
+    nextId: NodeIdGenerator;
+
     /** Lookup a definition item by key (supports dotted paths). */
-    findItem: (key: string) => any | null;
+    findItem: (key: string) => FormItem | null;
 
     /** Check if a component type is registered in the renderer. */
     isComponentAvailable?: (type: string) => boolean;

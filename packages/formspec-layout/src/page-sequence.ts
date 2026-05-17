@@ -1,8 +1,8 @@
 /** @filedesc Resolves assist-friendly page sequences from the authoritative layout planner. */
 
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
-import { planComponentTree, planDefinitionFallback, resetNodeIdCounter } from './planner.js';
-import type { LayoutNode, PlanContext } from './types.js';
+import { planComponentTree, planDefinitionFallback, preparePlanContext } from './planner.js';
+import type { ComponentTreeNode, LayoutNode, PlanContext } from './types.js';
 
 export interface PageSequenceEntry {
     id: string;
@@ -66,14 +66,14 @@ function createPlanContext(
     definition: FormDefinition,
     options: { component?: ComponentDocument; theme?: ThemeDocument } = {},
 ): PlanContext {
-    return {
+    return preparePlanContext({
         items: definition.items,
         formPresentation: definition.formPresentation,
         componentDocument: options.component,
         theme: options.theme,
         activeBreakpoint: null,
         findItem: (path: string) => findItemAtPath(definition.items, path),
-    };
+    });
 }
 
 function topLevelPages(nodes: LayoutNode[] | LayoutNode): LayoutNode[] {
@@ -101,8 +101,13 @@ function buildComponentSequence(definition: FormDefinition, component: Component
     if (!component?.tree) {
         return [];
     }
-    resetNodeIdCounter();
-    const planned = planComponentTree(component.tree, createPlanContext(definition, { component }), '', undefined, false);
+    const planned = planComponentTree(
+        component.tree as ComponentTreeNode,
+        createPlanContext(definition, { component }),
+        '',
+        undefined,
+        false,
+    );
     return topLevelPages(planned).map((page, index) => {
         const fields: string[] = [];
         collectFieldPaths(page, fields);
@@ -118,9 +123,14 @@ function buildThemeSequence(
     definition: FormDefinition,
     options: { component?: ComponentDocument; theme: ThemeDocument },
 ): PageSequenceEntry[] {
-    resetNodeIdCounter();
     const planned = options.component?.tree
-        ? planComponentTree(options.component.tree, createPlanContext(definition, options), '', undefined, true)
+        ? planComponentTree(
+            options.component.tree as ComponentTreeNode,
+            createPlanContext(definition, options),
+            '',
+            undefined,
+            true,
+        )
         : planDefinitionFallback(definition.items, createPlanContext(definition, { theme: options.theme }));
     return topLevelPages(planned).map((page, index) => {
         const fields: string[] = [];
@@ -134,7 +144,6 @@ function buildThemeSequence(
 }
 
 function buildDefinitionSequence(definition: FormDefinition): PageSequenceEntry[] {
-    resetNodeIdCounter();
     const planned = planDefinitionFallback(definition.items, createPlanContext(definition));
     const pages = topLevelPages(planned);
     if (pages.length === 0) {

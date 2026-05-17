@@ -91,9 +91,9 @@ Maps a definition item's `dataType` to a default component type string. Used as 
 
 Converts a Tier 1 or theme widget token (`radio`, `dropdown`, `textarea`) to a concrete component type (`RadioGroup`, `Select`, `TextInput`). Accepts both spec vocabulary and legacy component IDs.
 
-### `resetNodeIdCounter(): void`
+### `createNodeIdGenerator(): (prefix: string) => string`
 
-Resets the global auto-increment counter used for `LayoutNode.id` generation. Use in tests to get deterministic IDs.
+Creates a per-plan ID generator. Pass on `PlanContext.nextId` (or use `preparePlanContext`) so concurrent plans do not share module-global state.
 
 ## LayoutNode
 
