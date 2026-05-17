@@ -11,7 +11,7 @@ import type { CommandHandler, LocaleState } from '../types.js';
 import type { FormItem } from '@formspec-org/types';
 import { normalizeComponentState } from '../component-documents.js';
 import { normalizeBindsFromUnknown } from '../definition-binds.js';
-import { normalizeBcp47 } from '../locale-utils.js';
+import { normalizeBcp47 } from '@formspec-org/engine';
 import { indexRegistryPayload } from '../registry-index.js';
 
 export const projectHandlers = {

@@ -178,33 +178,11 @@ export interface RewriteMap {
     keyPrefix: string;
 }
 
-// ── Component document types ────────────────────────────────────────
-
-export interface ComponentObject {
-    component: string;
-    bind?: string;
-    when?: string;
-    style?: Record<string, any>;
-    children?: ComponentObject[];
-    [key: string]: any;
-}
-
-export interface ComponentDocument {
-    $formspecComponent: string;
-    version: string;
-    targetDefinition: {
-        url: string;
-        compatibleVersions?: string;
-    };
-    url?: string;
-    name?: string;
-    title?: string;
-    description?: string;
-    breakpoints?: Record<string, number>;
-    tokens?: Record<string, any>;
-    components?: Record<string, any>;
-    tree: ComponentObject;
-}
+export type {
+    ComponentDocument,
+    CustomComponentRef,
+    AnyComponent as ComponentObject,
+} from '@formspec-org/types';
 
 // ── Engine-level shared types ───────────────────────────────────────
 

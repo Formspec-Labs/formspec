@@ -79,6 +79,7 @@ export { buildValidationReportEnvelope } from './engine/response-assembly.js';
 export { toValidationResults } from './engine/helpers.js';
 
 export type { LocaleDocument } from './locale.js';
+export { normalizeBcp47 } from './locale.js';
 
 export { FormEngine } from './engine/FormEngine.js';
 export { createFormEngine } from './engine/init.js';

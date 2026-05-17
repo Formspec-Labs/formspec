@@ -67,6 +67,7 @@ const SCHEMA_SOURCES = [
   { file: 'response.schema.json', title: 'FormResponse' },
   { file: 'intake-handoff.schema.json', title: 'IntakeHandoff' },
   { file: 'validation-report.schema.json', title: 'ValidationReport' },
+  { file: 'locale.schema.json', title: 'LocaleDocument' },
   { file: 'fel-functions.schema.json', title: 'FELFunctionCatalog' },
   { file: 'screener.schema.json', title: 'ScreenerDocument' },
   { file: 'determination.schema.json', title: 'DeterminationRecord' },

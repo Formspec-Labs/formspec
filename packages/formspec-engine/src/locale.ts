@@ -1,22 +1,9 @@
 /** @filedesc LocaleStore — reactive locale document management and string resolution cascade. */
 
 import type { EngineReactiveRuntime, EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
+import type { LocaleDocument } from '@formspec-org/types';
 
-/**
- * A loaded locale document providing translated strings for a target definition.
- */
-export interface LocaleDocument {
-    $formspecLocale: string;
-    locale: string;
-    version: string;
-    fallback?: string;
-    targetDefinition: { url: string; compatibleVersions?: string };
-    strings: Record<string, string>;
-    name?: string;
-    title?: string;
-    description?: string;
-    url?: string;
-}
+export type { LocaleDocument };
 
 /**
  * Rich lookup result exposing which cascade level produced the value.
@@ -143,21 +130,29 @@ export class LocaleStore {
      * uppercase region (2 chars), lowercase variants/extensions.
      */
     static normalizeCode(code: string): string {
-        const parts = code.split('-');
-        parts[0] = parts[0].toLowerCase();
-        for (let i = 1; i < parts.length; i++) {
-            const p = parts[i];
-            if (p.length === 2) {
-                // Region subtag: uppercase
-                parts[i] = p.toUpperCase();
-            } else if (p.length === 4 && /^[a-zA-Z]+$/.test(p)) {
-                // Script subtag: title-case
-                parts[i] = p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-            } else {
-                // Variant or extension: lowercase
-                parts[i] = p.toLowerCase();
-            }
-        }
-        return parts.join('-');
+        return normalizeBcp47(code);
     }
+}
+
+/**
+ * Normalize BCP 47: lowercase language, title-case script (4 chars),
+ * uppercase region (2 chars), lowercase variants/extensions.
+ */
+export function normalizeBcp47(code: string): string {
+    const parts = code.split('-');
+    parts[0] = parts[0].toLowerCase();
+    for (let i = 1; i < parts.length; i++) {
+        const p = parts[i];
+        if (p.length === 2) {
+            // Region subtag: uppercase
+            parts[i] = p.toUpperCase();
+        } else if (p.length === 4 && /^[a-zA-Z]+$/.test(p)) {
+            // Script subtag: title-case
+            parts[i] = p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+        } else {
+            // Variant or extension: lowercase
+            parts[i] = p.toLowerCase();
+        }
+    }
+    return parts.join('-');
 }

@@ -69,30 +69,8 @@ export interface MappingState {
 
 // ── Locale state ─────────────────────────────────────────────────────
 
-/**
- * Working state for a single locale document.
- * Keyed by BCP 47 code in ProjectState.locales.
- */
-export interface LocaleState {
-  /** BCP 47 locale code (e.g. "fr", "fr-CA"). */
-  locale: string;
-  /** Locale document version. */
-  version: string;
-  /** BCP 47 code of the fallback locale (optional). */
-  fallback?: string;
-  /** Target definition this locale was authored for. */
-  targetDefinition: { url: string; compatibleVersions?: string };
-  /** Locale string key-value pairs. */
-  strings: Record<string, string>;
-  /** Human-readable name of the locale (e.g. "Français"). */
-  name?: string;
-  /** Display title for the locale. */
-  title?: string;
-  /** Description of the locale document. */
-  description?: string;
-  /** URL of the locale document source. */
-  url?: string;
-}
+import type { LocaleDocument as LocaleState } from '@formspec-org/types';
+export type { LocaleState };
 
 // ── Extension state ──────────────────────────────────────────────────
 

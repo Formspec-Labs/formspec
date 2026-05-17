@@ -10,7 +10,7 @@
  * @module handlers/locale
  */
 import type { CommandHandler, ProjectState, LocaleState } from '../types.js';
-import { normalizeBcp47 } from '../locale-utils.js';
+import { normalizeBcp47 } from '@formspec-org/engine';
 
 /** Valid metadata properties that can be set via locale.setMetadata. */
 const METADATA_PROPERTIES = new Set(['name', 'title', 'description', 'version', 'url']);
