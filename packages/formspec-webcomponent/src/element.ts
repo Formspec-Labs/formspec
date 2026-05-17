@@ -16,8 +16,8 @@ import {
     planComponentTree,
     planDefinitionFallback,
     ensureSubmitButton,
+    preparePlanContext,
     mergeFormPresentationForPlanning,
-    type PlanContext,
 } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
@@ -617,7 +617,7 @@ export class FormspecRender extends HTMLElement {
             return;
         }
 
-        const planCtx: PlanContext = {
+        const planCtx = preparePlanContext({
             items: this._definition.items,
             formPresentation: mergeFormPresentationForPlanning(
                 this._definition.formPresentation,
@@ -628,11 +628,11 @@ export class FormspecRender extends HTMLElement {
             activeBreakpoint: this.activeBreakpoint,
             findItem: (key: string) => this.findItemByKey(key),
             isComponentAvailable: (type: string) => !!globalRegistry.get(type),
-        };
+        });
 
         if (this._componentDocument && this._componentDocument.tree) {
             const plan = planComponentTree(this._componentDocument.tree, planCtx);
-            if (this._showSubmit) ensureSubmitButton(plan);
+            if (this._showSubmit) ensureSubmitButton(plan, planCtx.nextId);
             emitNodeFn(this as any, plan, container, '');
         } else {
             const plans = planDefinitionFallback(this._definition.items, planCtx);
@@ -645,7 +645,7 @@ export class FormspecRender extends HTMLElement {
                 cssClasses: [],
                 children: plans,
             };
-            if (this._showSubmit) ensureSubmitButton(wrapperNode);
+            if (this._showSubmit) ensureSubmitButton(wrapperNode, planCtx.nextId);
             emitNodeFn(this as any, wrapperNode, container, '');
         }
     }

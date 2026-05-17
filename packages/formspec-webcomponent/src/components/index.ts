@@ -1,7 +1,7 @@
 /** @filedesc Registers all built-in component plugins with the global registry. */
 import { globalRegistry } from '../registry';
 import { defaultAdapter } from '../adapters/default/index';
-import { PagePlugin, StackPlugin, GridPlugin, DividerPlugin, CollapsiblePlugin, ColumnsPlugin, PanelPlugin, AccordionPlugin, ModalPlugin, PopoverPlugin } from './layout';
+import { LayoutPlugins } from './layout';
 import { InputPlugins } from './inputs';
 import { HeadingPlugin, TextPlugin, CardPlugin, SpacerPlugin, AlertPlugin, BadgePlugin, ProgressBarPlugin, SummaryPlugin, ValidationSummaryPlugin } from './display';
 import { TabsPlugin, SubmitButtonPlugin } from './interactive';
@@ -13,16 +13,7 @@ import { ConditionalGroupPlugin, DataTablePlugin } from './special';
  * Wizard behavior is driven by formPresentation.pageMode, not a component plugin.
  */
 export function registerDefaultComponents() {
-    globalRegistry.register(PagePlugin);
-    globalRegistry.register(StackPlugin);
-    globalRegistry.register(GridPlugin);
-    globalRegistry.register(DividerPlugin);
-    globalRegistry.register(CollapsiblePlugin);
-    globalRegistry.register(ColumnsPlugin);
-    globalRegistry.register(PanelPlugin);
-    globalRegistry.register(AccordionPlugin);
-    globalRegistry.register(ModalPlugin);
-    globalRegistry.register(PopoverPlugin);
+    LayoutPlugins.forEach(p => globalRegistry.register(p));
     InputPlugins.forEach(p => globalRegistry.register(p));
     globalRegistry.register(HeadingPlugin);
     globalRegistry.register(TextPlugin);
