@@ -571,6 +571,92 @@ profile change that must update the Response schema, substrate algorithm
 admission, examples, and fixtures together; implementations MUST NOT treat the
 field as an open algorithm registry in `formspec-response-signing-v1`.
 
+##### Authored-Signature Domain Separation and Preimage
+
+The byte preimage for `authoredSignatures[*].signedPayload.digest` is exactly:
+
+```text
+payload_preimage =
+  UTF8("formspec.response.signed-payload.v1") ||
+  0x00 ||
+  JCS(response_without_authoredSignatures)
+```
+
+The domain string is 35 UTF-8 bytes, with hex encoding
+`666f726d737065632e726573706f6e73652e7369676e65642d7061796c6f61642e7631`.
+The separator is exactly one NUL byte (`0x00`). There is no length prefix,
+delimiter string, trailing NUL, `method_uri`, receipt-domain tag, or outer
+event type in this payload-preimage layer. `response_without_authoredSignatures`
+is the top-level Response object after deleting the `authoredSignatures` member
+entirely; all other emitted Response fields remain in scope. `JCS(...)` means
+RFC 8785 JSON Canonicalization Scheme bytes.
+
+The bytes consumed by the cryptographic signing primitive are the RFC 9052
+`Sig_structure`, not the SHA-256 digest string. The authored-signature
+`Sig_structure` MUST be serialized as:
+
+```text
+sig_structure =
+  0x84 ||
+  tstr("Signature1") ||
+  bstr(protected) ||
+  0x40 ||
+  bstr(payload_preimage)
+```
+
+`tstr("Signature1")` is the CBOR text string bytes
+`6a5369676e617475726531`. `0x40` is the zero-length external AAD byte string;
+authored signatures MUST NOT place the method URI, receipt domain, or any
+domain tag in external AAD. `protected` is the COSE protected-header bstr
+content. Formspec-authored producers MUST emit `protected` as the deterministic
+consumer detached-signature map produced by
+`formspec-signature-cose::protected_header_bytes`:
+
+```text
+protected =
+  0xa3 ||
+  0x01 || cbor_int(alg) ||
+  0x04 || cbor_bstr(kid) ||
+  0x3a00010003 || cbor_tstr(method_uri)
+```
+
+The final protected-header label above is COSE label `-65540`
+(`method_uri`). The `method_uri` value MUST be a UTF-8 text string in the
+`urn:formspec:sig-method:*` subspace, MUST resolve to a registered
+Formspec signature method, and MUST NOT exceed 512 UTF-8 bytes. The registered
+Ed25519 response-signing method
+`urn:formspec:sig-method:ed25519-cose-sign1@1` is 44 UTF-8 bytes. The
+companion `urn:formspec:receipt-method:*` subspace and the receipt payload
+domain `formspec.verification.receipt.v1` are different domains and MUST NOT
+be accepted for authored Response signatures.
+
+The `signatureValue` COSE_Sign1 body for authored signatures is detached:
+the payload slot is CBOR `null` (`0xf6`) and the signed bytes are supplied as
+`payload_preimage` when verifying. A verifier MUST reconstruct the
+`Sig_structure` from the protected-header bstr carried in the COSE envelope;
+it MUST NOT reserialize, reorder, or otherwise normalize the protected map
+before signature verification.
+
+Current conformance anchors:
+
+- Positive vector: `tests/fixtures/cross-stack/001-standalone-formspec-verified/formspec-response.json`
+  pins the signed-payload digest
+  `de16829bf9271c3910c4d23cdf5fc5624074516080351ef90fc410cef15d2189`
+  and is exercised by
+  `crates/formspec-cross-stack-fixture-harness/tests/bundle_manifest_tests.rs::test_bundle_001_bytes_verify_with_ring_adapter`
+  and
+  `crates/formspec-cross-stack-fixture-harness/src/canonicalization_vectors.rs::vector_c_bundle_001`.
+- Negative vectors:
+  `tests/fixtures/signature-method-uri-fail-closed/receipt-on-response.json`
+  and `tests/fixtures/signature-method-uri-fail-closed/sig-on-receipt.json`
+  pin cross-domain `method_uri` rejection; they are exercised by
+  `tests/conformance/fuzzing/test_signature_method_uri_fail_closed.py` and
+  `crates/formspec-signature-cose/src/lib.rs::method_uri_rejection_fixtures_decode_with_expected_reason`.
+  `tests/fixtures/cross-stack/004-tampered-signature-failed/formspec-response.json`
+  pins primitive verification failure for a byte-mutated `signatureValue` over
+  the same authored-signature preimage shape and is exercised by
+  `crates/formspec-cross-stack-fixture-harness/tests/bundle_manifest_tests.rs::test_bundle_004_tampered_signature_admission_failed`.
+
 **ADR 0109 surface-split.** Authored-signature envelopes follow the
 consumer detached-signature shape (MAP_3 with `{alg, kid, method_uri}` at
 COSE label `-65540`). The retired protected-header `profile_id` label
