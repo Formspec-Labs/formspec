@@ -168,6 +168,38 @@ describe('FileUpload — accept and multiple', () => {
         expect(input).toBeTruthy();
         expect(input.multiple).toBe(true);
     });
+
+    it('clears the file list when engine value is cleared externally', () => {
+        const def = baseDef([{ key: 'doc', type: 'field', dataType: 'string', label: 'Doc' }]);
+        const engine = createFormEngine(def);
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const node: LayoutNode = {
+            id: 'doc-field', component: 'FileUpload', category: 'field',
+            props: { dragDrop: false }, cssClasses: [], children: [], bindPath: 'doc',
+        };
+        actSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>
+            );
+        });
+
+        const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+        const file = new File(['data'], 'doc.pdf', { type: 'application/pdf' });
+        Object.defineProperty(input, 'files', { value: [file], configurable: true });
+        actSync(() => {
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        expect(container.querySelectorAll('.formspec-file-list-item').length).toBe(1);
+
+        actSync(() => {
+            engine.setValue('doc', null);
+        });
+        expect(container.querySelectorAll('.formspec-file-list-item').length).toBe(0);
+    });
 });
 
 // ── MoneyInput (new) ──────────────────────────────────────────────
@@ -1078,6 +1110,70 @@ describe('FileUpload — maxSize', () => {
 });
 
 // ── DatePicker minDate / maxDate ───────────────────────────────────
+
+describe('DatePicker — readonly', () => {
+    it('does not apply external input changes when readonly', () => {
+        const def = baseDef([{ key: 'dob', type: 'field', dataType: 'date', label: 'DOB' }]);
+        def.binds = [{ path: 'dob', readonly: 'true' }];
+        const engine = createFormEngine(def);
+        engine.setValue('dob', '2020-01-01');
+
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const node: LayoutNode = {
+            id: 'dob-field', component: 'DatePicker', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'dob',
+        };
+        actSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>
+            );
+        });
+
+        const input = container.querySelector('input[type="date"]') as HTMLInputElement;
+        expect(input.readOnly).toBe(true);
+        actSync(() => {
+            input.value = '2021-06-15';
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        expect(engine.getResponse().data.dob).toBe('2020-01-01');
+    });
+});
+
+describe('NumberInput — readonly', () => {
+    it('does not apply external input changes when readonly', () => {
+        const def = baseDef([{ key: 'qty', type: 'field', dataType: 'integer', label: 'Qty' }]);
+        def.binds = [{ path: 'qty', readonly: 'true' }];
+        const engine = createFormEngine(def);
+        engine.setValue('qty', 5);
+
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const node: LayoutNode = {
+            id: 'qty-field', component: 'NumberInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'qty',
+        };
+        actSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>
+            );
+        });
+
+        const input = container.querySelector('input[type="number"]') as HTMLInputElement;
+        expect(input.readOnly).toBe(true);
+        actSync(() => {
+            input.value = '99';
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        expect(engine.getResponse().data.qty).toBe(5);
+    });
+});
 
 describe('DatePicker — minDate/maxDate', () => {
     it('passes minDate and maxDate as min/max attributes', () => {
