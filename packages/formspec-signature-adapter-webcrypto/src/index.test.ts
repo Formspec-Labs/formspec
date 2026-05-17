@@ -1017,10 +1017,6 @@ describe('decodeCoseSign1', () => {
   });
 });
 
-function bytesToBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
-}
-
 /**
  * Strips the X.509 SubjectPublicKeyInfo wrapper off a WebCrypto-exported RSA
  * public key, leaving the embedded PKCS#1 RSAPublicKey (`SEQUENCE { n, e }`).
