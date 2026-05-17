@@ -24,7 +24,7 @@ import {
 // Method-URI constants used to build COSE protected headers in tests. Per
 // ADR 0109 these are the dispatch axis carried inside the signed protected
 // header; the adapter enforces equality between the caller-supplied
-// `request.signatureMethod` and the COSE-resident `method_uri`.
+// `request.methodUri` and the COSE-resident `method_uri`.
 const SIG_METHOD_ED25519 = 'urn:formspec:sig-method:ed25519-cose-sign1@1';
 const SIG_METHOD_RSA_PSS_SHA256 = 'urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1';
 const RECEIPT_METHOD_ED25519 = 'urn:formspec:receipt-method:ed25519-cose-sign1@1';
@@ -140,7 +140,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new Uint8Array([1, 2, 3]),
         signatureBytes: new Uint8Array([4, 5, 6]),
-        signatureMethod: uri('urn:formspec:sig-method:unknown@1'),
+        methodUri: uri('urn:formspec:sig-method:unknown@1'),
         keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
@@ -155,7 +155,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new Uint8Array([1, 2, 3]),
         signatureBytes: new Uint8Array([4, 5, 6]),
-        signatureMethod: uri('urn:formspec:sig-method:ml-dsa-65-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ml-dsa-65-cose-sign1@1'),
         keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
@@ -182,7 +182,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new Uint8Array([1, 2, 3]),
         signatureBytes: new Uint8Array([4, 5, 6]),
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: PLACEHOLDER_RAW_KEY,
       },
       deprecatedRegistry,
@@ -218,7 +218,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
@@ -243,7 +243,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: tampered,
-        signatureMethod: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -262,7 +262,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
-        signatureMethod: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ecdsa-p256-cose-sign1@1'),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -302,7 +302,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes: tampered,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
@@ -346,7 +346,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(wrongPublicKey),
       },
       TEST_REGISTRY,
@@ -370,7 +370,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new TextEncoder().encode('any payload'),
         signatureBytes: new Uint8Array([0xff, 0xff, 0xff, 0xff]),
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         // Valid-length Ed25519 key so we pass the length gate and reach the
         // COSE-decode branch specifically.
         keyRef: keyRefRawPublicKey(new Uint8Array(32)),
@@ -396,7 +396,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new TextEncoder().encode('any payload'),
         signatureBytes: new Uint8Array([0xff, 0xff, 0xff, 0xff]),
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(new Uint8Array(5)),
       },
       TEST_REGISTRY,
@@ -436,7 +436,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new TextEncoder().encode('payload'),
         signatureBytes: cose,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(new Uint8Array(5)),
       },
       TEST_REGISTRY,
@@ -448,7 +448,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new TextEncoder().encode('payload'),
         signatureBytes: cose,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
@@ -467,7 +467,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new Uint8Array([1]),
         signatureBytes: new Uint8Array([2]),
-        signatureMethod: uri('urn:formspec:sig-method:unknown@1'),
+        methodUri: uri('urn:formspec:sig-method:unknown@1'),
         keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
@@ -488,7 +488,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new Uint8Array([1]),
         signatureBytes: new Uint8Array([2]),
-        signatureMethod: uri('urn:formspec:sig-method:unknown@1'),
+        methodUri: uri('urn:formspec:sig-method:unknown@1'),
         keyRef: keyRefRawPublicKey(keyBytes),
       },
       TEST_REGISTRY,
@@ -541,7 +541,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(pkcs1),
       },
       TEST_REGISTRY,
@@ -561,7 +561,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
-        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -586,7 +586,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: tampered,
-        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
         keyRef: keyRefFromBase64PublicKey(fixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -649,7 +649,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(pkcs1B),
       },
       TEST_REGISTRY,
@@ -698,7 +698,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
         keyRef: keyRefRawPublicKey(pkcs1),
       },
       TEST_REGISTRY,
@@ -719,7 +719,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: hexToBytes(fixture.signed_bytes.hex),
         signatureBytes: hexToBytes(fixture.signature_bytes_cose_sign1.hex),
-        signatureMethod: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:rsa-pss-sha256-cose-sign1@1'),
         keyRef: keyRefFromBase64PublicKey(rsaFixture.public_key.base64),
       },
       TEST_REGISTRY,
@@ -775,7 +775,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefKid(kid),
       },
       TEST_REGISTRY,
@@ -802,7 +802,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
         keyRef: keyRefKid(requestKid),
       },
       TEST_REGISTRY,
@@ -825,7 +825,7 @@ describe('WebCryptoVerifier', () => {
         {
           signedBytes,
           signatureBytes,
-          signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
+          methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@1'),
           keyRef: keyRefKid(kid),
         },
         TEST_REGISTRY,
@@ -869,7 +869,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri(SIG_METHOD_ED25519),
+        methodUri: uri(SIG_METHOD_ED25519),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
@@ -909,7 +909,7 @@ describe('WebCryptoVerifier', () => {
     const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', keyPair.publicKey));
 
     // ...then ask the adapter to verify on the response-signing path. The
-    // request's `signatureMethod` is the sig-method URI (caller derives it
+    // request's `methodUri` is the sig-method URI (caller derives it
     // from a higher-level dispatch decision); the COSE envelope holds the
     // receipt-method URI. The prefix-validating decoder rejects.
     const verifier = new WebCryptoVerifier();
@@ -917,7 +917,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri(SIG_METHOD_ED25519),
+        methodUri: uri(SIG_METHOD_ED25519),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
@@ -931,7 +931,7 @@ describe('WebCryptoVerifier', () => {
     // Same alg, same subspace, different exact URI: the equality assertion
     // is the sole gate. Builds a synthetic registry entry with a distinct
     // ed25519 URI so the registry resolves, the alg matches, but the
-    // signed COSE method_uri disagrees with `request.signatureMethod`.
+    // signed COSE method_uri disagrees with `request.methodUri`.
     const variantRegistry: SignatureMethodRegistry = {
       version: semVer('1.0.0'),
       entries: [
@@ -972,7 +972,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri('urn:formspec:sig-method:ed25519-cose-sign1@99'),
+        methodUri: uri('urn:formspec:sig-method:ed25519-cose-sign1@99'),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       variantRegistry,
@@ -982,9 +982,9 @@ describe('WebCryptoVerifier', () => {
     expect(receipt.reason).toMatch(/method_uri mismatch/i);
   });
 
-  it('verifies cleanly when caller-supplied signatureMethod equals the COSE method_uri (Ed25519)', async () => {
+  it('verifies cleanly when caller-supplied methodUri equals the COSE method_uri (Ed25519)', async () => {
     // Positive twin to the equality-mismatch test: same URI in
-    // request.signatureMethod and COSE protected header. The assertion
+    // request.methodUri and COSE protected header. The assertion
     // passes and verification proceeds to the cryptographic primitive.
     const keyPair = await crypto.subtle.generateKey(
       { name: 'Ed25519' },
@@ -1013,7 +1013,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes,
         signatureBytes,
-        signatureMethod: uri(SIG_METHOD_ED25519),
+        methodUri: uri(SIG_METHOD_ED25519),
         keyRef: keyRefRawPublicKey(publicKey),
       },
       TEST_REGISTRY,
@@ -1030,7 +1030,7 @@ describe('WebCryptoVerifier', () => {
       {
         signedBytes: new TextEncoder().encode('fixture payload'),
         signatureBytes: hexToBytes(unknownExact.signatureBytesCoseSign1Hex),
-        signatureMethod: uri(unknownExact.methodUri),
+        methodUri: uri(unknownExact.methodUri),
         keyRef: PLACEHOLDER_RAW_KEY,
       },
       TEST_REGISTRY,
@@ -1044,7 +1044,7 @@ describe('WebCryptoVerifier', () => {
         {
           signedBytes: new TextEncoder().encode('fixture payload'),
           signatureBytes: hexToBytes(fixture.signatureBytesCoseSign1Hex),
-          signatureMethod: uri(SIG_METHOD_ED25519),
+          methodUri: uri(SIG_METHOD_ED25519),
           keyRef: PLACEHOLDER_RAW_KEY,
         },
         TEST_REGISTRY,

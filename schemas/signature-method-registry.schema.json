@@ -32,8 +32,8 @@
             "type": "string",
             "format": "uri",
             "pattern": "^urn:formspec:sig-method:[a-z0-9-]+@\\d+$",
-            "description": "Registry entry identifier — the signatureMethod URI.",
-            "x-lm": { "critical": true, "intent": "Canonical URI used in signatureMethod and VerificationReceipt.method." },
+            "description": "Registry entry identifier — the signature-method URI.",
+            "x-lm": { "critical": true, "intent": "Canonical URI used in VerificationReceipt.method." },
             "examples": ["urn:formspec:sig-method:ed25519-cose-sign1@1"]
           },
           "suite": {

@@ -18,7 +18,7 @@
       "type": "string",
       "format": "uri",
       "pattern": "^urn:formspec:sig-method:[a-z0-9-]+@\\d+$",
-      "description": "The signatureMethod URI from the registry that was used for verification.",
+      "description": "The signature-method URI from the registry that was used for verification.",
       "x-lm": { "critical": true, "intent": "Registry method URI that this receipt certifies." },
       "examples": ["urn:formspec:sig-method:ed25519-cose-sign1@1"]
     },

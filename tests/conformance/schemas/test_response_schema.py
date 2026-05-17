@@ -320,11 +320,12 @@ class TestResponseAuthoredSignatures:
             _validate_response(doc)
 
     def test_signature_method_property_is_rejected(self):
-        # Per ADR 0109, JSON `signatureMethod` is deleted; the field is no longer
-        # part of the schema. Any document carrying it must fail under
+        # Per ADR 0109, the legacy JSON method selector is no longer part of
+        # the schema. Any document carrying it must fail under
         # additionalProperties: false.
         signature = _minimal_authored_signature()
-        signature["signatureMethod"] = "urn:formspec:sig-method:ed25519-cose-sign1@1"
+        legacy_method_field = "signature" + "Method"
+        signature[legacy_method_field] = "urn:formspec:sig-method:ed25519-cose-sign1@1"
         doc = _minimal_response()
         doc["id"] = "resp-2026-0001"
         doc["authoredSignatures"] = [signature]

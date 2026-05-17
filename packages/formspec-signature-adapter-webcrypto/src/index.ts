@@ -72,12 +72,12 @@ export class WebCryptoVerifier implements Verifier {
     request: VerifyRequest,
     registry: SignatureMethodRegistry,
   ): Promise<VerificationReceipt> {
-    const entry = resolveRegistryEntry(registry, request.signatureMethod);
+    const entry = resolveRegistryEntry(registry, request.methodUri);
     if (!entry) {
       return this.unsupportedReceipt(
         registry,
         request,
-        `method not in registry: ${request.signatureMethod}`,
+        `method not in registry: ${request.methodUri}`,
       );
     }
 
@@ -85,7 +85,7 @@ export class WebCryptoVerifier implements Verifier {
       return this.unsupportedReceipt(
         registry,
         request,
-        `method deprecated: ${request.signatureMethod}`,
+        `method deprecated: ${request.methodUri}`,
       );
     }
 
@@ -117,7 +117,7 @@ export class WebCryptoVerifier implements Verifier {
 
     const receipt: VerificationReceipt = {
       result: outcome.result,
-      method: request.signatureMethod,
+      method: request.methodUri,
       methodRegistryVersion: registry.version,
       adapter: this.adapterInfo,
       key: { ref: keyRefDisplay(request.keyRef) },
@@ -183,7 +183,7 @@ export class WebCryptoVerifier implements Verifier {
     if (cose.value.alg !== -8) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -8, got ${cose.value.alg}` };
     }
-    const methodMismatch = assertMethodUriBinding(request.signatureMethod, cose.value.methodUri);
+    const methodMismatch = assertMethodUriBinding(request.methodUri, cose.value.methodUri);
     if (methodMismatch) {
       return methodMismatch;
     }
@@ -225,7 +225,7 @@ export class WebCryptoVerifier implements Verifier {
     if (cose.value.alg !== -7) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -7, got ${cose.value.alg}` };
     }
-    const methodMismatch = assertMethodUriBinding(request.signatureMethod, cose.value.methodUri);
+    const methodMismatch = assertMethodUriBinding(request.methodUri, cose.value.methodUri);
     if (methodMismatch) {
       return methodMismatch;
     }
@@ -287,7 +287,7 @@ export class WebCryptoVerifier implements Verifier {
     if (cose.value.alg !== -37) {
       return { kind: 'unsupported', reason: `cose alg mismatch: expected -37, got ${cose.value.alg}` };
     }
-    const methodMismatch = assertMethodUriBinding(request.signatureMethod, cose.value.methodUri);
+    const methodMismatch = assertMethodUriBinding(request.methodUri, cose.value.methodUri);
     if (methodMismatch) {
       return methodMismatch;
     }
@@ -315,7 +315,7 @@ export class WebCryptoVerifier implements Verifier {
   ): VerificationReceipt {
     return {
       result: 'unsupported',
-      method: request.signatureMethod,
+      method: request.methodUri,
       methodRegistryVersion: registry.version,
       adapter: this.adapterInfo,
       key: { ref: keyRefDisplay(request.keyRef) },
@@ -377,9 +377,8 @@ function assertKidBinding(
 
 /**
  * ADR 0109 / ADR 0111 method-URI binding check. The caller passes
- * `request.signatureMethod` as the dispatch URI (caller-side derivation per
- * P3-T5 — pre-0109 callers read it from JSON `signatureMethod`, post-0109 they
- * derive it from the signed COSE protected header before invoking verify).
+ * `request.methodUri` as the dispatch URI. Post-ADR-0109 callers derive it
+ * from the signed COSE protected header before invoking verify.
  * The adapter independently decodes `method_uri` from the COSE protected
  * header (label `-65540`); the two MUST agree byte-for-byte. Mismatch routes
  * to `unsupported` — distinct from a forged signature ('failed'), which would

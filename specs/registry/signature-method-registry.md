@@ -8,8 +8,8 @@
 
 This registry defines the set of signature-method URIs that Formspec
 recognizes. Per ADR 0109, the URI is carried inside the signed COSE protected
-header at label `-65540` (`method_uri`); JSON `signatureMethod` has been
-deleted. Every signature-method URI present in the protected header of a
+header at label `-65540` (`method_uri`); the former JSON method selector has
+been deleted. Every signature-method URI present in the protected header of a
 Response's `authoredSignatures[*].signatureValue` COSE_Sign1 envelope MUST
 match an entry below. The registry is versioned independently of the Formspec
 Core spec, allowing cryptographic suite additions without spec bumps.

@@ -115,7 +115,7 @@ export interface VerificationReceipt {
 export interface VerifyRequest {
   signedBytes: Uint8Array;
   signatureBytes: Uint8Array;
-  signatureMethod: Uri;
+  methodUri: Uri;
   keyRef: KeyRef;
 }
 
