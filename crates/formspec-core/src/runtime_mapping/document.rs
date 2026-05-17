@@ -1,10 +1,10 @@
 //! Full mapping document execution (`autoMap`, `defaults`).
 //!
-//! Direction checks and auto-map synthesis live alongside [`execute_mapping`](super::engine::execute_mapping).
+//! Direction checks and auto-map synthesis delegate rule execution to [`execute_mapping`](super::engine_helpers::execute_mapping).
 
 use serde_json::Value;
 
-use super::engine::execute_mapping;
+use super::engine_helpers::execute_mapping;
 use super::path::{get_by_path, set_by_path};
 use super::types::{
     MappingDiagnostic, MappingDirection, MappingDocument, MappingErrorCode, MappingResult,

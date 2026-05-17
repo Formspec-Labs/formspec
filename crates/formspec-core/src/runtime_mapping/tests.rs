@@ -1293,6 +1293,70 @@ fn test_unmapped_default_uses_rule_default() {
 }
 
 /// Spec: mapping/mapping-spec.md §4.6 — UnmappedStrategy::Default with no rule default yields null.
+/// Spec: mapping-spec.md §4.12 — `each` mode with inner rules maps per-element subpaths.
+#[test]
+fn test_each_with_inner_rules() {
+    let rules = vec![MappingRule {
+        source_path: Some("people".to_string()),
+        target_path: "contacts".to_string(),
+        transform: TransformType::Preserve,
+        condition: None,
+        priority: 0,
+        reverse_priority: None,
+        default: None,
+        bidirectional: true,
+        array: Some(ArrayDescriptor {
+            mode: ArrayMode::Each,
+            inner_rules: vec![
+                rule(Some("name"), "fullName", TransformType::Preserve),
+                rule(Some("age"), "years", TransformType::Preserve),
+            ],
+        }),
+        reverse: None,
+    }];
+    let source = json!({
+        "people": [
+            { "name": "Alice", "age": 30 },
+            { "name": "Bob", "age": 25 }
+        ]
+    });
+    let result = execute_mapping(&rules, &source, MappingDirection::Forward);
+    assert_eq!(
+        result.output["contacts"],
+        json!([
+            { "fullName": "Alice", "years": 30 },
+            { "fullName": "Bob", "years": 25 }
+        ])
+    );
+}
+
+/// Spec: mapping-spec.md §4.12 — `indexed` mode projects array slots into a target object.
+#[test]
+fn test_indexed_mode() {
+    let rules = vec![MappingRule {
+        source_path: Some("parts".to_string()),
+        target_path: "name".to_string(),
+        transform: TransformType::Preserve,
+        condition: None,
+        priority: 0,
+        reverse_priority: None,
+        default: None,
+        bidirectional: true,
+        array: Some(ArrayDescriptor {
+            mode: ArrayMode::Indexed,
+            inner_rules: vec![
+                rule(Some("0"), "first", TransformType::Preserve),
+                rule(Some("1"), "last", TransformType::Preserve),
+            ],
+        }),
+        reverse: None,
+    }];
+    let source = json!({ "parts": ["John", "Doe"] });
+    let result = execute_mapping(&rules, &source, MappingDirection::Forward);
+    assert_eq!(result.output["name"]["first"], "John");
+    assert_eq!(result.output["name"]["last"], "Doe");
+}
+
 #[test]
 fn test_unmapped_default_without_rule_default_yields_null() {
     let rules = vec![MappingRule {

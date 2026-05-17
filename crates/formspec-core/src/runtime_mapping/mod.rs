@@ -6,6 +6,7 @@
 
 mod document;
 mod engine;
+mod engine_helpers;
 mod env;
 mod parse;
 mod path;
