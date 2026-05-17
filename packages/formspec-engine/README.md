@@ -16,7 +16,7 @@ This package lives in the monorepo. Reference it from a sibling package:
 
 ```json
 "dependencies": {
-  "@formspec-org/engine": "^1.0.0"
+  "@formspec-org/engine": "*"
 }
 ```
 
