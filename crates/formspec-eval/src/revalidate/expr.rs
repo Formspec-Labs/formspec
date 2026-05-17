@@ -24,7 +24,7 @@ pub(super) fn constraint_passes(result: &EvalResult) -> bool {
 }
 
 /// True when the evaluation produced error-level diagnostics (broken expression).
-pub(super) fn result_has_eval_errors(result: &EvalResult) -> bool {
+pub(crate) fn result_has_eval_errors(result: &EvalResult) -> bool {
     result
         .diagnostics
         .iter()
@@ -36,7 +36,7 @@ pub(super) fn result_has_eval_errors(result: &EvalResult) -> bool {
 /// Parse errors produce `Null` with an error diagnostic so that
 /// `constraint_passes` treats them as failures — a broken expression
 /// must never silently pass validation.
-pub(super) fn evaluate_shape_expression(expr: &str, env: &FormspecEnvironment) -> EvalResult {
+pub(crate) fn evaluate_shape_expression(expr: &str, env: &FormspecEnvironment) -> EvalResult {
     match parse(expr) {
         Ok(parsed) => evaluate(&parsed, env),
         Err(e) => EvalResult {

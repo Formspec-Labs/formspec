@@ -6,6 +6,9 @@ mod expr;
 mod items;
 mod shapes;
 
+/// Shared FEL evaluation for screener route conditions (see `screener_eval`).
+pub(crate) use expr::{evaluate_shape_expression, result_has_eval_errors};
+
 use std::collections::HashMap;
 
 use serde_json::Value;

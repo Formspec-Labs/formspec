@@ -6,7 +6,8 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Days, FixedOffset, Months, NaiveDate, TimeDelta};
-use fel_core::{FormspecEnvironment, evaluate, parse};
+use fel_core::FormspecEnvironment;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::Value;
 
 use crate::fel_json::json_to_runtime_fel;
@@ -94,14 +95,18 @@ pub fn evaluate_screener_document(
     // ── 4. Evaluate overrides (§6.2) ───────────────────────────────
     let mut override_matched = Vec::new();
     let mut has_terminal = false;
+    let mut document_warnings: Vec<String> = Vec::new();
 
     for route in &override_routes {
         let condition = route
             .get("condition")
             .and_then(Value::as_str)
             .unwrap_or("false");
-        let is_truthy = eval_condition(condition, &env);
-        if is_truthy {
+        let cond = eval_screener_condition(condition, &env);
+        if cond.expression_error {
+            document_warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
+        }
+        if cond.truthy {
             let mut result = route_to_result(route);
             result.reason = None; // matched, not eliminated
             override_matched.push(result);
@@ -129,7 +134,7 @@ pub fn evaluate_screener_document(
             evaluation_version: version,
             status: determine_status(answers),
             overrides: override_block,
-            phases: Vec::new(),
+            phases: warning_only_phase(document_warnings),
             inputs: build_inputs(answers),
             validity: build_validity(screener, now_str),
             extensions: None,
@@ -164,14 +169,22 @@ pub fn evaluate_screener_document(
 
         // Check activeWhen
         if let Some(active_when) = phase_val.get("activeWhen").and_then(Value::as_str) {
-            if !eval_condition(active_when, &env) {
+            let active = eval_screener_condition(active_when, &env);
+            if active.expression_error {
+                document_warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
+            }
+            if !active.truthy {
+                let mut warnings = Vec::new();
+                if active.expression_error {
+                    warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
+                }
                 phase_results.push(PhaseResult {
                     id: phase_id,
                     status: "skipped".to_string(),
                     strategy,
                     matched: Vec::new(),
                     eliminated: Vec::new(),
-                    warnings: Vec::new(),
+                    warnings,
                 });
                 continue;
             }
@@ -206,6 +219,12 @@ pub fn evaluate_screener_document(
         phase_results.push(result);
     }
 
+    if !document_warnings.is_empty() {
+        if let Some(first) = phase_results.first_mut() {
+            first.warnings.extend(document_warnings);
+        }
+    }
+
     // ── 7. Assemble DeterminationRecord (§8) ───────────────────────
     DeterminationRecord {
         marker: "1.0".to_string(),
@@ -238,25 +257,27 @@ fn eval_first_match(
             .get("condition")
             .and_then(Value::as_str)
             .unwrap_or("false");
-        if eval_condition(condition, env) {
+        let cond = eval_screener_condition(condition, env);
+        if cond.truthy {
             matched.push(route_to_result(route));
             // Remaining routes go to eliminated as not-evaluated
             // (spec says evaluation stops after first match)
             break;
         } else {
             let mut result = route_to_result(route);
-            result.reason = Some("condition-false".to_string());
+            result.reason = Some(elimination_reason_for_condition(&cond).to_string());
             eliminated.push(result);
         }
     }
 
+    let warnings = phase_warnings_from_eliminated(&eliminated);
     PhaseResult {
         id: phase_id.to_string(),
         status: "evaluated".to_string(),
         strategy: strategy.to_string(),
         matched,
         eliminated,
-        warnings: Vec::new(),
+        warnings,
     }
 }
 
@@ -277,14 +298,17 @@ fn eval_fan_out(
             .get("condition")
             .and_then(Value::as_str)
             .unwrap_or("false");
-        if eval_condition(condition, env) {
+        let cond = eval_screener_condition(condition, env);
+        if cond.truthy {
             matched.push(route_to_result(route));
         } else {
             let mut result = route_to_result(route);
-            result.reason = Some("condition-false".to_string());
+            result.reason = Some(elimination_reason_for_condition(&cond).to_string());
             eliminated.push(result);
         }
     }
+
+    warnings.extend(phase_warnings_from_eliminated(&eliminated));
 
     // Apply maxMatches
     if let Some(max) = config
@@ -341,6 +365,7 @@ fn eval_score_threshold(
         route: &'a Value,
         raw_score: Option<f64>,
         threshold: f64,
+        expression_error: bool,
     }
 
     let mut scored: Vec<ScoredRoute> = routes
@@ -351,12 +376,13 @@ fn eval_score_threshold(
                 .get("threshold")
                 .and_then(Value::as_f64)
                 .unwrap_or(0.0);
-            let raw_score = eval_numeric(score_expr, env);
+            let score_eval = eval_screener_numeric(score_expr, env);
 
             ScoredRoute {
                 route,
-                raw_score,
+                raw_score: score_eval.value,
                 threshold,
+                expression_error: score_eval.expression_error,
             }
         })
         .collect();
@@ -387,13 +413,20 @@ fn eval_score_threshold(
     // Pass 3: compare against thresholds
     let mut matched = Vec::new();
     let mut eliminated = Vec::new();
+    let mut warnings = Vec::new();
 
     for s in &scored {
+        if s.expression_error {
+            warnings.push(WARNING_FEL_EXPRESSION_ERROR.to_string());
+        }
         match s.raw_score {
             None => {
-                // SC-12: null score → eliminated with reason "null-score"
                 let mut result = route_to_result(s.route);
-                result.reason = Some("null-score".to_string());
+                result.reason = Some(if s.expression_error {
+                    REASON_EXPRESSION_ERROR.to_string()
+                } else {
+                    "null-score".to_string()
+                });
                 eliminated.push(result);
             }
             Some(score) => {
@@ -436,34 +469,85 @@ fn eval_score_threshold(
     }
 }
 
+// ── FEL evaluation (shared with revalidate::expr) ─────────────────
+
+const REASON_EXPRESSION_ERROR: &str = "expression-error";
+const WARNING_FEL_EXPRESSION_ERROR: &str = "fel-expression-error";
+
+struct ConditionEval {
+    truthy: bool,
+    expression_error: bool,
+}
+
+struct NumericEval {
+    value: Option<f64>,
+    expression_error: bool,
+}
+
+fn eval_screener_condition(condition: &str, env: &FormspecEnvironment) -> ConditionEval {
+    let result = crate::revalidate::evaluate_shape_expression(condition, env);
+    let expression_error = crate::revalidate::result_has_eval_errors(&result);
+    let truthy = !expression_error && result.value.is_truthy();
+    ConditionEval {
+        truthy,
+        expression_error,
+    }
+}
+
+fn eval_screener_numeric(expr_str: &str, env: &FormspecEnvironment) -> NumericEval {
+    let result = crate::revalidate::evaluate_shape_expression(expr_str, env);
+    if crate::revalidate::result_has_eval_errors(&result) {
+        return NumericEval {
+            value: None,
+            expression_error: true,
+        };
+    }
+    if result.value.is_null() {
+        return NumericEval {
+            value: None,
+            expression_error: false,
+        };
+    }
+    NumericEval {
+        value: result.value.as_number().and_then(|d| d.to_f64()),
+        expression_error: false,
+    }
+}
+
+fn elimination_reason_for_condition(eval: &ConditionEval) -> &'static str {
+    if eval.expression_error {
+        REASON_EXPRESSION_ERROR
+    } else {
+        "condition-false"
+    }
+}
+
+fn phase_warnings_from_eliminated(eliminated: &[RouteResult]) -> Vec<String> {
+    if eliminated
+        .iter()
+        .any(|r| r.reason.as_deref() == Some(REASON_EXPRESSION_ERROR))
+    {
+        vec![WARNING_FEL_EXPRESSION_ERROR.to_string()]
+    } else {
+        Vec::new()
+    }
+}
+
+fn warning_only_phase(warnings: Vec<String>) -> Vec<PhaseResult> {
+    if warnings.is_empty() {
+        return Vec::new();
+    }
+    vec![PhaseResult {
+        id: "_evaluation".to_string(),
+        status: "evaluated".to_string(),
+        strategy: String::new(),
+        matched: Vec::new(),
+        eliminated: Vec::new(),
+        warnings,
+    }]
+}
+
 // ── Helper functions ───────────────────────────────────────────────
-
-/// Evaluate a FEL boolean condition. SC-11: null → false.
-fn eval_condition(condition: &str, env: &FormspecEnvironment) -> bool {
-    match parse(condition) {
-        Ok(expr) => {
-            let result = evaluate(&expr, env);
-            result.value.is_truthy()
-        }
-        Err(_) => false,
-    }
-}
-
-/// Evaluate a FEL numeric expression. Returns None for null/error.
-fn eval_numeric(expr_str: &str, env: &FormspecEnvironment) -> Option<f64> {
-    use rust_decimal::prelude::ToPrimitive;
-    match parse(expr_str) {
-        Ok(expr) => {
-            let result = evaluate(&expr, env);
-            if result.value.is_null() {
-                None
-            } else {
-                result.value.as_number().and_then(|d| d.to_f64())
-            }
-        }
-        Err(_) => None,
-    }
-}
 
 /// Build a RouteResult from a JSON route value.
 fn route_to_result(route: &Value) -> RouteResult {
@@ -828,6 +912,40 @@ mod tests {
     }
 
     #[test]
+
+    #[test]
+    fn malformed_route_condition_emits_warning_and_expression_error_reason() {
+        let screener = json!({
+            "$formspecScreener": "1.0",
+            "url": "urn:test:screener",
+            "version": "1.0.0",
+            "title": "Test",
+            "items": [],
+            "evaluation": [{
+                "id": "routing",
+                "strategy": "first-match",
+                "routes": [{
+                    "condition": "$x ==",
+                    "target": "urn:broken"
+                }]
+            }]
+        });
+        let answers = HashMap::new();
+        let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T10:00:00Z"));
+
+        assert_eq!(det.phases[0].matched.len(), 0);
+        assert_eq!(det.phases[0].eliminated.len(), 1);
+        assert_eq!(
+            det.phases[0].eliminated[0].reason.as_deref(),
+            Some("expression-error")
+        );
+        assert!(
+            det.phases[0]
+                .warnings
+                .contains(&"fel-expression-error".to_string())
+        );
+    }
+
     fn first_match_falls_through_to_default() {
         let screener = simple_screener();
         let mut answers = HashMap::new();
