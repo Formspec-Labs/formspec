@@ -788,9 +788,6 @@ test.describe('Clinical Intake: Validation', () => {
     const emailErrors = report.results.filter(
       (r: any) => r.path === 'patient.email' && (r.code === 'CONSTRAINT_FAILED' || r.kind === 'constraint' || r.code === 'PATTERN_MISMATCH')
     );
-    if (emailErrors.length === 0) {
-      console.log('DEBUG: report.results:', JSON.stringify(report.results, null, 2));
-    }
     expect(emailErrors.length).toBeGreaterThan(0);
   });
 
@@ -802,9 +799,6 @@ test.describe('Clinical Intake: Validation', () => {
     const phoneErrors = report.results.filter(
       (r: any) => r.path === 'patient.phone' && (r.code === 'CONSTRAINT_FAILED' || r.kind === 'constraint' || r.code === 'PATTERN_MISMATCH')
     );
-    if (phoneErrors.length === 0) {
-      console.log('DEBUG: phone report.results:', JSON.stringify(report.results, null, 2));
-    }
     expect(phoneErrors.length).toBeGreaterThan(0);
   });
 

@@ -2,7 +2,10 @@
 import type { Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { engineSetValue, engineValue, getResponse, getValidationReport } from './engine-harness';
 import { waitForWasm } from './harness';
+
+export { engineSetValue, engineValue, getResponse, getValidationReport };
 
 const ROOT = path.resolve(__dirname, '../../../../');
 const INVOICE_DIR = path.join(ROOT, 'examples/invoice');
@@ -31,22 +34,6 @@ export async function mountInvoice(page: Page): Promise<void> {
   await page.waitForTimeout(200);
 }
 
-/** Get raw field signal value from the engine. */
-export async function engineValue(page: Page, fieldPath: string): Promise<any> {
-  return page.evaluate((p) => {
-    const el: any = document.querySelector('formspec-render');
-    return el.getEngine().signals[p]?.value;
-  }, fieldPath);
-}
-
-/** Set a field value via engine (bypasses UI). */
-export async function engineSetValue(page: Page, fieldPath: string, value: any): Promise<void> {
-  await page.evaluate(({ p, v }) => {
-    const el: any = document.querySelector('formspec-render');
-    el.getEngine().setValue(p, v);
-  }, { p: fieldPath, v: value });
-}
-
 /** Programmatically add a repeat instance via engine. Returns new count. */
 export async function addRepeatInstance(page: Page, itemName: string): Promise<number> {
   return page.evaluate((name) => {
@@ -61,23 +48,4 @@ export async function getRepeatCount(page: Page, itemName: string): Promise<numb
     const el: any = document.querySelector('formspec-render');
     return el.getEngine().repeats[name]?.value ?? 0;
   }, itemName);
-}
-
-/** Get the full validation report. */
-export async function getValidationReport(
-  page: Page,
-  mode: 'continuous' | 'submit' | 'demand' = 'continuous'
-) {
-  return page.evaluate((m) => {
-    const el: any = document.querySelector('formspec-render');
-    return el.getEngine().getValidationReport({ mode: m });
-  }, mode);
-}
-
-/** Get the full response object. */
-export async function getResponse(page: Page, mode: 'continuous' | 'submit' = 'submit') {
-  return page.evaluate((m) => {
-    const el: any = document.querySelector('formspec-render');
-    return el.getEngine().getResponse({ mode: m });
-  }, mode);
 }
