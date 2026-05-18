@@ -769,7 +769,18 @@ where the signature method requires an external verifier.
 
 ###### Stability Contract
 
-The Formspec Signed Response Payload preimage is a stability contract. Any change to the domain-tag string (currently `formspec.response.signed-payload.v1`), the `0x00` separator byte, the `response_without_authoredSignatures` stripping rule, or the canonicalization identifier (`formspec-response-signing-v1`) constitutes a new canonicalization profile (`formspec-response-signing-v2` or higher) requiring a new domain-tag string with a new version segment. Conformant verifiers MUST reject any authored signature whose protected-header `method_uri` resolves to a profile not present in the verifier's registered profile set; method dispatch is closed-enum at the verifier (see ADR 0109). Profile additions are coordinated spec changes, not additive registry entries: a new profile lands together with its preimage definition, its fixture vector, and its registered `method_uri`.
+The Formspec Signed Response Payload preimage and its enclosing `Sig_structure` together constitute a stability contract. The byte-authority source of truth for the preimage construction is `integrity-stack/crates/integrity-canonical/src/lib.rs` — `CANONICALIZATION_PROFILE` (line 20), `DOMAIN_SEPARATION` (line 23), and `DOMAIN_SEPARATOR_BYTE` (line 35) are the Rust constants from which every conformant runtime derives identical bytes. Any change to the following invariants is a new canonicalization profile (`formspec-response-signing-v2` or higher) requiring a new domain-tag string with a new version segment:
+
+1. **Domain-tag string** — currently `formspec.response.signed-payload.v1`.
+2. **`0x00` separator byte** between the domain tag and the canonical payload bytes.
+3. **`response_without_authoredSignatures` stripping rule** — strip the `authoredSignatures` array before canonicalization; all other top-level fields (including `id`, `definitionUrl`, `definitionVersion`, `data`, `authored`, `validationResults`) are part of the canonical payload.
+4. **Canonicalization identifier** — currently `formspec-response-signing-v1`; this names the JCS-based canonicalization profile pinned in this section.
+5. **Digest algorithm pin** — `signedPayload.digestAlgorithm` is `sha-256` under the v1 profile. A profile that kept items 1-4 unchanged but moved to a different hash algorithm would produce a different `signedPayload.digest` for the same canonical bytes and is therefore a new profile.
+6. **COSE `Sig_structure` outer layer** — the cryptographic signing primitive consumes the RFC 9052 `Sig_structure` (`0x84 || tstr("Signature1") || bstr(protected) || 0x40 || bstr(payload_preimage)`), not the raw preimage or its digest string. Changing what wraps the preimage (external AAD, alternate structure tag, alternate protected-header serialization) is a new profile.
+
+Items 1-5 are versioned by the `canonicalization` identifier in `signedPayload`; item 6 is versioned implicitly through the protected-header `method_uri` registration governed by ADR 0109 — distinct `Sig_structure` shapes ship under distinct `method_uri` values, never under the same one with a behavior fork.
+
+Conformant verifiers MUST reject any authored signature whose protected-header `method_uri` resolves to a profile not present in the verifier's registered profile set; method dispatch is closed-enum at the verifier (see ADR 0109). Profile additions are coordinated spec changes, not additive registry entries: a new profile lands together with its preimage definition, its fixture vector, and its registered `method_uri`.
 
 #### 2.1.6.1 Intake Handoff
 
