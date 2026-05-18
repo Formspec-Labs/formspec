@@ -778,6 +778,8 @@ The Formspec Signed Response Payload preimage and its enclosing `Sig_structure` 
 5. **Digest algorithm pin** — `signedPayload.digestAlgorithm` is `sha-256` under the v1 profile. A profile that kept items 1-4 unchanged but moved to a different hash algorithm would produce a different `signedPayload.digest` for the same canonical bytes and is therefore a new profile.
 6. **COSE `Sig_structure` outer layer** — the cryptographic signing primitive consumes the RFC 9052 `Sig_structure` (`0x84 || tstr("Signature1") || bstr(protected) || 0x40 || bstr(payload_preimage)`), not the raw preimage or its digest string. Changing what wraps the preimage (external AAD, alternate structure tag, alternate protected-header serialization) is a new profile.
 
+Byte-identical enforcement of invariants 1–3 lives in Rust at `integrity-stack/crates/integrity-canonical/src/lib.rs` per ADR 0004. Python and TypeScript implementations check wire-shape only; consult the Rust source for the authoritative byte sequence.
+
 Items 1-5 are versioned by the `canonicalization` identifier in `signedPayload`; item 6 is versioned implicitly through the protected-header `method_uri` registration governed by ADR 0109 — distinct `Sig_structure` shapes ship under distinct `method_uri` values, never under the same one with a behavior fork.
 
 Conformant verifiers MUST reject any authored signature whose protected-header `method_uri` resolves to a profile not present in the verifier's registered profile set; method dispatch is closed-enum at the verifier (see ADR 0109). Profile additions are coordinated spec changes, not additive registry entries: a new profile lands together with its preimage definition, its fixture vector, and its registered `method_uri`.

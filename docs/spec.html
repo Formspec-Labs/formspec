@@ -1462,6 +1462,10 @@ not the raw preimage or its digest string. Changing what wraps the
 preimage (external AAD, alternate structure tag, alternate
 protected-header serialization) is a new profile.</li>
 </ol>
+<p>Byte-identical enforcement of invariants 1–3 lives in Rust at
+<code>integrity-stack/crates/integrity-canonical/src/lib.rs</code> per
+ADR 0004. Python and TypeScript implementations check wire-shape only;
+consult the Rust source for the authoritative byte sequence.</p>
 <p>Items 1-5 are versioned by the <code>canonicalization</code>
 identifier in <code>signedPayload</code>; item 6 is versioned implicitly
 through the protected-header <code>method_uri</code> registration
