@@ -903,6 +903,51 @@ unless a host profile defines stricter rules.
 > }
 > ```
 
+##### 2.1.6.1.1 formspecSealFence — verifier-facing snapshot of the sealed response
+
+A conforming Formspec receipt-payload emitter MUST include a `formspecSealFence`
+map carrying the structured snapshot a downstream verifier uses to cross-check
+a sealed Formspec response. The fence is the verdict-bound projection of the
+canonical Response: a verifier recomputes its fields from bundle bytes and
+compares to the stored fence; any mismatch is a structural verification
+failure.
+
+The receipt-payload top-level sibling keys (`responseId`, `formVersionId`,
+`responseHash`, `signedPayloadDigest`) are camelCase and produced by the
+receipt-emission point (`formspec-server/crates/formspec-server/src/services/receipts.rs:949-958`).
+The `formspecSealFence` value carries the same identity in snake_case keys
+because the Rust authority struct `FormspecResponseFence`
+(`formspec-server/crates/formspec-server-ports/src/lib.rs:1601-1608`) does not
+carry `#[serde(rename_all = "camelCase")]`. Both surfaces are normative as
+shipped; verifiers MUST read the snake_case form when projecting the fence.
+
+Wire shape of `formspecSealFence`:
+
+| Field | Type | Description |
+|---|---|---|
+| `response_id` | `string` | Globally unique response identifier (TypeId form). MUST equal the receipt-payload sibling `responseId`. |
+| `form_version_id` | `string` | Form version the response was submitted against. MUST equal the receipt-payload sibling `formVersionId`. |
+| `response_hash` | HashString (`^[A-Za-z0-9._:+-]+:.+$`) | Algorithm-prefixed canonical digest of the Response envelope (see §2.1.6 `responseHash` and the `HashString` definition in `schemas/intake-handoff.schema.json`). The prefix names the hash function used. |
+| `signed_payload_digest` | object \| null | Present when the response carries an authored signed-payload digest; absent or null otherwise. When non-null, the object carries `algorithm` (string naming the hash function) and `digest_hex` (BARE hex, not algorithm-prefixed). |
+
+The `signed_payload_digest` shape mirrors `ResponseSignedPayloadDigest`
+(`formspec-server/crates/formspec-server-ports/src/lib.rs:475-479`). The
+algorithm prefix is encoded structurally in `algorithm`, NOT inline in
+`digest_hex`, in contrast to `response_hash` which uses the algorithm-prefixed
+HashString form.
+
+Verifier obligations:
+
+- Recompute `response_hash` from the canonical Response envelope bytes using
+  the hash function named by its algorithm prefix; compare byte-for-byte to
+  the stored value.
+- When `signed_payload_digest` is non-null, recompute the digest by hashing
+  the Formspec Signed Response Payload (per §2.1.6) under `algorithm`;
+  compare to `digest_hex` as bare hex.
+- Treat any mismatch as a structural verification failure. The fence is
+  verdict-bound — there is no partial-credit path that admits the bundle
+  while one of these checks fails.
+
 #### 2.1.7 Data Source
 
 A **Data Source** is a declaration within a Definition that makes external or

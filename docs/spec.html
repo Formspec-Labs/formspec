@@ -1703,6 +1703,92 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href=
 <span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;occurredAt&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-04-22T17:15:00Z&quot;</span></span>
 <span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </blockquote>
+<h5
+id="formspecsealfence-verifier-facing-snapshot-of-the-sealed-response">2.1.6.1.1
+formspecSealFence — verifier-facing snapshot of the sealed response</h5>
+<p>A conforming Formspec receipt-payload emitter MUST include a
+<code>formspecSealFence</code> map carrying the structured snapshot a
+downstream verifier uses to cross-check a sealed Formspec response. The
+fence is the verdict-bound projection of the canonical Response: a
+verifier recomputes its fields from bundle bytes and compares to the
+stored fence; any mismatch is a structural verification failure.</p>
+<p>The receipt-payload top-level sibling keys (<code>responseId</code>,
+<code>formVersionId</code>, <code>responseHash</code>,
+<code>signedPayloadDigest</code>) are camelCase and produced by the
+receipt-emission point
+(<code>formspec-server/crates/formspec-server/src/services/receipts.rs:949-958</code>).
+The <code>formspecSealFence</code> value carries the same identity in
+snake_case keys because the Rust authority struct
+<code>FormspecResponseFence</code>
+(<code>formspec-server/crates/formspec-server-ports/src/lib.rs:1601-1608</code>)
+does not carry <code>#[serde(rename_all = "camelCase")]</code>. Both
+surfaces are normative as shipped; verifiers MUST read the snake_case
+form when projecting the fence.</p>
+<p>Wire shape of <code>formspecSealFence</code>:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>response_id</code></td>
+<td><code>string</code></td>
+<td>Globally unique response identifier (TypeId form). MUST equal the
+receipt-payload sibling <code>responseId</code>.</td>
+</tr>
+<tr>
+<td><code>form_version_id</code></td>
+<td><code>string</code></td>
+<td>Form version the response was submitted against. MUST equal the
+receipt-payload sibling <code>formVersionId</code>.</td>
+</tr>
+<tr>
+<td><code>response_hash</code></td>
+<td>HashString (<code>^[A-Za-z0-9._:+-]+:.+$</code>)</td>
+<td>Algorithm-prefixed canonical digest of the Response envelope (see
+§2.1.6 <code>responseHash</code> and the <code>HashString</code>
+definition in <code>schemas/intake-handoff.schema.json</code>). The
+prefix names the hash function used.</td>
+</tr>
+<tr>
+<td><code>signed_payload_digest</code></td>
+<td>object | null</td>
+<td>Present when the response carries an authored signed-payload digest;
+absent or null otherwise. When non-null, the object carries
+<code>algorithm</code> (string naming the hash function) and
+<code>digest_hex</code> (BARE hex, not algorithm-prefixed).</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>signed_payload_digest</code> shape mirrors
+<code>ResponseSignedPayloadDigest</code>
+(<code>formspec-server/crates/formspec-server-ports/src/lib.rs:475-479</code>).
+The algorithm prefix is encoded structurally in <code>algorithm</code>,
+NOT inline in <code>digest_hex</code>, in contrast to
+<code>response_hash</code> which uses the algorithm-prefixed HashString
+form.</p>
+<p>Verifier obligations:</p>
+<ul>
+<li>Recompute <code>response_hash</code> from the canonical Response
+envelope bytes using the hash function named by its algorithm prefix;
+compare byte-for-byte to the stored value.</li>
+<li>When <code>signed_payload_digest</code> is non-null, recompute the
+digest by hashing the Formspec Signed Response Payload (per §2.1.6)
+under <code>algorithm</code>; compare to <code>digest_hex</code> as bare
+hex.</li>
+<li>Treat any mismatch as a structural verification failure. The fence
+is verdict-bound — there is no partial-credit path that admits the
+bundle while one of these checks fails.</li>
+</ul>
 <h4 id="data-source">2.1.7 Data Source</h4>
 <p>A <strong>Data Source</strong> is a declaration within a Definition
 that makes external or supplemental data available to FEL expressions at
