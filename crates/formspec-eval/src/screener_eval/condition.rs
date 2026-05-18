@@ -5,7 +5,6 @@ use rust_decimal::prelude::ToPrimitive;
 
 use crate::types::determination::{EliminationReason, RouteResult};
 
-pub(crate) const REASON_EXPRESSION_ERROR: &str = "expression-error";
 pub(crate) const WARNING_FEL_EXPRESSION_ERROR: &str = "fel-expression-error";
 
 pub(crate) struct ConditionEval {

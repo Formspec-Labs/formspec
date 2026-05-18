@@ -9,12 +9,16 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// Validation severity on the wire (`error` / `warning` / `info`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Severity {
+    /// Blocks submit / completion.
     Error,
+    /// Advisory; does not block submit.
     Warning,
+    /// Informational diagnostic only.
     Info,
 }
 
 impl Severity {
+    /// Serialize to the validation report severity string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             Severity::Error => "error",
@@ -23,6 +27,7 @@ impl Severity {
         }
     }
 
+    /// Parse a validation report severity string.
     pub fn parse_wire(s: &str) -> Option<Self> {
         match s {
             "error" => Some(Severity::Error),
@@ -50,15 +55,22 @@ impl<'de> Deserialize<'de> for Severity {
 /// What kind of rule produced the validation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ConstraintKind {
+    /// Missing required value.
     Required,
+    /// Bind `constraint` expression failed.
     Constraint,
+    /// Value type does not match field type.
     Type,
+    /// Repeat min/max violation.
     Cardinality,
+    /// Cross-field shape rule.
     Shape,
+    /// Definition-level structural rule.
     Definition,
 }
 
 impl ConstraintKind {
+    /// Serialize to the validation report `constraintKind` string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             ConstraintKind::Required => "required",
@@ -70,6 +82,7 @@ impl ConstraintKind {
         }
     }
 
+    /// Parse a validation report `constraintKind` string.
     pub fn parse_wire(s: &str) -> Option<Self> {
         match s {
             "required" => Some(ConstraintKind::Required),
@@ -100,14 +113,18 @@ impl<'de> Deserialize<'de> for ConstraintKind {
 /// Origin layer for a validation result.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValidationSource {
+    /// Field bind rule (required, constraint, etc.).
     Bind,
+    /// Definition shape rule.
     Shape,
+    /// Definition document constraint.
     Definition,
     /// Extension registry constraint (not a bind or shape rule).
     External,
 }
 
 impl ValidationSource {
+    /// Serialize to the validation report `source` string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             ValidationSource::Bind => "bind",
@@ -117,6 +134,7 @@ impl ValidationSource {
         }
     }
 
+    /// Parse a validation report `source` string.
     pub fn parse_wire(s: &str) -> Option<Self> {
         match s {
             "bind" => Some(ValidationSource::Bind),
@@ -144,26 +162,42 @@ impl<'de> Deserialize<'de> for ValidationSource {
 /// Machine validation code (known codes + definition-authored shape codes).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ValidationCode {
+    /// Required field has no value.
     Required,
+    /// Value type does not match field definition.
     TypeMismatch,
+    /// Constraint expression evaluated to false.
     ConstraintFailed,
+    /// Constraint expression could not be parsed.
     ConstraintParseError,
+    /// Repeat count below minimum.
     MinRepeat,
+    /// Repeat count above maximum.
     MaxRepeat,
+    /// Extension URI not in registry.
     UnresolvedExtension,
+    /// Extension is retired.
     ExtensionRetired,
+    /// Extension is deprecated for this context.
     ExtensionDeprecated,
+    /// Extension compatibility matrix mismatch.
     ExtensionCompatibilityMismatch,
+    /// String does not match `pattern`.
     PatternMismatch,
+    /// String exceeds `maxLength`.
     MaxLengthExceeded,
+    /// Number below `minimum`.
     RangeUnderflow,
+    /// Number above `maximum`.
     RangeOverflow,
+    /// Calculate/bind dependency cycle detected.
     CircularDependency,
     /// Shape rule `code` from the definition (e.g. `SHAPE_FAILED`).
     Shape(String),
 }
 
 impl ValidationCode {
+    /// Parse a validation report `code`; unknown codes become [`ValidationCode::Shape`].
     pub fn from_wire(s: &str) -> Self {
         match s {
             "REQUIRED" => Self::Required,
@@ -185,6 +219,7 @@ impl ValidationCode {
         }
     }
 
+    /// Serialize to the validation report `code` string.
     pub fn as_wire_str(&self) -> Cow<'_, str> {
         Cow::Borrowed(match self {
             ValidationCode::Required => "REQUIRED",

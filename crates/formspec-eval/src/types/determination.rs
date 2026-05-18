@@ -12,13 +12,18 @@ use std::collections::HashMap;
 /// Top-level determination status on the wire.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DeterminationStatus {
+    /// All phases evaluated; record is actionable.
     Completed,
+    /// Pipeline stopped before all phases (e.g. override halt).
     Partial,
+    /// Past `validUntil` from `resultValidity`.
     Expired,
+    /// Required inputs missing or screener could not run.
     Unavailable,
 }
 
 impl DeterminationStatus {
+    /// Serialize to the determination schema string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             DeterminationStatus::Completed => "completed",
@@ -28,6 +33,7 @@ impl DeterminationStatus {
         }
     }
 
+    /// Parse a determination schema status string.
     pub fn parse_wire(s: &str) -> Option<Self> {
         match s {
             "completed" => Some(DeterminationStatus::Completed),
@@ -68,12 +74,16 @@ impl PartialEq<&str> for DeterminationStatus {
 /// Per-phase evaluation status on the wire.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PhaseStatus {
+    /// Phase ran with the declared strategy.
     Evaluated,
+    /// Phase omitted (e.g. prior override halt).
     Skipped,
+    /// Strategy id is not implemented in this evaluator.
     UnsupportedStrategy,
 }
 
 impl PhaseStatus {
+    /// Serialize to the determination schema phase status string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             PhaseStatus::Evaluated => "evaluated",
@@ -82,6 +92,7 @@ impl PhaseStatus {
         }
     }
 
+    /// Parse a determination schema phase status string.
     pub fn parse_wire(s: &str) -> Option<Self> {
         match s {
             "evaluated" => Some(PhaseStatus::Evaluated),
@@ -121,14 +132,18 @@ impl PartialEq<&str> for PhaseStatus {
 /// Phase evaluation strategy (built-ins + screener-declared extensions).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PhaseStrategy {
+    /// First matching route wins.
     FirstMatch,
+    /// All matching routes are retained.
     FanOut,
+    /// Routes ranked by score against a threshold.
     ScoreThreshold,
     /// Any other strategy id from the screener document (including `x-*`).
     Other(String),
 }
 
 impl PhaseStrategy {
+    /// Parse built-in strategy ids; unknown ids become [`PhaseStrategy::Other`].
     pub fn from_wire(s: impl Into<String>) -> Self {
         let s = s.into();
         match s.as_str() {
@@ -139,6 +154,7 @@ impl PhaseStrategy {
         }
     }
 
+    /// Serialize to the screener/determination strategy id string.
     pub fn as_wire_str(&self) -> Cow<'_, str> {
         Cow::Borrowed(match self {
             PhaseStrategy::FirstMatch => "first-match",
@@ -177,14 +193,20 @@ impl PartialEq<&str> for PhaseStrategy {
 /// Why an eliminated route did not match.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EliminationReason {
+    /// Route condition evaluated to false.
     ConditionFalse,
+    /// Score below the phase threshold.
     BelowThreshold,
+    /// Fan-out cap exceeded.
     MaxExceeded,
+    /// Score expression yielded null.
     NullScore,
+    /// Condition or score FEL evaluation failed.
     ExpressionError,
 }
 
 impl EliminationReason {
+    /// Serialize to the determination schema elimination reason string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             EliminationReason::ConditionFalse => "condition-false",
@@ -195,6 +217,7 @@ impl EliminationReason {
         }
     }
 
+    /// Parse a determination schema elimination reason string.
     pub fn parse_wire(s: &str) -> Option<Self> {
         match s {
             "condition-false" => Some(EliminationReason::ConditionFalse),

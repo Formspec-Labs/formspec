@@ -19,6 +19,7 @@ impl ExcludedValueMode {
         }
     }
 
+    /// Serialize to the definition `excludedValue` wire string.
     pub fn as_wire_str(self) -> &'static str {
         match self {
             ExcludedValueMode::Null => "null",
