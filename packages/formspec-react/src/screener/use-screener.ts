@@ -82,6 +82,12 @@ function asRouteExtensionsRecord(value: unknown): Record<string, unknown> | unde
   return value as Record<string, unknown>;
 }
 
+function routeExtensionsFromMatch(
+  matched: RouteResult & { extensions?: unknown },
+): Record<string, unknown> | undefined {
+  return asRouteExtensionsRecord(matched.metadata) ?? asRouteExtensionsRecord(matched.extensions);
+}
+
 function firstMatchedRouteFromDetermination(
   determination: DeterminationRecord,
 ): ScreenerRoute | null {
@@ -94,7 +100,7 @@ function firstMatchedRouteFromDetermination(
   return {
     target: matched.target,
     label: matched.label,
-    extensions: asRouteExtensionsRecord(matched.metadata),
+    extensions: routeExtensionsFromMatch(matched),
   };
 }
 
