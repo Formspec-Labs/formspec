@@ -903,14 +903,15 @@ unless a host profile defines stricter rules.
 > }
 > ```
 
-##### 2.1.6.1.1 formspecSealFence — verifier-facing snapshot of the sealed response
+##### 2.1.6.1.1 formspecSealFence — caller-asserted identity of the sealed response
 
 A conforming Formspec receipt-payload emitter MUST include a `formspecSealFence`
-map carrying the structured snapshot a downstream verifier uses to cross-check
-a sealed Formspec response. The fence is the verdict-bound projection of the
-canonical Response: a verifier recomputes its fields from bundle bytes and
-compares to the stored fence; any mismatch is a structural verification
-failure.
+map carrying the caller-asserted identity of the sealed Formspec response. The
+fence is the value a downstream verifier compares against the corresponding
+field in the verified export-event payload; mismatch is a structural
+verification failure. Responsibility for the fence's hash fields matching the
+canonical Response bytes rests upstream at receipt emission — the shipping
+verifier checks fence equality, not hash recomputation.
 
 The receipt-payload top-level sibling keys (`responseId`, `formVersionId`,
 `responseHash`, `signedPayloadDigest`) are camelCase and produced by the
@@ -928,7 +929,7 @@ Wire shape of `formspecSealFence`:
 | `response_id` | `string` | Globally unique response identifier (TypeId form). MUST equal the receipt-payload sibling `responseId`. |
 | `form_version_id` | `string` | Form version the response was submitted against. MUST equal the receipt-payload sibling `formVersionId`. |
 | `response_hash` | HashString (`^[A-Za-z0-9._:+-]+:.+$`) | Algorithm-prefixed canonical digest of the Response envelope (see §2.1.6 `responseHash` and the `HashString` definition in `schemas/intake-handoff.schema.json`). The prefix names the hash function used. |
-| `signed_payload_digest` | object \| null | Present when the response carries an authored signed-payload digest; absent or null otherwise. When non-null, the object carries `algorithm` (string naming the hash function) and `digest_hex` (BARE hex, not algorithm-prefixed). |
+| `signed_payload_digest` | object \| null | `null` when no signed-payload digest exists for the response; present (object) otherwise. When non-null, the object carries `algorithm` (string naming the hash function) and `digest_hex` (BARE hex, not algorithm-prefixed). |
 
 The `signed_payload_digest` shape mirrors `ResponseSignedPayloadDigest`
 (`formspec-server/crates/formspec-server-ports/src/lib.rs:475-479`). The
@@ -936,17 +937,51 @@ algorithm prefix is encoded structurally in `algorithm`, NOT inline in
 `digest_hex`, in contrast to `response_hash` which uses the algorithm-prefixed
 HashString form.
 
-Verifier obligations:
+Example receipt-payload fragment showing the camelCase top-level / snake_case
+fence boundary:
 
-- Recompute `response_hash` from the canonical Response envelope bytes using
-  the hash function named by its algorithm prefix; compare byte-for-byte to
-  the stored value.
-- When `signed_payload_digest` is non-null, recompute the digest by hashing
-  the Formspec Signed Response Payload (per §2.1.6) under `algorithm`;
-  compare to `digest_hex` as bare hex.
-- Treat any mismatch as a structural verification failure. The fence is
-  verdict-bound — there is no partial-credit path that admits the bundle
-  while one of these checks fails.
+```json
+{
+  "responseId": "resp_01jc7v9q3a8m6w2k4r6t8y0b1c",
+  "formVersionId": "fv_01jc7v8h2p9k4m6r8t0w2y4z6a",
+  "responseHash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "signedPayloadDigest": {
+    "algorithm": "sha256",
+    "digest_hex": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+  },
+  "formspecSealFence": {
+    "response_id": "resp_01jc7v9q3a8m6w2k4r6t8y0b1c",
+    "form_version_id": "fv_01jc7v8h2p9k4m6r8t0w2y4z6a",
+    "response_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "signed_payload_digest": {
+      "algorithm": "sha256",
+      "digest_hex": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+    }
+  }
+}
+```
+
+Verifier obligations (shipping behavior — see
+`formspec-server/crates/formspec-server-verifier-integrity/src/lib.rs:223-335`):
+
+- Locate the `formspec.response.submitted` export event whose payload names
+  the expected `response_id` (matched against `aggregateId`, or
+  `payload.responseId`, or `payload.formspecSealFence.response_id`); if no
+  such event exists in the verified bundle, emit
+  `formspec_response_fence_missing`.
+- On the candidate event payload, require `aggregateType == "response"` and
+  `aggregateId`, `payload.responseId`, `payload.formVersionId`,
+  `payload.responseHash` to equal the corresponding caller-supplied fence
+  fields as strings.
+- Compare `payload.signedPayloadDigest` to the caller-supplied
+  `signed_payload_digest` (serialized to JSON, `null` when absent) by
+  structural JSON equality.
+- Compare `payload.formspecSealFence` to the caller-supplied fence (the full
+  `FormspecResponseFence`, snake_case keys) by structural JSON equality.
+- Any failed comparison emits `formspec_response_fence_mismatch` against the
+  event's canonical event hash. The fence is verdict-bound — there is no
+  partial-credit path that admits the bundle while one of these checks
+  fails.
 
 #### 2.1.7 Data Source
 
