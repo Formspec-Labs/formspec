@@ -1422,6 +1422,22 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href=
 <span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
 <span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </blockquote>
+<h6 id="stability-contract">Stability Contract</h6>
+<p>The Formspec Signed Response Payload preimage is a stability
+contract. Any change to the domain-tag string (currently
+<code>formspec.response.signed-payload.v1</code>), the <code>0x00</code>
+separator byte, the <code>response_without_authoredSignatures</code>
+stripping rule, or the canonicalization identifier
+(<code>formspec-response-signing-v1</code>) constitutes a new
+canonicalization profile (<code>formspec-response-signing-v2</code> or
+higher) requiring a new domain-tag string with a new version segment.
+Conformant verifiers MUST reject any authored signature whose
+protected-header <code>method_uri</code> resolves to a profile not
+present in the verifier’s registered profile set; method dispatch is
+closed-enum at the verifier (see ADR 0109). Profile additions are
+coordinated spec changes, not additive registry entries: a new profile
+lands together with its preimage definition, its fixture vector, and its
+registered <code>method_uri</code>.</p>
 <h4 id="intake-handoff">2.1.6.1 Intake Handoff</h4>
 <p>An <strong>Intake Handoff</strong> is the boundary record emitted
 when a Formspec intake session is ready to be accepted by a workflow,

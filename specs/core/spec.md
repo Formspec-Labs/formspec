@@ -767,6 +767,10 @@ where the signature method requires an external verifier.
 > }
 > ```
 
+###### Stability Contract
+
+The Formspec Signed Response Payload preimage is a stability contract. Any change to the domain-tag string (currently `formspec.response.signed-payload.v1`), the `0x00` separator byte, the `response_without_authoredSignatures` stripping rule, or the canonicalization identifier (`formspec-response-signing-v1`) constitutes a new canonicalization profile (`formspec-response-signing-v2` or higher) requiring a new domain-tag string with a new version segment. Conformant verifiers MUST reject any authored signature whose protected-header `method_uri` resolves to a profile not present in the verifier's registered profile set; method dispatch is closed-enum at the verifier (see ADR 0109). Profile additions are coordinated spec changes, not additive registry entries: a new profile lands together with its preimage definition, its fixture vector, and its registered `method_uri`.
+
 #### 2.1.6.1 Intake Handoff
 
 An **Intake Handoff** is the boundary record emitted when a Formspec intake
