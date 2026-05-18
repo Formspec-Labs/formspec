@@ -24,6 +24,9 @@ docs-check: node_modules
 
 test-unit: build-js
 	npm run test:unit
+	npm run --workspace=@formspec/signature-port test
+	npm run --workspace=@formspec/signature-cose test
+	npm run --workspace=@formspec/signature-adapter-webcrypto test
 
 test-e2e: node_modules
 	npm run test:e2e
@@ -85,7 +88,7 @@ rebuild-python: .venv/.deps-stamp
 test-rust:
 	cargo nextest run --workspace
 
-test: test-unit test-python test-rust test-scripts test-e2e
+test: test-unit test-python test-rust test-scripts test-engine-isolation test-e2e
 
 test-engine-isolation: build-js
 	npm run --workspace=@formspec-org/engine test:init-entry-runtime-only
@@ -94,7 +97,7 @@ test-engine-isolation: build-js
 	npm run --workspace=@formspec-org/engine test:wasm-runtime-isolation
 	npm run --workspace=@formspec-org/engine test:wasm-tools-import-count
 
-check: docs-check test test-engine-isolation
+check: docs-check test
 	npm run check:deps
 	npm run check:studio-source-sizes
 
