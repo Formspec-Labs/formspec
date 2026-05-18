@@ -40,9 +40,26 @@ Public-facing stack framing (partners, procurement, investors): [`../STACK.md`](
 
 **Conflict resolution:** [`../.claude/operating-mode.md`](../.claude/operating-mode.md).
 
+## Formspec settled commitments
+
+These principles are probed and accepted; they override speculative alternatives.
+
+**First-adopter posture:** Formspec is for teams building and maintaining complex forms with AI — grants, contracts, government workflows, insurance, survey companies. The replacement set is the existing form-spec / form-builder landscape plus signing tooling when needed. The value proposition is open, portable, auditable form infrastructure that AI can author quickly without making the artifact unreadable to humans. Government is a major partner path, not a special exception.
+
+**Character of the center:** Formspec is simultaneously a spec, a portable kernel, and an AI authoring substrate. Design is DI-first — seams are natural and encouraged; the primary design question is where something belongs, not whether the center should reject it on principle. Do not harden the center just to feel opinionated. When standalone Formspec value and stack composition appear to conflict, the seam is wrong — repair the boundary before choosing a side.
+
+**Conformance is the portability bar.** A real Formspec implementation must pass the same conformance suite. Schema validity is necessary but not sufficient; behavioral fixtures must also agree. Independent implementations reproduce the spec's predicted outcomes for the same fixture corpus.
+
+**Formspec-specific decision heuristics:**
+
+1. **Placement before prohibition.** Ask where a concern belongs in the DI structure before asking whether to ban it.
+2. **User-value / debt tie-break.** When spec, schema, runtime, or tooling disagree, prefer the move that improves user value or reduces forward architectural debt.
+3. **Seam-repair reflex.** If standalone adoption and stack composition seem to want different shapes, repair the seam instead of choosing one side and polluting the center.
+4. **Conformance as the portability bar.** Any proposed semantic change should be expressible as fixtures that every real implementation can run.
+
 ## Development Philosophy — Formspec-specific
 
-Frame lives in `formspec-stack/.claude/user_profile.md` and `formspec-stack/.claude/operating-mode.md`. Formspec additions:
+Frame lives in `formspec-stack/DEVELOPMENT-PHILOSOPHY.md`. Formspec additions:
 
 - **The spec is the source of truth — directional, not infallible.** Pipeline: ADR/thought → spec → schema → feature/lint matrix → lint tools → runtimes. Each layer derives from or validates against the one above. **Don't drift downstream silently** (no `choicesFrom` when `OptionSet` exists; non-spec code paths leak into core structs, demand `None` initializers in every test, and outlive their use case). **Do let discoveries flow back upstream** — when schema/lint/runtime work reveals something the spec missed, update the spec first, then regenerate everything below. That's discovery, not drift. **The test for any change:** does it add user value, or is it change/hallucination? User value earns its way into the spec; hallucination gets reverted. The economic frame: dev/code/time is cheap, so updating the spec + propagating is cheap; silent disagreement between layers is architectural debt, the only expensive thing. When unclear, consult `formspec-specs:spec-expert`.
 - **Extension points where the spec demands them, nowhere else.** Build the seams the spec calls for; do not manufacture new ones.
