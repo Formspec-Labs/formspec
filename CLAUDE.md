@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**New agent? Read [`../.claude/operating-mode.md`](../.claude/operating-mode.md) and [`../.claude/user_profile.md`](../.claude/user_profile.md) (in `formspec-stack/.claude/`) first. Spec questions → `formspec-specs` skill. Navigation → [`filemap.json`](filemap.json).**
+**New agent? Read [`../CLAUDE.md`](../CLAUDE.md) first (behavioral interrupts + economic model inline). Spec questions → `formspec-specs` skill. Navigation → [`filemap.json`](filemap.json).**
 
 ## HIGH PRIORITY — Semantic density
 
@@ -28,17 +28,16 @@ Sibling layers (via `formspec-stack`): `trellis/` (event-ledger + substrate serv
 
 ## Operating Context
 
-Decisions cross spec boundaries; owner preferences override generic defaults. **Items 1-2 are universal — always read them, every task, before anything else.** Items 3-5 are topical gates — consult based on the decision in front of you, after 1-2 have framed your reading.
+Decisions cross spec boundaries; owner preferences override generic defaults. Items 1-2 are universal — always read them, every task, before anything else. Items 3-4 are topical gates.
 
-1. **[`../.claude/operating-mode.md`](../.claude/operating-mode.md)** — Behavioral interrupts (lives in `formspec-stack/.claude/`). Default agent training pushes toward time-estimation, phased delivery, option-proposing, hedging; this file interrupts those patterns. Read first.
-2. **[`../.claude/user_profile.md`](../.claude/user_profile.md)** — Owner's economic model (lives in `formspec-stack/.claude/`; priority = `(Importance + User Value) × Future Tech/Architectural Debt`; minutes-not-days; tokens unlimited; think big, deliver tractable; elegance + minimum conceptual debt as the optimization target), design philosophy (opinionated, closed taxonomies, named seams), terse communication, maximalist one-shot delivery.
-3. **[`../VISION.md`](../VISION.md)** — Stack-wide architectural vision (lives in `formspec-stack/`; internal companion to STACK.md): foundational Q1-Q4 answers, platform end-state commitments, trust postures, cross-spec bindings, per-spec settled commitments, the rejection list. Consult before any decision crossing more than one subsystem or spec boundary, or re-opening a foundational question.
-4. **Platform decision register** (`formspec-stack/thoughts/specs/2026-04-22-platform-decisioning-forks-and-options.md`) — End-state commitments, leans, forks, kill criteria. Consult before changing cross-layer architecture, proof posture, signing semantics, custody, durable-runtime assumptions, or product-vs-engineering proof claims.
-5. **[`../workspec-server/crates/wos-server/VISION.md`](../workspec-server/crates/wos-server/VISION.md)** — WOS Server reference architecture: governance/runtime overlay over `trellis-service-client` ([ADR 0106](../thoughts/adr/0106-wos-server-governance-overlay.md)), crate cluster, ports/adapters, per-class client-side decryption, wos-server-specific invariants, build sequence DAG. Consult before any wos-server architectural decision.
+1. **[`../CLAUDE.md`](../CLAUDE.md)** — Behavioral interrupts + economic model (inline). Read first.
+2. **[`../DEVELOPMENT-PHILOSOPHY.md`](../DEVELOPMENT-PHILOSOPHY.md)** — Methods + methodology spine. Consult for design/architecture/spec work.
+3. **[`../thoughts/adr/`](../thoughts/adr/)** — Cross-stack ADRs. Settled commitments, platform postures, open forks (ADRs 0113–0135 cover orphan postures from the dissolved platform-decisioning register). Consult before any decision crossing more than one subsystem or spec boundary.
+4. **[`../workspec-server/crates/wos-server/VISION.md`](../workspec-server/crates/wos-server/VISION.md)** — WOS Server reference architecture: governance/runtime overlay over `trellis-service-client` ([ADR 0106](../thoughts/adr/0106-wos-server-governance-overlay.md)), crate cluster, ports/adapters, per-class client-side decryption, wos-server-specific invariants, build sequence DAG. Consult before any wos-server architectural decision.
 
 Public-facing stack framing (partners, procurement, investors): [`../STACK.md`](../STACK.md) (lives in `formspec-stack/`). Lookup-only.
 
-**Conflict resolution:** [`../.claude/operating-mode.md`](../.claude/operating-mode.md).
+**Conflict resolution:** Owner signals in the current conversation override everything else.
 
 ## Formspec settled commitments
 
