@@ -6,10 +6,10 @@ Paired docs:
 
 - **[`TODO-STACK.md`](TODO-STACK.md)** — Stack-wide rollups + ADR-grouped delivery items.
 - **[`PLANNING.md`](PLANNING.md)** — Atomic PLN-* rows for cross-ADR backlog.
-- **[`VISION.md`](VISION.md)** — Stack-wide architectural vision.
+- **[`thoughts/adr/`](../thoughts/adr/)** — Cross-stack ADRs (settled commitments, open forks).
 - **[`STACK.md`](STACK.md)** — Public-facing stack framing.
 
-Scoring `[Imp / Cx / Debt]` per [`.claude/user_profile.md`](.claude/user_profile.md) economic model; number in parentheses is `Importance × Debt`. Dev/time free; architecture debt expensive. Cx is scheduling-only, never priority.
+Scoring `[Imp / Cx / Debt]` per [`../CLAUDE.md`](../CLAUDE.md) §Behavioral interrupts economic model; number in parentheses is `Importance × Debt`. Dev/time free; architecture debt expensive. Cx is scheduling-only, never priority.
 
 Historical completion notes and resolved items moved to [`COMPLETED.md`](COMPLETED.md).
 
