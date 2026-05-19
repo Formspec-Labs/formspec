@@ -16,7 +16,30 @@ export { resolveItemLocation } from './handlers/helpers.js';
 export { resolveThemeCascade } from './theme-cascade.js';
 export type { ResolvedProperty, ThemeCascadeInput, DefinitionCascadeInput } from './theme-cascade.js';
 export { resolvePageStructure } from './page-resolution.js';
-export { describeShapeConstraint } from './queries/shape-display.js';
+export {
+  fieldPaths,
+  itemPaths,
+  itemAt,
+  responseSchemaRows,
+  instanceNames,
+  variableNames,
+  optionSetUsage,
+  searchItems,
+  effectivePresentation,
+  bindFor,
+  componentFor,
+  unboundItems,
+  resolveToken,
+  allDataTypes,
+  shapesForPath,
+  normalizeBinds,
+  listRegistries,
+  browseExtensions,
+  resolveExtension,
+  flattenDefinitionTree,
+  describeShapeConstraint,
+} from './queries/public.js';
+export type { NormalizedBinds, FlatTreeItem } from './queries/public.js';
 export type { ResolvedPageStructure, ResolvedPage, ResolvedRegion, PageDiagnostic, PageStructureInput } from './page-resolution.js';
 
 // Schema-derived types (from formspec-types, re-exported via types.ts)
