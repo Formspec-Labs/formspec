@@ -257,6 +257,9 @@ Formspec Responses and external schemas.</li>
 one <code>rules</code> entry.</li>
 <li>Field rules are declarative and can compose transforms for
 preserve/drop/expression/coerce/value map/array reshaping.</li>
+<li>Field rules may include optional <code>projection</code> metadata
+for static contract projection; runtime mapping execution ignores
+it.</li>
 <li>This BLUF is governed by <code>schemas/mapping.schema.json</code>;
 generated schema references are the canonical structural contract.
 <!-- bluf:end --></li>
@@ -313,6 +316,10 @@ source data is absent or null.</li>
 <li><strong>Bidirectional semantics</strong> — declaring both forward
 (Response → External) and reverse (External → Response) transforms, with
 explicit opt-out for lossy or one-directional mappings.</li>
+<li><strong>Static projection hints</strong> — optional per-rule
+metadata that allows contract-projection tools to apply
+transform-specific deltas to the Definition-derived target
+contract.</li>
 <li><strong>Adapter contracts</strong> for serialization to JSON, XML,
 and CSV target formats.</li>
 </ul>
@@ -328,6 +335,9 @@ incorporated by reference.</li>
 <li>Execution scheduling, trigger mechanisms, or workflow
 orchestration.</li>
 <li>Persistence or storage mechanisms for Mapping Documents.</li>
+<li>A replacement for the Formspec Definition, Ontology, or any external
+schema language. Mapping projection hints only describe the target
+surface implied by a Mapping Document.</li>
 </ul>
 <h3 id="relationship-to-formspec-core">1.3 Relationship to Formspec
 Core</h3>
@@ -397,6 +407,11 @@ a subset.</p></li>
 Document’s rule list that binds a source path to a target path and
 specifies zero or more transforms to apply during the mapping. A Field
 Rule is the atomic unit of a Mapping Document.</p></li>
+<li><p><strong>Projection Hint</strong> — Optional metadata on a Field
+Rule that describes how static projectors should adjust the target
+contract derived from the Formspec Definition. Projection hints are for
+offline contract projectors and validators; Mapping Engines ignore them
+during runtime execution.</p></li>
 <li><p><strong>Adapter</strong> — A pluggable
 serialization/deserialization component that converts between the
 Mapping Engine’s internal representation (JSON) and an external wire
@@ -406,7 +421,9 @@ encoding.</p></li>
 </ul>
 <h3 id="conformance">1.5 Conformance</h3>
 <p>This specification defines three conformance levels. Each level is a
-strict superset of the preceding level.</p>
+strict superset of the preceding level. It also defines a static
+projection capability that is orthogonal to those runtime conformance
+levels.</p>
 <h4 id="mapping-core">1.5.1 Mapping Core</h4>
 <p>A conformant <strong>Mapping Core</strong> processor MUST:</p>
 <ol type="1">
@@ -468,6 +485,30 @@ header-row mapping, and multi-row repeat flattening.</li>
 </ol>
 <p>A processor claiming Mapping Extended conformance implicitly claims
 Mapping Bidirectional conformance.</p>
+<h4 id="static-projection-capability">1.5.4 Static Projection
+Capability</h4>
+<p>A tool MAY claim <strong>Static Projection</strong> capability if it
+can read a valid Mapping Document and produce diagnostics or target
+contract fragments without executing the mapping against a Response.</p>
+<p>Static Projection is not a Mapping Engine runtime conformance level.
+A Mapping Core, Bidirectional, or Extended processor is NOT REQUIRED to
+implement it. Conversely, a Static Projection tool is NOT REQUIRED to
+execute Mapping Documents.</p>
+<p>A Static Projection tool:</p>
+<ol type="1">
+<li>MUST validate the Mapping Document against the Mapping DSL JSON
+schema before using projection metadata.</li>
+<li>MUST derive the base field contract from the referenced Formspec
+Definition before applying Mapping-specific projection metadata.</li>
+<li>MAY infer target shape directly for statically obvious rules such as
+<code>preserve</code>, <code>coerce</code>, <code>valueMap</code>,
+<code>constant</code> literal expressions, and
+<code>array.mode: "each"</code> with projectable inner rules.</li>
+<li>MAY use the Field Rule <code>projection</code> property to resolve
+transforms that are valid at runtime but not statically inferable.</li>
+<li>MUST report a diagnostic rather than inventing a target schema when
+a valid rule is not statically projectable.</li>
+</ol>
 <h3 id="notational-conventions">1.6 Notational Conventions</h3>
 <p>All normative JSON examples in this specification use the following
 conventions:</p>
@@ -499,6 +540,11 @@ Formspec Definition, nor does it modify the Definition or Response
 schemas. Instead, it sits alongside these artifacts as an independent,
 versionable configuration that a Mapping Engine interprets at
 runtime.</p>
+<p>A Mapping Document MAY also carry projection hints for offline tools
+that derive a target contract from declared mappings. These hints do not
+change runtime behavior. The Formspec Definition remains the
+authoritative contract for captured response data; projection hints only
+describe what a particular mapping emits toward an external target.</p>
 <p>Conceptually, a Mapping Document answers three questions:</p>
 <ol type="1">
 <li><strong>What goes where?</strong> For each field in the source,
@@ -1284,9 +1330,9 @@ document.</td>
 <td>OPTIONAL</td>
 <td>—</td>
 <td>Explicit override configuration applied when the rule is executed in
-the reverse direction. The object MAY contain any Field Rule property
-except <code>sourcePath</code>, <code>targetPath</code>, and
-<code>reverse</code> itself.</td>
+the reverse direction. The object MAY contain execution Field Rule
+properties except <code>sourcePath</code>, <code>targetPath</code>,
+<code>reverse</code>, and <code>projection</code> itself.</td>
 </tr>
 <tr>
 <td><code>bidirectional</code></td>
@@ -1321,6 +1367,15 @@ document.</td>
 <td>—</td>
 <td>Array handling descriptor. See <a href="#334-array-object">§
 3.3.4</a>.</td>
+</tr>
+<tr>
+<td><code>projection</code></td>
+<td><code>object</code></td>
+<td>OPTIONAL</td>
+<td>—</td>
+<td>Static contract-projection metadata. Runtime Mapping processors MUST
+ignore this property during execution. See <a
+href="#335-projection-hint-object">§ 3.3.5</a>.</td>
 </tr>
 <tr>
 <td><code>description</code></td>
@@ -1590,7 +1645,129 @@ Paths within inner rules are relative to the current array element.</td>
 </tr>
 </tbody>
 </table>
-<h4 id="example-1">3.3.5 Example</h4>
+<h4 id="projection-hint-object">3.3.5 Projection Hint Object</h4>
+<p>A Field Rule MAY include a <code>projection</code> object. A static
+projector first reads the referenced Formspec Definition and derives the
+source field’s contract from Definition items, binds, options, shapes,
+and ontology annotations. The <code>projection</code> object is a
+Mapping-specific delta applied on top of that Definition-derived base
+when the transform changes or obscures the target surface.</p>
+<p>Mapping Engines MUST ignore <code>projection</code> during execution.
+A <code>projection</code> object MUST NOT change
+<code>sourcePath</code>, <code>targetPath</code>,
+<code>transform</code>, <code>condition</code>, runtime output, or
+reverse behavior. It is advisory metadata for static analysis only.
+Authors SHOULD NOT use it to restate Definition values that the
+projector can derive from <code>sourcePath</code>.</p>
+<p>Static Projection tools MAY use <code>projection</code> to emit
+target contract fragments, warnings, or unsupported-rule diagnostics. If
+<code>projection</code> is absent, a tool MAY infer target shape only
+for statically obvious cases, including:</p>
+<ul>
+<li><code>preserve</code>, where the target type can be read from the
+source contract.</li>
+<li><code>coerce</code>, where the target type is declared by the
+coercion descriptor.</li>
+<li><code>valueMap</code>, where the target domain can be read from
+mapped values.</li>
+<li><code>constant</code>, when the expression is a literal value.</li>
+<li><code>array.mode: "each"</code> when every nested rule is
+projectable.</li>
+</ul>
+<p>For <code>expression</code>, <code>concat</code>, <code>split</code>,
+<code>flatten</code>, <code>nest</code>,
+<code>array.mode: "whole"</code>, and
+<code>array.mode: "indexed"</code>, a Static Projection tool SHOULD
+either use <code>projection</code> or report that the valid Mapping rule
+is not statically projectable.</p>
+<p>The <code>projection</code> object has the following properties:</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sourcePaths</code></td>
+<td><code>array</code></td>
+<td>OPTIONAL</td>
+<td><code>[sourcePath]</code></td>
+<td>Additional Definition field paths used by this rule. Use when an
+expression, concat, split, flatten, or nest transform depends on fields
+not named by <code>sourcePath</code>.</td>
+</tr>
+<tr>
+<td><code>targetType</code></td>
+<td><code>string</code></td>
+<td>OPTIONAL</td>
+<td><em>derived</em></td>
+<td>Target type override when the transform emits a different type than
+the Definition-derived source contract. One of <code>"string"</code>,
+<code>"number"</code>, <code>"integer"</code>, <code>"boolean"</code>,
+<code>"date"</code>, <code>"datetime"</code>, <code>"array"</code>,
+<code>"object"</code>, or <code>"money"</code>.</td>
+</tr>
+<tr>
+<td><code>targetEnum</code></td>
+<td><code>array</code></td>
+<td>OPTIONAL</td>
+<td><em>derived</em></td>
+<td>Target value domain override when the transform emits a closed set
+that cannot be inferred from the Definition or
+<code>valueMap</code>.</td>
+</tr>
+<tr>
+<td><code>required</code></td>
+<td><code>boolean</code></td>
+<td>OPTIONAL</td>
+<td><em>derived</em></td>
+<td>Whether the projected target contract should require the field at
+<code>targetPath</code>. Use only when conditions, defaults, or
+transform semantics change the Definition-derived requiredness.</td>
+</tr>
+<tr>
+<td><code>lossy</code></td>
+<td><code>boolean</code></td>
+<td>OPTIONAL</td>
+<td><code>false</code></td>
+<td>Whether the static projection is less precise than the runtime value
+shape.</td>
+</tr>
+<tr>
+<td><code>emit</code></td>
+<td><code>boolean</code></td>
+<td>OPTIONAL</td>
+<td><code>true</code></td>
+<td>If <code>false</code>, Static Projection tools SHOULD omit this rule
+from generated target contracts.</td>
+</tr>
+<tr>
+<td><code>notes</code></td>
+<td><code>string</code></td>
+<td>OPTIONAL</td>
+<td>—</td>
+<td>Human-readable projection note for authors and reviewers.</td>
+</tr>
+</tbody>
+</table>
+<p>Projection-hint objects MAY include <code>x-</code> prefixed
+extension properties for projector-specific output formats. For example,
+a JSON-Schema projector MAY define <code>x-jsonSchema</code> outside
+this specification. Such extensions remain non-normative and MUST NOT
+alter Mapping execution.</p>
+<h4 id="example-1">3.3.6 Example</h4>
 <div class="sourceCode" id="cb8"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;address.lines&quot;</span><span class="fu">,</span></span>
@@ -1610,6 +1787,20 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="
 <span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;priority&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
 <span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Flatten address lines into a single comma-separated string for the target schema.&quot;</span></span>
 <span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Projection example:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget.requestedAmount.amount&quot;</span><span class="fu">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget.requested_amount&quot;</span><span class="fu">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;formatCurrency($, &#39;USD&#39;)&quot;</span><span class="fu">,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;projection&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;targetType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;required&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lossy&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;notes&quot;</span><span class="fu">:</span> <span class="st">&quot;Currency is formatted for the target API payload.&quot;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="field-rule-ordering-and-precedence">3.4 Field Rule Ordering and
 Precedence</h3>
@@ -1663,13 +1854,13 @@ whether that rule’s <code>condition</code> would evaluate to
 <code>true</code>).</p></li>
 <li><p><strong>Generate preserve rules.</strong> For each remaining
 path, produce a synthetic Field Rule equivalent to:</p>
-<div class="sourceCode" id="cb9"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;path&gt;&quot;</span><span class="fu">,</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;path&gt;&quot;</span><span class="fu">,</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;priority&quot;</span><span class="fu">:</span> <span class="dv">-1</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div></li>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;path&gt;&quot;</span><span class="fu">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;path&gt;&quot;</span><span class="fu">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;priority&quot;</span><span class="fu">:</span> <span class="dv">-1</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div></li>
 <li><p><strong>Inject.</strong> Append the synthetic rules to the end of
 the sorted rule list. Because their <code>priority</code> is
 <code>-1</code>, they execute after all explicit rules at the default
@@ -1692,17 +1883,17 @@ MUST be silently skipped during auto-map generation.</li>
 <p>Given a Formspec Response with fields <code>name</code>,
 <code>email</code>, and <code>age</code>, and a single explicit
 rule:</p>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;autoMap&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;email&quot;</span><span class="fu">,</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact.emailAddress&quot;</span><span class="fu">,</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;autoMap&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;email&quot;</span><span class="fu">,</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact.emailAddress&quot;</span><span class="fu">,</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The effective rule set at execution time is:</p>
 <table>
 <thead>
@@ -1834,12 +2025,12 @@ Copy</h3>
 <p>The <code>preserve</code> transform copies the source value to the
 target path without modification. The source value’s type is
 retained.</p>
-<div class="sourceCode" id="cb11"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant.full_name&quot;</span><span class="fu">,</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;recipient.name&quot;</span><span class="fu">,</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant.full_name&quot;</span><span class="fu">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;recipient.name&quot;</span><span class="fu">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><code>preserve</code> is always auto-reversible. When a mapping is
 executed in reverse, the engine MUST copy the value from the original
 <code>targetPath</code> back to the original <code>sourcePath</code>
@@ -1849,12 +2040,12 @@ attempt implicit coercion and SHOULD emit a diagnostic warning.</p>
 <h3 id="drop-discard">4.3 <code>drop</code> — Discard</h3>
 <p>The <code>drop</code> transform suppresses the source value; no
 corresponding property is written to the target document.</p>
-<div class="sourceCode" id="cb12"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;internal_notes&quot;</span><span class="fu">,</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;drop&quot;</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;internal_notes&quot;</span><span class="fu">,</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;drop&quot;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><code>drop</code> is never reversible. A Field Rule with
 <code>"transform": "drop"</code> MUST have <code>bidirectional</code>
 set to <code>false</code> or absent (defaulting to <code>false</code>
@@ -1899,34 +2090,34 @@ explicit <code>reverse.expression</code>. Specifying
 an <code>expression</code> rule MUST produce a validation error.</p>
 <h4 id="examples">Examples</h4>
 <p><strong>Arithmetic — convert dollars to cents:</strong></p>
-<div class="sourceCode" id="cb13"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;price_dollars&quot;</span><span class="fu">,</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;price_cents&quot;</span><span class="fu">,</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;round($ * 100)&quot;</span><span class="fu">,</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;$ / 100&quot;</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>String formatting — last-name-first display:</strong></p>
 <div class="sourceCode" id="cb14"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant&quot;</span><span class="fu">,</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;display_name&quot;</span><span class="fu">,</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;price_dollars&quot;</span><span class="fu">,</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;price_cents&quot;</span><span class="fu">,</span></span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;format(&#39;{0}, {1}&#39;, @source.applicant.last_name, @source.applicant.first_name)&quot;</span><span class="fu">,</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Conditional truncation — enforce max length:</strong></p>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;round($ * 100)&quot;</span><span class="fu">,</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;$ / 100&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>String formatting — last-name-first display:</strong></p>
 <div class="sourceCode" id="cb15"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;short_description&quot;</span><span class="fu">,</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant&quot;</span><span class="fu">,</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;display_name&quot;</span><span class="fu">,</span></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;if(length($) &gt; 140, substring($, 0, 137) + &#39;...&#39;, $)&quot;</span><span class="fu">,</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;format(&#39;{0}, {1}&#39;, @source.applicant.last_name, @source.applicant.first_name)&quot;</span><span class="fu">,</span></span>
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
 <span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Conditional truncation — enforce max length:</strong></p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;short_description&quot;</span><span class="fu">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;if(length($) &gt; 140, substring($, 0, 137) + &#39;...&#39;, $)&quot;</span><span class="fu">,</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Because truncation is lossy, no <code>reverse</code> block is
 provided and this rule MUST NOT be used bidirectionally.</p>
 <h3 id="coerce-type-conversion">4.5 <code>coerce</code> — Type
@@ -2063,32 +2254,32 @@ field. Currency is discarded.</li>
 </ul>
 <h4 id="examples-1">Examples</h4>
 <p><strong>Date format coercion:</strong></p>
-<div class="sourceCode" id="cb16"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;date_of_birth&quot;</span><span class="fu">,</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;dob&quot;</span><span class="fu">,</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="st">&quot;date&quot;</span><span class="fu">,</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;MM/DD/YYYY&quot;</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Money to number (lossy, with explicit reverse):</strong></p>
 <div class="sourceCode" id="cb17"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;total_budget&quot;</span><span class="fu">,</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span><span class="fu">,</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;date_of_birth&quot;</span><span class="fu">,</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;dob&quot;</span><span class="fu">,</span></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span></span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="st">&quot;money&quot;</span><span class="fu">,</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="st">&quot;number&quot;</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;money($, &#39;USD&#39;)&quot;</span></span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="st">&quot;date&quot;</span><span class="fu">,</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;MM/DD/YYYY&quot;</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Money to number (lossy, with explicit reverse):</strong></p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;total_budget&quot;</span><span class="fu">,</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span><span class="fu">,</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="st">&quot;money&quot;</span><span class="fu">,</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;to&quot;</span><span class="fu">:</span> <span class="st">&quot;number&quot;</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;money($, &#39;USD&#39;)&quot;</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="valuemap-lookup-table">4.6 <code>valueMap</code> — Lookup
 Table</h3>
 <p>The <code>valueMap</code> transform substitutes the source value
@@ -2142,36 +2333,36 @@ both forward and reverse directions unless the <code>reverse</code>
 block specifies its own <code>unmapped</code> override.</p>
 <h4 id="examples-2">Examples</h4>
 <p><strong>Option codes to external system codes:</strong></p>
-<div class="sourceCode" id="cb18"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;priority_level&quot;</span><span class="fu">,</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;priority_code&quot;</span><span class="fu">,</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;low&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;medium&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;high&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;critical&quot;</span><span class="fu">:</span> <span class="dv">4</span></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;unmapped&quot;</span><span class="fu">:</span> <span class="st">&quot;error&quot;</span></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Boolean to Y/N:</strong></p>
 <div class="sourceCode" id="cb19"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;is_active&quot;</span><span class="fu">,</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;active_flag&quot;</span><span class="fu">,</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;priority_level&quot;</span><span class="fu">,</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;priority_code&quot;</span><span class="fu">,</span></span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;true&quot;</span><span class="fu">:</span> <span class="st">&quot;Y&quot;</span><span class="fu">,</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;false&quot;</span><span class="fu">:</span> <span class="st">&quot;N&quot;</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;unmapped&quot;</span><span class="fu">:</span> <span class="st">&quot;default&quot;</span><span class="fu">,</span></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;default&quot;</span><span class="fu">:</span> <span class="st">&quot;N&quot;</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;low&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;medium&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;high&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;critical&quot;</span><span class="fu">:</span> <span class="dv">4</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;unmapped&quot;</span><span class="fu">:</span> <span class="st">&quot;error&quot;</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Boolean to Y/N:</strong></p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;is_active&quot;</span><span class="fu">,</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;active_flag&quot;</span><span class="fu">,</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;true&quot;</span><span class="fu">:</span> <span class="st">&quot;Y&quot;</span><span class="fu">,</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;false&quot;</span><span class="fu">:</span> <span class="st">&quot;N&quot;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;unmapped&quot;</span><span class="fu">:</span> <span class="st">&quot;default&quot;</span><span class="fu">,</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;default&quot;</span><span class="fu">:</span> <span class="st">&quot;N&quot;</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="flatten-collapse-nested-or-array-structures">4.7
 <code>flatten</code> — Collapse Nested or Array Structures</h3>
 <p>A Field Rule with <code>"transform": "flatten"</code> collapses a
@@ -2226,13 +2417,13 @@ Dot-prefix rebuilds nested objects.</p>
 <blockquote>
 <p><strong>Example 1 — Delimited.</strong> Flatten tags to a
 comma-separated string.</p>
-<div class="sourceCode" id="cb20"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;metadata.tags&quot;</span><span class="fu">,</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;tags_csv&quot;</span><span class="fu">,</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span><span class="fu">,</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;separator&quot;</span><span class="fu">:</span> <span class="st">&quot;, &quot;</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;metadata.tags&quot;</span><span class="fu">,</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;tags_csv&quot;</span><span class="fu">,</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span><span class="fu">,</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;separator&quot;</span><span class="fu">:</span> <span class="st">&quot;, &quot;</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Source:
 <code>{"metadata": {"tags": ["urgent", "fiscal", "Q3"]}}</code> Target:
 <code>{"tags_csv": "urgent, fiscal, Q3"}</code></p>
@@ -2240,12 +2431,12 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href=
 <blockquote>
 <p><strong>Example 2 — Dot-prefix.</strong> Flatten a nested address
 object.</p>
-<div class="sourceCode" id="cb21"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant.address&quot;</span><span class="fu">,</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;addr&quot;</span><span class="fu">,</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant.address&quot;</span><span class="fu">,</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;addr&quot;</span><span class="fu">,</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Source:
 <code>{"applicant": {"address": {"street": "100 Main St", "city": "Springfield"}}}</code>
 Target:
@@ -2269,24 +2460,24 @@ and pairs with <code>flatten</code>.</p>
 <blockquote>
 <p><strong>Example 1 — String to array.</strong> Split a pipe-delimited
 string.</p>
-<div class="sourceCode" id="cb22"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;skill_list&quot;</span><span class="fu">,</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant.skills&quot;</span><span class="fu">,</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;nest&quot;</span><span class="fu">,</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;separator&quot;</span><span class="fu">:</span> <span class="st">&quot;|&quot;</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;skill_list&quot;</span><span class="fu">,</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant.skills&quot;</span><span class="fu">,</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;nest&quot;</span><span class="fu">,</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;separator&quot;</span><span class="fu">:</span> <span class="st">&quot;|&quot;</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Source: <code>{"skill_list": "Python|SQL|Formspec"}</code> Target:
 <code>{"applicant": {"skills": ["Python", "SQL", "Formspec"]}}</code></p>
 </blockquote>
 <blockquote>
 <p><strong>Example 2 — Dot-prefixed keys to object.</strong></p>
-<div class="sourceCode" id="cb23"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact_info&quot;</span><span class="fu">,</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact&quot;</span><span class="fu">,</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;nest&quot;</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact_info&quot;</span><span class="fu">,</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact&quot;</span><span class="fu">,</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;nest&quot;</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Source:
 <code>{"contact_info.name": "Jane Doe", "contact_info.email": "jane@example.com"}</code>
 Target:
@@ -2305,13 +2496,13 @@ reversible</strong>. If <code>"bidirectional": true</code> is set, a
 conformant processor MUST report a validation error.</p>
 <blockquote>
 <p><strong>Example.</strong> Inject a fixed API version.</p>
-<div class="sourceCode" id="cb24"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;api_version&quot;</span><span class="fu">,</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;constant&quot;</span><span class="fu">,</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;&#39;2024-07-01&#39;&quot;</span><span class="fu">,</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;api_version&quot;</span><span class="fu">,</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;constant&quot;</span><span class="fu">,</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;&#39;2024-07-01&#39;&quot;</span><span class="fu">,</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 </blockquote>
 <hr />
 <h3 id="concat-multiple-sources-to-single-target-string">4.10
@@ -2329,13 +2520,13 @@ auto-reversible</strong> (boundary information is lost).
 <code>reverse</code> expression is provided.</p>
 <blockquote>
 <p><strong>Example.</strong> Combine first and last name.</p>
-<div class="sourceCode" id="cb25"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;full_name&quot;</span><span class="fu">,</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;concat&quot;</span><span class="fu">,</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;@source.applicant.first_name + &#39; &#39; + @source.applicant.last_name&quot;</span><span class="fu">,</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;full_name&quot;</span><span class="fu">,</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;concat&quot;</span><span class="fu">,</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;@source.applicant.first_name + &#39; &#39; + @source.applicant.last_name&quot;</span><span class="fu">,</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Source:
 <code>{"applicant": {"first_name": "Maria", "last_name": "Santos"}}</code>
 Target: <code>{"full_name": "Maria Santos"}</code></p>
@@ -2351,13 +2542,13 @@ source value; <code>@source</code> to the full document.</p>
 <blockquote>
 <p><strong>Example.</strong> Split an address string into structured
 fields.</p>
-<div class="sourceCode" id="cb26"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;address_line&quot;</span><span class="fu">,</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;address&quot;</span><span class="fu">,</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;split&quot;</span><span class="fu">,</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;let parts = split($, &#39;, &#39;) in {street: parts[0], city: parts[1], state: parts[2]}&quot;</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;address_line&quot;</span><span class="fu">,</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;address&quot;</span><span class="fu">,</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;split&quot;</span><span class="fu">,</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;let parts = split($, &#39;, &#39;) in {street: parts[0], city: parts[1], state: parts[2]}&quot;</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Source: <code>{"address_line": "100 Main St, Springfield, IL"}</code>
 Target:
 <code>{"address": {"street": "100 Main St", "city": "Springfield", "state": "IL"}}</code></p>
@@ -2428,39 +2619,39 @@ Example — Repeat Group to API Array</h4>
 <p><strong>Source (Formspec Response — repeat group with
 <code>description</code>, <code>amount</code>,
 <code>category</code>):</strong></p>
-<div class="sourceCode" id="cb27"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget_items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Travel expenses&quot;</span><span class="fu">,</span> <span class="dt">&quot;amount&quot;</span><span class="fu">:</span> <span class="fl">1500.00</span><span class="fu">,</span> <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;travel&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Equipment&quot;</span><span class="fu">,</span>       <span class="dt">&quot;amount&quot;</span><span class="fu">:</span> <span class="fl">3200.50</span><span class="fu">,</span> <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;supplies&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Contractor fees&quot;</span><span class="fu">,</span> <span class="dt">&quot;amount&quot;</span><span class="fu">:</span> <span class="fl">8000.00</span><span class="fu">,</span> <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;personnel&quot;</span> <span class="fu">}</span></span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Field Rule:</strong></p>
 <div class="sourceCode" id="cb28"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_items&quot;</span><span class="fu">,</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;line_items&quot;</span><span class="fu">,</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;array&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;each&quot;</span><span class="fu">,</span></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;innerRules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;label&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span><span class="fu">,</span>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;value&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;category&quot;</span><span class="fu">,</span>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;type&quot;</span><span class="fu">,</span>   <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
-<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;travel&quot;</span><span class="fu">:</span> <span class="st">&quot;TRAVEL&quot;</span><span class="fu">,</span> <span class="dt">&quot;supplies&quot;</span><span class="fu">:</span> <span class="st">&quot;EQUIP&quot;</span><span class="fu">,</span> <span class="dt">&quot;personnel&quot;</span><span class="fu">:</span> <span class="st">&quot;PERS&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span>
-<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
-<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p><strong>Target (External API):</strong></p>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget_items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Travel expenses&quot;</span><span class="fu">,</span> <span class="dt">&quot;amount&quot;</span><span class="fu">:</span> <span class="fl">1500.00</span><span class="fu">,</span> <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;travel&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Equipment&quot;</span><span class="fu">,</span>       <span class="dt">&quot;amount&quot;</span><span class="fu">:</span> <span class="fl">3200.50</span><span class="fu">,</span> <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;supplies&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Contractor fees&quot;</span><span class="fu">,</span> <span class="dt">&quot;amount&quot;</span><span class="fu">:</span> <span class="fl">8000.00</span><span class="fu">,</span> <span class="dt">&quot;category&quot;</span><span class="fu">:</span> <span class="st">&quot;personnel&quot;</span> <span class="fu">}</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Field Rule:</strong></p>
 <div class="sourceCode" id="cb29"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;line_items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Travel expenses&quot;</span><span class="fu">,</span> <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;1500&quot;</span><span class="fu">,</span>   <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;TRAVEL&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Equipment&quot;</span><span class="fu">,</span>       <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;3200.5&quot;</span><span class="fu">,</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;EQUIP&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Contractor fees&quot;</span><span class="fu">,</span> <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;8000&quot;</span><span class="fu">,</span>   <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;PERS&quot;</span> <span class="fu">}</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_items&quot;</span><span class="fu">,</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;line_items&quot;</span><span class="fu">,</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;array&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;each&quot;</span><span class="fu">,</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;innerRules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;label&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span><span class="fu">,</span>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;value&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;category&quot;</span><span class="fu">,</span>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;type&quot;</span><span class="fu">,</span>   <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;travel&quot;</span><span class="fu">:</span> <span class="st">&quot;TRAVEL&quot;</span><span class="fu">,</span> <span class="dt">&quot;supplies&quot;</span><span class="fu">:</span> <span class="st">&quot;EQUIP&quot;</span><span class="fu">,</span> <span class="dt">&quot;personnel&quot;</span><span class="fu">:</span> <span class="st">&quot;PERS&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Target (External API):</strong></p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;line_items&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Travel expenses&quot;</span><span class="fu">,</span> <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;1500&quot;</span><span class="fu">,</span>   <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;TRAVEL&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Equipment&quot;</span><span class="fu">,</span>       <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;3200.5&quot;</span><span class="fu">,</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;EQUIP&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Contractor fees&quot;</span><span class="fu">,</span> <span class="dt">&quot;value&quot;</span><span class="fu">:</span> <span class="st">&quot;8000&quot;</span><span class="fu">,</span>   <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;PERS&quot;</span> <span class="fu">}</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The engine iterates <code>budget_items</code>, applies inner rules
 per element using element-relative paths, and assembles
 <code>line_items</code>. For reverse mapping, inner rules invert
@@ -2496,21 +2687,21 @@ conditions are meaningful in both directions, or provide a
 <p><strong>Example — Type-discriminated branching.</strong> Route
 different source fields to the same target based on a type
 discriminator.</p>
-<div class="sourceCode" id="cb30"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;business_email&quot;</span><span class="fu">,</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact.email&quot;</span><span class="fu">,</span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;@source.contact_type == &#39;organization&#39;&quot;</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;personal_email&quot;</span><span class="fu">,</span></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact.email&quot;</span><span class="fu">,</span></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;@source.contact_type == &#39;individual&#39;&quot;</span></span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;business_email&quot;</span><span class="fu">,</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact.email&quot;</span><span class="fu">,</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;@source.contact_type == &#39;organization&#39;&quot;</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;personal_email&quot;</span><span class="fu">,</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;contact.email&quot;</span><span class="fu">,</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;condition&quot;</span><span class="fu">:</span> <span class="st">&quot;@source.contact_type == &#39;individual&#39;&quot;</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
 <p>When <code>contact_type</code> is <code>"organization"</code>,
 <code>business_email</code> maps to <code>contact.email</code>. When
 <code>"individual"</code>, <code>personal_email</code> maps instead.</p>
@@ -2709,19 +2900,22 @@ auto-derivation. Permitted properties:</p>
 <p><code>sourcePath</code> and <code>targetPath</code> are swapped
 automatically during reverse execution. The <code>reverse</code> block
 MUST NOT re-specify them; a conformant processor MUST report a
-validation error if either appears inside <code>reverse</code>.</p>
-<div class="sourceCode" id="cb31"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;income.annual&quot;</span><span class="fu">,</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;annualIncome&quot;</span><span class="fu">,</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;$.income.annual / 100&quot;</span><span class="fu">,</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;$.annualIncome * 100&quot;</span></span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+validation error if either appears inside <code>reverse</code>. The
+<code>projection</code> property is not a reverse override because
+projection hints describe the static target surface of the containing
+rule.</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;income.annual&quot;</span><span class="fu">,</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;annualIncome&quot;</span><span class="fu">,</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;$.income.annual / 100&quot;</span><span class="fu">,</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;$.annualIncome * 100&quot;</span></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="lossy-transforms-and-non-reversibility">5.4 Lossy Transforms and
 Non-Reversibility</h3>
 <blockquote>
@@ -2773,13 +2967,13 @@ warning identifying the conflicting rules and affected path.</li>
 <code>reversePriority</code> wins regardless of document order; equal
 priorities fall back to last-rule-wins.</li>
 </ol>
-<div class="sourceCode" id="cb32"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;fullName&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;displayName&quot;</span><span class="fu">,</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;reversePriority&quot;</span><span class="fu">:</span> <span class="dv">10</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;fullName&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;legalName&quot;</span><span class="fu">,</span></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;reversePriority&quot;</span><span class="fu">:</span> <span class="dv">20</span> <span class="fu">}</span></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;fullName&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;displayName&quot;</span><span class="fu">,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;reversePriority&quot;</span><span class="fu">:</span> <span class="dv">10</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;fullName&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;legalName&quot;</span><span class="fu">,</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;reversePriority&quot;</span><span class="fu">:</span> <span class="dv">20</span> <span class="fu">}</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
 <p>In reverse, both rules write to <code>fullName</code>;
 <code>legalName</code> prevails (higher priority).</p>
 <hr />
@@ -2886,8 +3080,8 @@ Intermediate objects and arrays MUST be created automatically.</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb33"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;json&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;pretty&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;nullHandling&quot;</span><span class="fu">:</span> <span class="st">&quot;omit&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;json&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;pretty&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;nullHandling&quot;</span><span class="fu">:</span> <span class="st">&quot;omit&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
 <h3 id="xml-adapter-mapping-extended">6.3 XML Adapter (Mapping
 Extended)</h3>
 <p>The XML adapter serializes internal JSON as an XML 1.0 document.</p>
@@ -2922,11 +3116,11 @@ Extended)</h3>
 <p>Namespace prefixes use colon notation in paths
 (<code>xsi:type</code>). The <code>targetSchema</code> MUST declare
 <code>rootElement</code> and MAY declare <code>namespaces</code>:</p>
-<div class="sourceCode" id="cb34"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;xml&quot;</span><span class="fu">,</span> <span class="dt">&quot;rootElement&quot;</span><span class="fu">:</span> <span class="st">&quot;Order&quot;</span><span class="fu">,</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;namespaces&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;&quot;</span><span class="fu">:</span> <span class="st">&quot;urn:example:orders:v2&quot;</span> <span class="fu">}</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;xml&quot;</span><span class="fu">,</span> <span class="dt">&quot;rootElement&quot;</span><span class="fu">:</span> <span class="st">&quot;Order&quot;</span><span class="fu">,</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;namespaces&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;&quot;</span><span class="fu">:</span> <span class="st">&quot;urn:example:orders:v2&quot;</span> <span class="fu">}</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
 <p><strong>Configuration</strong> (<code>adapters.xml</code>):</p>
 <table>
 <colgroup>
@@ -2968,12 +3162,12 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href=
 <code>order.@id</code>, <code>customer</code> →
 <code>order.customer</code>, and <code>notes</code> →
 <code>order.notes</code> (with <code>cdata: ["order.notes"]</code>):</p>
-<div class="sourceCode" id="cb35"><pre
-class="sourceCode xml"><code class="sourceCode xml"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">&lt;?xml</span> <span class="ot">version=</span><span class="st">&quot;1.0&quot;</span> <span class="ot">encoding=</span><span class="st">&quot;UTF-8&quot;</span><span class="fu">?&gt;</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">Order</span> <span class="ot">xmlns=</span><span class="st">&quot;urn:example:orders:v2&quot;</span> <span class="ot">id=</span><span class="st">&quot;12345&quot;</span>&gt;</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">customer</span>&gt;Acme Corp&lt;/<span class="kw">customer</span>&gt;</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">notes</span>&gt;<span class="bn">&lt;![CDATA[</span>Handle with care &amp; urgency<span class="bn">]]&gt;</span>&lt;/<span class="kw">notes</span>&gt;</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">Order</span>&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode xml"><code class="sourceCode xml"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">&lt;?xml</span> <span class="ot">version=</span><span class="st">&quot;1.0&quot;</span> <span class="ot">encoding=</span><span class="st">&quot;UTF-8&quot;</span><span class="fu">?&gt;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">Order</span> <span class="ot">xmlns=</span><span class="st">&quot;urn:example:orders:v2&quot;</span> <span class="ot">id=</span><span class="st">&quot;12345&quot;</span>&gt;</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">customer</span>&gt;Acme Corp&lt;/<span class="kw">customer</span>&gt;</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">notes</span>&gt;<span class="bn">&lt;![CDATA[</span>Handle with care &amp; urgency<span class="bn">]]&gt;</span>&lt;/<span class="kw">notes</span>&gt;</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">Order</span>&gt;</span></code></pre></div>
 <h3 id="csv-adapter-mapping-extended">6.4 CSV Adapter (Mapping
 Extended)</h3>
 <p>The CSV adapter serializes internal JSON as <a
@@ -3039,10 +3233,10 @@ ORD-99,B3,5</code></pre>
 Custom identifiers MUST begin with the <code>x-</code> prefix.
 Configuration is placed under
 <code>adapters.&lt;identifier&gt;</code>:</p>
-<div class="sourceCode" id="cb37"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;x-protobuf&quot;</span> <span class="fu">},</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;x-protobuf&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;protoFile&quot;</span><span class="fu">:</span> <span class="st">&quot;order.proto&quot;</span><span class="fu">,</span></span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;messageType&quot;</span><span class="fu">:</span> <span class="st">&quot;example.Order&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;x-protobuf&quot;</span> <span class="fu">},</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;x-protobuf&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;protoFile&quot;</span><span class="fu">:</span> <span class="st">&quot;order.proto&quot;</span><span class="fu">,</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;messageType&quot;</span><span class="fu">:</span> <span class="st">&quot;example.Order&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
 <p>Custom adapters MUST implement the same
 <code>serialize</code>/<code>deserialize</code> interface (§6.1). The
 configuration schema is adapter-defined and outside the scope of this
@@ -3169,12 +3363,12 @@ produce a diagnostic (non-fatal).</td>
 </table>
 <p>Processors MUST collect all non-fatal diagnostics as an ordered array
 of <strong>Diagnostic</strong> objects:</p>
-<div class="sourceCode" id="cb38"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;ruleIndex&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_items[2].amount&quot;</span><span class="fu">,</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems[2].value&quot;</span><span class="fu">,</span></span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;errorCode&quot;</span><span class="fu">:</span> <span class="st">&quot;COERCE_FAILURE&quot;</span><span class="fu">,</span></span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;Cannot coerce &#39;TBD&#39; to type integer.&quot;</span> <span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;ruleIndex&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_items[2].amount&quot;</span><span class="fu">,</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems[2].value&quot;</span><span class="fu">,</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;errorCode&quot;</span><span class="fu">:</span> <span class="st">&quot;COERCE_FAILURE&quot;</span><span class="fu">,</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;Cannot coerce &#39;TBD&#39; to type integer.&quot;</span> <span class="fu">}</span></span></code></pre></div>
 <table>
 <colgroup>
 <col style="width: 34%" />
@@ -3286,41 +3480,41 @@ repeat, <code>narrative</code>) to a federal API payload
 (<code>organization.name</code>, <code>organization.taxId</code>,
 <code>financials.requestedAmount</code>, <code>lineItems[]</code>,
 <code>projectDescription</code>).</p>
-<div class="sourceCode" id="cb39"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://grants.example.gov/forms/sf-424&quot;</span><span class="fu">,</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=3.0.0 &lt;4.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;forward&quot;</span><span class="fu">,</span></span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span> <span class="fu">},</span></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;submissionType&quot;</span><span class="fu">:</span> <span class="st">&quot;initial&quot;</span><span class="fu">,</span> <span class="dt">&quot;schemaVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2024-07-01&quot;</span> <span class="fu">},</span></span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant_name&quot;</span><span class="fu">,</span></span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;organization.name&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;ein&quot;</span><span class="fu">,</span></span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;organization.taxId&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;replace($, &#39;-&#39;, &#39;&#39;)&quot;</span><span class="fu">,</span></span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;substring($, 0, 2) + &#39;-&#39; + substring($, 2)&quot;</span> <span class="fu">}</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_total&quot;</span><span class="fu">,</span></span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;financials.requestedAmount&quot;</span><span class="fu">,</span></span>
-<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;number&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_items&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems&quot;</span><span class="fu">,</span></span>
-<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
-<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;array&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;each&quot;</span><span class="fu">,</span> <span class="dt">&quot;innerRules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;label&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span><span class="fu">,</span>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;value&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;category&quot;</span><span class="fu">,</span>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;type&quot;</span><span class="fu">,</span>   <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
-<span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;travel&quot;</span><span class="fu">:</span> <span class="st">&quot;TRAVEL&quot;</span><span class="fu">,</span> <span class="dt">&quot;supplies&quot;</span><span class="fu">:</span> <span class="st">&quot;EQUIP&quot;</span><span class="fu">,</span></span>
-<span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>                        <span class="dt">&quot;personnel&quot;</span><span class="fu">:</span> <span class="st">&quot;PERS&quot;</span><span class="fu">,</span> <span class="dt">&quot;other&quot;</span><span class="fu">:</span> <span class="st">&quot;MISC&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span>
-<span id="cb39-30"><a href="#cb39-30" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span> <span class="fu">}</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb39-31"><a href="#cb39-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;narrative&quot;</span><span class="fu">,</span></span>
-<span id="cb39-32"><a href="#cb39-32" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;projectDescription&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span></span>
-<span id="cb39-33"><a href="#cb39-33" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb39-34"><a href="#cb39-34" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://grants.example.gov/forms/sf-424&quot;</span><span class="fu">,</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;&gt;=3.0.0 &lt;4.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;forward&quot;</span><span class="fu">,</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span> <span class="fu">},</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;submissionType&quot;</span><span class="fu">:</span> <span class="st">&quot;initial&quot;</span><span class="fu">,</span> <span class="dt">&quot;schemaVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2024-07-01&quot;</span> <span class="fu">},</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;applicant_name&quot;</span><span class="fu">,</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;organization.name&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;ein&quot;</span><span class="fu">,</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;organization.taxId&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;replace($, &#39;-&#39;, &#39;&#39;)&quot;</span><span class="fu">,</span></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;reverse&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span></span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;substring($, 0, 2) + &#39;-&#39; + substring($, 2)&quot;</span> <span class="fu">}</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_total&quot;</span><span class="fu">,</span></span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;financials.requestedAmount&quot;</span><span class="fu">,</span></span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;number&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;budget_items&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;lineItems&quot;</span><span class="fu">,</span></span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span><span class="fu">,</span></span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;array&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;each&quot;</span><span class="fu">,</span> <span class="dt">&quot;innerRules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;description&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;label&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;amount&quot;</span><span class="fu">,</span>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;value&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;category&quot;</span><span class="fu">,</span>    <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;type&quot;</span><span class="fu">,</span>   <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;valueMap&quot;</span><span class="fu">,</span></span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>          <span class="dt">&quot;valueMap&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;forward&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;travel&quot;</span><span class="fu">:</span> <span class="st">&quot;TRAVEL&quot;</span><span class="fu">,</span> <span class="dt">&quot;supplies&quot;</span><span class="fu">:</span> <span class="st">&quot;EQUIP&quot;</span><span class="fu">,</span></span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>                        <span class="dt">&quot;personnel&quot;</span><span class="fu">:</span> <span class="st">&quot;PERS&quot;</span><span class="fu">,</span> <span class="dt">&quot;other&quot;</span><span class="fu">:</span> <span class="st">&quot;MISC&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span> <span class="fu">}</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;narrative&quot;</span><span class="fu">,</span></span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;projectDescription&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span></span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><strong>Key rules:</strong> The <code>ein</code> rule strips the dash
 via <code>expression</code> and provides an explicit
 <code>reverse</code> to re-insert it, enabling round-trip fidelity. The
@@ -3333,31 +3527,31 @@ Export</h3>
 <p>Maps a patient intake form (<code>name</code>, <code>dob</code>,
 <code>medications</code> repeat, <code>allergies</code> array) to a flat
 CSV with positional medication columns and a delimited allergy list.</p>
-<div class="sourceCode" id="cb40"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://clinic.example.com/forms/intake&quot;</span><span class="fu">,</span></span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;1.x&quot;</span><span class="fu">,</span></span>
-<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;forward&quot;</span><span class="fu">,</span></span>
-<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;csv&quot;</span> <span class="fu">},</span></span>
-<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;csv&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;delimiter&quot;</span><span class="fu">:</span> <span class="st">&quot;,&quot;</span><span class="fu">,</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span> <span class="fu">},</span></span>
-<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;patient_name&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;dob&quot;</span><span class="fu">,</span>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;date_of_birth&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;medications&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication&quot;</span><span class="fu">,</span></span>
-<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span><span class="fu">,</span></span>
-<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;array&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;indexed&quot;</span><span class="fu">,</span> <span class="dt">&quot;innerRules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_1&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_2&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_3&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_4&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_5&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span></span>
-<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span> <span class="fu">}</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;allergies&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;allergy_list&quot;</span><span class="fu">,</span></span>
-<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span><span class="fu">,</span> <span class="dt">&quot;separator&quot;</span><span class="fu">:</span> <span class="st">&quot;; &quot;</span> <span class="fu">}</span></span>
-<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://clinic.example.com/forms/intake&quot;</span><span class="fu">,</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;1.x&quot;</span><span class="fu">,</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;forward&quot;</span><span class="fu">,</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;csv&quot;</span> <span class="fu">},</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;csv&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;delimiter&quot;</span><span class="fu">:</span> <span class="st">&quot;,&quot;</span><span class="fu">,</span> <span class="dt">&quot;header&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span> <span class="fu">},</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;patient_name&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;dob&quot;</span><span class="fu">,</span>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;date_of_birth&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;medications&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication&quot;</span><span class="fu">,</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span><span class="fu">,</span></span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;array&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;indexed&quot;</span><span class="fu">,</span> <span class="dt">&quot;innerRules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_1&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_2&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_3&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_4&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span> <span class="dt">&quot;index&quot;</span><span class="fu">:</span> <span class="dv">4</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;medication_5&quot;</span><span class="fu">,</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;name&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span></span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span> <span class="fu">}</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;allergies&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;allergy_list&quot;</span><span class="fu">,</span></span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;flatten&quot;</span><span class="fu">,</span> <span class="dt">&quot;separator&quot;</span><span class="fu">:</span> <span class="st">&quot;; &quot;</span> <span class="fu">}</span></span>
+<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><strong>Key rules:</strong> <code>medications</code> uses
 <code>mode: "indexed"</code> to map up to five repeat entries to
 positional columns; absent entries produce empty CSV cells.
@@ -3370,27 +3564,27 @@ Integration</h3>
 <p>Round-trip mapping between a Formspec vitals form and an <a
 href="https://www.hl7.org/fhir/observation.html">HL7 FHIR
 Observation</a> resource.</p>
-<div class="sourceCode" id="cb41"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://ehr.example.com/forms/vitals&quot;</span><span class="fu">,</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2.x&quot;</span><span class="fu">,</span></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;both&quot;</span><span class="fu">,</span></span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span> <span class="fu">},</span></span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;resourceType&quot;</span><span class="fu">:</span> <span class="st">&quot;Observation&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;final&quot;</span> <span class="fu">},</span></span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;reading_code&quot;</span><span class="fu">,</span>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;code.coding[0].code&quot;</span><span class="fu">,</span>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;reading_label&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;code.coding[0].display&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;value&quot;</span><span class="fu">,</span>         <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;valueQuantity.value&quot;</span><span class="fu">,</span>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;number&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;unit&quot;</span><span class="fu">,</span>          <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;valueQuantity.unit&quot;</span><span class="fu">,</span>     <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;recorded_at&quot;</span><span class="fu">,</span>   <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;effectiveDateTime&quot;</span><span class="fu">,</span></span>
-<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;notes&quot;</span><span class="fu">,</span>         <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;note[0].text&quot;</span><span class="fu">,</span>           <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;resourceType&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;constant&quot;</span><span class="fu">,</span></span>
-<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;&#39;Observation&#39;&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span></span>
-<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://ehr.example.com/forms/vitals&quot;</span><span class="fu">,</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2.x&quot;</span><span class="fu">,</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;both&quot;</span><span class="fu">,</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span> <span class="fu">},</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;resourceType&quot;</span><span class="fu">:</span> <span class="st">&quot;Observation&quot;</span><span class="fu">,</span> <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;final&quot;</span> <span class="fu">},</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;reading_code&quot;</span><span class="fu">,</span>  <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;code.coding[0].code&quot;</span><span class="fu">,</span>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;reading_label&quot;</span><span class="fu">,</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;code.coding[0].display&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;value&quot;</span><span class="fu">,</span>         <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;valueQuantity.value&quot;</span><span class="fu">,</span>    <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;number&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;unit&quot;</span><span class="fu">,</span>          <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;valueQuantity.unit&quot;</span><span class="fu">,</span>     <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;recorded_at&quot;</span><span class="fu">,</span>   <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;effectiveDateTime&quot;</span><span class="fu">,</span></span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;coerce&quot;</span><span class="fu">,</span> <span class="dt">&quot;coerce&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;notes&quot;</span><span class="fu">,</span>         <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;note[0].text&quot;</span><span class="fu">,</span>           <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;resourceType&quot;</span><span class="fu">,</span>  <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;constant&quot;</span><span class="fu">,</span></span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;&#39;Observation&#39;&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span></span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><strong>Round-trip behavior:</strong> <code>preserve</code> and
 lossless <code>coerce</code> rules auto-reverse (§5.2). The
 <code>constant</code> rule (<code>resourceType</code>) is forward-only;
@@ -3431,48 +3625,48 @@ semantics for fields not mentioned in <code>fieldMap</code>.</li>
 </ol>
 <h3 id="a.2-example">A.2 Example</h3>
 <p><strong>§6.7 migration descriptor:</strong></p>
-<div class="sourceCode" id="cb42"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;migrations&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;2.1.0&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Restructured budget section&quot;</span><span class="fu">,</span></span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fieldMap&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.other_costs&quot;</span><span class="fu">,</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.miscellaneous.total&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;indirect_rate&quot;</span><span class="fu">,</span> <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;drop&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;pi_name&quot;</span><span class="fu">,</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="st">&quot;principal_investigator.full_name&quot;</span><span class="fu">,</span></span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span> <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;upper($)&quot;</span> <span class="fu">}</span></span>
-<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
-<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expenditures.miscellaneous.description&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
-<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;reporting.frequency&quot;</span><span class="fu">:</span> <span class="st">&quot;quarterly&quot;</span></span>
-<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
-<p><strong>Equivalent Mapping Document:</strong></p>
 <div class="sourceCode" id="cb43"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.gov/forms/expenditure-report&quot;</span><span class="fu">,</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2.1.0&quot;</span><span class="fu">,</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;forward&quot;</span><span class="fu">,</span></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;autoMap&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span> <span class="fu">},</span></span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expenditures.miscellaneous.description&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;reporting.frequency&quot;</span><span class="fu">:</span> <span class="st">&quot;quarterly&quot;</span></span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.other_costs&quot;</span><span class="fu">,</span></span>
-<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.miscellaneous.total&quot;</span><span class="fu">,</span></span>
-<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;indirect_rate&quot;</span><span class="fu">,</span></span>
-<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;drop&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;pi_name&quot;</span><span class="fu">,</span></span>
-<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;principal_investigator.full_name&quot;</span><span class="fu">,</span></span>
-<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span> <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;upper($)&quot;</span><span class="fu">,</span></span>
-<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span></span>
-<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;migrations&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;2.1.0&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Restructured budget section&quot;</span><span class="fu">,</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fieldMap&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.other_costs&quot;</span><span class="fu">,</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.miscellaneous.total&quot;</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;indirect_rate&quot;</span><span class="fu">,</span> <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span> <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;drop&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;pi_name&quot;</span><span class="fu">,</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;target&quot;</span><span class="fu">:</span> <span class="st">&quot;principal_investigator.full_name&quot;</span><span class="fu">,</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span> <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;upper($)&quot;</span> <span class="fu">}</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expenditures.miscellaneous.description&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;reporting.frequency&quot;</span><span class="fu">:</span> <span class="st">&quot;quarterly&quot;</span></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
+<p><strong>Equivalent Mapping Document:</strong></p>
+<div class="sourceCode" id="cb44"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$schema&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/mapping/1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionRef&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.gov/forms/expenditure-report&quot;</span><span class="fu">,</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;definitionVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2.1.0&quot;</span><span class="fu">,</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;direction&quot;</span><span class="fu">:</span> <span class="st">&quot;forward&quot;</span><span class="fu">,</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;autoMap&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;targetSchema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;format&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span> <span class="fu">},</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;defaults&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;expenditures.miscellaneous.description&quot;</span><span class="fu">:</span> <span class="st">&quot;&quot;</span><span class="fu">,</span></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;reporting.frequency&quot;</span><span class="fu">:</span> <span class="st">&quot;quarterly&quot;</span></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.other_costs&quot;</span><span class="fu">,</span></span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;expenditures.miscellaneous.total&quot;</span><span class="fu">,</span></span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;preserve&quot;</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;indirect_rate&quot;</span><span class="fu">,</span></span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;drop&quot;</span><span class="fu">,</span> <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span> <span class="dt">&quot;sourcePath&quot;</span><span class="fu">:</span> <span class="st">&quot;pi_name&quot;</span><span class="fu">,</span></span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;targetPath&quot;</span><span class="fu">:</span> <span class="st">&quot;principal_investigator.full_name&quot;</span><span class="fu">,</span></span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;transform&quot;</span><span class="fu">:</span> <span class="st">&quot;expression&quot;</span><span class="fu">,</span> <span class="dt">&quot;expression&quot;</span><span class="fu">:</span> <span class="st">&quot;upper($)&quot;</span><span class="fu">,</span></span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;bidirectional&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span></span>
+<span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><strong>Property correspondence:</strong></p>
 <table>
 <colgroup>

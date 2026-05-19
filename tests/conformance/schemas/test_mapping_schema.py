@@ -210,6 +210,57 @@ class TestFieldRule:
 
 
 # ---------------------------------------------------------------------------
+# TestProjectionHint
+# ---------------------------------------------------------------------------
+
+
+class TestProjectionHint:
+    """Static projection metadata on FieldRule and InnerRule."""
+
+    def test_valid_projection_hint_on_field_rule(self):
+        rule = _minimal_rule(
+            transform="expression",
+            expression="formatCurrency($, 'USD')",
+            projection={
+                "targetType": "string",
+                "required": True,
+                "lossy": False,
+                "emit": True,
+                "notes": "Formatted for the target API.",
+            },
+        )
+        _validate(_minimal_mapping(rules=[rule]))
+
+    def test_valid_projection_hint_with_source_paths_and_target_enum(self):
+        rule = _minimal_rule(
+            projection={
+                "sourcePaths": ["firstName", "lastName"],
+                "targetEnum": ["low", "medium", "high"],
+            }
+        )
+        _validate(_minimal_mapping(rules=[rule]))
+
+    def test_valid_projection_hint_with_x_extension(self):
+        rule = _minimal_rule(
+            projection={
+                "targetType": "string",
+                "x-jsonSchema": {"type": "string", "format": "email"},
+            }
+        )
+        _validate(_minimal_mapping(rules=[rule]))
+
+    def test_invalid_projection_target_type(self):
+        rule = _minimal_rule(projection={"targetType": "currency"})
+        with pytest.raises(ValidationError):
+            _validate(_minimal_mapping(rules=[rule]))
+
+    def test_projection_rejects_unknown_properties(self):
+        rule = _minimal_rule(projection={"targetType": "string", "runtime": True})
+        with pytest.raises(ValidationError):
+            _validate(_minimal_mapping(rules=[rule]))
+
+
+# ---------------------------------------------------------------------------
 # TestFieldRuleConditionals  (if/then on transform)
 # ---------------------------------------------------------------------------
 
@@ -376,6 +427,23 @@ class TestInnerRule:
         )
         _validate(_minimal_mapping(rules=[rule]))
 
+    def test_inner_rule_with_projection_hint(self):
+        rule = _minimal_rule(
+            array={
+                "mode": "each",
+                "innerRules": [
+                    {
+                        "sourcePath": "amount",
+                        "targetPath": "amountText",
+                        "transform": "coerce",
+                        "coerce": "string",
+                        "projection": {"targetType": "string"},
+                    }
+                ],
+            }
+        )
+        _validate(_minimal_mapping(rules=[rule]))
+
 
 # ---------------------------------------------------------------------------
 # TestReverseOverride
@@ -393,6 +461,11 @@ class TestReverseOverride:
             }
         )
         _validate(_minimal_mapping(rules=[rule]))
+
+    def test_reverse_override_rejects_projection(self):
+        rule = _minimal_rule(reverse={"projection": {"targetType": "string"}})
+        with pytest.raises(ValidationError):
+            _validate(_minimal_mapping(rules=[rule]))
 
 
 # ---------------------------------------------------------------------------

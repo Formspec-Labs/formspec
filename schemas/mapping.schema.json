@@ -298,7 +298,7 @@
         },
         "reverse": {
           "$ref": "#/$defs/ReverseOverride",
-          "description": "Explicit override configuration for reverse-direction execution. sourcePath and targetPath are swapped automatically during reverse — the reverse block MUST NOT re-specify them. Required for bidirectional 'expression' rules (no auto-reversal). May override any Field Rule property except sourcePath, targetPath, and reverse itself."
+          "description": "Explicit override configuration for reverse-direction execution. sourcePath and targetPath are swapped automatically during reverse — the reverse block MUST NOT re-specify them. Required for bidirectional 'expression' rules (no auto-reversal). May override execution Field Rule properties except sourcePath, targetPath, reverse, and projection itself."
         },
         "bidirectional": {
           "type": "boolean",
@@ -321,6 +321,10 @@
         "array": {
           "$ref": "#/$defs/ArrayDescriptor",
           "description": "Array handling descriptor for mapping Formspec repeat groups or array-valued fields. Controls how array elements are iterated and transformed."
+        },
+        "projection": {
+          "$ref": "#/$defs/ProjectionHint",
+          "description": "Optional static contract-projection metadata. Runtime Mapping processors MUST ignore this property during execution; static projectors MAY use it as a delta on top of the Definition-derived source contract."
         },
         "separator": {
           "type": "string",
@@ -531,6 +535,59 @@
       ]
     },
 
+    "ProjectionHint": {
+      "type": "object",
+      "description": "Optional metadata used by static contract-projection tools to adjust the target contract derived from the referenced Formspec Definition. Runtime Mapping processors MUST ignore this object during execution.",
+      "properties": {
+        "sourcePaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Additional Definition field paths used by this rule. The containing rule's sourcePath is implicit when present.",
+          "examples": [["firstName", "lastName"]]
+        },
+        "targetType": {
+          "type": "string",
+          "enum": ["string", "number", "integer", "boolean", "date", "datetime", "array", "object", "money"],
+          "description": "Target type override when the transform emits a different type than the Definition-derived source contract."
+        },
+        "targetEnum": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Target value domain override when the transform emits a closed set that cannot be inferred from the Definition or valueMap."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether a static projector should require the targetPath field in the emitted target contract. Use only when mapping semantics change the Definition-derived requiredness."
+        },
+        "lossy": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the static projection is less precise than the runtime output shape."
+        },
+        "emit": {
+          "type": "boolean",
+          "default": true,
+          "description": "When false, static projectors SHOULD omit this rule from emitted target contracts."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Human-readable projection note for authors and reviewers."
+        }
+      },
+      "patternProperties": { "^x-": {} },
+      "additionalProperties": false,
+      "examples": [
+        { "targetType": "string", "required": true },
+        {
+          "sourcePaths": ["firstName", "lastName"],
+          "targetType": "string",
+          "lossy": false
+        }
+      ]
+    },
+
     "InnerRule": {
       "description": "A Field Rule used inside array.innerRules. Identical to FieldRule with an additional optional 'index' property for indexed mode. Paths resolve relative to the current array element, not the document root.",
       "type": "object",
@@ -590,6 +647,10 @@
           "$ref": "#/$defs/ArrayDescriptor",
           "description": "Nested array handling for multi-level array structures."
         },
+        "projection": {
+          "$ref": "#/$defs/ProjectionHint",
+          "description": "Optional static contract-projection metadata for this inner rule. Runtime Mapping processors MUST ignore this property during execution."
+        },
         "separator": {
           "type": "string",
           "description": "Delimiter for flatten/nest string serialization within the element."
@@ -639,7 +700,7 @@
 
     "ReverseOverride": {
       "type": "object",
-      "description": "Explicit override configuration applied when a Field Rule is executed in the reverse direction. sourcePath and targetPath are swapped automatically — the reverse block MUST NOT re-specify them. A conformant processor MUST report a validation error if sourcePath, targetPath, or reverse appears inside this object. Use this to provide a reverse FEL expression for non-invertible transforms, override the coercion direction, or supply a reverse value map.",
+      "description": "Explicit override configuration applied when a Field Rule is executed in the reverse direction. sourcePath and targetPath are swapped automatically — the reverse block MUST NOT re-specify them. A conformant processor MUST report a validation error if sourcePath, targetPath, reverse, or projection appears inside this object. Use this to provide a reverse FEL expression for non-invertible transforms, override the coercion direction, or supply a reverse value map.",
       "properties": {
         "transform": {
           "type": "string",

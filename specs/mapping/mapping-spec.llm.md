@@ -10,6 +10,7 @@ Source schema: `schemas/mapping.schema.json`
 - This document defines bidirectional Mapping DSL transforms between Formspec Responses and external schemas.
 - A valid mapping requires `$formspecMapping`, `version`, `definitionRef`, `definitionVersion`, `targetSchema`, and at least one `rules` entry.
 - Field rules are declarative and can compose transforms for preserve/drop/expression/coerce/value map/array reshaping.
+- Field rules may include optional `projection` metadata for static contract projection; runtime mapping execution ignores it.
 - This BLUF is governed by `schemas/mapping.schema.json`; generated schema references are the canonical structural contract.
 
 ## Critical Schema Fields
@@ -32,6 +33,7 @@ Source schema: `schemas/mapping.schema.json`
 - Evaluate condition guards before transform application; skipped rules must not write target values.
 - Support explicit reverse overrides and bidirectional flags to control reverse execution behavior.
 - Treat adapters as serialization boundaries: mapping evaluates against structured data before format-specific output encoding.
+- Treat projection hints as static-analysis metadata; runtime mapping execution must ignore them.
 
 ## Semantic Capsule
 
@@ -45,6 +47,7 @@ Source schema: `schemas/mapping.schema.json`
 - Null and absent semantics: processors must distinguish missing-path, explicit null, and empty-collection states during both forward and reverse mapping.
 - Conflict handling: competing writes to the same target path must follow deterministic precedence and emit diagnostics when data loss risk exists.
 - Adapter boundary: core mapping evaluates against normalized structured data, with JSON/XML/CSV adapters handling format-specific serialization concerns afterward.
+- Static projection boundary: projectors derive field contracts from the Formspec Definition first; rule-level `projection` metadata is only a transform-specific delta and is ignored at runtime.
 - Adapter detail: XML handling includes namespace/root-element constraints and attribute/element mapping; CSV handling requires flat column semantics and deterministic row expansion for repeats.
 - Error handling policy: unknown transform kinds, invalid FEL expressions, and unresolvable required paths are rejection conditions rather than silent pass-through.
 - Error taxonomy should remain stable and actionable (for example invalid document, version mismatch, path resolution, coercion/value-map failures, adapter failures) for downstream tooling.

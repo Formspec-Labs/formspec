@@ -30,7 +30,8 @@
         "Execute rules in deterministic order after defaults and direction resolution; higher priority executes first and same-priority rules preserve document order.",
         "Evaluate condition guards before transform application; skipped rules must not write target values.",
         "Support explicit reverse overrides and bidirectional flags to control reverse execution behavior.",
-        "Treat adapters as serialization boundaries: mapping evaluates against structured data before format-specific output encoding."
+        "Treat adapters as serialization boundaries: mapping evaluates against structured data before format-specific output encoding.",
+        "Treat projection hints as static-analysis metadata; runtime mapping execution must ignore them."
       ],
       "conformanceEssentials": [
         "A conforming mapping document must include version, definitionRef, definitionVersion, targetSchema, and at least one rule.",

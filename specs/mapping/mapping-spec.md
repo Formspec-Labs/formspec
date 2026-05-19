@@ -66,6 +66,7 @@ redefined.
 - This document defines bidirectional Mapping DSL transforms between Formspec Responses and external schemas.
 - A valid mapping requires `$formspecMapping`, `version`, `definitionRef`, `definitionVersion`, `targetSchema`, and at least one `rules` entry.
 - Field rules are declarative and can compose transforms for preserve/drop/expression/coerce/value map/array reshaping.
+- Field rules may include optional `projection` metadata for static contract projection; runtime mapping execution ignores it.
 - This BLUF is governed by `schemas/mapping.schema.json`; generated schema references are the canonical structural contract.
 <!-- bluf:end -->
 
@@ -122,6 +123,9 @@ This specification defines:
 - **Bidirectional semantics** — declaring both forward (Response → External)
   and reverse (External → Response) transforms, with explicit opt-out for
   lossy or one-directional mappings.
+- **Static projection hints** — optional per-rule metadata that allows
+  contract-projection tools to apply transform-specific deltas to the
+  Definition-derived target contract.
 - **Adapter contracts** for serialization to JSON, XML, and CSV target formats.
 
 This specification does **not** define:
@@ -134,6 +138,9 @@ This specification does **not** define:
   incorporated by reference.
 - Execution scheduling, trigger mechanisms, or workflow orchestration.
 - Persistence or storage mechanisms for Mapping Documents.
+- A replacement for the Formspec Definition, Ontology, or any external schema
+  language. Mapping projection hints only describe the target surface implied
+  by a Mapping Document.
 
 ### 1.3 Relationship to Formspec Core
 
@@ -202,6 +209,11 @@ this is noted.
   to apply during the mapping. A Field Rule is the atomic unit of a Mapping
   Document.
 
+- **Projection Hint** — Optional metadata on a Field Rule that describes how
+  static projectors should adjust the target contract derived from the
+  Formspec Definition. Projection hints are for offline contract projectors
+  and validators; Mapping Engines ignore them during runtime execution.
+
 - **Adapter** — A pluggable serialization/deserialization component that
   converts between the Mapping Engine's internal representation (JSON) and
   an external wire format (JSON, XML, CSV). Adapters handle format-specific
@@ -211,7 +223,8 @@ this is noted.
 ### 1.5 Conformance
 
 This specification defines three conformance levels. Each level is a strict
-superset of the preceding level.
+superset of the preceding level. It also defines a static projection
+capability that is orthogonal to those runtime conformance levels.
 
 #### 1.5.1 Mapping Core
 
@@ -275,6 +288,31 @@ plus:
 A processor claiming Mapping Extended conformance implicitly claims Mapping
 Bidirectional conformance.
 
+#### 1.5.4 Static Projection Capability
+
+A tool MAY claim **Static Projection** capability if it can read a valid
+Mapping Document and produce diagnostics or target contract fragments without
+executing the mapping against a Response.
+
+Static Projection is not a Mapping Engine runtime conformance level. A Mapping
+Core, Bidirectional, or Extended processor is NOT REQUIRED to implement it.
+Conversely, a Static Projection tool is NOT REQUIRED to execute Mapping
+Documents.
+
+A Static Projection tool:
+
+1. MUST validate the Mapping Document against the Mapping DSL JSON schema
+   before using projection metadata.
+2. MUST derive the base field contract from the referenced Formspec Definition
+   before applying Mapping-specific projection metadata.
+3. MAY infer target shape directly for statically obvious rules such as
+   `preserve`, `coerce`, `valueMap`, `constant` literal expressions, and
+   `array.mode: "each"` with projectable inner rules.
+4. MAY use the Field Rule `projection` property to resolve transforms that are
+   valid at runtime but not statically inferable.
+5. MUST report a diagnostic rather than inventing a target schema when a valid
+   rule is not statically projectable.
+
 ### 1.6 Notational Conventions
 
 All normative JSON examples in this specification use the following
@@ -306,6 +344,12 @@ transforms. It is not embedded in a Formspec Definition, nor does it modify
 the Definition or Response schemas. Instead, it sits alongside these artifacts
 as an independent, versionable configuration that a Mapping Engine interprets
 at runtime.
+
+A Mapping Document MAY also carry projection hints for offline tools that
+derive a target contract from declared mappings. These hints do not change
+runtime behavior. The Formspec Definition remains the authoritative contract
+for captured response data; projection hints only describe what a particular
+mapping emits toward an external target.
 
 Conceptually, a Mapping Document answers three questions:
 
@@ -772,11 +816,12 @@ A **Field Rule** is a JSON object that describes how a single datum (or set of d
 | `expression` | `string` | CONDITIONAL | — | A FEL expression. REQUIRED when `transform` is `"expression"`, `"constant"`, `"concat"`, or `"split"`. For `"flatten"` and `"nest"`, OPTIONAL when the rule uses only the structural modes defined in §4.7 and §4.8; REQUIRED when §4.7 or §4.8 specifies `expression` for non-trivial projection. Within the expression `$` binds to the resolved source value and `@source` binds to the entire source document. |
 | `coerce` | `object` | CONDITIONAL | — | Coercion descriptor. REQUIRED when `transform` is `"coerce"`. See [§ 3.3.2](#332-coerce-object). |
 | `valueMap` | `object` | CONDITIONAL | — | Value mapping descriptor. REQUIRED when `transform` is `"valueMap"`. See [§ 3.3.3](#333-valuemap-object). |
-| `reverse` | `object` | OPTIONAL | — | Explicit override configuration applied when the rule is executed in the reverse direction. The object MAY contain any Field Rule property except `sourcePath`, `targetPath`, and `reverse` itself. |
+| `reverse` | `object` | OPTIONAL | — | Explicit override configuration applied when the rule is executed in the reverse direction. The object MAY contain execution Field Rule properties except `sourcePath`, `targetPath`, `reverse`, and `projection` itself. |
 | `bidirectional` | `boolean` | OPTIONAL | `true` | If `false`, the rule is skipped during reverse execution (even when `direction` is `"both"`). |
 | `condition` | `string` | OPTIONAL | — | A FEL expression that MUST evaluate to a boolean. The rule is executed only when the expression evaluates to `true`. Bindings are the same as for `expression`. |
 | `default` | *any* | OPTIONAL | — | Fallback value emitted when the `sourcePath` resolves to `undefined`, `null`, or is absent from the source document. |
 | `array` | `object` | OPTIONAL | — | Array handling descriptor. See [§ 3.3.4](#334-array-object). |
+| `projection` | `object` | OPTIONAL | — | Static contract-projection metadata. Runtime Mapping processors MUST ignore this property during execution. See [§ 3.3.5](#335-projection-hint-object). |
 | `description` | `string` | OPTIONAL | — | Human-readable description of the rule's intent. Implementations MUST ignore this property during execution. |
 | `priority` | `integer` | OPTIONAL | `0` | Execution priority. Higher values execute first. See [§ 3.4](#34-field-rule-ordering-and-precedence). |
 
@@ -830,7 +875,55 @@ Implementations MUST raise an error when the `from`/`to` combination is not supp
 | `separator` | `string` | OPTIONAL | — | Delimiter used when `transform` is `"concat"` or `"split"` and the source or target is a delimited string. |
 | `innerRules` | `array` | OPTIONAL | `[]` | An ordered array of Field Rule objects applied to each element when `mode` is `"each"` or `"indexed"`. Paths within inner rules are relative to the current array element. |
 
-#### 3.3.5 Example
+#### 3.3.5 Projection Hint Object
+
+A Field Rule MAY include a `projection` object. A static projector first reads
+the referenced Formspec Definition and derives the source field's contract
+from Definition items, binds, options, shapes, and ontology annotations. The
+`projection` object is a Mapping-specific delta applied on top of that
+Definition-derived base when the transform changes or obscures the target
+surface.
+
+Mapping Engines MUST ignore `projection` during execution. A `projection`
+object MUST NOT change `sourcePath`, `targetPath`, `transform`, `condition`,
+runtime output, or reverse behavior. It is advisory metadata for static
+analysis only. Authors SHOULD NOT use it to restate Definition values that
+the projector can derive from `sourcePath`.
+
+Static Projection tools MAY use `projection` to emit target contract
+fragments, warnings, or unsupported-rule diagnostics. If `projection` is
+absent, a tool MAY infer target shape only for statically obvious cases,
+including:
+
+- `preserve`, where the target type can be read from the source contract.
+- `coerce`, where the target type is declared by the coercion descriptor.
+- `valueMap`, where the target domain can be read from mapped values.
+- `constant`, when the expression is a literal value.
+- `array.mode: "each"` when every nested rule is projectable.
+
+For `expression`, `concat`, `split`, `flatten`, `nest`,
+`array.mode: "whole"`, and `array.mode: "indexed"`, a Static Projection tool
+SHOULD either use `projection` or report that the valid Mapping rule is not
+statically projectable.
+
+The `projection` object has the following properties:
+
+| Property | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `sourcePaths` | `array` | OPTIONAL | `[sourcePath]` | Additional Definition field paths used by this rule. Use when an expression, concat, split, flatten, or nest transform depends on fields not named by `sourcePath`. |
+| `targetType` | `string` | OPTIONAL | *derived* | Target type override when the transform emits a different type than the Definition-derived source contract. One of `"string"`, `"number"`, `"integer"`, `"boolean"`, `"date"`, `"datetime"`, `"array"`, `"object"`, or `"money"`. |
+| `targetEnum` | `array` | OPTIONAL | *derived* | Target value domain override when the transform emits a closed set that cannot be inferred from the Definition or `valueMap`. |
+| `required` | `boolean` | OPTIONAL | *derived* | Whether the projected target contract should require the field at `targetPath`. Use only when conditions, defaults, or transform semantics change the Definition-derived requiredness. |
+| `lossy` | `boolean` | OPTIONAL | `false` | Whether the static projection is less precise than the runtime value shape. |
+| `emit` | `boolean` | OPTIONAL | `true` | If `false`, Static Projection tools SHOULD omit this rule from generated target contracts. |
+| `notes` | `string` | OPTIONAL | — | Human-readable projection note for authors and reviewers. |
+
+Projection-hint objects MAY include `x-` prefixed extension properties for
+projector-specific output formats. For example, a JSON-Schema projector MAY
+define `x-jsonSchema` outside this specification. Such extensions remain
+non-normative and MUST NOT alter Mapping execution.
+
+#### 3.3.6 Example
 
 ```json
 {
@@ -850,6 +943,23 @@ Implementations MUST raise an error when the `from`/`to` combination is not supp
   },
   "priority": 0,
   "description": "Flatten address lines into a single comma-separated string for the target schema."
+}
+```
+
+Projection example:
+
+```json
+{
+  "sourcePath": "budget.requestedAmount.amount",
+  "targetPath": "budget.requested_amount",
+  "transform": "expression",
+  "expression": "formatCurrency($, 'USD')",
+  "projection": {
+    "targetType": "string",
+    "required": true,
+    "lossy": false,
+    "notes": "Currency is formatted for the target API payload."
+  }
 }
 ```
 
@@ -1531,6 +1641,8 @@ Permitted properties:
 `sourcePath` and `targetPath` are swapped automatically during reverse
 execution. The `reverse` block MUST NOT re-specify them; a conformant
 processor MUST report a validation error if either appears inside `reverse`.
+The `projection` property is not a reverse override because projection hints
+describe the static target surface of the containing rule.
 
 ```json
 {

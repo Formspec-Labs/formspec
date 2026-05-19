@@ -8,6 +8,7 @@
 - Null and absent semantics: processors must distinguish missing-path, explicit null, and empty-collection states during both forward and reverse mapping.
 - Conflict handling: competing writes to the same target path must follow deterministic precedence and emit diagnostics when data loss risk exists.
 - Adapter boundary: core mapping evaluates against normalized structured data, with JSON/XML/CSV adapters handling format-specific serialization concerns afterward.
+- Static projection boundary: projectors derive field contracts from the Formspec Definition first; rule-level `projection` metadata is only a transform-specific delta and is ignored at runtime.
 - Adapter detail: XML handling includes namespace/root-element constraints and attribute/element mapping; CSV handling requires flat column semantics and deterministic row expansion for repeats.
 - Error handling policy: unknown transform kinds, invalid FEL expressions, and unresolvable required paths are rejection conditions rather than silent pass-through.
 - Error taxonomy should remain stable and actionable (for example invalid document, version mismatch, path resolution, coercion/value-map failures, adapter failures) for downstream tooling.
