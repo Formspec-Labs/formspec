@@ -1,6 +1,6 @@
 # formspec-lint
 
-Rust **static analysis** for Formspec JSON documents — an eight-pass pipeline over `serde_json::Value` that mirrors the conceptual checks described in repo `specs/` and `schemas/`. Built on [`formspec-core`](../formspec-core/) (document detection, item walks, registry types) and [`fel-core`](../fel-core/) (FEL dependencies for cycle detection).
+Rust **static analysis** for Formspec JSON documents — a nine-pass pipeline over `serde_json::Value` that mirrors the conceptual checks described in repo `specs/` and `schemas/`. Built on [`formspec-core`](../formspec-core/) (document detection, item walks, registry types) and [`fel-core`](../fel-core/) (FEL parsing/dependencies).
 
 ## Scope
 
@@ -15,8 +15,10 @@ Rust **static analysis** for Formspec JSON documents — an eight-pass pipeline 
 | 5 | E500 | `dependencies` | Bind-key dependency graph and cycles (`fel_core` / core FEL deps). |
 | 6 | W700–W711, E710 | `pass_theme` | Theme tokens, refs, pages, cross-definition checks when paired. |
 | 7 | E800–E807, W800–W804 | `pass_component` | Component tree, builtins, binds, compatibility matrix. |
+| 8 | E900–E902 | `pass_response` | Response signed-payload pin invariants. |
+| 9 | E1100–E1507, W1100–W1500 | `pass_mapping`, `pass_ontology`, `pass_references_doc`, `pass_locale`, `pass_screener` | Companion document semantic lint for Mapping, Ontology, References, Locale, Screener, and Determination Record consistency. |
 
-Supporting modules: **`types`** (diagnostics, options, result), **`lint_json`** (wire JSON for hosts), **`component_matrix`** (built-in input vs. `dataType` rules).
+Supporting modules: **`types`** (diagnostics, options, result), **`lint_json`** (wire JSON for hosts), **`semantic_helpers`** (strict paths, Definition context, interpolation helpers), **`component_matrix`** (built-in input vs. `dataType` rules).
 
 ## Architecture
 
@@ -35,6 +37,8 @@ JSON Value
 
 Theme and component documents skip definition passes 2–5 and run pass 6 or 7 only (after 1 + 1b).
 
+Companion authoring documents run pass 9 after schema validation. Mapping exposes `MappingStaticAnalysis` for projector input facts; Ontology exposes `OntologyStaticAnalysis` for path, vocabulary, and effective concept-system facts. Locale can use `definition_document`, `theme_document`, `component_documents`, and `locale_documents` context, but lint remains static and does not alter runtime string lookup.
+
 ### Source layout (`src/`)
 
 | File | Responsibility |
@@ -42,6 +46,7 @@ Theme and component documents skip definition passes 2–5 and run pass 6 or 7 o
 | `lib.rs` | `lint` / `lint_with_options`, orchestration, integration tests. |
 | `types.rs` | `LintDiagnostic`, `LintResult`, `LintOptions`, `LintMode`, sorting. |
 | `schema_validation.rs` | Embedded schemas, E101. |
+| `semantic_helpers.rs` | Shared strict-path, Definition, interpolation, and context helpers for companion passes. |
 | `tree.rs` | `ItemTreeIndex`, `build_item_index`. |
 | `references.rs` | `check_references`. |
 | `extensions.rs` | `check_extensions`. |
@@ -49,6 +54,12 @@ Theme and component documents skip definition passes 2–5 and run pass 6 or 7 o
 | `dependencies.rs` | `analyze_dependencies`. |
 | `pass_theme.rs` | `lint_theme`. |
 | `pass_component.rs` | `lint_component`. |
+| `pass_response.rs` | `lint_response`. |
+| `pass_mapping.rs` | Mapping semantic lint and static analysis facts. |
+| `pass_ontology.rs` | Ontology semantic lint and static analysis facts. |
+| `pass_references_doc.rs` | References document semantic lint. |
+| `pass_locale.rs` | Locale document semantic lint. |
+| `pass_screener.rs` | Screener semantic hardening and Determination Record consistency. |
 | `component_matrix.rs` | `classify_compatibility`, `INPUT_COMPONENTS`. |
 | `lint_json.rs` | `lint_result_to_json_value`. |
 

@@ -780,3 +780,29 @@ canonical representation. Round-trip fidelity is not guaranteed. The generated
 OWL is suitable for integration with semantic web infrastructure but does not
 capture the full behavioral semantics of the Definition (conditional relevance,
 calculated fields, validation shapes).
+
+## Static Semantics and Lint
+
+Ontology Documents are first validated against `schemas/ontology.schema.json`.
+Static semantic lint then checks authoring invariants without dereferencing
+concept URIs, system URIs, JSON-LD contexts, or alignment targets.
+
+The Ontology semantic pass owns the `E1200`/`W1200` diagnostic family:
+
+- `E1200` rejects invalid `concepts` keys and `alignments[*].field` paths.
+- `E1201` rejects `targetDefinition.url` mismatches when a paired Definition is
+  supplied.
+- `E1202` rejects FEL-looking dynamic expressions in static Ontology values
+  outside the JSON-LD `context.@context` fragment.
+- `W1200` warns when `targetDefinition.compatibleVersions` does not
+  confidently include the paired Definition version.
+- `W1201` and `W1202` warn when syntactically valid concept or alignment paths
+  do not resolve to Definition item paths.
+- `W1203` and `W1204` warn when vocabulary bindings or `valueMap` keys do not
+  resolve to Definition option sets and option values.
+- `W1205` reports use of `defaultSystem` fallback, and `W1206` reports concept
+  bindings that omit `system` when no fallback exists.
+
+The lint pass exposes static analysis facts for downstream tooling: normalized
+concept/alignment paths, resolved item paths, resolved option-set/value-map
+coverage, and the effective concept system after `defaultSystem` fallback.

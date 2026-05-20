@@ -1022,21 +1022,34 @@ Definition SHOULD perform the following cross-reference checks:
 
 ### 7.3 Linter Rules
 
-The Python validator (`src/formspec/validator/`) SHOULD implement the
-following locale-specific lint rules:
+The Rust linter owns the canonical Locale semantic-lint codes:
 
 | Code | Description |
 |------|-------------|
-| L100 | Missing required top-level property. |
-| L101 | Invalid BCP 47 locale code. |
-| L200 | Orphaned string key — item not found in Definition. |
-| L201 | Missing translation — localizable property has no key. |
-| L202 | Invalid option value reference. |
-| L203 | Invalid shape ID reference. |
-| L300 | FEL interpolation parse error. |
-| L301 | FEL interpolation references undefined variable. |
-| L400 | Circular fallback chain detected. |
-| L401 | Fallback locale not loaded. |
+| E1400 / W1400 | `targetDefinition.url` mismatch or compatible-version mismatch against a paired Definition. |
+| E1401 | Unknown reserved namespace or unsupported terminal property in a string key. |
+| E1402 | Item string key does not resolve to a Definition item path. |
+| E1403 | Item option or `$optionSet` string key does not resolve to a Definition option value. |
+| E1404 | `$shape` string key does not resolve to a Definition shape id. |
+| E1405 | `{{ ... }}` interpolation segment is not valid FEL. |
+| E1406 | Supplied Locale documents contain an observable fallback cycle. |
+| E1407 | String key targets a non-presentation property. |
+| E1410 | `$page` string key does not resolve to a page id in the supplied Theme document. |
+| E1411 | `$component` string key does not resolve to a node id in supplied Component documents. |
+| W1401 | Locale fallback target was not supplied in the lint context. |
+
+### 7.4 Static Semantics and Lint
+
+Locale Documents are first validated against `schemas/locale.schema.json`.
+Static semantic lint then checks presentation-key semantics. It parses FEL
+inside interpolation segments but does not evaluate localized strings and does
+not alter runtime string lookup.
+
+Definition-aware checks run only when lint receives `definition_document`.
+Theme-aware `$page.*` checks run only when `theme_document` is supplied.
+Component-aware `$component.*` checks run only when `component_documents` are
+supplied. Fallback-cycle checks inspect the current Locale plus
+`locale_documents` supplied in lint context.
 
 ## 8. Processing Model
 

@@ -1,0 +1,24 @@
+{
+  "$formspecOntology": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.com/forms/ontology-default",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "defaultSystem": "https://schema.org",
+  "concepts": {
+    "name": {
+      "concept": "https://schema.org/name"
+    }
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/ontology-default",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Ontology defaultSystem fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" }
+    ]
+  }
+}

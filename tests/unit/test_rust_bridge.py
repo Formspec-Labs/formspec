@@ -47,6 +47,19 @@ def test_formspec_rust_exports_expected_contract():
         "context",
     ]
 
+    signature = inspect.signature(formspec_rust.lint_document)
+    assert list(signature.parameters.keys()) == [
+        "document",
+        "mode",
+        "registry_documents",
+        "definition_document",
+        "theme_document",
+        "component_documents",
+        "locale_documents",
+        "schema_only",
+        "no_fel",
+    ]
+
     for name in (
         "eval_fel_detailed",
         "eval_fel_with_trace",

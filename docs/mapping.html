@@ -195,6 +195,8 @@ A. Relationship to §6.7 Migrations (Normative)</a>
 id="toc-a.1-conversion-algorithm">A.1 Conversion Algorithm</a></li>
 <li><a href="#a.2-example" id="toc-a.2-example">A.2 Example</a></li>
 </ul></li>
+<li><a href="#static-semantics-and-lint"
+id="toc-static-semantics-and-lint">Static Semantics and Lint</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -3716,5 +3718,45 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb44-1"><a href=
 </tr>
 </tbody>
 </table>
+<h2 id="static-semantics-and-lint">Static Semantics and Lint</h2>
+<p>Mapping Documents are first validated against
+<code>schemas/mapping.schema.json</code>. Schema validation only proves
+document shape. Static semantic lint then checks Mapping-specific
+invariants without executing the mapping or validating any projector
+output.</p>
+<p>The Mapping semantic pass owns the
+<code>E1100</code>/<code>W1100</code> diagnostic family:</p>
+<ul>
+<li><code>E1100</code> rejects invalid source paths, projection source
+paths, defaults keys, and target-format path violations. JSON targets
+use dot/bracket paths, XML allows attribute segments, CSV targets are
+simple column identifiers, and <code>x-*</code> formats require only a
+non-empty target path.</li>
+<li><code>E1101</code> rejects FEL parse errors in
+<code>expression</code>, <code>condition</code>,
+<code>reverse.expression</code>, and
+<code>reverse.condition</code>.</li>
+<li><code>E1102</code> rejects unsatisfiable target write overlaps such
+as one rule writing <code>payload</code> while another writes
+<code>payload.name</code>.</li>
+<li><code>E1103</code> and <code>E1104</code> reject contradictory
+projection hints.</li>
+<li><code>E1105</code> and <code>E1106</code> reject bidirectional lossy
+transforms that lack an explicit reverse strategy.</li>
+<li><code>W1100</code> warns on duplicate exact <code>targetPath</code>
+writes that rely on last-write-wins.</li>
+<li><code>W1101</code> warns when a non-static transform lacks
+projection hints unless <code>projection.emit</code> is
+<code>false</code>.</li>
+</ul>
+<p>When lint receives a paired Definition, it also resolves
+<code>sourcePath</code>, <code>array.innerRules[*].sourcePath</code>,
+and <code>projection.sourcePaths[*]</code> against the Definition item
+tree. These checks use <code>E1110</code> through <code>E1113</code> and
+<code>W1110</code>. The pass exposes static analysis facts for
+projectors, including normalized paths, resolved Definition items,
+transform class, projected target type/enum, requiredness, and target
+write footprints. Projectors remain responsible for validating emitted
+JSON Schema, OpenAPI, TypeScript, SHACL, or other output.</p>
 </body>
 </html>

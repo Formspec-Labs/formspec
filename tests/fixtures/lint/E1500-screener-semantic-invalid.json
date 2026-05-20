@@ -1,0 +1,38 @@
+{
+  "$formspecScreener": "1.0",
+  "url": "https://example.com/screeners/invalid",
+  "version": "not-semver",
+  "title": "Invalid Screener",
+  "availability": {
+    "from": "2026-12-31",
+    "until": "2026-01-01"
+  },
+  "resultValidity": "P",
+  "evaluationBinding": "completion",
+  "items": [
+    { "key": "name", "type": "field", "label": "Name", "dataType": "string" }
+  ],
+  "binds": [
+    { "path": "ghost", "required": "true" }
+  ],
+  "evaluation": [
+    {
+      "id": "phase",
+      "strategy": "first-match",
+      "routes": [
+        { "target": "bad target" },
+        { "target": "outcome:any", "condition": "true" },
+        { "target": "outcome:later", "condition": "$name = 'x'" },
+        { "target": "outcome:override", "override": true },
+        { "target": "outcome:msg", "condition": "true", "message": "Bad {{ 1 + }}" }
+      ]
+    },
+    {
+      "id": "phase",
+      "strategy": "score-threshold",
+      "routes": [
+        { "target": "outcome:score" }
+      ]
+    }
+  ]
+}

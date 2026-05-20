@@ -656,6 +656,31 @@ This specification defines conformance requirements for References Document hand
 - An Extended processor that supports agent integration SHOULD make agent-audience references available to companion agents via a documented API.
 - An Extended processor that encounters a reference with an unrecognized `type` (non-`x-`-prefixed) SHOULD emit a warning and MAY skip the reference, but MUST NOT reject the document.
 
+## Static Semantics and Lint
+
+References Documents are first validated against
+`schemas/references.schema.json`. Static semantic lint then checks references
+as metadata only: it resolves in-document pointers and target paths for
+authoring feedback, but it does not turn references into validation rules,
+requiredness, relevance, readonly behavior, or inherited child constraints.
+
+The References semantic pass owns the `E1300`/`W1300` diagnostic family:
+
+- `E1300` rejects `references[*].$ref` pointers that do not resolve to
+  `referenceDefs`.
+- `E1301` rejects `referenceDefs` entries whose explicit `id` does not match
+  the map key.
+- `E1302` rejects duplicate authored reference ids. Repeated use of the same
+  `$ref` key is reuse, not a duplicate id.
+- `E1303` rejects malformed `references[*].target` paths.
+- `E1304` rejects FEL-looking dynamic expressions in static reference metadata.
+- `W1300` and `W1301` warn for unknown non-`x-` `type` and `rel` values.
+
+When lint receives a paired Definition, `E1310` rejects
+`targetDefinition.url` mismatches, `W1310` warns on compatible-version
+mismatch, and `W1311` warns when a syntactically valid target path does not
+resolve to `#` or a Definition item path.
+
 ## 9. Schema
 
 The normative JSON Schema for References Documents is defined in `schemas/references.schema.json`. This is a standalone schema (not embedded in the definition schema) consistent with the sidecar document model. The `TargetDefinition` type is shared with the Component schema via `$ref`.
@@ -667,7 +692,22 @@ The normative JSON Schema for References Documents is defined in `schemas/refere
 | `#/properties/$formspecReferences` | `(self)` | <code>string</code> | — | const: <code>"1.0"</code>; critical | References specification version. MUST be '1.0'. |
 | `#/properties/targetDefinition` | `(self)` | <code>&#36;ref</code> | — | <code>&#36;ref</code>: <code>https://formspec.org/schemas/component/1.0#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and optional compatibility range. |
 | `#/properties/references` | `(self)` | <code>array</code> | — | critical | Ordered list of references bound to the target Definition. Each entry specifies a target path (item key or '#' for form-level) and a reference or $ref pointer. References are static and resolved at load time. |
+| `#/$defs/BoundReference/properties/$ref` | `$ref` | <code>string</code> | no | pattern: <code>^#/referenceDefs/[a-zA-Z][a-zA-Z0-9_-]*&#36;</code> | JSON Pointer (RFC 6901) to a referenceDefs entry. Resolved at load time. |
+| `#/$defs/BoundReference/properties/audience` | `audience` | <code>string</code> | no | enum: <code>"human"</code>, <code>"agent"</code>, <code>"both"</code> | — |
+| `#/$defs/BoundReference/properties/content` | `content` | <code>composite</code> | no | — | — |
+| `#/$defs/BoundReference/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/extensions` | `extensions` | <code>object</code> | no | — | — |
+| `#/$defs/BoundReference/properties/id` | `id` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_-]*&#36;</code> | — |
+| `#/$defs/BoundReference/properties/language` | `language` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/mediaType` | `mediaType` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/priority` | `priority` | <code>string</code> | no | enum: <code>"primary"</code>, <code>"supplementary"</code>, <code>"background"</code> | — |
+| `#/$defs/BoundReference/properties/rel` | `rel` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/selector` | `selector` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/tags` | `tags` | <code>array</code> | no | — | — |
 | `#/$defs/BoundReference/properties/target` | `target` | <code>string</code> | yes | critical | Path identifying which Definition item(s) this reference applies to. Uses dot notation for nesting and [*] for all instances of a repeatable group. The special value '#' means form-level (applies to the entire form). Multiple references may target the same path. |
+| `#/$defs/BoundReference/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/type` | `type` | <code>string</code> | no | — | — |
+| `#/$defs/BoundReference/properties/uri` | `uri` | <code>string</code> | no | — | — |
 | `#/$defs/Reference/properties/audience` | `audience` | <code>string</code> | yes | enum: <code>"human"</code>, <code>"agent"</code>, <code>"both"</code>; critical | Who consumes this reference. 'human': rendered in the UI (help panels, links, tooltips). 'agent': consumed programmatically by AI agents (not rendered). 'both': available to both rendering and agent pipelines. |
 | `#/$defs/Reference/properties/content` | `content` | <code>composite</code> | no | — | Inline content of the reference. REQUIRED unless 'uri' is provided. May be a plain text string, markdown, or structured JSON object. |
 | `#/$defs/Reference/properties/description` | `description` | <code>string</code> | no | — | Longer explanation of what this reference provides and why it is relevant. |

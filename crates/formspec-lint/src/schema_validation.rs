@@ -25,6 +25,9 @@ const THEME_SCHEMA: &str = include_str!("../schemas/theme.schema.json");
 const RESPONSE_SCHEMA: &str = include_str!("../schemas/response.schema.json");
 const INTAKE_HANDOFF_SCHEMA: &str = include_str!("../schemas/intake-handoff.schema.json");
 const MAPPING_SCHEMA: &str = include_str!("../schemas/mapping.schema.json");
+const ONTOLOGY_SCHEMA: &str = include_str!("../schemas/ontology.schema.json");
+const REFERENCES_SCHEMA: &str = include_str!("../schemas/references.schema.json");
+const LOCALE_SCHEMA: &str = include_str!("../schemas/locale.schema.json");
 const CHANGELOG_SCHEMA: &str = include_str!("../schemas/changelog.schema.json");
 const REGISTRY_SCHEMA: &str = include_str!("../schemas/registry.schema.json");
 const VALIDATION_REPORT_SCHEMA: &str = include_str!("../schemas/validation-report.schema.json");
@@ -71,6 +74,9 @@ struct SchemaSet {
     response: Validator,
     intake_handoff: Validator,
     mapping: Validator,
+    ontology: Validator,
+    references: Validator,
+    locale: Validator,
     changelog: Validator,
     registry: Validator,
     validation_report: Validator,
@@ -88,6 +94,9 @@ fn schema_set() -> &'static SchemaSet {
         response: build_validator(RESPONSE_SCHEMA),
         intake_handoff: build_validator(INTAKE_HANDOFF_SCHEMA),
         mapping: build_validator(MAPPING_SCHEMA),
+        ontology: build_validator(ONTOLOGY_SCHEMA),
+        references: build_validator(REFERENCES_SCHEMA),
+        locale: build_validator(LOCALE_SCHEMA),
         changelog: build_validator(CHANGELOG_SCHEMA),
         registry: build_validator(REGISTRY_SCHEMA),
         validation_report: build_validator(VALIDATION_REPORT_SCHEMA),
@@ -210,6 +219,9 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         DocumentType::Response => &set.response,
         DocumentType::IntakeHandoff => &set.intake_handoff,
         DocumentType::Mapping => &set.mapping,
+        DocumentType::Ontology => &set.ontology,
+        DocumentType::References => &set.references,
+        DocumentType::Locale => &set.locale,
         DocumentType::Changelog => &set.changelog,
         DocumentType::Registry => &set.registry,
         DocumentType::ValidationReport => &set.validation_report,
@@ -224,7 +236,12 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         .map(|err| {
             let pointer = err.instance_path().as_str();
             let path = json_pointer_to_jsonpath(pointer);
-            crate::metadata::with_metadata(LintDiagnostic::error(crate::LintCode::E101, 1, path, err.to_string()))
+            crate::metadata::with_metadata(LintDiagnostic::error(
+                crate::LintCode::E101,
+                1,
+                path,
+                err.to_string(),
+            ))
         })
         .collect()
 }
@@ -464,6 +481,134 @@ mod tests {
             diags
                 .iter()
                 .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_ontology_produces_no_e101() {
+        let ontology = json!({
+            "$formspecOntology": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "concepts": {
+                "name": { "concept": "https://schema.org/name", "system": "https://schema.org" }
+            }
+        });
+        let diags = validate_schema(&ontology, DocumentType::Ontology);
+        assert!(
+            diags.is_empty(),
+            "Valid ontology should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_ontology_routes_to_e101() {
+        let ontology = json!({
+            "$formspecOntology": "1.0",
+            "version": "1.0.0"
+        });
+        let diags = validate_schema(&ontology, DocumentType::Ontology);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid ontology should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_references_produces_no_e101() {
+        let references = json!({
+            "$formspecReferences": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "references": [
+                {
+                    "target": "#",
+                    "type": "documentation",
+                    "audience": "human",
+                    "title": "Help",
+                    "uri": "https://example.com/help"
+                }
+            ]
+        });
+        let diags = validate_schema(&references, DocumentType::References);
+        assert!(
+            diags.is_empty(),
+            "Valid references should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_references_routes_to_e101() {
+        let references = json!({
+            "$formspecReferences": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "references": [
+                { "type": "documentation", "audience": "human", "uri": "https://example.com/help" }
+            ]
+        });
+        let diags = validate_schema(&references, DocumentType::References);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid references should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_locale_produces_no_e101() {
+        let locale = json!({
+            "$formspecLocale": "1.0",
+            "version": "1.0.0",
+            "locale": "en",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "strings": {
+                "$form.title": "Example",
+                "name.label": "Name"
+            }
+        });
+        let diags = validate_schema(&locale, DocumentType::Locale);
+        assert!(
+            diags.is_empty(),
+            "Valid locale should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_locale_routes_to_e101() {
+        let locale = json!({
+            "$formspecLocale": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "strings": {}
+        });
+        let diags = validate_schema(&locale, DocumentType::Locale);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid locale should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
                 .collect::<Vec<_>>()
         );
     }

@@ -1,0 +1,31 @@
+{
+  "$formspecDetermination": "1.0",
+  "screener": {
+    "url": "https://example.com/screeners/invalid",
+    "version": "1.0.0"
+  },
+  "timestamp": "2026-05-19T12:00:00Z",
+  "evaluationVersion": "1.0.0",
+  "status": "unavailable",
+  "overrides": {
+    "matched": [
+      { "target": "outcome:override" }
+    ],
+    "halted": true
+  },
+  "phases": [
+    {
+      "id": "phase",
+      "status": "evaluated",
+      "strategy": "first-match",
+      "matched": [
+        { "target": "outcome:any" }
+      ],
+      "eliminated": []
+    }
+  ],
+  "inputs": {},
+  "validity": {
+    "resultValidity": "P"
+  }
+}

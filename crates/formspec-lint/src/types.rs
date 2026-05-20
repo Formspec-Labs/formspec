@@ -92,7 +92,7 @@ impl LintMode {
 pub struct LintDiagnostic {
     /// Error/warning code (e.g., `E100`, `E201`, `W300`).
     pub code: LintCode,
-    /// Pass number (1-8).
+    /// Pass number (1-9).
     pub pass: u8,
     /// Severity: error, warning, info.
     pub severity: LintSeverity,
@@ -147,7 +147,12 @@ impl LintDiagnostic {
     }
 
     /// Create an info diagnostic.
-    pub fn info(code: LintCode, pass: u8, path: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn info(
+        code: LintCode,
+        pass: u8,
+        path: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             code,
             pass,
@@ -177,7 +182,10 @@ impl LintDiagnostic {
         if mode == LintMode::Strict
             && matches!(
                 self.code,
-                crate::LintCode::W800 | crate::LintCode::W802 | crate::LintCode::W803 | crate::LintCode::W804
+                crate::LintCode::W800
+                    | crate::LintCode::W802
+                    | crate::LintCode::W803
+                    | crate::LintCode::W804
             )
         {
             self.severity = LintSeverity::Error;
@@ -191,7 +199,10 @@ impl LintDiagnostic {
             LintMode::Authoring => {
                 // W300: incompatible dataType for optionSet (noisy during editing)
                 // W802: compatible-with-warning fallback (authoring mode allows it)
-                self.code == crate::LintCode::W300 || self.code == crate::LintCode::W802
+                // W1101: non-static Mapping projection hints are noisy during drafting
+                self.code == crate::LintCode::W300
+                    || self.code == crate::LintCode::W802
+                    || self.code == crate::LintCode::W1101
             }
         }
     }
@@ -218,9 +229,16 @@ pub struct LintOptions {
     /// Each value should be a JSON registry document with `entries` array.
     pub registry_documents: Vec<Value>,
     /// Optional paired definition document for cross-artifact validation.
-    /// Used by pass 6 (theme: W705-W707) and pass 7 (components: W800/E802-E803).
+    /// Used by pass 6 (theme: W705-W707), pass 7 (components: W800/E802-E803),
+    /// and pass 9 companion-document semantic lint.
     /// When `None`, cross-artifact checks are skipped (single-document mode).
     pub definition_document: Option<Value>,
+    /// Optional paired Theme document for Locale `$page.*` string-key checks.
+    pub theme_document: Option<Value>,
+    /// Optional paired Component documents for Locale `$component.*` string-key checks.
+    pub component_documents: Vec<Value>,
+    /// Optional peer Locale documents for fallback-chain checks.
+    pub locale_documents: Vec<Value>,
     /// When `true`, run only pass 1 (document type detection) and return early.
     /// Useful for fast schema-level validation without semantic analysis.
     pub schema_only: bool,
@@ -360,7 +378,8 @@ mod tests {
     /// existing call sites keep working unchanged.
     #[test]
     fn diagnostic_defaults_authoring_metadata_to_none() {
-        let diag = LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.0", "bind target missing");
+        let diag =
+            LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.0", "bind target missing");
         assert!(diag.suggested_fix.is_none());
         assert!(diag.spec_ref.is_none());
     }
@@ -369,8 +388,9 @@ mod tests {
     /// LLMs consuming diagnostics need structured repair suggestions, not prose.
     #[test]
     fn diagnostic_with_suggested_fix_attaches_hint() {
-        let diag = LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.0", "bind target missing")
-            .with_suggested_fix("change 'amount' to 'quantity'");
+        let diag =
+            LintDiagnostic::error(crate::LintCode::E300, 3, "$.binds.0", "bind target missing")
+                .with_suggested_fix("change 'amount' to 'quantity'");
         assert_eq!(
             diag.suggested_fix.as_deref(),
             Some("change 'amount' to 'quantity'")
@@ -381,8 +401,9 @@ mod tests {
     /// that motivates the rule, enabling spec traceability from every diagnostic.
     #[test]
     fn diagnostic_with_spec_ref_attaches_reference() {
-        let diag = LintDiagnostic::warning(crate::LintCode::W704, 6, "$.tokens.x", "unresolved token")
-            .with_spec_ref("specs/theme/theme-spec.md#token-cascade");
+        let diag =
+            LintDiagnostic::warning(crate::LintCode::W704, 6, "$.tokens.x", "unresolved token")
+                .with_spec_ref("specs/theme/theme-spec.md#token-cascade");
         assert_eq!(
             diag.spec_ref.as_deref(),
             Some("specs/theme/theme-spec.md#token-cascade")

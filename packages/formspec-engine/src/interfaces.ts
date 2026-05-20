@@ -112,6 +112,8 @@ export type DocumentType =
     | 'theme'
     | 'component'
     | 'mapping'
+    | 'ontology'
+    | 'references'
     | 'response'
     | 'validation_report'
     | 'validation_result'
@@ -136,6 +138,8 @@ export interface SchemaValidatorSchemas {
     theme?: object;
     component?: object;
     mapping?: object;
+    ontology?: object;
+    references?: object;
     response?: object;
     validation_report?: object;
     validation_result?: object;

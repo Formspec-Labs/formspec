@@ -1,0 +1,74 @@
+{
+  "$formspecMapping": "1.0",
+  "version": "1.0.0",
+  "definitionRef": "https://example.com/forms/mapping-valid",
+  "definitionVersion": ">=1.0.0 <2.0.0",
+  "targetSchema": { "format": "json" },
+  "rules": [
+    {
+      "sourcePath": "name",
+      "targetPath": "applicant.name",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "choice",
+      "targetPath": "applicant.choice",
+      "transform": "valueMap",
+      "valueMap": {
+        "forward": {
+          "yes": "Y",
+          "no": "N"
+        }
+      }
+    },
+    {
+      "sourcePath": "items",
+      "targetPath": "lineItems",
+      "transform": "preserve",
+      "array": {
+        "mode": "each",
+        "innerRules": [
+          {
+            "sourcePath": "amount",
+            "targetPath": "amount",
+            "transform": "preserve",
+            "projection": {
+              "required": true
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/mapping-valid",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Valid mapping fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" },
+      {
+        "key": "items",
+        "type": "group",
+        "label": "Items",
+        "repeatable": true,
+        "children": [
+          { "key": "amount", "type": "field", "label": "Amount", "dataType": "number" }
+        ]
+      }
+    ],
+    "binds": [
+      { "path": "items[*].amount", "required": true }
+    ],
+    "optionSets": {
+      "yesNo": {
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ]
+      }
+    }
+  }
+}

@@ -124,6 +124,9 @@ id="toc-cross-reference-validation">7.2 Cross-Reference
 Validation</a></li>
 <li><a href="#linter-rules" id="toc-linter-rules">7.3 Linter
 Rules</a></li>
+<li><a href="#static-semantics-and-lint"
+id="toc-static-semantics-and-lint">7.4 Static Semantics and
+Lint</a></li>
 </ul></li>
 <li><a href="#processing-model" id="toc-processing-model">8. Processing
 Model</a>
@@ -1602,9 +1605,12 @@ bracket notation. Item-level keys MUST use template paths.</td>
 </tbody>
 </table>
 <h3 id="linter-rules">7.3 Linter Rules</h3>
-<p>The Python validator (<code>src/formspec/validator/</code>) SHOULD
-implement the following locale-specific lint rules:</p>
+<p>The Rust linter owns the canonical Locale semantic-lint codes:</p>
 <table>
+<colgroup>
+<col style="width: 31%" />
+<col style="width: 68%" />
+</colgroup>
 <thead>
 <tr>
 <th>Code</th>
@@ -1613,47 +1619,70 @@ implement the following locale-specific lint rules:</p>
 </thead>
 <tbody>
 <tr>
-<td>L100</td>
-<td>Missing required top-level property.</td>
+<td>E1400 / W1400</td>
+<td><code>targetDefinition.url</code> mismatch or compatible-version
+mismatch against a paired Definition.</td>
 </tr>
 <tr>
-<td>L101</td>
-<td>Invalid BCP 47 locale code.</td>
+<td>E1401</td>
+<td>Unknown reserved namespace or unsupported terminal property in a
+string key.</td>
 </tr>
 <tr>
-<td>L200</td>
-<td>Orphaned string key — item not found in Definition.</td>
+<td>E1402</td>
+<td>Item string key does not resolve to a Definition item path.</td>
 </tr>
 <tr>
-<td>L201</td>
-<td>Missing translation — localizable property has no key.</td>
+<td>E1403</td>
+<td>Item option or <code>$optionSet</code> string key does not resolve
+to a Definition option value.</td>
 </tr>
 <tr>
-<td>L202</td>
-<td>Invalid option value reference.</td>
+<td>E1404</td>
+<td><code>$shape</code> string key does not resolve to a Definition
+shape id.</td>
 </tr>
 <tr>
-<td>L203</td>
-<td>Invalid shape ID reference.</td>
+<td>E1405</td>
+<td><code>{{ ... }}</code> interpolation segment is not valid FEL.</td>
 </tr>
 <tr>
-<td>L300</td>
-<td>FEL interpolation parse error.</td>
+<td>E1406</td>
+<td>Supplied Locale documents contain an observable fallback cycle.</td>
 </tr>
 <tr>
-<td>L301</td>
-<td>FEL interpolation references undefined variable.</td>
+<td>E1407</td>
+<td>String key targets a non-presentation property.</td>
 </tr>
 <tr>
-<td>L400</td>
-<td>Circular fallback chain detected.</td>
+<td>E1410</td>
+<td><code>$page</code> string key does not resolve to a page id in the
+supplied Theme document.</td>
 </tr>
 <tr>
-<td>L401</td>
-<td>Fallback locale not loaded.</td>
+<td>E1411</td>
+<td><code>$component</code> string key does not resolve to a node id in
+supplied Component documents.</td>
+</tr>
+<tr>
+<td>W1401</td>
+<td>Locale fallback target was not supplied in the lint context.</td>
 </tr>
 </tbody>
 </table>
+<h3 id="static-semantics-and-lint">7.4 Static Semantics and Lint</h3>
+<p>Locale Documents are first validated against
+<code>schemas/locale.schema.json</code>. Static semantic lint then
+checks presentation-key semantics. It parses FEL inside interpolation
+segments but does not evaluate localized strings and does not alter
+runtime string lookup.</p>
+<p>Definition-aware checks run only when lint receives
+<code>definition_document</code>. Theme-aware <code>$page.*</code>
+checks run only when <code>theme_document</code> is supplied.
+Component-aware <code>$component.*</code> checks run only when
+<code>component_documents</code> are supplied. Fallback-cycle checks
+inspect the current Locale plus <code>locale_documents</code> supplied
+in lint context.</p>
 <h2 id="processing-model">8. Processing Model</h2>
 <h3 id="integration-with-the-four-phase-cycle">8.1 Integration with the
 Four-Phase Cycle</h3>

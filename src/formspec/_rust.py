@@ -97,6 +97,35 @@ def _assert_rust_extension_contract() -> None:
             "Reinstall the local extension with: python3 -m pip install --no-build-isolation ./crates/formspec-py"
         )
 
+    try:
+        signature = inspect.signature(formspec_rust.lint_document)
+    except (TypeError, ValueError) as exc:
+        raise ImportError(
+            "formspec_rust.lint_document signature could not be inspected; "
+            "the installed extension may be stale. "
+            f"({env_hint}). "
+            "Reinstall the local extension with: python3 -m pip install --no-build-isolation ./crates/formspec-py"
+        ) from exc
+
+    expected_params = [
+        "document",
+        "mode",
+        "registry_documents",
+        "definition_document",
+        "theme_document",
+        "component_documents",
+        "locale_documents",
+        "schema_only",
+        "no_fel",
+    ]
+    actual_params = list(signature.parameters.keys())
+    if actual_params != expected_params:
+        raise ImportError(
+            "formspec_rust.lint_document has an incompatible signature: "
+            f"expected {expected_params}, got {actual_params} ({env_hint}). "
+            "Reinstall the local extension with: python3 -m pip install --no-build-isolation ./crates/formspec-py"
+        )
+
 
 _assert_rust_extension_contract()
 
@@ -369,6 +398,9 @@ def lint(
     schema_only: bool = False,
     no_fel: bool = False,
     component_definition: dict | None = None,
+    theme_document: dict | None = None,
+    component_documents: list[dict] | None = None,
+    locale_documents: list[dict] | None = None,
     registry_documents: list[dict] | None = None,
 ) -> list[LintDiagnostic]:
     """Run the Rust linter on a Formspec document.
@@ -379,6 +411,9 @@ def lint(
         schema_only: When True, run only schema-level validation (skip semantic passes).
         no_fel: When True, skip FEL expression passes.
         component_definition: Optional definition document for cross-artifact checks.
+        theme_document: Optional theme document for Locale page-key checks.
+        component_documents: Optional component documents for Locale component-key checks.
+        locale_documents: Optional peer locale documents for fallback-chain checks.
         registry_documents: Optional list of registry documents for extension resolution.
     """
     raw = formspec_rust.lint_document(
@@ -386,6 +421,9 @@ def lint(
         mode=mode,
         registry_documents=registry_documents,
         definition_document=component_definition,
+        theme_document=theme_document,
+        component_documents=component_documents,
+        locale_documents=locale_documents,
         schema_only=schema_only,
         no_fel=no_fel,
     )

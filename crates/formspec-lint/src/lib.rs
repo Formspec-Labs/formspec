@@ -1,4 +1,4 @@
-//! Formspec Linter — 8-pass static analysis and validation pipeline.
+//! Formspec Linter — 9-pass static analysis and validation pipeline.
 //!
 //! Pass 1 (E100): Document type detection
 //! Pass 1b (E101): JSON Schema validation against embedded schemas
@@ -10,6 +10,7 @@
 //! Pass 6 (W700-W711/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility, bind resolution
 //! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
+//! Pass 9 (E1100-E1507/W1100-W1500): Companion document semantic lint
 //!
 //! ## Documentation
 //!
@@ -22,7 +23,13 @@
 mod generated;
 mod lint_json;
 mod metadata;
+mod pass_locale;
+pub mod pass_mapping;
+pub mod pass_ontology;
+mod pass_references_doc;
+mod pass_screener;
 mod schema_validation;
+mod semantic_helpers;
 mod types;
 
 pub mod component_matrix;
@@ -40,8 +47,8 @@ use serde_json::Value;
 use formspec_core::{DocumentType, detect_document_type};
 
 // Re-export public types
-pub use lint_json::lint_result_to_json_value;
 pub use generated::LintCode;
+pub use lint_json::lint_result_to_json_value;
 pub use types::{
     LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
 };
@@ -84,6 +91,30 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
             }
         }
         DocumentType::Screener => lint_screener(doc, options, &mut diagnostics),
+        DocumentType::Determination => {
+            diagnostics.extend(pass_screener::lint_determination_record(doc));
+        }
+        DocumentType::Mapping => {
+            diagnostics.extend(pass_mapping::lint_mapping(
+                doc,
+                options.definition_document.as_ref(),
+            ));
+        }
+        DocumentType::Ontology => {
+            diagnostics.extend(pass_ontology::lint_ontology(
+                doc,
+                options.definition_document.as_ref(),
+            ));
+        }
+        DocumentType::References => {
+            diagnostics.extend(pass_references_doc::lint_references_doc(
+                doc,
+                options.definition_document.as_ref(),
+            ));
+        }
+        DocumentType::Locale => {
+            diagnostics.extend(pass_locale::lint_locale(doc, options));
+        }
         DocumentType::Theme => lint_theme_doc(doc, options, &mut diagnostics),
         DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),
         DocumentType::Response => {
@@ -130,6 +161,7 @@ fn lint_definition(
 }
 
 fn lint_screener(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintDiagnostic>) {
+    diagnostics.extend(pass_screener::lint_screener_semantics(doc, !options.no_fel));
     if !options.no_fel {
         let compilation = expressions::compile_screener_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
@@ -228,7 +260,12 @@ mod tests {
         let doc = json!({ "random": "data" });
         let result = lint(&doc);
         assert!(!result.valid);
-        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E100));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E100)
+        );
         assert_eq!(result.diagnostics.len(), 1, "Should halt after E100");
     }
 
@@ -248,7 +285,12 @@ mod tests {
             ]
         });
         let result = lint(&def);
-        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E201));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E201)
+        );
         assert_eq!(
             result.diagnostics.iter().filter(|d| d.pass >= 3).count(),
             0,
@@ -302,7 +344,10 @@ mod tests {
             },
         );
         assert_eq!(
-            rt.diagnostics.iter().filter(|d| d.code == crate::LintCode::W300).count(),
+            rt.diagnostics
+                .iter()
+                .filter(|d| d.code == crate::LintCode::W300)
+                .count(),
             1
         );
         let auth = lint_with_options(
@@ -313,7 +358,10 @@ mod tests {
             },
         );
         assert_eq!(
-            auth.diagnostics.iter().filter(|d| d.code == crate::LintCode::W300).count(),
+            auth.diagnostics
+                .iter()
+                .filter(|d| d.code == crate::LintCode::W300)
+                .count(),
             0
         );
     }
@@ -423,7 +471,10 @@ mod tests {
         let result = lint(&def);
 
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E201),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E201),
             "E201 should be present"
         );
         assert!(
@@ -548,7 +599,12 @@ mod tests {
         });
         let result = lint(&theme);
         assert_eq!(result.document_type, Some(DocumentType::Theme));
-        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::W704));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::W704)
+        );
         // Expect W704 (missing token ref), W708/W709 (registry checks), plus E101 from schema
         // Filter to only W704 — the core check this test validates
         let w704_count = result
@@ -637,7 +693,12 @@ mod tests {
         });
         let result = lint(&comp);
         assert_eq!(result.document_type, Some(DocumentType::Component));
-        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E800));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E800)
+        );
     }
 
     /// Cross-pass integration: definition with errors across passes 3, 4, and 5.
@@ -659,15 +720,24 @@ mod tests {
         });
         let result = lint(&def);
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E300),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E300),
             "Should have E300"
         );
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E301),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E301),
             "Should have E301"
         );
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E500),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E500),
             "Should have E500"
         );
         let passes: Vec<u8> = result.diagnostics.iter().map(|d| d.pass).collect();
@@ -725,7 +795,12 @@ mod tests {
             },
         );
         assert!(!result.valid);
-        assert!(result.diagnostics.iter().any(|d| d.code == crate::LintCode::E100));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E100)
+        );
     }
 
     // ── no_fel: skips passes 4 and 5 ────────────────────────────
@@ -747,7 +822,10 @@ mod tests {
         });
         let full_result = lint(&def);
         assert!(
-            full_result.diagnostics.iter().any(|d| d.code == crate::LintCode::E400),
+            full_result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E400),
             "Full lint should report E400"
         );
 
@@ -759,11 +837,17 @@ mod tests {
             },
         );
         assert!(
-            !result.diagnostics.iter().any(|d| d.code == crate::LintCode::E400),
+            !result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E400),
             "no_fel should skip E400"
         );
         assert!(
-            !result.diagnostics.iter().any(|d| d.code == crate::LintCode::E500),
+            !result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E500),
             "no_fel should skip E500"
         );
     }
@@ -785,7 +869,10 @@ mod tests {
             },
         );
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E300),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E300),
             "no_fel should still run pass 3 reference checks"
         );
     }
@@ -878,7 +965,10 @@ mod tests {
         });
         let result = lint(&def);
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E101),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E101),
             "Should emit E101 for invalid dataType 'blob', got: {:?}",
             result
                 .diagnostics
@@ -901,7 +991,10 @@ mod tests {
         });
         let result = lint(&def);
         assert!(
-            !result.diagnostics.iter().any(|d| d.code == crate::LintCode::E101),
+            !result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E101),
             "Valid definition should not produce E101, got: {:?}",
             result
                 .diagnostics
@@ -945,7 +1038,10 @@ mod tests {
         let result = lint(&resp);
         assert_eq!(result.document_type, Some(DocumentType::Response));
         assert!(
-            result.diagnostics.iter().any(|d| d.code == crate::LintCode::E900),
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E900),
             "lint MUST reject pin-mismatch — got codes: {:?}",
             result
                 .diagnostics

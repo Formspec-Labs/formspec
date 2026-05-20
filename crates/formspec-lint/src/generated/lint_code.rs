@@ -89,6 +89,116 @@ pub enum LintCode {
     E901,
     /// Registry code `E902`.
     E902,
+    /// Registry code `E1100`.
+    E1100,
+    /// Registry code `E1101`.
+    E1101,
+    /// Registry code `E1102`.
+    E1102,
+    /// Registry code `E1103`.
+    E1103,
+    /// Registry code `E1104`.
+    E1104,
+    /// Registry code `E1105`.
+    E1105,
+    /// Registry code `E1106`.
+    E1106,
+    /// Registry code `W1100`.
+    W1100,
+    /// Registry code `W1101`.
+    W1101,
+    /// Registry code `E1110`.
+    E1110,
+    /// Registry code `E1111`.
+    E1111,
+    /// Registry code `E1112`.
+    E1112,
+    /// Registry code `E1113`.
+    E1113,
+    /// Registry code `W1110`.
+    W1110,
+    /// Registry code `E1200`.
+    E1200,
+    /// Registry code `E1201`.
+    E1201,
+    /// Registry code `E1202`.
+    E1202,
+    /// Registry code `W1200`.
+    W1200,
+    /// Registry code `W1201`.
+    W1201,
+    /// Registry code `W1202`.
+    W1202,
+    /// Registry code `W1203`.
+    W1203,
+    /// Registry code `W1204`.
+    W1204,
+    /// Registry code `W1205`.
+    W1205,
+    /// Registry code `W1206`.
+    W1206,
+    /// Registry code `E1300`.
+    E1300,
+    /// Registry code `E1301`.
+    E1301,
+    /// Registry code `E1302`.
+    E1302,
+    /// Registry code `E1303`.
+    E1303,
+    /// Registry code `E1304`.
+    E1304,
+    /// Registry code `W1300`.
+    W1300,
+    /// Registry code `W1301`.
+    W1301,
+    /// Registry code `E1310`.
+    E1310,
+    /// Registry code `W1310`.
+    W1310,
+    /// Registry code `W1311`.
+    W1311,
+    /// Registry code `E1400`.
+    E1400,
+    /// Registry code `W1400`.
+    W1400,
+    /// Registry code `E1401`.
+    E1401,
+    /// Registry code `E1402`.
+    E1402,
+    /// Registry code `E1403`.
+    E1403,
+    /// Registry code `E1404`.
+    E1404,
+    /// Registry code `E1405`.
+    E1405,
+    /// Registry code `E1406`.
+    E1406,
+    /// Registry code `E1407`.
+    E1407,
+    /// Registry code `E1410`.
+    E1410,
+    /// Registry code `E1411`.
+    E1411,
+    /// Registry code `W1401`.
+    W1401,
+    /// Registry code `E1500`.
+    E1500,
+    /// Registry code `E1501`.
+    E1501,
+    /// Registry code `E1502`.
+    E1502,
+    /// Registry code `E1503`.
+    E1503,
+    /// Registry code `E1504`.
+    E1504,
+    /// Registry code `E1505`.
+    E1505,
+    /// Registry code `E1506`.
+    E1506,
+    /// Registry code `E1507`.
+    E1507,
+    /// Registry code `W1500`.
+    W1500,
 }
 
 impl LintCode {
@@ -135,6 +245,61 @@ impl LintCode {
             LintCode::E900 => "E900",
             LintCode::E901 => "E901",
             LintCode::E902 => "E902",
+            LintCode::E1100 => "E1100",
+            LintCode::E1101 => "E1101",
+            LintCode::E1102 => "E1102",
+            LintCode::E1103 => "E1103",
+            LintCode::E1104 => "E1104",
+            LintCode::E1105 => "E1105",
+            LintCode::E1106 => "E1106",
+            LintCode::W1100 => "W1100",
+            LintCode::W1101 => "W1101",
+            LintCode::E1110 => "E1110",
+            LintCode::E1111 => "E1111",
+            LintCode::E1112 => "E1112",
+            LintCode::E1113 => "E1113",
+            LintCode::W1110 => "W1110",
+            LintCode::E1200 => "E1200",
+            LintCode::E1201 => "E1201",
+            LintCode::E1202 => "E1202",
+            LintCode::W1200 => "W1200",
+            LintCode::W1201 => "W1201",
+            LintCode::W1202 => "W1202",
+            LintCode::W1203 => "W1203",
+            LintCode::W1204 => "W1204",
+            LintCode::W1205 => "W1205",
+            LintCode::W1206 => "W1206",
+            LintCode::E1300 => "E1300",
+            LintCode::E1301 => "E1301",
+            LintCode::E1302 => "E1302",
+            LintCode::E1303 => "E1303",
+            LintCode::E1304 => "E1304",
+            LintCode::W1300 => "W1300",
+            LintCode::W1301 => "W1301",
+            LintCode::E1310 => "E1310",
+            LintCode::W1310 => "W1310",
+            LintCode::W1311 => "W1311",
+            LintCode::E1400 => "E1400",
+            LintCode::W1400 => "W1400",
+            LintCode::E1401 => "E1401",
+            LintCode::E1402 => "E1402",
+            LintCode::E1403 => "E1403",
+            LintCode::E1404 => "E1404",
+            LintCode::E1405 => "E1405",
+            LintCode::E1406 => "E1406",
+            LintCode::E1407 => "E1407",
+            LintCode::E1410 => "E1410",
+            LintCode::E1411 => "E1411",
+            LintCode::W1401 => "W1401",
+            LintCode::E1500 => "E1500",
+            LintCode::E1501 => "E1501",
+            LintCode::E1502 => "E1502",
+            LintCode::E1503 => "E1503",
+            LintCode::E1504 => "E1504",
+            LintCode::E1505 => "E1505",
+            LintCode::E1506 => "E1506",
+            LintCode::E1507 => "E1507",
+            LintCode::W1500 => "W1500",
         }
     }
 
@@ -181,6 +346,61 @@ impl LintCode {
             LintCode::E900 => 8,
             LintCode::E901 => 8,
             LintCode::E902 => 8,
+            LintCode::E1100 => 9,
+            LintCode::E1101 => 9,
+            LintCode::E1102 => 9,
+            LintCode::E1103 => 9,
+            LintCode::E1104 => 9,
+            LintCode::E1105 => 9,
+            LintCode::E1106 => 9,
+            LintCode::W1100 => 9,
+            LintCode::W1101 => 9,
+            LintCode::E1110 => 9,
+            LintCode::E1111 => 9,
+            LintCode::E1112 => 9,
+            LintCode::E1113 => 9,
+            LintCode::W1110 => 9,
+            LintCode::E1200 => 9,
+            LintCode::E1201 => 9,
+            LintCode::E1202 => 9,
+            LintCode::W1200 => 9,
+            LintCode::W1201 => 9,
+            LintCode::W1202 => 9,
+            LintCode::W1203 => 9,
+            LintCode::W1204 => 9,
+            LintCode::W1205 => 9,
+            LintCode::W1206 => 9,
+            LintCode::E1300 => 9,
+            LintCode::E1301 => 9,
+            LintCode::E1302 => 9,
+            LintCode::E1303 => 9,
+            LintCode::E1304 => 9,
+            LintCode::W1300 => 9,
+            LintCode::W1301 => 9,
+            LintCode::E1310 => 9,
+            LintCode::W1310 => 9,
+            LintCode::W1311 => 9,
+            LintCode::E1400 => 9,
+            LintCode::W1400 => 9,
+            LintCode::E1401 => 9,
+            LintCode::E1402 => 9,
+            LintCode::E1403 => 9,
+            LintCode::E1404 => 9,
+            LintCode::E1405 => 9,
+            LintCode::E1406 => 9,
+            LintCode::E1407 => 9,
+            LintCode::E1410 => 9,
+            LintCode::E1411 => 9,
+            LintCode::W1401 => 9,
+            LintCode::E1500 => 9,
+            LintCode::E1501 => 9,
+            LintCode::E1502 => 9,
+            LintCode::E1503 => 9,
+            LintCode::E1504 => 9,
+            LintCode::E1505 => 9,
+            LintCode::E1506 => 9,
+            LintCode::E1507 => 9,
+            LintCode::W1500 => 9,
         }
     }
 
@@ -227,12 +447,67 @@ impl LintCode {
             "E900" => Some(LintCode::E900),
             "E901" => Some(LintCode::E901),
             "E902" => Some(LintCode::E902),
+            "E1100" => Some(LintCode::E1100),
+            "E1101" => Some(LintCode::E1101),
+            "E1102" => Some(LintCode::E1102),
+            "E1103" => Some(LintCode::E1103),
+            "E1104" => Some(LintCode::E1104),
+            "E1105" => Some(LintCode::E1105),
+            "E1106" => Some(LintCode::E1106),
+            "W1100" => Some(LintCode::W1100),
+            "W1101" => Some(LintCode::W1101),
+            "E1110" => Some(LintCode::E1110),
+            "E1111" => Some(LintCode::E1111),
+            "E1112" => Some(LintCode::E1112),
+            "E1113" => Some(LintCode::E1113),
+            "W1110" => Some(LintCode::W1110),
+            "E1200" => Some(LintCode::E1200),
+            "E1201" => Some(LintCode::E1201),
+            "E1202" => Some(LintCode::E1202),
+            "W1200" => Some(LintCode::W1200),
+            "W1201" => Some(LintCode::W1201),
+            "W1202" => Some(LintCode::W1202),
+            "W1203" => Some(LintCode::W1203),
+            "W1204" => Some(LintCode::W1204),
+            "W1205" => Some(LintCode::W1205),
+            "W1206" => Some(LintCode::W1206),
+            "E1300" => Some(LintCode::E1300),
+            "E1301" => Some(LintCode::E1301),
+            "E1302" => Some(LintCode::E1302),
+            "E1303" => Some(LintCode::E1303),
+            "E1304" => Some(LintCode::E1304),
+            "W1300" => Some(LintCode::W1300),
+            "W1301" => Some(LintCode::W1301),
+            "E1310" => Some(LintCode::E1310),
+            "W1310" => Some(LintCode::W1310),
+            "W1311" => Some(LintCode::W1311),
+            "E1400" => Some(LintCode::E1400),
+            "W1400" => Some(LintCode::W1400),
+            "E1401" => Some(LintCode::E1401),
+            "E1402" => Some(LintCode::E1402),
+            "E1403" => Some(LintCode::E1403),
+            "E1404" => Some(LintCode::E1404),
+            "E1405" => Some(LintCode::E1405),
+            "E1406" => Some(LintCode::E1406),
+            "E1407" => Some(LintCode::E1407),
+            "E1410" => Some(LintCode::E1410),
+            "E1411" => Some(LintCode::E1411),
+            "W1401" => Some(LintCode::W1401),
+            "E1500" => Some(LintCode::E1500),
+            "E1501" => Some(LintCode::E1501),
+            "E1502" => Some(LintCode::E1502),
+            "E1503" => Some(LintCode::E1503),
+            "E1504" => Some(LintCode::E1504),
+            "E1505" => Some(LintCode::E1505),
+            "E1506" => Some(LintCode::E1506),
+            "E1507" => Some(LintCode::E1507),
+            "W1500" => Some(LintCode::W1500),
             _ => None,
         }
     }
 
     /// Every registered code (for registry consistency checks).
-    pub const ALL: &'static [Self] = &[LintCode::E100, LintCode::E101, LintCode::E200, LintCode::E201, LintCode::E300, LintCode::E301, LintCode::E302, LintCode::W300, LintCode::E400, LintCode::E500, LintCode::E600, LintCode::E601, LintCode::E602, LintCode::W700, LintCode::W701, LintCode::W702, LintCode::W703, LintCode::W704, LintCode::W705, LintCode::W706, LintCode::W707, LintCode::W708, LintCode::W709, LintCode::E710, LintCode::W711, LintCode::E800, LintCode::E801, LintCode::E802, LintCode::E803, LintCode::E804, LintCode::E806, LintCode::E807, LintCode::W800, LintCode::W801, LintCode::W802, LintCode::W803, LintCode::W804, LintCode::E900, LintCode::E901, LintCode::E902];
+    pub const ALL: &'static [Self] = &[LintCode::E100, LintCode::E101, LintCode::E200, LintCode::E201, LintCode::E300, LintCode::E301, LintCode::E302, LintCode::W300, LintCode::E400, LintCode::E500, LintCode::E600, LintCode::E601, LintCode::E602, LintCode::W700, LintCode::W701, LintCode::W702, LintCode::W703, LintCode::W704, LintCode::W705, LintCode::W706, LintCode::W707, LintCode::W708, LintCode::W709, LintCode::E710, LintCode::W711, LintCode::E800, LintCode::E801, LintCode::E802, LintCode::E803, LintCode::E804, LintCode::E806, LintCode::E807, LintCode::W800, LintCode::W801, LintCode::W802, LintCode::W803, LintCode::W804, LintCode::E900, LintCode::E901, LintCode::E902, LintCode::E1100, LintCode::E1101, LintCode::E1102, LintCode::E1103, LintCode::E1104, LintCode::E1105, LintCode::E1106, LintCode::W1100, LintCode::W1101, LintCode::E1110, LintCode::E1111, LintCode::E1112, LintCode::E1113, LintCode::W1110, LintCode::E1200, LintCode::E1201, LintCode::E1202, LintCode::W1200, LintCode::W1201, LintCode::W1202, LintCode::W1203, LintCode::W1204, LintCode::W1205, LintCode::W1206, LintCode::E1300, LintCode::E1301, LintCode::E1302, LintCode::E1303, LintCode::E1304, LintCode::W1300, LintCode::W1301, LintCode::E1310, LintCode::W1310, LintCode::W1311, LintCode::E1400, LintCode::W1400, LintCode::E1401, LintCode::E1402, LintCode::E1403, LintCode::E1404, LintCode::E1405, LintCode::E1406, LintCode::E1407, LintCode::E1410, LintCode::E1411, LintCode::W1401, LintCode::E1500, LintCode::E1501, LintCode::E1502, LintCode::E1503, LintCode::E1504, LintCode::E1505, LintCode::E1506, LintCode::E1507, LintCode::W1500];
 }
 
 impl fmt::Display for LintCode {
@@ -291,6 +566,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 40);
+        assert_eq!(LintCode::ALL.len(), 95);
     }
 }

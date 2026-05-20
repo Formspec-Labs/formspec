@@ -33,29 +33,6 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 **P2 — standard:**
 
-- **ADR 0057-0060 - Companion semantic lint implementation** · `for-r249` · P2
-
-   Source ADRs:
-   - `formspec/thoughts/adr/0057-mapping-semantic-lint-and-contract-projection-analysis.md`
-   - `formspec/thoughts/adr/0058-ontology-semantic-lint.md`
-   - `formspec/thoughts/adr/0059-references-semantic-lint.md`
-   - `formspec/thoughts/adr/0060-locale-semantic-lint.md`
-
-   Related source spec:
-   - `formspec/specs/screener/screener-spec.md`
-
-   Implement the lint architecture captured in ADRs 0057-0060. Scope covers Mapping, Ontology, References, and Locale semantic lint, Screener semantic-lint hardening, plus document routing and schema-validation support where the Rust lint surface is missing it.
-
-   The implementation must keep lint responsible for authoring-document semantics. Projector-output validation remains a projector concern, but projectors should consume the reusable static-analysis facts exposed by the lint layer.
-
-   **Acceptance:**
-     - Mapping semantic lint implements ADR 0057 and exposes reusable static-analysis facts.
-     - Screener semantic lint hardening checks route graph, isolated item scope, phase strategy rules, and Determination Record contract consistency without folding Screener into Mapping.
-     - Ontology, References, and Locale are recognized by Rust document detection and reach E101 schema validation.
-     - Each companion document has a semantic lint pass with registered diagnostics and focused fixtures.
-     - Specs, lint-code registry, README/pass table, generated code, and TODO views are updated.
-     - Focused Rust, Python, and TypeScript gates run, or any skipped gate is documented with a reason.
-
 - **Cross-adapter byte-equivalence harness — webcrypto + trellis consume ring vectors** · `fs-bmyq` · P2
    links FORMSPEC-SIGNATURE-ADAPTER-WEBCRYPTO-001 — In-tree default… `fs-n6vp`, FORMSPEC-SIGNATURE-ADAPTER-TRELLIS-001 — Trellis-side… `fs-fmc9`, FORMSPEC-SIGNATURE-ADAPTER-RING-001 — Sibling Rust adapter… `fs-wxoz`
 
@@ -174,6 +151,10 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 **Recently closed (kept for traceability; archive when stale):**
 
 - ~~**FORMSPEC-CBOR-CROSS-ENCODER-RECONCILIATION-001 - Reconcile cbor2 canonical mode and integrity-cbor map-key ordering**~~ `fs-qwyb` · CLOSED — Empirical finding (trellis-scout review of session 2026-05-16): cbor2.dumps(canonical=True) and integrity-cbor::json_to_dcbor_bytes produce BYTE-DIFFERENT output for the committed…
+- ~~**ADR 0057-0060 - Companion semantic lint implementation**~~ `for-r249` · CLOSED — Source ADRs:
+- `formspec/thoughts/adr/0057-mapping-semantic-lint-and-contract-projection-analysis.md`
+- `formspec/thoughts/adr/0058-ontology-semantic-lint.md`
+-…
 - ~~**FORMSPEC-CANONICALIZATION-001 — Consume integrity-canonical + remove WOS shim + bundle regression vectors**~~ `fs-7md4` · CLOSED — **Status reframed 2026-05-15 after scout audit.** The earlier acceptance named a `formspec-canonical` Rust+TS crate that does not exist.
 - ~~**FORMSPEC-SIGNATURE-ADAPTER-WEBCRYPTO-001 — In-tree default TS adapter**~~ `fs-n6vp` · CLOSED — WebCrypto adapter for ed25519, ecdsa-p256, rsa-pss-sha256.
 - ~~**FORMSPEC-WIRE-COSE-SIGN1-001 — Wire migration to COSE_Sign1**~~ `fs-w8sm` · CLOSED — signatureValue strictly typed as base64-encoded COSE_Sign1.

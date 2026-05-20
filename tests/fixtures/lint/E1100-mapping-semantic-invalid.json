@@ -1,0 +1,146 @@
+{
+  "$formspecMapping": "1.0",
+  "version": "1.0.0",
+  "definitionRef": "https://example.com/forms/mapping",
+  "definitionVersion": ">=1.0.0 <2.0.0",
+  "direction": "both",
+  "targetSchema": { "format": "json" },
+  "defaults": {
+    "payload": {}
+  },
+  "rules": [
+    {
+      "sourcePath": "bad..path",
+      "targetPath": "badSource",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "exprTarget",
+      "transform": "expression",
+      "expression": "1 +"
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "payload.name",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "typed",
+      "transform": "preserve",
+      "projection": {
+        "targetType": "integer",
+        "targetEnum": ["abc"]
+      }
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "dropTarget",
+      "transform": "drop",
+      "projection": {
+        "required": true
+      }
+    },
+    {
+      "sourcePath": "choice",
+      "targetPath": "choiceTarget",
+      "transform": "valueMap",
+      "valueMap": {
+        "forward": {
+          "yes": "Y",
+          "no": "Y"
+        }
+      }
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "dup",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "optional",
+      "targetPath": "dup",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "ghost",
+      "targetPath": "ghostTarget",
+      "transform": "preserve"
+    },
+    {
+      "sourcePath": "items",
+      "targetPath": "arrayTarget",
+      "transform": "preserve",
+      "array": {
+        "mode": "each",
+        "innerRules": [
+          {
+            "sourcePath": "missing",
+            "targetPath": "inner",
+            "transform": "preserve"
+          }
+        ]
+      }
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "projectionSource",
+      "transform": "preserve",
+      "projection": {
+        "sourcePaths": ["ghostProjection"]
+      }
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "requiredTarget",
+      "transform": "preserve",
+      "projection": {
+        "required": false
+      }
+    },
+    {
+      "sourcePath": "name",
+      "targetPath": "ambiguousRequired",
+      "transform": "preserve",
+      "projection": {
+        "sourcePaths": ["optional"],
+        "required": true
+      }
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/mapping",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Mapping fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      { "key": "optional", "type": "field", "label": "Optional", "dataType": "string" },
+      {
+        "key": "items",
+        "type": "group",
+        "label": "Items",
+        "repeatable": true,
+        "children": [
+          { "key": "amount", "type": "field", "label": "Amount", "dataType": "number" },
+          { "key": "code", "type": "field", "label": "Code", "dataType": "string" }
+        ]
+      },
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" }
+    ],
+    "binds": [
+      { "path": "name", "required": "true" },
+      { "path": "choice", "required": "true" }
+    ],
+    "optionSets": {
+      "yesNo": {
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ]
+      }
+    }
+  }
+}

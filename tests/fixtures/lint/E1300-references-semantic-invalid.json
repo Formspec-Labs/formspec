@@ -1,0 +1,48 @@
+{
+  "$formspecReferences": "1.0",
+  "version": "1.0.0",
+  "url": "https://example.com/references/invalid",
+  "targetDefinition": {
+    "url": "https://example.com/forms/other",
+    "compatibleVersions": ">=2.0.0"
+  },
+  "referenceDefs": {
+    "foo": {
+      "id": "bar",
+      "type": "documentation",
+      "audience": "human",
+      "uri": "https://example.com/foo"
+    }
+  },
+  "references": [
+    {
+      "target": "#",
+      "$ref": "#/referenceDefs/missing"
+    },
+    {
+      "target": "bad..path",
+      "type": "mystery",
+      "audience": "human",
+      "title": "$dynamicTitle",
+      "uri": "https://example.com/help",
+      "rel": "weird"
+    },
+    {
+      "target": "ghost",
+      "id": "bar",
+      "type": "documentation",
+      "audience": "human",
+      "uri": "https://example.com/ghost"
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/references",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "References fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" }
+    ]
+  }
+}

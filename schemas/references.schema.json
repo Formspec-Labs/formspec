@@ -115,11 +115,6 @@
       "required": [
         "target"
       ],
-      "allOf": [
-        {
-          "$ref": "#/$defs/ReferenceOrRef"
-        }
-      ],
       "properties": {
         "target": {
           "type": "string",
@@ -135,9 +130,112 @@
             "critical": true,
             "intent": "Binds this reference to a specific item or the form as a whole."
           }
+        },
+        "$ref": {
+          "type": "string",
+          "pattern": "^#/referenceDefs/[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "JSON Pointer (RFC 6901) to a referenceDefs entry. Resolved at load time."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$"
+        },
+        "type": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string",
+          "enum": [
+            "human",
+            "agent",
+            "both"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "mediaType": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "supplementary",
+            "background"
+          ]
+        },
+        "rel": {
+          "type": "string"
+        },
+        "selector": {
+          "type": "string"
+        },
+        "extensions": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^x-"
+          }
         }
       },
-      "unevaluatedProperties": false
+      "anyOf": [
+        {
+          "required": [
+            "$ref"
+          ]
+        },
+        {
+          "required": [
+            "type",
+            "audience"
+          ],
+          "anyOf": [
+            {
+              "required": [
+                "uri"
+              ]
+            },
+            {
+              "required": [
+                "content"
+              ]
+            }
+          ]
+        }
+      ],
+      "not": {
+        "required": [
+          "$ref",
+          "id"
+        ]
+      },
+      "additionalProperties": false
     },
     "Reference": {
       "type": "object",

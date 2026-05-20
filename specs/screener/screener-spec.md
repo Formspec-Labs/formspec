@@ -2058,3 +2058,30 @@ with backwards compatibility.
 embedded screener model and is now outdated. A new implementation plan should
 be written that accounts for the standalone document model, phase-based UI,
 and the gateway architecture.
+
+## Static Semantics and Lint
+
+Screener Documents are first validated against `schemas/screener.schema.json`.
+Static semantic lint then hardens authoring invariants without executing the
+screener or changing runtime routing behavior.
+
+The Screener semantic pass owns the `E1500`/`W1500` diagnostic family:
+
+- `E1500` rejects binds that do not resolve inside the Screener's own isolated
+  item scope. Screener binds do not resolve against an external Definition.
+- `E1501` rejects invalid phase/route graph structure such as duplicate phase
+  ids, empty route lists, or non-`x-` unknown strategies.
+- `E1502` rejects `first-match`, `fan-out`, and override routes that omit a
+  `condition`.
+- `E1503` rejects `score-threshold` routes that omit `score` or `threshold`.
+- `E1504` rejects malformed route targets.
+- `E1505` rejects inconsistent lifecycle metadata such as an availability start
+  date after its end date.
+- `E1507` rejects malformed FEL inside route-message interpolation.
+- `W1500` warns when a `first-match` route is shadowed by an earlier
+  unconditional `true` route.
+
+Determination Records are validated against `schemas/determination.schema.json`.
+The same pass emits `E1506` for static consistency failures such as
+`overrides.halted: true` with non-empty `phases`, or unavailable records that
+still contain evaluated phases.

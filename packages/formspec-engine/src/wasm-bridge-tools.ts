@@ -268,6 +268,9 @@ export interface WasmLintDocumentOptions {
     registryDocuments?: unknown[];
     mode?: string;
     definitionDocument?: unknown;
+    themeDocument?: unknown;
+    componentDocuments?: unknown[];
+    localeDocuments?: unknown[];
     schemaOnly?: boolean;
     noFel?: boolean;
 }

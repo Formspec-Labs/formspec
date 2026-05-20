@@ -1,0 +1,39 @@
+{
+  "$formspecReferences": "1.0",
+  "version": "1.0.0",
+  "url": "https://example.com/references/valid",
+  "targetDefinition": {
+    "url": "https://example.com/forms/references-valid",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "referenceDefs": {
+    "help": {
+      "id": "help",
+      "type": "documentation",
+      "audience": "human",
+      "uri": "https://example.com/help"
+    }
+  },
+  "references": [
+    {
+      "target": "#",
+      "$ref": "#/referenceDefs/help"
+    },
+    {
+      "target": "name",
+      "type": "context",
+      "audience": "both",
+      "content": "Static help text."
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/references-valid",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Valid references fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" }
+    ]
+  }
+}

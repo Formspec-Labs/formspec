@@ -831,6 +831,8 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **theme?**: `object`
 - **component?**: `object`
 - **mapping?**: `object`
+- **ontology?**: `object`
+- **references?**: `object`
 - **response?**: `object`
 - **validation_report?**: `object`
 - **validation_result?**: `object`
@@ -1213,7 +1215,7 @@ type FELConditionGroupLiftResult = FELConditionGroupLifted | FELConditionGroupUn
 #### type `DocumentType`
 
 ```ts
-type DocumentType = 'definition' | 'theme' | 'component' | 'mapping' | 'response' | 'validation_report' | 'validation_result' | 'registry' | 'changelog' | 'fel_functions' | 'locale';
+type DocumentType = 'definition' | 'theme' | 'component' | 'mapping' | 'ontology' | 'references' | 'response' | 'validation_report' | 'validation_result' | 'registry' | 'changelog' | 'fel_functions' | 'locale';
 ```
 
 #### type `DefinitionResolver`
@@ -1792,4 +1794,3 @@ Validate enabled x-extension usage in an item tree against registry entries.
 ```ts
 type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');
 ```
-

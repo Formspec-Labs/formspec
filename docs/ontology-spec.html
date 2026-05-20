@@ -121,10 +121,12 @@ id="toc-security-considerations">10. Security Considerations</a></li>
 <li><a href="#complete-example" id="toc-complete-example">11. Complete
 Example</a></li>
 <li><a href="#appendix-a-references"
-id="toc-appendix-a-references">Appendix A — References</a></li>
+id="toc-appendix-a-references">Appendix A: References</a></li>
 <li><a href="#appendix-b-relationship-to-owl-and-the-semantic-web"
-id="toc-appendix-b-relationship-to-owl-and-the-semantic-web">Appendix B
-— Relationship to OWL and the Semantic Web</a></li>
+id="toc-appendix-b-relationship-to-owl-and-the-semantic-web">Appendix B:
+Relationship to OWL and the Semantic Web</a></li>
+<li><a href="#static-semantics-and-lint"
+id="toc-static-semantics-and-lint">Static Semantics and Lint</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -1362,7 +1364,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="
 <span id="cb5-98"><a href="#cb5-98" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
 <span id="cb5-99"><a href="#cb5-99" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
-<h2 id="appendix-a-references">Appendix A — References</h2>
+<h2 id="appendix-a-references">Appendix A: References</h2>
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -1412,8 +1414,8 @@ System Reference”, W3C Recommendation, August 2009.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="appendix-b-relationship-to-owl-and-the-semantic-web">Appendix B
-— Relationship to OWL and the Semantic Web</h2>
+<h2 id="appendix-b-relationship-to-owl-and-the-semantic-web">Appendix B:
+Relationship to OWL and the Semantic Web</h2>
 <p>This specification is <strong>OWL-integrative, not
 OWL-compatible</strong>. It is designed to interoperate with OWL-based
 systems, not to replace them.</p>
@@ -1473,5 +1475,37 @@ representation. Round-trip fidelity is not guaranteed. The generated OWL
 is suitable for integration with semantic web infrastructure but does
 not capture the full behavioral semantics of the Definition (conditional
 relevance, calculated fields, validation shapes).</p>
+<h2 id="static-semantics-and-lint">Static Semantics and Lint</h2>
+<p>Ontology Documents are first validated against
+<code>schemas/ontology.schema.json</code>. Static semantic lint then
+checks authoring invariants without dereferencing concept URIs, system
+URIs, JSON-LD contexts, or alignment targets.</p>
+<p>The Ontology semantic pass owns the
+<code>E1200</code>/<code>W1200</code> diagnostic family:</p>
+<ul>
+<li><code>E1200</code> rejects invalid <code>concepts</code> keys and
+<code>alignments[*].field</code> paths.</li>
+<li><code>E1201</code> rejects <code>targetDefinition.url</code>
+mismatches when a paired Definition is supplied.</li>
+<li><code>E1202</code> rejects FEL-looking dynamic expressions in static
+Ontology values outside the JSON-LD <code>context.@context</code>
+fragment.</li>
+<li><code>W1200</code> warns when
+<code>targetDefinition.compatibleVersions</code> does not confidently
+include the paired Definition version.</li>
+<li><code>W1201</code> and <code>W1202</code> warn when syntactically
+valid concept or alignment paths do not resolve to Definition item
+paths.</li>
+<li><code>W1203</code> and <code>W1204</code> warn when vocabulary
+bindings or <code>valueMap</code> keys do not resolve to Definition
+option sets and option values.</li>
+<li><code>W1205</code> reports use of <code>defaultSystem</code>
+fallback, and <code>W1206</code> reports concept bindings that omit
+<code>system</code> when no fallback exists.</li>
+</ul>
+<p>The lint pass exposes static analysis facts for downstream tooling:
+normalized concept/alignment paths, resolved item paths, resolved
+option-set/value-map coverage, and the effective concept system after
+<code>defaultSystem</code> fallback.</p>
 </body>
 </html>

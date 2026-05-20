@@ -1,0 +1,61 @@
+{
+  "$formspecLocale": "1.0",
+  "version": "1.0.0",
+  "locale": "fr-CA",
+  "targetDefinition": {
+    "url": "https://example.com/forms/locale-valid",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "strings": {
+    "$form.title": "Formulaire",
+    "name.label": "Nom",
+    "choice.options.yes.label": "Oui",
+    "$optionSet.yesNo.no.label": "Non",
+    "$shape.shape-ok.message": "Obligatoire",
+    "$page.intro.title": "Introduction",
+    "$component.main.text": "Principal"
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/locale-valid",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Valid locale fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" }
+    ],
+    "optionSets": {
+      "yesNo": {
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ]
+      }
+    },
+    "shapes": [
+      { "id": "shape-ok", "target": "name", "message": "Required" }
+    ]
+  },
+  "_themeDocument": {
+    "$formspecTheme": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/locale-valid" },
+    "pages": [
+      { "id": "intro", "title": "Intro" }
+    ]
+  },
+  "_componentDocuments": [
+    {
+      "$formspecComponent": "1.0",
+      "version": "1.0.0",
+      "targetDefinition": { "url": "https://example.com/forms/locale-valid" },
+      "tree": {
+        "component": "Stack",
+        "children": [
+          { "component": "Text", "id": "main", "text": "Main" }
+        ]
+      }
+    }
+  ]
+}

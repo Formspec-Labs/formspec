@@ -1,0 +1,18 @@
+{
+  "$formspecMapping": "1.0",
+  "version": "1.0.0",
+  "definitionRef": "https://example.com/forms/reverse-condition",
+  "definitionVersion": ">=1.0.0 <2.0.0",
+  "direction": "both",
+  "targetSchema": { "format": "json" },
+  "rules": [
+    {
+      "sourcePath": "name",
+      "targetPath": "name",
+      "transform": "preserve",
+      "reverse": {
+        "condition": "1 +"
+      }
+    }
+  ]
+}

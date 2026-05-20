@@ -1,0 +1,65 @@
+{
+  "$formspecLocale": "1.0",
+  "version": "1.0.0",
+  "locale": "fr-CA",
+  "fallback": "fr",
+  "targetDefinition": {
+    "url": "https://example.com/forms/other",
+    "compatibleVersions": ">=2.0.0"
+  },
+  "strings": {
+    "$unknown.title": "Unknown namespace",
+    "ghost.label": "Fantome",
+    "name.options.yes.label": "Oui",
+    "choice.options.maybe.label": "Peut-etre",
+    "$optionSet.yesNo.maybe.label": "Peut-etre",
+    "$shape.missing.message": "Forme manquante",
+    "name.label": "Nom {{ 1 + }}",
+    "name.dataType": "string",
+    "$page.intro.subtitle": "Sous-titre invalide",
+    "$page.missing.title": "Page manquante",
+    "$component.main.label": "Principal",
+    "$component.missing.label": "Composant manquant"
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/locale",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Locale fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" }
+    ],
+    "optionSets": {
+      "yesNo": {
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ]
+      }
+    },
+    "shapes": [
+      { "id": "shape-ok", "target": "name", "message": "Required" }
+    ]
+  },
+  "_themeDocument": {
+    "$formspecTheme": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/locale" },
+    "pages": [
+      { "id": "intro", "title": "Intro" }
+    ]
+  },
+  "_componentDocuments": [
+    {
+      "$formspecComponent": "1.0",
+      "version": "1.0.0",
+      "targetDefinition": { "url": "https://example.com/forms/locale" },
+      "tree": {
+        "component": "Stack",
+        "id": "main"
+      }
+    }
+  ]
+}

@@ -2140,3 +2140,36 @@ Given a §6.7 migration descriptor *D* with source version *V_src*:
 | `expression` | `expression` | FEL bindings (`$`, `@source`) unchanged. |
 | `defaults` | `defaults` | Moved to Mapping Document top level. |
 | *(pass-through)* | `autoMap: true` | Implicit §6.7 carry-forward for unmentioned fields. |
+
+## Static Semantics and Lint
+
+Mapping Documents are first validated against `schemas/mapping.schema.json`.
+Schema validation only proves document shape. Static semantic lint then checks
+Mapping-specific invariants without executing the mapping or validating any
+projector output.
+
+The Mapping semantic pass owns the `E1100`/`W1100` diagnostic family:
+
+- `E1100` rejects invalid source paths, projection source paths, defaults keys,
+  and target-format path violations. JSON targets use dot/bracket paths, XML
+  allows attribute segments, CSV targets are simple column identifiers, and
+  `x-*` formats require only a non-empty target path.
+- `E1101` rejects FEL parse errors in `expression`, `condition`,
+  `reverse.expression`, and `reverse.condition`.
+- `E1102` rejects unsatisfiable target write overlaps such as one rule writing
+  `payload` while another writes `payload.name`.
+- `E1103` and `E1104` reject contradictory projection hints.
+- `E1105` and `E1106` reject bidirectional lossy transforms that lack an
+  explicit reverse strategy.
+- `W1100` warns on duplicate exact `targetPath` writes that rely on
+  last-write-wins.
+- `W1101` warns when a non-static transform lacks projection hints unless
+  `projection.emit` is `false`.
+
+When lint receives a paired Definition, it also resolves `sourcePath`,
+`array.innerRules[*].sourcePath`, and `projection.sourcePaths[*]` against the
+Definition item tree. These checks use `E1110` through `E1113` and `W1110`.
+The pass exposes static analysis facts for projectors, including normalized
+paths, resolved Definition items, transform class, projected target type/enum,
+requiredness, and target write footprints. Projectors remain responsible for
+validating emitted JSON Schema, OpenAPI, TypeScript, SHACL, or other output.

@@ -1,0 +1,28 @@
+{
+  "$formspecScreener": "1.0",
+  "url": "https://example.com/screeners/valid",
+  "version": "1.0.0",
+  "title": "Valid Screener",
+  "availability": {
+    "from": "2026-01-01",
+    "until": "2026-12-31"
+  },
+  "resultValidity": "P90D",
+  "evaluationBinding": "submission",
+  "items": [
+    { "key": "name", "type": "field", "label": "Name", "dataType": "string" }
+  ],
+  "binds": [
+    { "path": "name", "required": "true" }
+  ],
+  "evaluation": [
+    {
+      "id": "phase",
+      "strategy": "first-match",
+      "routes": [
+        { "target": "outcome:match", "condition": "$name != ''" },
+        { "target": "outcome:none", "condition": "true" }
+      ]
+    }
+  ]
+}

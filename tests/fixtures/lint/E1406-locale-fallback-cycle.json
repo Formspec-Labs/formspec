@@ -1,0 +1,26 @@
+{
+  "$formspecLocale": "1.0",
+  "version": "1.0.0",
+  "locale": "fr-CA",
+  "fallback": "fr",
+  "targetDefinition": {
+    "url": "https://example.com/forms/locale-cycle"
+  },
+  "strings": {
+    "$form.title": "Titre"
+  },
+  "_localeDocuments": [
+    {
+      "$formspecLocale": "1.0",
+      "version": "1.0.0",
+      "locale": "fr",
+      "fallback": "fr-CA",
+      "targetDefinition": {
+        "url": "https://example.com/forms/locale-cycle"
+      },
+      "strings": {
+        "$form.title": "Titre racine"
+      }
+    }
+  ]
+}

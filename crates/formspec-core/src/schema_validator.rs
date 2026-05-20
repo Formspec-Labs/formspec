@@ -16,6 +16,9 @@ pub enum DocumentType {
     Definition,
     Theme,
     Mapping,
+    Ontology,
+    References,
+    Locale,
     Component,
     Response,
     IntakeHandoff,
@@ -35,6 +38,9 @@ impl DocumentType {
             DocumentType::Definition => "definition",
             DocumentType::Theme => "theme",
             DocumentType::Mapping => "mapping",
+            DocumentType::Ontology => "ontology",
+            DocumentType::References => "references",
+            DocumentType::Locale => "locale",
             DocumentType::Component => "component",
             DocumentType::Response => "response",
             DocumentType::IntakeHandoff => "intake_handoff",
@@ -54,6 +60,9 @@ impl DocumentType {
             "definition" => Some(DocumentType::Definition),
             "theme" => Some(DocumentType::Theme),
             "mapping" => Some(DocumentType::Mapping),
+            "ontology" => Some(DocumentType::Ontology),
+            "references" => Some(DocumentType::References),
+            "locale" => Some(DocumentType::Locale),
             "component" => Some(DocumentType::Component),
             "response" => Some(DocumentType::Response),
             "intake_handoff" | "intakeHandoff" | "intake-handoff" => {
@@ -139,6 +148,9 @@ const MARKER_FIELDS: &[(&str, DocumentType)] = &[
     ("$formspecTheme", DocumentType::Theme),
     ("$formspecComponent", DocumentType::Component),
     ("$formspecRegistry", DocumentType::Registry),
+    ("$formspecLocale", DocumentType::Locale),
+    ("$formspecReferences", DocumentType::References),
+    ("$formspecOntology", DocumentType::Ontology),
     ("$formspecMapping", DocumentType::Mapping),
     ("$formspecResponse", DocumentType::Response),
     ("$formspecIntakeHandoff", DocumentType::IntakeHandoff),
@@ -320,6 +332,39 @@ mod tests {
     fn test_detect_mapping() {
         let doc = json!({ "$formspecMapping": "1.0", "rules": [], "targetSchema": "urn:example", "definitionRef": "https://example.org/forms/x", "definitionVersion": "1.0.0", "version": "1.0.0" });
         assert_eq!(detect_document_type(&doc), Some(DocumentType::Mapping));
+    }
+
+    #[test]
+    fn test_detect_ontology() {
+        let doc = json!({
+            "$formspecOntology": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.org/forms/x" }
+        });
+        assert_eq!(detect_document_type(&doc), Some(DocumentType::Ontology));
+    }
+
+    #[test]
+    fn test_detect_references() {
+        let doc = json!({
+            "$formspecReferences": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.org/forms/x" },
+            "references": []
+        });
+        assert_eq!(detect_document_type(&doc), Some(DocumentType::References));
+    }
+
+    #[test]
+    fn test_detect_locale() {
+        let doc = json!({
+            "$formspecLocale": "1.0",
+            "version": "1.0.0",
+            "locale": "en",
+            "targetDefinition": { "url": "https://example.org/forms/x" },
+            "strings": {}
+        });
+        assert_eq!(detect_document_type(&doc), Some(DocumentType::Locale));
     }
 
     #[test]
@@ -517,6 +562,9 @@ mod tests {
         assert_eq!(DocumentType::Definition.schema_key(), "definition");
         assert_eq!(DocumentType::Theme.schema_key(), "theme");
         assert_eq!(DocumentType::Mapping.schema_key(), "mapping");
+        assert_eq!(DocumentType::Ontology.schema_key(), "ontology");
+        assert_eq!(DocumentType::References.schema_key(), "references");
+        assert_eq!(DocumentType::Locale.schema_key(), "locale");
         assert_eq!(DocumentType::Component.schema_key(), "component");
         assert_eq!(DocumentType::Response.schema_key(), "response");
         assert_eq!(DocumentType::IntakeHandoff.schema_key(), "intake_handoff");
@@ -558,6 +606,18 @@ mod tests {
         assert_eq!(
             DocumentType::from_schema_key("fel_functions"),
             Some(DocumentType::FelFunctions)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("ontology"),
+            Some(DocumentType::Ontology)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("references"),
+            Some(DocumentType::References)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("locale"),
+            Some(DocumentType::Locale)
         );
         assert_eq!(DocumentType::from_schema_key("missing"), None);
     }

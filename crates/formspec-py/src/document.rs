@@ -43,18 +43,24 @@ pub fn detect_type(document: &Bound<'_, PyAny>) -> PyResult<Option<String>> {
 ///     mode: Optional lint mode — "authoring", "strict", or "runtime" (default)
 ///     registry_documents: Optional list of registry document dicts for extension resolution
 ///     definition_document: Optional definition document dict for cross-artifact validation
+///     theme_document: Optional theme document dict for Locale page-key validation
+///     component_documents: Optional list of component document dicts for Locale component-key validation
+///     locale_documents: Optional list of locale document dicts for fallback-chain validation
 ///     schema_only: When true, run only schema-level validation (skip semantic passes)
 ///     no_fel: When true, skip FEL expression passes
 ///
 /// Returns:
 ///     A dict with: document_type, valid, diagnostics (list of dicts)
-#[pyfunction(signature = (document, mode=None, registry_documents=None, definition_document=None, schema_only=None, no_fel=None))]
+#[pyfunction(signature = (document, mode=None, registry_documents=None, definition_document=None, theme_document=None, component_documents=None, locale_documents=None, schema_only=None, no_fel=None))]
 pub fn lint_document(
     py: Python,
     document: &Bound<'_, PyAny>,
     mode: Option<&str>,
     registry_documents: Option<&Bound<'_, PyList>>,
     definition_document: Option<&Bound<'_, PyAny>>,
+    theme_document: Option<&Bound<'_, PyAny>>,
+    component_documents: Option<&Bound<'_, PyList>>,
+    locale_documents: Option<&Bound<'_, PyList>>,
     schema_only: Option<bool>,
     no_fel: Option<bool>,
 ) -> PyResult<PyObject> {
@@ -78,10 +84,40 @@ pub fn lint_document(
         None => None,
     };
 
+    let theme_doc: Option<Value> = match theme_document {
+        Some(d) => Some(depythonize_json(d)?),
+        None => None,
+    };
+
+    let component_docs: Vec<Value> = match component_documents {
+        Some(list) => {
+            let mut docs = Vec::new();
+            for item in list.iter() {
+                docs.push(depythonize_json(&item)?);
+            }
+            docs
+        }
+        None => Vec::new(),
+    };
+
+    let locale_docs: Vec<Value> = match locale_documents {
+        Some(list) => {
+            let mut docs = Vec::new();
+            for item in list.iter() {
+                docs.push(depythonize_json(&item)?);
+            }
+            docs
+        }
+        None => Vec::new(),
+    };
+
     let options = LintOptions {
         mode: lint_mode,
         registry_documents: registry_docs,
         definition_document: def_doc,
+        theme_document: theme_doc,
+        component_documents: component_docs,
+        locale_documents: locale_docs,
         schema_only: schema_only.unwrap_or(false),
         no_fel: no_fel.unwrap_or(false),
     };

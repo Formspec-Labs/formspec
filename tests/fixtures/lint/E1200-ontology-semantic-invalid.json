@@ -1,0 +1,57 @@
+{
+  "$formspecOntology": "1.0",
+  "version": "1.0.0",
+  "url": "https://example.com/ontology/invalid",
+  "targetDefinition": {
+    "url": "https://example.com/forms/other",
+    "compatibleVersions": ">=2.0.0"
+  },
+  "concepts": {
+    "bad..path": {
+      "concept": "https://schema.org/name"
+    },
+    "ghost": {
+      "concept": "https://schema.org/identifier"
+    }
+  },
+  "vocabularies": {
+    "missingSet": {
+      "system": "https://example.com/vocab"
+    },
+    "yesNo": {
+      "system": "https://example.com/vocab/yes-no",
+      "valueMap": {
+        "maybe": "M"
+      }
+    }
+  },
+  "alignments": [
+    {
+      "field": "ghostAlign",
+      "target": {
+        "system": "urn:example",
+        "code": "$dynamicCode"
+      },
+      "type": "exact"
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/ontology",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Ontology fixture definition",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      { "key": "choice", "type": "field", "label": "Choice", "dataType": "string", "optionSet": "yesNo" }
+    ],
+    "optionSets": {
+      "yesNo": {
+        "options": [
+          { "value": "yes", "label": "Yes" },
+          { "value": "no", "label": "No" }
+        ]
+      }
+    }
+  }
+}

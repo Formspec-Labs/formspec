@@ -133,6 +133,8 @@ Requirements</a></li>
 id="toc-extended-processor-requirements">8.2 Extended Processor
 Requirements</a></li>
 </ul></li>
+<li><a href="#static-semantics-and-lint"
+id="toc-static-semantics-and-lint">Static Semantics and Lint</a></li>
 <li><a href="#schema" id="toc-schema">9. Schema</a></li>
 <li><a href="#security-considerations"
 id="toc-security-considerations">10. Security Considerations</a></li>
@@ -1364,6 +1366,35 @@ unrecognized <code>type</code> (non-<code>x-</code>-prefixed) SHOULD
 emit a warning and MAY skip the reference, but MUST NOT reject the
 document.</li>
 </ul>
+<h2 id="static-semantics-and-lint">Static Semantics and Lint</h2>
+<p>References Documents are first validated against
+<code>schemas/references.schema.json</code>. Static semantic lint then
+checks references as metadata only: it resolves in-document pointers and
+target paths for authoring feedback, but it does not turn references
+into validation rules, requiredness, relevance, readonly behavior, or
+inherited child constraints.</p>
+<p>The References semantic pass owns the
+<code>E1300</code>/<code>W1300</code> diagnostic family:</p>
+<ul>
+<li><code>E1300</code> rejects <code>references[*].$ref</code> pointers
+that do not resolve to <code>referenceDefs</code>.</li>
+<li><code>E1301</code> rejects <code>referenceDefs</code> entries whose
+explicit <code>id</code> does not match the map key.</li>
+<li><code>E1302</code> rejects duplicate authored reference ids.
+Repeated use of the same <code>$ref</code> key is reuse, not a duplicate
+id.</li>
+<li><code>E1303</code> rejects malformed
+<code>references[*].target</code> paths.</li>
+<li><code>E1304</code> rejects FEL-looking dynamic expressions in static
+reference metadata.</li>
+<li><code>W1300</code> and <code>W1301</code> warn for unknown
+non-<code>x-</code> <code>type</code> and <code>rel</code> values.</li>
+</ul>
+<p>When lint receives a paired Definition, <code>E1310</code> rejects
+<code>targetDefinition.url</code> mismatches, <code>W1310</code> warns
+on compatible-version mismatch, and <code>W1311</code> warns when a
+syntactically valid target path does not resolve to <code>#</code> or a
+Definition item path.</p>
 <h2 id="schema">9. Schema</h2>
 <p>The normative JSON Schema for References Documents is defined in
 <code>schemas/references.schema.json</code>. This is a standalone schema
@@ -1421,58 +1452,85 @@ range.</td>
 entry specifies a target path (item key or ‘#’ for form-level) and a
 reference or <span class="math inline">$ref pointer. References are
 static and resolved at load time. |
+| `#/$</span>defs/BoundReference/properties/<span
+class="math inline">$ref` |
+`$</span>ref<code>| &lt;code&gt;string&lt;/code&gt; | no | pattern: &lt;code&gt;^#/referenceDefs/[a-zA-Z][a-zA-Z0-9_-]*&amp;#36;&lt;/code&gt; | JSON Pointer (RFC 6901) to a referenceDefs entry. Resolved at load time. | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/audience` |
+`audience` | &lt;code&gt;string&lt;/code&gt; | no | enum:
+&lt;code&gt;"human"&lt;/code&gt;, &lt;code&gt;"agent"&lt;/code&gt;,
+&lt;code&gt;"both"&lt;/code&gt; | — |
+|
+`#/$</span>defs/BoundReference/properties/content<code>|</code>content<code>| &lt;code&gt;composite&lt;/code&gt; | no | — | — | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/description` |
+`description` | &lt;code&gt;string&lt;/code&gt; | no | — | — |
+|
+`#/$</span>defs/BoundReference/properties/extensions<code>|</code>extensions<code>| &lt;code&gt;object&lt;/code&gt; | no | — | — | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/id` | `id` |
+&lt;code&gt;string&lt;/code&gt; | no | pattern:
+&lt;code&gt;^[a-zA-Z][a-zA-Z0-9_-]*&amp;#36;&lt;/code&gt; | — |
+|
+`#/$</span>defs/BoundReference/properties/language<code>|</code>language<code>| &lt;code&gt;string&lt;/code&gt; | no | — | — | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/mediaType` |
+`mediaType` | &lt;code&gt;string&lt;/code&gt; | no | — | — |
+|
+`#/$</span>defs/BoundReference/properties/priority<code>|</code>priority<code>| &lt;code&gt;string&lt;/code&gt; | no | enum: &lt;code&gt;"primary"&lt;/code&gt;, &lt;code&gt;"supplementary"&lt;/code&gt;, &lt;code&gt;"background"&lt;/code&gt; | — | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/rel` | `rel` |
+&lt;code&gt;string&lt;/code&gt; | no | — | — |
+|
+`#/$</span>defs/BoundReference/properties/selector<code>|</code>selector<code>| &lt;code&gt;string&lt;/code&gt; | no | — | — | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/tags` | `tags` |
+&lt;code&gt;array&lt;/code&gt; | no | — | — |
 |
 `#/$</span>defs/BoundReference/properties/target<code>|</code>target<code>| &lt;code&gt;string&lt;/code&gt; | yes | critical | Path identifying which Definition item(s) this reference applies to. Uses dot notation for nesting and [*] for all instances of a repeatable group. The special value '#' means form-level (applies to the entire form). Multiple references may target the same path. | |</code>#/<span
-class="math inline">$defs/Reference/properties/audience` | `audience` |
-&lt;code&gt;string&lt;/code&gt; | yes | enum:
-&lt;code&gt;"human"&lt;/code&gt;, &lt;code&gt;"agent"&lt;/code&gt;,
-&lt;code&gt;"both"&lt;/code&gt;; critical | Who consumes this reference.
-'human': rendered in the UI (help panels, links, tooltips). 'agent':
-consumed programmatically by AI agents (not rendered). 'both': available
-to both rendering and agent pipelines. |
+class="math inline">$defs/BoundReference/properties/title` | `title` |
+&lt;code&gt;string&lt;/code&gt; | no | — | — |
 |
-`#/$</span>defs/Reference/properties/content<code>|</code>content<code>| &lt;code&gt;composite&lt;/code&gt; | no | — | Inline content of the reference. REQUIRED unless 'uri' is provided. May be a plain text string, markdown, or structured JSON object. | |</code>#/<span
-class="math inline">$defs/Reference/properties/description` |
-`description` | &lt;code&gt;string&lt;/code&gt; | no | — | Longer
-explanation of what this reference provides and why it is relevant. |
+`#/$</span>defs/BoundReference/properties/type<code>|</code>type<code>| &lt;code&gt;string&lt;/code&gt; | no | — | — | |</code>#/<span
+class="math inline">$defs/BoundReference/properties/uri` | `uri` |
+&lt;code&gt;string&lt;/code&gt; | no | — | — |
 |
-`#/$</span>defs/Reference/properties/extensions<code>|</code>extensions<code>| &lt;code&gt;object&lt;/code&gt; | no | — | Reference-level extension data. All keys MUST be prefixed with 'x-'. | |</code>#/<span
-class="math inline">$defs/Reference/properties/id` | `id` |
-&lt;code&gt;string&lt;/code&gt; | no | pattern:
-&lt;code&gt;^[a-zA-Z][a-zA-Z0-9_-]*&amp;#36;&lt;/code&gt; | Identifier
-for this reference. RECOMMENDED. When present, MUST be unique within
-this References Document. When used as a referenceDefs key, the key and
-id MUST match (processing-time validation). |
+`#/$</span>defs/Reference/properties/audience<code>|</code>audience<code>| &lt;code&gt;string&lt;/code&gt; | yes | enum: &lt;code&gt;"human"&lt;/code&gt;, &lt;code&gt;"agent"&lt;/code&gt;, &lt;code&gt;"both"&lt;/code&gt;; critical | Who consumes this reference. 'human': rendered in the UI (help panels, links, tooltips). 'agent': consumed programmatically by AI agents (not rendered). 'both': available to both rendering and agent pipelines. | |</code>#/<span
+class="math inline">$defs/Reference/properties/content` | `content` |
+&lt;code&gt;composite&lt;/code&gt; | no | — | Inline content of the
+reference. REQUIRED unless 'uri' is provided. May be a plain text
+string, markdown, or structured JSON object. |
 |
-`#/$</span>defs/Reference/properties/language<code>|</code>language<code>| &lt;code&gt;string&lt;/code&gt; | no | — | BCP 47 language tag for the referenced content. | |</code>#/<span
-class="math inline">$defs/Reference/properties/mediaType` | `mediaType`
-| &lt;code&gt;string&lt;/code&gt; | no | — | MIME type of the referenced
-resource (RFC 2045). |
+`#/$</span>defs/Reference/properties/description<code>|</code>description<code>| &lt;code&gt;string&lt;/code&gt; | no | — | Longer explanation of what this reference provides and why it is relevant. | |</code>#/<span
+class="math inline">$defs/Reference/properties/extensions` |
+`extensions` | &lt;code&gt;object&lt;/code&gt; | no | — |
+Reference-level extension data. All keys MUST be prefixed with 'x-'. |
 |
-`#/$</span>defs/Reference/properties/priority<code>|</code>priority<code>| &lt;code&gt;string&lt;/code&gt; | no | enum: &lt;code&gt;"primary"&lt;/code&gt;, &lt;code&gt;"supplementary"&lt;/code&gt;, &lt;code&gt;"background"&lt;/code&gt; | Relative importance. 'primary': surfaced first. 'supplementary' (implicit default): normal. 'background': contextual. | |</code>#/<span
-class="math inline">$defs/Reference/properties/rel` | `rel` |
-&lt;code&gt;string&lt;/code&gt; | no | — | Semantic relationship to the
-target. Known values: 'authorizes', 'constrains', 'defines',
-'exemplifies', 'supersedes', 'superseded-by', 'derived-from', 'see-also'
-(implicit default). Custom types MUST be prefixed with 'x-'.
-Unrecognized non-'x-' values: processor SHOULD warn and treat as
-'see-also'. |
+`#/$</span>defs/Reference/properties/id<code>|</code>id<code>| &lt;code&gt;string&lt;/code&gt; | no | pattern: &lt;code&gt;^[a-zA-Z][a-zA-Z0-9_-]*&amp;#36;&lt;/code&gt; | Identifier for this reference. RECOMMENDED. When present, MUST be unique within this References Document. When used as a referenceDefs key, the key and id MUST match (processing-time validation). | |</code>#/<span
+class="math inline">$defs/Reference/properties/language` | `language` |
+&lt;code&gt;string&lt;/code&gt; | no | — | BCP 47 language tag for the
+referenced content. |
 |
-`#/$</span>defs/Reference/properties/selector<code>|</code>selector<code>| &lt;code&gt;string&lt;/code&gt; | no | — | Fragment-targeting hint for resources without native fragment semantics. | |</code>#/<span
-class="math inline">$defs/Reference/properties/tags` | `tags` |
-&lt;code&gt;array&lt;/code&gt; | no | — | Categorization tags for
-filtering and grouping references. |
+`#/$</span>defs/Reference/properties/mediaType<code>|</code>mediaType<code>| &lt;code&gt;string&lt;/code&gt; | no | — | MIME type of the referenced resource (RFC 2045). | |</code>#/<span
+class="math inline">$defs/Reference/properties/priority` | `priority` |
+&lt;code&gt;string&lt;/code&gt; | no | enum:
+&lt;code&gt;"primary"&lt;/code&gt;,
+&lt;code&gt;"supplementary"&lt;/code&gt;,
+&lt;code&gt;"background"&lt;/code&gt; | Relative importance. 'primary':
+surfaced first. 'supplementary' (implicit default): normal.
+'background': contextual. |
 |
-`#/$</span>defs/Reference/properties/title<code>|</code>title<code>| &lt;code&gt;string&lt;/code&gt; | no | — | Human-readable label for this reference. RECOMMENDED. | |</code>#/<span
-class="math inline">$defs/Reference/properties/type` | `type` |
-&lt;code&gt;string&lt;/code&gt; | yes | critical | Classification of the
-referenced resource. Human-oriented: 'documentation', 'example'. Shared:
-'regulation', 'policy', 'glossary', 'schema'. Agent-oriented:
-'vector-store', 'knowledge-base', 'retrieval', 'tool', 'api', 'context'.
-Custom types MUST be prefixed with 'x-'. Unrecognized non-'x-' types:
-processor SHOULD warn and MAY skip. |
+`#/$</span>defs/Reference/properties/rel<code>|</code>rel<code>| &lt;code&gt;string&lt;/code&gt; | no | — | Semantic relationship to the target. Known values: 'authorizes', 'constrains', 'defines', 'exemplifies', 'supersedes', 'superseded-by', 'derived-from', 'see-also' (implicit default). Custom types MUST be prefixed with 'x-'. Unrecognized non-'x-' values: processor SHOULD warn and treat as 'see-also'. | |</code>#/<span
+class="math inline">$defs/Reference/properties/selector` | `selector` |
+&lt;code&gt;string&lt;/code&gt; | no | — | Fragment-targeting hint for
+resources without native fragment semantics. |
 |
-`#/$</span>defs/Reference/properties/uri<code>|</code>uri<code>| &lt;code&gt;string&lt;/code&gt; | no | — | URI of the referenced resource. REQUIRED unless 'content' is provided. Supports https:, vectorstore:, kb:, formspec-fn:, and urn: schemes. | |</code>#/$defs/ReferenceOrRef<code>|</code>(self)<code>| &lt;code&gt;composite&lt;/code&gt; | — | — | Either a full inline Reference object, or a $ref pointer to a referenceDefs entry with optional property overrides. When $ref is present, the base object is shallow-merged with sibling properties (overrides win). The 'id' property MUST NOT appear alongside $ref — the referenceDefs key becomes the resolved id. MAINTENANCE NOTE: The $ref branch explicitly lists override properties — if a property is added to Reference, it must also be added to the $ref branch or overrides for that property will be silently rejected. | |</code>#/$defs/ReferenceDefs<code>|</code>(self)`</td>
+`#/$</span>defs/Reference/properties/tags<code>|</code>tags<code>| &lt;code&gt;array&lt;/code&gt; | no | — | Categorization tags for filtering and grouping references. | |</code>#/<span
+class="math inline">$defs/Reference/properties/title` | `title` |
+&lt;code&gt;string&lt;/code&gt; | no | — | Human-readable label for this
+reference. RECOMMENDED. |
+|
+`#/$</span>defs/Reference/properties/type<code>|</code>type<code>| &lt;code&gt;string&lt;/code&gt; | yes | critical | Classification of the referenced resource. Human-oriented: 'documentation', 'example'. Shared: 'regulation', 'policy', 'glossary', 'schema'. Agent-oriented: 'vector-store', 'knowledge-base', 'retrieval', 'tool', 'api', 'context'. Custom types MUST be prefixed with 'x-'. Unrecognized non-'x-' types: processor SHOULD warn and MAY skip. | |</code>#/<span
+class="math inline">$defs/Reference/properties/uri` | `uri` |
+&lt;code&gt;string&lt;/code&gt; | no | — | URI of the referenced
+resource. REQUIRED unless 'content' is provided. Supports https:,
+vectorstore:, kb:, formspec-fn:, and urn: schemes. |
+|
+`#/$</span>defs/ReferenceOrRef<code>|</code>(self)<code>| &lt;code&gt;composite&lt;/code&gt; | — | — | Either a full inline Reference object, or a $ref pointer to a referenceDefs entry with optional property overrides. When $ref is present, the base object is shallow-merged with sibling properties (overrides win). The 'id' property MUST NOT appear alongside $ref — the referenceDefs key becomes the resolved id. MAINTENANCE NOTE: The $ref branch explicitly lists override properties — if a property is added to Reference, it must also be added to the $ref branch or overrides for that property will be silently rejected. | |</code>#/$defs/ReferenceDefs<code>|</code>(self)`</td>
 </tr>
 </tbody>
 </table>

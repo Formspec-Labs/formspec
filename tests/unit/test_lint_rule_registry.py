@@ -123,18 +123,24 @@ def _scan_linter_source_for_codes() -> set[str]:
     excluding code strings that appear inside `#[cfg(test)] mod tests` blocks
     (those are synthetic fixtures, not real emission sites).
     """
-    import re
 
     src_root = REPO_ROOT / "crates" / "formspec-lint" / "src"
-    string_pattern = re.compile(r'"([EW]\d{3})"')
-    enum_pattern = re.compile(r"LintCode::([EW]\d{3})")
     codes: set[str] = set()
     for path in src_root.rglob("*.rs"):
         text = path.read_text(encoding="utf-8")
-        production_text = _strip_test_modules(text)
-        codes.update(string_pattern.findall(production_text))
-        codes.update(enum_pattern.findall(production_text))
+        codes.update(_scan_rust_source_for_codes(text))
     return codes
+
+
+def _scan_rust_source_for_codes(rust_source: str) -> set[str]:
+    import re
+
+    production_text = _strip_test_modules(rust_source)
+    string_pattern = re.compile(r'"([EW]\d{3,4})"')
+    enum_pattern = re.compile(r"LintCode::([EW]\d{3,4})")
+    return set(string_pattern.findall(production_text)) | set(
+        enum_pattern.findall(production_text)
+    )
 
 
 def _strip_test_modules(rust_source: str) -> str:
@@ -193,6 +199,20 @@ def test_strip_test_modules_removes_test_code_literals() -> None:
     assert '"W999"' not in stripped, (
         "test-module code literal should be stripped from the production scan"
     )
+
+
+def test_source_scanner_catches_three_and_four_digit_codes() -> None:
+    sample = (
+        'fn emit_legacy() { LintDiagnostic::error("E100", 1, "$", "x"); }\n'
+        "fn emit_companion() { let _code = LintCode::W1205; }\n"
+        'fn emit_companion_string() { LintDiagnostic::warning("E1406", 9, "$", "y"); }\n'
+        "\n"
+        "#[cfg(test)]\n"
+        "mod tests {\n"
+        '    fn test_only() { let _code = "E1500"; }\n'
+        "}\n"
+    )
+    assert _scan_rust_source_for_codes(sample) == {"E100", "W1205", "E1406"}
 
 
 def test_strip_test_modules_handles_literal_braces_in_strings() -> None:
@@ -305,11 +325,17 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
             # `_registryDocuments` (stripped and forwarded to lint()).
             paired_definition = document.pop("_pairedDefinition", None)
             registry_documents = document.pop("_registryDocuments", None)
+            theme_document = document.pop("_themeDocument", None)
+            component_documents = document.pop("_componentDocuments", None)
+            locale_documents = document.pop("_localeDocuments", None)
 
             diagnostics = lint(
                 document,
                 component_definition=paired_definition,
                 registry_documents=registry_documents,
+                theme_document=theme_document,
+                component_documents=component_documents,
+                locale_documents=locale_documents,
             )
             matching = [d for d in diagnostics if d.code == code]
             if not matching:

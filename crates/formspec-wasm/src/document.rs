@@ -11,8 +11,6 @@ use serde::Deserialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
-#[cfg(feature = "lint")]
-use crate::json_host::parse_json_as;
 use crate::json_host::{parse_value_str, to_json_string};
 
 // ── Schema Validation ───────────────────────────────────────────
@@ -54,14 +52,20 @@ pub fn plan_schema_validation_wasm(
 #[cfg(feature = "lint")]
 #[derive(Debug, Default, Deserialize)]
 struct LintDocumentWasmOptions {
-    #[serde(default, alias = "registry_documents")]
+    #[serde(default, alias = "registryDocuments")]
     registry_documents: Vec<Value>,
     mode: Option<String>,
-    #[serde(default, alias = "definition_document")]
+    #[serde(default, alias = "definitionDocument")]
     definition_document: Option<Value>,
-    #[serde(default, alias = "schema_only")]
+    #[serde(default, alias = "themeDocument")]
+    theme_document: Option<Value>,
+    #[serde(default, alias = "componentDocuments")]
+    component_documents: Vec<Value>,
+    #[serde(default, alias = "localeDocuments")]
+    locale_documents: Vec<Value>,
+    #[serde(default, alias = "schemaOnly")]
     schema_only: bool,
-    #[serde(default, alias = "no_fel")]
+    #[serde(default, alias = "noFel")]
     no_fel: bool,
 }
 
@@ -79,6 +83,9 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
         mode: LintMode::from_host_option_str(parsed.mode.as_deref()),
         registry_documents: parsed.registry_documents,
         definition_document: parsed.definition_document,
+        theme_document: parsed.theme_document,
+        component_documents: parsed.component_documents,
+        locale_documents: parsed.locale_documents,
         schema_only: parsed.schema_only,
         no_fel: parsed.no_fel,
     })
@@ -90,8 +97,8 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
 #[wasm_bindgen(js_name = "lintDocument")]
 pub fn lint_document(doc_json: &str, options_json: Option<String>) -> Result<String, JsError> {
     let doc: Value = parse_value_str(doc_json, "JSON").map_err(|e| JsError::new(&e))?;
-    let options = lint_options_from_wasm_json(options_json.as_deref())
-        .map_err(|e| JsError::new(&e))?;
+    let options =
+        lint_options_from_wasm_json(options_json.as_deref()).map_err(|e| JsError::new(&e))?;
     let result = lint_with_options(&doc, &options);
     let json = lint_result_to_json_value(&result, JsonWireStyle::JsCamel);
     to_json_string(&json).map_err(|e| JsError::new(&e))
@@ -109,4 +116,74 @@ pub fn lint_document_with_registries(
         doc_json,
         Some(format!(r#"{{"registryDocuments":{registries_json}}}"#)),
     )
+}
+
+#[cfg(all(test, feature = "lint"))]
+mod tests {
+    use serde_json::json;
+
+    use super::lint_options_from_wasm_json;
+    use formspec_lint::LintMode;
+
+    #[test]
+    fn lint_options_accept_camel_case_host_keys() {
+        let options = lint_options_from_wasm_json(Some(
+            r#"{
+                "mode": "strict",
+                "registryDocuments": [{"$formspecRegistry": "1.0"}],
+                "definitionDocument": {"$formspec": "1.0"},
+                "themeDocument": {"$formspecTheme": "1.0"},
+                "componentDocuments": [{"$formspecComponent": "1.0"}],
+                "localeDocuments": [{"$formspecLocale": "1.0"}],
+                "schemaOnly": true,
+                "noFel": true
+            }"#,
+        ))
+        .expect("camelCase lint options should deserialize");
+
+        assert_eq!(options.mode, LintMode::Strict);
+        assert_eq!(options.registry_documents.len(), 1);
+        assert_eq!(
+            options.definition_document,
+            Some(json!({"$formspec": "1.0"}))
+        );
+        assert_eq!(
+            options.theme_document,
+            Some(json!({"$formspecTheme": "1.0"}))
+        );
+        assert_eq!(options.component_documents.len(), 1);
+        assert_eq!(options.locale_documents.len(), 1);
+        assert!(options.schema_only);
+        assert!(options.no_fel);
+    }
+
+    #[test]
+    fn lint_options_accept_snake_case_host_keys() {
+        let options = lint_options_from_wasm_json(Some(
+            r#"{
+                "registry_documents": [{"$formspecRegistry": "1.0"}],
+                "definition_document": {"$formspec": "1.0"},
+                "theme_document": {"$formspecTheme": "1.0"},
+                "component_documents": [{"$formspecComponent": "1.0"}],
+                "locale_documents": [{"$formspecLocale": "1.0"}],
+                "schema_only": true,
+                "no_fel": true
+            }"#,
+        ))
+        .expect("snake_case lint options should deserialize");
+
+        assert_eq!(options.registry_documents.len(), 1);
+        assert_eq!(
+            options.definition_document,
+            Some(json!({"$formspec": "1.0"}))
+        );
+        assert_eq!(
+            options.theme_document,
+            Some(json!({"$formspecTheme": "1.0"}))
+        );
+        assert_eq!(options.component_documents.len(), 1);
+        assert_eq!(options.locale_documents.len(), 1);
+        assert!(options.schema_only);
+        assert!(options.no_fel);
+    }
 }

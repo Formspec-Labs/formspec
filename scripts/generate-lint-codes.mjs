@@ -37,7 +37,7 @@ function variantName(code) {
 function generateRust(rules) {
   const codes = rules.map((r) => {
     const code = r.code;
-    if (!code || !/^[EW]\d{3}$/.test(code)) {
+    if (!code || !/^[EW]\d{3,4}$/.test(code)) {
       throw new Error(`invalid lint code: ${code}`);
     }
     return { code, pass: r.pass };
