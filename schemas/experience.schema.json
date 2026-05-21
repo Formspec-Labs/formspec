@@ -117,8 +117,69 @@
         }
       }
     },
-    "Unit": true,
-    "UnitKind": true,
+    "Unit": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef (forthcoming).",
+          "examples": ["identity", "householdReview", "submitConfirmation"]
+        },
+        "kind": {
+          "$ref": "#/$defs/UnitKind"
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "actorRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Actor this unit is intended for. MUST resolve to actors[].id."
+        },
+        "taskRefs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$" },
+          "description": "Tasks this unit advances. Each MUST resolve to tasks[].id."
+        },
+        "itemRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ItemRef" }
+        },
+        "conceptRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ConceptRef" }
+        },
+        "actionRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ActionRef" }
+        },
+        "applicability": { "$ref": "#/$defs/Applicability" },
+        "accessibility": { "$ref": "#/$defs/Accessibility" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "UnitKind": {
+      "type": "string",
+      "enum": [
+        "data-entry",
+        "review",
+        "confirmation",
+        "evidence-collection",
+        "attestation",
+        "error-resolution",
+        "assistance"
+      ],
+      "description": "Closed, abstract, task-oriented unit kind. data-entry: user provides or revises data. review: read-only display of captured data. confirmation: user affirms accuracy before a transition. evidence-collection: user supplies evidence (attachments, attestations). attestation: user certifies a statement under accountability. error-resolution: user resolves a validation finding. assistance: user receives help.",
+      "examples": ["data-entry", "review", "confirmation"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Closed task-oriented enum; closure prevents layout-container drift"
+      }
+    },
     "ItemRef": true,
     "ConceptRef": true,
     "ActionRef": true,
