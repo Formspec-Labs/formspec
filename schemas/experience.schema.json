@@ -60,7 +60,17 @@
     },
     "units": {
       "type": "array",
+      "description": "Substantive Experience payload. Each Unit organizes typed item, concept, and action references under abstract task intent.",
       "items": { "$ref": "#/$defs/Unit" },
+      "examples": [
+        [
+          {
+            "id": "identity",
+            "kind": "data-entry",
+            "itemRefs": [{ "path": "applicantName" }]
+          }
+        ]
+      ],
       "x-lm": {
         "critical": true,
         "intent": "Substantive payload; units organize typed references under tasks"
