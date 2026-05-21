@@ -180,9 +180,70 @@
         "intent": "Closed task-oriented enum; closure prevents layout-container drift"
       }
     },
-    "ItemRef": true,
-    "ConceptRef": true,
-    "ActionRef": true,
+    "ItemRef": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical Definition item path using Core FieldRef syntax. For repeat-group children use the [*] wildcard path (e.g., household.members[*].firstName).",
+          "examples": ["applicantName", "household.members[*].firstName"]
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["collect", "display", "attest", "cite"],
+          "description": "User-facing purpose. Default depends on enclosing unit.kind (S6.1)."
+        },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ConceptRef": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Registry / Ontology concept identifier."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["registry", "ontology", "external"],
+          "default": "registry"
+        },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ActionRef": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Response Action identifier (forthcoming companion spec)."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["primary", "secondary", "escape"],
+          "default": "primary"
+        },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
     "Applicability": true,
     "Accessibility": true
   }
