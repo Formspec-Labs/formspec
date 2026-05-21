@@ -357,3 +357,18 @@ The static predicate is intentionally narrow. It does NOT check:
 - Whether the unit is well-formed for the user -- `unit.kind`, `taskRefs`, `actorRef`, and accessibility intent are not part of coverage.
 
 Future revisions MAY add a *dynamic coverage* predicate that exercises FEL evaluation against representative posture / Response snapshots. This spec defers that to a profile or a Trace-driven check (concept §10.6).
+
+## 9. Seeding an Experience from a Definition
+
+*This section is informative, not normative.*
+
+Tools MAY seed an Experience Document from a Definition. A reasonable seed strategy:
+
+1. For each top-level Definition item or group, create a `Unit` with `kind: "data-entry"`.
+2. For repeat groups, create one Unit per group whose `itemRefs[]` covers the group's children.
+3. Place a single `Unit` with `kind: "confirmation"` and zero `itemRefs` at the end (the seeded experience can subsequently be edited to populate confirmation references).
+4. Populate `actors` with a single `applicant` actor; assign every Unit `actorRef: "applicant"`.
+
+This is a starting point, not a recommendation. Experience and Definition are **different concepts** (concept §6.2): a Definition group describes data structure (`household.members[]`); an Experience Unit describes task intent (`identify applicant`). Seeded Experiences SHOULD be edited to reflect actual task structure, not left as 1:1 mirrors of Definition shape.
+
+A seeded Experience that has been edited by a human or generator MUST satisfy the same schema and coverage rules as a hand-authored Experience. Seeding does not create a privileged document class.
