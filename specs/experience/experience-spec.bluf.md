@@ -1,0 +1,5 @@
+- This document defines the Experience Document -- an authored sidecar JSON artifact that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions.
+- A valid Experience Document requires `$formspecExperience`, `version`, `targetDefinition`, and at least one of `actors`, `tasks`, or `units` (at minimum one populated `units` array is RECOMMENDED).
+- `unit.kind` is a closed, abstract, task-oriented registry -- `data-entry`, `review`, `confirmation`, `evidence-collection`, `attestation`, `error-resolution`, `assistance` -- chosen so units do not become layout containers.
+- Coverage is a static predicate: every Definition item that is required and not statically non-relevant MUST appear in at least one `unit.itemRefs`; Coverage-aware processors MUST report uncovered required items.
+- Experience MUST NOT affect data capture, validation, or the processing model; this BLUF is governed by `schemas/experience.schema.json`, the canonical structural contract.
