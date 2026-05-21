@@ -48,7 +48,7 @@ The remainder of this README is a feature inventory — useful for navigating th
 
 - **Item types** — field (data entry), group (container/section), display (read-only text like nonprofitPhoneHint)
 - **Nested children** — field-under-field hierarchy (orgType > orgSubType yields path applicantInfo.orgType.orgSubType)
-- **6 wizard pages** — Applicant Info, Project Narrative, Budget, Project Phases, Subcontractors, Review & Submit (via presentation.layout.page)
+- **6 wizard pages** — Applicant Info, Project Narrative, Budget, Project Phases, Subcontractors, Review & Submit (via theme page layout)
 
 **Data types**
 
@@ -163,14 +163,14 @@ The remainder of this README is a feature inventory — useful for navigating th
 ### Theme (presentation)
 
 - **Web theme (theme.json)** — USWDS-flavored tokens (13 colors, 5 spacing xs-xl, 3 typography, 2 radius, 3 elevation, focusRing, grid columns, 5 USWDS class tokens), 3-level cascade (defaults -> selectors -> items), widget declarations (MoneyInput for money, RadioGroup for choice, Toggle for boolean, FileUpload for attachment), 2 stylesheets (USWDS bridge + grant bridge), responsive breakpoints (sm/md/lg/xl), 2 page regions (applicant-info with 5 responsive grid cells, project-budget with 4 cells), target definition binding with semver range `>=1.0.0 <2.0.0`
-- **PDF theme (theme-pdf.json)** — print-first tokens (Times New Roman serif, 11pt, narrow mm spacing, monochrome palette), platform: pdf, static widget overrides (paragraph default for fields, section for groups, heading for display items), item overrides (ein monospace + letter-spacing, abstract pre-wrap, requestedAmount bold), x-pdf extension metadata (letter, portrait, page numbers), 3 page regions (applicant-info, project-budget, review-submit), 5 selectors (group, field, boolean, money, display)
+- **PDF theme (theme-pdf.json)** — print-first tokens (Times New Roman serif, 11pt, narrow mm spacing, monochrome palette), platform: pdf, static widget overrides (`Text` for fields, `Section` for groups, `Heading` for display items), item overrides (ein monospace + letter-spacing, abstract pre-wrap, requestedAmount bold), x-pdf extension metadata (letter, portrait, page numbers), 3 page regions (applicant-info, project-budget, review-submit), 5 selectors (group, field, boolean, money, display)
 - **Cascade demonstrated** — defaults (labelPosition top, widgetConfig with USWDS x-classes mapping root/label/control/hint/error), 5 selectors matching by dataType (money, choice, boolean, attachment) and item type (group), per-item overrides (orgName bold + primary underline, ein monospace + cssClass, abstract with minHeight + ARIA description + liveRegion)
-- **Accessibility** — liveRegion (polite) on attachment fields and abstract textarea, ARIA description on projectNarrative.abstract ("Enter a detailed project abstract")
+- **Accessibility** — liveRegion (polite) on attachment fields and the multiline `TextInput` for abstract (`maxLines`), ARIA description on projectNarrative.abstract ("Enter a detailed project abstract")
 
 ### Components (interaction)
 
-- **Wizard layout** — Wizard root (showProgress, no skip) with 6 Pages: Applicant Info, Project Narrative, Budget, Project Phases, Subcontractors, Review & Submit
-- **Core components (17 types)** — Stack (11), Grid (6), Columns (2), TextInput (8), NumberInput (1), DatePicker (3), Select (1), CheckboxGroup (1), Toggle (1), FileUpload (2), Heading (2), Text (20), Divider (2), Card (3), Collapsible (4), ConditionalGroup (2), Spacer (2)
+- **Wizard layout** — Wizard root (showProgress, no skip) with 6 Sections: Applicant Info, Project Narrative, Budget, Project Phases, Subcontractors, Review & Submit
+- **Core components (16 types)** — Section (6), Stack (11), Grid (8), TextInput (8), NumberInput (1), DatePicker (3), Select (1), CheckboxGroup (1), Toggle (1), FileUpload (2), Heading (2), Text (20), Divider (2), Card (3), Collapsible (4), ConditionalGroup (2)
 - **Progressive components (15 types)** — Tabs (1), Accordion (1), RadioGroup (1), MoneyInput (1), Slider (1), Rating (1), Alert (6), Badge (5), ProgressBar (1), DataTable (3), Panel (1), Modal (3), Popover (4), Signature (1), Summary (5)
 - **Custom components** — ContactField (parameterized: `field`) used 3x for contact inputs; SummaryRow (parameterized: `label`, `field`) used 2x for inline key-value display
 - **Slot binding** — `bind` property on input components linking to definition item keys (50 bindings total: 23 direct input binds, 17 Summary item binds, 3 DataTable binds, plus display and repeat binds)
@@ -178,7 +178,7 @@ The remainder of this README is a feature inventory — useful for navigating th
 - **Responsive design** — 3 breakpoints (sm 576, md 768, lg 1024); Grid column adaptation (3->2->1 at md/sm for contacts, 2->1 at sm for org fields)
 - **Token references** — `$token.space.lg`, `$token.space.md`, `$token.space.sm` used throughout for consistent spacing in Stack gaps and Grid gutters
 - **Local tokens** — 3 component-level token definitions: `space.lg` (32px), `color.accent` (#2e7d32), `border.card` (1px solid #dfe1e2)
-- **Total** — 118 component nodes across 36 distinct types (17 core + 15 progressive + 2 custom + Wizard + Page)
+- **Total** — 118 component nodes across 33 schema-defined component types plus 2 custom components; navigation is driven by direct-root `Section` page units.
 
 ### Mapping DSL (data transforms)
 

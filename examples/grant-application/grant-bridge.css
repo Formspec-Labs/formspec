@@ -21,9 +21,9 @@
   margin-top: 0;
 }
 
-/* ── Page heading ─────────────────────────────────────────────── */
+/* ── Section heading ──────────────────────────────────────────── */
 
-.formspec-page > h2 {
+.formspec-section > h2 {
   font-size: 1.625rem;
   font-weight: 700;
   margin-bottom: 1.25rem;
@@ -582,9 +582,9 @@ hr.formspec-divider {
   background: #d9e8f6;
 }
 
-/* ── Columns widths override ──────────────────────────────────── */
+/* ── Grid track override ───────────────────────────────────────── */
 
-.formspec-columns[style*="2fr"][style*="1fr"] {
+.formspec-grid[style*="2fr"][style*="1fr"] {
   gap: 1.5rem;
 }
 

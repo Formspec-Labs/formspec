@@ -34,7 +34,7 @@
     "component": "Stack",
     "children": [
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Profile",
         "children": [
           {
@@ -57,7 +57,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Financial",
         "children": [
           {
@@ -92,7 +92,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Schedule",
         "children": [
           {

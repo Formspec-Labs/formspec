@@ -24,8 +24,7 @@
               { "component": "TextInput", "bind": "header.customerName" },
               { "component": "DatePicker", "bind": "header.invoiceDate" },
               { "component": "DatePicker", "bind": "header.dueDate" },
-              { "component": "TextInput", "bind": "header.customerEmail" },
-              { "component": "Spacer" }
+              { "component": "TextInput", "bind": "header.customerEmail" }
             ]
           }
         ]

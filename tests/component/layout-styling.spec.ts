@@ -103,7 +103,7 @@ test.describe('Grant App: Tab Spacing', () => {
     await page.waitForTimeout(50);
 
     const topPadding = await page.locator(
-      '.formspec-tabs:not([data-position]) .formspec-tab-panels, .formspec-tabs[data-position="top"] .formspec-tab-panels'
+      '.formspec-tabs:not([data-placement]) .formspec-tab-panels, .formspec-tabs[data-placement="top"] .formspec-tab-panels'
     ).first().evaluate((el) => getComputedStyle(el).paddingTop);
 
     expect(topPadding).not.toBe('0px');

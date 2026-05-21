@@ -25,7 +25,7 @@
     "pdf.page.numberSize": "9pt"
   },
   "defaults": {
-    "widget": "paragraph",
+    "widget": "Text",
     "labelPosition": "top",
     "style": {
       "fontFamily": "$token.type.fontFamily",
@@ -39,7 +39,7 @@
     {
       "match": { "type": "group" },
       "apply": {
-        "widget": "section",
+        "widget": "Section",
         "style": {
           "borderBottom": "$token.border.rule",
           "paddingBottom": "$token.space.sm",
@@ -50,7 +50,7 @@
     {
       "match": { "type": "field" },
       "apply": {
-        "widget": "paragraph",
+        "widget": "Text",
         "style": {
           "marginBottom": "$token.space.sm"
         }
@@ -59,7 +59,7 @@
     {
       "match": { "dataType": "boolean" },
       "apply": {
-        "widget": "paragraph",
+        "widget": "Text",
         "widgetConfig": {
           "trueText": "Yes",
           "falseText": "No"
@@ -69,7 +69,7 @@
     {
       "match": { "dataType": "money" },
       "apply": {
-        "widget": "paragraph",
+        "widget": "Text",
         "style": {
           "fontVariantNumeric": "tabular-nums"
         }
@@ -78,7 +78,7 @@
     {
       "match": { "type": "display" },
       "apply": {
-        "widget": "heading",
+        "widget": "Heading",
         "style": {
           "fontWeight": "700",
           "marginBottom": "$token.space.xs"

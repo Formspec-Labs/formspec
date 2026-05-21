@@ -21,6 +21,7 @@ from tests.unit.support.schema_fixtures import build_schema_registry, load_schem
 # ---------------------------------------------------------------------------
 
 DEFINITION_SCHEMA = load_schema("definition.schema.json")
+COMMON_SCHEMA = load_schema("common.schema.json")
 RESPONSE_SCHEMA = load_schema("response.schema.json")
 VALIDATION_REPORT_SCHEMA = load_schema("validation-report.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
@@ -29,6 +30,7 @@ REGISTRY_SCHEMA = load_schema("registry.schema.json")
 
 # Pre-build referencing registry so cross-file $refs resolve.
 _REF_REGISTRY = build_schema_registry(
+    COMMON_SCHEMA,
     DEFINITION_SCHEMA,
     RESPONSE_SCHEMA,
     VALIDATION_REPORT_SCHEMA,

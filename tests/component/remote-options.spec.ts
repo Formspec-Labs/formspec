@@ -44,7 +44,7 @@ test.describe('Components: Remote Options Binding', () => {
         version: '1.0.0',
         targetDefinition: { url: 'http://example.org/remote-options-select' },
         tree: {
-          component: 'Page',
+          component: 'Section',
           children: [{ component: 'Select', bind: 'state', placeholder: 'Choose state' }],
         },
       };
@@ -94,7 +94,7 @@ test.describe('Components: Remote Options Binding', () => {
         version: '1.0.0',
         targetDefinition: { url: 'http://example.org/remote-options-failure' },
         tree: {
-          component: 'Page',
+          component: 'Section',
           children: [{ component: 'Select', bind: 'country' }],
         },
       };

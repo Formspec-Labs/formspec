@@ -23,7 +23,7 @@ test.describe('Components: Core Props and Regression Fixes', () => {
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "tree": {
-                    "component": "Page",
+                    "component": "Section",
                     "children": [
                         {
                             "component": "Card",
@@ -58,7 +58,7 @@ test.describe('Components: Core Props and Regression Fixes', () => {
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "tree": {
-                    "component": "Page",
+                    "component": "Section",
                     "children": [
                         { "component": "Alert", "text": "Warning!", "severity": "warning", "dismissible": true }
                     ]
@@ -112,18 +112,18 @@ test.describe('Components: Progressive Component Rendering', () => {
         await waitForWasm(page);
     });
 
-    test('should render a grid with the configured column count when using Columns', async ({ page }) => {
+    test('should render a grid with the configured column count when using Grid', async ({ page }) => {
         await page.evaluate(() => {
             const el = document.querySelector('formspec-render') as any;
             el.definition = {
                 "$formspec": "1.0", "url": "http://example.org/test",
-                "version": "1.0.0", "title": "Columns Test", "items": []
+                "version": "1.0.0", "title": "Grid Test", "items": []
             };
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "tree": {
-                    "component": "Columns",
-                    "columnCount": 3,
+                    "component": "Grid",
+                    "columns": 3,
                     "children": [
                         { "component": "Text", "text": "A" },
                         { "component": "Text", "text": "B" },
@@ -133,7 +133,7 @@ test.describe('Components: Progressive Component Rendering', () => {
             };
         });
 
-        const columns = page.locator('.formspec-columns');
+        const columns = page.locator('.formspec-grid');
         const display = await columns.evaluate(el => getComputedStyle(el).display);
         expect(display).toBe('grid');
         const colCount = await columns.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
@@ -225,7 +225,7 @@ test.describe('Components: Progressive Component Rendering', () => {
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "tree": {
-                    "component": "Page",
+                    "component": "Section",
                     "children": [
                         { "component": "Slider", "bind": "vol", "min": 0, "max": 100, "step": 5, "showValue": true }
                     ]
@@ -260,7 +260,7 @@ test.describe('Components: Progressive Component Rendering', () => {
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "tree": {
-                    "component": "Page",
+                    "component": "Section",
                     "children": [
                         { "component": "Rating", "bind": "score", "max": 5 }
                     ]
@@ -295,7 +295,7 @@ test.describe('Components: Progressive Component Rendering', () => {
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "tree": {
-                    "component": "Page",
+                    "component": "Section",
                     "children": [
                         { "component": "Rating", "bind": "score", "max": 5, "icon": "heart", "allowHalf": true }
                     ]

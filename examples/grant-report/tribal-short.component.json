@@ -9,7 +9,7 @@
         "component": "Stack",
         "children": [
             {
-                "component": "Page",
+                "component": "Section",
                 "title": "Basic Information",
                 "children": [
                     {
@@ -42,7 +42,7 @@
                 ]
             },
             {
-                "component": "Page",
+                "component": "Section",
                 "title": "Expenditure Categories",
                 "children": [
                     {
@@ -82,7 +82,7 @@
                 ]
             },
             {
-                "component": "Page",
+                "component": "Section",
                 "title": "Expenditure Details",
                 "children": [
                     {
@@ -181,7 +181,7 @@
             }
             ,
             {
-                "component": "Page",
+                "component": "Section",
                 "title": "Review & Submit",
                 "children": [
                     {

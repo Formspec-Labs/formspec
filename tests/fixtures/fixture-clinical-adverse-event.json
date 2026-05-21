@@ -61,7 +61,6 @@
       "label": "Participant",
       "presentation": {
         "layout": {
-          "page": "Participant"
         }
       },
       "children": [
@@ -96,7 +95,6 @@
       "label": "Adverse event",
       "presentation": {
         "layout": {
-          "page": "Event"
         }
       },
       "children": [

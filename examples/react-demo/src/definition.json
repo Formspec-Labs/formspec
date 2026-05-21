@@ -58,13 +58,13 @@
       "key": "welcomeBanner",
       "type": "display",
       "label": "Applications for the 2026 funding cycle are now open. Deadline: June 30, 2026.",
-      "presentation": { "widgetHint": "banner" }
+      "presentation": { "widgetHint": "x-banner" }
     },
     {
       "key": "orgHeader",
       "type": "display",
       "label": "Part 1: Applicant Information",
-      "presentation": { "widgetHint": "heading" }
+      "presentation": { "widgetHint": "Heading" }
     },
     {
       "key": "orgInstructions",
@@ -167,13 +167,13 @@
       "key": "projectDivider",
       "type": "display",
       "label": "",
-      "presentation": { "widgetHint": "divider" }
+      "presentation": { "widgetHint": "Divider" }
     },
     {
       "key": "projectHeader",
       "type": "display",
       "label": "Part 2: Project & Budget",
-      "presentation": { "widgetHint": "heading" }
+      "presentation": { "widgetHint": "Heading" }
     },
     {
       "key": "project",
@@ -193,7 +193,7 @@
           "dataType": "choice",
           "label": "Funding Priority",
           "hint": "How urgently does this project need funding?",
-          "presentation": { "widgetHint": "radio" },
+          "presentation": { "widgetHint": "RadioGroup" },
           "options": [
             { "value": "urgent", "label": "Urgent — community need is immediate" },
             { "value": "high", "label": "High — significant impact within 6 months" },

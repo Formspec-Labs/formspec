@@ -31,8 +31,8 @@
     "SummaryRow": {
       "params": ["label", "field"],
       "tree": {
-        "component": "Columns",
-        "widths": ["1fr", "2fr"],
+        "component": "Grid",
+        "columns": ["1fr", "2fr"],
         "gap": "$token.space.md",
         "children": [
           { "component": "Text", "text": "{label}", "style": { "fontWeight": "bold" } },
@@ -45,23 +45,23 @@
     "component": "Stack",
     "children": [
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Applicant Info",
         "description": "Enter your organization details and primary contact information.",
         "children": [
           {
-            "component": "Columns",
-            "widths": ["3fr", "1fr"],
-            "responsive": { "sm": { "widths": ["1fr"] }, "md": { "widths": ["1fr"] } },
+            "component": "Grid",
+            "columns": ["3fr", "1fr"],
+            "responsive": { "sm": { "columns": ["1fr"] }, "md": { "columns": ["1fr"] } },
             "children": [
               {
                 "component": "Stack",
                 "gap": "$token.space.lg",
                 "children": [
                   {
-                    "component": "Columns",
-                    "widths": ["2fr", "1fr"],
-                    "responsive": { "sm": { "widths": ["1fr"] } },
+                    "component": "Grid",
+                    "columns": ["2fr", "1fr"],
+                    "responsive": { "sm": { "columns": ["1fr"] } },
                     "children": [
                       { "component": "TextInput", "bind": "applicantInfo.orgName", "placeholder": "Acme Nonprofit, Inc." },
                       { "component": "TextInput", "bind": "applicantInfo.ein", "placeholder": "12-3456789" }
@@ -98,7 +98,7 @@
               },
               {
                 "component": "Panel",
-                "position": "right",
+                "placement": "right",
                 "title": "Applicant Help",
                 "width": "260px",
                 "children": [
@@ -115,7 +115,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Project Narrative",
         "children": [
           {
@@ -140,7 +140,7 @@
               {
                 "component": "Tabs",
                 "tabLabels": ["Schedule", "Rates & Areas"],
-                "position": "top",
+                "placement": "top",
                 "defaultTab": 0,
                 "children": [
                   {
@@ -184,7 +184,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Budget",
         "children": [
           {
@@ -236,9 +236,7 @@
                 "gap": "$token.space.md",
                 "rowGap": "$token.space.sm",
                 "children": [
-                  { "component": "Spacer" },
-                  { "component": "MoneyInput", "bind": "budget.requestedAmount", "currency": "USD", "showCurrency": true, "locale": "en-US" },
-                  { "component": "Spacer" }
+                  { "component": "MoneyInput", "bind": "budget.requestedAmount", "currency": "USD", "showCurrency": true, "locale": "en-US", "layout": { "grid": { "start": 2 } } }
                 ]
               },
               { "component": "Toggle", "bind": "budget.usesSubcontractors", "onLabel": "Yes", "offLabel": "No" },
@@ -313,7 +311,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Project Phases",
         "children": [
           {
@@ -376,7 +374,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Subcontractors",
         "children": [
           {
@@ -443,7 +441,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Review & Submit",
         "children": [
           {

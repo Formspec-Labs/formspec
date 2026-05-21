@@ -24,17 +24,17 @@ const THREE_PAGE_TREE = {
         component: 'Stack',
         children: [
             {
-                component: 'Page',
+                component: 'Section',
                 title: 'Personal',
                 children: [{ component: 'TextInput', bind: 'name' }],
             },
             {
-                component: 'Page',
+                component: 'Section',
                 title: 'Contact',
                 children: [{ component: 'TextInput', bind: 'email' }],
             },
             {
-                component: 'Page',
+                component: 'Section',
                 title: 'Extra',
                 children: [{ component: 'TextInput', bind: 'notes' }],
             },

@@ -82,12 +82,12 @@ test.describe('Components: Grant App Component Rendering', () => {
     expect(bg).not.toBe('rgba(0, 0, 0, 0)');
   });
 
-  test('should render Applicant Help panel with right position metadata', async ({ page }) => {
+  test('should render Applicant Help panel with right placement metadata', async ({ page }) => {
     const helpPanel = page.locator('.formspec-panel').filter({
       has: page.locator('.formspec-panel-header', { hasText: 'Applicant Help' }),
     });
     await expect(helpPanel).toHaveCount(1);
-    await expect(helpPanel).toHaveAttribute('data-position', 'right');
+    await expect(helpPanel).toHaveAttribute('data-placement', 'right');
   });
 
   test('should support modal trigger and size variants on Subcontractors page', async ({ page }) => {

@@ -184,7 +184,6 @@
       "label": "Applicant Information",
       "presentation": {
         "layout": {
-          "page": "Applicant Info"
         }
       },
       "children": [
@@ -314,7 +313,6 @@
       "label": "Project Narrative",
       "presentation": {
         "layout": {
-          "page": "Project Narrative"
         }
       },
       "children": [
@@ -442,7 +440,6 @@
       "label": "Budget",
       "presentation": {
         "layout": {
-          "page": "Budget",
           "flow": "grid",
           "columns": 2,
           "collapsible": true,
@@ -511,7 +508,7 @@
           "hint": "Must match the calculated grand total.",
           "presentation": {
             "layout": {
-              "colSpan": 2
+              "grid": { "span": 2 }
             }
           }
         },
@@ -541,7 +538,6 @@
       "label": "Project Phases",
       "presentation": {
         "layout": {
-          "page": "Project Phases"
         }
       },
       "repeatable": true,
@@ -608,7 +604,6 @@
       "label": "Subcontractors",
       "presentation": {
         "layout": {
-          "page": "Subcontractors"
         }
       },
       "repeatable": true,
@@ -647,7 +642,6 @@
       "label": "Supporting Documents",
       "presentation": {
         "layout": {
-          "page": "Review & Submit"
         }
       },
       "children": [

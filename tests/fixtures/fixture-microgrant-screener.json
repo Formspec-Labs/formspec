@@ -95,7 +95,7 @@
       "key": "introBanner",
       "label": "Community Microgrant Application",
       "presentation": {
-        "widgetHint": "banner",
+        "widgetHint": "Alert",
         "styleHints": {
           "emphasis": "primary"
         }
@@ -107,7 +107,6 @@
       "label": "Applicant",
       "presentation": {
         "layout": {
-          "page": "Applicant"
         }
       },
       "children": [
@@ -155,7 +154,6 @@
       "label": "Project",
       "presentation": {
         "layout": {
-          "page": "Project"
         }
       },
       "children": [
@@ -246,7 +244,6 @@
       "label": "Contact",
       "presentation": {
         "layout": {
-          "page": "Contact"
         }
       },
       "children": [
@@ -275,7 +272,6 @@
       "label": "Certifications",
       "presentation": {
         "layout": {
-          "page": "Review"
         }
       },
       "children": [

@@ -62,7 +62,6 @@
       "label": "Vendor profile",
       "presentation": {
         "layout": {
-          "page": "Vendor"
         }
       },
       "children": [
@@ -114,7 +113,6 @@
       "label": "Related parties",
       "presentation": {
         "layout": {
-          "page": "Disclosures"
         }
       },
       "children": [
@@ -180,7 +178,6 @@
       "label": "Certification",
       "presentation": {
         "layout": {
-          "page": "Certification"
         }
       },
       "children": [

@@ -113,6 +113,7 @@
       "targetPath": "project.title_upper",
       "transform": "split",
       "expression": "upper($)",
+      "bidirectional": false,
       "description": "Split-transform example for derived title channel consumed by downstream ETL.",
       "priority": 96
     },
@@ -203,8 +204,8 @@
       "targetPath": "budget.currency",
       "transform": "expression",
       "expression": "$",
-      "priority": 78,
-      "reversePriority": 70
+      "bidirectional": false,
+      "priority": 78
     },
     {
       "sourcePath": "budget.lineItems",

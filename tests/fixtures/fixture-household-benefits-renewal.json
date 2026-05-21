@@ -106,7 +106,6 @@
       "label": "Household",
       "presentation": {
         "layout": {
-          "page": "Household"
         }
       },
       "children": [
@@ -248,7 +247,6 @@
       "label": "Renewal contact",
       "presentation": {
         "layout": {
-          "page": "Contact"
         }
       },
       "children": [

@@ -54,36 +54,36 @@
   "selectors": [
     {
       "match": { "dataType": "string" },
-      "apply": { "widget": "textInput" }
+      "apply": { "widget": "TextInput" }
     },
     {
       "match": { "dataType": "text" },
-      "apply": { "widget": "textarea", "widgetConfig": { "rows": 5 } }
+      "apply": { "widget": "TextInput", "widgetConfig": { "rows": 5 } }
     },
     {
       "match": { "dataType": "choice" },
-      "apply": { "widget": "dropdown" }
+      "apply": { "widget": "Select" }
     },
     {
       "match": { "dataType": "multiChoice" },
-      "apply": { "widget": "checkboxGroup", "widgetConfig": { "columns": 2 } }
+      "apply": { "widget": "CheckboxGroup", "widgetConfig": { "columns": 2 } }
     },
     {
       "match": { "dataType": "boolean" },
-      "apply": { "widget": "checkbox" }
+      "apply": { "widget": "Toggle" }
     },
     {
       "match": { "dataType": "date" },
-      "apply": { "widget": "datePicker" }
+      "apply": { "widget": "DatePicker" }
     },
     {
       "match": { "dataType": "decimal" },
-      "apply": { "widget": "numberInput" }
+      "apply": { "widget": "NumberInput" }
     },
     {
       "match": { "dataType": "attachment" },
       "apply": {
-        "widget": "fileUpload",
+        "widget": "FileUpload",
         "widgetConfig": {
           "accept": ".pdf,.doc,.docx,.xls,.xlsx",
           "maxSizeMb": 10
@@ -92,7 +92,7 @@
     },
     {
       "match": { "type": "display" },
-      "apply": { "widget": "paragraph" }
+      "apply": { "widget": "Text" }
     }
   ],
   "items": {
@@ -123,7 +123,7 @@
       }
     },
     "review_section.cert_heading": {
-      "widget": "heading",
+      "widget": "Heading",
       "style": {
         "marginTop": "$token.spacing.xl"
       }
