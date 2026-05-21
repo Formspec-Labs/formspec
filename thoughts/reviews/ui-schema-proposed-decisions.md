@@ -5,6 +5,8 @@ Source review: `thoughts/reviews/ui-schema.md`
 Lens: greenfield project, cheap refactoring, no ratified legacy surface, maximize user value, extension flexibility, and low architecture debt.
 Status: controlling decision artifact for the UI-schema cleanup. `ui-schema.md` remains the evidence record; this file wins if the two diverge.
 
+Current implementation status, validated 2026-05-21: **needs hardening**. The core schema/runtime migration is mostly landed and tested, but the governance layer is not complete: page-conflict lint, shared policy matrices, structured fallback policy, breakpoint alignment, and some authoring-surface cleanup remain open.
+
 ## Executive Verdict
 
 Use the ADR 0052 accepted-alternative path for v1.
@@ -26,6 +28,27 @@ Current v1 direction:
 4. **Codify page precedence.** Component direct-root `Section` page units win when present. Otherwise `theme.pages` may define page layout. Do not implicitly merge competing page structures; lint conflicts.
 5. **Build shared policy matrices.** Put compatibility, fallback, attention, extension discovery, token references, and breakpoint alignment in machine-readable artifacts consumed first by Rust lint, then by runtime and MCP authoring tools.
 6. **Keep lint/tooling work separate from schema work.** Token namespace governance, extension discovery, and invalid responsive-prop checks belong in lint/tooling unless a local structural rule can be enforced cleanly in schema.
+
+### Validated Implementation Status
+
+| Area | Status | Current read |
+|---|---|---|
+| Independent fixes and schema posture | Done | Numeric compatibility, `cssClass` merge behavior, responsive structural-key blocking, root `x-*`, and closed-schema posture are implemented. Add a Definition-root `x-*` conformance test for parity with Theme and Component. |
+| `common.schema.json` extraction | Done | Shared `TargetDefinition`, `Tokens`, `Breakpoints`, `AccessibilityBlock`, `Extensions`, and visual surface primitives exist and generated types consume them. |
+| Coordinated schema/runtime bump | Mostly done | `Section`, `Grid`, `Stack`, canonical PascalCase widgets, `GridTrack`, `layout.grid`, visual surface props, and generated/runtime surfaces are in place. Remaining drift is in authoring examples/stories and some stale explanatory labels. |
+| Page authority precedence | Partial | Runtime precedence is implemented: direct-root `Section` page units win, then `theme.pages`, then generated definition-group fallback. Missing: author-facing lint/diagnostics for shadowed or incompatible Theme/Component page structures. |
+| Shared policy matrices | Partial | TS has a shared widget compatibility surface and Rust lint has a tested compatibility table, but they are still separate sources. Fallback policy, attention policy, token namespace rules, extension discovery, breakpoint alignment, and page-conflict rules are not yet one shared machine-readable seam. |
+| Lint/tooling governance | Partial | W711/W712 and token warnings cover part of the surface. Missing: Theme/Component page-structure conflict lint, same-name breakpoint mismatch lint, component-specific responsive-prop lint, and structured fallback-policy validation. |
+
+### Hardening Backlog
+
+1. Add page-structure conflict diagnostics and lint fixtures for Theme pages shadowed by direct-root Component `Section` page units and for incompatible active page assignments.
+2. Replace prose fallback notes with a structured fallback-policy artifact or ADR covering `carry`, `drop`, and `translate`.
+3. Unify compatibility/fallback/breakpoint/token policy into a shared machine-readable matrix consumed by Rust lint first, then runtime/tooling.
+4. Add same-name Theme/Component breakpoint alignment checks and component-specific responsive override validation.
+5. Clean remaining authoring-surface drift: stale `Page`/`Columns`/`Spacer` narration in planner tests and stories, and decide whether retired names stay reserved for custom components or are removed from the reserved-name guard.
+6. Strengthen fixture coverage by asserting direct-root `Section` page units and absence of legacy component aliases in migrated component examples.
+7. Fix repo hygiene blockers before closeout, including current `git diff --check` trailing-whitespace failure outside this document.
 
 ## User Value Narratives
 
