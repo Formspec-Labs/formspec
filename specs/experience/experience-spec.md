@@ -253,3 +253,45 @@ A Unit MAY declare accessibility intent that informs (not dictates) generator an
 | `accessibility.requiresLiteracy` | boolean | OPTIONAL | Whether the unit presumes reading fluency. Informative. |
 
 Accessibility intent does NOT define WCAG conformance, ARIA roles, or any concrete accessibility implementation. Those live in Component / Theme renderer profiles.
+
+## 6. Typed References
+
+Typed references bind a Unit to specific Definition / Registry / Action identities. All references are **by identifier**; Experience does NOT inline the referenced content.
+
+### 6.1 ItemRef
+
+References a Definition item by canonical path.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `path` | string | REQUIRED | Canonical Definition item path. For repeat-group children, use the unindexed path (e.g., `household.members[].firstName`). |
+| `purpose` | string (`collect`, `display`, `attest`, `cite`) | OPTIONAL | The user-facing purpose for this reference within the unit. Default: `collect` for `data-entry` and `evidence-collection`; `display` for `review` and `confirmation`. |
+| `description` | string | OPTIONAL | Optional clarifying note for generators and reviewers. |
+
+The `path` MUST resolve in the loaded Definition. Resolution semantics for repeat-group items: an `itemRef.path` of `household.members[].firstName` covers every instance under `household.members[*]`. A processor MUST treat that ItemRef as covering all current and future instances of `firstName` within `household.members`.
+
+A processor MUST report a finding for any `ItemRef.path` that does not resolve in the target Definition.
+
+### 6.2 ConceptRef
+
+References a Registry / Ontology concept identifier.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `id` | string | REQUIRED | Concept identifier (e.g., Registry concept id, ontology IRI). |
+| `source` | string (`registry`, `ontology`, `external`) | OPTIONAL | Origin of the concept identifier. Default: `registry`. |
+| `description` | string | OPTIONAL | Optional clarifying note. |
+
+ConceptRefs are informative for processors that do not load a Registry or Ontology Document. A Coverage-aware processor that loads a Registry / Ontology MUST report a finding for unresolved `ConceptRef.id`.
+
+### 6.3 ActionRef
+
+References a Response Action identifier (forthcoming companion spec, concept §10.2).
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `id` | string | REQUIRED | Response Action identifier. |
+| `role` | string (`primary`, `secondary`, `escape`) | OPTIONAL | The action's role in this unit. Default: `primary`. |
+| `description` | string | OPTIONAL | Optional clarifying note. |
+
+Until the Response Actions companion spec lands, `ActionRef.id` is a free string. Processors MUST NOT reject an Experience because `ActionRef.id` does not resolve -- resolution depends on a sibling spec that does not yet exist. Coverage-aware processors MAY emit an informative finding ("ActionRef target spec not present").
