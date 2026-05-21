@@ -200,3 +200,56 @@ Tasks SHOULD be named in user-domain language (e.g., `identifyHousehold`, `revie
 A Unit MAY reference zero, one, or many tasks via `unit.taskRefs[]` (S5.1). A Task without any referring Unit is permitted but is informationally inert -- it signals planned work not yet bound to data collection.
 
 A processor MUST reject an Experience that references a `unit.taskRefs[]` entry not present in `tasks[]`.
+
+## 5. Units
+
+A **Unit** is the substantive payload of an Experience Document. Each Unit groups typed references to Definition items, concepts, and actions under one or more tasks and a `kind`.
+
+### 5.1 Unit Shape
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `id` | string (camelCase, unique within `units[]`) | REQUIRED | Stable identifier. Referenced by Component nodes via `unitRef` (forthcoming, concept §10.4). |
+| `kind` | string (registry, S5.2) | REQUIRED | Abstract task-oriented classification. |
+| `title` | string | OPTIONAL | Human-readable label. |
+| `description` | string | OPTIONAL | Free-form description of what the user is doing in this unit. |
+| `actorRef` | string | OPTIONAL | The actor this unit is intended for. MUST resolve to an `actor.id`. |
+| `taskRefs` | array of string | OPTIONAL | Tasks this unit advances. Each entry MUST resolve to a `task.id`. |
+| `itemRefs` | array of `ItemRef` (S6.1) | OPTIONAL | Definition items collected, displayed, or attested in this unit. |
+| `conceptRefs` | array of `ConceptRef` (S6.2) | OPTIONAL | Registry / Ontology concepts represented in this unit. |
+| `actionRefs` | array of `ActionRef` (S6.3) | OPTIONAL | Response Actions invoked from this unit (forthcoming companion spec). |
+| `applicability` | object | OPTIONAL | Per-Unit applicability override (S7). |
+| `accessibility` | object | OPTIONAL | Accessibility intent (S5.3). |
+| `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
+
+A Unit with zero `itemRefs`, zero `conceptRefs`, and zero `actionRefs` is permitted but contributes nothing to coverage (S8). Such units are intended for placeholder or planning purposes.
+
+### 5.2 The `unit.kind` Registry
+
+`unit.kind` is a **closed, abstract, task-oriented enum**. The closure is deliberate: per concept note §6.2, units must not become layout containers, and per §9 the spec stops if "units become layout containers or required fields can disappear from generated experiences without detection."
+
+| Value | Meaning |
+|-------|---------|
+| `data-entry` | The user provides or revises data. |
+| `review` | The user reviews previously captured data, typically read-only. |
+| `confirmation` | The user affirms accuracy or intent prior to a state transition. |
+| `evidence-collection` | The user provides evidence (attachments, attestations, signatures, citations). |
+| `attestation` | The user certifies a statement under accountability (signing, oath, affirmation). |
+| `error-resolution` | The user resolves a validation finding or correction request. |
+| `assistance` | The user receives help or works with an assister or agent. |
+
+These values describe **task intent**. They do not bind the unit to any specific Component layout -- a `data-entry` unit MAY be rendered as a card, a page, a step, a panel, a CLI prompt, or any other Component-domain pattern (concept §7.1).
+
+**Extension:** processors MUST reject `kind` values not in this table. To carry custom semantics, authors MUST use the `extensions` property with an `x-` prefix (S12); they MUST NOT introduce new top-level `kind` values.
+
+### 5.3 Accessibility Intent
+
+A Unit MAY declare accessibility intent that informs (not dictates) generator and renderer choices:
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `accessibility.assistive` | boolean | OPTIONAL | Whether the unit is intended to be operable with assistive technology (default: `true`). |
+| `accessibility.complexity` | string (`low`, `moderate`, `high`) | OPTIONAL | Estimated cognitive complexity. Informative; processors MAY use this to bias toward simpler widgets or to surface help references. |
+| `accessibility.requiresLiteracy` | boolean | OPTIONAL | Whether the unit presumes reading fluency. Informative. |
+
+Accessibility intent does NOT define WCAG conformance, ARIA roles, or any concrete accessibility implementation. Those live in Component / Theme renderer profiles.
