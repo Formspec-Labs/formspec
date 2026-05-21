@@ -98,6 +98,7 @@ describe('project.import', () => {
     });
 
     expect(project.state.mappings.default).toEqual({
+      version: '2.0.0',
       definitionRef: 'urn:formspec:imported',
       definitionVersion: '1.2.3',
       targetSchema: { format: 'json', root: 'payload' },
@@ -105,10 +106,10 @@ describe('project.import', () => {
     });
     expect(project.state.mappings.default).not.toHaveProperty('$formspecMapping');
     expect(project.state.mappings.default).not.toHaveProperty('$schema');
-    expect(project.state.mappings.default).not.toHaveProperty('version');
+    expect(project.state.mappings.default).toHaveProperty('version', '2.0.0');
     expect(project.mapping).toMatchObject({
       $formspecMapping: '1.0',
-      version: '0.1.0',
+      version: '2.0.0',
       definitionRef: 'urn:formspec:imported',
       definitionVersion: '1.2.3',
       targetSchema: { format: 'json', root: 'payload' },

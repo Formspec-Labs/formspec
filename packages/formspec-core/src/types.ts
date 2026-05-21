@@ -55,6 +55,7 @@ export interface ThemeState {
  * Handlers read/write rules, targetSchema, adapters, etc.
  */
 export interface MappingState {
+  version?: string;
   rules?: FieldRule[];
   targetSchema?: TargetSchema;
   definitionRef?: string;

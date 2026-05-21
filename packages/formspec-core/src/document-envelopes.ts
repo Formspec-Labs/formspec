@@ -65,7 +65,6 @@ export function mappingStateFromDocument(doc: MappingDocument): MappingState {
   const {
     $formspecMapping: _v,
     $schema: _schema,
-    version: _version,
     ...rest
   } = doc;
   return rest as MappingState;
