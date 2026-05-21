@@ -161,3 +161,24 @@ At least one of `actors`, `tasks`, or `units` SHOULD be populated; a document wi
   ]
 }
 ```
+
+## 3. Actors
+
+An **Actor** is a named role that interacts with the form. Actors are declarative identifiers -- Experience does NOT define authorization, authentication, or access control. Those are out of scope.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `id` | string (camelCase, unique within `actors[]`) | REQUIRED | Stable identifier. Referenced by `unit.actorRef`. |
+| `title` | string | OPTIONAL | Human-readable label. |
+| `description` | string | OPTIONAL | Free-form role description. |
+| `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
+
+**Common actors** (informative): `applicant`, `respondent`, `reviewer`, `approver`, `assister`, `agent`, `caseworker`. These are not enumerated by this spec; authors choose identifiers that fit their domain.
+
+Actors are referenced by:
+
+- `unit.actorRef` (S5.1) -- the actor for whom the unit's task is intended.
+- `task.actorRefs[]` (S4) -- the actors who participate in a task.
+- `applicability.actorRefs[]` (S7) -- actor predicates for applicability resolution.
+
+A processor MUST reject an Experience that references an `actorRef` not present in `actors[]`. (Schema enforces shape; this rule is referential and enforced by Coverage-aware processors and validators.)
