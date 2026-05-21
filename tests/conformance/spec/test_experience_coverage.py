@@ -53,6 +53,20 @@ def _field_items(definition: dict) -> dict[str, dict]:
     return fields
 
 
+def _item_paths(definition: dict) -> set[str]:
+    paths: set[str] = set()
+
+    def walk(items: list[dict], prefix: str = ""):
+        for item in items:
+            path = _join_path(prefix, item)
+            paths.add(path)
+            if item.get("children"):
+                walk(item["children"], path)
+
+    walk(definition.get("items", []))
+    return paths
+
+
 def _has_static_false_relevance(path: str, binds_by_path: dict[str, dict]) -> bool:
     parts = path.split(".")
     candidates = [".".join(parts[:idx]) for idx in range(1, len(parts) + 1)]
@@ -107,6 +121,25 @@ def coverage_findings(definition: dict, experience: dict) -> list[dict]:
     ]
 
 
+def unresolved_item_refs(definition: dict, experience: dict) -> list[dict]:
+    """Compute EXP-ITEM-REF-UNRESOLVED findings per S10."""
+    definition_paths = _item_paths(definition)
+    findings: list[dict] = []
+    for unit in experience.get("units", []):
+        for ref in unit.get("itemRefs", []):
+            if ref["path"] not in definition_paths:
+                findings.append(
+                    {
+                        "code": "EXP-ITEM-REF-UNRESOLVED",
+                        "severity": "warning",
+                        "path": ref["path"],
+                        "unitId": unit.get("id"),
+                        "message": f"ItemRef.path '{ref['path']}' does not resolve in target Definition.",
+                    }
+                )
+    return findings
+
+
 @pytest.fixture(scope="module")
 def definition_base():
     return _load("definition-base.json")
@@ -126,3 +159,18 @@ class TestExperienceCoverage:
         assert finding["code"] == "EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM"
         assert finding["path"] == "applicantName"
         assert finding["severity"] == "warning"
+
+
+class TestExperienceReferentialIntegrity:
+    def test_dangling_item_ref_produces_finding(self, definition_base):
+        experience = _load("invalid-dangling-item-ref.json")
+        findings = unresolved_item_refs(definition_base, experience)
+        assert len(findings) == 1
+        assert findings[0]["code"] == "EXP-ITEM-REF-UNRESOLVED"
+        assert findings[0]["path"] == "nonexistentField"
+        assert findings[0]["unitId"] == "ghost"
+
+    def test_clean_experience_produces_no_finding(self, definition_base):
+        experience = _load("coverage-pass.json")
+        findings = unresolved_item_refs(definition_base, experience)
+        assert findings == []

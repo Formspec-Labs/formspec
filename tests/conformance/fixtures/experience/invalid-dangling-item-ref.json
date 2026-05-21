@@ -1,0 +1,19 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "name": "dangling-ref-fail",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/coverage-demo",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "units": [
+    {
+      "id": "ghost",
+      "kind": "data-entry",
+      "itemRefs": [
+        { "path": "applicantName" },
+        { "path": "nonexistentField" }
+      ]
+    }
+  ]
+}
