@@ -326,21 +326,33 @@ def test_grant_definition_exercises_ref_keyprefix_and_migration_coverage() -> No
     assert migration["defaults"]["budget.requestedAmount.currency"] == "USD"
     assert migration["defaults"]["projectNarrative.selfAssessment"] == 3
 
-def test_grant_definition_uses_presentation_layout_page_path() -> None:
+def test_grant_definition_and_component_page_migration() -> None:
+    # 1. Verify definition items no longer use legacy page paths
     definition = _load_json(DEFINITION_PATH)
     all_items = _iter_items(definition["items"])
-
     presented_items = [item for item in all_items if isinstance(item.get("presentation"), dict)]
     assert presented_items
-    assert all("page" not in item["presentation"] for item in presented_items)
+    for item in presented_items:
+        assert "page" not in item["presentation"]
+        if "layout" in item["presentation"]:
+            assert "page" not in item["presentation"]["layout"]
 
-    page_names = {
-        item["presentation"]["layout"]["page"]
-        for item in all_items
-        if isinstance(item.get("presentation"), dict)
-        and isinstance(item["presentation"].get("layout"), dict)
-        and isinstance(item["presentation"]["layout"].get("page"), str)
-    }
+    # 2. Verify component.json uses Section components as pages
+    component = _load_json(GRANT_APP_DIR / "component.json")
+    sections = []
+    def traverse(node):
+        if isinstance(node, dict):
+            if node.get("component") == "Section":
+                sections.append(node)
+            for val in node.values():
+                if isinstance(val, (dict, list)):
+                    traverse(val)
+        elif isinstance(node, list):
+            for item in node:
+                traverse(item)
+
+    traverse(component.get("tree", {}))
+    page_names = {sec["title"] for sec in sections if isinstance(sec.get("title"), str)}
     assert EXPECTED_PAGE_NAMES.issubset(page_names)
 
 def test_grant_definition_includes_shape_id_composition() -> None:

@@ -16,11 +16,13 @@ from tests.unit.support.helpers import (
     minimal_field as _shared_minimal_field,
     minimal_group as _minimal_group,
 )
-from tests.unit.support.schema_fixtures import load_schema
+from tests.unit.support.schema_fixtures import load_schema, build_schema_registry
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+COMMON_SCHEMA = load_schema("common.schema.json")
 
 @pytest.fixture(scope="session")
 def schema():
@@ -30,7 +32,8 @@ def schema():
 
 def _validate(instance, schema):
     """Validate *instance* against *schema* using Draft 2020-12."""
-    Draft202012Validator(schema).validate(instance)
+    registry = build_schema_registry(COMMON_SCHEMA, schema)
+    Draft202012Validator(schema, registry=registry).validate(instance)
 
 
 # ---------------------------------------------------------------------------
