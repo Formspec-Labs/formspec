@@ -1,0 +1,42 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/coverage-demo",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Coverage demo definition",
+  "items": [
+    {
+      "key": "applicantName",
+      "type": "field",
+      "dataType": "string",
+      "label": "Applicant name"
+    },
+    {
+      "key": "middleName",
+      "type": "field",
+      "dataType": "string",
+      "label": "Middle name (optional)"
+    },
+    {
+      "key": "internalNotes",
+      "type": "field",
+      "dataType": "string",
+      "label": "Internal notes"
+    }
+  ],
+  "binds": [
+    {
+      "path": "applicantName",
+      "required": "true"
+    },
+    {
+      "path": "middleName",
+      "required": "false"
+    },
+    {
+      "path": "internalNotes",
+      "required": "true",
+      "relevant": "false"
+    }
+  ]
+}
