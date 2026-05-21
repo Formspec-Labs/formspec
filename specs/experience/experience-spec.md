@@ -181,7 +181,7 @@ Actors are referenced by:
 - `task.actorRefs[]` (S4) -- the actors who participate in a task.
 - `applicability.actorRefs[]` (S7) -- actor predicates for applicability resolution.
 
-A processor MUST reject an Experience that references an `actorRef` not present in `actors[]`. (Schema enforces shape; this rule is referential and enforced by Coverage-aware processors and validators.)
+A processor MUST report an `EXP-REFERENTIAL-INTEGRITY` finding for any `actorRef` not present in `actors[]`. (Schema enforces shape; this rule is referential and enforced by Experience Core processors and validators.)
 
 ## 4. Tasks
 
@@ -199,7 +199,7 @@ Tasks SHOULD be named in user-domain language (e.g., `identifyHousehold`, `revie
 
 A Unit MAY reference zero, one, or many tasks via `unit.taskRefs[]` (S5.1). A Task without any referring Unit is permitted but is informationally inert -- it signals planned work not yet bound to data collection.
 
-A processor MUST reject an Experience that references a `unit.taskRefs[]` entry not present in `tasks[]`.
+A processor MUST report an `EXP-REFERENTIAL-INTEGRITY` finding for any `unit.taskRefs[]` entry not present in `tasks[]`.
 
 ## 5. Units
 
@@ -372,3 +372,21 @@ Tools MAY seed an Experience Document from a Definition. A reasonable seed strat
 This is a starting point, not a recommendation. Experience and Definition are **different concepts** (concept §6.2): a Definition group describes data structure (`household.members[*]`); an Experience Unit describes task intent (`identify applicant`). Seeded Experiences SHOULD be edited to reflect actual task structure, not left as 1:1 mirrors of Definition shape.
 
 A seeded Experience that has been edited by a human or generator MUST satisfy the same schema and coverage rules as a hand-authored Experience. Seeding does not create a privileged document class.
+
+## 10. Processing Model
+
+Experience has a minimal processing model. The four-phase Core cycle (Core S2.4) is unaffected.
+
+An **Experience Core** processor MUST:
+
+1. **Load.** Parse the Experience Document as JSON and validate it against the schema in S11.
+2. **Resolve target.** Read `targetDefinition.url` and verify it matches the loaded Definition's `url`. If `compatibleVersions` is present, the loaded Definition's `version` MUST satisfy the semver range.
+3. **Verify referential integrity.** Every `actorRef`, `task.actorRefs[]`, `applicability.actorRefs[]`, `unit.actorRef`, and `unit.taskRefs[]` MUST resolve within the document. Unresolvable references MUST produce an `EXP-REFERENTIAL-INTEGRITY` finding.
+4. **Verify item-ref resolvability.** Every `ItemRef.path` MUST resolve to an Item in the loaded Definition using Core FieldRef path syntax. Unresolvable paths MUST produce an `EXP-ITEM-REF-UNRESOLVED` finding.
+
+An **Experience Coverage-Aware** processor MUST additionally:
+
+5. **Compute coverage.** Apply the predicate in S8.1 over the loaded Definition's top-level `binds[]` and the Experience's `units[].itemRefs[]`.
+6. **Emit coverage findings.** For every uncovered required visible item, emit an `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` finding (S8.2).
+
+There is no Experience evaluation pipeline. The document is metadata; processors read it, validate it, and consult it for generation, review, and coverage. They do not "evaluate" it in the Core sense.
