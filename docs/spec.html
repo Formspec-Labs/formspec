@@ -4694,9 +4694,10 @@ an object with url+version pins to a specific version.</td>
 <tr>
 <td><code>#/properties/extensions</code></td>
 <td><code>extensions</code></td>
-<td><code>object</code></td>
+<td><code>$ref</code></td>
 <td>no</td>
-<td>—</td>
+<td><code>$ref</code>:
+<code>https://formspec.org/schemas/common/1.0#/$defs/Extensions</code></td>
 <td>Domain-specific extension data. All keys MUST be prefixed with ‘x-’.
 Processors MUST ignore unrecognized extensions without error. Extensions
 MUST NOT alter core semantics (required, relevant, readonly, calculate,
@@ -4879,8 +4880,11 @@ defined.</td>
 <p>The generated table above defines required and optional properties.
 In this section, prose requirements describe semantics beyond structural
 constraints.</p>
-<p>Implementations MUST preserve unrecognized top-level properties
-during round-tripping but MUST NOT assign semantics to them.</p>
+<p>Definitions are closed by default. Processors MUST reject
+unrecognized top-level properties unless the property name begins with
+<code>x-</code>. Processors MUST preserve <code>x-*</code> extension
+properties during round-tripping but MUST NOT assign core semantics to
+unrecognized extensions.</p>
 <h4 id="form-presentation">4.1.1 Form Presentation</h4>
 <p>The OPTIONAL <code>formPresentation</code> object on the Definition
 root provides form-wide presentation defaults. All properties within
@@ -4910,11 +4914,11 @@ processor MAY ignore any or all of these properties.</p>
 <td><code>"single"</code>, <code>"wizard"</code>,
 <code>"tabs"</code></td>
 <td><code>"single"</code></td>
-<td>Suggests how top-level groups are paginated. <code>"wizard"</code>:
-sequential steps with navigation controls. <code>"tabs"</code>: tabbed
-sections. <code>"single"</code>: all items on one page. Processors that
-do not support the declared mode SHOULD fall back to
-<code>"single"</code>.</td>
+<td>Selects the navigation presentation for the active page source.
+<code>"wizard"</code>: sequential steps with navigation controls.
+<code>"tabs"</code>: tabbed sections. <code>"single"</code>: all items
+on one page. Processors that do not support the declared mode SHOULD
+fall back to <code>"single"</code>.</td>
 </tr>
 <tr>
 <td><code>labelPosition</code></td>
@@ -5008,9 +5012,27 @@ fall back to <code>"single"</code> and SHOULD emit an informative
 warning.</p>
 <p>When a processor supports a given <code>pageMode</code>, it MUST
 satisfy the behavioral requirements below.</p>
+<p>Page authority is resolved in this order:</p>
+<ol type="1">
+<li>Root-level Component <code>Section</code> units: either a Component
+tree whose root is <code>Section</code>, or a Component root whose
+direct children include <code>Section</code> nodes.</li>
+<li>Theme <code>PageLayout</code> units from <code>theme.pages</code>,
+used only when no root-level Component <code>Section</code> page units
+exist.</li>
+<li>Generated Definition group pages, used only when neither Component
+nor Theme page units exist and the processor supports generated
+navigation pages. This fallback is a presentation convenience: it does
+not create authored page structure and MUST NOT override Component or
+Theme pages.</li>
+</ol>
 <p><strong>Wizard mode</strong> (<code>pageMode: "wizard"</code>):</p>
 <ol type="1">
-<li>The processor MUST render exactly one Page at a time.</li>
+<li>The processor MUST render exactly one active page unit at a time. A
+page unit is a root-level Component <code>Section</code> when the
+Component document owns page structure, otherwise a Theme
+<code>PageLayout</code> unit, otherwise a generated Definition group
+page.</li>
 <li>The processor MUST provide Next/Previous navigation controls.</li>
 <li>The processor MUST validate the current page before allowing forward
 navigation, unless <code>allowSkip</code> is <code>true</code>.</li>
@@ -5020,15 +5042,16 @@ steps.</li>
 </ol>
 <p><strong>Tabs mode</strong> (<code>pageMode: "tabs"</code>):</p>
 <ol type="1">
-<li>The processor MUST render a tab bar with one tab per Page child,
-positioned according to <code>tabPosition</code>.</li>
-<li>The processor MUST show exactly one Page’s content at a time.</li>
+<li>The processor MUST render a tab bar with one tab per active page
+unit, positioned according to <code>tabPosition</code>.</li>
+<li>The processor MUST show exactly one page unit’s content at a
+time.</li>
 <li>The processor MUST allow the user to switch tabs by clicking or
 activating tab labels.</li>
 <li>The processor MUST select the tab at index <code>defaultTab</code>
 on initial render.</li>
-<li>All Pages MUST remain mounted; tab switching changes visibility, not
-lifecycle.</li>
+<li>All page units MUST remain mounted; tab switching changes
+visibility, not lifecycle.</li>
 </ol>
 <p><strong>Property applicability:</strong></p>
 <ul>
@@ -5040,11 +5063,10 @@ only when <code>pageMode</code> is <code>"tabs"</code>. Processors MUST
 ignore these properties for other modes.</li>
 </ul>
 <blockquote>
-<p><strong>Note on naming:</strong> The Tabs component (§5.X) uses the
-property name <code>position</code> for tab bar placement. At the
-<code>formPresentation</code> level, the equivalent property is
-<code>tabPosition</code>. The rename avoids ambiguity with other
-component-level <code>position</code> properties (e.g., Panel).</p>
+<p><strong>Note on naming:</strong> The Tabs and Panel components use
+<code>placement</code> for component-local positioning. At the
+<code>formPresentation</code> level, the equivalent tabs property
+remains <code>tabPosition</code>.</p>
 </blockquote>
 <blockquote>
 <p><strong>Note:</strong> The page navigation gate in wizard mode
@@ -5482,10 +5504,12 @@ ignored.</li>
 <p>The OPTIONAL <code>presentation</code> object MAY appear on any Item
 (Field, Group, or Display). All properties within
 <code>presentation</code> are OPTIONAL and advisory.</p>
-<p>A conforming processor MUST accept a <code>presentation</code> object
-without error. A conforming processor MAY ignore any property within
-<code>presentation</code>. Unknown keys within <code>presentation</code>
-MUST be ignored (forward-compatibility).</p>
+<p>A conforming processor MUST accept a schema-valid
+<code>presentation</code> object. A conforming processor MAY ignore any
+recognized property within <code>presentation</code>. Unknown keys
+within <code>presentation</code> are schema errors; use the
+<code>x-*</code> extension namespace for non-core presentation
+metadata.</p>
 <p>Presentation hints MUST NOT affect data capture, validation,
 calculation, or submission semantics.</p>
 <h5 id="widget-hint">4.2.5.1 Widget Hint</h5>
@@ -5493,9 +5517,11 @@ calculation, or submission semantics.</p>
 preferred UI control. When present, the value SHOULD be one of the
 values listed in the tables below for the Item’s type and
 <code>dataType</code>. Custom values MUST be prefixed with
-<code>x-</code>. A processor receiving an incompatible or unrecognized
-<code>widgetHint</code> MUST ignore it and use its default widget for
-that Item type and <code>dataType</code>.</p>
+<code>x-</code>. Non-canonical values that are not valid built-in widget
+names and do not use the <code>x-*</code> prefix are schema errors. A
+processor receiving a schema-valid but unsupported custom
+<code>widgetHint</code> MUST use its default widget for that Item type
+and <code>dataType</code>.</p>
 <p><strong>Group Items:</strong></p>
 <table>
 <colgroup>
@@ -5510,19 +5536,19 @@ that Item type and <code>dataType</code>.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>"section"</code></td>
+<td><code>"Section"</code></td>
 <td>Standard section with heading (default).</td>
 </tr>
 <tr>
-<td><code>"card"</code></td>
+<td><code>"Card"</code></td>
 <td>Visually elevated card/panel.</td>
 </tr>
 <tr>
-<td><code>"accordion"</code></td>
+<td><code>"Accordion"</code></td>
 <td>Expandable/collapsible section.</td>
 </tr>
 <tr>
-<td><code>"tab"</code></td>
+<td><code>"Tabs"</code></td>
 <td>Tab panel (meaningful when <code>formPresentation.pageMode</code> is
 <code>"tabs"</code>).</td>
 </tr>
@@ -5538,19 +5564,19 @@ that Item type and <code>dataType</code>.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>"paragraph"</code></td>
+<td><code>"Text"</code></td>
 <td>Body text (default).</td>
 </tr>
 <tr>
-<td><code>"heading"</code></td>
+<td><code>"Heading"</code></td>
 <td>Section heading.</td>
 </tr>
 <tr>
-<td><code>"divider"</code></td>
+<td><code>"Divider"</code></td>
 <td>Visual separator/rule.</td>
 </tr>
 <tr>
-<td><code>"banner"</code></td>
+<td><code>"Alert"</code></td>
 <td>Callout or alert banner.</td>
 </tr>
 </tbody>
@@ -5572,81 +5598,79 @@ that Item type and <code>dataType</code>.</p>
 <tbody>
 <tr>
 <td><code>string</code></td>
-<td><code>"textInput"</code>, <code>"password"</code>,
-<code>"color"</code></td>
-<td><code>"textInput"</code></td>
+<td><code>"TextInput"</code></td>
+<td><code>"TextInput"</code></td>
 </tr>
 <tr>
 <td><code>text</code></td>
-<td><code>"textarea"</code>, <code>"richText"</code></td>
-<td><code>"textarea"</code></td>
+<td><code>"TextInput"</code></td>
+<td><code>"TextInput"</code></td>
 </tr>
 <tr>
 <td><code>integer</code></td>
-<td><code>"numberInput"</code>, <code>"stepper"</code>,
-<code>"slider"</code>, <code>"rating"</code></td>
-<td><code>"numberInput"</code></td>
+<td><code>"NumberInput"</code>, <code>"Slider"</code>,
+<code>"Rating"</code></td>
+<td><code>"NumberInput"</code></td>
 </tr>
 <tr>
 <td><code>decimal</code></td>
-<td><code>"numberInput"</code>, <code>"slider"</code></td>
-<td><code>"numberInput"</code></td>
+<td><code>"NumberInput"</code>, <code>"Slider"</code>,
+<code>"Rating"</code></td>
+<td><code>"NumberInput"</code></td>
 </tr>
 <tr>
 <td><code>boolean</code></td>
-<td><code>"checkbox"</code>, <code>"toggle"</code>,
-<code>"yesNo"</code></td>
-<td><code>"checkbox"</code></td>
+<td><code>"Toggle"</code></td>
+<td><code>"Toggle"</code></td>
 </tr>
 <tr>
 <td><code>date</code></td>
-<td><code>"datePicker"</code>, <code>"dateInput"</code></td>
-<td><code>"datePicker"</code></td>
+<td><code>"DatePicker"</code></td>
+<td><code>"DatePicker"</code></td>
 </tr>
 <tr>
 <td><code>dateTime</code></td>
-<td><code>"dateTimePicker"</code>, <code>"dateTimeInput"</code></td>
-<td><code>"dateTimePicker"</code></td>
+<td><code>"DatePicker"</code></td>
+<td><code>"DatePicker"</code></td>
 </tr>
 <tr>
 <td><code>time</code></td>
-<td><code>"timePicker"</code>, <code>"timeInput"</code></td>
-<td><code>"timePicker"</code></td>
+<td><code>"DatePicker"</code></td>
+<td><code>"DatePicker"</code></td>
 </tr>
 <tr>
 <td><code>uri</code></td>
-<td><code>"textInput"</code>, <code>"urlInput"</code></td>
-<td><code>"textInput"</code></td>
+<td><code>"TextInput"</code></td>
+<td><code>"TextInput"</code></td>
 </tr>
 <tr>
 <td><code>attachment</code></td>
-<td><code>"fileUpload"</code>, <code>"camera"</code>,
-<code>"signature"</code></td>
-<td><code>"fileUpload"</code></td>
+<td><code>"FileUpload"</code>, <code>"Signature"</code></td>
+<td><code>"FileUpload"</code></td>
 </tr>
 <tr>
 <td><code>choice</code></td>
-<td><code>"dropdown"</code>, <code>"radio"</code>,
-<code>"autocomplete"</code>, <code>"segmented"</code>,
-<code>"likert"</code></td>
+<td><code>"Select"</code>, <code>"RadioGroup"</code></td>
 <td>Renderer decides by option count</td>
 </tr>
 <tr>
 <td><code>multiChoice</code></td>
-<td><code>"checkboxGroup"</code>, <code>"multiSelect"</code>,
-<code>"autocomplete"</code></td>
-<td><code>"checkboxGroup"</code></td>
+<td><code>"CheckboxGroup"</code>, <code>"Select"</code></td>
+<td><code>"CheckboxGroup"</code></td>
 </tr>
 <tr>
 <td><code>money</code></td>
-<td><code>"moneyInput"</code></td>
-<td><code>"moneyInput"</code></td>
+<td><code>"MoneyInput"</code>, <code>"NumberInput"</code></td>
+<td><code>"MoneyInput"</code></td>
 </tr>
 </tbody>
 </table>
-<p>When <code>widgetHint</code> is absent, unrecognized, or incompatible
-with the Item’s type or <code>dataType</code>, the processor MUST use
-its default widget for that <code>dataType</code> as listed above.</p>
+<p>When <code>widgetHint</code> is absent, the processor MUST use its
+default widget for that <code>dataType</code> as listed above. When a
+schema-valid <code>widgetHint</code> is incompatible with the Item’s
+type or <code>dataType</code>, the processor MUST report a schema or
+lint failure before rendering/publishing rather than silently
+normalizing the invalid authoring intent.</p>
 <h5 id="layout">4.2.5.2 Layout</h5>
 <p>The <code>layout</code> sub-object provides spatial arrangement
 hints.</p>
@@ -5702,16 +5726,6 @@ otherwise.</td>
 <td>Initial collapsed state. Ignored if <code>collapsible</code> is not
 <code>true</code>.</td>
 </tr>
-<tr>
-<td><code>page</code></td>
-<td>string</td>
-<td>non-empty</td>
-<td>(none)</td>
-<td>Named wizard step or tab. Groups with the same <code>page</code>
-value are rendered together. Only meaningful when
-<code>formPresentation.pageMode</code> is not <code>"single"</code>.
-Groups without <code>page</code> attach to the preceding page.</td>
-</tr>
 </tbody>
 </table>
 <p><strong>On Field and Display Items:</strong></p>
@@ -5734,19 +5748,33 @@ Groups without <code>page</code> attach to the preceding page.</td>
 </thead>
 <tbody>
 <tr>
-<td><code>colSpan</code></td>
+<td><code>grid.span</code></td>
 <td>integer</td>
 <td>1–12</td>
-<td>1</td>
-<td>Grid columns this item spans. Only meaningful when the parent Group
-has <code>flow: "grid"</code>.</td>
+<td>12</td>
+<td>Grid columns this item spans. Only meaningful inside a parent grid
+context.</td>
 </tr>
 <tr>
-<td><code>newRow</code></td>
-<td>boolean</td>
-<td></td>
-<td><code>false</code></td>
-<td>Force this item to start a new grid row.</td>
+<td><code>grid.start</code></td>
+<td>integer</td>
+<td>1–12</td>
+<td>(flow)</td>
+<td>Grid column start.</td>
+</tr>
+<tr>
+<td><code>grid.rowSpan</code></td>
+<td>integer</td>
+<td>&gt;= 1</td>
+<td>1</td>
+<td>Grid rows this item spans.</td>
+</tr>
+<tr>
+<td><code>grid.rowStart</code></td>
+<td>integer</td>
+<td>&gt;= 1</td>
+<td>(flow)</td>
+<td>Grid row start.</td>
 </tr>
 </tbody>
 </table>
@@ -5863,7 +5891,7 @@ superseded by <code>presentation</code>.</li>
 <li><strong><code>widgetHint</code> takes precedence over
 <code>semanticType</code> for widget selection.</strong> When a Field
 has both <code>semanticType</code> (e.g., <code>"ietf:email"</code>) and
-<code>widgetHint</code> (e.g., <code>"textInput"</code>), the renderer
+<code>widgetHint</code> (e.g., <code>"TextInput"</code>), the renderer
 SHOULD use the <code>widgetHint</code> for widget selection. When only
 <code>semanticType</code> is present, renderers MAY use it to infer a
 widget.</li>
@@ -5875,14 +5903,11 @@ NOT cascade from parent Group to child Items. Each Item’s
 <code>presentation</code> is independent.</li>
 </ol>
 <h5 id="forward-compatibility">4.2.5.6 Forward Compatibility</h5>
-<p>The <code>presentation</code> object permits additional properties at
-its top level (unknown keys MUST be ignored). The nested sub-objects
-(<code>layout</code>, <code>styleHints</code>,
-<code>accessibility</code>) do NOT permit additional properties, to
-catch typographical errors.</p>
-<p>This design allows future companion specifications to define
-additional keys inside <code>presentation</code> without breaking
-existing validators.</p>
+<p>The <code>presentation</code> object is closed by default. Unknown
+keys are schema errors, which catches typographical errors early. Future
+companion specifications that need additional item-level metadata MUST
+use an <code>x-*</code> extension property or introduce a new schema
+version.</p>
 <blockquote>
 <p><strong>Informative note — Presentation tiers:</strong></p>
 <p>The <code>presentation</code> object serves as a baseline (Tier 1)
@@ -5908,20 +5933,22 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href=
 <span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;money&quot;</span><span class="fu">,</span></span>
 <span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;$&quot;</span><span class="fu">,</span></span>
 <span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;presentation&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;widgetHint&quot;</span><span class="fu">:</span> <span class="st">&quot;moneyInput&quot;</span><span class="fu">,</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;widgetHint&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
 <span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;layout&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;colSpan&quot;</span><span class="fu">:</span> <span class="dv">6</span></span>
-<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;styleHints&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;emphasis&quot;</span><span class="fu">:</span> <span class="st">&quot;primary&quot;</span><span class="fu">,</span></span>
-<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="st">&quot;large&quot;</span></span>
-<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;accessibility&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter total revenue for the fiscal year&quot;</span><span class="fu">,</span></span>
-<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;liveRegion&quot;</span><span class="fu">:</span> <span class="st">&quot;polite&quot;</span></span>
-<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;grid&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;span&quot;</span><span class="fu">:</span> <span class="dv">6</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;styleHints&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;emphasis&quot;</span><span class="fu">:</span> <span class="st">&quot;primary&quot;</span><span class="fu">,</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;size&quot;</span><span class="fu">:</span> <span class="st">&quot;large&quot;</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;accessibility&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Enter total revenue for the fiscal year&quot;</span><span class="fu">,</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;liveRegion&quot;</span><span class="fu">:</span> <span class="st">&quot;polite&quot;</span></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h3 id="bind-schema">4.3 Bind Schema</h3>
 <p>A <strong>Bind</strong> attaches behavioral expressions to one or
 more data nodes identified by a path expression. Binds are the primary
@@ -9424,7 +9451,7 @@ properties, namespaces)</td>
 <td>PR-02</td>
 <td>Layout and spatial arrangement</td>
 <td>§4.2.5.2 <code>layout</code> — <code>flow</code>,
-<code>columns</code>, <code>colSpan</code>, <code>page</code></td>
+<code>columns</code>, <code>grid</code></td>
 </tr>
 <tr>
 <td>PR-03</td>
@@ -9453,8 +9480,8 @@ statement</td>
 <tr>
 <td>PR-07</td>
 <td>Forward compatibility for richer systems</td>
-<td>§4.2.5.6 <code>additionalProperties: true</code> on
-<code>presentation</code></td>
+<td>§4.2.5.6 closed <code>presentation</code> object with explicit
+<code>x-*</code> extension lanes or schema-versioned additions</td>
 </tr>
 </tbody>
 </table>

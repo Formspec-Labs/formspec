@@ -418,9 +418,10 @@ audience.</td>
 <tr>
 <td><code>#/properties/extensions</code></td>
 <td><code>extensions</code></td>
-<td><code>object</code></td>
+<td><code>$ref</code></td>
 <td>no</td>
-<td>—</td>
+<td><code>$ref</code>:
+<code>https://formspec.org/schemas/common/1.0#/$defs/Extensions</code></td>
 <td>Extension namespace for platform-specific or vendor-specific
 metadata. All keys MUST be x- prefixed. Processors MUST ignore
 unrecognized extensions. Extensions MUST NOT alter core presentation
@@ -868,9 +869,10 @@ chains when a widget is unavailable.</li>
 following tables define well-known configuration properties per widget.
 Renderers SHOULD support the listed properties and MUST ignore
 unrecognized keys.</p>
-<h4 id="required-widgets">Required Widgets</h4>
+<h4 id="canonical-field-widgets">Canonical Field Widgets</h4>
 <p>Renderers MUST support these widgets.</p>
-<p><strong><code>textInput</code></strong> (string, uri)</p>
+<p><strong><code>TextInput</code></strong> (string, text, uri; loose
+fallback for other field data types)</p>
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -896,18 +898,6 @@ unrecognized keys.</p>
 <td>Input hint: <code>"text"</code>, <code>"email"</code>,
 <code>"tel"</code>, <code>"url"</code>.</td>
 </tr>
-</tbody>
-</table>
-<p><strong><code>textarea</code></strong> (text)</p>
-<table>
-<thead>
-<tr>
-<th>Property</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
 <tr>
 <td><code>rows</code></td>
 <td>integer</td>
@@ -925,7 +915,7 @@ unrecognized keys.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>numberInput</code></strong> (integer, decimal)</p>
+<p><strong><code>NumberInput</code></strong> (integer, decimal)</p>
 <table>
 <thead>
 <tr>
@@ -947,9 +937,29 @@ unrecognized keys.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>checkbox</code></strong> (boolean) — No configuration
-properties.</p>
-<p><strong><code>datePicker</code></strong> (date, dateTime, time)</p>
+<p><strong><code>Toggle</code></strong> (boolean)</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>onLabel</code></td>
+<td>string</td>
+<td>Label for the true state.</td>
+</tr>
+<tr>
+<td><code>offLabel</code></td>
+<td>string</td>
+<td>Label for the false state.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>DatePicker</code></strong> (date, dateTime, time)</p>
 <table>
 <thead>
 <tr>
@@ -976,7 +986,8 @@ properties.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>dropdown</code></strong> (choice)</p>
+<p><strong><code>Select</code></strong> (choice; multiChoice when
+<code>widgetConfig.multiple</code> is <code>true</code>)</p>
 <table>
 <thead>
 <tr>
@@ -998,7 +1009,7 @@ properties.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>checkboxGroup</code></strong> (multiChoice)</p>
+<p><strong><code>CheckboxGroup</code></strong> (multiChoice)</p>
 <table>
 <thead>
 <tr>
@@ -1020,7 +1031,7 @@ properties.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>fileUpload</code></strong> (attachment)</p>
+<p><strong><code>FileUpload</code></strong> (attachment)</p>
 <table>
 <thead>
 <tr>
@@ -1047,7 +1058,8 @@ properties.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>moneyInput</code></strong> (money)</p>
+<p><strong><code>MoneyInput</code></strong> (integer, decimal,
+money)</p>
 <table>
 <thead>
 <tr>
@@ -1070,9 +1082,9 @@ properties.</p>
 </tbody>
 </table>
 <h4 id="progressive-widgets">Progressive Widgets</h4>
-<p>Renderers SHOULD support these widgets. When unavailable, the
-renderer MUST use the specified fallback or the <code>fallback</code>
-array from the theme.</p>
+<p>Renderers SHOULD support these built-in widgets when they can provide
+a native control. When unavailable, the renderer MUST use the specified
+fallback or the <code>fallback</code> array from the theme.</p>
 <table>
 <colgroup>
 <col style="width: 25%" />
@@ -1090,141 +1102,43 @@ array from the theme.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>slider</code></td>
+<td><code>Slider</code></td>
 <td>integer, decimal</td>
 <td><code>min</code>, <code>max</code>, <code>step</code>,
 <code>showTicks</code>, <code>showValue</code></td>
-<td><code>numberInput</code></td>
+<td><code>NumberInput</code></td>
 </tr>
 <tr>
-<td><code>stepper</code></td>
-<td>integer</td>
-<td><code>min</code>, <code>max</code>, <code>step</code></td>
-<td><code>numberInput</code></td>
-</tr>
-<tr>
-<td><code>rating</code></td>
+<td><code>Rating</code></td>
 <td>integer</td>
 <td><code>max</code>, <code>icon</code> (<code>"star"</code>,
 <code>"heart"</code>)</td>
-<td><code>numberInput</code></td>
+<td><code>NumberInput</code></td>
 </tr>
 <tr>
-<td><code>toggle</code></td>
-<td>boolean</td>
-<td><code>onLabel</code>, <code>offLabel</code></td>
-<td><code>checkbox</code></td>
-</tr>
-<tr>
-<td><code>yesNo</code></td>
-<td>boolean</td>
-<td>(none)</td>
-<td><code>checkbox</code></td>
-</tr>
-<tr>
-<td><code>radio</code></td>
+<td><code>RadioGroup</code></td>
 <td>choice</td>
 <td><code>direction</code> (<code>"vertical"</code>,
 <code>"horizontal"</code>), <code>columns</code></td>
-<td><code>dropdown</code></td>
+<td><code>Select</code></td>
 </tr>
 <tr>
-<td><code>autocomplete</code></td>
-<td>choice, multiChoice</td>
-<td><code>debounceMs</code>, <code>minChars</code></td>
-<td><code>dropdown</code> / <code>checkboxGroup</code></td>
-</tr>
-<tr>
-<td><code>segmented</code></td>
-<td>choice</td>
-<td>(none)</td>
-<td><code>radio</code></td>
-</tr>
-<tr>
-<td><code>likert</code></td>
-<td>choice</td>
-<td><code>scaleLabels</code> (array of strings)</td>
-<td><code>radio</code></td>
-</tr>
-<tr>
-<td><code>multiSelect</code></td>
-<td>multiChoice</td>
-<td><code>searchable</code>, <code>maxItems</code></td>
-<td><code>checkboxGroup</code></td>
-</tr>
-<tr>
-<td><code>richText</code></td>
-<td>text</td>
-<td><code>toolbar</code> (array of tool names)</td>
-<td><code>textarea</code></td>
-</tr>
-<tr>
-<td><code>password</code></td>
-<td>string</td>
-<td><code>showToggle</code> (boolean)</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>color</code></td>
-<td>string</td>
-<td><code>format</code> (<code>"hex"</code>, <code>"rgb"</code>)</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>urlInput</code></td>
-<td>uri</td>
-<td>(none)</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>dateInput</code></td>
-<td>date</td>
-<td><code>format</code></td>
-<td><code>datePicker</code></td>
-</tr>
-<tr>
-<td><code>dateTimePicker</code></td>
-<td>dateTime</td>
-<td><code>format</code></td>
-<td><code>datePicker</code></td>
-</tr>
-<tr>
-<td><code>dateTimeInput</code></td>
-<td>dateTime</td>
-<td><code>format</code></td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>timePicker</code></td>
-<td>time</td>
-<td><code>format</code>, <code>step</code></td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>timeInput</code></td>
-<td>time</td>
-<td><code>format</code></td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>camera</code></td>
-<td>attachment</td>
-<td><code>facing</code> (<code>"user"</code>,
-<code>"environment"</code>)</td>
-<td><code>fileUpload</code></td>
-</tr>
-<tr>
-<td><code>signature</code></td>
+<td><code>Signature</code></td>
 <td>attachment</td>
 <td><code>strokeColor</code>, <code>height</code> (integer, pixels)</td>
-<td><code>fileUpload</code></td>
+<td><code>FileUpload</code></td>
 </tr>
 </tbody>
 </table>
-<p>Group and Display widgets (<code>section</code>, <code>card</code>,
-<code>accordion</code>, <code>tab</code>, <code>heading</code>,
-<code>paragraph</code>, <code>divider</code>, <code>banner</code>) have
-no <code>widgetConfig</code> properties.</p>
+<p>Other specialized controls are custom widgets and MUST use an
+<code>x-</code> prefix, for example <code>x-rich-text</code> or
+<code>x-password</code>, with an explicit fallback chain.</p>
+<p>Container and display widgets (<code>Section</code>,
+<code>Stack</code>, <code>Grid</code>, <code>Card</code>,
+<code>Accordion</code>, <code>Tabs</code>, <code>Heading</code>,
+<code>Text</code>, <code>Divider</code>, <code>Panel</code>, and related
+display components) have no required <code>widgetConfig</code>
+properties.</p>
 <h3 id="fallback-chains">4.3 Fallback Chains</h3>
 <p>The <code>fallback</code> array in a PresentationBlock lists ordered
 fallback widgets. When a renderer does not support the primary
@@ -1232,9 +1146,9 @@ fallback widgets. When a renderer does not support the primary
 first it supports.</p>
 <div class="sourceCode" id="cb6"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;signature&quot;</span><span class="fu">,</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Signature&quot;</span><span class="fu">,</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;strokeColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#000&quot;</span> <span class="fu">},</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;camera&quot;</span><span class="ot">,</span> <span class="st">&quot;fileUpload&quot;</span><span class="ot">]</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;FileUpload&quot;</span><span class="ot">]</span></span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>If no widget in the chain is supported, the renderer MUST use its
 default widget for the item’s <code>dataType</code> as defined in core
@@ -1337,11 +1251,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;selectors&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;match&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;money&quot;</span> <span class="fu">},</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;moneyInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;showCurrencySymbol&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span> <span class="fu">}</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span> <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;showCurrencySymbol&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span> <span class="fu">}</span></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;match&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;display&quot;</span> <span class="fu">},</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;paragraph&quot;</span> <span class="fu">}</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span> <span class="fu">}</span></span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
 <span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
@@ -1390,7 +1304,7 @@ PresentationBlocks. This is the highest specificity in the cascade.</p>
 class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;totalBudget&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;slider&quot;</span><span class="fu">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Slider&quot;</span><span class="fu">,</span></span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;min&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span> <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">1000000</span><span class="fu">,</span> <span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">10000</span> <span class="fu">},</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;style&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;background&quot;</span><span class="fu">:</span> <span class="st">&quot;#F0F6FF&quot;</span> <span class="fu">}</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
@@ -1615,7 +1529,10 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href=
 </table>
 <p>When <code>pages</code> is absent, the renderer SHOULD walk the
 Definition’s item tree top-to-bottom, applying the cascade (§5) to each
-item without page-level grouping.</p>
+item without authored Theme page-level grouping. If Tier 1
+<code>formPresentation.pageMode</code> requests wizard or tabs
+navigation and no Component page units exist, a processor MAY synthesize
+generated Definition group pages as described by core §4.1.2.</p>
 <h3 id="column-grid-model">6.2 12-Column Grid Model</h3>
 <p>Regions within a page are laid out on a 12-column grid. Each region
 assigns an item to a grid position.</p>
@@ -1760,8 +1677,8 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href=
 walks the Definition’s item tree top-to-bottom. The cascade (§5) is
 still applied to determine widgets, styles, and accessibility for each
 item. The Tier 1 <code>formPresentation.pageMode</code> property (core
-§4.1.1) guides how top-level groups are paginated in the absence of
-theme pages.</p>
+§4.1.1) may guide generated navigation pages from top-level Definition
+groups in the absence of both Theme pages and Component page units.</p>
 <h2 id="processing-model">7. Processing Model</h2>
 <h3 id="theme-loading-and-validation">7.1 Theme Loading and
 Validation</h3>
@@ -1882,7 +1799,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb17-1"><a href=
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;location&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;x-map-picker&quot;</span><span class="fu">,</span></span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;defaultZoom&quot;</span><span class="fu">:</span> <span class="dv">12</span> <span class="fu">},</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;textInput&quot;</span><span class="ot">]</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;TextInput&quot;</span><span class="ot">]</span></span>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
 <span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
@@ -1993,32 +1910,32 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href=
 <span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
 <span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;match&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;money&quot;</span> <span class="fu">},</span></span>
 <span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;moneyInput&quot;</span><span class="fu">,</span></span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
 <span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;showCurrencySymbol&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;en-US&quot;</span> <span class="fu">}</span></span>
 <span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
 <span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
 <span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
 <span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;match&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;choice&quot;</span> <span class="fu">},</span></span>
 <span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;dropdown&quot;</span><span class="fu">,</span></span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Select&quot;</span><span class="fu">,</span></span>
 <span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;searchable&quot;</span><span class="fu">:</span> <span class="kw">false</span> <span class="fu">}</span></span>
 <span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
 <span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
 <span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
 <span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;match&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;boolean&quot;</span> <span class="fu">},</span></span>
 <span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;toggle&quot;</span><span class="fu">,</span></span>
+<span id="cb20-53"><a href="#cb20-53" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Toggle&quot;</span><span class="fu">,</span></span>
 <span id="cb20-54"><a href="#cb20-54" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;onLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Yes&quot;</span><span class="fu">,</span> <span class="dt">&quot;offLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;No&quot;</span> <span class="fu">}</span></span>
 <span id="cb20-55"><a href="#cb20-55" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
 <span id="cb20-56"><a href="#cb20-56" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
 <span id="cb20-57"><a href="#cb20-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
 <span id="cb20-58"><a href="#cb20-58" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;match&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;display&quot;</span> <span class="fu">},</span></span>
-<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;paragraph&quot;</span> <span class="fu">}</span></span>
+<span id="cb20-59"><a href="#cb20-59" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;apply&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Text&quot;</span> <span class="fu">}</span></span>
 <span id="cb20-60"><a href="#cb20-60" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb20-61"><a href="#cb20-61" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
 <span id="cb20-62"><a href="#cb20-62" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb20-63"><a href="#cb20-63" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;totalBudget&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;moneyInput&quot;</span><span class="fu">,</span></span>
+<span id="cb20-64"><a href="#cb20-64" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;MoneyInput&quot;</span><span class="fu">,</span></span>
 <span id="cb20-65"><a href="#cb20-65" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;showCurrencySymbol&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;locale&quot;</span><span class="fu">:</span> <span class="st">&quot;en-US&quot;</span> <span class="fu">},</span></span>
 <span id="cb20-66"><a href="#cb20-66" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;style&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb20-67"><a href="#cb20-67" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;background&quot;</span><span class="fu">:</span> <span class="st">&quot;#F0F6FF&quot;</span><span class="fu">,</span></span>
@@ -2031,14 +1948,14 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href=
 <span id="cb20-74"><a href="#cb20-74" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
 <span id="cb20-75"><a href="#cb20-75" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
 <span id="cb20-76"><a href="#cb20-76" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;approverSignature&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb20-77"><a href="#cb20-77" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;signature&quot;</span><span class="fu">,</span></span>
+<span id="cb20-77"><a href="#cb20-77" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Signature&quot;</span><span class="fu">,</span></span>
 <span id="cb20-78"><a href="#cb20-78" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;strokeColor&quot;</span><span class="fu">:</span> <span class="st">&quot;#000&quot;</span><span class="fu">,</span> <span class="dt">&quot;height&quot;</span><span class="fu">:</span> <span class="dv">150</span> <span class="fu">},</span></span>
-<span id="cb20-79"><a href="#cb20-79" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;camera&quot;</span><span class="ot">,</span> <span class="st">&quot;fileUpload&quot;</span><span class="ot">]</span></span>
+<span id="cb20-79"><a href="#cb20-79" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;FileUpload&quot;</span><span class="ot">]</span></span>
 <span id="cb20-80"><a href="#cb20-80" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
 <span id="cb20-81"><a href="#cb20-81" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;priorityLevel&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb20-82"><a href="#cb20-82" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;slider&quot;</span><span class="fu">,</span></span>
+<span id="cb20-82"><a href="#cb20-82" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widget&quot;</span><span class="fu">:</span> <span class="st">&quot;Slider&quot;</span><span class="fu">,</span></span>
 <span id="cb20-83"><a href="#cb20-83" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;widgetConfig&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;min&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;max&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span> <span class="dt">&quot;step&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span> <span class="dt">&quot;showTicks&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">},</span></span>
-<span id="cb20-84"><a href="#cb20-84" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;dropdown&quot;</span><span class="ot">]</span></span>
+<span id="cb20-84"><a href="#cb20-84" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;fallback&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;Select&quot;</span><span class="ot">]</span></span>
 <span id="cb20-85"><a href="#cb20-85" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb20-86"><a href="#cb20-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
 <span id="cb20-87"><a href="#cb20-87" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;pages&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
@@ -2076,254 +1993,263 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href=
 <h2 id="appendix-b-widgetdatatype-compatibility-table">Appendix B:
 Widget–DataType Compatibility Table</h2>
 <p>This appendix is <strong>normative</strong>.</p>
-<p>The following table lists all widgets and their compatible data
-types. Widgets marked <strong>Required</strong> MUST be supported by
-conforming renderers. Widgets marked <strong>Progressive</strong> SHOULD
-be supported; the Default Fallback column shows the required
-fallback.</p>
+<p>The following table lists all canonical built-in widgets/components.
+Widgets marked <strong>Required</strong> MUST be supported by conforming
+renderers. Widgets marked <strong>Progressive</strong> SHOULD be
+supported; the Default Fallback column shows the required fallback.
+“Strict” dataTypes produce no compatibility diagnostic. “Loose”
+dataTypes are permitted fallback or editorial uses, but processors
+SHOULD warn.</p>
 <table>
 <colgroup>
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
 </colgroup>
 <thead>
 <tr>
 <th>Widget</th>
 <th>Level</th>
-<th>Compatible dataTypes</th>
+<th>Strict dataTypes</th>
+<th>Conditional / loose dataTypes</th>
 <th>Default Fallback</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>textInput</code></td>
+<td><code>TextInput</code></td>
 <td>Required</td>
-<td>string, uri</td>
+<td>string, text, uri</td>
+<td>loose: integer, decimal, boolean, date, dateTime, time, attachment,
+choice, multiChoice, money</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>textarea</code></td>
-<td>Required</td>
-<td>text</td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>numberInput</code></td>
+<td><code>NumberInput</code></td>
 <td>Required</td>
 <td>integer, decimal</td>
+<td>loose: money</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>checkbox</code></td>
+<td><code>Toggle</code></td>
 <td>Required</td>
 <td>boolean</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
-<td><code>datePicker</code></td>
+<td><code>DatePicker</code></td>
 <td>Required</td>
 <td>date, dateTime, time</td>
 <td>—</td>
-</tr>
-<tr>
-<td><code>dropdown</code></td>
-<td>Required</td>
-<td>choice</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>checkboxGroup</code></td>
+<td><code>Select</code></td>
+<td>Required</td>
+<td>choice</td>
+<td>multiChoice only when <code>widgetConfig.multiple</code> is
+<code>true</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>CheckboxGroup</code></td>
 <td>Required</td>
 <td>multiChoice</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
-<td><code>fileUpload</code></td>
+<td><code>FileUpload</code></td>
 <td>Required</td>
 <td>attachment</td>
 <td>—</td>
-</tr>
-<tr>
-<td><code>moneyInput</code></td>
-<td>Required</td>
-<td>money</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>slider</code></td>
+<td><code>MoneyInput</code></td>
+<td>Required</td>
+<td>integer, decimal, money</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Slider</code></td>
 <td>Progressive</td>
 <td>integer, decimal</td>
-<td><code>numberInput</code></td>
+<td>—</td>
+<td><code>NumberInput</code></td>
 </tr>
 <tr>
-<td><code>stepper</code></td>
+<td><code>Rating</code></td>
 <td>Progressive</td>
-<td>integer</td>
-<td><code>numberInput</code></td>
+<td>integer, decimal</td>
+<td>—</td>
+<td><code>NumberInput</code></td>
 </tr>
 <tr>
-<td><code>rating</code></td>
-<td>Progressive</td>
-<td>integer</td>
-<td><code>numberInput</code></td>
-</tr>
-<tr>
-<td><code>toggle</code></td>
-<td>Progressive</td>
-<td>boolean</td>
-<td><code>checkbox</code></td>
-</tr>
-<tr>
-<td><code>yesNo</code></td>
-<td>Progressive</td>
-<td>boolean</td>
-<td><code>checkbox</code></td>
-</tr>
-<tr>
-<td><code>radio</code></td>
+<td><code>RadioGroup</code></td>
 <td>Progressive</td>
 <td>choice</td>
-<td><code>dropdown</code></td>
+<td>—</td>
+<td><code>Select</code></td>
 </tr>
 <tr>
-<td><code>autocomplete</code></td>
-<td>Progressive</td>
-<td>choice, multiChoice</td>
-<td><code>dropdown</code> / <code>checkboxGroup</code></td>
-</tr>
-<tr>
-<td><code>segmented</code></td>
-<td>Progressive</td>
-<td>choice</td>
-<td><code>radio</code></td>
-</tr>
-<tr>
-<td><code>likert</code></td>
-<td>Progressive</td>
-<td>choice</td>
-<td><code>radio</code></td>
-</tr>
-<tr>
-<td><code>multiSelect</code></td>
-<td>Progressive</td>
-<td>multiChoice</td>
-<td><code>checkboxGroup</code></td>
-</tr>
-<tr>
-<td><code>richText</code></td>
-<td>Progressive</td>
-<td>text</td>
-<td><code>textarea</code></td>
-</tr>
-<tr>
-<td><code>password</code></td>
-<td>Progressive</td>
-<td>string</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>color</code></td>
-<td>Progressive</td>
-<td>string</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>urlInput</code></td>
-<td>Progressive</td>
-<td>uri</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>dateInput</code></td>
-<td>Progressive</td>
-<td>date</td>
-<td><code>datePicker</code></td>
-</tr>
-<tr>
-<td><code>dateTimePicker</code></td>
-<td>Progressive</td>
-<td>dateTime</td>
-<td><code>datePicker</code></td>
-</tr>
-<tr>
-<td><code>dateTimeInput</code></td>
-<td>Progressive</td>
-<td>dateTime</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>timePicker</code></td>
-<td>Progressive</td>
-<td>time</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>timeInput</code></td>
-<td>Progressive</td>
-<td>time</td>
-<td><code>textInput</code></td>
-</tr>
-<tr>
-<td><code>camera</code></td>
+<td><code>Signature</code></td>
 <td>Progressive</td>
 <td>attachment</td>
-<td><code>fileUpload</code></td>
-</tr>
-<tr>
-<td><code>signature</code></td>
-<td>Progressive</td>
-<td>attachment</td>
-<td><code>fileUpload</code></td>
-</tr>
-<tr>
-<td><code>section</code></td>
 <td>—</td>
+<td><code>FileUpload</code></td>
+</tr>
+<tr>
+<td><code>Section</code></td>
+<td>Layout</td>
 <td>group</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
-<td><code>card</code></td>
-<td>—</td>
+<td><code>Stack</code></td>
+<td>Layout</td>
 <td>group</td>
-<td><code>section</code></td>
+<td>—</td>
+<td><code>Section</code></td>
 </tr>
 <tr>
-<td><code>accordion</code></td>
-<td>—</td>
+<td><code>Grid</code></td>
+<td>Layout</td>
 <td>group</td>
-<td><code>section</code></td>
+<td>—</td>
+<td><code>Section</code></td>
 </tr>
 <tr>
-<td><code>tab</code></td>
-<td>—</td>
+<td><code>Card</code></td>
+<td>Container</td>
 <td>group</td>
-<td><code>section</code></td>
+<td>—</td>
+<td><code>Section</code></td>
 </tr>
 <tr>
-<td><code>heading</code></td>
+<td><code>Collapsible</code></td>
+<td>Container</td>
+<td>group</td>
 <td>—</td>
-<td>display</td>
+<td><code>Section</code></td>
+</tr>
+<tr>
+<td><code>ConditionalGroup</code></td>
+<td>Container</td>
+<td>group</td>
+<td>—</td>
+<td><code>Section</code></td>
+</tr>
+<tr>
+<td><code>Tabs</code></td>
+<td>Layout</td>
+<td>group</td>
+<td>—</td>
+<td><code>Section</code></td>
+</tr>
+<tr>
+<td><code>Accordion</code></td>
+<td>Layout</td>
+<td>group</td>
+<td>—</td>
+<td><code>Section</code></td>
+</tr>
+<tr>
+<td><code>DataTable</code></td>
+<td>Interactive</td>
+<td>group</td>
+<td>—</td>
+<td><code>Stack</code></td>
+</tr>
+<tr>
+<td><code>SubmitButton</code></td>
+<td>Interactive</td>
+<td>action</td>
+<td>—</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>paragraph</code></td>
-<td>—</td>
+<td><code>Heading</code></td>
+<td>Display</td>
 <td>display</td>
+<td>—</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>divider</code></td>
-<td>—</td>
+<td><code>Text</code></td>
+<td>Display</td>
 <td>display</td>
+<td>—</td>
 <td>—</td>
 </tr>
 <tr>
-<td><code>banner</code></td>
-<td>—</td>
+<td><code>Divider</code></td>
+<td>Display</td>
 <td>display</td>
 <td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Alert</code></td>
+<td>Display</td>
+<td>display</td>
+<td>—</td>
+<td><code>Text</code></td>
+</tr>
+<tr>
+<td><code>Badge</code></td>
+<td>Display</td>
+<td>display</td>
+<td>—</td>
+<td><code>Text</code></td>
+</tr>
+<tr>
+<td><code>ProgressBar</code></td>
+<td>Display</td>
+<td>display</td>
+<td>—</td>
+<td><code>Text</code></td>
+</tr>
+<tr>
+<td><code>Summary</code></td>
+<td>Display</td>
+<td>display</td>
+<td>—</td>
+<td><code>Text</code></td>
+</tr>
+<tr>
+<td><code>ValidationSummary</code></td>
+<td>Display</td>
+<td>display</td>
+<td>—</td>
+<td><code>Text</code></td>
+</tr>
+<tr>
+<td><code>Panel</code></td>
+<td>Container</td>
+<td>display, group</td>
+<td>—</td>
+<td><code>Card</code></td>
+</tr>
+<tr>
+<td><code>Modal</code></td>
+<td>Container</td>
+<td>display, group</td>
+<td>—</td>
+<td><code>Card</code></td>
+</tr>
+<tr>
+<td><code>Popover</code></td>
+<td>Container</td>
+<td>display, group</td>
+<td>—</td>
+<td><code>Card</code></td>
 </tr>
 </tbody>
 </table>
