@@ -1,333 +1,409 @@
 # Formspec Semantic Layers
 
 **Date:** 2026-05-20
-**Status:** Conceptual architecture note (provisional v0)
+**Status:** Concept architecture note and formalization handoff. Not normative.
 **Supersedes:** [`2026-05-19-ui-schema.md`](./2026-05-19-ui-schema.md)
 **Short names:** Experience, Response Actions, Trace
-**Scope:** Names the semantic layers that sit beside Definition. Establishes ownership, seams, and naming for Experience, Response Actions, and Trace. Not a normative companion spec; the follow-on specs ratify the details (§12).
+**Target output:** W3C-style companion specs under [`../../specs`](../../specs), then JSON Schemas under [`../../schemas`](../../schemas), with examples, conformance fixtures, generated-type impacts, and migration notes.
 
 ---
 
-# 1. Thesis
+## 1. How To Use This Note
 
-Formspec already carries part of an XForms-derived spine: Definition holds the declarative model — items, binds, computed values, relevance, requiredness, readonly state, constraints, shapes, repeats, non-relevant behavior, validation reports. Component and Theme realize the view; Mapping handles the boundary. That spine is sufficient when someone hand-builds UI for each Definition. It is not sufficient when the goal is for UI to be *generated* from semantic source — wireframes, prototypes, production renderings, accessible alternatives, multi-output projections (web, mobile, PDF, agent-assisted, CLI), and AI authoring all projecting from one structured intent.
+This note is a handoff prompt for turning the semantic-layer direction into formal Formspec specifications and schemas.
 
-Three engineering traditions inform the missing layers, each contributing a distinct capability:
+It does not define final wire shapes. It defines the goal, the current boundaries, the names of the missing artifacts, and the promotion gates that must be satisfied before any schema lands.
 
-- **XForms gives runtime-operation semantics.** Actions, submissions, validation modes, lifecycle policy, transaction semantics — declarative runtime operations over a reactive data model. Formspec already absorbed the XForms *model* side (Definition); the *runtime-operations* side is what Response Actions adds. Without it, buttons are UI objects and host-app code secretly owns the real behavior — the drift Formspec exists to eliminate.
-- **UsiXML / CAMELEON gives the derivation ladder.** It separates domain / concept from task from abstract UI from concrete UI from final renderer — so the same intent can project to multiple final UIs without losing meaning.
-- **XIML gives the relationship index.** A generated graph over the artifacts that makes the result explainable, reviewable, regenerable on source changes, auditable, AI-safe, and impact-aware.
-
-Formspec absorbs those lessons as three additions beside Definition / Component / Theme / Mapping / References. Each new layer maps cleanly to one tradition:
+The intended follow-on work is:
 
 ```text
-Experience       makes UI derivable      ← UsiXML / CAMELEON
-Response Actions makes UI executable     ← XForms (runtime operations)
-Trace            makes UI explainable    ← XIML
+concept architecture note
+  -> W3C-style prose specs in formspec/specs
+  -> JSON Schemas in formspec/schemas
+  -> examples, conformance fixtures, generated types, and migration notes
 ```
 
-- **Experience** — abstract task intent. Actors, tasks, units; item / action / concept references. The "abstract UI" rung of the ladder.
-- **Response Actions** — runtime operations layer: actions, submissions, validation modes, lifecycle policy, transaction semantics. Up to and including Intake Handoff.
-- **Trace** — generated relationship index across artifacts. Not part of the rendering pipeline; required when generated UI must be trustworthy.
-
-Three properties keep the additions safe:
-
-1. **Additive.** New layers project *from* Definition, never *into* it. They cannot modify Definition semantics, override Component or Theme, or redefine Mapping.
-2. **Single-ownership.** Each fact has one owner. No layer duplicates a fact owned elsewhere.
-3. **Generated, not authored.** Component drafts derive from sources via the rendering pipeline; Trace is generated from the result and its sources. Source artifacts win on conflict.
-
-This note specifies the layers, their ownership, their seams, and the open questions that gate formal-spec ratification.
+Do not treat the layer names as approval to invent behavior in schemas first. Each schema must follow a prose spec that explains ownership, processing behavior, validation behavior, and compatibility with current Formspec artifacts.
 
 ---
 
-# 2. Semantic Layer Stack
+## 2. Thesis
 
-Formspec's existing artifacts already implement most of the CAMELEON ladder; the new layers fill the missing rungs.
+Formspec already separates model, presentation, translation, mapping, references, and semantic metadata. That split works when a human authors each UI. It is not enough when Formspec must generate, regenerate, review, and run UI from semantic source across web, mobile, PDF, CLI, agent-assisted, and prototype outputs.
+
+This note adds three additive layers:
 
 ```text
-Domain / Concept       → Definition + Registry + Ontology
-Task                   → Experience.tasks
-Abstract UI            → Experience.units   (unit.kind drives generation default)
-Concrete UI            → Component + Theme
-Final UI               → renderer output    (HTML, React, PDF, mobile, agent, CLI)
-
-Orchestration          → Response Actions   (cross-cuts the ladder at runtime)
-Boundary translation   → Mapping
-Resource binding       → References         (external resources attached to artifacts)
-Relationship index     → Trace               (generated index over the ladder)
+Experience        makes UI derivable
+Response Actions  makes form actions portable
+Trace             makes generated UI explainable
 ```
 
-The rendering pipeline is `Definition + Experience + Response Actions → Component → final UI`. The same Experience can project to multiple final UIs. Intent is the durable source; final UIs are projections. Each rung has one owner and refers to but does not override adjacent rungs.
+The direction is sound, but it is not yet a shippable architecture. The hard work lives in the companion specs: validation mapping, action execution, Component regeneration, SubmitButton compatibility, Intake Handoff boundaries, and Trace predicates.
+
+The layers must not replace Definition, Component, Theme, Locale, Mapping, References, Ontology, Intake Handoff, or Respondent Ledger. They name missing seams around those artifacts so generators and reviewers can reason about UI without weakening the executable model.
 
 ---
 
-# 3. Layer Ownership
+## 3. Current Anchors To Preserve
 
-## 3.1 Definition (existing)
+Formal work must preserve these current facts unless a later normative spec explicitly changes them.
 
-Executable form model. Owns fields, items, binds, relevance, requiredness, calculations, validation shapes, versioning, and structured validation results. Definition is authoritative; new layers do not modify it.
+| Area | Current anchor | Why it matters |
+|---|---|---|
+| Definition | Owns item structure, binds, relevance, requiredness, readonly state, calculations, validation shapes, repeat semantics, non-relevant behavior, and response compatibility | New layers must not move executable behavior out of Definition |
+| ValidationReport | Point-in-time output of validation against a Response; `valid` is true only when there are zero error-level findings | Response Actions can request validation, but Definition and Core own the meaning |
+| Validation severity | `error`, `warning`, and `info`; only `error` blocks transition to completed Response | Warning-only submissions remain valid |
+| Core validation mode | Global modes are `continuous`, `deferred`, and `disabled` | Response Actions must not reuse those words with different meanings |
+| Shape timing | Per-shape timing is `continuous`, `submit`, or `demand` | Action intent is not the same thing as shape timing |
+| Response status | `in-progress` may contain validation errors; `completed` must not contain error-level validation results | Draft save and final completion have different blocking rules |
+| Component `SubmitButton` | Existing trigger with no `bind`; validates in `continuous` or `submit` mode and emits `formspec-submit` or calls the host submit API | Response Actions must preserve existing Component documents |
+| Component `ValidationSummary` | Reads live validation state or latest `formspec-submit` detail | New validation vocabulary must not break existing validation UI |
+| Locale | Owns strings and fallback only, including `$component.<nodeId>.<property>` keys | Experience and Component may provide stable IDs, but Locale owns string values |
+| Mapping | Owns response-to-external-payload transformation | Response Actions may reference mappings but must not inline their rules |
+| Intake Handoff | Boundary artifact that carries validated intake evidence to a workflow or case host | Formspec does not create or advance governed cases |
+| Respondent Ledger | Optional response-scoped material history, not a workflow case ledger | Response Actions may request ledger events but do not own ledger semantics |
+| Trace | No current canonical schema or processing model | Trace must wait for a named consumer and predicate set |
 
-## 3.2 Experience (new)
+These anchors are the strongest signals from the current stack. If a companion spec appears to contradict one of them, stop and resolve the ownership issue before adding schema.
 
-Abstract task intent. Conceptual contents:
+---
+
+## 4. Layer Stack
+
+| Concern | Artifact | Status | Role |
+|---|---|---|---|
+| Domain model | Definition + Registry + Ontology | Existing | Data shape, behavior, vocabulary, and concept metadata |
+| Localization | Locale | Existing | Display strings and fallback only |
+| Task intent | Experience | New | Actors, tasks, abstract units, and context of use |
+| Form action orchestration | Response Actions | New | Form-scoped action intent, preconditions, validation triggers, ordered effect requests, and failure posture |
+| Concrete UI | Component + Theme | Existing | Component tree, widget selection, layout, visual tokens |
+| Boundary translation | Mapping + Intake Handoff | Existing | External payload mapping and evidence-bound handoff records |
+| Response history | Respondent Ledger | Existing add-on | Response-scoped durable history and material checkpoints |
+| Relationship index | Trace | New | Generated index over source artifacts and projections |
+| Final UI | Renderer output | Runtime | HTML, React, PDF, mobile, CLI, agent, or other projections |
+
+The primary generation path is:
+
+```text
+Definition + Experience + Response Actions
+  -> Component draft
+  -> renderer output
+```
+
+Locale resolves strings at render time. Mapping, Intake Handoff, and Respondent Ledger participate only when an action requests payload mapping, handoff assembly, or durable evidence. Trace is not in the rendering path.
+
+---
+
+## 5. Design Rules
+
+### 5.1 Keep Additions Additive
+
+New layers project from existing source artifacts. They do not write into Definition, change Definition behavior, override Component or Theme, redefine Locale strings, inline Mapping rules, replace Intake Handoff, or replace Respondent Ledger semantics.
+
+### 5.2 Separate Ownership From Reference
+
+A layer may reference another artifact without owning it. Response Actions may reference a Mapping, request a ValidationReport, request a Respondent Ledger event, or assemble an Intake Handoff. It does not own the body schema or durable semantics of those artifacts.
+
+### 5.3 Treat Formal Specs As Runtime Contracts
+
+Experience may be mostly structural. Response Actions is not. A Response Actions schema without an invocation model, validation mapping, effect taxonomy, idempotency posture, and failure/deferred behavior would create a second informal runtime.
+
+The companion specs must define enough processing behavior for independent implementations to agree on outcomes. That means conformance fixtures, not just JSON Schema.
+
+### 5.4 Be Honest About Authored And Generated Artifacts
+
+Experience and Response Actions are authored source artifacts. Component documents may be hand-authored, generated, or generated and then edited. Trace is generated from source artifacts and projections. A materialized Trace is a cache, not a source of truth.
+
+### 5.5 Mark Future Shape Clearly
+
+This note names future Component reference fields such as `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and `x-generation`. Those fields are not current Component schema unless and until the Component reference-additions spec lands. Examples that use them are future-shape examples.
+
+### 5.6 Promote By Bundles
+
+The architecture has many artifacts. The authoring experience must not expose that complexity as a tax on simple forms. Formal work should define minimum viable bundles that let an author or generator create a useful form without hand-authoring every layer.
+
+---
+
+## 6. Layer Ownership
+
+### 6.1 Definition
+
+Definition remains the executable form model. It owns item structure, binds, relevance, requiredness, calculations, validation shapes, repeat semantics, response version compatibility, and non-relevant behavior.
+
+New layers must not move validation logic, calculation logic, data pruning, or response shape rules out of Definition.
+
+### 6.2 Experience
+
+Experience owns abstract task intent.
+
+Conceptual contents:
 
 ```text
 target Definition
-applicability       (context of use: actor, platform, locale, posture, etc.)
+applicability       (actor, platform, locale, posture, channel, or other context)
 actors
 tasks
-units               (abstract interaction units)
+units
+typed references to items, concepts, and actions
 ```
 
-A unit groups items, concept references, action references, and accessibility intent under a task. The `kind` field on a unit signals abstract intent and drives default Component patterns under derivation (§5). Initial registered values include `data-entry`, `review`, `confirmation`, `evidence-upload`, `signature`, `agent-assist`, `error-resolution` — the closed enum lands in the formal Experience companion spec.
+An Experience unit groups item references, concept references, action references, and accessibility intent under a task. A unit describes what the user is trying to do, not how a renderer should draw it.
 
-Experience MUST NOT specify concrete layout, widget choice, validation rules, calculation rules, submission payloads, durable events, or host-specific workflow implementation. Those facts belong to Component, Definition, Mapping, Respondent Ledger, or the consuming application.
+Experience must not specify:
 
-Experience and Definition groups are not the same thing. Definition groups describe data structure (`household.members[]`, `budget.lineItems[]`). Experience units describe user intent (`identify applicant`, `review household eligibility`). Sometimes they line up. Often they do not. The separation prevents the data tree from becoming the UX tree, the workflow tree, and the layout tree all at once.
+- concrete layout,
+- widget choice,
+- validation rules,
+- calculation rules,
+- submission payloads,
+- durable ledger events,
+- host workflow implementation.
 
-Context of use sits inside Experience: a public-web experience, a caseworker-assisted experience, a mobile-offline experience, and a kiosk experience can share one Definition while differing in tasks, units, actors, and applicability. The data model stays stable; the experience changes.
+Definition groups and Experience units are different. Definition groups describe data structure, such as `household.members[]`. Experience units describe task intent, such as `identify applicant` or `review household eligibility`. Sometimes they align. Often they do not.
 
-## 3.3 Response Actions (new)
+The Experience companion spec should explain how tools seed units from existing Definition structure without pretending the two concepts are the same. It should also define coverage expectations: a generated experience should make it possible to detect required visible items that no unit covers.
 
-Runtime operations layer on the Formspec side of the Intake Handoff seam ([ADR 0073](../../../thoughts/adr/0073-stack-case-initiation-and-intake-handoff.md) D-3). Adds the XForms-derived runtime layer that Formspec's existing model (Definition) doesn't carry: **actions, submissions, validation modes, lifecycle policy, transaction semantics**. Without Response Actions, buttons are UI objects and host-app code secretly owns the real runtime behavior — drift that Formspec exists to eliminate.
+Candidate `unit.kind` values should stay task-oriented. Names such as `data-entry`, `review`, `confirmation`, `evidence-collection`, `attestation`, `assistance`, and `error-resolution` are acceptable only if the formal spec keeps them abstract. Concrete defaults such as cards, panels, upload widgets, chat panes, and signature widgets belong to generator profiles and Component.
 
-Owns:
+### 6.3 Response Actions
+
+Response Actions owns form-scoped action orchestration before the WOS Intake Handoff acceptance seam.
+
+It may own:
 
 ```text
-action identity, intent, and actor
-action preconditions       (FEL expressions per ADR 0075)
-validation modes           (closed enum: save / submit / demand / autosave)
-effects                    (runSubmission, recordLedgerEvent, …)
-submission policy          (payload via mappingRef; outputs via artifact references)
-lifecycle policy           (which events emit transiently vs record durably)
-transaction semantics      (preconditions → validation → effects → evidence → commit)
-production of Intake Handoff payloads
+action identity
+actor and intent labels
+FEL preconditions
+action intent              (save draft, autosave, review, submit, request evidence, etc.)
+validation trigger profile
+blocking policy
+persistence policy
+ordered effect requests
+submission references
+evidence requests
+transient host event names
+idempotency and retry requirements for external or durable effects
 ```
 
-Response Actions MUST NOT:
+It must not own:
 
-- Redefine the body shapes of artifacts owned by other specs. Mapping owns payload transformation; Respondent Ledger owns event semantics; Intake Handoff owns the boundary contract. Response Actions references them by handle.
-- Absorb workflow or case-lifecycle authority. The corresponding post-handoff surface is [WOS Kernel `acceptIntakeHandoff` (§11.3 Instance Operations + §11.4 Intake Acceptance)](../../../work-spec/specs/kernel/spec.md#113-instance-operations), which validates the handoff (algorithm §11.4.1) and emits `intakeAccepted / intakeRejected / intakeDeferred` (outcomes §11.4.3). The two seams never overlap on the same lifecycle moment.
-- Author host-app event semantics. The host owns its own event system. Response Actions emits transient lifecycle events for the host to consume, and requests durable events from Respondent Ledger.
+- Definition behavior,
+- Mapping body shapes,
+- ValidationReport body shape,
+- Respondent Ledger event semantics,
+- Intake Handoff body shape,
+- WOS acceptance policy,
+- governed case identity,
+- case lifecycle events,
+- host application event systems.
 
-The seam:
+Response Actions can say, "this action requests an Intake Handoff after validation and evidence production succeed." It cannot say, "this action creates a governed case." WOS or another workflow host owns intake acceptance, rejection, deferral, governed case identity, and case lifecycle events.
+
+Response Actions is the highest-risk layer because it is a runtime contract. The companion spec must define action invocation state, effect ordering, failure and deferred outcomes, idempotency keys or replay posture, and the difference between host-local events and durable effects.
+
+### 6.4 Response Action Execution
+
+Response Actions needs an ordered execution contract, not a fictional global rollback transaction.
+
+A conforming action should follow this conceptual shape:
 
 ```text
-Response Actions
-  owns: edit response, validate response, save draft, submit response,
-        request local evidence, produce Intake Handoff
-
-WOS Kernel Instance Operations
-  owns: create workflow instance, accept intake handoff, process events,
-        advance time, migrate, suspend, resume, terminate
+begin action invocation
+  evaluate preconditions
+  run the requested validation profile
+  stop before blocking effects if blocking validation fails
+  invoke effects in declared order
+  use idempotency or replay keys for durable and external effects
+  request or assemble artifacts under their owning specs
+  return completed, failed, or deferred
+end invocation
 ```
 
-FEL drives action preconditions as the cross-stack predicate language by [ADR 0075](../../../thoughts/adr/0075-rejection-register.md) I-2; no second expression language is introduced.
+The UI must not report success when a required effect failed silently. Durable effects must use idempotency, replay, explicit failure, or compensation. They must not rely on an implementation pretending it can roll back a ledger append, external call, or workflow-host acceptance decision.
 
-### 3.3.1 Provisional v0 shape
+Draft persistence must not be blocked merely because the Response has validation errors. Submission or completion may block on error-level validation.
 
-The schema sketches below are **illustrative** — they show the shape of an action / submission / lifecycle declaration without committing to closed property names, the full effect-type contract, `actor` / `intent` semantics, FEL precondition evaluation context, or rollback discipline. The formal Response Actions companion spec (§12) ratifies the closed enums, schemas, conformance fixtures, host-app interaction contract, and rollback semantics. Implementers should not treat the names below as a normative interface.
+### 6.5 Validation Terminology
 
-An action declaration:
+Response Actions must not invent a second validation model by calling `save`, `submit`, `demand`, and `autosave` validation modes.
 
-```json
-{
-  "submitApplication": {
-    "label": "Submit application",
-    "actor": "respondent",
-    "intent": "finalize_response",
-    "validation": "submit",
-    "preconditions": [
-      "valid(#)",
-      "$certificationAccepted = true"
-    ],
-    "effects": [
-      { "type": "runSubmission", "submission": "finalApplication" },
-      { "type": "recordLedgerEvent", "eventType": "response.completed" }
-    ]
-  }
-}
-```
+The formal spec must separate these axes:
 
-A submission (referenced from an action's `effects`):
+| Axis | Examples | Existing anchor |
+|---|---|---|
+| Action intent | save draft, autosave, review, submit, request evidence | New Response Actions vocabulary |
+| Validation timing/profile | continuous, deferred, disabled, submit, demand, or named profiles that map to those terms | Core global mode and per-shape timing |
+| Blocking policy | non-blocking, block on error-level findings | Core severity and Response status semantics |
+| Persistence policy | no persistence, draft checkpoint, completed Response | Response lifecycle semantics |
 
-```json
-{
-  "finalApplication": {
-    "payload": {
-      "type": "mapping",
-      "mappingRef": "https://example.gov/mappings/intake-to-case|1.0.0"
-    },
-    "validation": "submit",
-    "outputs": [
-      { "type": "validationReport" },
-      { "type": "intakeHandoff", "initiationMode": "publicIntake" }
-    ]
-  }
-}
-```
+The Response Actions companion spec must include a mapping table before any schema lands. At minimum, fixtures should cover invalid draft save, submit blocked by error-level findings, warning-only submit allowed, demand-shape invocation, and disabled/no-validation behavior.
 
-Lifecycle policy (which runtime events emit transiently vs record durably to Respondent Ledger):
+### 6.6 SubmitButton Compatibility
 
-```json
-{
-  "lifecycle": {
-    "emit":   ["action.started", "action.completed", "action.failed", "submission.completed"],
-    "record": ["draft.saved", "response.completed"]
-  }
-}
-```
+Current Component already has `SubmitButton`. It collects the current response, generates a validation report in its configured mode, and may emit `formspec-submit` or call the host renderer's submit API.
 
-Validation modes (closed enum at v0):
+Response Actions must preserve that compatibility path. The default migration rule should be:
 
 ```text
-save       → continuous validation; non-blocking
-submit     → submit validation; blocks effects if invalid
-demand     → on-demand validation; user-initiated review
-autosave   → no blocking validation; record changes asynchronously
+A SubmitButton without actionRef invokes the implementation's default submit action.
 ```
 
-### 3.3.2 Transaction semantics
+A future Component schema may add `actionRef` after Response Action identities are stable. Until that spec lands, `actionRef` on Component nodes is future shape, not current Component schema.
 
-Every action runs as one transaction:
+The compatibility spec should explain how existing `SubmitButton` examples, adapters, renderers, and validation summaries continue to work while richer action references become available.
+
+### 6.7 Component And Theme
+
+Component owns the concrete UI tree, widget selection, layout, and item binding. Theme owns visual tokens, density, spacing, typography, color, and presentation defaults.
+
+Future Component reference additions may add:
 
 ```text
-begin action
-  check preconditions
-  run validation (per mode)
-  apply effects in declared order (abort if validation failed and mode is blocking)
-  produce evidence artifacts (ValidationReport, IntakeHandoff, …)
-  record durable events (Respondent Ledger)
-commit (or rollback on failure)
+unitRef       -> Experience unit realized by a node
+taskRefs      -> Experience tasks supported by a node
+actionRef     -> Response Action invoked by a trigger
+conceptRefs   -> Registry or Ontology concepts represented by a node
+x-generation  -> generation metadata, source anchors, and generated markers
 ```
 
-A UI MUST NOT observe state where preconditions passed but effects failed silently. The transaction boundary is part of the spec, not engine-private. This prevents half-applied UI behavior that has historically been the source of drift between hand-built form UIs and their underlying data models.
+Those fields are references or generation metadata. They do not let Component override Definition, Experience, or Response Actions.
 
-## 3.4 Component (existing + additions)
+### 6.8 Locale
 
-Concrete UI tree, widget selection, layout, item binding. Adds reference fields for traceability:
+Locale remains a first-class sidecar. It controls display strings only. It must not alter data collection, validation, item structure, binds, option values, page membership, Component behavior, or Response Action behavior.
+
+Experience may carry locale applicability. Component nodes may have stable IDs that Locale uses for `$component.<nodeId>.<prop>` string keys. Locale still owns the string values.
+
+### 6.9 Mapping And Intake Handoff
+
+Mapping owns response-to-external-payload transformation. Response Actions references Mapping by handle and never inlines Mapping rules.
+
+Intake Handoff owns the boundary record that transfers validated intake evidence to a workflow or case host. It binds the pinned Definition, canonical Response, response hash, ValidationReport reference, intake session, and respondent-ledger evidence. Response Actions may request or assemble this artifact. It does not own WOS acceptance or governed case creation.
+
+The Response Actions companion spec should include at least one cross-spec fixture that proves the seam:
 
 ```text
-unitRef       → the Experience unit this node realizes
-taskRefs      → the Experience tasks this node supports
-actionRef     → the Response Action this trigger invokes
-conceptRefs   → the Registry / Ontology concepts this node represents
+Response Actions invocation
+  -> Response snapshot
+  -> ValidationReport snapshot
+  -> Respondent Ledger boundary event or head reference
+  -> Intake Handoff document
+  -> workflow-host accepted, rejected, or deferred outcome
 ```
 
-## 3.5 Theme (existing)
+That fixture must not include a Formspec-authored `case.created` event.
 
-Visual tokens, density, spacing, typography, color, and presentation defaults.
+### 6.10 References
 
-## 3.6 Mapping (existing)
+References attaches external resources to Formspec targets: policy, documentation, regulation, examples, tools, vector stores, or human and agent help.
 
-Response-to-external-payload transformation. Referenced from Response Actions, never inlined.
+References is metadata. It must not affect data capture, validation, or the processing model.
 
-## 3.7 References (existing)
+### 6.11 Respondent Ledger
 
-Supporting external resources — policy, documentation, regulation, examples, tools, vector stores, agent / human help. Resource bindings to targets; metadata that does not affect processing. Distinct from Trace (§3.8 and §6): References attaches external resources *to* artifacts; Trace indexes structural relationships *between* artifacts.
+Respondent Ledger records material respondent-side history for a Response. It is response-scoped history, not a workflow case ledger.
 
-## 3.8 Trace (new)
+Response Actions may request ledger records at material boundaries such as draft save, submit attempt, response completion, attachment changes, or validation snapshots. Respondent Ledger owns the event taxonomy, materiality rules, integrity profile, and durable append semantics.
 
-Generated relationship index over Formspec artifacts. Not part of the rendering pipeline. Indexes structural relationships so that generated UI can be explained, reviewed against the semantic model, regenerated safely on source changes, audited, AI-reviewed, and verified consistent across output projections. See §6.
+### 6.12 Trace
+
+Trace is a generated relationship index over Formspec source artifacts and projections. It is not part of the rendering pipeline. It helps tools explain, review, compare, and audit generated UI.
+
+Trace may answer questions such as:
+
+```text
+Which Component node renders which item?
+Which Experience unit collects which item?
+Which Response Action runs which submission?
+Which Mapping exports which response path?
+Which Reference explains which target?
+Which Respondent Ledger event corresponds to which action boundary?
+```
+
+Trace is generated from source artifacts and projections. A materialized Trace must carry input digests and must be rejected as stale when any input digest changes.
+
+Trace does not yet verify cross-projection consistency by itself. Verification requires a formal predicate set, query model, source set, and named consumer.
+
+The first Trace consumer should be concrete. The best seed consumer is Studio regeneration review: after Definition, Experience, or Response Actions changes, Studio needs to show which Component nodes changed, which designer edits survived, which nodes became orphaned, and which required items lack coverage.
 
 ---
 
-# 5. Component Derivation
+## 7. Component Derivation And Regeneration
 
-Component drafts derive from `Definition + Experience + Response Actions`. The derivation is the spec contract; how it runs is implementation.
+Component drafts may derive from `Definition + Experience + Response Actions`.
 
-## 5.1 Unit kind drives generation default
-
-The `kind` field on an Experience unit signals abstract intent. Registered initial defaults (the closed enum lands in the formal Experience companion spec):
+The derivation contract is:
 
 ```text
-data-entry         → form section / card with field group + actions
-review             → summary panel (read-only projection)
-confirmation       → affirmation block + final action row
-evidence-upload    → upload-focused panel with progress
-signature          → certification / signature widget
-error-resolution   → validation-repair flow
-agent-assist       → chat / help panel
+source semantic artifacts
+  -> generated Component draft
+  -> designer or developer edits
+  -> renderer output
 ```
 
-These are registered defaults, not normative bindings. The mapping from `unit.kind` to Component patterns is the *generator's* concern; Theme and context of use influence the choice. The same unit can become a Card on web, a wizard step on mobile, an Upload panel on a kiosk, or a chat sequence in an agent flow — different concrete projections of one abstract intent.
+Hand-authored Component documents remain valid. A generator is a tool, not the only authoring path.
 
-## 5.2 Implementations
+### 7.1 Unit Kind Drives Defaults, Not Layout Law
 
-The derivation is implementation-agnostic:
+An Experience unit's `kind` can guide a generator. It should not bind a unit to one Component pattern.
 
-- A **generator tool** emits Component drafts from sources and optionally records provenance metadata (`generation.source`, `generation.strategy`, `generation.generatedBy`). `generation.strategy` is a registered enumeration governed under §9.1 — initial entries include `unit-to-card`, `unit-to-page`, `unit-to-step`, `unit-to-panel`. New strategies arrive through Registry-style `x-` extensions, not freeform strings.
-- **AI authoring** proposes Experience units, Component drafts, action labels, and reference bindings as structured artifacts validated against the same derivation rules. The intermediate validation layers — task, unit, Component — narrow the blast radius of AI generation. The AI is not freehanding UI code; it is proposing artifacts at named levels of abstraction.
-- **Hand-authoring** is also valid; the rendering pipeline does not require any particular tool produce the Component.
+For example:
 
-The same Experience can project to multiple final UIs — web, mobile, PDF, agent-assisted, CLI. Each projection is a different concrete Component tree derived from the same abstract Experience. Trace (§6) verifies projections are consistent.
+```text
+data-entry          -> likely field collection
+review              -> likely read-only summary
+confirmation        -> likely affirmation and final action
+evidence-collection -> likely attachment or evidence flow
+attestation         -> likely certification or signature flow
+error-resolution    -> likely validation repair flow
+assistance          -> likely help or agent-assist flow
+```
 
-Because Response Actions declares runtime behavior (§3.3), a generated wireframe is more than a static picture — it can be a **clickable semantic prototype**: buttons disabled until preconditions evaluate true, submit opening a validation summary on failure with errors anchored to offending items, evidence preview appearing on success, lifecycle and ledger events visible in a debug / audit overlay. The wireframe carries behavioral truth, not just visual approximation. That is what the XForms-derived runtime layer buys at the wireframe level: a reviewer can click through the form as it will actually behave, against declared preconditions, effects, validation modes, and transaction semantics.
+The words after `->` describe generator defaults, not normative bindings. Theme, platform, context of use, and generator profile decide whether the final Component uses a card, page, step, panel, modal, CLI prompt, or other pattern.
 
-## 5.3 Regeneration on source changes
+### 7.2 Regeneration Is A Product Contract
 
-When Definition, Experience, or Response Actions changes, regeneration is a merge:
+Regeneration is not a cleanup feature. It is the product contract that makes derivable UI credible.
+
+When Definition, Experience, or Response Actions changes, regeneration should merge:
 
 ```text
 old generated Component
 + designer-edited Component
-+ new generated Component from updated sources
-+ (optional) Trace impact map (§6)
++ new generated Component
++ optional Trace impact map
 = merged Component draft
 ```
 
-With a Trace impact map, the merge identifies which source change affects which Component nodes and surfaces conflicts explicitly. Without one, regeneration falls back to diff heuristics.
-
-Merge rules:
+The formal Component reference-additions or generation companion spec must define enough machinery for that merge:
 
 ```text
-Preserve designer edits when their source anchors still exist.
-Regenerate nodes whose source itemRef, actionRef, or unitRef changed.
-Mark orphaned components when their bind, actionRef, or unitRef no longer resolves.
+source anchors
+generated-node markers
+designer-edit detection or preservation rules
+conflict severities
+orphan handling
+rename and migration handling
+review UX expectations for unresolved conflicts
+```
+
+Baseline merge rules:
+
+```text
+Preserve designer edits when their source anchors still resolve.
+Regenerate nodes whose itemRef, actionRef, or unitRef changed.
+Mark orphaned nodes when their bind, actionRef, or unitRef no longer resolves.
 Add newly generated fields and actions as pending review.
-Never silently delete designer-authored layout without a trace warning.
+Never silently delete designer-authored layout.
 ```
 
-When Definition renames `dateOfBirth → birthDate` via a proper migration or changelog, the generator updates the binding but preserves designer-authored presentation choices. When no migration explains the rename, the generator emits a review warning rather than guessing.
+If Definition renames `dateOfBirth` to `birthDate` through a proper migration or changelog, a generator may update the binding and preserve presentation choices. If no migration explains the rename, the generator should warn instead of guessing.
 
-## 5.4 Worked example
+### 7.3 Future-Shape Example
 
-Given this Experience unit (Experience-side locale namespace is deferred to the Experience companion spec; inline accessibility prose appears here as v0 fallback):
-
-```json
-{
-  "id": "identity",
-  "kind": "data-entry",
-  "taskRefs": ["identifyApplicant"],
-  "itemRefs": ["applicantName", "dateOfBirth"],
-  "actionRefs": ["saveDraft", "continue"],
-  "accessibility": {
-    "label": "Applicant identity",
-    "description": "Information used to identify the applicant."
-  }
-}
-```
-
-and these Definition items (the `label` field is inline fallback; Locale resolves `applicantName.label` and `dateOfBirth.label` at render time):
-
-```json
-[
-  {
-    "key": "applicantName",
-    "type": "field",
-    "dataType": "string",
-    "label": "Full name"
-  },
-  {
-    "key": "dateOfBirth",
-    "type": "field",
-    "dataType": "date",
-    "label": "Date of birth"
-  }
-]
-```
-
-the `data-entry` kind drives a `unit-to-card` default, producing this Component draft. Component nodes carry IDs and structural refs only; human-readable strings resolve implicitly via the Locale spec's `$component.<nodeId>.<prop>` and `<itemKey>.label` key patterns:
+The following shape illustrates the desired future reference model. It is not valid current Component schema until the Component reference-additions spec lands.
 
 ```json
 {
@@ -337,14 +413,15 @@ the `data-entry` kind drives a `unit-to-card` default, producing this Component 
     "url": "https://example.gov/forms/intake",
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },
-  "generation": {
+  "x-generation": {
     "source": "experience:identity",
-    "strategy": "unit-to-card",
-    "generatedBy": "formspec-wireframe-generator@0.1.0"
+    "strategy": "unit-to-section",
+    "generatedBy": "formspec-wireframe-generator@0.1.0",
+    "anchors": ["item:applicantName", "item:dateOfBirth", "unit:identity"]
   },
   "tree": {
-    "id": "identityCard",
-    "component": "Card",
+    "id": "identitySection",
+    "component": "Section",
     "unitRef": "identity",
     "taskRefs": ["identifyApplicant"],
     "children": [
@@ -361,163 +438,120 @@ the `data-entry` kind drives a `unit-to-card` default, producing this Component 
         "unitRef": "identity"
       },
       {
-        "id": "identityActions",
-        "component": "ButtonRow",
-        "children": [
-          {
-            "id": "saveDraftButton",
-            "component": "Button",
-            "actionRef": "saveDraft",
-            "variant": "secondary"
-          },
-          {
-            "id": "continueButton",
-            "component": "Button",
-            "actionRef": "continue",
-            "variant": "primary"
-          }
-        ]
+        "id": "submitApplication",
+        "component": "SubmitButton",
+        "actionRef": "submitApplication"
       }
     ]
   }
 }
 ```
 
-Every Component node carries an anchor back to source semantics:
+Current-compatible Component examples should omit `unitRef`, `taskRefs`, and `actionRef`, or place experimental metadata only where the current schema permits extensions.
+
+---
+
+## 8. Minimum Viable Bundle
+
+The first implementation should prove the smallest bundle that exercises the seams without requiring the whole architecture.
+
+Minimum useful bundle:
 
 ```text
-Card        → Experience unit
-Inputs      → Definition items
-Buttons     → Response Actions
-Validation  → Definition and Validation Report
+Definition
+Experience with at least one task and unit
+Response Actions with one default submit action
+generated Component draft
+current-compatible SubmitButton path
+ValidationReport fixture
+optional Respondent Ledger event or head reference
+optional Intake Handoff fixture for submit
+Trace or trace-like impact map for Studio regeneration review
 ```
 
----
+The bundle should prove these claims:
 
-# 6. Trace: Relationship Index for Trustworthy Generated UI
+1. A generator can derive a Component draft from semantic source.
+2. A designer can edit the Component draft without losing all edits on regeneration.
+3. A submit trigger can use existing `SubmitButton` behavior while mapping to a default Response Action.
+4. Invalid draft save is allowed.
+5. Error-level validation blocks completion.
+6. Warning-only validation does not block completion.
+7. Intake Handoff remains a boundary artifact, not a case creation event.
+8. Trace or a trace-like impact map can explain which source artifacts affected which Component nodes.
 
-Trace is the generated relationship index over Formspec artifacts. It is **not** part of the rendering pipeline — `Component ⟵ Definition + Experience + Response Actions` runs without it. Trace is what makes the result *trustworthy*: it indexes structural relationships between artifacts so that the same generated UI can be:
-
-- **Explained** per element ("this text field renders `item:applicantName`, belongs to `unit:identity`, supports `task:identifyApplicant`, maps to `concept:per.name`, is explained by `reference:name-policy`, is validated by `shape:identity-required`, is included in `submission:finalApplication`").
-- **Reviewed** against the semantic model (the generator's output is verifiable, not just plausible).
-- **Regenerated safely** on source changes (impact map identifies which Component nodes a Definition / Experience / Response Action change affects).
-- **Audited** for compliance (which fields are collected because which policy requires them; what evidence the runtime produces).
-- **AI-checked** (did the AI include required fields; orphan any validation rule; create a button with no Response Action; render a policy-required field without the policy reference; lose accessibility refs).
-- **Verified consistent across projections** (the web Component, mobile Component, PDF section, and caseworker view all project the same abstract intent).
-
-Concretely, Trace answers questions like:
-
-```text
-Which component renders which item?
-Which unit collects which item?
-Which action runs which submission?
-Which mapping exports which path?
-Which reference explains which target?
-Which ledger event records which runtime action?
-Which receipt verifies which signature against which posture?
-```
-
-Three commitments distinguish Trace from adjacent concerns:
-
-- **Trace ≠ References.** References attaches external resources to artifacts (a policy document linked to a field). Trace indexes structural relationships *between* Formspec artifacts (a Component node renders an item; a unit supports a task).
-- **Trace ≠ derivation engine.** The rendering pipeline produces a Component without consulting Trace. Trace is generated *from* the result and its sources, not used to *produce* the result.
-- **Trace is generated, not authored.** Source artifacts win on conflict. A materialized Trace is an optional cache; it MUST carry input digests, and consumers MUST reject it as stale when any source digest changes.
-
-Trace is not required for v0 wireframe generation. It becomes load-bearing when generated UI must be trustworthy — when designers regenerate on Definition changes, when AI proposes structure, when compliance review asks "why is this here", when the same model renders across multiple outputs.
-
-**v0 commitment: posture only.** The predicate set (`renders`, `collects`, `runs`, `references`, `requests`, …) and the query language are deferred until a named consumer drives the choice.
+This bundle is the practical test for the architecture. If the bundle cannot be implemented cleanly, do not expand the layer set.
 
 ---
 
-# 9. Design Commitments
+## 9. Promotion Gates
 
-## 9.2 Keep behavior out of presentation
+Treat these as gates for formalization. They are not implementation details to defer until after schema.
 
-Component and Theme may present and organize fields; they MUST NOT override Definition behavior.
-
-## 9.3 Keep Experience abstract
-
-Experience captures task intent and abstract grouping. It MUST NOT encode concrete layout, widget choice, or host-specific workflow implementation.
-
-## 9.4 Keep Response Actions orchestrational
-
-Response Actions coordinates actions, submissions, validation passes, handoffs, receipts, and ledger requests at the Formspec runtime boundary. It MUST NOT redefine the body schemas owned by those artifacts, and it MUST NOT absorb workflow or case-lifecycle authority.
-
-## 9.6 Keep Trace generated
-
-Trace is generated from source and evidence artifacts. It MUST NOT become an authored duplicate of relationships already owned elsewhere.
-
----
-
-# 10. Lineage
-
-Three engineering traditions sit behind this architecture, each contributing a distinct capability.
-
-| Tradition | Useful discipline | Formspec landing zone |
+| Gate | Formal work must establish | Stop if |
 |---|---|---|
-| **XForms** | Declarative form model + runtime operations over a reactive data model | **Model side already absorbed** into Definition (items, binds, computed values, validation reports, constraints, shapes, repeats, non-relevant behavior). **Runtime side is what Response Actions adds** — actions, submissions, validation modes, lifecycle policy, transaction semantics. |
-| **UsiXML / CAMELEON** | Task / abstract UI / concrete UI / final UI ladder; context of use | Experience, Component, Theme, Experience.applicability |
-| **XIML** | Cross-layer relations and traceability | Trace |
-
-The three new layers map cleanly to what each tradition contributes:
-
-```text
-Experience       makes UI derivable      ← UsiXML / CAMELEON
-Response Actions makes UI executable     ← XForms (runtime operations)
-Trace            makes UI explainable    ← XIML
-```
-
-The goal is not standards parity; it is JSON-native separation of concerns that respects what each tradition got right.
+| Experience shape | Actors, tasks, units, applicability, typed references, abstract `unit.kind`, coverage expectations, and seed-from-Definition guidance | Units become layout containers or required fields can disappear from generated experiences without detection |
+| Response Actions runtime | Invocation state, preconditions, validation profile mapping, blocking policy, persistence policy, effect ordering, failure/deferred outcomes, and idempotency posture | The spec only defines JSON properties and leaves processors to invent behavior |
+| Validation mapping | One table that reconciles action intent, Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, severity, and Response status transitions | A new `save/submit/demand/autosave` validation vocabulary ships without mapping to Core and Component |
+| SubmitButton compatibility | Default submit action rule, `actionRef` migration story, current event/API compatibility, examples, adapters, and validation-summary behavior | Existing Component documents need rewrites before Response Actions can be adopted |
+| Regeneration merge | Source anchors, generated markers, designer-edit preservation, conflict severities, orphan statuses, rename handling, and review UX expectations | The spec says "merge" but cannot explain how edits survive or how conflicts surface |
+| Intake Handoff seam | Cross-spec fixture with Response, ValidationReport, Respondent Ledger evidence, Intake Handoff, and workflow-host outcome | Formspec emits governed case lifecycle events or conflates handoff payload with host acceptance envelope |
+| Trace consumer | Named first consumer, minimal predicates, input digest model, stale rejection, orphan status, and required-item coverage checks | Trace remains an abstract cache with no consumer or is treated as authored truth |
+| Authoring bundle | Greenfield defaults and migration path that hide layer count from basic authors | A useful generated UI requires hand-authoring every artifact |
 
 ---
 
-# 11. Open Questions
+## 10. Follow-On Spec Order
 
-These are gates the follow-on specs must pass. Each names a re-open trigger so the question stays falsifiable.
+Formalize in this order:
 
-## 11.2 Trace query model — posture committed; predicates and language deferred
+1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle.
+2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior.
+3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands.
+4. **SubmitButton compatibility and Component reference additions.** Preserve current `SubmitButton` behavior, define the default submit action rule, then add `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and generation metadata.
+5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.
+6. **Trace query/cache spec.** Use Studio regeneration review as the first consumer unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics.
 
-§6 commits the posture (relationship index, query primary, materialized cache subordinate with digest staleness). The closed predicate set and the query language are deferred.
+Each formal spec should include normative prose, JSON Schema, examples, semantic validation rules, conformance fixtures, generated-type impacts, downstream consumer impacts, and migration notes.
 
-**Re-open trigger:** a named consumer specifies which queries it needs. Examples that would drive the choice: a design-review overlay tool, a compliance audit generator, an AI authoring reviewer, a multi-output consistency verifier.
-
-## 11.3 Response Actions as peer or overlay
-
-Response Actions remains a peer artifact while it only orchestrates runtime actions. If it starts changing Definition behavior, it becomes an explicit behavioral overlay with merge semantics or moves into a future Definition v2 model.
-
-**Re-open trigger:** leakage — Response Actions repeatedly needs to suppress, override, or alter Definition semantics.
-
-## 11.4 TypedRef kind breadth at v1
-
-The closed `kind` list for `TypedRef` is deliberately deferred to the formal Experience companion spec. Candidate kinds include `item`, `action`, `concept`, `unit`, `task`, `actor`. Broader kinds (`mapping`, `theme`, `locale`, `reference`) overlap with existing reference fields and would need justification.
-
-**Re-open trigger:** drafting the formal Experience companion spec — the kind list ratifies there.
+Specs should land before schemas. Schemas should encode the prose contract; they should not become the place where unresolved architecture decisions hide.
 
 ---
 
-# 12. Follow-On Spec Order
+## 11. Open Questions
 
-The next formalization pass should produce these artifacts, in this order:
+### 11.1 Response Actions As Peer Or Overlay
 
-1. **Experience companion spec.** Needs §11.4 (TypedRef kind list) resolved. Specifies actor / task / unit / applicability shapes; ratifies the `unit.kind` registered enum. (UsiXML / CAMELEON–derived.)
-2. **Response Actions companion spec.** Anchors the Intake Handoff seam ([ADR 0073](../../../thoughts/adr/0073-stack-case-initiation-and-intake-handoff.md)) and the FEL precondition language ([ADR 0075](../../../thoughts/adr/0075-rejection-register.md)). Specifies action / submission / evidence-request shapes. (XForms-derived runtime operations.)
-3. **Component reference additions.** Adds `unitRef`, `taskRefs`, `actionRef`, `conceptRefs` to the existing Component schema.
-4. **Trace query / cache spec.** Only after §11.2's re-open trigger fires — a named consumer drives the predicate set and query language. (XIML-derived.)
+Response Actions remains a peer artifact while it orchestrates actions. If it repeatedly needs to suppress, override, or alter Definition semantics, it must become an explicit behavioral overlay with merge rules or move into a future Definition model.
 
-Each follow-on spec should include: normative document shape, JSON Schema, examples, semantic validation rules, conformance fixtures, generated-type impacts, downstream consumer impacts, and migration notes.
+### 11.2 Validation Profile Names
 
-This concept note carries none of those details. Its job is to make the architecture hard to misunderstand before the formal specs begin.
+The formal specs need a stable way to name validation profiles without colliding with Core global modes, per-shape timing, or Component `SubmitButton.mode`.
+
+### 11.3 Component Reference Fields
+
+`unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and generation metadata should land only after Experience and Response Action identities are stable.
+
+### 11.4 Trace Predicate Set
+
+Trace posture is committed. Predicate names, query language, source-set rules, and verification semantics are deferred until the named consumer needs them. Studio regeneration review is the proposed first consumer.
+
+### 11.5 Bundle Manifest
+
+The architecture needs an author-facing bundle concept or equivalent workflow. Without it, layer count will become an adoption blocker even if the layers are individually clean.
 
 ---
 
-# 13. Final Direction
+## 12. Final Direction
 
-Three semantic layers sit beside Definition / Component / Theme / Mapping / References, each absorbing a distinct lesson:
+The three-layer direction is worth pursuing:
 
-- **Experience** holds abstract task intent — the rung of the CAMELEON ladder between domain and concrete UI. Makes UI **derivable**.
-- **Response Actions** holds the XForms-derived runtime layer — actions, submissions, validation modes, lifecycle policy, transactions, up to and including Intake Handoff. Makes UI **executable**.
-- **Trace** is the XIML-derived generated relationship index across artifacts. Makes UI **explainable**.
+- **Experience** names task intent.
+- **Response Actions** names form-scoped runtime action intent.
+- **Trace** indexes relationships for explanation, review, and future verification.
 
-These layers do not replace any existing artifact. They project *from* Definition, never *into* it. They make Formspec capable of generating UI from semantic source — derivable, executable, and explainable — without compromising the existing model.
+The guardrail is ownership. Experience must not become layout. Response Actions must not become a second Definition, validator, workflow engine, or case engine. Trace must not become authored truth.
 
-This note is not the formal spec. It is the doctrine that the follow-on specs implement.
+The goal of the follow-on work is not to make the stack look more abstract. The goal is to let Formspec produce UI that is derivable, executable, regenerable, and explainable while preserving the model boundaries that already work.
+
+If the companion specs keep those boundaries and pass the promotion gates above, this concept can become formal Formspec specs and schemas. If they cannot, the architecture should stay a concept note rather than hardening into incompatible artifacts.
