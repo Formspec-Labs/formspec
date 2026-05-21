@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/experience/1.0",
+  "title": "Formspec Experience",
+  "description": "A Formspec Experience Document per the Experience specification. A standalone sidecar that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions. Like Theme, Component, Locale, and References documents, an Experience Document targets a Definition but lives alongside it. Multiple Experience Documents MAY target the same Definition (e.g., different actor populations, platforms, or postures). Experience metadata MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).",
+  "type": "object",
+  "required": ["$formspecExperience", "version", "targetDefinition"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecExperience": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Experience specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for experience document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Experience Document. SemVer is RECOMMENDED.",
+      "examples": ["1.0.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Experience document revision identifier"
+      }
+    },
+    "targetDefinition": {
+      "$ref": "#/$defs/TargetDefinition",
+      "description": "Binding to the target Definition document. Same shape as Theme / Component / Locale.",
+      "examples": [
+        { "url": "https://example.gov/forms/intake", "compatibleVersions": ">=1.0.0 <2.0.0" }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Target Definition URL and compatible-versions range"
+      }
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$"
+    },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "applicability": { "$ref": "#/$defs/Applicability" },
+    "actors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Actor" },
+      "uniqueItems": true
+    },
+    "tasks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Task" },
+      "uniqueItems": true
+    },
+    "units": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Unit" },
+      "x-lm": {
+        "critical": true,
+        "intent": "Substantive payload; units organize typed references under tasks"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "TargetDefinition": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
+    },
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "Actor": true,
+    "Task": true,
+    "Unit": true,
+    "UnitKind": true,
+    "ItemRef": true,
+    "ConceptRef": true,
+    "ActionRef": true,
+    "Applicability": true,
+    "Accessibility": true
+  }
+}
