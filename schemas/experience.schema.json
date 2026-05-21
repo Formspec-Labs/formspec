@@ -77,8 +77,46 @@
     "Extensions": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
     },
-    "Actor": true,
-    "Task": true,
+    "Actor": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Stable identifier for this Actor. Unique within actors[].",
+          "examples": ["applicant", "reviewer"]
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "Task": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Stable identifier for this Task. Unique within tasks[].",
+          "examples": ["identifyApplicant", "reviewEligibility"]
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "actorRefs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$" }
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
     "Unit": true,
     "UnitKind": true,
     "ItemRef": true,
