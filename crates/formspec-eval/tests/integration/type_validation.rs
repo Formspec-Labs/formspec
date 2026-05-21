@@ -8,7 +8,7 @@
 //! - Invalid values that MUST produce TYPE_MISMATCH
 //! - Edge cases at type boundaries
 
-use formspec_eval::{evaluate, EvalOptions, EvalTrigger, ExtensionConstraint};
+use formspec_eval::{EvalOptions, EvalTrigger, ExtensionConstraint, evaluate};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
@@ -937,7 +937,13 @@ fn extension_max_length_counts_characters_not_bytes() {
 
     let mut data = HashMap::new();
     data.insert("name".to_string(), json!("你好世界")); // 4 chars, 12 bytes
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).extension_constraints(ext.to_vec()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .extension_constraints(ext.to_vec()),
+    );
     let max_len_errors: Vec<_> = result
         .validations
         .iter()
@@ -987,7 +993,13 @@ fn extension_results_use_spec_valid_constraint_kind_and_source() {
 
     let mut data = HashMap::new();
     data.insert("email".to_string(), json!("not-an-email"));
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).extension_constraints(ext.to_vec()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .extension_constraints(ext.to_vec()),
+    );
     let ext_results: Vec<_> = result
         .validations
         .iter()

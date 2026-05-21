@@ -1,14 +1,16 @@
-//! Pass 6: Theme document semantic checks (W700-W711, E710).
+//! Pass 6: Theme document semantic checks (W700-W712, E710).
 #![allow(clippy::missing_docs_in_private_items)]
 
 mod token_refs;
 mod token_registry;
 mod value_validators;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
+use formspec_core::visit_definition_items_from_document;
 use serde_json::Value;
 
+use crate::component_matrix::{Compatibility, classify_compatibility};
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
@@ -28,6 +30,7 @@ pub fn lint_theme(theme: &Value, definition: Option<&Value>) -> Vec<LintDiagnost
     token_registry::lint_declared_tokens(theme, &mut diags);
     token_refs::lint_token_reference_integrity(theme, &token_names, &mut diags);
     lint_pages(theme, &mut diags);
+    lint_selector_widget_compatibility(theme, &mut diags);
 
     if let Some(def) = definition {
         lint_cross_artifact(theme, def, &mut diags);
@@ -87,18 +90,26 @@ fn lint_pages(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
 
 fn lint_cross_artifact(theme: &Value, definition: &Value, diags: &mut Vec<LintDiagnostic>) {
     let item_keys = token_refs::collect_definition_item_keys(definition);
+    let item_data_types = collect_definition_item_data_types(definition);
 
     if let Some(items) = theme.get("items").and_then(|v| v.as_object()) {
-        for key in items.keys() {
+        for (key, block) in items {
             if !item_keys.contains(key.as_str()) {
                 diags.push(metadata::with_metadata(LintDiagnostic::warning(
                     crate::LintCode::W705,
                     PASS,
                     format!("$.items.{key}"),
-                    format!(
-                        "Theme item override '{key}' does not match any definition item path"
-                    ),
+                    format!("Theme item override '{key}' does not match any definition item path"),
                 )));
+            }
+            if let Some(data_type) = item_data_types.get(key.as_str()) {
+                lint_theme_widget_block(
+                    block,
+                    data_type,
+                    &format!("$.items.{key}.widget"),
+                    "Theme item override",
+                    diags,
+                );
             }
         }
     }
@@ -139,6 +150,105 @@ fn lint_cross_artifact(theme: &Value, definition: &Value, diags: &mut Vec<LintDi
             ),
         )));
     }
+}
+
+fn collect_definition_item_data_types(definition: &Value) -> HashMap<String, String> {
+    let mut lookup = HashMap::new();
+    visit_definition_items_from_document(definition, &mut |ctx| {
+        let Some(data_type) = ctx.item.get("dataType").and_then(Value::as_str) else {
+            return;
+        };
+        lookup.insert(ctx.dotted_path.clone(), data_type.to_string());
+        lookup.insert(ctx.key.to_string(), data_type.to_string());
+    });
+    lookup
+}
+
+fn lint_selector_widget_compatibility(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
+    let Some(selectors) = theme.get("selectors").and_then(Value::as_array) else {
+        return;
+    };
+
+    for (index, selector) in selectors.iter().enumerate() {
+        let Some(data_type) = selector
+            .get("match")
+            .and_then(|v| v.get("dataType"))
+            .and_then(Value::as_str)
+        else {
+            continue;
+        };
+        let Some(apply) = selector.get("apply") else {
+            continue;
+        };
+        lint_theme_widget_block(
+            apply,
+            data_type,
+            &format!("$.selectors[{index}].apply.widget"),
+            "Theme selector",
+            diags,
+        );
+    }
+}
+
+fn lint_theme_widget_block(
+    block: &Value,
+    data_type: &str,
+    path: &str,
+    source: &str,
+    diags: &mut Vec<LintDiagnostic>,
+) {
+    let Some(widget) = block.get("widget").and_then(Value::as_str) else {
+        return;
+    };
+    if widget == "none" || widget.starts_with("x-") {
+        return;
+    }
+
+    let compatibility = classify_theme_widget_compatibility(block, widget, data_type);
+    if !matches!(
+        compatibility,
+        Compatibility::Incompatible | Compatibility::CompatibleWithWarning
+    ) {
+        return;
+    }
+
+    let message = if widget == "Select" && data_type == "multiChoice" {
+        format!(
+            "{source} widget 'Select' targets multiChoice data but does not set widgetConfig.multiple: true"
+        )
+    } else if compatibility == Compatibility::CompatibleWithWarning {
+        format!("{source} widget '{widget}' is loosely compatible with dataType '{data_type}'")
+    } else {
+        format!("{source} widget '{widget}' is incompatible with dataType '{data_type}'")
+    };
+
+    diags.push(metadata::with_metadata(LintDiagnostic::warning(
+        crate::LintCode::W712,
+        PASS,
+        path,
+        message,
+    )));
+}
+
+fn classify_theme_widget_compatibility(
+    block: &Value,
+    widget: &str,
+    data_type: &str,
+) -> Compatibility {
+    if widget == "Select" && data_type == "multiChoice" {
+        return if block
+            .get("widgetConfig")
+            .and_then(|v| v.get("multiple"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            Compatibility::Compatible
+        } else {
+            Compatibility::Incompatible
+        };
+    }
+
+    classify_compatibility(widget, data_type)
 }
 
 #[cfg(test)]

@@ -4,8 +4,9 @@ use std::collections::HashMap;
 
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
-    AnswerInput, AnswerState, EvalContext, EvalOptions, EvalTrigger, eval_host_context_from_json_map,
-    evaluate, evaluate_screener_document, evaluation_result_to_json_value, parse_answer_state,
+    AnswerInput, AnswerState, EvalContext, EvalOptions, EvalTrigger,
+    eval_host_context_from_json_map, evaluate, evaluate_screener_document,
+    evaluation_result_to_json_value, parse_answer_state,
 };
 use serde_json::Value;
 use wasm_bindgen::prelude::*;

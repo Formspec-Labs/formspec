@@ -22,6 +22,7 @@ use crate::types::LintDiagnostic;
 const DEFINITION_SCHEMA: &str = include_str!("../schemas/definition.schema.json");
 const COMPONENT_SCHEMA: &str = include_str!("../schemas/component.schema.json");
 const THEME_SCHEMA: &str = include_str!("../schemas/theme.schema.json");
+const COMMON_SCHEMA: &str = include_str!("../schemas/common.schema.json");
 const RESPONSE_SCHEMA: &str = include_str!("../schemas/response.schema.json");
 const INTAKE_HANDOFF_SCHEMA: &str = include_str!("../schemas/intake-handoff.schema.json");
 const MAPPING_SCHEMA: &str = include_str!("../schemas/mapping.schema.json");
@@ -43,6 +44,7 @@ const TOKEN_REGISTRY_SCHEMA: &str = include_str!("../schemas/token-registry.sche
 /// All schemas that may be referenced by `$ref` from other schemas.
 /// Each entry: (schema JSON text, $id URI from the schema).
 const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
+    (COMMON_SCHEMA, "https://formspec.org/schemas/common/1.0"),
     (
         VALIDATION_RESULT_SCHEMA,
         "https://formspec.org/schemas/validationResult/1.0",
@@ -179,7 +181,15 @@ fn component_node_validators() -> &'static ComponentNodeValidators {
                 "$ref": format!("#/$defs/{}", name)
             });
 
-            let validator = jsonschema::options()
+            let mut opts = jsonschema::options();
+            for &(ref_text, ref_id) in CROSS_REF_SCHEMAS {
+                let ref_val: Value =
+                    serde_json::from_str(ref_text).expect("cross-ref schema is valid JSON");
+                let resource = Resource::from_contents(ref_val);
+                opts = opts.with_resource(ref_id, resource);
+            }
+
+            let validator = opts
                 .build(&wrapper)
                 .unwrap_or_else(|e| panic!("embedded component schema '{name}' must compile: {e}"));
             per_type.insert(const_val, validator);
@@ -191,7 +201,14 @@ fn component_node_validators() -> &'static ComponentNodeValidators {
             "$defs": defs,
             "$ref": "#/$defs/CustomComponentRef"
         });
-        let custom_ref = jsonschema::options()
+        let mut opts = jsonschema::options();
+        for &(ref_text, ref_id) in CROSS_REF_SCHEMAS {
+            let ref_val: Value =
+                serde_json::from_str(ref_text).expect("cross-ref schema is valid JSON");
+            let resource = Resource::from_contents(ref_val);
+            opts = opts.with_resource(ref_id, resource);
+        }
+        let custom_ref = opts
             .build(&custom_ref_wrapper)
             .expect("embedded CustomComponentRef schema must compile");
 
@@ -345,6 +362,35 @@ mod tests {
     use super::*;
     use crate::LintSeverity;
     use serde_json::json;
+
+    const CANONICAL_COMPONENT_SCHEMA: &str = include_str!("../../../schemas/component.schema.json");
+    const CANONICAL_COMMON_SCHEMA: &str = include_str!("../../../schemas/common.schema.json");
+
+    #[test]
+    fn embedded_component_schema_matches_canonical_schema() {
+        let embedded: Value =
+            serde_json::from_str(COMPONENT_SCHEMA).expect("embedded component schema parses");
+        let canonical: Value = serde_json::from_str(CANONICAL_COMPONENT_SCHEMA)
+            .expect("canonical component schema parses");
+
+        assert_eq!(
+            embedded, canonical,
+            "formspec-lint embeds schemas/component.schema.json; update both together"
+        );
+    }
+
+    #[test]
+    fn embedded_common_schema_matches_canonical_schema() {
+        let embedded: Value =
+            serde_json::from_str(COMMON_SCHEMA).expect("embedded common schema parses");
+        let canonical: Value =
+            serde_json::from_str(CANONICAL_COMMON_SCHEMA).expect("canonical common schema parses");
+
+        assert_eq!(
+            embedded, canonical,
+            "formspec-lint embeds schemas/common.schema.json; update both together"
+        );
+    }
 
     #[test]
     fn detects_invalid_enum_value() {
@@ -633,6 +679,57 @@ mod tests {
             diags
                 .iter()
                 .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn component_envelope_allows_root_x_extension() {
+        let comp = json!({
+            "$formspecComponent": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "tree": { "component": "Stack" },
+            "x-vendor": { "enabled": true }
+        });
+
+        let diags = validate_schema(&comp, DocumentType::Component);
+        assert!(
+            diags.is_empty(),
+            "Root x-* extension should be accepted by the current Component spec. got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn component_responsive_overrides_reject_identity_props() {
+        let comp = json!({
+            "$formspecComponent": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "breakpoints": { "sm": 640 },
+            "tree": {
+                "component": "Grid",
+                "columns": 2,
+                "responsive": {
+                    "sm": { "bind": "otherField" }
+                },
+                "children": []
+            }
+        });
+
+        let diags = validate_schema(&comp, DocumentType::Component);
+        assert!(
+            diags
+                .iter()
+                .any(|d| d.code == crate::LintCode::E101 && d.path.contains("responsive")),
+            "Responsive identity props should produce E101 at responsive path, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
                 .collect::<Vec<_>>()
         );
     }

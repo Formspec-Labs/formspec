@@ -8,8 +8,8 @@ use serde_json::Value;
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::value_validators::{is_css_color, is_css_length, is_font_weight, is_line_height};
 use super::PASS;
+use super::value_validators::{is_css_color, is_css_length, is_font_weight, is_line_height};
 
 const TOKEN_REGISTRY_JSON: &str = include_str!("../../schemas/token-registry.json");
 
@@ -174,7 +174,9 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
                         crate::LintCode::W703,
                         PASS,
                         &path,
-                        format!("Number token '{name}' must be a unitless positive number, got: '{s}'"),
+                        format!(
+                            "Number token '{name}' must be a unitless positive number, got: '{s}'"
+                        ),
                     )));
                 }
                 _ => {}

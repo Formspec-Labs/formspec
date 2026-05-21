@@ -94,9 +94,7 @@ pub(crate) fn evaluate_single_item(
         }
     }
 
-    if !item.relevant
-        && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
-    {
+    if !item.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
         env.set_field(&item.path, Value::Null);
     }
 

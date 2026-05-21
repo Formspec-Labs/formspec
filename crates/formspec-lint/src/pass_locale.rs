@@ -492,7 +492,7 @@ fn collect_component_nodes_from_tree(tree: &Value, nodes: &mut HashMap<String, S
 
 fn component_property_is_localizable(component: &str, parts: &[String]) -> bool {
     match component {
-        "Page" => is_one_part(parts, &["title", "description"]),
+        "Section" => is_one_part(parts, &["title", "description"]),
         "Heading" | "Text" | "Alert" | "Badge" => is_one_part(parts, &["text"]),
         "Divider" | "ProgressBar" => is_one_part(parts, &["label"]),
         "Card" => is_one_part(parts, &["title", "subtitle"]),

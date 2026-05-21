@@ -44,14 +44,11 @@ fn flatten_object(value: &Value, prefix: &str, output: &mut Map<String, Value>) 
 }
 
 fn migration_from_version(m: &Map<String, Value>) -> Option<&str> {
-    m.get("fromVersion")
-        .and_then(|v| v.as_str())
+    m.get("fromVersion").and_then(|v| v.as_str())
 }
 
 fn change_kind(change: &Map<String, Value>) -> Option<&str> {
-    change
-        .get("type")
-        .and_then(|v| v.as_str())
+    change.get("type").and_then(|v| v.as_str())
 }
 
 fn eval_transform(expression: &str, data: &Value, now_iso: &str) -> Value {
@@ -278,7 +275,8 @@ mod tests {
             }]
         });
         let data = json!({ "name": "John" });
-        let out = apply_migrations_to_response_data(&def, data.clone(), "1.0.0", "2020-01-01T00:00:00Z");
+        let out =
+            apply_migrations_to_response_data(&def, data.clone(), "1.0.0", "2020-01-01T00:00:00Z");
         assert_eq!(out["name"], json!("John"));
         assert!(out.get("fullName").is_none());
     }

@@ -46,14 +46,8 @@ pub fn execute_mapping(
         let source_value = resolve_source_value(rule, source, src_path);
 
         if let Some(ref arr_desc) = rule.array
-            && try_apply_array_descriptor(
-                arr_desc,
-                &source_value,
-                direction,
-                tgt_path,
-                &mut output,
-            )
-            .is_some()
+            && try_apply_array_descriptor(arr_desc, &source_value, direction, tgt_path, &mut output)
+                .is_some()
         {
             rules_applied += 1;
             continue;
@@ -98,7 +92,9 @@ fn sorted_rule_indices(rules: &[MappingRule], direction: MappingDirection) -> Ve
         let r = &rules[i];
         match direction {
             MappingDirection::Forward => std::cmp::Reverse(r.priority),
-            MappingDirection::Reverse => std::cmp::Reverse(r.reverse_priority.unwrap_or(r.priority)),
+            MappingDirection::Reverse => {
+                std::cmp::Reverse(r.reverse_priority.unwrap_or(r.priority))
+            }
         }
     });
     indices
@@ -110,11 +106,7 @@ fn skip_rule_in_reverse(rule: &MappingRule, direction: MappingDirection) -> bool
 }
 
 /// Evaluate an optional FEL condition against source and partial output.
-fn rule_condition_met(
-    condition: Option<&str>,
-    source: &Value,
-    output: &Value,
-) -> bool {
+fn rule_condition_met(condition: Option<&str>, source: &Value, output: &Value) -> bool {
     let Some(cond) = condition else {
         return true;
     };
@@ -131,10 +123,7 @@ fn direction_paths<'a>(
     direction: MappingDirection,
 ) -> (Option<&'a str>, &'a str) {
     match direction {
-        MappingDirection::Forward => (
-            rule.source_path.as_deref(),
-            rule.target_path.as_str(),
-        ),
+        MappingDirection::Forward => (rule.source_path.as_deref(), rule.target_path.as_str()),
         MappingDirection::Reverse => (
             Some(rule.target_path.as_str()),
             rule.source_path.as_deref().unwrap_or(""),
@@ -143,11 +132,7 @@ fn direction_paths<'a>(
 }
 
 /// Read the rule source value, applying per-rule default when absent or null.
-fn resolve_source_value(
-    rule: &MappingRule,
-    source: &Value,
-    src_path: Option<&str>,
-) -> Value {
+fn resolve_source_value(rule: &MappingRule, source: &Value, src_path: Option<&str>) -> Value {
     match src_path {
         Some(p) if !p.is_empty() => {
             let v = get_by_path(source, p).clone();
@@ -215,11 +200,7 @@ fn apply_array_indexed(
         };
         if let Ok(idx) = sp.parse::<usize>() {
             if let Some(elem) = elements.get(idx) {
-                set_by_path(
-                    &mut indexed_output,
-                    &inner_rule.target_path,
-                    elem.clone(),
-                );
+                set_by_path(&mut indexed_output, &inner_rule.target_path, elem.clone());
             }
             continue;
         }
@@ -232,11 +213,7 @@ fn apply_array_indexed(
             } else {
                 elem.clone()
             };
-            set_by_path(
-                &mut indexed_output,
-                &inner_rule.target_path,
-                sub_val,
-            );
+            set_by_path(&mut indexed_output, &inner_rule.target_path, sub_val);
         }
     }
     set_by_path(output, tgt_path, indexed_output);
@@ -248,8 +225,7 @@ fn active_transform<'a>(
     rule: &'a MappingRule,
     direction: MappingDirection,
 ) -> (&'a TransformType, bool) {
-    let using_reverse_override =
-        direction == MappingDirection::Reverse && rule.reverse.is_some();
+    let using_reverse_override = direction == MappingDirection::Reverse && rule.reverse.is_some();
     let transform = match direction {
         MappingDirection::Reverse => rule
             .reverse
@@ -327,20 +303,12 @@ fn apply_rule_transform(
             tgt_path,
             diagnostics,
         )),
-        TransformType::Flatten { separator } => apply_flatten_transform(
-            source_value,
-            separator,
-            tgt_path,
-            output,
-        ),
-        TransformType::Nest { separator } => apply_nest_transform(
-            source_value,
-            separator,
-            source,
-            src_path,
-            tgt_path,
-            output,
-        ),
+        TransformType::Flatten { separator } => {
+            apply_flatten_transform(source_value, separator, tgt_path, output)
+        }
+        TransformType::Nest { separator } => {
+            apply_nest_transform(source_value, separator, source, src_path, tgt_path, output)
+        }
         TransformType::Concat(fel_expr) => TransformStep::Pending(eval_fel_with_dollar(
             fel_expr,
             source_value,
@@ -401,11 +369,7 @@ fn apply_flatten_transform(
         Value::Array(arr) => {
             if !separator.is_empty() {
                 let parts: Vec<String> = arr.iter().map(value_to_flat_string).collect();
-                set_by_path(
-                    output,
-                    tgt_path,
-                    Value::String(parts.join(separator)),
-                );
+                set_by_path(output, tgt_path, Value::String(parts.join(separator)));
             } else {
                 for (i, elem) in arr.iter().enumerate() {
                     set_by_path(output, &format!("{tgt_path}_{i}"), elem.clone());

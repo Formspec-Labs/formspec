@@ -45,7 +45,7 @@ impl<'a> WalkState<'a> {
 
         check_layout_bind::check(self, path, comp_type);
         check_duplicate_bind::check_tree_duplicate(self, path, bind);
-        check_input_compat::check(self, path, comp_type, bind);
+        check_input_compat::check(self, node, path, comp_type, bind);
         check_options_source::check(self, path, comp_type, bind);
         check_textinput_variant::check(self, node, path, comp_type, bind);
         check_duplicate_bind::check_editable_uniqueness(self, path, comp_type, bind);

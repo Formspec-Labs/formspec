@@ -40,8 +40,8 @@ pub use eval_json::{
     EvalHostContextBundle, eval_context_from_json_object, eval_host_context_from_json_map,
     evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
 };
-pub use nrb::{apply_nrb, resolve_nrb};
 pub use eval_options::EvalOptions;
+pub use nrb::{apply_nrb, resolve_nrb};
 pub use pipeline::evaluate;
 pub use rebuild::parse_variables;
 pub use rebuild::{expand_repeat_instances, expand_wildcard_path, rebuild_item_tree};

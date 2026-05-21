@@ -3,12 +3,10 @@
 use fel_core::FormspecEnvironment;
 use serde_json::Value;
 
-use crate::types::determination::{
-    EliminationReason, PhaseResult, PhaseStatus, PhaseStrategy,
-};
+use crate::types::determination::{EliminationReason, PhaseResult, PhaseStatus, PhaseStrategy};
 
 use super::condition::{
-    eval_screener_condition, eval_screener_numeric, elimination_reason_for_condition,
+    elimination_reason_for_condition, eval_screener_condition, eval_screener_numeric,
     phase_warnings_from_eliminated,
 };
 use super::helpers::route_to_result;

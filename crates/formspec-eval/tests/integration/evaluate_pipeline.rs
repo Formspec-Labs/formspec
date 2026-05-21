@@ -1,8 +1,6 @@
 //! Full `evaluate_*` pipeline integration tests.
 
-use formspec_eval::{
-    evaluate, EvalContext, EvalOptions, EvalTrigger, ValidationResult,
-};
+use formspec_eval::{EvalContext, EvalOptions, EvalTrigger, ValidationResult, evaluate};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
@@ -1487,7 +1485,11 @@ fn shape_timing_def() -> Value {
 fn trigger_continuous_skips_submit_and_demand_shapes() {
     let def = shape_timing_def();
     let data = HashMap::new();
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().trigger(EvalTrigger::Continuous),
+    );
     let msgs: Vec<&str> = result
         .validations
         .iter()
@@ -1502,7 +1504,11 @@ fn trigger_continuous_skips_submit_and_demand_shapes() {
 fn trigger_submit_includes_continuous_and_submit_but_not_demand() {
     let def = shape_timing_def();
     let data = HashMap::new();
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Submit));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().trigger(EvalTrigger::Submit),
+    );
     let msgs: Vec<&str> = result
         .validations
         .iter()
@@ -1517,7 +1523,11 @@ fn trigger_submit_includes_continuous_and_submit_but_not_demand() {
 fn trigger_disabled_skips_all_validation() {
     let def = shape_timing_def();
     let data = HashMap::new();
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Disabled));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().trigger(EvalTrigger::Disabled),
+    );
     assert!(
         result.validations.is_empty(),
         "disabled trigger should skip all validation"
@@ -3148,7 +3158,11 @@ fn wildcard_bind_bare_sibling_nested_data() {
     let mut data = HashMap::new();
     data.insert("rows".to_string(), json!([{"enabled": false, "note": ""}]));
 
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().trigger(EvalTrigger::Continuous),
+    );
     let req_errors: Vec<_> = result
         .validations
         .iter()
@@ -3285,7 +3299,13 @@ fn instance_ref_in_calculate_resolves() {
     let data = HashMap::new();
     let mut instances = HashMap::new();
     instances.insert("config".into(), json!({ "defaultRate": 0.15 }));
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .instances(instances.clone()),
+    );
     assert_eq!(result.values.get("rate"), Some(&json!(0.15)));
 }
 
@@ -3303,7 +3323,13 @@ fn instance_ref_in_constraint_resolves() {
     data.insert("amount".into(), json!(500));
     let mut instances = HashMap::new();
     instances.insert("limits".into(), json!({ "maxAmount": 100 }));
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .instances(instances.clone()),
+    );
     assert!(
         result
             .validations
@@ -3327,7 +3353,13 @@ fn instance_ref_in_shape_constraint_resolves() {
     data.insert("total".into(), json!(200));
     let mut instances = HashMap::new();
     instances.insert("rules".into(), json!({ "cap": 100 }));
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .instances(instances.clone()),
+    );
     assert!(result.validations.iter().any(|v| v.code == "OVER_CAP"));
 }
 
@@ -3342,7 +3374,13 @@ fn instance_ref_in_relevant_resolves() {
     let data = HashMap::new();
     let mut instances = HashMap::new();
     instances.insert("flags".into(), json!({ "showExtra": false }));
-    let result = evaluate(&def, &data, &EvalOptions::default().trigger(EvalTrigger::Continuous).instances(instances.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default()
+            .trigger(EvalTrigger::Continuous)
+            .instances(instances.clone()),
+    );
     assert!(result.non_relevant.contains(&"extra".to_string()));
 }
 
@@ -3353,7 +3391,11 @@ fn missing_instance_name_returns_null_not_panic() {
         "items": [{ "key": "val", "type": "field", "dataType": "string", "label": "V" }],
         "binds": [{ "path": "val", "calculate": "@instance('nonexistent').foo" }],
     });
-    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default().trigger(EvalTrigger::Continuous));
+    let result = evaluate(
+        &def,
+        &HashMap::new(),
+        &EvalOptions::default().trigger(EvalTrigger::Continuous),
+    );
     // Should not panic — value should be null
     assert!(result.values.get("val").is_none() || result.values.get("val") == Some(&json!(null)));
 }
@@ -3701,7 +3743,11 @@ fn date_field_compared_to_today_passes_when_future() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().context(context.clone()),
+    );
 
     let shape_errors: Vec<&ValidationResult> = result
         .validations
@@ -3736,7 +3782,11 @@ fn date_field_compared_to_today_fails_when_past() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().context(context.clone()),
+    );
 
     let shape_errors: Vec<&ValidationResult> = result
         .validations
@@ -3769,7 +3819,11 @@ fn date_field_bind_constraint_compares_with_today() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().context(context.clone()),
+    );
 
     let constraint_errors: Vec<&ValidationResult> = result
         .validations
@@ -3804,7 +3858,11 @@ fn datetime_field_coerced_at_context_entry() {
         now_iso: Some("2026-04-07T12:00:00".to_string()),
         ..Default::default()
     };
-    let result = evaluate(&def, &data, &EvalOptions::default().context(context.clone()));
+    let result = evaluate(
+        &def,
+        &data,
+        &EvalOptions::default().context(context.clone()),
+    );
 
     let shape_errors: Vec<&ValidationResult> = result
         .validations

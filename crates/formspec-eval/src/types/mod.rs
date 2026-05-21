@@ -3,11 +3,11 @@
 mod definition;
 pub mod determination;
 mod evaluation;
-mod taxonomy;
 mod extensions;
 mod item_tree;
 mod modes;
 mod paths;
+mod taxonomy;
 
 pub use definition::VariableDef;
 pub use determination::{
@@ -16,10 +16,10 @@ pub use determination::{
     ValidityBlock, parse_answer_state,
 };
 pub use evaluation::{EvalContext, EvalTrigger, EvaluationResult, ValidationResult};
-pub use taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 pub use extensions::ExtensionConstraint;
 pub use item_tree::ItemInfo;
 pub use modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
+pub use taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 
 pub(crate) use paths::{
     collect_data_types, collect_mip_state, collect_non_relevant, find_item_by_path,

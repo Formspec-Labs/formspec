@@ -5,8 +5,8 @@ use serde_json::Value;
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::walk::WalkState;
 use super::PASS;
+use super::walk::WalkState;
 
 pub(crate) fn check(state: &mut WalkState<'_>, node: &Value, path: &str, comp_type: &str) {
     if !state.custom_names.contains(comp_type) {
@@ -26,12 +26,14 @@ pub(crate) fn check(state: &mut WalkState<'_>, node: &Value, path: &str, comp_ty
         if let Some(param_name) = param_val.as_str()
             && !provided_params.is_some_and(|p| p.contains_key(param_name))
         {
-            state.diags.push(metadata::with_metadata(LintDiagnostic::error(
-                crate::LintCode::E806,
-                PASS,
-                path,
-                format!("Custom component '{comp_type}' missing required param '{param_name}'"),
-            )));
+            state
+                .diags
+                .push(metadata::with_metadata(LintDiagnostic::error(
+                    crate::LintCode::E806,
+                    PASS,
+                    path,
+                    format!("Custom component '{comp_type}' missing required param '{param_name}'"),
+                )));
         }
     }
 }

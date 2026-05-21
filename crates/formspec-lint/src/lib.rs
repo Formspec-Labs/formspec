@@ -7,7 +7,7 @@
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
 //! Pass 4 (E400): FEL expression compilation
 //! Pass 5 (E500): Dependency cycle detection
-//! Pass 6 (W700-W711/E710): Theme — token validation, reference integrity, page semantics
+//! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility, bind resolution
 //! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 //! Pass 9 (E1100-E1507/W1100-W1500): Companion document semantic lint

@@ -19,9 +19,7 @@ fn visit_and_resolve_items(items: &mut [Value], sets: &Map<String, Value>) {
         let Some(obj) = item.as_object_mut() else {
             continue;
         };
-        let set_key = obj
-            .get("optionSet")
-            .and_then(|v| v.as_str());
+        let set_key = obj.get("optionSet").and_then(|v| v.as_str());
         if let Some(name) = set_key {
             if let Some(entry) = sets.get(name) {
                 obj.insert("options".to_string(), options_from_set_entry(entry));
@@ -41,8 +39,7 @@ pub fn resolve_option_sets_on_definition(definition: &mut Value) {
         let Some(obj) = definition.as_object() else {
             return;
         };
-        let Some(Value::Object(m)) = obj.get("optionSets")
-        else {
+        let Some(Value::Object(m)) = obj.get("optionSets") else {
             return;
         };
         m.clone()

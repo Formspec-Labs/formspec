@@ -947,7 +947,10 @@ fn parse_field_ref_from_path(path: &str) -> Expr {
     }
     let name = Some(parts[0].to_string());
     let segments = parse_dotted_path_tail(&parts[1..]);
-    Expr::FieldRef { name, path: segments }
+    Expr::FieldRef {
+        name,
+        path: segments,
+    }
 }
 
 /// Parse a dotted path string back into a bare-identifier [`Expr::VarRef`] node.
@@ -961,7 +964,10 @@ fn parse_var_ref_from_path(path: &str) -> Expr {
     }
     let name = parts[0].to_string();
     let segments = parse_dotted_path_tail(&parts[1..]);
-    Expr::VarRef { name, path: segments }
+    Expr::VarRef {
+        name,
+        path: segments,
+    }
 }
 
 fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {

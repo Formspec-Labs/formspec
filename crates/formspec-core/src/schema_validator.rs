@@ -629,7 +629,7 @@ mod tests {
             "version": "1.0.0",
             "targetDefinition": { "url": "https://example.com/def" },
             "tree": {
-                "component": "Page",
+                "component": "Section",
                 "children": [
                     { "component": "TextInput", "bind": "name" }
                 ]

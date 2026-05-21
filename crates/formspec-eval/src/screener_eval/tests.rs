@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::types::determination::{AnswerInput, AnswerState, EliminationReason};
 
@@ -741,11 +741,7 @@ fn availability_until_inclusive_uses_offset_calendar_date_not_utc() {
         "evaluation": [{ "id": "p1", "strategy": "first-match", "routes": [] }]
     });
     let answers = HashMap::new();
-    let det = evaluate_screener_document(
-        &screener,
-        &answers,
-        Some("2026-04-01T23:00:00-08:00"),
-    );
+    let det = evaluate_screener_document(&screener, &answers, Some("2026-04-01T23:00:00-08:00"));
 
     assert_ne!(
         det.status, "unavailable",

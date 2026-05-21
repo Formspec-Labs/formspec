@@ -14,9 +14,7 @@ use crate::types::ItemInfo;
 /// Apply excludedValue="null" to the FEL environment for non-relevant items (9a).
 pub(super) fn apply_excluded_values_to_env(items: &[ItemInfo], env: &mut FormspecEnvironment) {
     for item in items {
-        if !item.relevant
-            && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
-        {
+        if !item.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
             env.set_field(&item.path, EnvVal::Null);
         }
         apply_excluded_values_to_env(&item.children, env);

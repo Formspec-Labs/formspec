@@ -3,8 +3,7 @@
 use serde_json::{Value, json};
 
 fn data_type(item: &Value) -> Option<&str> {
-    item.get("dataType")
-        .and_then(|v| v.as_str())
+    item.get("dataType").and_then(|v| v.as_str())
 }
 
 fn item_currency(item: &Value) -> Option<&str> {
@@ -14,9 +13,7 @@ fn item_currency(item: &Value) -> Option<&str> {
 fn default_currency(definition: &Value) -> Option<&str> {
     definition
         .get("formPresentation")
-        .and_then(|fp| {
-            fp.get("defaultCurrency")
-        })
+        .and_then(|fp| fp.get("defaultCurrency"))
         .and_then(|v| v.as_str())
 }
 
@@ -174,7 +171,12 @@ mod tests {
     #[test]
     fn whitespace_normalize() {
         let b = json!({ "whitespace": "normalize" });
-        let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!("  hi   there  "));
+        let out = coerce_field_value(
+            &item("string"),
+            Some(&b),
+            &json!({}),
+            json!("  hi   there  "),
+        );
         assert_eq!(out, json!("hi there"));
     }
 

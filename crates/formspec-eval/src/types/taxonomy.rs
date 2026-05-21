@@ -346,7 +346,10 @@ mod tests {
 
     #[test]
     fn validation_code_from_wire_and_custom_shape() {
-        assert_eq!(ValidationCode::from_wire("REQUIRED"), ValidationCode::Required);
+        assert_eq!(
+            ValidationCode::from_wire("REQUIRED"),
+            ValidationCode::Required
+        );
         let custom = ValidationCode::from_wire("MY_SHAPE_RULE");
         assert_eq!(custom.as_wire_str(), "MY_SHAPE_RULE");
         assert!(matches!(custom, ValidationCode::Shape(_)));

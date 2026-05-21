@@ -44,7 +44,7 @@ pub const INPUT_COMPONENTS: &[&str] = &[
 static COMPAT_RULES: &[CompatRule] = &[
     CompatRule {
         component: "TextInput",
-        strict_allowed: &["string", "text"],
+        strict_allowed: &["string", "text", "uri"],
         authoring_allowed: &[
             "integer",
             "decimal",
@@ -52,7 +52,6 @@ static COMPAT_RULES: &[CompatRule] = &[
             "date",
             "dateTime",
             "time",
-            "uri",
             "attachment",
             "choice",
             "multiChoice",
@@ -171,6 +170,14 @@ mod tests {
     fn text_input_string_is_compatible() {
         assert_eq!(
             classify_compatibility("TextInput", "string"),
+            Compatibility::Compatible
+        );
+    }
+
+    #[test]
+    fn text_input_uri_is_compatible() {
+        assert_eq!(
+            classify_compatibility("TextInput", "uri"),
             Compatibility::Compatible
         );
     }

@@ -165,7 +165,11 @@ mod tests {
 
     #[test]
     fn nrb_resolve_stripped_indices_fallback() {
-        let items = vec![make_item_with_parent("items.total", Some(NrbMode::Empty), "items")];
+        let items = vec![make_item_with_parent(
+            "items.total",
+            Some(NrbMode::Empty),
+            "items",
+        )];
 
         let mode = resolve_nrb("items[0].total", &items, "remove");
         assert_eq!(
@@ -202,7 +206,8 @@ mod tests {
     #[test]
     fn nrb_resolve_precedence_exact_wins_over_wildcard() {
         let exact_item = make_item_with_parent("items[0].total", Some(NrbMode::Empty), "items[0]");
-        let wildcard_item = make_item_with_parent("items[*].total", Some(NrbMode::Keep), "items[*]");
+        let wildcard_item =
+            make_item_with_parent("items[*].total", Some(NrbMode::Keep), "items[*]");
 
         let items = vec![exact_item, wildcard_item];
 
