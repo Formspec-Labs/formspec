@@ -1,0 +1,36 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "name": "dangling-experience-ref-fail",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/coverage-demo",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "applicability": {
+    "actorRefs": ["missingTopActor"]
+  },
+  "actors": [
+    { "id": "applicant", "title": "Applicant" }
+  ],
+  "tasks": [
+    {
+      "id": "collectIdentity",
+      "title": "Collect identity",
+      "actorRefs": ["applicant", "missingTaskActor"]
+    }
+  ],
+  "units": [
+    {
+      "id": "identity",
+      "kind": "data-entry",
+      "actorRef": "missingUnitActor",
+      "taskRefs": ["collectIdentity", "missingTask"],
+      "applicability": {
+        "actorRefs": ["missingUnitApplicabilityActor"]
+      },
+      "itemRefs": [
+        { "path": "applicantName" }
+      ]
+    }
+  ]
+}

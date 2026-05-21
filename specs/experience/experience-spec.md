@@ -542,7 +542,7 @@ There is no prompt-injection surface in this spec -- Experience does not interac
 The following Experience targets a hypothetical SF-425 Federal Financial Report Definition. It demonstrates:
 
 - Two actor roles (`grantee`, `approver`) with task-level actor scoping.
-- A `data-entry` -> `review` -> `attestation` task flow expressed as three units against related Definition items.
+- A `data-entry` -> `review` -> `attestation` task flow expressed as four units in the full fixture against related Definition items.
 - `purpose` overrides on `ItemRef` (`collect` default -> `display` / `attest`).
 - A `conceptRef` to a Registry concept (UEI).
 - An `actionRef` forward-referencing the Response Actions companion spec (`submitReport`).

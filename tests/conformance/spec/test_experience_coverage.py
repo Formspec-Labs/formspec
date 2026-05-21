@@ -140,6 +140,47 @@ def unresolved_item_refs(definition: dict, experience: dict) -> list[dict]:
     return findings
 
 
+def referential_integrity_findings(experience: dict) -> list[dict]:
+    """Compute EXP-REFERENTIAL-INTEGRITY findings per S10."""
+    actor_ids = {actor["id"] for actor in experience.get("actors", [])}
+    task_ids = {task["id"] for task in experience.get("tasks", [])}
+    findings: list[dict] = []
+
+    def add(path: str, ref: str, target: str):
+        findings.append(
+            {
+                "code": "EXP-REFERENTIAL-INTEGRITY",
+                "severity": "warning",
+                "path": path,
+                "ref": ref,
+                "target": target,
+                "message": f"Reference '{ref}' at {path} does not resolve in {target}.",
+            }
+        )
+
+    for idx, ref in enumerate(experience.get("applicability", {}).get("actorRefs", [])):
+        if ref not in actor_ids:
+            add(f"applicability.actorRefs[{idx}]", ref, "actors")
+
+    for task_idx, task in enumerate(experience.get("tasks", [])):
+        for ref_idx, ref in enumerate(task.get("actorRefs", [])):
+            if ref not in actor_ids:
+                add(f"tasks[{task_idx}].actorRefs[{ref_idx}]", ref, "actors")
+
+    for unit_idx, unit in enumerate(experience.get("units", [])):
+        actor_ref = unit.get("actorRef")
+        if actor_ref is not None and actor_ref not in actor_ids:
+            add(f"units[{unit_idx}].actorRef", actor_ref, "actors")
+        for ref_idx, ref in enumerate(unit.get("taskRefs", [])):
+            if ref not in task_ids:
+                add(f"units[{unit_idx}].taskRefs[{ref_idx}]", ref, "tasks")
+        for ref_idx, ref in enumerate(unit.get("applicability", {}).get("actorRefs", [])):
+            if ref not in actor_ids:
+                add(f"units[{unit_idx}].applicability.actorRefs[{ref_idx}]", ref, "actors")
+
+    return findings
+
+
 @pytest.fixture(scope="module")
 def definition_base():
     return _load("definition-base.json")
@@ -162,6 +203,27 @@ class TestExperienceCoverage:
 
 
 class TestExperienceReferentialIntegrity:
+    def test_dangling_experience_refs_produce_findings(self, definition_base):
+        experience = _load("invalid-dangling-experience-ref.json")
+        findings = referential_integrity_findings(experience)
+        assert {
+            (finding["path"], finding["ref"], finding["target"]) for finding in findings
+        } == {
+            ("applicability.actorRefs[0]", "missingTopActor", "actors"),
+            ("tasks[0].actorRefs[1]", "missingTaskActor", "actors"),
+            ("units[0].actorRef", "missingUnitActor", "actors"),
+            ("units[0].taskRefs[1]", "missingTask", "tasks"),
+            ("units[0].applicability.actorRefs[0]", "missingUnitApplicabilityActor", "actors"),
+        }
+        assert all(finding["code"] == "EXP-REFERENTIAL-INTEGRITY" for finding in findings)
+        assert all(finding["severity"] == "warning" for finding in findings)
+        assert unresolved_item_refs(definition_base, experience) == []
+
+    def test_clean_experience_refs_produce_no_findings(self):
+        experience = _load("valid-grant-application.json")
+        findings = referential_integrity_findings(experience)
+        assert findings == []
+
     def test_dangling_item_ref_produces_finding(self, definition_base):
         experience = _load("invalid-dangling-item-ref.json")
         findings = unresolved_item_refs(definition_base, experience)
