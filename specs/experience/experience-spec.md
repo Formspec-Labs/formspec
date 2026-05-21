@@ -113,3 +113,51 @@ A conformant processor MUST NOT:
 2. Treat Experience as authoritative for layout, widget selection, or page composition.
 3. Substitute Experience for a missing Definition; an Experience without a resolvable target is invalid (S2).
 4. Add `unit.kind` values outside the registry (S5.2) without using the `x-` extension mechanism (S12).
+
+## 2. Document Structure
+
+An Experience Document is a JSON object at the top level with the following properties. (Generated schema reference tables replace this prose table in S11 once the schema lands; the prose form here is normative until then.)
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `$formspecExperience` | string (`const: "1.0"`) | REQUIRED | Document type marker; pins to spec major version. |
+| `version` | string (semver) | REQUIRED | Version of this Experience Document. |
+| `targetDefinition` | object | REQUIRED | `{ url, compatibleVersions }` binding to a Definition (same shape as Theme / Component / Locale). |
+| `name` | string | OPTIONAL | Machine-readable short name. |
+| `title` | string | OPTIONAL | Human-readable display name. |
+| `description` | string | OPTIONAL | Free-form description of audience and purpose. |
+| `applicability` | object | OPTIONAL | Document-level applicability (S7). May be overridden per-Unit. |
+| `actors` | array of `Actor` | OPTIONAL | Actor identities used by Units and Tasks (S3). |
+| `tasks` | array of `Task` | OPTIONAL | Task identities used by Units (S4). |
+| `units` | array of `Unit` | RECOMMENDED | The substantive payload (S5). An Experience with zero Units is structurally valid but trivially uncoverable (S8). |
+| `extensions` | object | OPTIONAL | Extension data; keys MUST be prefixed `x-` (S12). |
+
+At least one of `actors`, `tasks`, or `units` SHOULD be populated; a document with none of these is permitted by the schema but carries no semantic payload.
+
+**Inline example:**
+
+```json
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/intake",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "title": "Intake -- applicant experience",
+  "actors": [{ "id": "applicant", "title": "Applicant" }],
+  "tasks": [{ "id": "identifyApplicant", "title": "Identify the applicant" }],
+  "units": [
+    {
+      "id": "identity",
+      "kind": "data-entry",
+      "taskRefs": ["identifyApplicant"],
+      "actorRef": "applicant",
+      "itemRefs": [
+        { "path": "applicantName" },
+        { "path": "dateOfBirth" }
+      ]
+    }
+  ]
+}
+```
