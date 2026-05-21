@@ -264,11 +264,11 @@ References a Definition item by canonical path.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `path` | string | REQUIRED | Canonical Definition item path. For repeat-group children, use the unindexed path (e.g., `household.members[].firstName`). |
+| `path` | string | REQUIRED | Canonical Definition item path using Core FieldRef syntax. For repeat-group children, use the `[*]` wildcard path (e.g., `household.members[*].firstName`). |
 | `purpose` | string (`collect`, `display`, `attest`, `cite`) | OPTIONAL | The user-facing purpose for this reference within the unit. Default: `collect` for `data-entry` and `evidence-collection`; `display` for `review` and `confirmation`. |
 | `description` | string | OPTIONAL | Optional clarifying note for generators and reviewers. |
 
-The `path` MUST resolve in the loaded Definition. Resolution semantics for repeat-group items: an `itemRef.path` of `household.members[].firstName` covers every instance under `household.members[*]`. A processor MUST treat that ItemRef as covering all current and future instances of `firstName` within `household.members`.
+The `path` MUST resolve in the loaded Definition using Core Bind path syntax. Resolution semantics for repeat-group items: an `itemRef.path` of `household.members[*].firstName` covers every concrete instance path such as `household.members[0].firstName`. A processor MUST treat that ItemRef as covering all current and future instances of `firstName` within `household.members`.
 
 A processor MUST report a finding for any `ItemRef.path` that does not resolve in the target Definition.
 
@@ -323,13 +323,13 @@ Coverage is the **load-bearing static predicate** that protects against the §9 
 
 Given a Definition `D` and an Experience `E` whose `targetDefinition.url` matches `D.url`:
 
-For every Definition item `i` in `D.items` such that:
+Derive the set of target paths from `D.binds`, not from properties embedded on Items. For every top-level Bind `b` in `D.binds` and the Definition field Item `i` resolved by `b.path`, where:
 
-1. `i.bind.required` is the literal boolean `true`, AND
-2. `i.bind.relevant` is NOT the literal boolean `false` (a missing `relevant`, the literal `true`, or an FEL expression that is not the literal `false` all satisfy this), AND
-3. `i` is not transitively inside a repeat group whose `minRepeat` is `0` (such items are *conditionally* required and excluded from static coverage),
+1. `b.required` is the literal FEL expression `true` after trimming whitespace, AND
+2. neither `b` nor any Bind that targets an ancestor path of `i` has `relevant` equal to the literal FEL expression `false` after trimming whitespace (a missing `relevant`, the literal `true`, or any non-literal FEL expression all satisfy this), AND
+3. `i` is not transitively inside a repeatable group whose `minRepeat` is `0` (such items are *conditionally present* and excluded from static coverage),
 
-there MUST exist at least one `Unit u` in `E.units` and at least one `ItemRef r` in `u.itemRefs` such that `r.path` matches `i.path` under the repeat-group rule in S6.1.
+there MUST exist at least one `Unit u` in `E.units` and at least one `ItemRef r` in `u.itemRefs` such that `r.path` equals the canonical FieldRef path for `i` under the repeat-group rule in S6.1.
 
 If no such Unit exists, the item is **uncovered**.
 
@@ -351,8 +351,8 @@ Coverage findings are **reportable**, not blocking. The additive invariant (S1.3
 
 The static predicate is intentionally narrow. It does NOT check:
 
-- Items whose `required` is an FEL expression (conditional requiredness). These are *best-effort* -- processors MAY surface an informative finding but MUST NOT treat them as uncovered.
-- Items whose `relevant` is an FEL expression that is not the literal `false`. These are conservatively treated as potentially visible (i.e., they are subject to the predicate).
+- Items whose `required` Bind is absent or is any FEL expression other than the literal `true` (conditional requiredness). These are *best-effort* -- processors MAY surface an informative finding but MUST NOT treat them as uncovered.
+- Items whose own or ancestor `relevant` Bind is an FEL expression that is not the literal `false`. These are conservatively treated as potentially visible (i.e., they are subject to the predicate when their own `required` Bind is literal `true`).
 - Whether the user can actually reach the unit at runtime (that is a renderer / Component / Response Actions concern).
 - Whether the unit is well-formed for the user -- `unit.kind`, `taskRefs`, `actorRef`, and accessibility intent are not part of coverage.
 
@@ -369,6 +369,6 @@ Tools MAY seed an Experience Document from a Definition. A reasonable seed strat
 3. Place a single `Unit` with `kind: "confirmation"` and zero `itemRefs` at the end (the seeded experience can subsequently be edited to populate confirmation references).
 4. Populate `actors` with a single `applicant` actor; assign every Unit `actorRef: "applicant"`.
 
-This is a starting point, not a recommendation. Experience and Definition are **different concepts** (concept §6.2): a Definition group describes data structure (`household.members[]`); an Experience Unit describes task intent (`identify applicant`). Seeded Experiences SHOULD be edited to reflect actual task structure, not left as 1:1 mirrors of Definition shape.
+This is a starting point, not a recommendation. Experience and Definition are **different concepts** (concept §6.2): a Definition group describes data structure (`household.members[*]`); an Experience Unit describes task intent (`identify applicant`). Seeded Experiences SHOULD be edited to reflect actual task structure, not left as 1:1 mirrors of Definition shape.
 
 A seeded Experience that has been edited by a human or generator MUST satisfy the same schema and coverage rules as a hand-authored Experience. Seeding does not create a privileged document class.
