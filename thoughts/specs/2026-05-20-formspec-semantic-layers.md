@@ -505,7 +505,7 @@ Treat these as gates for formalization. They are not implementation details to d
 
 Formalize in this order:
 
-1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle.
+1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle. **Landed:** [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md) (draft, 2026-05-21).
 2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior.
 3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands.
 4. **SubmitButton compatibility and Component reference additions.** Preserve current `SubmitButton` behavior, define the default submit action rule, then add `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and generation metadata.
