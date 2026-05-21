@@ -182,3 +182,21 @@ Actors are referenced by:
 - `applicability.actorRefs[]` (S7) -- actor predicates for applicability resolution.
 
 A processor MUST reject an Experience that references an `actorRef` not present in `actors[]`. (Schema enforces shape; this rule is referential and enforced by Coverage-aware processors and validators.)
+
+## 4. Tasks
+
+A **Task** is a named unit of user-visible work that the form supports. Tasks are abstract; they describe what the user is doing, not the steps a Component takes to render that work.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `id` | string (camelCase, unique within `tasks[]`) | REQUIRED | Stable identifier. Referenced by `unit.taskRefs[]`. |
+| `title` | string | OPTIONAL | Human-readable label. |
+| `description` | string | OPTIONAL | Free-form description. |
+| `actorRefs` | array of string | OPTIONAL | Actors participating in this task. Each entry MUST resolve to an `actor.id`. |
+| `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
+
+Tasks SHOULD be named in user-domain language (e.g., `identifyHousehold`, `reviewEligibility`, `attestAccuracy`), not in renderer-domain language (`fillFormPage1`, `showSummaryCard`).
+
+A Unit MAY reference zero, one, or many tasks via `unit.taskRefs[]` (S5.1). A Task without any referring Unit is permitted but is informationally inert -- it signals planned work not yet bound to data collection.
+
+A processor MUST reject an Experience that references a `unit.taskRefs[]` entry not present in `tasks[]`.
