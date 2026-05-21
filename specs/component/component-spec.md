@@ -77,8 +77,8 @@ Section references (§N) refer to this document unless prefixed with
   - [§4.4 Repeatable Group Binding](#44-repeatable-group-binding)
   - [§4.5 Unbound Required Items](#45-unbound-required-items)
   - [§4.6 Bind/dataType Compatibility Matrix](#46-binddatatype-compatibility-matrix)
-- [§5 Built-In Components — Core (18)](#5-built-in-components--core-18)
-- [§6 Built-In Components — Progressive (17)](#6-built-in-components--progressive-17)
+- [§5 Built-In Components — Core (17)](#5-built-in-components--core-17)
+- [§6 Built-In Components — Progressive (16)](#6-built-in-components--progressive-16)
 - [§7 Custom Components](#7-custom-components)
   - [§7.1 The components Registry](#71-the-components-registry)
   - [§7.2 {param} Interpolation Grammar (ABNF)](#72-param-interpolation-grammar-abnf)
@@ -146,7 +146,7 @@ A Component Document:
   rules, required state, and relevance from the Definition.
 - Uses FEL expressions for conditional rendering (`when` property).
 - Supports responsive breakpoint overrides and design tokens.
-- Defines a fixed catalog of 35 built-in components (18 Core + 17
+- Defines a fixed catalog of 33 built-in components (17 Core + 16
   Progressive) plus a custom component registry for reuse.
 
 Multiple Component Documents MAY target the same Definition. This enables
@@ -188,14 +188,14 @@ This specification defines two conformance levels:
 
 | Level | Components | Requirement |
 |-------|-----------|-------------|
-| **Core Conformant** | 18 Core components (§5) | MUST support all 18 Core components. MUST apply fallback rules (§6.18) when encountering Progressive components. |
-| **Complete Conformant** | All 35 components (§5 + §6) | MUST support all 18 Core components and all 17 Progressive components. |
+| **Core Conformant** | Core components (§5) | MUST support all Core components. MUST apply fallback rules (§6.18) when encountering Progressive components. |
+| **Complete Conformant** | All 33 components (§5 + §6) | MUST support all Core and Progressive components. |
 
 A processor that claims Core conformance MUST, upon encountering a
 Progressive component, substitute the specified Core fallback (§6.18)
 and SHOULD emit an informative warning.
 
-A processor that claims Complete conformance MUST render all 35 built-in
+A processor that claims Complete conformance MUST render all 33 built-in
 components natively.
 
 Both levels MUST support the custom component mechanism (§7).
@@ -255,12 +255,12 @@ Component Document that omits a REQUIRED property.
 | `#/properties/breakpoints` | `breakpoints` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Breakpoints</code> | Named viewport breakpoints for responsive prop overrides. Keys are breakpoint names; values are minimum viewport widths in pixels. Mobile-first cascade: base props apply to all widths, then overrides merge in ascending order. |
 | `#/properties/components` | `components` | <code>object</code> | no | — | Registry of custom component templates. Keys are PascalCase names (MUST NOT collide with built-in names). Each template has params and a tree that is instantiated with {param} interpolation. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description. |
-| `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Document-level extension properties. All keys MUST be prefixed with 'x-'. |
+| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | Document-level extension properties. All keys MUST be prefixed with 'x-'. |
 | `#/properties/name` | `name` | <code>string</code> | no | — | Machine-friendly short identifier. |
 | `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and optional compatibility range. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable name. |
 | `#/properties/tokens` | `tokens` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Tokens</code> | Flat key-value map of design tokens. Referenced in style objects and token-able props via $token.key syntax. Tier 3 tokens override Tier 2 theme tokens of the same key. |
-| `#/properties/tree` | `tree` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/AnyComponent</code>; critical | Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Page). |
+| `#/properties/tree` | `tree` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/AnyComponent</code>; critical | Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Section). |
 | `#/properties/url` | `url` | <code>string</code> | no | — | Canonical URI identifier for this Component Document. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this Component Document. |
 <!-- schema-ref:end -->
@@ -424,8 +424,10 @@ Example of a fully-specified component object:
 }
 ```
 
-Processors MUST ignore unrecognized properties on component objects.
-This enables forward-compatible extension.
+Component objects are closed. Processors MUST reject unrecognized
+component-object properties unless a property is explicitly allowed by
+that component's schema. Top-level `x-*` document properties remain the
+extension lane.
 
 ### 3.2 Component Tree Semantics (single root)
 
@@ -433,7 +435,7 @@ The `tree` property MUST contain exactly **one** component object. This
 object is the **root** of the component tree.
 
 To present multiple components at the top level, authors MUST wrap them
-in a layout component (typically `Stack` or `Page`):
+in a layout component (typically `Stack` or `Section`):
 
 ```json
 // ✗ INVALID — tree cannot be an array
@@ -478,7 +480,7 @@ the category:
 
 | Category | Accepts `children` | Examples |
 |----------|-------------------|----------|
-| **Layout** | Yes | Page, Stack, Grid, Columns, Tabs, Accordion |
+| **Layout** | Yes | Section, Stack, Grid, Tabs, Accordion |
 | **Container** | Yes | Card, Collapsible, ConditionalGroup, Panel, Modal, Popover |
 | **Input** | No | TextInput, NumberInput, Select, Toggle, … |
 | **Display** | No | Heading, Text, Divider, Alert, Badge, … |
@@ -488,15 +490,13 @@ Rules:
 1. **Layout and Container** components MAY contain any component type
    as children (Layout, Container, Input, or Display), unless further
    restricted by the specific component (e.g., Tabs children SHOULD
-   be Page components for correct tab rendering).
+   be Section components for correct tab rendering).
 
 2. **Input and Display** components MUST NOT have a `children` property.
    If present, processors MUST reject the document or ignore the
    `children` property and emit a warning.
 
-3. **Spacer** MUST NOT have children (it is a Layout leaf).
-
-4. Nesting depth SHOULD NOT exceed 20 levels. Processors MAY reject
+3. Nesting depth SHOULD NOT exceed 20 levels. Processors MAY reject
    documents exceeding this limit.
 
 ---
@@ -526,7 +526,7 @@ property are addressable.
 
 | Component | Localizable Props |
 |-----------|-------------------|
-| Page | `title`, `description` |
+| Section | `title`, `description` |
 | Heading | `text` |
 | Text | `text` |
 | Alert | `text` |
@@ -696,20 +696,21 @@ compatible with. Binding a component to an item with an incompatible
 | `dataType` | Compatible Input Components |
 |---|---|
 | `string` | TextInput |
-| `number` | NumberInput, Slider, Rating |
-| `integer` | NumberInput, Slider, Rating |
+| `decimal` | NumberInput, MoneyInput, Slider, Rating |
+| `integer` | NumberInput, MoneyInput, Slider, Rating |
 | `boolean` | Toggle |
 | `date` | DatePicker |
 | `dateTime` | DatePicker |
 | `time` | DatePicker |
 | `choice` | Select, RadioGroup |
 | `multiChoice` | CheckboxGroup, Select |
+| `money` | MoneyInput |
 | `attachment` | FileUpload, Signature |
 
 Notes:
 
-- **NumberInput** is compatible with `number`, `integer`, and
-  (via formatting) items that use `prefix`/`suffix` for currency display.
+- **NumberInput** is compatible with `decimal` and `integer` values.
+  Authors SHOULD use MoneyInput for Definition items with `money` dataType.
 - **Slider** and **Rating** are Progressive components; their fallback
   is NumberInput.
 - **RadioGroup** is a Progressive component; its fallback is Select.
@@ -726,9 +727,9 @@ or warn on incompatible bindings.
 
 ---
 
-## 5. Built-In Components — Core (18)
+## 5. Built-In Components — Core (17)
 
-This section defines the 18 Core components that all conforming
+This section defines the 17 Core components that all conforming
 processors MUST support. Components are grouped by category: Layout,
 Input, Display, and Container.
 
@@ -742,7 +743,7 @@ For each component, the specification provides:
 
 ---
 
-### 5.1 Page
+### 5.1 Section
 
 **Category:** Layout
 **Level:** Core
@@ -752,23 +753,28 @@ For each component, the specification provides:
 #### Description
 
 A top-level page container representing a logical section of a form.
-When `formPresentation.pageMode` is `"wizard"` or `"tabs"`, Pages define
-the navigation steps or tab panels. Pages MAY also be used standalone
+When `formPresentation.pageMode` is `"wizard"` or `"tabs"`, Sections define
+the navigation steps or tab panels. Sections MAY also be used standalone
 within a Stack for single-page sectioned forms.
 
 #### Props
 
 | Prop | Type | Default | Token-able | Description |
 |------|------|---------|------------|-------------|
-| `title` | string | — | No | Page heading displayed at the top of the section. |
+| `title` | string | — | No | Section heading displayed at the top of the section. |
 | `description` | string | — | No | Subtitle or description text rendered below the title. |
+| `padding` | string \| number | — | Yes | Inner spacing for the Section surface. |
+| `background` | string \| number | — | Yes | Background token or renderer value. |
+| `border` | string \| number | — | Yes | Border token or renderer value. |
+| `radius` | string \| number | — | Yes | Corner radius token or renderer value. |
+| `elevation` | string \| number | — | Yes | Elevation token or renderer value. |
 
 #### Rendering Requirements
 
 - MUST render as a block-level section element (e.g., `<section>` or
   equivalent).
 - When `title` is present, MUST render it as a heading element.
-- When `formPresentation.pageMode` is `"wizard"`, the Page MUST be
+- When `formPresentation.pageMode` is `"wizard"`, the Section MUST be
   shown/hidden according to the current step navigation state.
 - MUST render children in array order within the section.
 
@@ -776,7 +782,7 @@ within a Stack for single-page sectioned forms.
 
 ```json
 {
-  "component": "Page",
+  "component": "Section",
   "title": "Project Information",
   "description": "Enter basic details about your project.",
   "children": [
@@ -808,7 +814,13 @@ primitive and is typically used as the root component.
 | `direction` | string | `"vertical"` | No | Stack direction. MUST be one of `"vertical"` or `"horizontal"`. |
 | `gap` | string \| number | `0` | Yes | Spacing between children. String values (e.g., `"16px"`, `"$token.spacing.md"`) or numeric pixel values. |
 | `align` | string | `"stretch"` | No | Cross-axis alignment. MUST be one of `"start"`, `"center"`, `"end"`, `"stretch"`. |
+| `justify` | string | `"start"` | No | Main-axis distribution. MUST be one of `"start"`, `"center"`, `"end"`, `"between"`, `"around"`, or `"evenly"`. Renderers map the distribution tokens to CSS justify-content values such as `space-between`, `space-around`, and `space-evenly`. |
 | `wrap` | boolean | `false` | No | Whether children wrap to the next line when `direction` is `"horizontal"`. |
+| `padding` | string \| number | — | Yes | Inner spacing for the Stack surface. |
+| `background` | string \| number | — | Yes | Background token or renderer value. |
+| `border` | string \| number | — | Yes | Border token or renderer value. |
+| `radius` | string \| number | — | Yes | Corner radius token or renderer value. |
+| `elevation` | string \| number | — | Yes | Elevation token or renderer value. |
 
 #### Rendering Requirements
 
@@ -850,9 +862,14 @@ Children are placed in source order, wrapping to new rows as needed.
 
 | Prop | Type | Default | Token-able | Description |
 |------|------|---------|------------|-------------|
-| `columns` | integer \| string | `2` | Yes | Number of columns (integer) or a CSS grid-template-columns value (string, e.g., `"1fr 2fr 1fr"`). |
+| `columns` | integer \| string \| array | `2` | Yes | Number of columns, a CSS grid-template-columns string, or an array of track values (numeric entries normalize to `fr`). |
 | `gap` | string \| number | `0` | Yes | Spacing between grid cells. |
 | `rowGap` | string \| number | (inherits `gap`) | Yes | Vertical spacing between rows, if different from `gap`. |
+| `padding` | string \| number | — | Yes | Inner spacing for the Grid surface. |
+| `background` | string \| number | — | Yes | Background token or renderer value. |
+| `border` | string \| number | — | Yes | Border token or renderer value. |
+| `radius` | string \| number | — | Yes | Corner radius token or renderer value. |
+| `elevation` | string \| number | — | Yes | Elevation token or renderer value. |
 
 #### Rendering Requirements
 
@@ -882,44 +899,23 @@ Children are placed in source order, wrapping to new rows as needed.
 ### 5.4 \[Reserved\]
 
 The Wizard component type was removed in favor of
-`formPresentation.pageMode: "wizard"` with a `Stack > Page*` tree
+`formPresentation.pageMode: "wizard"` with a `Stack > Section*` tree
 structure. See Core §4.1.2 for normative page mode processing
 requirements. Wizard-style navigation is now a presentation mode
-applied to a Stack of Pages, not a distinct component type.
+applied to a Stack of Sections, not a distinct component type.
 
 ---
 
-### 5.5 Spacer
+### 5.5 Spacing Model
 
-**Category:** Layout
-**Level:** Core
-**Accepts children:** No
-**Bind:** Forbidden
+Spacing is expressed through layout and surface properties, not an empty
+spacing component.
 
-#### Description
-
-An empty spacing element that inserts visual space between siblings.
-Spacer is a leaf component with no children and no binding.
-
-#### Props
-
-| Prop | Type | Default | Token-able | Description |
-|------|------|---------|------------|-------------|
-| `size` | string \| number | `"$token.spacing.md"` | Yes | The amount of space. String values (e.g., `"24px"`) or numeric pixel values. |
-
-#### Rendering Requirements
-
-- MUST render as an empty block element with the specified size as
-  its height (in a vertical context) or width (in a horizontal context).
-- MUST NOT render any visible content.
-- MUST NOT accept children. If `children` is present, processors
-  MUST ignore it.
-
-#### Example
-
-```json
-{ "component": "Spacer", "size": "$token.spacing.lg" }
-```
+- Sibling spacing belongs on `Stack.gap`, `Grid.gap`, or `Grid.rowGap`.
+- Inner spacing belongs on visual surface `padding` for `Section`, `Stack`,
+  `Grid`, `Card`, and `Panel`.
+- Renderers MUST NOT require authors to insert empty components to create
+  visual space.
 
 ---
 
@@ -1028,7 +1024,7 @@ than 1, the input renders as a multi-line textarea.
 **Level:** Core
 **Accepts children:** No
 **Bind:** Required
-**Compatible dataTypes:** `integer`, `number`
+**Compatible dataTypes:** `integer`, `decimal`
 
 #### Description
 
@@ -1457,7 +1453,11 @@ a visual boundary with optional title and subtitle.
 |------|------|---------|------------|-------------|
 | `title` | string | — | No | Card header title. |
 | `subtitle` | string | — | No | Card header subtitle, rendered below the title. |
-| `elevation` | string | `"low"` | Yes | Shadow depth. SHOULD map to a token (e.g., `"$token.elevation.low"`). |
+| `elevation` | string \| number | — | Yes | Elevation token or renderer value. |
+| `padding` | string \| number | — | Yes | Inner spacing for the Card surface. |
+| `background` | string \| number | — | Yes | Background token or renderer value. |
+| `border` | string \| number | — | Yes | Border token or renderer value. |
+| `radius` | string \| number | — | Yes | Corner radius token or renderer value. |
 
 #### Rendering Requirements
 
@@ -1627,10 +1627,10 @@ as a whole, not with any individual item.
 
 ---
 
-## 6. Built-In Components — Progressive (17)
+## 6. Built-In Components — Progressive (16)
 
-This section defines the 17 Progressive components. A **Complete
-Conformant** processor MUST support all 17. A **Core Conformant**
+This section defines the 16 Progressive components. A **Complete
+Conformant** processor MUST support all 16. A **Core Conformant**
 processor MUST substitute the specified Core fallback for each
 Progressive component and SHOULD emit an informative warning.
 
@@ -1640,52 +1640,11 @@ processors. §6.18 provides a consolidated fallback table.
 
 ---
 
-### 6.1 Columns
+### 6.1 [Reserved]
 
-**Category:** Layout
-**Level:** Progressive
-**Accepts children:** Yes
-**Bind:** Forbidden
-**Fallback:** Grid
-
-#### Description
-
-An explicit multi-column layout where each child occupies a column
-whose width is specified by the `widths` array. Unlike Grid, which
-auto-distributes children into equal cells, Columns gives precise
-control over per-column sizing.
-
-#### Props
-
-| Prop | Type | Default | Token-able | Description |
-|------|------|---------|------------|-------------|
-| `widths` | array of strings | equal widths | No | Per-child column widths as CSS values (e.g., `["1fr", "2fr", "1fr"]` or `["200px", "auto"]`). Array length SHOULD match the number of children. |
-| `gap` | string \| number | `0` | Yes | Spacing between columns. |
-
-#### Rendering Requirements
-
-- MUST render children side-by-side in the specified widths.
-- When `widths` length differs from children count, MUST distribute
-  remaining children into equal-width columns.
-
-#### Fallback Behavior
-
-Core processors MUST replace Columns with a **Grid** whose `columns`
-prop equals the number of children. The `gap` prop is preserved.
-
-#### Example
-
-```json
-{
-  "component": "Columns",
-  "widths": ["2fr", "1fr"],
-  "gap": "$token.spacing.md",
-  "children": [
-    { "component": "TextInput", "bind": "address" },
-    { "component": "TextInput", "bind": "zipCode" }
-  ]
-}
-```
+The former Columns primitive is not part of the canonical v1 vocabulary.
+Use `Grid.columns` with an integer, track array, or CSS grid-template
+string instead.
 
 ---
 
@@ -1700,15 +1659,15 @@ prop equals the number of children. The `gap` prop is preserved.
 #### Description
 
 A tabbed navigation container. Each direct child represents the
-content of one tab. Tab labels are derived from child Page `title`
+content of one tab. Tab labels are derived from child Section `title`
 props or from the `tabLabels` array.
 
 #### Props
 
 | Prop | Type | Default | Token-able | Description |
 |------|------|---------|------------|-------------|
-| `position` | string | `"top"` | No | Tab bar position. MUST be one of `"top"`, `"bottom"`, `"left"`, or `"right"`. |
-| `tabLabels` | array of strings | — | No | Explicit tab labels. When absent, the renderer reads `title` from each child (children SHOULD be Page components). |
+| `placement` | string | `"top"` | No | Tab bar placement. MUST be one of `"top"`, `"right"`, `"bottom"`, or `"left"`. |
+| `tabLabels` | array of strings | — | No | Explicit tab labels. When absent, the renderer reads `title` from each child (children SHOULD be Section components). |
 | `defaultTab` | integer | `0` | No | Zero-based index of the initially active tab. |
 
 #### Rendering Requirements
@@ -1761,7 +1720,7 @@ visibly in sequence.
 
 A vertical list of collapsible sections where, by default, only one
 section is expanded at a time. Each child SHOULD be a component with
-a `title` prop (e.g., Page, Card, Collapsible) to serve as the
+a `title` prop (e.g., Section, Card, Collapsible) to serve as the
 section header.
 
 When `bind` is provided, it MUST reference a repeatable group item.
@@ -1798,10 +1757,10 @@ has `defaultOpen: true`; the rest have `defaultOpen: false`.
   "component": "Accordion",
   "allowMultiple": false,
   "children": [
-    { "component": "Page", "title": "Section A", "children": [
+    { "component": "Section", "title": "Section A", "children": [
       { "component": "TextInput", "bind": "fieldA" }
     ]},
-    { "component": "Page", "title": "Section B", "children": [
+    { "component": "Section", "title": "Section B", "children": [
       { "component": "TextInput", "bind": "fieldB" }
     ]}
   ]
@@ -1865,7 +1824,7 @@ discarded.
 **Level:** Progressive
 **Accepts children:** No
 **Bind:** Required
-**Compatible dataTypes:** `number`, `integer`
+**Compatible dataTypes:** `integer`, `decimal`, `money`
 **Fallback:** NumberInput
 
 #### Description
@@ -1919,7 +1878,7 @@ the input if the bound item has a `prefix` presentation hint.
 **Level:** Progressive
 **Accepts children:** No
 **Bind:** Required
-**Compatible dataTypes:** `integer`, `number`
+**Compatible dataTypes:** `integer`, `decimal`
 **Fallback:** NumberInput
 
 #### Description
@@ -1972,12 +1931,12 @@ Core processors MUST replace Slider with **NumberInput**. The `min`,
 **Level:** Progressive
 **Accepts children:** No
 **Bind:** Required
-**Compatible dataTypes:** `integer`
+**Compatible dataTypes:** `integer`, `decimal`
 **Fallback:** NumberInput
 
 #### Description
 
-A star (or icon) rating control for selecting an integer value
+A star (or icon) rating control for selecting a numeric rating value
 within a small range (typically 1–5 or 1–10).
 
 #### Props
@@ -2381,27 +2340,32 @@ content.
 
 | Prop | Type | Default | Token-able | Description |
 |------|------|---------|------------|-------------|
-| `position` | string | `"left"` | No | Panel position. MUST be one of `"left"` or `"right"`. |
+| `placement` | string | `"left"` | No | Panel placement. MUST be one of `"left"` or `"right"`. |
 | `title` | string | — | No | Panel header title. |
 | `width` | string | `"300px"` | Yes | Panel width. |
+| `padding` | string \| number | — | Yes | Inner spacing for the Panel surface. |
+| `background` | string \| number | — | Yes | Background token or renderer value. |
+| `border` | string \| number | — | Yes | Border token or renderer value. |
+| `radius` | string \| number | — | Yes | Corner radius token or renderer value. |
+| `elevation` | string \| number | — | Yes | Elevation token or renderer value. |
 
 #### Rendering Requirements
 
 - MUST render the panel alongside (not within) the main content flow,
-  positioned according to the `position` property.
+  placed according to the `placement` property.
 - MUST render children within the panel body.
 
 #### Fallback Behavior
 
 Core processors MUST replace Panel with **Card**. The `title` prop
-is preserved. The `position` and `width` props are discarded.
+is preserved. The `placement` and `width` props are discarded.
 
 #### Example
 
 ```json
 {
   "component": "Panel",
-  "position": "left",
+  "placement": "left",
   "title": "Help",
   "width": "280px",
   "children": [
@@ -2526,7 +2490,6 @@ fallbacks when it encounters a Progressive component.
 
 | Progressive Component | Core Fallback | Notes |
 |---|---|---|
-| Columns | Grid | `columns` set to child count; `gap` preserved. |
 | Tabs | Stack + Heading | Each child preceded by a Heading (level 3) with the tab label. |
 | Accordion | Stack + Collapsible | Each child wrapped in Collapsible; first defaults open. |
 | RadioGroup | Select | `columns` discarded. |
@@ -2540,7 +2503,7 @@ fallbacks when it encounters a Progressive component.
 | Summary | Stack of Text | One Text per item: `"<label>: <value>"`. |
 | ValidationSummary | Alert | One Alert per finding; severity preserved as `variant`. |
 | DataTable | Stack of Card | One Card per repeat instance with child inputs. |
-| Panel | Card | `title` preserved; position/width discarded. |
+| Panel | Card | `title` preserved; placement/width discarded. |
 | Modal | Collapsible | `title` preserved; `defaultOpen: false`. |
 | Popover | Collapsible | `triggerLabel` mapped to `title`; placement discarded. |
 
@@ -2579,8 +2542,11 @@ Each template object has the following properties:
 
 Custom component names MUST match `[A-Z][a-zA-Z0-9]*` (PascalCase,
 starting with uppercase). Names MUST NOT collide with built-in
-component names (§5, §6). Names beginning with `x-` are reserved for
-vendor extensions (§13.3).
+component names (§5, §6) or reserved Formspec component identifiers
+(`Page`, `Columns`, `Spacer`). Reserved identifiers are invalid in v1
+and are not aliases for built-in behavior. Names beginning with `x-`
+are reserved for custom widget and metadata extensions, not custom
+components (§13.3).
 
 Example registry:
 
@@ -2645,7 +2611,7 @@ Interpolation is permitted in the following prop types ONLY:
 | `bind` | `"bind": "{prefix}Street"` |
 | `when` | `"when": "${field} != null"` |
 | `text` (on Text, Heading, Alert, Badge) | `"text": "Address for {label}"` |
-| `title` (on Page, Card, Collapsible, etc.) | `"title": "{sectionTitle}"` |
+| `title` (on Section, Card, Collapsible, etc.) | `"title": "{sectionTitle}"` |
 | `placeholder` | `"placeholder": "Enter {label}"` |
 | `label` (on Divider) | `"label": "{section}"` |
 | `fallback` (on ConditionalGroup) | `"fallback": "No {item} available"` |
@@ -3140,7 +3106,7 @@ Structural validation MUST verify:
 2. **Type correctness:** Each property has the correct JSON type
    (string, object, array, integer, boolean) as specified.
 3. **Enum constraints:** Properties with enumerated values
-   (`direction`, `align`, `severity`, `position`, etc.) contain
+   (`direction`, `align`, `severity`, `placement`, etc.) contain
    valid values.
 4. **Component names:** Every `component` value is either a built-in
    name (§5, §6) or a key in the `components` registry.
@@ -3207,8 +3173,8 @@ A processor declares conformance at one of two levels:
 
 - MUST parse and validate all Component Document properties defined
   in this specification.
-- MUST render all 18 Core components (§5) with full prop support.
-- MUST apply fallback substitution (§6.18) for all 17 Progressive
+- MUST render all 17 Core components (§5) with full prop support.
+- MUST apply fallback substitution (§6.18) for all 16 Progressive
   components.
 - MUST support custom component expansion (§7).
 - MUST evaluate `when` expressions (§8).
@@ -3219,7 +3185,7 @@ A processor declares conformance at one of two levels:
 **Complete Conformant:**
 
 - MUST satisfy all Core Conformant requirements.
-- MUST additionally render all 17 Progressive components (§6)
+- MUST additionally render all 16 Progressive components (§6)
   natively, without fallback substitution.
 
 Processors SHOULD declare their conformance level in their
@@ -3271,19 +3237,14 @@ complexity:
 
 ### 13.3 Extension Mechanism
 
-Vendor-specific or experimental features MAY be introduced using the
+Vendor-specific or experimental metadata MAY be introduced using the
 `x-` prefix convention:
 
-1. **Custom component names:** Names starting with `x-` (e.g.,
-   `x-MapPicker`, `x-SignaturePad`) MAY be used in the `components`
-   registry. Conforming processors MUST NOT assign built-in semantics
-   to `x-` prefixed names.
-
-2. **Extension properties:** Top-level properties starting with `x-`
+1. **Extension properties:** Top-level properties starting with `x-`
    are reserved for extensions. Processors MUST ignore unrecognized
    `x-` properties.
 
-3. **Custom style keys:** Style object keys starting with `x-` are
+2. **Custom style keys:** Style object keys starting with `x-` are
    vendor-specific. Processors MUST ignore unrecognized `x-` style
    keys.
 
@@ -3312,7 +3273,7 @@ by the component tree structure.
   "url": "https://agency.gov/forms/budget-2025/components/wizard",
   "version": "1.0.0",
   "name": "budget-wizard",
-  "title": "Budget Form — Multi-Page Layout",
+  "title": "Budget Form — Multi-Section Layout",
   "description": "A three-step wizard-style layout for the annual budget submission form.",
   "targetDefinition": {
     "url": "https://agency.gov/forms/budget-2025",
@@ -3364,7 +3325,7 @@ by the component tree structure.
     "component": "Stack",
     "children": [
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Project Information",
         "description": "Enter basic details about your project.",
         "children": [
@@ -3402,7 +3363,7 @@ by the component tree structure.
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Budget Details",
         "description": "Add line items and set the total budget.",
         "children": [
@@ -3450,7 +3411,7 @@ by the component tree structure.
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Review & Submit",
         "description": "Review your submission before signing.",
         "children": [
@@ -3493,7 +3454,7 @@ by the component tree structure.
 
 This example demonstrates:
 
-- **Stack with three Pages** for multi-page layout (wizard behavior via `formPresentation.pageMode`).
+- **Stack with three Sections** for multi-page layout (wizard behavior via `formPresentation.pageMode`).
 - **Custom component** (`AddressBlock`) for reusable address entry.
 - **Responsive Grid** that collapses to single-column on small screens.
 - **DataTable** bound to a repeatable group (`lineItems`).
@@ -3509,46 +3470,44 @@ This example demonstrates:
 
 This appendix is **normative**.
 
-The following table lists all 35 built-in components with their
+The following table lists all 33 built-in components with their
 classification and key characteristics.
 
 | # | Component | Category | Level | Children | Bind | Description |
 |---|-----------|----------|-------|----------|------|-------------|
-| 1 | Page | Layout | Core | Yes | Forbidden | Top-level page/section container. |
+| 1 | Section | Layout | Core | Yes | Forbidden | Top-level page/section container. |
 | 2 | Stack | Layout | Core | Yes | Forbidden | Flexbox vertical/horizontal stacking. |
 | 3 | Grid | Layout | Core | Yes | Forbidden | Multi-column grid layout. |
-| 4 | Spacer | Layout | Core | No | Forbidden | Empty spacing element. |
-| 5 | TextInput | Input | Core | No | Required | Single/multi-line text input. |
-| 6 | NumberInput | Input | Core | No | Required | Numeric input with stepper. |
-| 7 | DatePicker | Input | Core | No | Required | Date/time/datetime picker. |
-| 8 | Select | Input | Core | No | Required | Native dropdown or combobox; optional multi-select (`multiple`). |
-| 9 | CheckboxGroup | Input | Core | No | Required | Multi-select checkboxes. |
-| 10 | Toggle | Input | Core | No | Required | Boolean switch. |
-| 11 | FileUpload | Input | Core | No | Required | File attachment upload. |
-| 12 | Heading | Display | Core | No | Forbidden | Section heading (h1–h6). |
-| 13 | Text | Display | Core | No | Optional | Static or data-bound text. |
-| 14 | Divider | Display | Core | No | Forbidden | Horizontal rule separator. |
-| 15 | SubmitButton | Display | Core | No | Forbidden | Form submission trigger button. |
-| 16 | Card | Container | Core | Yes | Forbidden | Bordered surface grouping. |
-| 17 | Collapsible | Container | Core | Yes | Forbidden | Expandable/collapsible section. |
-| 18 | ConditionalGroup | Container | Core | Yes | Forbidden | Condition-based visibility group. |
-| 19 | Columns | Layout | Progressive | Yes | Forbidden | Explicit column widths layout. |
-| 20 | Tabs | Layout | Progressive | Yes | Forbidden | Tabbed navigation container. |
-| 21 | Accordion | Layout | Progressive | Yes | Optional¹ | Collapsible section list. |
-| 22 | RadioGroup | Input | Progressive | No | Required | Radio button single-select. |
-| 23 | MoneyInput | Input | Progressive | No | Required | Currency-aware numeric input. |
-| 24 | Slider | Input | Progressive | No | Required | Range slider control. |
-| 25 | Rating | Input | Progressive | No | Required | Star/icon rating control. |
-| 26 | Signature | Input | Progressive | No | Required | Drawn signature capture. |
-| 27 | Alert | Display | Progressive | No | Forbidden | Status message banner. |
-| 28 | Badge | Display | Progressive | No | Forbidden | Compact label badge. |
-| 29 | ProgressBar | Display | Progressive | No | Optional | Visual progress indicator. |
-| 30 | Summary | Display | Progressive | No | Forbidden | Key-value summary display. |
-| 31 | ValidationSummary | Display | Progressive | No | Forbidden | Live or submit validation message panel. |
-| 32 | DataTable | Display | Progressive | No | Optional² | Tabular repeatable data. |
-| 33 | Panel | Container | Progressive | Yes | Forbidden | Side panel. |
-| 34 | Modal | Container | Progressive | Yes | Forbidden | Dialog overlay. |
-| 35 | Popover | Container | Progressive | Yes | Forbidden | Anchored contextual overlay. |
+| 4 | TextInput | Input | Core | No | Required | Single/multi-line text input. |
+| 5 | NumberInput | Input | Core | No | Required | Numeric input with stepper. |
+| 6 | DatePicker | Input | Core | No | Required | Date/time/datetime picker. |
+| 7 | Select | Input | Core | No | Required | Native dropdown or combobox; optional multi-select (`multiple`). |
+| 8 | CheckboxGroup | Input | Core | No | Required | Multi-select checkboxes. |
+| 9 | Toggle | Input | Core | No | Required | Boolean switch. |
+| 10 | FileUpload | Input | Core | No | Required | File attachment upload. |
+| 11 | Heading | Display | Core | No | Forbidden | Section heading (h1–h6). |
+| 12 | Text | Display | Core | No | Optional | Static or data-bound text. |
+| 13 | Divider | Display | Core | No | Forbidden | Horizontal rule separator. |
+| 14 | SubmitButton | Display | Core | No | Forbidden | Form submission trigger button. |
+| 15 | Card | Container | Core | Yes | Forbidden | Bordered surface grouping. |
+| 16 | Collapsible | Container | Core | Yes | Forbidden | Expandable/collapsible section. |
+| 17 | ConditionalGroup | Container | Core | Yes | Forbidden | Condition-based visibility group. |
+| 18 | Tabs | Layout | Progressive | Yes | Forbidden | Tabbed navigation container. |
+| 19 | Accordion | Layout | Progressive | Yes | Optional¹ | Collapsible section list. |
+| 20 | RadioGroup | Input | Progressive | No | Required | Radio button single-select. |
+| 21 | MoneyInput | Input | Progressive | No | Required | Currency-aware numeric input. |
+| 22 | Slider | Input | Progressive | No | Required | Range slider control. |
+| 23 | Rating | Input | Progressive | No | Required | Star/icon rating control. |
+| 24 | Signature | Input | Progressive | No | Required | Drawn signature capture. |
+| 25 | Alert | Display | Progressive | No | Forbidden | Status message banner. |
+| 26 | Badge | Display | Progressive | No | Forbidden | Compact label badge. |
+| 27 | ProgressBar | Display | Progressive | No | Optional | Visual progress indicator. |
+| 28 | Summary | Display | Progressive | No | Forbidden | Key-value summary display. |
+| 29 | ValidationSummary | Display | Progressive | No | Forbidden | Live or submit validation message panel. |
+| 30 | DataTable | Display | Progressive | No | Optional² | Tabular repeatable data. |
+| 31 | Panel | Container | Progressive | Yes | Forbidden | Side panel. |
+| 32 | Modal | Container | Progressive | Yes | Forbidden | Dialog overlay. |
+| 33 | Popover | Container | Progressive | Yes | Forbidden | Anchored contextual overlay. |
 
 ¹ Accordion `bind` is optional; when provided it MUST reference a repeatable group key (see §6.3).
 ² DataTable binds to a repeatable group key, not a field key.
@@ -3566,14 +3525,15 @@ marked (P) are Progressive; all others are Core.
 | dataType | TextInput | NumberInput | DatePicker | Select | CheckboxGroup | Toggle | FileUpload | RadioGroup (P) | MoneyInput (P) | Slider (P) | Rating (P) | Signature (P) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `string` | ✓ | | | | | | | | | | | |
-| `number` | | ✓ | | | | | | | | ✓ | | |
-| `integer` | | ✓ | | | | | | | | ✓ | ✓ | |
+| `decimal` | | ✓ | | | | | | | ✓ | ✓ | ✓ | |
+| `integer` | | ✓ | | | | | | | ✓ | ✓ | ✓ | |
 | `boolean` | | | | | | ✓ | | | | | | |
 | `date` | | | ✓ | | | | | | | | | |
 | `dateTime` | | | ✓ | | | | | | | | | |
 | `time` | | | ✓ | | | | | | | | | |
 | `choice` | | | | ✓ | | | | ✓ | | | | |
 | `multiChoice` | | | | ✓ | ✓ | | | | | | | |
+| `money` | | | | | | | | | ✓ | | | |
 | `attachment` | | | | | | | ✓ | | | | | ✓ |
 
 Notes:
@@ -3581,10 +3541,9 @@ Notes:
 - **Display components** (Text, Heading, Summary, etc.) are compatible
   with ALL dataTypes when used in read-only `bind` mode. They are
   omitted from this matrix because they do not perform data editing.
-- **MoneyInput** is compatible with `number` and `integer`. It adds
-  currency formatting on top of NumberInput's capabilities. Authors
-  SHOULD use MoneyInput when the Definition item has a `prefix` of
-  `"$"`, `"€"`, or similar currency indicator.
+- **MoneyInput** is compatible with `money`, `decimal`, and `integer`.
+  Authors SHOULD use MoneyInput when the Definition item models a
+  currency amount.
 - **TextInput** MAY be used as a universal fallback for any dataType
   in exceptional cases, but processors SHOULD warn about the type
   mismatch.

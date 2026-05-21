@@ -306,10 +306,7 @@
       "description": "Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped."
     },
     "extensions": {
-      "type": "object",
-      "propertyNames": {
-        "pattern": "^x-"
-      },
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions",
       "description": "Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip.",
       "examples": [
         {
@@ -411,6 +408,9 @@
         }
       }
     }
+  },
+  "patternProperties": {
+    "^x-": true
   },
   "additionalProperties": false,
   "$defs": {
@@ -1470,18 +1470,18 @@
     },
     "Presentation": {
       "type": "object",
-      "description": "Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Unknown top-level keys MUST be ignored (forward-compatibility). Nested sub-objects (layout, styleHints, accessibility) do NOT permit additional properties. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.",
-      "additionalProperties": true,
+      "description": "Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.",
+      "additionalProperties": false,
       "properties": {
         "widgetHint": {
-          "type": "string",
-          "description": "Preferred UI control. Compatibility is determined by the Item's type and dataType. Groups: 'section' (default), 'card', 'accordion', 'tab'. Display: 'paragraph' (default), 'heading', 'divider', 'banner'. Fields by dataType — string: 'textInput'|'password'|'color'; text: 'textarea'|'richText'; integer: 'numberInput'|'stepper'|'slider'|'rating'; decimal: 'numberInput'|'slider'; boolean: 'checkbox'|'toggle'|'yesNo'; date: 'datePicker'|'dateInput'; time: 'timePicker'|'timeInput'; choice: 'dropdown'|'radio'|'autocomplete'|'segmented'|'likert'; multiChoice: 'checkboxGroup'|'multiSelect'|'autocomplete'; money: 'moneyInput'. Custom values MUST be prefixed with 'x-'. Incompatible or unrecognized values are ignored; processor uses its default widget.",
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/WidgetName",
+          "description": "Preferred UI control. Built-in values use the canonical PascalCase component/widget vocabulary. Custom values MUST be prefixed with x-.",
           "examples": [
-            "radio",
-            "textarea",
-            "card",
-            "heading",
-            "slider"
+            "RadioGroup",
+            "TextInput",
+            "Card",
+            "Heading",
+            "Slider"
           ]
         },
         "layout": {
@@ -1510,20 +1510,34 @@
                 4
               ]
             },
-            "colSpan": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 12,
-              "description": "Grid columns this item spans within a parent Group with flow 'grid'. Only meaningful in a grid context.",
-              "examples": [
-                6,
-                4
-              ]
-            },
-            "newRow": {
-              "type": "boolean",
-              "default": false,
-              "description": "Force this item to start a new grid row."
+            "grid": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Grid-scoped placement hints for items inside a parent grid context.",
+              "properties": {
+                "span": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Grid columns this item spans within a parent grid context."
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "description": "Grid column start within a parent grid context."
+                },
+                "rowSpan": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Grid rows this item spans within a parent grid context."
+                },
+                "rowStart": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Grid row start within a parent grid context."
+                }
+              }
             },
             "collapsible": {
               "type": "boolean",
@@ -1534,16 +1548,6 @@
               "type": "boolean",
               "default": false,
               "description": "Initial collapsed state. Ignored if collapsible is not true."
-            },
-            "page": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Named wizard step or tab. Groups with the same page value are rendered together. Only meaningful when formPresentation.pageMode is 'wizard' or 'tabs'. Groups without a page attach to the preceding page.",
-              "examples": [
-                "Applicant Info",
-                "Budget",
-                "Review & Submit"
-              ]
             }
           }
         },
@@ -1629,7 +1633,7 @@
       "x-lm": {
         "critical": true,
         "intent": "FEL expression — the language for all form logic including calculations, conditional visibility, validation constraints, and computed variables.",
-        "ref": "../../../schemas/fel-functions.schema.json"
+        "ref": "schemas/fel-functions.schema.json"
       }
     }
   }

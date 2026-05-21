@@ -1,13 +1,13 @@
-- Built-in catalog expectations: Core renderers must support 18 core components and substitute progressive components with defined fallbacks while preserving children, `when`, `style`, `responsive`, and compatible `bind` behavior.
-- Conformance levels: Core conformance requires the 18 core components plus fallback substitution rules; Complete conformance requires native support for all 33 built-in components.
-- Core component examples to keep mentally loaded: layout (`Page`, `Stack`, `Grid`, `Wizard`, `Spacer`), input (`TextInput`, `NumberInput`, `DatePicker`, `Select`, `CheckboxGroup`, `Toggle`, `FileUpload`), display (`Heading`, `Text`, `Divider`), and container (`Card`, `Collapsible`, `ConditionalGroup`).
-- Progressive component examples and fallback awareness: layout (`Columns`, `Tabs`, `Accordion`), input (`RadioGroup`, `MoneyInput`, `Slider`, `Rating`, `Signature`), display (`Alert`, `Badge`, `ProgressBar`, `Summary`, `DataTable`), container (`Panel`, `Modal`).
+- Built-in catalog expectations: Core renderers must support 17 core components and substitute progressive components with defined fallbacks while preserving children, `when`, `style`, `responsive`, and compatible `bind` behavior.
+- Conformance levels: Core conformance requires the 17 core components plus fallback substitution rules; Complete conformance requires native support for all 33 built-in components.
+- Core component examples to keep mentally loaded: layout (`Section`, `Stack`, `Grid`), input (`TextInput`, `NumberInput`, `DatePicker`, `Select`, `CheckboxGroup`, `Toggle`, `FileUpload`), display (`Heading`, `Text`, `Divider`), and container (`Card`, `Collapsible`, `ConditionalGroup`).
+- Progressive component examples and fallback awareness: layout (`Tabs`, `Accordion`), input (`RadioGroup`, `MoneyInput`, `Slider`, `Rating`, `Signature`), display (`Alert`, `Badge`, `ProgressBar`, `Summary`, `DataTable`), container (`Panel`, `Modal`, `Popover`).
 - Component category rules: layout and most container components are structural (bind-forbidden), input components are editable (bind-required), and display components are read-only/value-presentational (bind-optional).
-- Single-root invariant: `tree` must be exactly one root component; authors must wrap multi-root layouts in `Stack`/`Page` containers.
+- Single-root invariant: `tree` must be exactly one root component; authors must wrap multi-root layouts in `Stack`/`Section` containers.
 - Slot binding semantics: `bind` resolves only by item `key` (not FEL/dotted paths) and must propagate Definition semantics (`required`, `readonly`, `relevant`, constraints) into rendering behavior.
 - Editable binding uniqueness: at most one editable input component may bind a given key; multiple display-only mirrors are permitted.
 - Repeat semantics: repeat-bound components (notably DataTable) operate as templates per group instance, with child bind resolution in repeat context.
-- DataType compatibility anchor: `string` -> TextInput, `number/integer` -> NumberInput family, `boolean` -> Toggle, temporal -> DatePicker, `choice/multiChoice` -> Select/checkbox/radio families, `attachment` -> FileUpload/Signature.
+- DataType compatibility anchor: `string` -> TextInput, `decimal/integer` -> NumberInput family, `money` -> MoneyInput, `boolean` -> Toggle, temporal -> DatePicker, `choice/multiChoice` -> Select/checkbox/radio families, `attachment` -> FileUpload/Signature.
 - Conditional rendering: `when` is visual-only and FEL-based; malformed or non-boolean outcomes hide the node with diagnostics but must not halt full rendering.
 - `when` vs `relevant`: `relevant=false` always suppresses rendering/data participation, while `when=false` hides UI while preserving data unless other core rules remove it.
 - Responsive constraints: breakpoint overrides are presentation-only and must not mutate structure (`component`, `children`) or identity (`bind`, `when`).

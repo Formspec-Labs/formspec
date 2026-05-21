@@ -27,6 +27,7 @@ MAP_S = _load("mapping.schema.json")
 REG_S = _load("registry.schema.json")
 THEME_S = _load("theme.schema.json")
 COMP_S = _load("component.schema.json")
+COMMON_S = _load("common.schema.json")
 CHGLOG_S = _load("changelog.schema.json")
 REFS_S = _load("references.schema.json")
 LOCALE_S = _load("locale.schema.json")
@@ -75,6 +76,14 @@ def _prop_keys(schema_obj):
     return set(schema_obj.get("properties", {}).keys())
 
 
+def _extension_schema(schema):
+    """Return the effective schema for a top-level extensions property."""
+    ext = schema["properties"].get("extensions", {})
+    if "$ref" in ext and ext["$ref"].endswith("#/$defs/Extensions"):
+        return COMMON_S["$defs"]["Extensions"]
+    return ext
+
+
 # ===========================================================================
 # Cross-Schema Consistency
 # ===========================================================================
@@ -115,13 +124,13 @@ class TestCrossSchemaConsistency:
             ("definition", DEF_S), ("response", RESP_S), ("registry", REG_S),
             ("mapping", MAP_S), ("component", COMP_S), ("references", REFS_S), ("ontology", ONT_S),
         ]:
-            ext = schema["properties"].get("extensions", {})
+            ext = _extension_schema(schema)
             pn = ext.get("propertyNames", {}).get("pattern")
             assert pn == "^x-", f"{name} extensions missing propertyNames ^x-"
 
     def test_mapping_uses_extensions_object(self):
         """Mapping schema uses an extensions property with propertyNames pattern."""
-        ext = MAP_S["properties"].get("extensions", {})
+        ext = _extension_schema(MAP_S)
         pn = ext.get("propertyNames", {}).get("pattern")
         assert pn == "^x-", "mapping extensions missing propertyNames ^x-"
 
@@ -185,7 +194,7 @@ class TestDefinitionTopLevel:
         assert DEF_S["properties"]["items"]["type"] == "array"
 
     def test_s4_1__extensions_property_names(self):
-        ext = DEF_S["properties"]["extensions"]
+        ext = _extension_schema(DEF_S)
         assert ext["propertyNames"]["pattern"] == "^x-"
 
     def test_s4_1__additional_properties_false(self):
@@ -1179,9 +1188,11 @@ class TestBucket1SchemaStructure:
 
     def test_component_accessibility_block_exists(self):
         COMP_S = _load("component.schema.json")
+        COMMON_S = _load("common.schema.json")
         assert "AccessibilityBlock" in COMP_S["$defs"], \
             "component schema should define AccessibilityBlock"
-        ab = COMP_S["$defs"]["AccessibilityBlock"]
+        assert COMP_S["$defs"]["AccessibilityBlock"]["$ref"].endswith("#/$defs/AccessibilityBlock")
+        ab = COMMON_S["$defs"]["AccessibilityBlock"]
         assert "role" in ab["properties"]
         assert "description" in ab["properties"]
         assert "liveRegion" in ab["properties"]
@@ -1190,15 +1201,16 @@ class TestBucket1SchemaStructure:
     def test_component_all_builtins_have_accessibility(self):
         COMP_S = _load("component.schema.json")
         builtins = [
-            "Page", "Stack", "Grid", "Spacer",
+            "Section", "Stack", "Grid",
             "TextInput", "NumberInput", "DatePicker", "Select",
             "CheckboxGroup", "Toggle", "FileUpload",
             "Heading", "Text", "Divider",
             "Card", "Collapsible", "ConditionalGroup",
-            "Columns", "Tabs", "Accordion",
+            "Tabs", "Accordion",
             "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
-            "Alert", "Badge", "ProgressBar", "Summary", "DataTable",
+            "Alert", "Badge", "ProgressBar", "Summary", "ValidationSummary", "DataTable",
             "Panel", "Modal", "Popover",
+            "SubmitButton",
         ]
         base_props = COMP_S["$defs"].get("ComponentBase", {}).get("properties", {})
         for name in builtins:

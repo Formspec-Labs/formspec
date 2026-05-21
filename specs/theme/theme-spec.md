@@ -128,7 +128,7 @@ that omits a REQUIRED property.
 | `#/properties/breakpoints` | `breakpoints` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Breakpoints</code> | Named responsive breakpoints as min-width pixel values. Referenced by regions' 'responsive' objects to override span, start, or visibility at different viewport sizes. Processors that do not support responsive layouts SHOULD use the base span and start values. |
 | `#/properties/defaults` | `defaults` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/PresentationBlock</code>; critical | Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the theme's purpose and target audience. |
-| `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Extension namespace for platform-specific or vendor-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter core presentation semantics. |
+| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | Extension namespace for platform-specific or vendor-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter core presentation semantics. |
 | `#/properties/items` | `items` | <code>object</code> | no | critical | Cascade level 3 (highest theme specificity): per-item overrides keyed by the item's 'key' from the Definition. Overrides all lower cascade levels. Item keys that do not correspond to any item in the target Definition SHOULD produce a warning but MUST NOT cause failure. |
 | `#/properties/name` | `name` | <code>string</code> | no | — | Machine-friendly short identifier for programmatic use. |
 | `#/properties/pages` | `pages` | <code>array</code> | no | — | Page layout — ordered list of pages grouping items into logical sections with a 12-column grid. When absent, the renderer walks the Definition's item tree top-to-bottom without page grouping. Items not referenced by any region on any page SHOULD be rendered after all pages in default order. The cascade (defaults/selectors/items) still applies regardless of page layout. |
@@ -365,35 +365,35 @@ The `widgetConfig` property is an open object. The following tables
 define well-known configuration properties per widget. Renderers
 SHOULD support the listed properties and MUST ignore unrecognized keys.
 
-#### Required Widgets
+#### Canonical Field Widgets
 
 Renderers MUST support these widgets.
 
-**`textInput`** (string, uri)
+**`TextInput`** (string, text, uri; loose fallback for other field data types)
 
 | Property | Type | Description |
 |---|---|---|
 | `maxLength` | integer | Maximum character count display. |
 | `inputMode` | string | Input hint: `"text"`, `"email"`, `"tel"`, `"url"`. |
-
-**`textarea`** (text)
-
-| Property | Type | Description |
-|---|---|---|
 | `rows` | integer | Visible text rows. |
 | `maxRows` | integer | Maximum rows before scroll. |
 | `autoResize` | boolean | Auto-resize to content. |
 
-**`numberInput`** (integer, decimal)
+**`NumberInput`** (integer, decimal)
 
 | Property | Type | Description |
 |---|---|---|
 | `showStepper` | boolean | Show increment/decrement buttons. |
 | `locale` | string | Locale for number formatting (e.g., `"en-US"`). |
 
-**`checkbox`** (boolean) — No configuration properties.
+**`Toggle`** (boolean)
 
-**`datePicker`** (date, dateTime, time)
+| Property | Type | Description |
+|---|---|---|
+| `onLabel` | string | Label for the true state. |
+| `offLabel` | string | Label for the false state. |
+
+**`DatePicker`** (date, dateTime, time)
 
 | Property | Type | Description |
 |---|---|---|
@@ -401,21 +401,21 @@ Renderers MUST support these widgets.
 | `minDate` | string | Earliest selectable date (ISO 8601). |
 | `maxDate` | string | Latest selectable date (ISO 8601). |
 
-**`dropdown`** (choice)
+**`Select`** (choice; multiChoice when `widgetConfig.multiple` is `true`)
 
 | Property | Type | Description |
 |---|---|---|
 | `searchable` | boolean | Enable type-ahead search. |
 | `placeholder` | string | Placeholder text when no selection. |
 
-**`checkboxGroup`** (multiChoice)
+**`CheckboxGroup`** (multiChoice)
 
 | Property | Type | Description |
 |---|---|---|
 | `columns` | integer | Number of columns for layout. |
 | `maxVisible` | integer | Max visible items before scroll. |
 
-**`fileUpload`** (attachment)
+**`FileUpload`** (attachment)
 
 | Property | Type | Description |
 |---|---|---|
@@ -423,7 +423,7 @@ Renderers MUST support these widgets.
 | `maxSizeMb` | number | Maximum file size in megabytes. |
 | `preview` | boolean | Show file preview after selection. |
 
-**`moneyInput`** (money)
+**`MoneyInput`** (integer, decimal, money)
 
 | Property | Type | Description |
 |---|---|---|
@@ -432,36 +432,24 @@ Renderers MUST support these widgets.
 
 #### Progressive Widgets
 
-Renderers SHOULD support these widgets. When unavailable, the renderer
-MUST use the specified fallback or the `fallback` array from the theme.
+Renderers SHOULD support these built-in widgets when they can provide a
+native control. When unavailable, the renderer MUST use the specified
+fallback or the `fallback` array from the theme.
 
 | Widget | Applies to | Config Properties | Default Fallback |
 |---|---|---|---|
-| `slider` | integer, decimal | `min`, `max`, `step`, `showTicks`, `showValue` | `numberInput` |
-| `stepper` | integer | `min`, `max`, `step` | `numberInput` |
-| `rating` | integer | `max`, `icon` (`"star"`, `"heart"`) | `numberInput` |
-| `toggle` | boolean | `onLabel`, `offLabel` | `checkbox` |
-| `yesNo` | boolean | (none) | `checkbox` |
-| `radio` | choice | `direction` (`"vertical"`, `"horizontal"`), `columns` | `dropdown` |
-| `autocomplete` | choice, multiChoice | `debounceMs`, `minChars` | `dropdown` / `checkboxGroup` |
-| `segmented` | choice | (none) | `radio` |
-| `likert` | choice | `scaleLabels` (array of strings) | `radio` |
-| `multiSelect` | multiChoice | `searchable`, `maxItems` | `checkboxGroup` |
-| `richText` | text | `toolbar` (array of tool names) | `textarea` |
-| `password` | string | `showToggle` (boolean) | `textInput` |
-| `color` | string | `format` (`"hex"`, `"rgb"`) | `textInput` |
-| `urlInput` | uri | (none) | `textInput` |
-| `dateInput` | date | `format` | `datePicker` |
-| `dateTimePicker` | dateTime | `format` | `datePicker` |
-| `dateTimeInput` | dateTime | `format` | `textInput` |
-| `timePicker` | time | `format`, `step` | `textInput` |
-| `timeInput` | time | `format` | `textInput` |
-| `camera` | attachment | `facing` (`"user"`, `"environment"`) | `fileUpload` |
-| `signature` | attachment | `strokeColor`, `height` (integer, pixels) | `fileUpload` |
+| `Slider` | integer, decimal | `min`, `max`, `step`, `showTicks`, `showValue` | `NumberInput` |
+| `Rating` | integer | `max`, `icon` (`"star"`, `"heart"`) | `NumberInput` |
+| `RadioGroup` | choice | `direction` (`"vertical"`, `"horizontal"`), `columns` | `Select` |
+| `Signature` | attachment | `strokeColor`, `height` (integer, pixels) | `FileUpload` |
 
-Group and Display widgets (`section`, `card`, `accordion`, `tab`,
-`heading`, `paragraph`, `divider`, `banner`) have no `widgetConfig`
-properties.
+Other specialized controls are custom widgets and MUST use an `x-`
+prefix, for example `x-rich-text` or `x-password`, with an explicit
+fallback chain.
+
+Container and display widgets (`Section`, `Stack`, `Grid`, `Card`,
+`Accordion`, `Tabs`, `Heading`, `Text`, `Divider`, `Panel`, and related
+display components) have no required `widgetConfig` properties.
 
 ### 4.3 Fallback Chains
 
@@ -471,9 +459,9 @@ MUST try each fallback in order and use the first it supports.
 
 ```json
 {
-  "widget": "signature",
+  "widget": "Signature",
   "widgetConfig": { "strokeColor": "#000" },
-  "fallback": ["camera", "fileUpload"]
+  "fallback": ["FileUpload"]
 }
 ```
 
@@ -548,11 +536,11 @@ resolved result.
   "selectors": [
     {
       "match": { "dataType": "money" },
-      "apply": { "widget": "moneyInput", "widgetConfig": { "showCurrencySymbol": true } }
+      "apply": { "widget": "MoneyInput", "widgetConfig": { "showCurrencySymbol": true } }
     },
     {
       "match": { "type": "display" },
-      "apply": { "widget": "paragraph" }
+      "apply": { "widget": "Text" }
     }
   ]
 }
@@ -584,7 +572,7 @@ This is the highest specificity in the cascade.
 {
   "items": {
     "totalBudget": {
-      "widget": "slider",
+      "widget": "Slider",
       "widgetConfig": { "min": 0, "max": 1000000, "step": 10000 },
       "style": { "background": "#F0F6FF" }
     }
@@ -748,8 +736,10 @@ list of regions.
 | `regions` | array | **0..1** (OPTIONAL) | Ordered list of regions. See §6.2. |
 
 When `pages` is absent, the renderer SHOULD walk the Definition’s item
-tree top-to-bottom, applying the cascade (§5) to each item without
-page-level grouping.
+tree top-to-bottom, applying the cascade (§5) to each item without authored
+Theme page-level grouping. If Tier 1 `formPresentation.pageMode` requests
+wizard or tabs navigation and no Component page units exist, a processor MAY
+synthesize generated Definition group pages as described by core §4.1.2.
 
 ### 6.2 12-Column Grid Model
 
@@ -855,8 +845,9 @@ Processors that do not support responsive layouts SHOULD use the base
 When the `pages` array is absent or empty, the renderer walks the
 Definition’s item tree top-to-bottom. The cascade (§5) is still
 applied to determine widgets, styles, and accessibility for each item.
-The Tier 1 `formPresentation.pageMode` property (core §4.1.1) guides
-how top-level groups are paginated in the absence of theme pages.
+The Tier 1 `formPresentation.pageMode` property (core §4.1.1) may guide
+generated navigation pages from top-level Definition groups in the absence
+of both Theme pages and Component page units.
 
 ## 7. Processing Model
 
@@ -939,7 +930,7 @@ Theme authors MAY use `x-` prefixed widget names for custom widgets:
     "location": {
       "widget": "x-map-picker",
       "widgetConfig": { "defaultZoom": 12 },
-      "fallback": ["textInput"]
+      "fallback": ["TextInput"]
     }
   }
 }
@@ -1062,32 +1053,32 @@ This appendix is **informative**.
     {
       "match": { "dataType": "money" },
       "apply": {
-        "widget": "moneyInput",
+        "widget": "MoneyInput",
         "widgetConfig": { "showCurrencySymbol": true, "locale": "en-US" }
       }
     },
     {
       "match": { "dataType": "choice" },
       "apply": {
-        "widget": "dropdown",
+        "widget": "Select",
         "widgetConfig": { "searchable": false }
       }
     },
     {
       "match": { "dataType": "boolean" },
       "apply": {
-        "widget": "toggle",
+        "widget": "Toggle",
         "widgetConfig": { "onLabel": "Yes", "offLabel": "No" }
       }
     },
     {
       "match": { "type": "display" },
-      "apply": { "widget": "paragraph" }
+      "apply": { "widget": "Text" }
     }
   ],
   "items": {
     "totalBudget": {
-      "widget": "moneyInput",
+      "widget": "MoneyInput",
       "widgetConfig": { "showCurrencySymbol": true, "locale": "en-US" },
       "style": {
         "background": "#F0F6FF",
@@ -1100,14 +1091,14 @@ This appendix is **informative**.
       }
     },
     "approverSignature": {
-      "widget": "signature",
+      "widget": "Signature",
       "widgetConfig": { "strokeColor": "#000", "height": 150 },
-      "fallback": ["camera", "fileUpload"]
+      "fallback": ["FileUpload"]
     },
     "priorityLevel": {
-      "widget": "slider",
+      "widget": "Slider",
       "widgetConfig": { "min": 1, "max": 5, "step": 1, "showTicks": true },
-      "fallback": ["dropdown"]
+      "fallback": ["Select"]
     }
   },
   "pages": [
@@ -1148,51 +1139,48 @@ This appendix is **informative**.
 
 This appendix is **normative**.
 
-The following table lists all widgets and their compatible data types.
+The following table lists all canonical built-in widgets/components.
 Widgets marked **Required** MUST be supported by conforming renderers.
 Widgets marked **Progressive** SHOULD be supported; the Default
-Fallback column shows the required fallback.
+Fallback column shows the required fallback. "Strict" dataTypes produce
+no compatibility diagnostic. "Loose" dataTypes are permitted fallback or
+editorial uses, but processors SHOULD warn.
 
-| Widget | Level | Compatible dataTypes | Default Fallback |
-|---|---|---|---|
-| `textInput` | Required | string, uri | — |
-| `textarea` | Required | text | — |
-| `numberInput` | Required | integer, decimal | — |
-| `checkbox` | Required | boolean | — |
-| `datePicker` | Required | date, dateTime, time | — |
-| `dropdown` | Required | choice | — |
-| `checkboxGroup` | Required | multiChoice | — |
-| `fileUpload` | Required | attachment | — |
-| `moneyInput` | Required | money | — |
-| `slider` | Progressive | integer, decimal | `numberInput` |
-| `stepper` | Progressive | integer | `numberInput` |
-| `rating` | Progressive | integer | `numberInput` |
-| `toggle` | Progressive | boolean | `checkbox` |
-| `yesNo` | Progressive | boolean | `checkbox` |
-| `radio` | Progressive | choice | `dropdown` |
-| `autocomplete` | Progressive | choice, multiChoice | `dropdown` / `checkboxGroup` |
-| `segmented` | Progressive | choice | `radio` |
-| `likert` | Progressive | choice | `radio` |
-| `multiSelect` | Progressive | multiChoice | `checkboxGroup` |
-| `richText` | Progressive | text | `textarea` |
-| `password` | Progressive | string | `textInput` |
-| `color` | Progressive | string | `textInput` |
-| `urlInput` | Progressive | uri | `textInput` |
-| `dateInput` | Progressive | date | `datePicker` |
-| `dateTimePicker` | Progressive | dateTime | `datePicker` |
-| `dateTimeInput` | Progressive | dateTime | `textInput` |
-| `timePicker` | Progressive | time | `textInput` |
-| `timeInput` | Progressive | time | `textInput` |
-| `camera` | Progressive | attachment | `fileUpload` |
-| `signature` | Progressive | attachment | `fileUpload` |
-| `section` | — | group | — |
-| `card` | — | group | `section` |
-| `accordion` | — | group | `section` |
-| `tab` | — | group | `section` |
-| `heading` | — | display | — |
-| `paragraph` | — | display | — |
-| `divider` | — | display | — |
-| `banner` | — | display | — |
+| Widget | Level | Strict dataTypes | Conditional / loose dataTypes | Default Fallback |
+|---|---|---|---|---|
+| `TextInput` | Required | string, text, uri | loose: integer, decimal, boolean, date, dateTime, time, attachment, choice, multiChoice, money | — |
+| `NumberInput` | Required | integer, decimal | loose: money | — |
+| `Toggle` | Required | boolean | — | — |
+| `DatePicker` | Required | date, dateTime, time | — | — |
+| `Select` | Required | choice | multiChoice only when `widgetConfig.multiple` is `true` | — |
+| `CheckboxGroup` | Required | multiChoice | — | — |
+| `FileUpload` | Required | attachment | — | — |
+| `MoneyInput` | Required | integer, decimal, money | — | — |
+| `Slider` | Progressive | integer, decimal | — | `NumberInput` |
+| `Rating` | Progressive | integer, decimal | — | `NumberInput` |
+| `RadioGroup` | Progressive | choice | — | `Select` |
+| `Signature` | Progressive | attachment | — | `FileUpload` |
+| `Section` | Layout | group | — | — |
+| `Stack` | Layout | group | — | `Section` |
+| `Grid` | Layout | group | — | `Section` |
+| `Card` | Container | group | — | `Section` |
+| `Collapsible` | Container | group | — | `Section` |
+| `ConditionalGroup` | Container | group | — | `Section` |
+| `Tabs` | Layout | group | — | `Section` |
+| `Accordion` | Layout | group | — | `Section` |
+| `DataTable` | Interactive | group | — | `Stack` |
+| `SubmitButton` | Interactive | action | — | — |
+| `Heading` | Display | display | — | — |
+| `Text` | Display | display | — | — |
+| `Divider` | Display | display | — | — |
+| `Alert` | Display | display | — | `Text` |
+| `Badge` | Display | display | — | `Text` |
+| `ProgressBar` | Display | display | — | `Text` |
+| `Summary` | Display | display | — | `Text` |
+| `ValidationSummary` | Display | display | — | `Text` |
+| `Panel` | Container | display, group | — | `Card` |
+| `Modal` | Container | display, group | — | `Card` |
+| `Popover` | Container | display, group | — | `Card` |
 
 ## Appendix C: Token Quick Reference
 

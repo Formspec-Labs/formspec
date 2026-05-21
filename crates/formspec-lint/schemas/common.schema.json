@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/common/1.0",
+  "title": "Formspec Common Schema Primitives",
+  "description": "Shared schema definitions used by Formspec Definition, Theme, and Component documents.",
+  "$defs": {
+    "TargetDefinition": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URL of the target Definition."
+        },
+        "compatibleVersions": {
+          "type": "string",
+          "description": "Semver range expression describing which Definition versions this document supports."
+        }
+      }
+    },
+    "Tokens": {
+      "type": "object",
+      "description": "Flat design token map. Keys are dot-delimited names; values are strings or numbers.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" }
+        ]
+      }
+    },
+    "Breakpoints": {
+      "type": "object",
+      "description": "Named viewport breakpoints. Values are minimum viewport widths in pixels.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "StyleMap": {
+      "type": "object",
+      "description": "Flat style map. Values may contain $token.path references.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" }
+        ]
+      }
+    },
+    "Extensions": {
+      "type": "object",
+      "propertyNames": { "pattern": "^x-" },
+      "description": "Extension object whose keys must be prefixed with x-."
+    },
+    "AccessibilityBlock": {
+      "type": "object",
+      "description": "Accessibility overrides applied to a rendered element.",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Accessibility role override."
+        },
+        "description": {
+          "type": "string",
+          "description": "Accessible description text."
+        },
+        "liveRegion": {
+          "type": "string",
+          "enum": ["off", "polite", "assertive"],
+          "description": "Live-region behavior."
+        }
+      }
+    },
+    "VisualSurfaceProps": {
+      "type": "object",
+      "properties": {
+        "padding": {
+          "oneOf": [{ "type": "string" }, { "type": "number" }],
+          "description": "Inner spacing for container content."
+        },
+        "background": {
+          "oneOf": [{ "type": "string" }, { "type": "number" }],
+          "description": "Container background token or renderer value."
+        },
+        "border": {
+          "oneOf": [{ "type": "string" }, { "type": "number" }],
+          "description": "Container border token or renderer value."
+        },
+        "radius": {
+          "oneOf": [{ "type": "string" }, { "type": "number" }],
+          "description": "Container corner radius token or renderer value."
+        },
+        "elevation": {
+          "oneOf": [{ "type": "string" }, { "type": "number" }],
+          "description": "Container elevation token or renderer value."
+        }
+      }
+    },
+    "BuiltInWidgetName": {
+      "type": "string",
+      "enum": [
+        "Section", "Stack", "Grid",
+        "TextInput", "NumberInput", "DatePicker", "Select", "CheckboxGroup", "Toggle", "FileUpload",
+        "Heading", "Text", "Divider",
+        "Card", "Collapsible", "ConditionalGroup",
+        "Tabs", "SubmitButton", "Accordion",
+        "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
+        "Alert", "Badge", "ProgressBar", "Summary", "ValidationSummary", "DataTable",
+        "Panel", "Modal", "Popover"
+      ]
+    },
+    "CustomWidgetName": {
+      "type": "string",
+      "pattern": "^x-[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "description": "Custom widget identifier. Custom widgets must use the x- prefix."
+    },
+    "WidgetName": {
+      "oneOf": [
+        { "$ref": "#/$defs/BuiltInWidgetName" },
+        { "$ref": "#/$defs/CustomWidgetName" }
+      ]
+    },
+    "ThemeWidgetName": {
+      "oneOf": [
+        { "$ref": "#/$defs/BuiltInWidgetName" },
+        { "$ref": "#/$defs/CustomWidgetName" },
+        { "type": "string", "const": "none" }
+      ]
+    }
+  }
+}

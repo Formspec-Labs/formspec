@@ -638,7 +638,7 @@ The behavior/adapter split applies to:
 
 ### What is NOT in scope (and why)
 
-**Layout components** (Stack, Grid, Columns, Panel, Collapsible, Accordion, etc.) create structural containers and recursively render children. Their behavior is minimal (CSS grid application, collapse toggle state). They don't have the behavior/structure coupling problem this ADR addresses. Design-system adapters can customize layout containers via the existing `cssClass` cascade. If layout customization needs grow, a future ADR can extend the adapter pattern to layout components.
+**Layout components** (Section, Stack, Grid, Panel, Collapsible, Accordion, etc.) create structural containers and recursively render children. Their behavior is minimal (CSS grid application, collapse toggle state). They don't have the behavior/structure coupling problem this ADR addresses. Design-system adapters can customize layout containers via the existing `cssClass` cascade. If layout customization needs grow, a future ADR can extend the adapter pattern to layout components.
 
 **Repeat group chrome** (add/remove buttons, instance wrappers) lives in `emit-node.ts`, not in component plugins. This DOM is outside the per-component adapter boundary. Design systems that need custom repeat chrome will need either:
 - Extended `cssClass` targeting (sufficient for most cases)

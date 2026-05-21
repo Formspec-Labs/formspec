@@ -2401,7 +2401,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/date` | `date` | <code>string</code> | no | — | Publication or last-modified date of this Definition version, in ISO 8601 date format (YYYY-MM-DD). |
 | `#/properties/derivedFrom` | `derivedFrom` | <code>composite</code> | no | — | Parent definition this form is derived from. Informational only — does NOT imply behavioral inheritance or runtime linkage. Enables change analysis, pre-population from parent Responses, and lineage tracking. A plain URI string indicates derivation from the logical form in general; an object with url+version pins to a specific version. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the form's purpose and scope. |
-| `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
+| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
 | `#/properties/formPresentation` | `formPresentation` | <code>object</code> | no | — | Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics. |
 | `#/properties/instances` | `instances` | <code>object</code> | no | — | Named secondary data sources available to FEL expressions at runtime via @instance('name'). Instances provide lookup tables, prior-year data, and external reference data. The property name is the instance identifier used in @instance() references. Secondary instances are read-only by default during form completion. |
 | `#/properties/items` | `items` | <code>array</code> | yes | critical | Root item tree defining the form's structural content. Items form a tree: each Item may have 'children' (groups) creating nested hierarchy. Three item types exist: 'field' (captures data), 'group' (structural container, optionally repeatable), 'display' (read-only presentational content). The item tree determines the shape of the Instance (form data). |
@@ -2421,8 +2421,10 @@ generated from `schemas/definition.schema.json`:
 The generated table above defines required and optional properties. In this
 section, prose requirements describe semantics beyond structural constraints.
 
-Implementations MUST preserve unrecognized top-level properties during
-round-tripping but MUST NOT assign semantics to them.
+Definitions are closed by default. Processors MUST reject unrecognized
+top-level properties unless the property name begins with `x-`. Processors
+MUST preserve `x-*` extension properties during round-tripping but MUST NOT
+assign core semantics to unrecognized extensions.
 
 #### 4.1.1 Form Presentation
 
@@ -2433,7 +2435,7 @@ these properties.
 
 | Property | Type | Values | Default | Description |
 |---|---|---|---|---|
-| `pageMode` | string | `"single"`, `"wizard"`, `"tabs"` | `"single"` | Suggests how top-level groups are paginated. `"wizard"`: sequential steps with navigation controls. `"tabs"`: tabbed sections. `"single"`: all items on one page. Processors that do not support the declared mode SHOULD fall back to `"single"`. |
+| `pageMode` | string | `"single"`, `"wizard"`, `"tabs"` | `"single"` | Selects the navigation presentation for the active page source. `"wizard"`: sequential steps with navigation controls. `"tabs"`: tabbed sections. `"single"`: all items on one page. Processors that do not support the declared mode SHOULD fall back to `"single"`. |
 | `labelPosition` | string | `"top"`, `"start"`, `"hidden"` | `"top"` | Default label placement for all Fields. `"top"`: label above input. `"start"`: label to the leading side (left in LTR, right in RTL). `"hidden"`: label suppressed visually but MUST remain in accessible markup. |
 | `density` | string | `"compact"`, `"comfortable"`, `"spacious"` | `"comfortable"` | Spacing density hint. |
 | `defaultCurrency` | string | ISO 4217 (e.g. `"USD"`) | (none) | Default currency code applied to all `money` fields that do not declare their own `currency` property. When set, MoneyInput widgets MUST pre-fill the currency to this value and lock it. FEL `money()` calls that omit the currency argument MAY inherit this default. |
@@ -2466,9 +2468,21 @@ processor does not support the declared `pageMode`, it MUST fall back to
 When a processor supports a given `pageMode`, it MUST satisfy the
 behavioral requirements below.
 
+Page authority is resolved in this order:
+
+1. Root-level Component `Section` units: either a Component tree whose root
+   is `Section`, or a Component root whose direct children include
+   `Section` nodes.
+2. Theme `PageLayout` units from `theme.pages`, used only when no
+   root-level Component `Section` page units exist.
+3. Generated Definition group pages, used only when neither Component nor
+   Theme page units exist and the processor supports generated navigation
+   pages. This fallback is a presentation convenience: it does not create
+   authored page structure and MUST NOT override Component or Theme pages.
+
 **Wizard mode** (`pageMode: "wizard"`):
 
-1. The processor MUST render exactly one Page at a time.
+1. The processor MUST render exactly one active page unit at a time. A page unit is a root-level Component `Section` when the Component document owns page structure, otherwise a Theme `PageLayout` unit, otherwise a generated Definition group page.
 2. The processor MUST provide Next/Previous navigation controls.
 3. The processor MUST validate the current page before allowing forward
    navigation, unless `allowSkip` is `true`.
@@ -2477,14 +2491,14 @@ behavioral requirements below.
 
 **Tabs mode** (`pageMode: "tabs"`):
 
-1. The processor MUST render a tab bar with one tab per Page child,
+1. The processor MUST render a tab bar with one tab per active page unit,
    positioned according to `tabPosition`.
-2. The processor MUST show exactly one Page's content at a time.
+2. The processor MUST show exactly one page unit's content at a time.
 3. The processor MUST allow the user to switch tabs by clicking or
    activating tab labels.
 4. The processor MUST select the tab at index `defaultTab` on initial
    render.
-5. All Pages MUST remain mounted; tab switching changes visibility, not
+5. All page units MUST remain mounted; tab switching changes visibility, not
    lifecycle.
 
 **Property applicability:**
@@ -2494,10 +2508,9 @@ behavioral requirements below.
 - `defaultTab` and `tabPosition` are meaningful only when `pageMode` is
   `"tabs"`. Processors MUST ignore these properties for other modes.
 
-> **Note on naming:** The Tabs component (§5.X) uses the property name
-> `position` for tab bar placement. At the `formPresentation` level, the
-> equivalent property is `tabPosition`. The rename avoids ambiguity with
-> other component-level `position` properties (e.g., Panel).
+> **Note on naming:** The Tabs and Panel components use `placement` for
+> component-local positioning. At the `formPresentation` level, the
+> equivalent tabs property remains `tabPosition`.
 
 > **Note:** The page navigation gate in wizard mode constrains *when*
 > validation errors are surfaced to the user, not *what* constitutes a
@@ -2651,9 +2664,10 @@ Display-specific constraints:
 The OPTIONAL `presentation` object MAY appear on any Item (Field, Group,
 or Display). All properties within `presentation` are OPTIONAL and advisory.
 
-A conforming processor MUST accept a `presentation` object without error.
-A conforming processor MAY ignore any property within `presentation`.
-Unknown keys within `presentation` MUST be ignored (forward-compatibility).
+A conforming processor MUST accept a schema-valid `presentation` object.
+A conforming processor MAY ignore any recognized property within
+`presentation`. Unknown keys within `presentation` are schema errors; use the
+`x-*` extension namespace for non-core presentation metadata.
 
 Presentation hints MUST NOT affect data capture, validation, calculation,
 or submission semantics.
@@ -2663,49 +2677,52 @@ or submission semantics.
 The `widgetHint` property is a string suggesting the preferred UI control.
 When present, the value SHOULD be one of the values listed in the tables
 below for the Item's type and `dataType`. Custom values MUST be prefixed
-with `x-`. A processor receiving an incompatible or unrecognized
-`widgetHint` MUST ignore it and use its default widget for that Item type
-and `dataType`.
+with `x-`. Non-canonical values that are not valid built-in widget names and
+do not use the `x-*` prefix are schema errors. A processor receiving a
+schema-valid but unsupported custom `widgetHint` MUST use its default widget
+for that Item type and `dataType`.
 
 **Group Items:**
 
 | widgetHint | Description |
 |---|---|
-| `"section"` | Standard section with heading (default). |
-| `"card"` | Visually elevated card/panel. |
-| `"accordion"` | Expandable/collapsible section. |
-| `"tab"` | Tab panel (meaningful when `formPresentation.pageMode` is `"tabs"`). |
+| `"Section"` | Standard section with heading (default). |
+| `"Card"` | Visually elevated card/panel. |
+| `"Accordion"` | Expandable/collapsible section. |
+| `"Tabs"` | Tab panel (meaningful when `formPresentation.pageMode` is `"tabs"`). |
 
 **Display Items:**
 
 | widgetHint | Description |
 |---|---|
-| `"paragraph"` | Body text (default). |
-| `"heading"` | Section heading. |
-| `"divider"` | Visual separator/rule. |
-| `"banner"` | Callout or alert banner. |
+| `"Text"` | Body text (default). |
+| `"Heading"` | Section heading. |
+| `"Divider"` | Visual separator/rule. |
+| `"Alert"` | Callout or alert banner. |
 
 **Field Items (by dataType):**
 
 | dataType | Valid widgetHint values | Default |
 |---|---|---|
-| `string` | `"textInput"`, `"password"`, `"color"` | `"textInput"` |
-| `text` | `"textarea"`, `"richText"` | `"textarea"` |
-| `integer` | `"numberInput"`, `"stepper"`, `"slider"`, `"rating"` | `"numberInput"` |
-| `decimal` | `"numberInput"`, `"slider"` | `"numberInput"` |
-| `boolean` | `"checkbox"`, `"toggle"`, `"yesNo"` | `"checkbox"` |
-| `date` | `"datePicker"`, `"dateInput"` | `"datePicker"` |
-| `dateTime` | `"dateTimePicker"`, `"dateTimeInput"` | `"dateTimePicker"` |
-| `time` | `"timePicker"`, `"timeInput"` | `"timePicker"` |
-| `uri` | `"textInput"`, `"urlInput"` | `"textInput"` |
-| `attachment` | `"fileUpload"`, `"camera"`, `"signature"` | `"fileUpload"` |
-| `choice` | `"dropdown"`, `"radio"`, `"autocomplete"`, `"segmented"`, `"likert"` | Renderer decides by option count |
-| `multiChoice` | `"checkboxGroup"`, `"multiSelect"`, `"autocomplete"` | `"checkboxGroup"` |
-| `money` | `"moneyInput"` | `"moneyInput"` |
+| `string` | `"TextInput"` | `"TextInput"` |
+| `text` | `"TextInput"` | `"TextInput"` |
+| `integer` | `"NumberInput"`, `"Slider"`, `"Rating"` | `"NumberInput"` |
+| `decimal` | `"NumberInput"`, `"Slider"`, `"Rating"` | `"NumberInput"` |
+| `boolean` | `"Toggle"` | `"Toggle"` |
+| `date` | `"DatePicker"` | `"DatePicker"` |
+| `dateTime` | `"DatePicker"` | `"DatePicker"` |
+| `time` | `"DatePicker"` | `"DatePicker"` |
+| `uri` | `"TextInput"` | `"TextInput"` |
+| `attachment` | `"FileUpload"`, `"Signature"` | `"FileUpload"` |
+| `choice` | `"Select"`, `"RadioGroup"` | Renderer decides by option count |
+| `multiChoice` | `"CheckboxGroup"`, `"Select"` | `"CheckboxGroup"` |
+| `money` | `"MoneyInput"`, `"NumberInput"` | `"MoneyInput"` |
 
-When `widgetHint` is absent, unrecognized, or incompatible with the
-Item's type or `dataType`, the processor MUST use its default widget for
-that `dataType` as listed above.
+When `widgetHint` is absent, the processor MUST use its default widget for
+that `dataType` as listed above. When a schema-valid `widgetHint` is
+incompatible with the Item's type or `dataType`, the processor MUST report a
+schema or lint failure before rendering/publishing rather than silently
+normalizing the invalid authoring intent.
 
 ##### 4.2.5.2 Layout
 
@@ -2719,14 +2736,15 @@ The `layout` sub-object provides spatial arrangement hints.
 | `columns` | integer | 1–12 | 1 | Column count when `flow` is `"grid"`. Ignored otherwise. |
 | `collapsible` | boolean | | `false` | Whether the group can be collapsed by the user. |
 | `collapsedByDefault` | boolean | | `false` | Initial collapsed state. Ignored if `collapsible` is not `true`. |
-| `page` | string | non-empty | (none) | Named wizard step or tab. Groups with the same `page` value are rendered together. Only meaningful when `formPresentation.pageMode` is not `"single"`. Groups without `page` attach to the preceding page. |
 
 **On Field and Display Items:**
 
 | Property | Type | Values | Default | Description |
 |---|---|---|---|---|
-| `colSpan` | integer | 1–12 | 1 | Grid columns this item spans. Only meaningful when the parent Group has `flow: "grid"`. |
-| `newRow` | boolean | | `false` | Force this item to start a new grid row. |
+| `grid.span` | integer | 1–12 | 12 | Grid columns this item spans. Only meaningful inside a parent grid context. |
+| `grid.start` | integer | 1–12 | (flow) | Grid column start. |
+| `grid.rowSpan` | integer | >= 1 | 1 | Grid rows this item spans. |
+| `grid.rowStart` | integer | >= 1 | (flow) | Grid row start. |
 
 Layout properties do NOT cascade from parent Group to child Items. Each
 Item's layout is independent.
@@ -2765,7 +2783,7 @@ without accessibility APIs SHOULD ignore these properties.
    their defined semantics and are NOT superseded by `presentation`.
 3. **`widgetHint` takes precedence over `semanticType` for widget selection.**
    When a Field has both `semanticType` (e.g., `"ietf:email"`) and
-   `widgetHint` (e.g., `"textInput"`), the renderer SHOULD use the
+   `widgetHint` (e.g., `"TextInput"`), the renderer SHOULD use the
    `widgetHint` for widget selection. When only `semanticType` is present,
    renderers MAY use it to infer a widget.
 4. **`disabledDisplay` on a Bind controls non-relevant rendering.**
@@ -2776,13 +2794,10 @@ without accessibility APIs SHOULD ignore these properties.
 
 ##### 4.2.5.6 Forward Compatibility
 
-The `presentation` object permits additional properties at its top level
-(unknown keys MUST be ignored). The nested sub-objects (`layout`,
-`styleHints`, `accessibility`) do NOT permit additional properties, to
-catch typographical errors.
-
-This design allows future companion specifications to define additional
-keys inside `presentation` without breaking existing validators.
+The `presentation` object is closed by default. Unknown keys are schema
+errors, which catches typographical errors early. Future companion
+specifications that need additional item-level metadata MUST use an `x-*`
+extension property or introduce a new schema version.
 
 > **Informative note — Presentation tiers:**
 >
@@ -2809,9 +2824,11 @@ Example — a Field with full presentation hints:
   "dataType": "money",
   "prefix": "$",
   "presentation": {
-    "widgetHint": "moneyInput",
+    "widgetHint": "MoneyInput",
     "layout": {
-      "colSpan": 6
+      "grid": {
+        "span": 6
+      }
     },
     "styleHints": {
       "emphasis": "primary",
@@ -5095,9 +5112,9 @@ that address them. This appendix is informative.
 | Req | Description | Addressed By |
 |-----|-------------|--------------|
 | PR-01 | Advisory widget selection hints | §4.2.5.1 `widgetHint` per Item type and `dataType` |
-| PR-02 | Layout and spatial arrangement | §4.2.5.2 `layout` — `flow`, `columns`, `colSpan`, `page` |
+| PR-02 | Layout and spatial arrangement | §4.2.5.2 `layout` — `flow`, `columns`, `grid` |
 | PR-03 | Semantic style tokens | §4.2.5.3 `styleHints` — `emphasis`, `size` |
 | PR-04 | Accessibility metadata | §4.2.5.4 `accessibility` — `role`, `description`, `liveRegion` |
 | PR-05 | Form-wide defaults | §4.1.1 `formPresentation` — `pageMode`, `labelPosition`, `density` |
 | PR-06 | No impact on data semantics | §2.4 "Presentation Hints and Processing"; §4.2.5 normative statement |
-| PR-07 | Forward compatibility for richer systems | §4.2.5.6 `additionalProperties: true` on `presentation` |
+| PR-07 | Forward compatibility for richer systems | §4.2.5.6 closed `presentation` object with explicit `x-*` extension lanes or schema-versioned additions |

@@ -77,7 +77,7 @@ function generateRust(rules) {
 
   const allVariants = codes
     .map(({ code }) => `LintCode::${variantName(code)}`)
-    .join(", ");
+    .join(",\n        ");
 
   return `//! AUTO-GENERATED from specs/lint-codes.json — DO NOT EDIT.
 //! Regenerate: \`npm run docs:generate\` or \`node scripts/generate-lint-codes.mjs\`.
@@ -117,7 +117,9 @@ ${parseArms}
     }
 
     /// Every registered code (for registry consistency checks).
-    pub const ALL: &'static [Self] = &[${allVariants}];
+    pub const ALL: &'static [Self] = &[
+        ${allVariants},
+    ];
 }
 
 impl fmt::Display for LintCode {

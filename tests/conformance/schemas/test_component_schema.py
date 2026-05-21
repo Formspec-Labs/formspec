@@ -1,10 +1,17 @@
 import json
+import re
 import pytest
-from jsonschema import validate, ValidationError
+from jsonschema import Draft202012Validator, ValidationError
 
-from tests.unit.support.schema_fixtures import load_schema
+from tests.unit.support.schema_fixtures import build_schema_registry, load_schema
 
+COMMON_SCHEMA = load_schema("common.schema.json")
 SCHEMA = load_schema("component.schema.json")
+VALIDATOR = Draft202012Validator(SCHEMA, registry=build_schema_registry(COMMON_SCHEMA, SCHEMA))
+
+def validate(*, instance, schema):
+    assert schema is SCHEMA
+    VALIDATOR.validate(instance)
 
 def test_minimal_document():
     doc = {
@@ -14,8 +21,8 @@ def test_minimal_document():
             "url": "https://example.com/def"
         },
         "tree": {
-            "component": "Page",
-            "title": "Minimal Page"
+            "component": "Section",
+            "title": "Minimal Section"
         }
     }
     validate(instance=doc, schema=SCHEMA)
@@ -26,7 +33,7 @@ def test_full_core_components():
         "version": "1.0.0",
         "targetDefinition": { "url": "https://example.com/def" },
         "tree": {
-            "component": "Page",
+            "component": "Section",
             "children": [
                 { "component": "Stack", "children": [
                     { "component": "Heading", "level": 1, "text": "Form" },
@@ -47,9 +54,8 @@ def test_full_core_components():
                     ]}
                 ]},
                 { "component": "Tabs", "children": [
-                    { "component": "Page", "title": "Tab 1", "children": [] }
+                    { "component": "Section", "title": "Tab 1", "children": [] }
                 ]},
-                { "component": "Spacer", "size": "20px" },
                 { "component": "ConditionalGroup", "when": "$show", "children": [] }
             ]
         }
@@ -62,9 +68,9 @@ def test_progressive_components():
         "version": "1.0.0",
         "targetDefinition": { "url": "https://example.com/def" },
         "tree": {
-            "component": "Page",
+            "component": "Section",
             "children": [
-                { "component": "Columns", "widths": [1, 2], "children": [] },
+                { "component": "Grid", "columns": [1, 2], "children": [] },
                 { "component": "Tabs", "children": [] },
                 { "component": "Accordion", "children": [] },
                 { "component": "RadioGroup", "bind": "choice" },
@@ -94,6 +100,17 @@ def test_invalid_component_name_structural_valid():
     }
     # Should be treated as CustomComponentRef; structurally valid even if referential integrity fails
     validate(instance=doc, schema=SCHEMA)
+
+@pytest.mark.parametrize("component_name", ["myWidget", "x-address"])
+def test_custom_component_ref_requires_pascal_case(component_name):
+    doc = {
+        "$formspecComponent": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": { "url": "https://example.com/def" },
+        "tree": { "component": component_name }
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
 
 def test_custom_component_valid():
     doc = {
@@ -146,6 +163,113 @@ def test_responsive_overrides():
     }
     validate(instance=doc, schema=SCHEMA)
 
+def test_responsive_overrides_reject_forbidden_props():
+    doc = {
+        "$formspecComponent": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": { "url": "https://example.com/def" },
+        "breakpoints": { "sm": 640 },
+        "tree": {
+            "component": "Grid",
+            "columns": 2,
+            "responsive": {
+                "sm": { "bind": "otherField" }
+            },
+            "children": []
+        }
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
+
+def test_responsive_hidden_override_valid():
+    doc = {
+        "$formspecComponent": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": { "url": "https://example.com/def" },
+        "breakpoints": { "sm": 640 },
+        "tree": {
+            "component": "Stack",
+            "responsive": {
+                "sm": { "hidden": True }
+            },
+            "children": []
+        }
+    }
+    validate(instance=doc, schema=SCHEMA)
+
+def test_grid_columns_accept_track_array():
+    doc = {
+        "$formspecComponent": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": { "url": "https://example.com/def" },
+        "tree": {
+            "component": "Grid",
+            "columns": [2, "minmax(12rem, 1fr)", "$token.layout.sidebar"],
+            "children": [
+                {
+                    "component": "TextInput",
+                    "bind": "name",
+                    "layout": { "grid": { "span": 2, "start": 1, "rowSpan": 1, "rowStart": 1 } }
+                }
+            ]
+        }
+    }
+    validate(instance=doc, schema=SCHEMA)
+
+@pytest.mark.parametrize("component_name", ["Page", "Columns", "Spacer"])
+def test_removed_builtin_component_names_invalid(component_name):
+    doc = {
+        "$formspecComponent": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": { "url": "https://example.com/def" },
+        "tree": { "component": component_name }
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
+
+def test_tabs_and_panel_reject_position_alias():
+    for item in [
+        { "component": "Tabs", "position": "left", "children": [] },
+        { "component": "Panel", "position": "right", "children": [] },
+    ]:
+        doc = {
+            "$formspecComponent": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/def" },
+            "tree": item
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=doc, schema=SCHEMA)
+
+@pytest.mark.parametrize("component_name", ["Section", "Stack", "Grid", "Card", "Panel"])
+def test_container_visual_surface_props_valid(component_name):
+    item = {
+        "component": component_name,
+        "padding": "$token.spacing.md",
+        "background": "$token.color.surface",
+        "border": "1px solid $token.color.border",
+        "radius": "$token.radius.md",
+        "elevation": "$token.elevation.low",
+    }
+    if component_name == "Grid":
+        item["columns"] = 2
+    if component_name in {"Section", "Stack", "Grid", "Card", "Panel"}:
+        item["children"] = []
+    doc = {
+        "$formspecComponent": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": { "url": "https://example.com/def" },
+        "tree": item
+    }
+    validate(instance=doc, schema=SCHEMA)
+
+def test_component_compatibility_metadata_uses_definition_datatypes():
+    defs = SCHEMA["$defs"]
+    assert defs["NumberInput"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal"]
+    assert defs["MoneyInput"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal", "money"]
+    assert defs["Slider"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal"]
+    assert defs["Rating"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal"]
+
 def test_token_references():
     doc = {
         "$formspecComponent": "1.0",
@@ -161,10 +285,9 @@ def test_token_references():
     validate(instance=doc, schema=SCHEMA)
 
 @pytest.mark.parametrize("component_name, props, extra_keys", [
-    ("Page", {"title": "T"}, ["children"]),
+    ("Section", {"title": "T"}, ["children"]),
     ("Stack", {"direction": "horizontal", "gap": 10}, ["children"]),
     ("Grid", {"columns": 3, "gap": "1em"}, ["children"]),
-    ("Spacer", {"size": 10}, []),
     ("TextInput", {"bind": "k", "placeholder": "P"}, []),
     ("NumberInput", {"bind": "k", "step": 1, "min": 0, "max": 10}, []),
     ("DatePicker", {"bind": "k", "format": "Y-m-d"}, []),
@@ -178,8 +301,7 @@ def test_token_references():
     ("Card", {"title": "T", "subtitle": "S"}, ["children"]),
     ("Collapsible", {"title": "T", "defaultOpen": True}, ["children"]),
     ("ConditionalGroup", {"when": "FEL", "fallback": "F"}, ["children"]),
-    ("Columns", {"widths": [1, "2fr"]}, ["children"]),
-    ("Tabs", {"position": "left"}, ["children"]),
+    ("Tabs", {"placement": "left"}, ["children"]),
     ("Accordion", {"allowMultiple": True}, ["children"]),
     ("RadioGroup", {"bind": "k", "columns": 3}, []),
     ("MoneyInput", {"bind": "k", "currency": "USD", "showCurrency": True}, []),
@@ -191,7 +313,7 @@ def test_token_references():
     ("ProgressBar", {"value": 75, "max": 100, "label": "L"}, []),
     ("Summary", {"items": [{"label": "L", "bind": "k"}]}, []),
     ("DataTable", {"bind": "r", "columns": [{"header": "H", "bind": "k"}]}, []),
-    ("Panel", {"position": "right"}, ["children"]),
+    ("Panel", {"placement": "right"}, ["children"]),
     ("Modal", {"title": "M", "size": "lg"}, ["children"]),
     ("Popover", {"triggerLabel": "Details", "placement": "right"}, ["children"]),
 ])
@@ -275,7 +397,7 @@ def test_tokens_at_top_level():
             "spacing.unit": 8,
             "font.size.large": "1.25rem"
         },
-        "tree": { "component": "Spacer", "size": "$token.spacing.unit" }
+        "tree": { "component": "Stack", "gap": "$token.spacing.unit", "children": [] }
     }
     validate(instance=doc, schema=SCHEMA)
 
@@ -289,7 +411,7 @@ def test_breakpoints_at_top_level():
             "tablet": 768,
             "desktop": 1024
         },
-        "tree": { "component": "Page", "children": [] }
+        "tree": { "component": "Section", "children": [] }
     }
     validate(instance=doc, schema=SCHEMA)
 
@@ -306,7 +428,7 @@ def test_interpolation_escaping_in_text():
     }
     validate(instance=doc, schema=SCHEMA)
 def test_full_employee_onboarding_wizard():
-    # Example from §18 of the plan — Wizard deprecated, use Stack with Pages
+    # Example from §18 of the plan — direct root Sections define wizard units.
     doc = {
         "$formspecComponent": "1.0",
         "url": "https://example.com/onboarding-ui",
@@ -335,7 +457,7 @@ def test_full_employee_onboarding_wizard():
             "component": "Stack",
             "children": [
                 {
-                    "component": "Page",
+                    "component": "Section",
                     "title": "Personal Details",
                     "children": [
                         { "component": "Card", "title": "Basic Info", "children": [
@@ -346,7 +468,7 @@ def test_full_employee_onboarding_wizard():
                     ]
                 },
                 {
-                    "component": "Page",
+                    "component": "Section",
                     "title": "Equipment",
                     "children": [
                         { "component": "Text", "text": "Select your preferred equipment:" },
@@ -370,7 +492,7 @@ def test_empty_components_registry():
         "version": "1.0.0",
         "targetDefinition": { "url": "https://example.com/def" },
         "components": {},
-        "tree": { "component": "Page", "children": [] }
+        "tree": { "component": "Section", "children": [] }
     }
     validate(instance=doc, schema=SCHEMA)
 
@@ -381,13 +503,13 @@ def test_empty_components_registry():
     "$token. space", # Invalid char
 ])
 def test_invalid_token_references_schema_allows_string(invalid_token):
-    # Schema doesn't strictly validate token pattern everywhere because they are strings
-    # But we can check if Spacer.size (oneOf string/number) allows it as a string
+    # Schema doesn't strictly validate token pattern everywhere because they are strings.
+    # Stack.gap accepts string token-looking values; token existence is semantic validation.
     doc = {
         "$formspecComponent": "1.0",
         "version": "1.0.0",
         "targetDefinition": { "url": "https://example.com/def" },
-        "tree": { "component": "Spacer", "size": invalid_token }
+        "tree": { "component": "Stack", "gap": invalid_token, "children": [] }
     }
     # These are technically valid JSON strings, so schema validates them.
     # Pattern validation for tokens isn't in the schema currently except for documentation.
@@ -450,8 +572,8 @@ def test_invalid_custom_component_params_type():
     with pytest.raises(ValidationError):
         validate(instance=doc, schema=SCHEMA)
 
-def test_stack_with_pages():
-    """Pages are children of Stack; wizard behavior is controlled by formPresentation.pageMode."""
+def test_stack_with_sections():
+    """Direct root Sections are page units; wizard behavior is controlled by formPresentation.pageMode."""
     doc = {
         "$formspecComponent": "1.0",
         "version": "1.0.0",
@@ -459,8 +581,8 @@ def test_stack_with_pages():
         "tree": {
             "component": "Stack",
             "children": [
-                { "component": "Page", "title": "S1", "children": [] },
-                { "component": "Page", "title": "S2", "children": [] }
+                { "component": "Section", "title": "S1", "children": [] },
+                { "component": "Section", "title": "S2", "children": [] }
             ]
         }
     }
@@ -544,16 +666,20 @@ def test_all_progressive_fallbacks_present_in_spec():
         content = f.read()
     
     progressive = [
-        "Columns", "Tabs", "Accordion",
+        "Tabs", "Accordion",
         "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
         "Alert", "Badge", "ProgressBar", "Summary", "DataTable",
-        "Panel", "Modal", "Popover"
+        "ValidationSummary", "Panel", "Modal", "Popover",
     ]
     for comp in progressive:
-        # Check for Fallback: or fallback: in the component's section
-        # Very loose check
-        assert comp in content
-        assert "Fallback" in content or "fallback" in content
+        section = re.search(
+            rf"### \d+\.\d+ {re.escape(comp)}\b(?P<body>.*?)(?=\n### \d+\.\d+ |\n## )",
+            content,
+            flags=re.S,
+        )
+        assert section, f"{comp} section missing from component spec"
+        assert re.search(r"\b[Ff]allback\b", section.group("body")), \
+            f"{comp} section must document fallback behavior"
 
 def test_schema_is_forward_compatible_via_style():
     # Any component can have 'style' and 'responsive'
@@ -562,7 +688,7 @@ def test_schema_is_forward_compatible_via_style():
         "version": "1.0.0",
         "targetDefinition": { "url": "https://example.com/def" },
         "tree": {
-            "component": "Page",
+            "component": "Section",
             "style": { "x-custom-prop": 123 },
             "children": []
         }
@@ -586,7 +712,7 @@ def test_responsive_grid_overrides():
     }
     validate(instance=doc, schema=SCHEMA)
 @pytest.mark.parametrize("comp, prop, val", [
-    ("Page", "title", 123), # Should be string
+    ("Section", "title", 123), # Should be string
     ("Stack", "direction", "diagonal"), # Invalid enum
     ("Grid", "columns", -1), # Should be positive (if int)
     ("Heading", "level", 7), # Max 6
@@ -596,7 +722,7 @@ def test_responsive_grid_overrides():
     ("Rating", "max", 0), # Min 1
     ("Modal", "size", "massive"), # Invalid enum
     ("Popover", "placement", "middle"), # Invalid enum
-    ("Panel", "position", "top"), # Invalid enum
+    ("Panel", "placement", "top"), # Invalid enum
     ("Alert", "severity", "critical"), # Invalid enum
 ])
 def test_property_type_and_range_validation(comp, prop, val):
@@ -639,7 +765,7 @@ def test_top_level_name_title_description():
         "title": "My Form UI",
         "description": "A component document for my form.",
         "targetDefinition": {"url": "https://example.com/def"},
-        "tree": {"component": "Page", "children": []},
+        "tree": {"component": "Section", "children": []},
     }
     validate(instance=doc, schema=SCHEMA)
 
@@ -650,7 +776,7 @@ def test_top_level_x_extension_keys():
         "$formspecComponent": "1.0",
         "version": "1.0.0",
         "targetDefinition": {"url": "https://example.com/def"},
-        "tree": {"component": "Page", "children": []},
+        "tree": {"component": "Section", "children": []},
         "x-vendor": {"config": True},
     }
     validate(instance=doc, schema=SCHEMA)
@@ -680,9 +806,9 @@ def test_pascal_case_component_key_valid():
         "targetDefinition": {"url": "https://example.com/def"},
         "components": {
             "MyWidget": {"tree": {"component": "Text", "text": "Hello"}},
-            "AnotherOne99": {"tree": {"component": "Spacer", "size": 10}},
+            "AnotherOne99": {"tree": {"component": "Stack", "gap": 10}},
         },
-        "tree": {"component": "Page", "children": []},
+        "tree": {"component": "Section", "children": []},
     }
     validate(instance=doc, schema=SCHEMA)
 
@@ -696,7 +822,7 @@ def test_lowercase_component_key_rejected():
         "components": {
             "myWidget": {"tree": {"component": "Text", "text": "Hello"}}
         },
-        "tree": {"component": "Page", "children": []},
+        "tree": {"component": "Section", "children": []},
     }
     with pytest.raises(ValidationError):
         validate(instance=doc, schema=SCHEMA)
@@ -723,7 +849,7 @@ def test_extended_component_props(component_name, props, extra_keys):
 
 
 @pytest.mark.parametrize("component_name, base_props", [
-    ("Page", {"children": []}),
+    ("Section", {"children": []}),
     ("TextInput", {"bind": "k"}),
     ("Heading", {"level": 1, "text": "Hi"}),
     ("Alert", {"severity": "info", "text": "Note"}),
@@ -755,7 +881,7 @@ def test_accessibility_block_invalid_live_region():
         "version": "1.0.0",
         "targetDefinition": {"url": "https://example.com/def"},
         "tree": {
-            "component": "Page",
+            "component": "Section",
             "children": [],
             "accessibility": {"liveRegion": "rude"},
         },
@@ -771,7 +897,7 @@ def test_accessibility_block_empty_valid():
         "version": "1.0.0",
         "targetDefinition": {"url": "https://example.com/def"},
         "tree": {
-            "component": "Page",
+            "component": "Section",
             "children": [],
             "accessibility": {},
         },

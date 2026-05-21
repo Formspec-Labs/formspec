@@ -12,19 +12,27 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const SCHEMA_PATH = resolve(ROOT, 'schemas/component.schema.json');
+const COMMON_SCHEMA_PATH = resolve(ROOT, 'schemas/common.schema.json');
 const OUT_PATH = resolve(ROOT, 'packages/formspec-core/src/generated/component-schema-props.ts');
 
 const schema = JSON.parse(readFileSync(SCHEMA_PATH, 'utf-8'));
+const commonSchema = JSON.parse(readFileSync(COMMON_SCHEMA_PATH, 'utf-8'));
 const defs = schema.$defs;
 
 const COMPONENT_BASE_KEYS = new Set(Object.keys(defs.ComponentBase.properties));
 const STRUCTURAL_KEYS = new Set(['component', 'children', 'bind']);
+const VISUAL_SURFACE_REF = '#/$defs/VisualSurfaceProps';
+const VISUAL_SURFACE_KEYS = Object.keys(commonSchema.$defs.VisualSurfaceProps.properties);
 
 /** @param {string} defName */
 function typeSpecificProps(defName) {
   const def = defs[defName];
-  if (!def?.properties) return [];
-  return Object.keys(def.properties)
+  const props = new Set(Object.keys(def?.properties ?? {}));
+  const usesVisualSurface = def?.allOf?.some((entry) => entry.$ref === VISUAL_SURFACE_REF);
+  if (usesVisualSurface) {
+    for (const key of VISUAL_SURFACE_KEYS) props.add(key);
+  }
+  return [...props]
     .filter((key) => !COMPONENT_BASE_KEYS.has(key) && !STRUCTURAL_KEYS.has(key))
     .sort();
 }

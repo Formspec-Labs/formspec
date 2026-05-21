@@ -283,8 +283,8 @@ Read-only non-data elements (instructions, headings). No children, no dataType. 
 
 Optional `presentation` object on any item. All advisory, must not affect data/validation. No cascade from parent to child.
 
-- **widgetHint**: Suggested UI control. Per dataType defaults exist (e.g., `choice` → dropdown/radio, `boolean` → checkbox/toggle). Custom values prefixed `x-`.
-- **layout**: `flow` (stack/grid/inline), `columns` (1-12 for grid), `collapsible`/`collapsedByDefault`, `page` (wizard step/tab name), `colSpan`, `newRow`.
+- **widgetHint**: Suggested UI control. Built-in widget names use canonical PascalCase (e.g., `choice` -> `Select`/`RadioGroup`, `boolean` -> `Toggle`). Custom values prefixed `x-`.
+- **layout**: `flow` (stack/grid/inline), `columns` (1-12 for grid), `collapsible`/`collapsedByDefault`, and grid-scoped placement (`grid.span`, `grid.start`, `grid.rowSpan`, `grid.rowStart`).
 - **styleHints**: `emphasis` (primary/success/warning/danger/muted), `size` (compact/default/large).
 - **accessibility**: `role`, `description` (screen-reader-only), `liveRegion` (off/polite/assertive).
 

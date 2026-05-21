@@ -38,6 +38,11 @@ def build_schema_registry(*schemas: dict) -> Registry:
 
 
 @pytest.fixture(scope="session")
+def common_schema() -> dict:
+    return load_schema("common.schema.json")
+
+
+@pytest.fixture(scope="session")
 def definition_schema() -> dict:
     return load_schema("definition.schema.json")
 
@@ -99,6 +104,7 @@ def locale_schema() -> dict:
 
 @pytest.fixture(scope="session")
 def schema_registry(
+    common_schema: dict,
     definition_schema: dict,
     response_schema: dict,
     intake_handoff_schema: dict,
@@ -113,6 +119,7 @@ def schema_registry(
     locale_schema: dict,
 ) -> Registry:
     return build_schema_registry(
+        common_schema,
         definition_schema,
         response_schema,
         intake_handoff_schema,

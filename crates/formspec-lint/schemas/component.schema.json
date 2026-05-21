@@ -10,6 +10,9 @@
     "targetDefinition",
     "tree"
   ],
+  "patternProperties": {
+    "^x-": true
+  },
   "additionalProperties": false,
   "properties": {
     "$formspecComponent": {
@@ -101,7 +104,7 @@
     },
     "tree": {
       "$ref": "#/$defs/AnyComponent",
-      "description": "Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Page).",
+      "description": "Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Section).",
       "examples": [
         {
           "component": "Stack",
@@ -116,87 +119,50 @@
       }
     },
     "extensions": {
-      "type": "object",
-      "propertyNames": { "pattern": "^x-" },
+      "$ref": "#/$defs/Extensions",
       "description": "Document-level extension properties. All keys MUST be prefixed with 'x-'."
     }
   },
 
   "$defs": {
     "TargetDefinition": {
-      "type": "object",
-      "required": ["url"],
-      "additionalProperties": false,
-      "properties": {
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Canonical URL of the target Definition (its url property)."
-        },
-        "compatibleVersions": {
-          "type": "string",
-          "description": "Semver range expression describing which Definition versions this document supports. When absent, compatible with any version."
-        }
-      }
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
     },
 
     "Tokens": {
-      "type": "object",
-      "description": "Flat design token map. Keys are dot-delimited names (e.g. color.primary, spacing.md). Values are strings or numbers. Referenced via $token.key syntax. MUST NOT contain nested objects, arrays, booleans, or null.",
-      "additionalProperties": {
-        "oneOf": [
-          { "type": "string" },
-          { "type": "number" }
-        ]
-      }
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Tokens"
     },
 
     "Breakpoints": {
-      "type": "object",
-      "description": "Named viewport breakpoints. Keys are breakpoint names; values are minimum viewport widths in pixels (non-negative integers).",
-      "additionalProperties": {
-        "type": "integer",
-        "minimum": 0
-      }
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Breakpoints"
     },
 
     "StyleMap": {
-      "type": "object",
-      "description": "Flat style map. Values MAY contain $token.path references (e.g. $token.color.primary). Not CSS — renderers map to platform equivalents.",
-      "additionalProperties": {
-        "oneOf": [
-          { "type": "string" },
-          { "type": "number" }
-        ]
-      }
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/StyleMap"
     },
 
     "AccessibilityBlock": {
-      "type": "object",
-      "description": "Accessibility overrides applied to the component's root element. Supplements or replaces renderer defaults.",
-      "additionalProperties": false,
-      "properties": {
-        "role": {
-          "type": "string",
-          "description": "ARIA role override (e.g. 'region', 'group', 'status'). Replaces renderer-default role."
-        },
-        "description": {
-          "type": "string",
-          "description": "Accessible description text. Renderers SHOULD wire to aria-describedby."
-        },
-        "liveRegion": {
-          "type": "string",
-          "enum": ["off", "polite", "assertive"],
-          "description": "Sets aria-live on root element. Renderers MUST NOT apply live-region semantics unless explicitly set."
-        }
-      }
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AccessibilityBlock"
+    },
+
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+
+    "VisualSurfaceProps": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/VisualSurfaceProps"
     },
 
     "ResponsiveOverrides": {
       "type": "object",
       "description": "Breakpoint-keyed prop overrides. Keys are breakpoint names; values are objects of component-specific props to shallow-merge at that breakpoint. MUST NOT contain component, bind, when, children, or responsive.",
       "additionalProperties": {
-        "type": "object"
+        "type": "object",
+        "propertyNames": {
+          "not": {
+            "enum": ["component", "bind", "when", "children", "responsive"]
+          }
+        }
       }
     },
 
@@ -263,8 +229,37 @@
             { "type": "array", "items": { "type": "string" } }
           ],
           "description": "CSS class name(s) applied to root element. Additive to renderer-generated classes. Non-web renderers MAY ignore. Values MAY contain $token. references."
+        },
+        "layout": {
+          "$ref": "#/$defs/ComponentLayout",
+          "description": "Typed structural placement hints. Grid placement applies when the node is a child of a Grid or another documented grid context."
         }
       }
+    },
+
+    "ComponentLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grid": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "span": { "type": "integer", "minimum": 1 },
+            "start": { "type": "integer", "minimum": 1 },
+            "rowSpan": { "type": "integer", "minimum": 1 },
+            "rowStart": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+
+    "GridTrack": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number", "exclusiveMinimum": 0 }
+      ],
+      "description": "A grid track fragment. String values are CSS track fragments or token references; numeric values normalize to fr weights."
     },
 
     "AnyComponent": {
@@ -274,10 +269,9 @@
         "component": { "type": "string", "minLength": 1 }
       },
       "oneOf": [
-        { "$ref": "#/$defs/Page" },
+        { "$ref": "#/$defs/Section" },
         { "$ref": "#/$defs/Stack" },
         { "$ref": "#/$defs/Grid" },
-        { "$ref": "#/$defs/Spacer" },
         { "$ref": "#/$defs/TextInput" },
         { "$ref": "#/$defs/NumberInput" },
         { "$ref": "#/$defs/DatePicker" },
@@ -291,7 +285,6 @@
         { "$ref": "#/$defs/Card" },
         { "$ref": "#/$defs/Collapsible" },
         { "$ref": "#/$defs/ConditionalGroup" },
-        { "$ref": "#/$defs/Columns" },
         { "$ref": "#/$defs/Tabs" },
         { "$ref": "#/$defs/SubmitButton" },
         { "$ref": "#/$defs/Accordion" },
@@ -313,9 +306,10 @@
       ]
     },
 
-    "Page": {
+    "Section": {
       "$ref": "#/$defs/ComponentBase",
-      "description": "Top-level page/section container. In a multi-step form, each Page is one step. Pages MAY also be used standalone within a Stack for sectioned single-page forms.",
+      "allOf": [{ "$ref": "#/$defs/VisualSurfaceProps" }],
+      "description": "Top-level page/section container. In a multi-step form, each Section is one step. Sections MAY also be used standalone within a Stack for sectioned single-page forms.",
       "x-lm": {
         "category": "layout",
         "level": "core",
@@ -323,10 +317,10 @@
         "bind": "forbidden"
       },
       "properties": {
-        "component": { "const": "Page" },
+        "component": { "const": "Section" },
         "title": {
           "type": "string",
-          "description": "Page heading displayed at the top of the section."
+          "description": "Section heading displayed at the top of the section."
         },
         "description": {
           "type": "string",
@@ -337,7 +331,7 @@
       "unevaluatedProperties": false,
       "examples": [
         {
-          "component": "Page",
+          "component": "Section",
           "title": "Project Information",
           "description": "Enter basic details about your project.",
           "children": [
@@ -349,6 +343,7 @@
 
     "Stack": {
       "$ref": "#/$defs/ComponentBase",
+      "allOf": [{ "$ref": "#/$defs/VisualSurfaceProps" }],
       "description": "Flexbox stacking container arranging children vertically or horizontally. The most common layout primitive — typically used as the root component.",
       "x-lm": {
         "category": "layout",
@@ -373,6 +368,11 @@
           "enum": ["start", "center", "end", "stretch"],
           "description": "Cross-axis alignment."
         },
+        "justify": {
+          "type": "string",
+          "enum": ["start", "center", "end", "between", "around", "evenly"],
+          "description": "Main-axis distribution."
+        },
         "wrap": {
           "type": "boolean",
           "description": "Whether children wrap to new lines when direction is horizontal."
@@ -393,6 +393,7 @@
 
     "Grid": {
       "$ref": "#/$defs/ComponentBase",
+      "allOf": [{ "$ref": "#/$defs/VisualSurfaceProps" }],
       "description": "Multi-column grid layout distributing children across columns in source order, wrapping to new rows as needed.",
       "x-lm": {
         "category": "layout",
@@ -403,8 +404,16 @@
       "properties": {
         "component": { "const": "Grid" },
         "columns": {
-          "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 1 }],
-          "description": "Column count (integer) or CSS grid-template-columns value (string, e.g. '1fr 2fr 1fr')."
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer", "minimum": 1 },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/GridTrack" }
+            }
+          ],
+          "description": "Column count, explicit track array, or CSS grid-template-columns value. Numeric array entries normalize to fr weights."
         },
         "gap": {
           "oneOf": [{ "type": "string" }, { "type": "number" }],
@@ -426,28 +435,6 @@
             { "component": "TextInput", "bind": "lastName" }
           ]
         }
-      ]
-    },
-
-    "Spacer": {
-      "$ref": "#/$defs/ComponentBase",
-      "description": "Empty spacing element inserting visual space between siblings. Leaf component — no children, no binding.",
-      "x-lm": {
-        "category": "layout",
-        "level": "core",
-        "children": false,
-        "bind": "forbidden"
-      },
-      "properties": {
-        "component": { "const": "Spacer" },
-        "size": {
-          "oneOf": [{ "type": "string" }, { "type": "number" }],
-          "description": "Space amount. String for CSS/$token values, number for pixels."
-        }
-      },
-      "unevaluatedProperties": false,
-      "examples": [
-        { "component": "Spacer", "size": "$token.spacing.lg" }
       ]
     },
 
@@ -495,12 +482,13 @@
           "type": "string",
           "enum": ["plain", "richtext", "markdown", "latex"],
           "default": "plain",
-          "description": "Content-type variant. `plain` (default) accepts unstyled text. `richtext`, `markdown`, and `latex` all accept formatted source and MUST bind to `string` or `text`."
+          "description": "Content-type variant. `plain` (default) accepts unstyled text. `richtext` accepts formatted text with runtime-defined serialization. `markdown` accepts Markdown source — portable, diffable, degrades gracefully. `latex` accepts LaTeX source — authoritative for math and scientific documents; degrades to raw source. All formatted variants (`richtext`, `markdown`, `latex`) MUST bind to a field whose `dataType` is `string` or `text`."
         }
       },
       "unevaluatedProperties": false,
       "examples": [
-        { "component": "TextInput", "bind": "email", "placeholder": "you@example.com", "inputMode": "email" }
+        { "component": "TextInput", "bind": "email", "placeholder": "you@example.com", "inputMode": "email" },
+        { "component": "TextInput", "bind": "notes", "variant": "richtext", "maxLines": 8 }
       ]
     },
 
@@ -513,11 +501,12 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer", "number"]
+        "compatibleDataTypes": ["integer", "decimal"]
       },
       "properties": {
         "component": { "const": "NumberInput" },
         "bind": { "type": "string", "description": "Item key from the target Definition." },
+        "placeholder": { "type": "string", "description": "Placeholder text displayed when the field is empty." },
         "step": { "type": "number", "description": "Increment/decrement step value." },
         "min": { "type": "number", "description": "Minimum allowed value." },
         "max": { "type": "number", "description": "Maximum allowed value." },
@@ -526,7 +515,7 @@
       },
       "unevaluatedProperties": false,
       "examples": [
-        { "component": "NumberInput", "bind": "quantity", "min": 1, "max": 100, "step": 1, "showStepper": true }
+        { "component": "NumberInput", "bind": "quantity", "min": 1, "max": 100, "step": 1, "showStepper": true, "placeholder": "0" }
       ]
     },
 
@@ -544,6 +533,7 @@
       "properties": {
         "component": { "const": "DatePicker" },
         "bind": { "type": "string", "description": "Item key from the target Definition." },
+        "placeholder": { "type": "string", "description": "Placeholder text displayed when the field is empty, when the host platform exposes placeholders for date/time controls." },
         "format": { "type": "string", "description": "Display format hint (e.g. 'MM/DD/YYYY'). Does not affect stored value (always ISO 8601)." },
         "minDate": { "type": "string", "description": "Earliest selectable date (ISO 8601)." },
         "maxDate": { "type": "string", "description": "Latest selectable date (ISO 8601)." },
@@ -551,7 +541,7 @@
       },
       "unevaluatedProperties": false,
       "examples": [
-        { "component": "DatePicker", "bind": "startDate", "format": "MM/DD/YYYY", "minDate": "2025-01-01" }
+        { "component": "DatePicker", "bind": "startDate", "format": "MM/DD/YYYY", "placeholder": "YYYY-MM-DD", "minDate": "2025-01-01" }
       ]
     },
 
@@ -564,18 +554,20 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["choice"]
+        "compatibleDataTypes": ["choice", "multiChoice"]
       },
       "properties": {
         "component": { "const": "Select" },
         "bind": { "type": "string", "description": "Item key from the target Definition." },
-        "searchable": { "type": "boolean", "description": "Enable type-ahead search/filtering of options." },
+        "searchable": { "type": "boolean", "description": "Use a combobox (text input + listbox) with optional type-ahead filtering. When false and multiple is false, a native <select> is used." },
+        "multiple": { "type": "boolean", "description": "Allow multiple values (array). Bind to a multiChoice field. Implies a combobox list with checkboxes; combine with searchable for filtering." },
         "placeholder": { "type": "string", "description": "Placeholder text when no option is selected." },
         "clearable": { "type": "boolean", "description": "Whether the user can clear the selection to null." }
       },
       "unevaluatedProperties": false,
       "examples": [
-        { "component": "Select", "bind": "department", "searchable": true, "placeholder": "Choose a department" }
+        { "component": "Select", "bind": "department", "searchable": true, "placeholder": "Choose a department" },
+        { "component": "Select", "bind": "tags", "multiple": true, "searchable": true }
       ]
     },
 
@@ -726,6 +718,7 @@
 
     "Card": {
       "$ref": "#/$defs/ComponentBase",
+      "allOf": [{ "$ref": "#/$defs/VisualSurfaceProps" }],
       "description": "Bordered surface that visually groups related content with optional header.",
       "x-lm": {
         "category": "container",
@@ -737,7 +730,6 @@
         "component": { "const": "Card" },
         "title": { "type": "string", "description": "Card header title." },
         "subtitle": { "type": "string", "description": "Card header subtitle, rendered below the title." },
-        "elevation": { "type": "integer", "minimum": 0, "description": "Shadow depth level." },
         "children": { "$ref": "#/$defs/ChildrenArray" }
       },
       "unevaluatedProperties": false,
@@ -807,45 +799,9 @@
       ]
     },
 
-    "Columns": {
-      "$ref": "#/$defs/ComponentBase",
-      "description": "Explicit multi-column layout with per-child column widths. Unlike Grid which auto-distributes into equal cells, Columns gives precise per-column sizing.",
-      "x-lm": {
-        "category": "layout",
-        "level": "progressive",
-        "children": true,
-        "bind": "forbidden",
-        "fallback": "Grid",
-        "fallbackNotes": "columns set to child count; gap preserved."
-      },
-      "properties": {
-        "component": { "const": "Columns" },
-        "widths": {
-          "type": "array",
-          "items": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
-          "description": "Per-child column widths as CSS values (e.g. ['1fr', '2fr', '1fr']). Array length SHOULD match child count."
-        },
-        "gap": {
-          "oneOf": [{ "type": "string" }, { "type": "number" }],
-          "description": "Spacing between columns."
-        },
-        "children": { "$ref": "#/$defs/ChildrenArray" }
-      },
-      "unevaluatedProperties": false,
-      "examples": [
-        {
-          "component": "Columns", "widths": ["2fr", "1fr"], "gap": "$token.spacing.md",
-          "children": [
-            { "component": "TextInput", "bind": "address" },
-            { "component": "TextInput", "bind": "zipCode" }
-          ]
-        }
-      ]
-    },
-
     "Tabs": {
       "$ref": "#/$defs/ComponentBase",
-      "description": "Tabbed navigation container. Each child is one tab's content. Tab labels from child Page titles or tabLabels array. All children stay mounted — switching changes visibility, not lifecycle.",
+      "description": "Tabbed navigation container. Each child is one tab's content. Tab labels from child Section titles or tabLabels array. All children stay mounted — switching changes visibility, not lifecycle.",
       "x-lm": {
         "category": "layout",
         "level": "progressive",
@@ -856,16 +812,16 @@
       },
       "properties": {
         "component": { "const": "Tabs" },
-        "position": {
+        "placement": {
           "type": "string",
           "enum": ["top", "bottom", "left", "right"],
           "default": "top",
-          "description": "Tab bar position."
+          "description": "Tab bar placement."
         },
         "tabLabels": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Explicit tab labels. When absent, reads title from each child Page."
+          "description": "Explicit tab labels. When absent, reads title from each child Section."
         },
         "defaultTab": {
           "type": "integer",
@@ -928,7 +884,7 @@
 
     "Accordion": {
       "$ref": "#/$defs/ComponentBase",
-      "description": "Vertical list of collapsible sections. By default only one expanded at a time. Children SHOULD have title props (Page, Card, Collapsible) for section headers.",
+      "description": "Vertical list of collapsible sections. By default only one expanded at a time. Children SHOULD have title props (Section, Card, Collapsible) for section headers.",
       "x-lm": {
         "category": "layout",
         "level": "progressive",
@@ -964,8 +920,8 @@
         {
           "component": "Accordion", "allowMultiple": false,
           "children": [
-            { "component": "Page", "title": "Section A", "children": [{ "component": "TextInput", "bind": "fieldA" }] },
-            { "component": "Page", "title": "Section B", "children": [{ "component": "TextInput", "bind": "fieldB" }] }
+            { "component": "Section", "title": "Section A", "children": [{ "component": "TextInput", "bind": "fieldA" }] },
+            { "component": "Section", "title": "Section B", "children": [{ "component": "TextInput", "bind": "fieldB" }] }
           ]
         }
       ]
@@ -1009,13 +965,14 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["money"],
+        "compatibleDataTypes": ["integer", "decimal", "money"],
         "fallback": "NumberInput",
         "fallbackNotes": "Currency symbol rendered as prefix if bound item has prefix hint."
       },
       "properties": {
         "component": { "const": "MoneyInput" },
         "bind": { "type": "string", "description": "Item key from the target Definition." },
+        "placeholder": { "type": "string", "description": "Placeholder text displayed in the amount input when the field is empty." },
         "step": { "type": "number", "description": "Increment/decrement step value (applies to amount)." },
         "min": { "type": "number", "description": "Minimum allowed amount." },
         "max": { "type": "number", "description": "Maximum allowed amount." },
@@ -1026,7 +983,7 @@
       },
       "unevaluatedProperties": false,
       "examples": [
-        { "component": "MoneyInput", "bind": "totalBudget", "currency": "USD", "showCurrency": true, "min": 0, "step": 0.01 }
+        { "component": "MoneyInput", "bind": "totalBudget", "currency": "USD", "showCurrency": true, "placeholder": "0.00", "min": 0, "step": 0.01 }
       ]
     },
 
@@ -1039,7 +996,7 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer", "number"],
+        "compatibleDataTypes": ["integer", "decimal"],
         "fallback": "NumberInput",
         "fallbackNotes": "min, max, step preserved."
       },
@@ -1067,7 +1024,7 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer"],
+        "compatibleDataTypes": ["integer", "decimal"],
         "fallback": "NumberInput",
         "fallbackNotes": "min: 1, max preserved, step: 1."
       },
@@ -1337,6 +1294,7 @@
 
     "Panel": {
       "$ref": "#/$defs/ComponentBase",
+      "allOf": [{ "$ref": "#/$defs/VisualSurfaceProps" }],
       "description": "Side panel for supplementary content, help text, or contextual actions. Positioned alongside the main content.",
       "x-lm": {
         "category": "container",
@@ -1344,15 +1302,15 @@
         "children": true,
         "bind": "forbidden",
         "fallback": "Card",
-        "fallbackNotes": "title preserved; position and width discarded."
+        "fallbackNotes": "title preserved; placement and width discarded."
       },
       "properties": {
         "component": { "const": "Panel" },
-        "position": {
+        "placement": {
           "type": "string",
           "enum": ["left", "right"],
           "default": "left",
-          "description": "Panel position relative to main content."
+          "description": "Panel placement relative to main content."
         },
         "title": { "type": "string", "description": "Panel header title." },
         "width": {
@@ -1364,7 +1322,7 @@
       "unevaluatedProperties": false,
       "examples": [
         {
-          "component": "Panel", "position": "left", "title": "Help", "width": "280px",
+          "component": "Panel", "placement": "left", "title": "Help", "width": "280px",
           "children": [{ "component": "Text", "text": "Need help? Contact support." }]
         }
       ]
@@ -1397,6 +1355,17 @@
         },
         "triggerLabel": { "type": "string", "description": "Label for the trigger button when trigger is 'button'." },
         "closable": { "type": "boolean", "description": "Whether the modal can be dismissed by the user." },
+        "headingLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Heading level for the modal title (default 2)."
+        },
+        "placement": {
+          "type": "string",
+          "enum": ["top", "right", "bottom", "left"],
+          "description": "When set, anchors the opened dialog near the trigger with fixed positioning; omit for native centered modal."
+        },
         "children": { "$ref": "#/$defs/ChildrenArray" }
       },
       "unevaluatedProperties": false,
@@ -1456,19 +1425,21 @@
       "properties": {
         "component": {
           "type": "string",
+          "pattern": "^[A-Z][a-zA-Z0-9]*$",
           "not": {
             "enum": [
-              "Page", "Stack", "Grid", "Spacer",
+              "Page", "Columns", "Spacer",
+              "Section", "Stack", "Grid",
               "TextInput", "NumberInput", "DatePicker", "Select", "CheckboxGroup", "Toggle", "FileUpload",
               "Heading", "Text", "Divider",
               "Card", "Collapsible", "ConditionalGroup",
-              "Columns", "Tabs", "SubmitButton", "Accordion",
+              "Tabs", "SubmitButton", "Accordion",
               "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
               "Alert", "Badge", "ProgressBar", "Summary", "ValidationSummary", "DataTable",
               "Panel", "Modal", "Popover"
             ]
           },
-          "description": "Custom component name. MUST be a key in the components registry. MUST NOT be a built-in component name."
+          "description": "Custom component name. MUST be a key in the components registry. MUST be PascalCase. MUST NOT be a built-in component name or a reserved component identifier."
         },
         "params": {
           "type": "object",

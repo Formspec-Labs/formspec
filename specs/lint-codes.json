@@ -304,12 +304,24 @@
       "state": "tested"
     },
     {
+      "code": "W712",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Theme widget is incompatible with definition dataType",
+      "specRef": "specs/theme/theme-spec.md#43-cascade-level-3-item-overrides",
+      "suggestedFix": "choose a compatible widget, or set Select widgetConfig.multiple when targeting multiChoice fields",
+      "fixtures": [
+        "tests/fixtures/lint/W712-theme-widget-datatype-incompatible.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E800",
       "pass": 7,
       "severity": "error",
       "title": "Component tree root must be a layout component",
       "specRef": "specs/component/component-spec.md#32-component-tree-semantics-single-root",
-      "suggestedFix": "wrap the root in a layout component (e.g. `Page`, `Stack`, `Grid`)",
+      "suggestedFix": "wrap the root in a layout component (e.g. `Section`, `Stack`, `Grid`)",
       "fixtures": [
         "tests/fixtures/lint/E800-non-layout-root.json"
       ],

@@ -17,12 +17,13 @@ from tests.unit.support.schema_fixtures import load_schema, build_schema_registr
 THEME_SCHEMA = load_schema("theme.schema.json")
 DEF_SCHEMA = load_schema("definition.schema.json")
 COMPONENT_SCHEMA = load_schema("component.schema.json")
+COMMON_SCHEMA = load_schema("common.schema.json")
 
-# Theme schema cross-references component schema ($defs/TargetDefinition, etc.),
-# so we need a registry with both schemas for $ref resolution.
-_registry = build_schema_registry(THEME_SCHEMA, COMPONENT_SCHEMA)
+# Theme schema cross-references common schema primitives, so the validator
+# needs a registry for $ref resolution.
+_registry = build_schema_registry(COMMON_SCHEMA, THEME_SCHEMA, COMPONENT_SCHEMA)
 THEME_V = Draft202012Validator(THEME_SCHEMA, registry=_registry)
-DEF_V = Draft202012Validator(DEF_SCHEMA)
+DEF_V = Draft202012Validator(DEF_SCHEMA, registry=build_schema_registry(COMMON_SCHEMA, DEF_SCHEMA))
 
 
 def _minimal_theme(**overrides):
@@ -96,7 +97,7 @@ class TestSchemaValid:
 
     def test_with_defaults(self):
         _valid(_minimal_theme(defaults={
-            "widget": "textInput",
+            "widget": "TextInput",
             "labelPosition": "top"
         }))
 
@@ -107,43 +108,43 @@ class TestSchemaValid:
 
     def test_with_single_selector(self):
         _valid(_minimal_theme(selectors=[
-            {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}}
+            {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}}
         ]))
 
     def test_with_type_selector(self):
         _valid(_minimal_theme(selectors=[
-            {"match": {"type": "display"}, "apply": {"widget": "paragraph"}}
+            {"match": {"type": "display"}, "apply": {"widget": "Text"}}
         ]))
 
     def test_with_combined_selector(self):
         _valid(_minimal_theme(selectors=[
-            {"match": {"type": "field", "dataType": "boolean"}, "apply": {"widget": "toggle"}}
+            {"match": {"type": "field", "dataType": "boolean"}, "apply": {"widget": "Toggle"}}
         ]))
 
     def test_with_multiple_selectors(self):
         _valid(_minimal_theme(selectors=[
-            {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}},
-            {"match": {"dataType": "boolean"}, "apply": {"widget": "toggle"}},
-            {"match": {"type": "group"}, "apply": {"widget": "card"}},
+            {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}},
+            {"match": {"dataType": "boolean"}, "apply": {"widget": "Toggle"}},
+            {"match": {"type": "group"}, "apply": {"widget": "Card"}},
         ]))
 
     def test_with_items(self):
         _valid(_minimal_theme(items={
-            "totalBudget": {"widget": "moneyInput"},
-            "notes": {"widget": "textarea"}
+            "totalBudget": {"widget": "MoneyInput"},
+            "notes": {"widget": "TextInput"}
         }))
 
     def test_with_item_widget_config(self):
         _valid(_minimal_theme(items={
             "priority": {
-                "widget": "slider",
+                "widget": "Slider",
                 "widgetConfig": {"min": 1, "max": 5, "step": 1}
             }
         }))
 
     def test_with_item_fallback(self):
         _valid(_minimal_theme(items={
-            "sig": {"widget": "signature", "fallback": ["fileUpload"]}
+            "sig": {"widget": "Signature", "fallback": ["FileUpload"]}
         }))
 
     def test_with_item_accessibility(self):
@@ -175,6 +176,9 @@ class TestSchemaValid:
 
     def test_with_extensions(self):
         _valid(_minimal_theme(extensions={"x-analytics": {"track": True}}))
+
+    def test_with_root_x_annotation(self):
+        _valid(_minimal_theme(**{"x-theme-audit": {"owner": "design-system"}}))
 
     def test_region_with_responsive(self):
         _valid(_minimal_theme(pages=[{
@@ -212,12 +216,12 @@ class TestSchemaValid:
             },
             "defaults": {"labelPosition": "top"},
             "selectors": [
-                {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}},
-                {"match": {"dataType": "boolean"}, "apply": {"widget": "toggle"}}
+                {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}},
+                {"match": {"dataType": "boolean"}, "apply": {"widget": "Toggle"}}
             ],
             "items": {
                 "totalBudget": {
-                    "widget": "moneyInput",
+                    "widget": "MoneyInput",
                     "style": {"background": "#F0F6FF"}
                 }
             },
@@ -267,6 +271,12 @@ class TestSchemaInvalid:
 
     def test_unknown_root_property(self):
         _invalid({**_minimal_theme(), "theme": "dark"})
+
+    def test_lowercase_builtin_widget_rejected(self):
+        _invalid(_minimal_theme(items={"name": {"widget": "textInput"}}))
+
+    def test_custom_widget_without_fallback_rejected(self):
+        _invalid(_minimal_theme(items={"location": {"widget": "x-map-picker"}}))
 
     def test_token_boolean_value(self):
         _invalid(_minimal_theme(tokens={"color.primary": True}))
@@ -419,16 +429,16 @@ class TestSelectorMatching:
         """All matching selectors apply in document order."""
         selectors = [
             {"match": {"type": "field"}, "apply": {"labelPosition": "start"}},
-            {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}},
+            {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}},
         ]
         matched = [s["apply"] for s in selectors if _matches(s["match"], "field", "money")]
         assert len(matched) == 2
         assert matched[0] == {"labelPosition": "start"}
-        assert matched[1] == {"widget": "moneyInput"}
+        assert matched[1] == {"widget": "MoneyInput"}
 
     def test_no_selectors_match(self):
         selectors = [
-            {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}},
+            {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}},
         ]
         matched = [s for s in selectors if _matches(s["match"], "field", "string")]
         assert matched == []
@@ -470,51 +480,51 @@ class TestCascadeResolution:
     """Cascade resolution algorithm per §5."""
 
     THEME = {
-        "defaults": {"labelPosition": "top", "widget": "textInput"},
+        "defaults": {"labelPosition": "top", "widget": "TextInput"},
         "selectors": [
-            {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}},
-            {"match": {"dataType": "boolean"}, "apply": {"widget": "toggle"}},
+            {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}},
+            {"match": {"dataType": "boolean"}, "apply": {"widget": "Toggle"}},
         ],
         "items": {
-            "total": {"widget": "slider", "labelPosition": "start"}
+            "total": {"widget": "Slider", "labelPosition": "start"}
         }
     }
 
     def test_defaults_only(self):
         r = _resolve("name", "field", "string", self.THEME)
-        assert r["widget"] == "textInput"
+        assert r["widget"] == "TextInput"
         assert r["labelPosition"] == "top"
 
     def test_selector_overrides_default(self):
         r = _resolve("amount", "field", "money", self.THEME)
-        assert r["widget"] == "moneyInput"
+        assert r["widget"] == "MoneyInput"
         assert r["labelPosition"] == "top"  # from defaults
 
     def test_item_overrides_selector(self):
         """total is money-typed but has item override."""
         r = _resolve("total", "field", "money", self.THEME)
-        assert r["widget"] == "slider"  # item override
+        assert r["widget"] == "Slider"  # item override
         assert r["labelPosition"] == "start"  # item override
 
     def test_item_overrides_default(self):
         r = _resolve("total", "field", "string", self.THEME)
-        assert r["widget"] == "slider"
+        assert r["widget"] == "Slider"
 
     def test_tier1_as_level_zero(self):
-        r = _resolve("name", "field", "string", {}, tier1_hints={"widget": "password"})
-        assert r["widget"] == "password"
+        r = _resolve("name", "field", "string", {}, tier1_hints={"widget": "TextInput"})
+        assert r["widget"] == "TextInput"
 
     def test_defaults_override_tier1(self):
-        r = _resolve("name", "field", "string", self.THEME, tier1_hints={"widget": "password"})
-        assert r["widget"] == "textInput"  # default beats tier1
+        r = _resolve("name", "field", "string", self.THEME, tier1_hints={"widget": "TextInput"})
+        assert r["widget"] == "TextInput"  # default beats tier1
 
     def test_selector_overrides_tier1(self):
-        r = _resolve("amt", "field", "money", self.THEME, tier1_hints={"widget": "numberInput"})
-        assert r["widget"] == "moneyInput"
+        r = _resolve("amt", "field", "money", self.THEME, tier1_hints={"widget": "NumberInput"})
+        assert r["widget"] == "MoneyInput"
 
     def test_item_overrides_tier1(self):
-        r = _resolve("total", "field", "string", self.THEME, tier1_hints={"widget": "numberInput"})
-        assert r["widget"] == "slider"
+        r = _resolve("total", "field", "string", self.THEME, tier1_hints={"widget": "NumberInput"})
+        assert r["widget"] == "Slider"
 
     def test_form_presentation_as_level_minus_one(self):
         r = _resolve("name", "field", "string", {}, form_pres={"labelPosition": "start"})
@@ -529,12 +539,12 @@ class TestCascadeResolution:
         assert r["labelPosition"] == "top"  # defaults beat form_pres
 
     def test_null_suppression(self):
-        theme = {"defaults": {"widget": "textInput"}, "items": {"f": {"widget": None}}}
+        theme = {"defaults": {"widget": "TextInput"}, "items": {"f": {"widget": None}}}
         r = _resolve("f", "field", "string", theme)
         assert "widget" not in r
 
     def test_null_suppression_preserves_other(self):
-        theme = {"defaults": {"widget": "textInput", "labelPosition": "top"}, "items": {"f": {"widget": None}}}
+        theme = {"defaults": {"widget": "TextInput", "labelPosition": "top"}, "items": {"f": {"widget": None}}}
         r = _resolve("f", "field", "string", theme)
         assert "widget" not in r
         assert r["labelPosition"] == "top"
@@ -544,59 +554,59 @@ class TestCascadeResolution:
         assert r == {}
 
     def test_empty_theme_with_tier1(self):
-        r = _resolve("name", "field", "string", {}, tier1_hints={"widget": "password"})
-        assert r == {"widget": "password"}
+        r = _resolve("name", "field", "string", {}, tier1_hints={"widget": "TextInput"})
+        assert r == {"widget": "TextInput"}
 
     def test_no_matching_selector(self):
         r = _resolve("name", "field", "string", self.THEME)
-        assert r["widget"] == "textInput"  # only defaults
+        assert r["widget"] == "TextInput"  # only defaults
 
     def test_multiple_selectors_last_wins(self):
         theme = {
             "selectors": [
-                {"match": {"type": "field"}, "apply": {"widget": "textInput"}},
-                {"match": {"dataType": "string"}, "apply": {"widget": "password"}},
+                {"match": {"type": "field"}, "apply": {"widget": "TextInput"}},
+                {"match": {"dataType": "string"}, "apply": {"widget": "TextInput"}},
             ]
         }
         r = _resolve("f", "field", "string", theme)
-        assert r["widget"] == "password"  # later selector wins
+        assert r["widget"] == "TextInput"  # later selector wins
 
     def test_selector_adds_without_removing(self):
         theme = {
             "defaults": {"labelPosition": "top"},
-            "selectors": [{"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}}]
+            "selectors": [{"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}}]
         }
         r = _resolve("amt", "field", "money", theme)
         assert r["labelPosition"] == "top"
-        assert r["widget"] == "moneyInput"
+        assert r["widget"] == "MoneyInput"
 
     def test_display_item_type_selector(self):
         theme = {
-            "selectors": [{"match": {"type": "display"}, "apply": {"widget": "heading"}}]
+            "selectors": [{"match": {"type": "display"}, "apply": {"widget": "Heading"}}]
         }
         r = _resolve("hdr", "display", None, theme)
-        assert r["widget"] == "heading"
+        assert r["widget"] == "Heading"
 
     def test_group_item_type_selector(self):
         theme = {
-            "selectors": [{"match": {"type": "group"}, "apply": {"widget": "card"}}]
+            "selectors": [{"match": {"type": "group"}, "apply": {"widget": "Card"}}]
         }
         r = _resolve("g1", "group", None, theme)
-        assert r["widget"] == "card"
+        assert r["widget"] == "Card"
 
     def test_all_six_levels(self):
         """Full 6-level cascade: form_pres < tier1 < defaults < selector < item."""
         theme = {
             "defaults": {"labelPosition": "hidden"},
-            "selectors": [{"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}}],
-            "items": {"budget": {"widget": "slider"}}
+            "selectors": [{"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}}],
+            "items": {"budget": {"widget": "Slider"}}
         }
         r = _resolve(
             "budget", "field", "money", theme,
-            tier1_hints={"widget": "numberInput", "labelPosition": "top"},
+            tier1_hints={"widget": "NumberInput", "labelPosition": "top"},
             form_pres={"labelPosition": "start"}
         )
-        assert r["widget"] == "slider"          # item (L3) beats selector (L2)
+        assert r["widget"] == "Slider"          # item (L3) beats selector (L2)
         assert r["labelPosition"] == "hidden"    # defaults (L1) beats tier1 (L0)
 
     def test_full_precedence_chain_widget(self):
@@ -626,21 +636,22 @@ class TestCascadeResolution:
 
 # Required widgets per plan §4
 REQUIRED_WIDGETS = {
-    "string": "textInput", "text": "textarea", "integer": "numberInput",
-    "decimal": "numberInput", "boolean": "checkbox", "date": "datePicker",
-    "dateTime": "datePicker", "time": "timePicker", "uri": "textInput",
-    "attachment": "fileUpload", "choice": "dropdown",
-    "multiChoice": "checkboxGroup", "money": "moneyInput",
+    "string": "TextInput", "text": "TextInput", "integer": "NumberInput",
+    "decimal": "NumberInput", "boolean": "Toggle", "date": "DatePicker",
+    "dateTime": "DatePicker", "time": "DatePicker", "uri": "TextInput",
+    "attachment": "FileUpload", "choice": "Select",
+    "multiChoice": "CheckboxGroup", "money": "MoneyInput",
 }
 
 PROGRESSIVE_WITH_FALLBACK = [
-    ("slider", "integer", "numberInput"),
-    ("toggle", "boolean", "checkbox"),
-    ("radio", "choice", "dropdown"),
-    ("signature", "attachment", "fileUpload"),
-    ("richText", "text", "textarea"),
-    ("autocomplete", "choice", "dropdown"),
-    ("camera", "attachment", "fileUpload"),
+    ("Slider", "integer", "NumberInput"),
+    ("RadioGroup", "choice", "Select"),
+    ("Rating", "integer", "NumberInput"),
+    ("RadioGroup", "choice", "Select"),
+    ("Signature", "attachment", "FileUpload"),
+    ("TextInput", "text", "TextInput"),
+    ("Select", "choice", "Select"),
+    ("FileUpload", "attachment", "FileUpload"),
 ]
 
 
@@ -782,7 +793,7 @@ class TestTokenResolution:
     def test_token_ref_in_widget_config(self):
         _valid(_minimal_theme(
             tokens={"color.pen": "#000"},
-            items={"sig": {"widget": "signature", "widgetConfig": {"penColor": "$token.color.pen"}}}
+            items={"sig": {"widget": "Signature", "widgetConfig": {"penColor": "$token.color.pen"}}}
         ))
 
     def test_empty_tokens(self):
@@ -842,16 +853,16 @@ class TestTier1Integration:
         }
 
     def test_def_with_tier1_and_theme_both_valid(self):
-        defn = self._def_with_pres(widgetHint="password")
+        defn = self._def_with_pres(widgetHint="TextInput")
         DEF_V.validate(defn)
-        theme = _minimal_theme(items={"f1": {"widget": "textInput"}})
+        theme = _minimal_theme(items={"f1": {"widget": "TextInput"}})
         _valid(theme)
 
     def test_theme_widget_overrides_tier1_hint(self):
         r = _resolve("f1", "field", "string",
-                     {"items": {"f1": {"widget": "textInput"}}},
-                     tier1_hints={"widget": "password"})
-        assert r["widget"] == "textInput"
+                     {"items": {"f1": {"widget": "TextInput"}}},
+                     tier1_hints={"widget": "TextInput"})
+        assert r["widget"] == "TextInput"
 
     def test_tier1_label_position_as_baseline(self):
         r = _resolve("f1", "field", "string", {},
@@ -885,17 +896,17 @@ class TestTier1Integration:
         }
         DEF_V.validate(defn)
         theme = _minimal_theme(selectors=[
-            {"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}}
+            {"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}}
         ])
         _valid(theme)
         r = _resolve("amt", "field", "money", theme)
-        assert r["widget"] == "moneyInput"
+        assert r["widget"] == "MoneyInput"
 
     def test_tier1_accessibility_preserved(self):
         r = _resolve("f1", "field", "string",
-                     {"defaults": {"widget": "textInput"}},
+                     {"defaults": {"widget": "TextInput"}},
                      tier1_hints={"accessibility": {"liveRegion": "polite"}})
-        assert r["widget"] == "textInput"
+        assert r["widget"] == "TextInput"
         assert r["accessibility"] == {"liveRegion": "polite"}
 
     def test_theme_accessibility_overrides_tier1(self):
@@ -905,7 +916,7 @@ class TestTier1Integration:
         assert r["accessibility"] == {"liveRegion": "assertive"}
 
     def test_empty_theme_preserves_all_tier1(self):
-        hints = {"widget": "password", "labelPosition": "start"}
+        hints = {"widget": "TextInput", "labelPosition": "start"}
         r = _resolve("f1", "field", "string", {}, tier1_hints=hints)
         assert r == hints
 
@@ -920,19 +931,19 @@ class TestTier1Integration:
         }
         DEF_V.validate(defn)
         theme = _minimal_theme(items={
-            "name": {"widget": "textInput"},
-            "age": {"widget": "stepper", "widgetConfig": {"min": 0, "max": 150}}
+            "name": {"widget": "TextInput"},
+            "age": {"widget": "NumberInput", "widgetConfig": {"min": 0, "max": 150}}
         })
         _valid(theme)
 
     def test_cascade_with_style_and_widget(self):
         theme = {
             "defaults": {"style": {"borderRadius": "4px"}},
-            "selectors": [{"match": {"dataType": "money"}, "apply": {"widget": "moneyInput"}}],
+            "selectors": [{"match": {"dataType": "money"}, "apply": {"widget": "MoneyInput"}}],
             "items": {"total": {"style": {"background": "#f0f0f0"}}}
         }
         r = _resolve("total", "field", "money", theme)
-        assert r["widget"] == "moneyInput"
+        assert r["widget"] == "MoneyInput"
         assert r["style"] == {"background": "#f0f0f0"}  # item overrides defaults style
 
     def test_round_trip_theme(self):
@@ -940,8 +951,8 @@ class TestTier1Integration:
         theme = _minimal_theme(
             tokens={"color.primary": "#00f"},
             defaults={"labelPosition": "top"},
-            selectors=[{"match": {"dataType": "boolean"}, "apply": {"widget": "toggle"}}],
-            items={"f": {"widget": "slider", "fallback": ["numberInput"]}},
+            selectors=[{"match": {"dataType": "boolean"}, "apply": {"widget": "Toggle"}}],
+            items={"f": {"widget": "Slider", "fallback": ["NumberInput"]}},
             pages=[{"id": "p", "title": "P", "regions": [{"key": "f", "span": 6}]}]
         )
         roundtripped = json.loads(json.dumps(theme))
@@ -1049,12 +1060,13 @@ class TestExtensibility:
 
     def test_x_widget_in_items(self):
         """Custom widget via x- prefix."""
-        _valid(_minimal_theme(items={"f": {"widget": "x-custom-map"}}))
+        _valid(_minimal_theme(items={"f": {"widget": "x-custom-map", "fallback": ["TextInput"]}}))
 
     def test_x_widget_config_extra_keys(self):
         """widgetConfig is open object — custom keys allowed."""
         _valid(_minimal_theme(items={"f": {
             "widget": "x-map",
+            "fallback": ["TextInput"],
             "widgetConfig": {"latitude": 40.7, "longitude": -74.0, "zoom": 12}
         }}))
 
