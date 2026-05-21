@@ -390,3 +390,101 @@ An **Experience Coverage-Aware** processor MUST additionally:
 6. **Emit coverage findings.** For every uncovered required visible item, emit an `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` finding (S8.2).
 
 There is no Experience evaluation pipeline. The document is metadata; processors read it, validate it, and consult it for generation, review, and coverage. They do not "evaluate" it in the Core sense.
+
+## 11. Conformance
+
+### 11.1 Conformance Levels
+
+This specification defines two conformance levels as a strict superset:
+
+| Level | Requirements |
+|-------|--------------|
+| **Experience Core** | Schema-validate, resolve target, verify referential integrity, verify item-ref resolvability. |
+| **Experience Coverage-Aware** | All of Core, plus compute and report the coverage predicate (S8). |
+
+#### 11.1.1 Experience Core
+
+A conformant **Experience Core** processor MUST:
+
+1. Parse and validate any Experience Document that conforms to the schema in S11.2 without error.
+2. Resolve `targetDefinition.url` against a loaded Definition and verify the URL match.
+3. Verify that the loaded Definition's `version` satisfies `targetDefinition.compatibleVersions` if present.
+4. Resolve every `actorRef`, `task.actorRefs[]`, `applicability.actorRefs[]`, `unit.actorRef`, and `unit.taskRefs[]` within the document.
+5. Resolve every `ItemRef.path` against the loaded Definition using Core FieldRef path syntax.
+6. Emit findings (`EXP-REFERENTIAL-INTEGRITY`, `EXP-ITEM-REF-UNRESOLVED`) for unresolved references; processors MUST NOT silently drop unresolved references.
+
+#### 11.1.2 Experience Coverage-Aware
+
+A conformant **Experience Coverage-Aware** processor MUST:
+
+1. Satisfy all Experience Core requirements.
+2. Compute the coverage predicate of S8.1 for every loaded (Definition, Experience) pair.
+3. Emit an `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` finding for every uncovered required visible item.
+4. NOT block validation, submission, or any Core operation on the basis of coverage findings. Coverage is reportable, not blocking.
+
+### 11.2 Schema
+
+<!-- schema-ref:start id=experience-top-level schema=schemas/experience.schema.json pointers=# -->
+<!-- schema-ref:end -->
+
+### 11.3 `$defs` Reference
+
+<!-- schema-ref:start id=experience-defs schema=schemas/experience.schema.json pointers=#/$defs/Actor,#/$defs/Task,#/$defs/Unit,#/$defs/UnitKind,#/$defs/ItemRef,#/$defs/ConceptRef,#/$defs/ActionRef,#/$defs/Applicability,#/$defs/Accessibility,#/$defs/TargetDefinition -->
+<!-- schema-ref:end -->
+
+### 11.4 Conformance Prohibitions
+
+A conformant processor MUST NOT:
+
+1. Use Experience to alter Core data capture, validation, requiredness, relevance, calculation, or any other Core semantics.
+2. Substitute Experience for missing Definition behavior -- Experience is metadata, not a fallback.
+3. Block Response submission, draft persistence, or any Core operation on the basis of an Experience finding.
+4. Add `unit.kind` values outside the registry in S5.2 without using the `x-` extension mechanism.
+
+## 12. Extension Points
+
+Experience supports the standard Formspec extension model. Authors MAY add custom data via `x-`-prefixed properties at the document level (`extensions`), and within `Actor`, `Task`, `Unit`, `ItemRef`, `ConceptRef`, `ActionRef`, and `Applicability` objects.
+
+Extensions MUST NOT:
+
+1. Override or alter any property defined by this specification.
+2. Introduce a parallel `kind` taxonomy under a different property name.
+3. Carry behavior that would block Core operations.
+
+Common extension patterns (informative):
+
+- `x-figmaNode` -- a link to a Figma frame anchoring the unit's design.
+- `x-jiraIssue` -- a tracking-system identifier for the work that produced this unit.
+- `x-author` -- a structured author identifier for editorial provenance.
+
+## 13. Security Considerations
+
+Experience Documents carry no respondent data, no PII, and no credentials. The primary security considerations are:
+
+- **Untrusted document loading.** Experience Documents loaded from external sources MUST be validated against the schema before any processor consumes them. A maliciously crafted Experience cannot affect Core processing (additive invariant), but it MAY exhaust resources via large `units[]` or `itemRefs[]` arrays. Processors SHOULD impose reasonable size limits.
+- **URI resolution.** `targetDefinition.url` and any `conceptRef.id` containing a URL MUST NOT be blindly fetched. Maintain an allowlist of Definition / Registry / Ontology sources.
+- **Information disclosure.** Experience metadata MAY reveal data model structure to an attacker (Definition paths, concept identifiers, action identifiers). Treat Experience Documents as sensitive at the same level as the underlying Definition.
+- **Extension content.** `x-`-prefixed extension data is untrusted; processors that render extension content (e.g., for review tooling) MUST sanitize it.
+
+There is no prompt-injection surface in this spec -- Experience does not interact with Assist providers directly. Where downstream tools (Trace, Studio regeneration review) consume Experience for LLM-mediated review, those tools own their prompt-injection mitigations.
+
+---
+
+## Appendix A: Full Example -- Grant Application
+
+*Populated in Task 20.*
+
+---
+
+## Appendix B: References
+
+| Tag | Reference |
+|---|---|
+| [rfc2119] | Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997. |
+| [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |
+| [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
+| [RFC 3986] | Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform Resource Identifier (URI): Generic Syntax", STD 66, RFC 3986, January 2005. |
+| [RFC 6901] | Bryan, P., Ed., Zyp, K., and M. Nottingham, Ed., "JavaScript Object Notation (JSON) Pointer", RFC 6901, April 2013. |
+| Concept | Formspec Semantic Layers (Experience / Response Actions / Trace), thoughts/specs/2026-05-20-formspec-semantic-layers.md. |
+
+*End of Formspec Experience Specification.*
