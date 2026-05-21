@@ -203,7 +203,7 @@ A processor MUST reject an Experience that references a `unit.taskRefs[]` entry 
 
 ## 5. Units
 
-A **Unit** is the substantive payload of an Experience Document. Each Unit groups typed references to Definition items, concepts, and actions under one or more tasks and a `kind`.
+A **Unit** is the substantive payload of an Experience Document. Each Unit groups typed references to Definition items, concepts, and actions under a `kind` and, when applicable, one or more tasks.
 
 ### 5.1 Unit Shape
 
