@@ -295,3 +295,22 @@ References a Response Action identifier (forthcoming companion spec, concept §1
 | `description` | string | OPTIONAL | Optional clarifying note. |
 
 Until the Response Actions companion spec lands, `ActionRef.id` is a free string. Processors MUST NOT reject an Experience because `ActionRef.id` does not resolve -- resolution depends on a sibling spec that does not yet exist. Coverage-aware processors MAY emit an informative finding ("ActionRef target spec not present").
+
+## 7. Applicability
+
+**Applicability** declares the contexts in which an Experience Document or a Unit is intended to apply. It is metadata that informs generation and selection -- it does NOT alter Core processing.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `actorRefs` | array of string | OPTIONAL | Restrict applicability to these actors. Empty / omitted -> all actors. |
+| `platforms` | array of string | OPTIONAL | Target platforms (e.g., `web`, `mobile`, `pdf`, `cli`, `voice`, `agent`). Open string set; not normatively enumerated. |
+| `locales` | array of string (BCP 47) | OPTIONAL | Locale tags this applies to. |
+| `posture` | string | OPTIONAL | Renderer or session posture (e.g., `kiosk`, `assisted`, `respondent-self-serve`). Informative; not enumerated. |
+| `channels` | array of string | OPTIONAL | Channels (e.g., `in-person`, `remote`, `phone`, `paper`). |
+| `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
+
+Applicability resolution is **last-write-wins, document-then-unit**: a Unit's `applicability` overrides the document-level `applicability` for that Unit. There is no merge semantics.
+
+A processor selecting an Experience for a given context (actor, platform, locale, posture, channel) SHOULD prefer documents and units whose applicability matches. This spec does NOT define a tie-break algorithm -- that belongs to a profile or selector spec.
+
+Applicability is INFORMATIVE for Core conformance and NORMATIVE for selectors that consume it (out of scope for this document).
