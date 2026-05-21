@@ -6,7 +6,77 @@
  */
 
 /* eslint-disable */
-import type { TargetDefinition, Tokens, AccessibilityBlock, Breakpoints } from './component.js';
+import type { Extensions, TargetDefinition, Tokens, AccessibilityBlock, Breakpoints, ThemeWidgetName } from './common.js';
+/**
+ * Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels.
+ */
+export type PresentationBlock = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Widget identifier — the UI control to render for this item. Built-in values use the canonical PascalCase component/widget vocabulary. Custom widgets MUST use the x- prefix and include fallback. Set to 'none' to suppress a widget inherited from a lower cascade level.
+   */
+  widget?: ThemeWidgetName;
+  /**
+   * Widget-specific configuration. Properties depend on the widget. Renderers MUST ignore unrecognized keys. Fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Well-known configs by widget: TextInput (maxLength, inputMode, placeholder), Text (rows, maxRows, autoResize, placeholder), NumberInput (showStepper, locale, placeholder), DatePicker (format, minDate, maxDate, placeholder), Select (searchable, placeholder), CheckboxGroup (columns, maxVisible), FileUpload (accept, maxSizeMb, preview), MoneyInput (showCurrencySymbol, locale, placeholder), Slider (min, max, step, showTicks, showValue), Toggle (onLabel, offLabel), RadioGroup (direction, columns), Signature (strokeColor, height).
+   */
+  widgetConfig?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Label placement relative to the item. 'top': label above the input (most common). 'start': label on the leading side — left in LTR locales, right in RTL locales. 'hidden': label visually hidden but MUST still be present in accessible markup for screen readers.
+   */
+  labelPosition?: 'top' | 'start' | 'hidden';
+  /**
+   * Flat style overrides as key-value pairs. Keys are renderer-interpreted style names (e.g., CSS property names in camelCase). String values may contain $token references (e.g., '$token.color.primary') which are resolved at theme-application time. Replaced as a whole during cascade merge — not deep-merged with lower levels.
+   */
+  style?: {
+    [k: string]: string | number;
+  };
+  accessibility?: AccessibilityBlock;
+  /**
+   * Ordered list of fallback widget identifiers. When a renderer does not support the primary widget, it MUST try each fallback in order and use the first it supports. If no widget in the chain is supported, the renderer MUST use its default widget for the item's dataType. Fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Custom widgets (x- prefixed) MUST always include a fallback chain ending with a standard widget.
+   */
+  fallback?: (
+    | 'Section'
+    | 'Stack'
+    | 'Grid'
+    | 'TextInput'
+    | 'NumberInput'
+    | 'DatePicker'
+    | 'Select'
+    | 'CheckboxGroup'
+    | 'Toggle'
+    | 'FileUpload'
+    | 'Heading'
+    | 'Text'
+    | 'Divider'
+    | 'Card'
+    | 'Collapsible'
+    | 'ConditionalGroup'
+    | 'Tabs'
+    | 'SubmitButton'
+    | 'Accordion'
+    | 'RadioGroup'
+    | 'MoneyInput'
+    | 'Slider'
+    | 'Rating'
+    | 'Signature'
+    | 'Alert'
+    | 'Badge'
+    | 'ProgressBar'
+    | 'Summary'
+    | 'ValidationSummary'
+    | 'DataTable'
+    | 'Panel'
+    | 'Modal'
+    | 'Popover'
+  )[];
+  /**
+   * CSS class name(s) applied to matching items. UNIQUE CASCADE BEHAVIOR: unlike all other PresentationBlock properties, cssClass uses union semantics — classes accumulate across cascade levels (defaults + selectors + item overrides) with duplicates removed. Order preserved: defaults first, then selectors in document order, then item overrides. This ensures adding a class at one level does not remove classes from other levels.
+   */
+  cssClass?: string | string[];
+};
 /**
  * Criteria for which items this selector applies to. MUST contain at least one of 'type' or 'dataType'. When both are present, an item must satisfy both (AND semantics).
  */
@@ -85,10 +155,7 @@ export interface ThemeDocument {
    */
   pages?: PageLayout[];
   breakpoints?: Breakpoints;
-  /**
-   * Extension namespace for platform-specific or vendor-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter core presentation semantics.
-   */
-  extensions?: {};
+  extensions?: Extensions;
   /**
    * External CSS stylesheet URIs. Web renderers SHOULD load these before rendering the form. Loaded in array order — later sheets take CSS precedence over earlier sheets. Renderers MUST NOT fail if a stylesheet cannot be loaded; they SHOULD warn and continue. Non-web renderers (PDF, native) MAY ignore stylesheets. Subject to host application security policy (CSP, CORS).
    */
@@ -104,40 +171,11 @@ export interface ThemeDocument {
       [k: string]: Category;
     };
   };
-}
-/**
- * Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels.
- */
-export interface PresentationBlock {
   /**
-   * Widget identifier — the UI control to render for this item. Uses the same vocabulary as Tier 1 widgetHint. Required widgets (MUST be supported): textInput, textarea, numberInput, checkbox, datePicker, dropdown, checkboxGroup, fileUpload, moneyInput. Progressive widgets (SHOULD be supported, with fallback): slider, stepper, rating, toggle, yesNo, radio, autocomplete, segmented, likert, multiSelect, richText, password, color, urlInput, dateInput, dateTimePicker, dateTimeInput, timePicker, timeInput, camera, signature. Group widgets: section, card, accordion, tab. Display widgets: heading, paragraph, divider, banner. Custom widgets MUST use 'x-' prefix (e.g., 'x-map-picker'). Set to 'none' to suppress a widget inherited from a lower cascade level.
+   * This interface was referenced by `ThemeDocument`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
    */
-  widget?: string;
-  /**
-   * Widget-specific configuration. Properties depend on the widget. Renderers MUST ignore unrecognized keys. Fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Well-known configs by widget: textInput (maxLength, inputMode, placeholder), textarea (rows, maxRows, autoResize, placeholder), numberInput (showStepper, locale, placeholder), datePicker (format, minDate, maxDate, placeholder), dropdown (searchable, placeholder), checkboxGroup (columns, maxVisible), fileUpload (accept, maxSizeMb, preview), moneyInput (showCurrencySymbol, locale, placeholder), slider (min, max, step, showTicks, showValue), toggle (onLabel, offLabel), radio (direction, columns), richText (toolbar), signature (strokeColor, height).
-   */
-  widgetConfig?: {
-    [k: string]: unknown;
-  };
-  /**
-   * Label placement relative to the item. 'top': label above the input (most common). 'start': label on the leading side — left in LTR locales, right in RTL locales. 'hidden': label visually hidden but MUST still be present in accessible markup for screen readers.
-   */
-  labelPosition?: 'top' | 'start' | 'hidden';
-  /**
-   * Flat style overrides as key-value pairs. Keys are renderer-interpreted style names (e.g., CSS property names in camelCase). String values may contain $token references (e.g., '$token.color.primary') which are resolved at theme-application time. Replaced as a whole during cascade merge — not deep-merged with lower levels.
-   */
-  style?: {
-    [k: string]: string | number;
-  };
-  accessibility?: AccessibilityBlock;
-  /**
-   * Ordered list of fallback widget identifiers. When a renderer does not support the primary widget, it MUST try each fallback in order and use the first it supports. If no widget in the chain is supported, the renderer MUST use its default widget for the item's dataType. Fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Custom widgets (x- prefixed) MUST always include a fallback chain ending with a standard widget.
-   */
-  fallback?: string[];
-  /**
-   * CSS class name(s) applied to matching items. UNIQUE CASCADE BEHAVIOR: unlike all other PresentationBlock properties, cssClass uses union semantics — classes accumulate across cascade levels (defaults + selectors + item overrides) with duplicates removed. Order preserved: defaults first, then selectors in document order, then item overrides. This ensures adding a class at one level does not remove classes from other levels.
-   */
-  cssClass?: string | string[];
+  [k: `x-${string}`]: unknown;
 }
 /**
  * A cascade level 2 rule: matches items by type and/or dataType and applies a PresentationBlock. Selectors are evaluated in document order. All matching selectors apply — later matches override earlier ones per-property (shallow merge). This enables layered styling: a broad type selector can set a baseline, and a narrower dataType selector can refine it.

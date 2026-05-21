@@ -16,12 +16,13 @@ const SCHEMA_FILES = [
   'response', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
   'token-registry',
 ];
+const REF_SCHEMA_FILES = ['common', ...SCHEMA_FILES];
 
 function loadSchemas() {
   const byId: Record<string, any> = {};
   const byFile: Record<string, any> = {};
 
-  for (const name of SCHEMA_FILES) {
+  for (const name of REF_SCHEMA_FILES) {
     const raw = readFileSync(resolve(SCHEMAS_DIR, `${name}.schema.json`), 'utf-8');
     const schema = JSON.parse(raw);
     if (schema.$id) byId[schema.$id] = schema;
@@ -116,7 +117,7 @@ const MIN_VALID = 3;
 
 // Schemas with heavy if/then/else conditionals that json-schema-faker
 // can't reliably satisfy. These get more attempts and a lower bar.
-const HARD_SCHEMAS = new Set(['mapping']);
+const HARD_SCHEMAS = new Set(['mapping', 'theme']);
 
 // Schemas with registry URI or base64 patterns that json-schema-faker does
 // not reliably synthesize from pattern alone. Their committed examples remain

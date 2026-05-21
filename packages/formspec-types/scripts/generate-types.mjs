@@ -25,7 +25,7 @@ const OUT_DIR = resolve(__dirname, '../src/generated');
  * and $ref each other by those URIs. This map resolves them locally.
  */
 const URI_TO_LOCAL = {};
-for (const f of ['definition', 'component', 'theme', 'mapping', 'registry',
+for (const f of ['common', 'definition', 'component', 'theme', 'mapping', 'registry',
   'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'verification-receipt',
   'token-registry']) {
@@ -57,6 +57,7 @@ const $refOptions = {
 
 /** Schema files to generate types from. Order matters: earlier = canonical source. */
 const SCHEMA_SOURCES = [
+  { file: 'common.schema.json', title: 'CommonSchema' },
   { file: 'definition.schema.json', title: 'FormDefinition' },
   { file: 'component.schema.json', title: 'ComponentDocument' },
   { file: 'theme.schema.json', title: 'ThemeDocument' },
@@ -180,13 +181,107 @@ function removeDeclBlock(source, name) {
 
 // ─── Post-processing passes ──────────────────────────────────────────
 
+function addCommonImport(source, names) {
+  const importRe = /import type \{ ([^}]+) \} from '\.\/common\.js';/;
+  const match = importRe.exec(source);
+  if (match) {
+    const existing = match[1].split(',').map(s => s.trim()).filter(Boolean);
+    for (const name of names) {
+      if (!existing.includes(name)) existing.push(name);
+    }
+    return source.replace(importRe, `import type { ${existing.join(', ')} } from './common.js';`);
+  }
+  const inserted = source.replace(
+    '/* eslint-disable */\n',
+    `/* eslint-disable */\nimport type { ${names.join(', ')} } from './common.js';\n`
+  );
+  return inserted !== source
+    ? inserted
+    : `import type { ${names.join(', ')} } from './common.js';\n${source}`;
+}
+
+function dedupeTypeImports(source) {
+  const importsBySource = new Map();
+  let result = source.replace(
+    /^import type \{ ([^}]+) \} from '([^']+)';\n?/gm,
+    (_line, names, from) => {
+      if (!importsBySource.has(from)) importsBySource.set(from, []);
+      const imports = importsBySource.get(from);
+      for (const name of names.split(',').map(s => s.trim()).filter(Boolean)) {
+        if (!imports.includes(name)) imports.push(name);
+      }
+      return '';
+    },
+  );
+
+  if (importsBySource.size === 0) return source;
+
+  const lines = [...importsBySource.entries()]
+    .map(([from, names]) => `import type { ${names.join(', ')} } from '${from}';`)
+    .join('\n');
+  result = result.replace('/* eslint-disable */\n', `/* eslint-disable */\n${lines}\n`);
+  return result.replace(/\n{3,}/g, '\n\n');
+}
+
+function customComponentNameType() {
+  const prefixes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    .split('')
+    .map(ch => `  | \`${ch}\${string}\``)
+    .join('\n');
+  return `export type CustomComponentName =\n${prefixes};\n`;
+}
+
 /**
  * Fix known codegen issues:
  * - patternProperties generates `[k: string]: {}` which is too narrow
  *   when named properties have richer types. Widen to `unknown`.
+ * - x-* extension lanes are patternProperties/propertyNames in schema; restore
+ *   template-literal key types so non-extension root keys stay rejected.
+ * - JSON Schema string patterns collapse to `string`; restore the few
+ *   public authoring contracts TypeScript can represent directly.
  */
-function postProcess(ts) {
-  return ts.replace(/\[k: string\]: \{\};/g, '[k: string]: unknown;');
+function postProcess(ts, moduleName) {
+  let result = ts.replace(/\[k: string\]: \{\};/g, '[k: string]: unknown;');
+  result = result.replace(
+    /(via the `patternProperty` "\^x-"\.\n\s+\*\/\n\s*)\[k: string\]: unknown;/g,
+    '$1[k: `x-${string}`]: unknown;'
+  );
+
+  if (moduleName === 'common') {
+    result = result.replace(
+      'export type CustomWidgetName = string;',
+      'export type CustomWidgetName = `x-${string}`;',
+    );
+    result = result.replace(
+      'export interface Extensions {}',
+      'export interface Extensions {\n  [k: `x-${string}`]: unknown;\n}',
+    );
+  }
+
+  if (moduleName === 'definition') {
+    result = addCommonImport(result, ['WidgetName', 'Extensions']);
+    result = result.replace(/widgetHint\?:[\s\S]*?;\n  \/\*\*/m, 'widgetHint?: WidgetName;\n  /**');
+    result = result.replace(/extensions\?: \{\};/g, 'extensions?: Extensions;');
+  }
+
+  if (moduleName === 'theme') {
+    result = addCommonImport(result, ['ThemeWidgetName', 'Extensions']);
+    result = result.replace(/widget\?:[\s\S]*?;\n  \/\*\*/gm, 'widget?: ThemeWidgetName;\n  /**');
+    result = result.replace(/extensions\?: \{\};/g, 'extensions?: Extensions;');
+  }
+
+  if (moduleName === 'component') {
+    result = result.replace(
+      /export interface CustomComponentRef \{/,
+      `${customComponentNameType()}\nexport interface CustomComponentRef {`,
+    );
+    result = result.replace(
+      /(export interface CustomComponentRef \{[\s\S]*?component: )string(;)/m,
+      '$1CustomComponentName$2',
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -429,7 +524,7 @@ async function main() {
 
     modules.push({
       name: basename(file, '.schema.json'),
-      source: FILE_BANNER + postProcess(ts),
+      source: FILE_BANNER + postProcess(ts, basename(file, '.schema.json')),
     });
   }
 
@@ -461,6 +556,7 @@ async function main() {
 
   // Phase 5: write files
   for (const mod of modules) {
+    mod.source = dedupeTypeImports(mod.source);
     writeFileSync(resolve(OUT_DIR, `${mod.name}.ts`), mod.source);
   }
 

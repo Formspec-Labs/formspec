@@ -6,7 +6,6 @@
  */
 
 /* eslint-disable */
-import type { TargetDefinition } from './component.js';
 /**
  * A Formspec Locale Document — a sidecar JSON artifact that provides internationalized strings for a Formspec Definition. A Locale Document binds to a Definition by URL, maps item paths to localized strings via a flat key-value structure, supports FEL interpolation for dynamic content via {{expression}} syntax, and composes via a fallback cascade (regional → base language → inline defaults). Multiple Locale Documents MAY target the same Definition, one per locale. A Locale Document MUST NOT affect data collection, validation logic, or behavioral semantics — it controls only the display strings presented to the user.
  */
@@ -54,4 +53,17 @@ export interface LocaleDocument {
    * Extension namespace for vendor-specific or tooling-specific metadata. All keys MUST be x- prefixed. Processors MUST ignore unrecognized extensions. Extensions MUST NOT alter locale resolution semantics.
    */
   extensions?: {};
+}
+/**
+ * Binding to the target Formspec Definition and compatible version range. The locale will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to inline strings only. The processor MUST NOT fail on a version mismatch.
+ */
+export interface TargetDefinition {
+  /**
+   * Canonical URL of the target Definition.
+   */
+  url: string;
+  /**
+   * Semver range expression describing which Definition versions this document supports.
+   */
+  compatibleVersions?: string;
 }

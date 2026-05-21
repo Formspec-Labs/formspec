@@ -6,16 +6,16 @@
  */
 
 /* eslint-disable */
+import type { TargetDefinition, Tokens, Breakpoints, StyleMap, AccessibilityBlock, Extensions, VisualSurfaceProps } from './common.js';
 /**
  * Component subtree instantiated when this custom component is used.
  */
 export type AnyComponent = {
   component: string;
 } & (
-  | Page
+  | Section
   | Stack
   | Grid
-  | Spacer
   | TextInput
   | NumberInput
   | DatePicker
@@ -29,7 +29,6 @@ export type AnyComponent = {
   | Card
   | Collapsible
   | ConditionalGroup
-  | Columns
   | Tabs
   | SubmitButton
   | Accordion
@@ -50,6 +49,21 @@ export type AnyComponent = {
   | CustomComponentRef
 );
 /**
+ * Top-level page/section container. In a multi-step form, each Section is one step. Sections MAY also be used standalone within a Stack for sectioned single-page forms.
+ */
+export type Section = VisualSurfaceProps & {
+  component: 'Section';
+  /**
+   * Section heading displayed at the top of the section.
+   */
+  title?: string;
+  /**
+   * Subtitle or description text rendered below the title.
+   */
+  description?: string;
+  children?: ChildrenArray;
+};
+/**
  * This interface was referenced by `ComponentDocument`'s JSON-Schema
  * via the `definition` "AnyComponent".
  */
@@ -57,10 +71,9 @@ export type AnyComponent1 = {
   component: string;
 } & AnyComponent2;
 export type AnyComponent2 =
-  | Page
+  | Section
   | Stack
   | Grid
-  | Spacer
   | TextInput
   | NumberInput
   | DatePicker
@@ -74,7 +87,6 @@ export type AnyComponent2 =
   | Card
   | Collapsible
   | ConditionalGroup
-  | Columns
   | Tabs
   | SubmitButton
   | Accordion
@@ -94,6 +106,93 @@ export type AnyComponent2 =
   | Popover
   | CustomComponentRef;
 /**
+ * Flexbox stacking container arranging children vertically or horizontally. The most common layout primitive — typically used as the root component.
+ */
+export type Stack = VisualSurfaceProps & {
+  component: 'Stack';
+  /**
+   * Stack axis.
+   */
+  direction?: 'vertical' | 'horizontal';
+  /**
+   * Spacing between children. String for CSS values or $token refs, number for pixels.
+   */
+  gap?: string | number;
+  /**
+   * Cross-axis alignment.
+   */
+  align?: 'start' | 'center' | 'end' | 'stretch';
+  /**
+   * Main-axis distribution.
+   */
+  justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+  /**
+   * Whether children wrap to new lines when direction is horizontal.
+   */
+  wrap?: boolean;
+  children?: ChildrenArray;
+};
+/**
+ * Multi-column grid layout distributing children across columns in source order, wrapping to new rows as needed.
+ */
+export type Grid = VisualSurfaceProps & {
+  component: 'Grid';
+  /**
+   * Column count, explicit track array, or CSS grid-template-columns value. Numeric array entries normalize to fr weights.
+   */
+  columns?: string | number | [GridTrack, ...GridTrack[]];
+  /**
+   * Spacing between grid cells.
+   */
+  gap?: string | number;
+  /**
+   * Vertical spacing between rows. Inherits gap if absent.
+   */
+  rowGap?: string | number;
+  children?: ChildrenArray;
+};
+/**
+ * A grid track fragment. String values are CSS track fragments or token references; numeric values normalize to fr weights.
+ *
+ * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * via the `definition` "GridTrack".
+ */
+export type GridTrack = string | number;
+/**
+ * Bordered surface that visually groups related content with optional header.
+ */
+export type Card = VisualSurfaceProps & {
+  component: 'Card';
+  /**
+   * Card header title.
+   */
+  title?: string;
+  /**
+   * Card header subtitle, rendered below the title.
+   */
+  subtitle?: string;
+  children?: ChildrenArray;
+};
+/**
+ * Side panel for supplementary content, help text, or contextual actions. Positioned alongside the main content.
+ */
+export type Panel = VisualSurfaceProps & {
+  component: 'Panel';
+  /**
+   * Panel placement relative to main content.
+   */
+  placement?: 'left' | 'right';
+  /**
+   * Panel header title.
+   */
+  title?: string;
+  /**
+   * Panel width. String for CSS value, number for pixels.
+   */
+  width?: string | number;
+  children?: ChildrenArray;
+};
+/**
  * Ordered list of child components. Renderers MUST preserve array order.
  *
  * This interface was referenced by `ComponentDocument`'s JSON-Schema
@@ -101,15 +200,14 @@ export type AnyComponent2 =
  */
 export type ChildrenArray = AnyComponent1[];
 /**
- * Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Page).
+ * Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Section).
  */
 export type AnyComponent3 = {
   component: string;
 } & (
-  | Page
+  | Section
   | Stack
   | Grid
-  | Spacer
   | TextInput
   | NumberInput
   | DatePicker
@@ -123,7 +221,6 @@ export type AnyComponent3 = {
   | Card
   | Collapsible
   | ConditionalGroup
-  | Columns
   | Tabs
   | SubmitButton
   | Accordion
@@ -143,7 +240,6 @@ export type AnyComponent3 = {
   | Popover
   | CustomComponentRef
 );
-
 /**
  * A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.
  */
@@ -182,40 +278,12 @@ export interface ComponentDocument {
     [k: string]: CustomComponentDef;
   };
   tree: AnyComponent3;
-  /**
-   * Document-level extension properties. All keys MUST be prefixed with 'x-'.
-   */
-  extensions?: {};
+  extensions?: Extensions;
   /**
    * This interface was referenced by `ComponentDocument`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    */
-  [k: string]: unknown;
-}
-/**
- * Binding to the target Formspec Definition and optional compatibility range.
- */
-export interface TargetDefinition {
-  /**
-   * Canonical URL of the target Definition (its url property).
-   */
-  url: string;
-  /**
-   * Semver range expression using node/npm-style range syntax describing which Definition versions this document supports. When absent, compatible with any version.
-   */
-  compatibleVersions?: string;
-}
-/**
- * Named viewport breakpoints for responsive prop overrides. Keys are breakpoint names; values are minimum viewport widths in pixels. Mobile-first cascade: base props apply to all widths, then overrides merge in ascending order.
- */
-export interface Breakpoints {
-  [k: string]: number;
-}
-/**
- * Flat key-value map of design tokens. Referenced in style objects and token-able props via $token.key syntax. Tier 3 tokens override Tier 2 theme tokens of the same key.
- */
-export interface Tokens {
-  [k: string]: string | number;
+  [k: `x-${string}`]: unknown;
 }
 /**
  * A reusable component template. Instantiated by using the registry key as the component value and providing params. Templates MUST NOT reference themselves (directly or indirectly).
@@ -232,73 +300,6 @@ export interface CustomComponentDef {
    */
   params?: string[];
   tree: AnyComponent;
-}
-/**
- * Top-level page/section container. In a multi-step form, each Page is one step. Pages MAY also be used standalone within a Stack for sectioned single-page forms.
- */
-export interface Page {
-  component: 'Page';
-  /**
-   * Page heading displayed at the top of the section.
-   */
-  title?: string;
-  /**
-   * Subtitle or description text rendered below the title.
-   */
-  description?: string;
-  children?: ChildrenArray;
-}
-/**
- * Flexbox stacking container arranging children vertically or horizontally. The most common layout primitive — typically used as the root component.
- */
-export interface Stack {
-  component: 'Stack';
-  /**
-   * Stack axis.
-   */
-  direction?: 'vertical' | 'horizontal';
-  /**
-   * Spacing between children. String for CSS values or $token refs, number for pixels.
-   */
-  gap?: string | number;
-  /**
-   * Cross-axis alignment.
-   */
-  align?: 'start' | 'center' | 'end' | 'stretch';
-  /**
-   * Whether children wrap to new lines when direction is horizontal.
-   */
-  wrap?: boolean;
-  children?: ChildrenArray;
-}
-/**
- * Multi-column grid layout distributing children across columns in source order, wrapping to new rows as needed.
- */
-export interface Grid {
-  component: 'Grid';
-  /**
-   * Column count (integer) or CSS grid-template-columns value (string, e.g. '1fr 2fr 1fr').
-   */
-  columns?: string | number;
-  /**
-   * Spacing between grid cells.
-   */
-  gap?: string | number;
-  /**
-   * Vertical spacing between rows. Inherits gap if absent.
-   */
-  rowGap?: string | number;
-  children?: ChildrenArray;
-}
-/**
- * Empty spacing element inserting visual space between siblings. Leaf component — no children, no binding.
- */
-export interface Spacer {
-  component: 'Spacer';
-  /**
-   * Space amount. String for CSS/$token values, number for pixels.
-   */
-  size?: string | number;
 }
 /**
  * Single-line or multi-line text input. Default input for string-type fields. When maxLines > 1, renders as textarea.
@@ -529,25 +530,6 @@ export interface Divider {
   label?: string;
 }
 /**
- * Bordered surface that visually groups related content with optional header.
- */
-export interface Card {
-  component: 'Card';
-  /**
-   * Card header title.
-   */
-  title?: string;
-  /**
-   * Card header subtitle, rendered below the title.
-   */
-  subtitle?: string;
-  /**
-   * Shadow depth level.
-   */
-  elevation?: number;
-  children?: ChildrenArray;
-}
-/**
  * Expandable/collapsible section. User toggles child visibility via clickable header. Collapsed children stay in DOM — bound data is preserved.
  */
 export interface Collapsible {
@@ -574,31 +556,16 @@ export interface ConditionalGroup {
   children?: ChildrenArray;
 }
 /**
- * Explicit multi-column layout with per-child column widths. Unlike Grid which auto-distributes into equal cells, Columns gives precise per-column sizing.
- */
-export interface Columns {
-  component: 'Columns';
-  /**
-   * Per-child column widths as CSS values (e.g. ['1fr', '2fr', '1fr']). Array length SHOULD match child count.
-   */
-  widths?: (string | number)[];
-  /**
-   * Spacing between columns.
-   */
-  gap?: string | number;
-  children?: ChildrenArray;
-}
-/**
- * Tabbed navigation container. Each child is one tab's content. Tab labels from child Page titles or tabLabels array. All children stay mounted — switching changes visibility, not lifecycle.
+ * Tabbed navigation container. Each child is one tab's content. Tab labels from child Section titles or tabLabels array. All children stay mounted — switching changes visibility, not lifecycle.
  */
 export interface Tabs {
   component: 'Tabs';
   /**
-   * Tab bar position.
+   * Tab bar placement.
    */
-  position?: 'top' | 'bottom' | 'left' | 'right';
+  placement?: 'top' | 'bottom' | 'left' | 'right';
   /**
-   * Explicit tab labels. When absent, reads title from each child Page.
+   * Explicit tab labels. When absent, reads title from each child Section.
    */
   tabLabels?: string[];
   /**
@@ -634,7 +601,7 @@ export interface SubmitButton {
   disableWhenPending?: boolean;
 }
 /**
- * Vertical list of collapsible sections. By default only one expanded at a time. Children SHOULD have title props (Page, Card, Collapsible) for section headers.
+ * Vertical list of collapsible sections. By default only one expanded at a time. Children SHOULD have title props (Section, Card, Collapsible) for section headers.
  */
 export interface Accordion {
   component: 'Accordion';
@@ -949,25 +916,6 @@ export interface DataTable {
   allowRemove?: boolean;
 }
 /**
- * Side panel for supplementary content, help text, or contextual actions. Positioned alongside the main content.
- */
-export interface Panel {
-  component: 'Panel';
-  /**
-   * Panel position relative to main content.
-   */
-  position?: 'left' | 'right';
-  /**
-   * Panel header title.
-   */
-  title?: string;
-  /**
-   * Panel width. String for CSS value, number for pixels.
-   */
-  width?: string | number;
-  children?: ChildrenArray;
-}
-/**
  * Dialog overlay displaying content above the main form. Requires explicit user action to open/close. Traps focus while open.
  */
 export interface Modal {
@@ -1024,46 +972,45 @@ export interface Popover {
 /**
  * Reference to a custom component defined in the components registry. The component name is looked up in the registry, params are interpolated into the template, and the resolved subtree replaces this reference.
  */
+export type CustomComponentName =
+  | `A${string}`
+  | `B${string}`
+  | `C${string}`
+  | `D${string}`
+  | `E${string}`
+  | `F${string}`
+  | `G${string}`
+  | `H${string}`
+  | `I${string}`
+  | `J${string}`
+  | `K${string}`
+  | `L${string}`
+  | `M${string}`
+  | `N${string}`
+  | `O${string}`
+  | `P${string}`
+  | `Q${string}`
+  | `R${string}`
+  | `S${string}`
+  | `T${string}`
+  | `U${string}`
+  | `V${string}`
+  | `W${string}`
+  | `X${string}`
+  | `Y${string}`
+  | `Z${string}`;
+
 export interface CustomComponentRef {
   /**
-   * Custom component name. MUST be a key in the components registry. MUST NOT be a built-in component name.
+   * Custom component name. MUST be a key in the components registry. MUST be PascalCase. MUST NOT be a built-in component name or a reserved component identifier.
    */
-  component: string;
+  component: CustomComponentName;
   /**
    * Parameter values to interpolate into the template. Keys MUST match the template's declared params. Values MUST be strings.
    */
   params?: {
     [k: string]: string;
   };
-}
-/**
- * Flat style map. Values MAY contain $token.path references (e.g. $token.color.primary). Not CSS — renderers map to platform equivalents.
- *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
- * via the `definition` "StyleMap".
- */
-export interface StyleMap {
-  [k: string]: string | number;
-}
-/**
- * Accessibility overrides applied to the component's root element. Supplements or replaces renderer defaults.
- *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
- * via the `definition` "AccessibilityBlock".
- */
-export interface AccessibilityBlock {
-  /**
-   * ARIA role override (e.g. 'region', 'group', 'status'). Replaces renderer-default role.
-   */
-  role?: string;
-  /**
-   * Accessible description text. Renderers SHOULD wire to aria-describedby.
-   */
-  description?: string;
-  /**
-   * Sets aria-live on root element. Renderers MUST NOT apply live-region semantics unless explicitly set.
-   */
-  liveRegion?: 'off' | 'polite' | 'assertive';
 }
 /**
  * Breakpoint-keyed prop overrides. Keys are breakpoint names; values are objects of component-specific props to shallow-merge at that breakpoint. MUST NOT contain component, bind, when, children, or responsive.
@@ -1100,4 +1047,16 @@ export interface ComponentBase {
    * CSS class name(s) applied to root element. Additive to renderer-generated classes. Non-web renderers MAY ignore. Values MAY contain $token. references.
    */
   cssClass?: string | string[];
+  layout?: ComponentLayout;
+}
+/**
+ * Typed structural placement hints. Grid placement applies when the node is a child of a Grid or another documented grid context.
+ */
+export interface ComponentLayout {
+  grid?: {
+    span?: number;
+    start?: number;
+    rowSpan?: number;
+    rowStart?: number;
+  };
 }

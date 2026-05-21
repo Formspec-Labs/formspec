@@ -44,7 +44,7 @@ export type TargetSchema = {
    * This interface was referenced by `undefined`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    */
-  [k: string]: unknown;
+  [k: `x-${string}`]: unknown;
 };
 /**
  * A single field mapping rule — the atomic unit of a Mapping Document. Binds a source path to a target path and specifies how the value is transformed in transit. At least one of sourcePath or targetPath MUST be present. Rules are executed in priority-sorted order; when two rules target the same path, last-write-wins.
@@ -104,6 +104,7 @@ export type FieldRule = {
       [k: string]: unknown;
     };
     array?: ArrayDescriptor;
+    projection?: ProjectionHint;
     /**
      * Delimiter for flatten/nest string serialization. For 'flatten': joins array elements into a delimited string. For 'nest': splits a delimited string into an array.
      */
@@ -124,7 +125,7 @@ export type FieldRule = {
      * This interface was referenced by `undefined`'s JSON-Schema definition
      * via the `patternProperty` "^x-".
      */
-    [k: string]: unknown;
+    [k: `x-${string}`]: unknown;
   };
 export type FieldRule1 = {
   [k: string]: unknown;
@@ -187,6 +188,7 @@ export type InnerRule = {
       [k: string]: unknown;
     };
     array?: ArrayDescriptor;
+    projection?: ProjectionHint;
     /**
      * Delimiter for flatten/nest string serialization within the element.
      */
@@ -211,7 +213,7 @@ export type InnerRule = {
      * This interface was referenced by `undefined`'s JSON-Schema definition
      * via the `patternProperty` "^x-".
      */
-    [k: string]: unknown;
+    [k: `x-${string}`]: unknown;
   };
 export type InnerRule1 = {
   [k: string]: unknown;
@@ -274,7 +276,7 @@ export interface MappingDocument {
      * This interface was referenced by `undefined`'s JSON-Schema definition
      * via the `patternProperty` "^x-".
      */
-    [k: string]: unknown;
+    [k: `x-${string}`]: unknown;
   };
   /**
    * Document-level extension properties. All keys MUST be prefixed with 'x-'.
@@ -284,7 +286,7 @@ export interface MappingDocument {
    * This interface was referenced by `MappingDocument`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    */
-  [k: string]: unknown;
+  [k: `x-${string}`]: unknown;
 }
 /**
  * Type conversion descriptor specifying source type, target type, and optional format pattern. Supported conversions: string<->number, string<->integer, string<->boolean, string<->date, string<->datetime, number<->integer, number<->boolean, integer<->boolean, date<->datetime, money->string, money->number (lossy), money->integer (lossy). Unsupported pairs MUST be rejected at validation time.
@@ -330,7 +332,7 @@ export interface ValueMap {
   };
 }
 /**
- * Explicit override configuration for reverse-direction execution. sourcePath and targetPath are swapped automatically during reverse — the reverse block MUST NOT re-specify them. Required for bidirectional 'expression' rules (no auto-reversal). May override any Field Rule property except sourcePath, targetPath, and reverse itself.
+ * Explicit override configuration for reverse-direction execution. sourcePath and targetPath are swapped automatically during reverse — the reverse block MUST NOT re-specify them. Required for bidirectional 'expression' rules (no auto-reversal). May override execution Field Rule properties except sourcePath, targetPath, reverse, and projection itself.
  */
 export interface ReverseOverride {
   /**
@@ -394,7 +396,7 @@ export interface ReverseOverride {
    * This interface was referenced by `ReverseOverride`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    */
-  [k: string]: unknown;
+  [k: `x-${string}`]: unknown;
 }
 /**
  * Reverse-direction array handling override.
@@ -412,6 +414,52 @@ export interface ArrayDescriptor {
    * Nested Field Rules applied within the array context. Paths in innerRules resolve relative to the current array element (for 'each' mode) or the element at the declared index (for 'indexed' mode). InnerRules support the same transform types and properties as top-level FieldRules, plus an optional 'index' property for indexed mode.
    */
   innerRules?: InnerRule[];
+}
+/**
+ * Optional static contract-projection metadata for this inner rule. Runtime Mapping processors MUST ignore this property during execution.
+ */
+export interface ProjectionHint {
+  /**
+   * Additional Definition field paths used by this rule. The containing rule's sourcePath is implicit when present.
+   */
+  sourcePaths?: string[];
+  /**
+   * Target type override when the transform emits a different type than the Definition-derived source contract.
+   */
+  targetType?: 'string' | 'number' | 'integer' | 'boolean' | 'date' | 'datetime' | 'array' | 'object' | 'money';
+  /**
+   * Target value domain override when the transform emits a closed set that cannot be inferred from the Definition or valueMap.
+   *
+   * @minItems 1
+   */
+  targetEnum?: [unknown, ...unknown[]];
+  /**
+   * Whether a static projector should require the targetPath field in the emitted target contract. Use only when mapping semantics change the Definition-derived requiredness.
+   */
+  required?: boolean;
+  /**
+   * Whether the static projection is less precise than the runtime output shape.
+   */
+  lossy?: boolean;
+  /**
+   * When false, static projectors SHOULD omit this rule from emitted target contracts.
+   */
+  emit?: boolean;
+  /**
+   * Human-readable projection note for authors and reviewers.
+   */
+  notes?: string;
+  /**
+   * This interface was referenced by `ProjectionHint`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   *
+   * This interface was referenced by `ProjectionHint`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   *
+   * This interface was referenced by `ProjectionHint`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
 }
 /**
  * JSON format adapter configuration. The JSON adapter performs identity serialization — the engine's internal representation is already JSON. Target paths use dot-notation with bracket indexing (e.g. 'user.tags[0]'). Intermediate objects and arrays are created automatically.

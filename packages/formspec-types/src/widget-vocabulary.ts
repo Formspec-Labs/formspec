@@ -6,31 +6,42 @@
  * or re-exported through formspec-layout).
  */
 
-/** Tier 1 widget tokens (normalized keys) and primary camelCase hint per component. */
+/** Tier 1/2 widget tokens and canonical PascalCase hint per component. */
 const WIDGET_HINT_ENTRIES = [
-    { component: 'TextInput', primaryHint: 'textInput', widgets: ['textinput', 'textarea', 'richtext', 'password', 'color', 'dateinput', 'datetimeinput', 'timeinput', 'urlinput'] },
-    { component: 'NumberInput', primaryHint: 'numberInput', widgets: ['numberinput', 'stepper'] },
-    { component: 'Slider', primaryHint: 'slider', widgets: ['slider'] },
-    { component: 'Rating', primaryHint: 'rating', widgets: ['rating'] },
-    { component: 'Toggle', primaryHint: 'toggle', widgets: ['checkbox', 'toggle', 'yesno'] },
-    { component: 'DatePicker', primaryHint: 'datePicker', widgets: ['datepicker', 'datetimepicker', 'timepicker'] },
-    { component: 'Select', primaryHint: 'dropdown', widgets: ['dropdown', 'autocomplete'] },
-    { component: 'RadioGroup', primaryHint: 'radio', widgets: ['radio', 'segmented', 'likert'] },
-    { component: 'CheckboxGroup', primaryHint: 'checkboxGroup', widgets: ['checkboxgroup', 'multiselect'] },
-    { component: 'FileUpload', primaryHint: 'fileUpload', widgets: ['fileupload', 'camera'] },
-    { component: 'Signature', primaryHint: 'signature', widgets: ['signature'] },
-    { component: 'MoneyInput', primaryHint: 'moneyInput', widgets: ['moneyinput'] },
-    { component: 'Stack', primaryHint: 'section', widgets: ['section', 'tab'] },
-    { component: 'Card', primaryHint: 'card', widgets: ['card'] },
-    { component: 'Accordion', primaryHint: 'accordion', widgets: ['accordion'] },
-    { component: 'Heading', primaryHint: 'heading', widgets: ['heading'] },
-    { component: 'Text', primaryHint: 'paragraph', widgets: ['paragraph'] },
-    { component: 'Divider', primaryHint: 'divider', widgets: ['divider'] },
-    { component: 'Alert', primaryHint: 'banner', widgets: ['banner'] },
+    { component: 'Section', primaryHint: 'Section', widgets: ['Section'] },
+    { component: 'Stack', primaryHint: 'Stack', widgets: ['Stack'] },
+    { component: 'Grid', primaryHint: 'Grid', widgets: ['Grid'] },
+    { component: 'TextInput', primaryHint: 'TextInput', widgets: ['TextInput'] },
+    { component: 'NumberInput', primaryHint: 'NumberInput', widgets: ['NumberInput'] },
+    { component: 'DatePicker', primaryHint: 'DatePicker', widgets: ['DatePicker'] },
+    { component: 'Select', primaryHint: 'Select', widgets: ['Select'] },
+    { component: 'CheckboxGroup', primaryHint: 'CheckboxGroup', widgets: ['CheckboxGroup'] },
+    { component: 'Toggle', primaryHint: 'Toggle', widgets: ['Toggle'] },
+    { component: 'FileUpload', primaryHint: 'FileUpload', widgets: ['FileUpload'] },
+    { component: 'Heading', primaryHint: 'Heading', widgets: ['Heading'] },
+    { component: 'Text', primaryHint: 'Text', widgets: ['Text'] },
+    { component: 'Divider', primaryHint: 'Divider', widgets: ['Divider'] },
+    { component: 'Card', primaryHint: 'Card', widgets: ['Card'] },
+    { component: 'Collapsible', primaryHint: 'Collapsible', widgets: ['Collapsible'] },
+    { component: 'ConditionalGroup', primaryHint: 'ConditionalGroup', widgets: ['ConditionalGroup'] },
+    { component: 'Tabs', primaryHint: 'Tabs', widgets: ['Tabs'] },
+    { component: 'SubmitButton', primaryHint: 'SubmitButton', widgets: ['SubmitButton'] },
+    { component: 'Accordion', primaryHint: 'Accordion', widgets: ['Accordion'] },
+    { component: 'RadioGroup', primaryHint: 'RadioGroup', widgets: ['RadioGroup'] },
+    { component: 'MoneyInput', primaryHint: 'MoneyInput', widgets: ['MoneyInput'] },
+    { component: 'Slider', primaryHint: 'Slider', widgets: ['Slider'] },
+    { component: 'Rating', primaryHint: 'Rating', widgets: ['Rating'] },
+    { component: 'Signature', primaryHint: 'Signature', widgets: ['Signature'] },
+    { component: 'Alert', primaryHint: 'Alert', widgets: ['Alert'] },
+    { component: 'Badge', primaryHint: 'Badge', widgets: ['Badge'] },
+    { component: 'ProgressBar', primaryHint: 'ProgressBar', widgets: ['ProgressBar'] },
+    { component: 'Summary', primaryHint: 'Summary', widgets: ['Summary'] },
+    { component: 'ValidationSummary', primaryHint: 'ValidationSummary', widgets: ['ValidationSummary'] },
+    { component: 'DataTable', primaryHint: 'DataTable', widgets: ['DataTable'] },
+    { component: 'Panel', primaryHint: 'Panel', widgets: ['Panel'] },
+    { component: 'Modal', primaryHint: 'Modal', widgets: ['Modal'] },
+    { component: 'Popover', primaryHint: 'Popover', widgets: ['Popover'] },
 ] as const;
-
-/** Layout components with no Tier 1 widgetHint — known for schema/planner checks only. */
-const LAYOUT_ONLY_COMPONENT_TYPES = ['Collapsible', 'Tabs', 'Page'] as const;
 
 function buildSpecWidgetToComponent(): Record<string, string> {
     const map: Record<string, string> = {};
@@ -52,24 +63,18 @@ function buildComponentToHint(): Record<string, string> {
 
 /**
  * Spec-normative Tier 1 widgetHint → Tier 3 component name.
- * Keys are always lowercase (normalized). Values are PascalCase component names.
+ * Keys and values are canonical PascalCase component names.
  */
 export const SPEC_WIDGET_TO_COMPONENT: Record<string, string> = buildSpecWidgetToComponent();
 
 /**
- * Reverse map: PascalCase component → canonical camelCase hint.
+ * Reverse map: PascalCase component → canonical PascalCase hint.
  * These are the values stored in definition.presentation.widgetHint.
- * For components with multiple hints (e.g. TextInput → textInput, textarea, password),
- * this picks the primary/default hint.
- *
- * Note: SPEC_WIDGET_TO_COMPONENT keys are all-lowercase (normalized for lookup).
- * These values are camelCase (the authoring/storage form).
  */
 export const COMPONENT_TO_HINT: Record<string, string> = buildComponentToHint();
 
 export const KNOWN_COMPONENT_TYPES = new Set<string>([
     ...WIDGET_HINT_ENTRIES.map((entry) => entry.component),
-    ...LAYOUT_ONLY_COMPONENT_TYPES,
 ]);
 
 /**
@@ -92,17 +97,13 @@ export const COMPATIBILITY_MATRIX: Record<string, string[]> = {
     money: ['MoneyInput', 'NumberInput', 'TextInput'],
 };
 
-function normalizeWidgetToken(widget: string): string {
-    return widget.replace(/[\s_-]+/g, '').toLowerCase();
-}
-
 /**
  * Convert a Tier 1 / theme widget token into a concrete component type.
  *
- * Accepts spec vocabulary (`radio`, `dropdown`) and extension ids (`x-*`).
+ * Accepts canonical PascalCase built-ins and extension ids (`x-*`).
  */
 export function widgetTokenToComponent(widget: string | null | undefined): string | null {
     if (!widget) return null;
     if (widget.startsWith('x-')) return widget;
-    return SPEC_WIDGET_TO_COMPONENT[normalizeWidgetToken(widget)] ?? null;
+    return SPEC_WIDGET_TO_COMPONENT[widget] ?? null;
 }

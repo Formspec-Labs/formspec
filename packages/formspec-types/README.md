@@ -43,7 +43,7 @@ The augmented types above (`FormItem`, `FormBind`, `FormDefinition`) extend the 
 
 ### Component (`schemas/component.schema.json`)
 
-`ComponentDocument`, `AnyComponent`, `Page`, `Stack`, `Grid`, `Card`, `Panel`, `Wizard`, `Tabs`, `Columns`, `Accordion`, `Collapsible`, `ConditionalGroup`, `TextInput`, `NumberInput`, `DatePicker`, `Select`, `CheckboxGroup`, `RadioGroup`, `Toggle`, `MoneyInput`, `Slider`, `Rating`, `FileUpload`, `Signature`, `Heading`, `Text`, `Divider`, `Alert`, `Badge`, `ProgressBar`, `Summary`, `ValidationSummary`, `DataTable`, `SubmitButton`, `Modal`, `Popover`, `Spacer`, `CustomComponentDef`, `CustomComponentRef`, `ComponentBase`, `StyleMap`, `AccessibilityBlock`, `ResponsiveOverrides`, `Breakpoints`, `Tokens`, `TargetDefinition`, `ChildrenArray`
+`ComponentDocument`, `AnyComponent`, `Section`, `Stack`, `Grid`, `Card`, `Panel`, `Tabs`, `Accordion`, `Collapsible`, `ConditionalGroup`, `TextInput`, `NumberInput`, `DatePicker`, `Select`, `CheckboxGroup`, `RadioGroup`, `Toggle`, `MoneyInput`, `Slider`, `Rating`, `FileUpload`, `Signature`, `Heading`, `Text`, `Divider`, `Alert`, `Badge`, `ProgressBar`, `Summary`, `ValidationSummary`, `DataTable`, `SubmitButton`, `Modal`, `Popover`, `CustomComponentDef`, `CustomComponentRef`, `ComponentBase`, `StyleMap`, `AccessibilityBlock`, `ResponsiveOverrides`, `Breakpoints`, `Tokens`, `TargetDefinition`, `ChildrenArray`
 
 ### Theme (`schemas/theme.schema.json`)
 

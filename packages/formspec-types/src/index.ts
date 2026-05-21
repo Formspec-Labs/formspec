@@ -112,17 +112,38 @@ export type FormItem = Item & {
 // - Uses FormItem[] for items (explicit conditional properties)
 // - Makes status optional (omitted during draft creation)
 // - Adds index signature to formPresentation (dynamic property access)
+// - Narrows root extension keys back to x-*; the generated root patternProperties
+//   creates a broad string index signature, so Omit<> would collapse known fields
+//   to unknown.
 
-export type FormDefinition = Omit<
+type FormDefinitionKnownFields = Pick<
   GeneratedFormDefinition,
-  'items' | 'status' | 'formPresentation' | 'binds'
-> & {
+  | '$formspec'
+  | 'url'
+  | 'version'
+  | 'versionAlgorithm'
+  | 'derivedFrom'
+  | 'name'
+  | 'title'
+  | 'description'
+  | 'date'
+  | 'shapes'
+  | 'instances'
+  | 'variables'
+  | 'nonRelevantBehavior'
+  | 'optionSets'
+  | 'migrations'
+  | 'extensions'
+>;
+
+export type FormDefinition = FormDefinitionKnownFields & {
   items: FormItem[];
   status?: GeneratedFormDefinition['status'];
   binds?: FormBind[];
   formPresentation?: GeneratedFormDefinition['formPresentation'] & {
     [k: string]: unknown;
   };
+  [k: `x-${string}`]: unknown;
 };
 
 // ─── ProjectBundle ──────────────────────────────────────────────────

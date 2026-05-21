@@ -6,6 +6,7 @@
  */
 
 /* eslint-disable */
+import type { Extensions, WidgetName } from './common.js';
 /**
  * A node in the form's structural tree. Every Item has a key (stable machine identifier unique across the entire Definition), a type ('field', 'group', or 'display'), and a label (human-readable). The type determines which additional properties apply. Items form a tree via the 'children' property on groups. The item tree determines the shape of the Instance (form data): fields produce values, groups produce JSON objects (or arrays if repeatable), display items produce nothing.
  *
@@ -44,7 +45,7 @@ export type Item = {
   /**
    * Item-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics.
    */
-  extensions?: {};
+  extensions?: Extensions;
 };
 /**
  * A named, composable validation rule set (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets data node(s) by path, evaluates a FEL constraint expression, and produces structured ValidationResult entries on failure. Shapes compose via logical operators (and, or, not, xone) where elements can be either shape IDs (referencing other shapes) or inline FEL boolean expressions. MUST have at least one of: constraint, and, or, not, xone.
@@ -130,7 +131,7 @@ export type Shape = Shape1 & {
   /**
    * Shape-level extension data. All keys MUST be prefixed with 'x-'.
    */
-  extensions?: {};
+  extensions?: Extensions;
 };
 export type Shape1 = {
   [k: string]: unknown;
@@ -200,7 +201,7 @@ export type Instance = Instance1 & {
   /**
    * Instance-level extension data. All keys MUST be prefixed with 'x-'.
    */
-  extensions?: {};
+  extensions?: Extensions;
 };
 export type Instance1 = {
   [k: string]: unknown;
@@ -228,7 +229,7 @@ export type OptionSet = OptionSet1 & {
    * When using 'source', the JSON property name for the option label in the external response. Default: 'label'.
    */
   labelField?: string;
-  extensions?: {};
+  extensions?: Extensions;
 };
 export type OptionSet1 = {
   [k: string]: unknown;
@@ -316,10 +317,7 @@ export interface FormDefinition {
     [k: string]: OptionSet;
   };
   migrations?: Migrations;
-  /**
-   * Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip.
-   */
-  extensions?: {};
+  extensions?: Extensions;
   /**
    * Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics.
    */
@@ -365,6 +363,11 @@ export interface FormDefinition {
      */
     tabPosition?: 'top' | 'bottom' | 'left' | 'right';
   };
+  /**
+   * This interface was referenced by `FormDefinition`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
 }
 /**
  * A behavioral declaration attached to one or more data nodes by path. Binds are the bridge between structure (Items) and behavior (reactive expressions). All FEL expressions within a Bind are evaluated in the context of the node identified by 'path'. Binds are evaluated reactively: when a referenced value changes, affected Binds are re-evaluated in dependency-graph order. Inheritance: relevant is AND-inherited (child is non-relevant if any ancestor is), readonly is OR-inherited (child is readonly if any ancestor is), required and constraint are NOT inherited.
@@ -426,7 +429,7 @@ export interface Bind {
   /**
    * Bind-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics.
    */
-  extensions?: {};
+  extensions?: Extensions;
 }
 /**
  * A named computed value with lexical scoping. Variables provide intermediate calculations reusable across multiple Binds, Shapes, and other expressions. Continuously recalculated when dependencies change (analogous to XForms calculate / FHIR SDC calculatedExpression). MUST NOT form circular dependencies. For one-time initialization, use Field initialValue instead.
@@ -470,7 +473,7 @@ export interface Variable {
   /**
    * Variable-level extension data. All keys MUST be prefixed with 'x-'.
    */
-  extensions?: {};
+  extensions?: Extensions;
 }
 /**
  * A single permitted value for a choice or multiChoice field. The 'value' is the machine-readable key stored in the Response data; the 'label' is the human-readable text displayed to users.
@@ -491,7 +494,7 @@ export interface OptionEntry {
    * Extra type-ahead strings for combobox/searchable Select filtering (abbreviations, codes, alternate names). Matched case-insensitively in addition to label and value.
    */
   keywords?: string[];
-  extensions?: {};
+  extensions?: Extensions;
 }
 /**
  * Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped.
@@ -503,7 +506,7 @@ export interface Migrations {
   from?: {
     [k: string]: MigrationDescriptor;
   };
-  extensions?: {};
+  extensions?: Extensions;
 }
 /**
  * Describes how to transform Responses from a single prior version into the current version. Contains field mapping rules and default values for new fields. Fields present in the source but absent from fieldMap are carried forward by path matching (if the path exists in target) or dropped (if it doesn't). The migrated Response's status SHOULD be reset to 'in-progress'.
@@ -561,19 +564,19 @@ export interface MigrationDescriptor {
    * Default values for new fields that have no source mapping. Keys are target field paths; values are literal defaults.
    */
   defaults?: {};
-  extensions?: {};
+  extensions?: Extensions;
 }
 /**
- * Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Unknown top-level keys MUST be ignored (forward-compatibility). Nested sub-objects (layout, styleHints, accessibility) do NOT permit additional properties. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.
+ * Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
  * via the `definition` "Presentation".
  */
 export interface Presentation {
   /**
-   * Preferred UI control. Compatibility is determined by the Item's type and dataType. Groups: 'section' (default), 'card', 'accordion', 'tab'. Display: 'paragraph' (default), 'heading', 'divider', 'banner'. Fields by dataType — string: 'textInput'|'password'|'color'; text: 'textarea'|'richText'; integer: 'numberInput'|'stepper'|'slider'|'rating'; decimal: 'numberInput'|'slider'; boolean: 'checkbox'|'toggle'|'yesNo'; date: 'datePicker'|'dateInput'; time: 'timePicker'|'timeInput'; choice: 'dropdown'|'radio'|'autocomplete'|'segmented'|'likert'; multiChoice: 'checkboxGroup'|'multiSelect'|'autocomplete'; money: 'moneyInput'. Custom values MUST be prefixed with 'x-'. Incompatible or unrecognized values are ignored; processor uses its default widget.
+   * Preferred UI control. Built-in values use the canonical PascalCase component/widget vocabulary. Custom values MUST be prefixed with x-.
    */
-  widgetHint?: string;
+  widgetHint?: WidgetName;
   /**
    * Spatial arrangement hints. Group-level properties control how children are arranged; field/display-level properties control grid positioning within a parent.
    */
@@ -587,13 +590,26 @@ export interface Presentation {
      */
     columns?: number;
     /**
-     * Grid columns this item spans within a parent Group with flow 'grid'. Only meaningful in a grid context.
+     * Grid-scoped placement hints for items inside a parent grid context.
      */
-    colSpan?: number;
-    /**
-     * Force this item to start a new grid row.
-     */
-    newRow?: boolean;
+    grid?: {
+      /**
+       * Grid columns this item spans within a parent grid context.
+       */
+      span?: number;
+      /**
+       * Grid column start within a parent grid context.
+       */
+      start?: number;
+      /**
+       * Grid rows this item spans within a parent grid context.
+       */
+      rowSpan?: number;
+      /**
+       * Grid row start within a parent grid context.
+       */
+      rowStart?: number;
+    };
     /**
      * Whether a group can be collapsed/expanded by the user.
      */
@@ -602,10 +618,6 @@ export interface Presentation {
      * Initial collapsed state. Ignored if collapsible is not true.
      */
     collapsedByDefault?: boolean;
-    /**
-     * Named wizard step or tab. Groups with the same page value are rendered together. Only meaningful when formPresentation.pageMode is 'wizard' or 'tabs'. Groups without a page attach to the preceding page.
-     */
-    page?: string;
   };
   /**
    * Semantic visual tokens mapped by renderers to their own palette and sizing. These are NOT CSS — they express intent, not implementation.
@@ -637,5 +649,4 @@ export interface Presentation {
      */
     liveRegion?: 'off' | 'polite' | 'assertive';
   };
-  [k: string]: unknown;
 }
