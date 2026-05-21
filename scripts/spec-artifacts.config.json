@@ -182,6 +182,26 @@
       ]
     },
     {
+      "spec": "specs/experience/experience-spec.md",
+      "schema": "schemas/experience.schema.json",
+      "bluf": "specs/experience/experience-spec.bluf.md",
+      "llm": "specs/experience/experience-spec.llm.md",
+      "behaviorEssentials": [
+        "Experience Documents are authored metadata sidecars — they MUST NOT affect Core data capture, validation, requiredness, relevance, calculations, Response status, submission, or the Core processing cycle.",
+        "Units describe abstract task intent with a closed unit.kind registry; they MUST NOT become layout, widget, page, or control taxonomies.",
+        "ItemRef paths use Core FieldRef syntax, including [*] for repeatable groups, and must resolve against the loaded target Definition.",
+        "Coverage-aware processors compute the static coverage predicate from top-level Definition binds whose required expression is literal true and whose target is not statically non-relevant.",
+        "Coverage and referential findings are reportable diagnostics for generation and review; they do not invalidate Responses or block Core operations."
+      ],
+      "conformanceEssentials": [
+        "A conforming Experience document must include $formspecExperience=1.0, version, and targetDefinition.",
+        "Processors must reject schema-invalid documents and out-of-registry unit.kind values.",
+        "Experience Core processors must verify targetDefinition compatibility, actor/task referential integrity, and ItemRef path resolvability.",
+        "Experience Coverage-Aware processors must emit EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM findings for required visible Definition fields not referenced by any unit.itemRefs.",
+        "Extensions may carry x-prefixed metadata, but they must not extend or override the closed unit.kind registry or alter Core semantics."
+      ]
+    },
+    {
       "spec": "specs/core/references-spec.md",
       "schema": "schemas/references.schema.json",
       "llm": "specs/core/references-spec.llm.md",

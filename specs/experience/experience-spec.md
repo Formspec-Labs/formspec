@@ -48,6 +48,11 @@ Additional terms:
 ## Bottom Line Up Front
 
 <!-- bluf:start file=experience-spec.bluf.md -->
+- This document defines the Experience Document -- an authored sidecar JSON artifact that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions.
+- A valid Experience Document requires `$formspecExperience`, `version`, and `targetDefinition`; at least one populated `actors`, `tasks`, or `units` array is RECOMMENDED, and `units` carries the substantive coverage payload.
+- `unit.kind` is a closed, abstract, task-oriented registry -- `data-entry`, `review`, `confirmation`, `evidence-collection`, `attestation`, `error-resolution`, `assistance` -- chosen so units do not become layout containers.
+- Coverage is a static predicate: every Definition item that is required and not statically non-relevant MUST appear in at least one `unit.itemRefs`; Coverage-aware processors MUST report uncovered required items.
+- Experience MUST NOT affect data capture, validation, or the processing model; this BLUF is governed by `schemas/experience.schema.json`, the canonical structural contract.
 <!-- bluf:end -->
 
 ---
@@ -425,11 +430,73 @@ A conformant **Experience Coverage-Aware** processor MUST:
 ### 11.2 Schema
 
 <!-- schema-ref:start id=experience-top-level schema=schemas/experience.schema.json pointers=# -->
+<!-- generated:schema-ref id=experience-top-level -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/properties/$formspecExperience` | `$formspecExperience` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Experience specification version. MUST be '1.0'. |
+| `#/properties/actors` | `actors` | <code>array</code> | no | — | — |
+| `#/properties/applicability` | `applicability` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Applicability</code> | — |
+| `#/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_\-]*&#36;</code> | — |
+| `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Definition document. Same shape as Theme / Component / Locale. |
+| `#/properties/tasks` | `tasks` | <code>array</code> | no | — | — |
+| `#/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/properties/units` | `units` | <code>array</code> | no | critical | Substantive Experience payload. Each Unit organizes typed item, concept, and action references under abstract task intent. |
+| `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this Experience Document. SemVer is RECOMMENDED. |
 <!-- schema-ref:end -->
 
 ### 11.3 `$defs` Reference
 
 <!-- schema-ref:start id=experience-defs schema=schemas/experience.schema.json pointers=#/$defs/Actor,#/$defs/Task,#/$defs/Unit,#/$defs/UnitKind,#/$defs/ItemRef,#/$defs/ConceptRef,#/$defs/ActionRef,#/$defs/Applicability,#/$defs/Accessibility,#/$defs/TargetDefinition -->
+<!-- generated:schema-ref id=experience-defs -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/$defs/Actor/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/Actor/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Actor/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Actor. Unique within actors[]. |
+| `#/$defs/Actor/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/$defs/Task/properties/actorRefs` | `actorRefs` | <code>array</code> | no | — | — |
+| `#/$defs/Task/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/Task/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Task/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Task. Unique within tasks[]. |
+| `#/$defs/Task/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/$defs/Unit/properties/accessibility` | `accessibility` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Accessibility</code> | — |
+| `#/$defs/Unit/properties/actionRefs` | `actionRefs` | <code>array</code> | no | — | — |
+| `#/$defs/Unit/properties/actorRef` | `actorRef` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Actor this unit is intended for. MUST resolve to actors[].id. |
+| `#/$defs/Unit/properties/applicability` | `applicability` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Applicability</code> | — |
+| `#/$defs/Unit/properties/conceptRefs` | `conceptRefs` | <code>array</code> | no | — | — |
+| `#/$defs/Unit/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/Unit/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Unit/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef (forthcoming). |
+| `#/$defs/Unit/properties/itemRefs` | `itemRefs` | <code>array</code> | no | — | — |
+| `#/$defs/Unit/properties/kind` | `kind` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/UnitKind</code> | — |
+| `#/$defs/Unit/properties/taskRefs` | `taskRefs` | <code>array</code> | no | — | Tasks this unit advances. Each MUST resolve to tasks[].id. |
+| `#/$defs/Unit/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/$defs/UnitKind` | `(self)` | <code>string</code> | — | enum: <code>"data-entry"</code>, <code>"review"</code>, <code>"confirmation"</code>, <code>"evidence-collection"</code>, <code>"attestation"</code>, <code>"error-resolution"</code>, <code>"assistance"</code>; critical | Closed, abstract, task-oriented unit kind. data-entry: user provides or revises data. review: read-only display of captured data. confirmation: user affirms accuracy before a transition. evidence-collection: user supplies evidence (attachments, attestations). attestation: user certifies a statement under accountability. error-resolution: user resolves a validation finding. assistance: user receives help. |
+| `#/$defs/ItemRef/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/ItemRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/ItemRef/properties/path` | `path` | <code>string</code> | yes | — | Canonical Definition item path using Core FieldRef syntax. For repeat-group children use the [*] wildcard path (e.g., household.members[*].firstName). |
+| `#/$defs/ItemRef/properties/purpose` | `purpose` | <code>string</code> | no | enum: <code>"collect"</code>, <code>"display"</code>, <code>"attest"</code>, <code>"cite"</code> | User-facing purpose. Default depends on enclosing unit.kind (S6.1). |
+| `#/$defs/ConceptRef/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/ConceptRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/ConceptRef/properties/id` | `id` | <code>string</code> | yes | — | Registry / Ontology concept identifier. |
+| `#/$defs/ConceptRef/properties/source` | `source` | <code>string</code> | no | enum: <code>"registry"</code>, <code>"ontology"</code>, <code>"external"</code>; default: <code>"registry"</code> | — |
+| `#/$defs/ActionRef/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/$defs/ActionRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/ActionRef/properties/id` | `id` | <code>string</code> | yes | — | Response Action identifier (forthcoming companion spec). |
+| `#/$defs/ActionRef/properties/role` | `role` | <code>string</code> | no | enum: <code>"primary"</code>, <code>"secondary"</code>, <code>"escape"</code>; default: <code>"primary"</code> | — |
+| `#/$defs/Applicability/properties/actorRefs` | `actorRefs` | <code>array</code> | no | — | — |
+| `#/$defs/Applicability/properties/channels` | `channels` | <code>array</code> | no | — | — |
+| `#/$defs/Applicability/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Applicability/properties/locales` | `locales` | <code>array</code> | no | — | BCP 47 locale tags. |
+| `#/$defs/Applicability/properties/platforms` | `platforms` | <code>array</code> | no | — | Open enum. Common values: web, mobile, pdf, cli, voice, agent. |
+| `#/$defs/Applicability/properties/posture` | `posture` | <code>string</code> | no | — | — |
+| `#/$defs/Accessibility/properties/assistive` | `assistive` | <code>boolean</code> | no | default: <code>true</code> | — |
+| `#/$defs/Accessibility/properties/complexity` | `complexity` | <code>string</code> | no | enum: <code>"low"</code>, <code>"moderate"</code>, <code>"high"</code> | — |
+| `#/$defs/Accessibility/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/$defs/Accessibility/properties/requiresLiteracy` | `requiresLiteracy` | <code>boolean</code> | no | — | — |
+| `#/$defs/TargetDefinition` | `(self)` | <code>&#36;ref</code> | — | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/TargetDefinition</code> | — |
 <!-- schema-ref:end -->
 
 ### 11.4 Conformance Prohibitions
