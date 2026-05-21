@@ -204,8 +204,12 @@
       "targetPath": "budget.currency",
       "transform": "expression",
       "expression": "$",
-      "bidirectional": false,
-      "priority": 78
+      "reverse": {
+        "transform": "expression",
+        "expression": "$"
+      },
+      "priority": 78,
+      "reversePriority": 70
     },
     {
       "sourcePath": "budget.lineItems",

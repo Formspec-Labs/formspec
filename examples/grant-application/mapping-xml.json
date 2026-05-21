@@ -52,7 +52,7 @@
     },
     {
       "sourcePath": "budget.requestedAmount.amount",
-      "targetPath": "GrantApplication.Budget.RequestedAmount",
+      "targetPath": "GrantApplication.Budget.RequestedAmount.#text",
       "transform": "preserve",
       "priority": 80
     },
