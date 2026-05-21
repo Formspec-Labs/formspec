@@ -1,0 +1,82 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://grants.example.gov/forms/sf-425",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "name": "sf425-respondent",
+  "title": "SF-425 -- Federal Financial Report (Respondent Experience)",
+  "description": "Experience targeting grantee respondents preparing the federal financial report.",
+  "applicability": {
+    "platforms": ["web", "pdf"],
+    "locales": ["en-US"],
+    "channels": ["remote"]
+  },
+  "actors": [
+    { "id": "grantee", "title": "Grantee preparer" },
+    { "id": "approver", "title": "Grantee approving official" }
+  ],
+  "tasks": [
+    { "id": "identifyAward", "title": "Identify the federal award", "actorRefs": ["grantee"] },
+    { "id": "reportTransactions", "title": "Report federal cash transactions", "actorRefs": ["grantee"] },
+    { "id": "certifyReport", "title": "Certify the report under penalty of perjury", "actorRefs": ["approver"] }
+  ],
+  "units": [
+    {
+      "id": "awardIdentification",
+      "kind": "data-entry",
+      "actorRef": "grantee",
+      "taskRefs": ["identifyAward"],
+      "itemRefs": [
+        { "path": "federalAgency" },
+        { "path": "awardIdentifyingNumber" },
+        { "path": "recipientUEI" },
+        { "path": "reportingPeriodEnd" }
+      ],
+      "conceptRefs": [
+        { "id": "concept:UEI", "source": "registry" }
+      ]
+    },
+    {
+      "id": "transactionsEntry",
+      "kind": "data-entry",
+      "actorRef": "grantee",
+      "taskRefs": ["reportTransactions"],
+      "itemRefs": [
+        { "path": "cashReceipts" },
+        { "path": "cashDisbursements" },
+        { "path": "cashOnHand" }
+      ]
+    },
+    {
+      "id": "transactionsReview",
+      "kind": "review",
+      "actorRef": "grantee",
+      "taskRefs": ["reportTransactions"],
+      "itemRefs": [
+        { "path": "cashReceipts", "purpose": "display" },
+        { "path": "cashDisbursements", "purpose": "display" },
+        { "path": "cashOnHand", "purpose": "display" }
+      ]
+    },
+    {
+      "id": "certification",
+      "kind": "attestation",
+      "actorRef": "approver",
+      "taskRefs": ["certifyReport"],
+      "itemRefs": [
+        { "path": "certifyingOfficialName", "purpose": "attest" },
+        { "path": "certifyingOfficialTitle", "purpose": "attest" },
+        { "path": "certificationDate", "purpose": "attest" }
+      ],
+      "actionRefs": [
+        { "id": "submitReport", "role": "primary" }
+      ],
+      "accessibility": {
+        "complexity": "high",
+        "requiresLiteracy": true
+      }
+    }
+  ]
+}

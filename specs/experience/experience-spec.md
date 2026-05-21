@@ -539,7 +539,64 @@ There is no prompt-injection surface in this spec -- Experience does not interac
 
 ## Appendix A: Full Example -- Grant Application
 
-*Populated in Task 20.*
+The following Experience targets a hypothetical SF-425 Federal Financial Report Definition. It demonstrates:
+
+- Two actor roles (`grantee`, `approver`) with task-level actor scoping.
+- A `data-entry` -> `review` -> `attestation` task flow expressed as three units against related Definition items.
+- `purpose` overrides on `ItemRef` (`collect` default -> `display` / `attest`).
+- A `conceptRef` to a Registry concept (UEI).
+- An `actionRef` forward-referencing the Response Actions companion spec (`submitReport`).
+- Accessibility intent (`complexity: high`, `requiresLiteracy: true`) on the certification unit.
+
+A schema-validated copy lives at `tests/conformance/fixtures/experience/valid-grant-application.json`.
+
+```json
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://grants.example.gov/forms/sf-425",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "name": "sf425-respondent",
+  "title": "SF-425 -- Federal Financial Report (Respondent Experience)",
+  "actors": [
+    { "id": "grantee", "title": "Grantee preparer" },
+    { "id": "approver", "title": "Grantee approving official" }
+  ],
+  "tasks": [
+    { "id": "identifyAward", "actorRefs": ["grantee"] },
+    { "id": "reportTransactions", "actorRefs": ["grantee"] },
+    { "id": "certifyReport", "actorRefs": ["approver"] }
+  ],
+  "units": [
+    {
+      "id": "awardIdentification",
+      "kind": "data-entry",
+      "actorRef": "grantee",
+      "taskRefs": ["identifyAward"],
+      "itemRefs": [
+        { "path": "federalAgency" },
+        { "path": "awardIdentifyingNumber" },
+        { "path": "recipientUEI" }
+      ]
+    },
+    {
+      "id": "certification",
+      "kind": "attestation",
+      "actorRef": "approver",
+      "taskRefs": ["certifyReport"],
+      "itemRefs": [
+        { "path": "certifyingOfficialName", "purpose": "attest" }
+      ],
+      "actionRefs": [{ "id": "submitReport", "role": "primary" }],
+      "accessibility": { "complexity": "high" }
+    }
+  ]
+}
+```
+
+(Truncated for inline readability; the full fixture lives in the test corpus.)
 
 ---
 

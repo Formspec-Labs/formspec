@@ -44,6 +44,11 @@ class TestExperienceSchemaValid:
         errors = list(validator.iter_errors(doc))
         assert errors == [], f"Expected no errors, got: {[e.message for e in errors]}"
 
+    def test_valid_grant_application_passes(self, validator):
+        doc = _load("valid-grant-application.json")
+        errors = list(validator.iter_errors(doc))
+        assert errors == [], f"Expected no errors, got: {[e.message for e in errors]}"
+
 
 class TestExperienceSchemaInvalid:
     def test_missing_target_definition_rejected(self, validator):
