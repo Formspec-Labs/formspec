@@ -187,7 +187,7 @@ struct ContentView: View {
                     ]),
                     .object([
                         "id": .string("field-subscribe"),
-                        "component": .string("Checkbox"),
+                        "component": .string("Toggle"),
                         "category": .string("field"),
                         "props": .object([:]),
                         "cssClasses": .array([]),

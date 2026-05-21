@@ -213,9 +213,9 @@ describe('resolveWidget', () => {
     });
 
     it('maps spec widget vocabulary to concrete component types', () => {
-        expect(widgetTokenToComponent('radio')).toBe('RadioGroup');
-        expect(widgetTokenToComponent('dropdown')).toBe('Select');
-        expect(widgetTokenToComponent('datePicker')).toBe('DatePicker');
+        expect(widgetTokenToComponent('RadioGroup')).toBe('RadioGroup');
+        expect(widgetTokenToComponent('Select')).toBe('Select');
+        expect(widgetTokenToComponent('DatePicker')).toBe('DatePicker');
     });
 
     it('falls back to fallback chain', () => {
@@ -228,7 +228,7 @@ describe('resolveWidget', () => {
 
     it('accepts spec widget names in theme fallback chains', () => {
         const result = resolveWidget(
-            { widget: 'segmented', fallback: ['radio'] },
+            { widget: 'RadioGroup', fallback: ['RadioGroup'] },
             (type) => type === 'RadioGroup',
         );
         expect(result).toBe('RadioGroup');

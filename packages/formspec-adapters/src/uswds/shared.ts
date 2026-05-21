@@ -119,7 +119,7 @@ export function buildUSWDSOptions(
 }
 
 /**
- * Shared renderer for single boolean controls (Checkbox, Toggle).
+ * Shared renderer for single boolean Toggle controls.
  */
 export function renderUSWDSBooleanControl(
     behavior: any,

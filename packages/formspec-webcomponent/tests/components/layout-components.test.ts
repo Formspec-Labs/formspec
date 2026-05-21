@@ -10,13 +10,14 @@ beforeAll(async () => {
     }
 });
 
-function renderWith(items: any[], tree: any) {
+function renderWith(items: any[], tree: any, componentOverrides: Record<string, unknown> = {}) {
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
     el.componentDocument = {
         $formspecComponent: '1.0',
         version: '1.0.0',
         targetDefinition: { url: 'urn:test:form' },
+        ...componentOverrides,
         tree,
     };
     el.definition = {
@@ -226,7 +227,7 @@ describe('layout components — FileUpload', () => {
         const el = renderWith(
             [{ key: 'doc', type: 'field', dataType: 'attachment', label: 'Document' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'FileUpload', bind: 'doc', accept: '.pdf,.doc', dragDrop: true }],
             },
         );
@@ -318,7 +319,7 @@ describe('layout components — Signature', () => {
         const el = renderWith(
             [{ key: 'sig', type: 'field', dataType: 'attachment', label: 'Signature' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'Signature', bind: 'sig', height: 150, strokeColor: '#0000ff' }],
             },
         );
@@ -464,6 +465,42 @@ describe('layout components — Grid columns', () => {
         expect(grid).not.toBeNull();
         expect(grid.dataset.columns).toBe('3');
     });
+
+    it('resolves tokenized track arrays before rendering', () => {
+        const el = renderWith(
+            [],
+            {
+                component: 'Grid',
+                columns: ['$token.layout.sidebar', 1],
+                children: [{ component: 'Text', text: 'A' }],
+            },
+            { tokens: { 'layout.sidebar': '16rem' } },
+        );
+        const grid = el.querySelector('.formspec-grid') as HTMLElement;
+        expect(grid).not.toBeNull();
+        expect(grid.style.gridTemplateColumns).toBe('16rem 1fr');
+    });
+
+    it('applies grid placement from child layout.grid', () => {
+        const el = renderWith(
+            [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            {
+                component: 'Grid',
+                columns: 12,
+                children: [
+                    {
+                        component: 'TextInput',
+                        bind: 'name',
+                        layout: { grid: { span: 4, start: 2, rowSpan: 2, rowStart: 3 } },
+                    },
+                ],
+            },
+        );
+        const field = el.querySelector('.formspec-field') as HTMLElement;
+        expect(field).not.toBeNull();
+        expect(field.style.gridColumn).toBe('2 / span 4');
+        expect(field.style.gridRow).toBe('3 / span 2');
+    });
 });
 
 describe('layout components — Stack horizontal', () => {
@@ -484,5 +521,22 @@ describe('layout components — Stack horizontal', () => {
             },
         );
         expect(el.querySelector('.formspec-stack--horizontal')).not.toBeNull();
+    });
+
+    it('maps Stack justify tokens to CSS justify-content values', () => {
+        const el = renderWith(
+            [],
+            {
+                component: 'Stack',
+                direction: 'horizontal',
+                justify: 'between',
+                children: [
+                    { component: 'Text', text: 'A' },
+                    { component: 'Text', text: 'B' },
+                ],
+            },
+        );
+        const stack = el.querySelector('.formspec-stack') as HTMLElement;
+        expect(stack.style.justifyContent).toBe('space-between');
     });
 });

@@ -68,10 +68,16 @@ describe('Stack layout', () => {
         expect(el.style.flexDirection).toBe('row');
     });
 
-    it('applies alignItems from alignment prop', () => {
-        const container = renderNode(stackNode({ alignment: 'center' }));
+    it('applies alignItems from align prop', () => {
+        const container = renderNode(stackNode({ align: 'center' }));
         const el = container.querySelector('.formspec-stack') as HTMLElement;
         expect(el.style.alignItems).toBe('center');
+    });
+
+    it('applies justifyContent from justify prop', () => {
+        const container = renderNode(stackNode({ justify: 'between' }));
+        const el = container.querySelector('.formspec-stack') as HTMLElement;
+        expect(el.style.justifyContent).toBe('space-between');
     });
 
     it('applies flexWrap: wrap when wrap prop is true', () => {
@@ -98,15 +104,27 @@ describe('Stack layout', () => {
 
     it('renders titled group Stack as formspec-group, not formspec-card', () => {
         const node: LayoutNode = {
-            ...stackNode({ title: 'Contact Info', bind: 'contact' }),
+            ...stackNode({
+                title: 'Contact Info',
+                bind: 'contact',
+                padding: '1rem',
+                background: '#fff',
+                elevation: 'sm',
+            }),
             bindPath: 'contact',
             scopeChange: true,
+            accessibility: { role: 'group', description: 'Contact section' },
         };
         const container = renderNode(node);
         // Should use group styling, not card styling
         const group = container.querySelector('.formspec-group') as HTMLElement;
         expect(group).toBeTruthy();
         expect(group.tagName).toBe('SECTION');
+        expect(group.style.padding).toBe('1rem');
+        expect(group.style.background).toBe('#fff');
+        expect(group.dataset.elevation).toBe('sm');
+        expect(group.getAttribute('role')).toBe('group');
+        expect(group.getAttribute('aria-description')).toBe('Contact section');
         expect(container.querySelector('.formspec-card')).toBeNull();
         // Title rendered as heading
         const heading = group.querySelector('.formspec-group-title');
@@ -169,6 +187,30 @@ describe('Grid layout', () => {
         });
         const el = container.querySelector('.formspec-grid') as HTMLElement;
         expect(el.style.gap).toBe('1.5rem');
+    });
+
+    it('applies grid placement style to rendered children', () => {
+        const container = renderNode({
+            id: 'grid-5',
+            component: 'Grid',
+            category: 'layout',
+            props: { columns: 12 },
+            cssClasses: [],
+            children: [
+                {
+                    id: 'text-1',
+                    component: 'Text',
+                    category: 'display',
+                    props: { text: 'Placed' },
+                    style: { gridColumn: '2 / span 4', gridRow: '3 / span 2' },
+                    cssClasses: [],
+                    children: [],
+                },
+            ],
+        });
+        const child = container.querySelector('.formspec-grid .formspec-text') as HTMLElement;
+        expect(child.style.gridColumn).toBe('2 / span 4');
+        expect(child.style.gridRow).toBe('3 / span 2');
     });
 });
 
@@ -235,42 +277,42 @@ describe('Divider layout (in layout category)', () => {
 
 // ── Page ─────────────────────────────────────────────────────────
 
-describe('Page layout', () => {
-    it('renders a section.formspec-page', () => {
+describe('Section layout', () => {
+    it('renders a section.formspec-section', () => {
         const container = renderNode({
-            id: 'page-1', component: 'Page', category: 'layout',
+            id: 'page-1', component: 'Section', category: 'layout',
             props: {}, cssClasses: [], children: [],
         });
-        expect(container.querySelector('section.formspec-page')).toBeTruthy();
+        expect(container.querySelector('section.formspec-section')).toBeTruthy();
     });
 
     it('renders h2 title when provided', () => {
         const container = renderNode({
-            id: 'page-2', component: 'Page', category: 'layout',
+            id: 'page-2', component: 'Section', category: 'layout',
             props: { title: 'Step 1' }, cssClasses: [], children: [],
         });
-        const h2 = container.querySelector('section.formspec-page h2');
+        const h2 = container.querySelector('section.formspec-section h2');
         expect(h2).toBeTruthy();
         expect(h2!.textContent).toBe('Step 1');
     });
 
-    it('renders p.formspec-page-description when description provided', () => {
+    it('renders p.formspec-section-description when description provided', () => {
         const container = renderNode({
-            id: 'page-3', component: 'Page', category: 'layout',
+            id: 'page-3', component: 'Section', category: 'layout',
             props: { description: 'Fill in your details.' }, cssClasses: [], children: [],
         });
-        const desc = container.querySelector('p.formspec-page-description');
+        const desc = container.querySelector('p.formspec-section-description');
         expect(desc).toBeTruthy();
         expect(desc!.textContent).toBe('Fill in your details.');
     });
 
     it('renders no title or description when absent', () => {
         const container = renderNode({
-            id: 'page-4', component: 'Page', category: 'layout',
+            id: 'page-4', component: 'Section', category: 'layout',
             props: {}, cssClasses: [], children: [],
         });
         expect(container.querySelector('h2')).toBeNull();
-        expect(container.querySelector('p.formspec-page-description')).toBeNull();
+        expect(container.querySelector('p.formspec-section-description')).toBeNull();
     });
 
     it('renders children inside the section', () => {
@@ -279,10 +321,10 @@ describe('Page layout', () => {
             props: {}, cssClasses: [], children: [],
         };
         const container = renderNode({
-            id: 'page-5', component: 'Page', category: 'layout',
+            id: 'page-5', component: 'Section', category: 'layout',
             props: {}, cssClasses: [], children: [childNode],
         });
-        const section = container.querySelector('section.formspec-page');
+        const section = container.querySelector('section.formspec-section');
         expect(section?.querySelector('hr')).toBeTruthy();
     });
 });
@@ -554,19 +596,19 @@ describe('Panel layout', () => {
         expect(header!.textContent).toBe('Side Panel');
     });
 
-    it('applies order: -1 for left position', () => {
+    it('applies order: -1 for left placement', () => {
         const container = renderNode({
             id: 'pan-3', component: 'Panel', category: 'layout',
-            props: { position: 'left' }, cssClasses: [], children: [],
+            props: { placement: 'left' }, cssClasses: [], children: [],
         });
         const el = container.querySelector('.formspec-panel') as HTMLElement;
         expect(el.style.order).toBe('-1');
     });
 
-    it('applies order: 1 for right position', () => {
+    it('applies order: 1 for right placement', () => {
         const container = renderNode({
             id: 'pan-4', component: 'Panel', category: 'layout',
-            props: { position: 'right' }, cssClasses: [], children: [],
+            props: { placement: 'right' }, cssClasses: [], children: [],
         });
         const el = container.querySelector('.formspec-panel') as HTMLElement;
         expect(el.style.order).toBe('1');
@@ -786,19 +828,19 @@ describe('Heading level customization', () => {
 
     it('PageLayout defaults to h2 for title', () => {
         const container = renderNode({
-            id: 'page-h1', component: 'Page', category: 'layout',
+            id: 'page-h1', component: 'Section', category: 'layout',
             props: { title: 'Page Title' }, cssClasses: [], children: [],
         });
-        expect(container.querySelector('section.formspec-page h2')).toBeTruthy();
+        expect(container.querySelector('section.formspec-section h2')).toBeTruthy();
     });
 
     it('PageLayout renders h3 when headingLevel=3', () => {
         const container = renderNode({
-            id: 'page-h2', component: 'Page', category: 'layout',
+            id: 'page-h2', component: 'Section', category: 'layout',
             props: { title: 'Page Title', headingLevel: 3 }, cssClasses: [], children: [],
         });
-        expect(container.querySelector('section.formspec-page h3')).toBeTruthy();
-        expect(container.querySelector('section.formspec-page h2')).toBeNull();
+        expect(container.querySelector('section.formspec-section h3')).toBeTruthy();
+        expect(container.querySelector('section.formspec-section h2')).toBeNull();
     });
 
     it('ModalLayout defaults to h2 for title', () => {

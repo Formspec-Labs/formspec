@@ -8,9 +8,11 @@ import type { ComponentTreeNode, FormItem, LayoutNode, PlanContext } from './typ
 import {
     classifyComponent,
     extractProps,
+    gridPlacementStyleFromLayout,
     normalizeCssClass,
     preparePlanContext,
     resolveCssClasses,
+    resolveGridTracks,
     resolveStyleTokens,
     resolveTokenInContext,
 } from './node-utils.js';
@@ -89,15 +91,24 @@ export function planComponentTree(
         props.maxLines = 3;
     }
 
-    if (props.gap !== undefined) props.gap = resolveTokenInContext(props.gap, planCtx);
-    if (props.size !== undefined) props.size = resolveTokenInContext(props.size, planCtx);
+    for (const prop of ['gap', 'rowGap', 'padding', 'background', 'border', 'radius', 'elevation']) {
+        if (props[prop] !== undefined) props[prop] = resolveTokenInContext(props[prop], planCtx);
+    }
+    if (props.columns !== undefined) {
+        props.columns = resolveGridTracks(props.columns, planCtx);
+    }
+
+    const gridPlacementStyle = gridPlacementStyleFromLayout(comp.layout);
+    const authoredStyle = resolveStyleTokens(comp.style as Record<string, string | number> | undefined, planCtx);
 
     const node: LayoutNode = {
         id: planCtx.nextId(componentType.toLowerCase()),
         component: componentType,
         category: classifyComponent(componentType),
         props,
-        style: resolveStyleTokens(comp.style as Record<string, string | number> | undefined, planCtx),
+        style: gridPlacementStyle || authoredStyle
+            ? { ...(gridPlacementStyle ?? {}), ...(authoredStyle ?? {}) }
+            : undefined,
         cssClasses: resolveCssClasses(comp as { cssClass?: string | string[] }, planCtx),
         children: [],
     };

@@ -242,7 +242,7 @@ describe('resolveWidget', () => {
 
     it('tries fallbacks in order', () => {
         const pres: PresentationBlock = { widget: 'X', fallback: ['Y', 'Select', 'Toggle'] };
-        expect(resolveWidget(pres, available)).toBe('Toggle');
+        expect(resolveWidget(pres, available)).toBe('Select');
     });
 
     it('returns null and warns when all unavailable', () => {

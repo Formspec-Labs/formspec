@@ -4,10 +4,16 @@ import { Path } from '@formspec-org/types';
 import type { ComponentTreeNode, FormItem } from './types.js';
 
 export function componentTreeOwnsPages(tree: ComponentTreeNode | null | undefined): boolean {
-    if (!tree || !Array.isArray(tree.children)) {
+    if (!tree) {
         return false;
     }
-    return (tree.children as ComponentTreeNode[]).some((child) => child?.component === 'Page');
+    if (tree.component === 'Section') {
+        return true;
+    }
+    if (!Array.isArray(tree.children)) {
+        return false;
+    }
+    return (tree.children as ComponentTreeNode[]).some((child) => child?.component === 'Section');
 }
 
 export function findItemPathByKey(items: FormItem[], key: string, prefix = ''): string | null {

@@ -7,25 +7,20 @@ import {
   COMPATIBILITY_MATRIX,
 } from '@formspec-org/types';
 
-// ── widgetTokenToComponent (existing) ─────────────────────────────
+// ── widgetTokenToComponent ────────────────────────────────────────
 
 describe('widgetTokenToComponent', () => {
-  it('resolves spec hints to components', () => {
-    // Tier 1 widgetHint "checkbox" / "toggle" / "yesNo" → Toggle (no standalone Checkbox component)
-    expect(widgetTokenToComponent('checkbox')).toBe('Toggle');
-    expect(widgetTokenToComponent('toggle')).toBe('Toggle');
-    expect(widgetTokenToComponent('radio')).toBe('RadioGroup');
-    expect(widgetTokenToComponent('dropdown')).toBe('Select');
-  });
-
-  it('does not accept raw PascalCase component names that are not widget tokens', () => {
-    // "Toggle" still normalizes to the canonical "toggle" widget token.
+  it('resolves canonical PascalCase widget tokens to components', () => {
     expect(widgetTokenToComponent('Toggle')).toBe('Toggle');
-    expect(widgetTokenToComponent('RadioGroup')).toBeNull();
+    expect(widgetTokenToComponent('RadioGroup')).toBe('RadioGroup');
+    expect(widgetTokenToComponent('Select')).toBe('Select');
   });
 
-  it('normalizes Checkbox to checkbox hint and resolves to Toggle', () => {
-    expect(widgetTokenToComponent('Checkbox')).toBe('Toggle');
+  it('rejects removed alias tokens', () => {
+    expect(widgetTokenToComponent('checkbox')).toBeNull();
+    expect(widgetTokenToComponent('toggle')).toBeNull();
+    expect(widgetTokenToComponent('radio')).toBeNull();
+    expect(widgetTokenToComponent('dropdown')).toBeNull();
   });
 
   it('returns null for unknown tokens', () => {
@@ -38,34 +33,28 @@ describe('widgetTokenToComponent', () => {
 // ── COMPONENT_TO_HINT (new export) ────────────────────────────────
 
 describe('COMPONENT_TO_HINT — reverse map from component to canonical hint', () => {
-  it('maps Toggle to toggle (boolean single-value control)', () => {
-    expect(COMPONENT_TO_HINT['Toggle']).toBe('toggle');
+  it('maps Toggle to the canonical PascalCase hint', () => {
+    expect(COMPONENT_TO_HINT['Toggle']).toBe('Toggle');
   });
 
-  it('maps Select to dropdown', () => {
-    expect(COMPONENT_TO_HINT['Select']).toBe('dropdown');
+  it('maps Select to Select', () => {
+    expect(COMPONENT_TO_HINT['Select']).toBe('Select');
   });
 
-  it('maps RadioGroup to radio', () => {
-    expect(COMPONENT_TO_HINT['RadioGroup']).toBe('radio');
+  it('maps RadioGroup to RadioGroup', () => {
+    expect(COMPONENT_TO_HINT['RadioGroup']).toBe('RadioGroup');
   });
 
-  it('every KNOWN_COMPONENT_TYPES field/input component has a hint entry', () => {
-    // Layout-only components (Tabs, Page, Collapsible) don't need hints
-    const layoutOnly = new Set(['Tabs', 'Page', 'Collapsible']);
+  it('every known component type has a canonical hint entry', () => {
     for (const comp of KNOWN_COMPONENT_TYPES) {
-      if (layoutOnly.has(comp)) continue;
       expect(COMPONENT_TO_HINT[comp], `${comp} should have a hint`).toBeDefined();
     }
   });
 
-  it('is consistent with SPEC_WIDGET_TO_COMPONENT (hint normalizes to valid lookup key)', () => {
-    // For every component→hint entry, normalizing the camelCase hint to lowercase
-    // should produce a valid key in SPEC_WIDGET_TO_COMPONENT
+  it('is consistent with SPEC_WIDGET_TO_COMPONENT', () => {
     for (const [component, hint] of Object.entries(COMPONENT_TO_HINT)) {
-      const normalized = hint.replace(/[\s_-]+/g, '').toLowerCase();
-      const resolved = SPEC_WIDGET_TO_COMPONENT[normalized];
-      expect(resolved, `hint "${hint}" (normalized: "${normalized}") for ${component} should exist in SPEC_WIDGET_TO_COMPONENT`).toBeDefined();
+      const resolved = SPEC_WIDGET_TO_COMPONENT[hint];
+      expect(resolved, `hint "${hint}" for ${component} should exist in SPEC_WIDGET_TO_COMPONENT`).toBeDefined();
       expect(KNOWN_COMPONENT_TYPES.has(resolved!), `resolved "${resolved}" should be known`).toBe(true);
     }
   });

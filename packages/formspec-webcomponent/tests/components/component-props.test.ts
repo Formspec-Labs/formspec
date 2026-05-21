@@ -39,7 +39,7 @@ describe('component props — NumberInput', () => {
         const el = renderWith(
             [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Quantity' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'NumberInput', bind: 'qty', min: 1, max: 100, step: 5 }],
             },
         );
@@ -60,7 +60,7 @@ describe('component props — NumberInput stepper', () => {
         const el = renderWith(
             [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Quantity' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'NumberInput', bind: 'qty', showStepper: true, min: 0, max: 10, step: 1 }],
             },
         );
@@ -78,7 +78,7 @@ describe('component props — NumberInput stepper', () => {
         const el = renderWith(
             [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Quantity' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'NumberInput', bind: 'qty', min: 0, max: 10 }],
             },
         );
@@ -90,7 +90,7 @@ describe('component props — NumberInput stepper', () => {
         const el = renderWith(
             [{ key: 'qty', type: 'field', dataType: 'integer', label: 'Quantity' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'NumberInput', bind: 'qty', showStepper: true, min: 0, max: 10 }],
             },
         );
@@ -111,7 +111,7 @@ describe('component props — MoneyInput aria-describedby', () => {
         const el = renderWith(
             [{ key: 'price', type: 'field', dataType: 'money', label: 'Price', currency: 'USD' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'MoneyInput', bind: 'price' }],
             },
         );
@@ -134,7 +134,7 @@ describe('component props — MoneyInput currency prefix position', () => {
         const el = renderWith(
             [{ key: 'price', type: 'field', dataType: 'money', label: 'Price', currency: 'USD' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'MoneyInput', bind: 'price' }],
             },
         );
@@ -152,7 +152,7 @@ describe('component props — MoneyInput currency prefix position', () => {
         const el = renderWith(
             [{ key: 'amt', type: 'field', dataType: 'money', label: 'Amount', currency: 'USD' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'MoneyInput', bind: 'amt' }],
             },
         );
@@ -182,7 +182,7 @@ describe('component props — Select', () => {
                 ],
             }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'Select', bind: 'size', placeholder: 'Choose a size', clearable: true }],
             },
         );
@@ -204,7 +204,7 @@ describe('component props — Select', () => {
                 options: [{ value: 'a', label: 'A' }],
             }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'Select', bind: 'dept', searchable: true }],
             },
         );
@@ -223,7 +223,7 @@ describe('component props — Select', () => {
                 options: [{ value: 'a', label: 'A' }],
             }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'Select', bind: 'dept', searchable: true, placeholder: 'Choose a department' }],
             },
         );
@@ -242,7 +242,7 @@ describe('component props — DatePicker', () => {
         const el = renderWith(
             [{ key: 'dob', type: 'field', dataType: 'date', label: 'DOB' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'DatePicker', bind: 'dob', minDate: '1900-01-01', maxDate: '2025-12-31' }],
             },
         );
@@ -256,7 +256,7 @@ describe('component props — DatePicker', () => {
         const el = renderWith(
             [{ key: 'dob', type: 'field', dataType: 'date', label: 'DOB' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'DatePicker', bind: 'dob', placeholder: 'YYYY-MM-DD' }],
             } as any,
         );
@@ -275,7 +275,7 @@ describe('component props — NumberInput', () => {
         const el = renderWith(
             [{ key: 'qty', type: 'field', dataType: 'number', label: 'Qty' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'NumberInput', bind: 'qty', placeholder: '0.00' }],
             } as any,
         );
@@ -294,7 +294,7 @@ describe('component props — TextInput prefix/suffix', () => {
         const el = renderWith(
             [{ key: 'amount', type: 'field', dataType: 'string', label: 'Amount' }],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'TextInput', bind: 'amount', prefix: '$', suffix: 'USD' }],
             },
         );
@@ -336,22 +336,22 @@ describe('component props — Tabs defaultTab', () => {
     });
 });
 
-describe('component props — Page description', () => {
+describe('component props — Section description', () => {
     afterEach(() => {
         document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
     });
 
-    it('renders description text when Page description is provided', () => {
+    it('renders description text when Section description is provided', () => {
         const el = renderWith(
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 title: 'Welcome',
                 description: 'Please fill out this form carefully.',
                 children: [],
             },
         );
-        const desc = el.querySelector('.formspec-page-description') as HTMLElement;
+        const desc = el.querySelector('.formspec-section-description') as HTMLElement;
         expect(desc).not.toBeNull();
         expect(desc.textContent).toBe('Please fill out this form carefully.');
     });
@@ -366,7 +366,7 @@ describe('component props — Heading level', () => {
         const el = renderWith(
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [
                     { component: 'Heading', level: 3, text: 'Level 3' },
                 ],
@@ -381,7 +381,7 @@ describe('component props — Heading level', () => {
         const el = renderWith(
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [
                     { component: 'Heading', text: 'No level' },
                 ],
@@ -396,7 +396,7 @@ describe('component props — Heading level', () => {
         const el = renderWith(
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [
                     { component: 'Heading', level: 1, text: 'H1' },
                     { component: 'Heading', level: 2, text: 'H2' },
@@ -426,7 +426,7 @@ describe('definition fallback — display item with widgetHint heading', () => {
             version: '1.0.0',
             title: 'Test',
             items: [
-                { key: 'header', type: 'display', label: 'Section Title', presentation: { widgetHint: 'heading' } },
+                { key: 'header', type: 'display', label: 'Section Title', presentation: { widgetHint: 'Heading' } },
             ],
         };
         el.render();
@@ -445,7 +445,7 @@ describe('definition fallback — display item with widgetHint heading', () => {
             version: '1.0.0',
             title: 'Test',
             items: [
-                { key: 'header', type: 'display', label: 'Section Title', presentation: { widgetHint: 'heading', level: 3 } },
+                { key: 'header', type: 'display', label: 'Section Title', presentation: { widgetHint: 'Heading', level: 3 } },
             ],
         };
         el.render();

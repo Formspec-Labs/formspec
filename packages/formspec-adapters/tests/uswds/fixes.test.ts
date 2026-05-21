@@ -8,13 +8,12 @@ import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { renderTextInput } from '../../src/uswds/text-input';
 import { renderNumberInput } from '../../src/uswds/number-input';
 import { renderSelect } from '../../src/uswds/select';
-import { renderCheckbox } from '../../src/uswds/checkbox';
 import { renderCheckboxGroup } from '../../src/uswds/checkbox-group';
 import { renderToggle } from '../../src/uswds/toggle';
 import { renderRating } from '../../src/uswds/rating';
 import { renderSignature } from '../../src/uswds/signature';
 import {
-    mockTextInput, mockNumberInput, mockSelect, mockFieldBehavior, mockToggle, mockCheckboxGroup,
+    mockTextInput, mockNumberInput, mockSelect, mockToggle, mockCheckboxGroup,
     mockRating, mockSignature, mockAdapterContext, captureBindRefs,
     mockCanvasContext,
 } from '../helpers';
@@ -113,21 +112,12 @@ describe('Error-class toggling (onValidationChange)', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════
-// Issue 2: Missing aria-describedby on Checkbox, Toggle, Rating, Signature
-// These 4 adapters don't link hint/error elements to the input via
+// Issue 2: Missing aria-describedby on Toggle, Rating, Signature
+// These adapters don't link hint/error elements to the input via
 // aria-describedby, unlike TextInput/NumberInput/Select/DatePicker.
 // ════════════════════════════════════════════════════════════════════
 
 describe('aria-describedby gaps', () => {
-    it('Checkbox passes hint and error to bind()', () => {
-        const parent = makeParent();
-        const b = mockFieldBehavior({ hint: 'Must agree to terms' });
-        renderCheckbox(b, parent, mockAdapterContext());
-        const refs = captureBindRefs(b);
-        expect(refs.hint).toBeTruthy();
-        expect(refs.error).toBeTruthy();
-    });
-
     it('Toggle passes hint and error to bind()', () => {
         const parent = makeParent();
         const b = mockToggle({ hint: 'Enable notifications' });

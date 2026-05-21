@@ -145,14 +145,14 @@ describe('ValidationSummary — live in wizard', () => {
                 component: 'Stack',
                 children: [
                     {
-                        component: 'Page',
+                        component: 'Section',
                         title: 'Details',
                         children: [
                             { component: 'TextInput', bind: 'name' },
                         ],
                     },
                     {
-                        component: 'Page',
+                        component: 'Section',
                         title: 'Review',
                         children: [
                             { component: 'ValidationSummary', source: 'live', mode, showFieldErrors: true },

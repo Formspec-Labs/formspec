@@ -226,7 +226,7 @@ describe('input rendering — dataType→input type mapping', () => {
         const el = renderField({
             dataType: 'choice',
             options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
-            presentation: { widgetHint: 'radio' },
+            presentation: { widgetHint: 'RadioGroup' },
         });
         const radioGroup = el.querySelector('[role="radiogroup"]') as HTMLElement;
         expect(radioGroup).not.toBeNull();

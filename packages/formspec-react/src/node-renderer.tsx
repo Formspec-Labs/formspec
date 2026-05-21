@@ -146,11 +146,11 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
     const { components, formPresentation } = useFormspecContext();
 
     if (node.component === 'Stack' && node.children.length > 0) {
-        const pageMode = formPresentation?.pageMode as string | undefined;
-        const hasPages = node.children.some((c) => c.component === 'Page');
+        const pageMode = node.pageMode;
+        const hasPages = node.children.some((c) => c.component === 'Section');
         if (hasPages && (pageMode === 'wizard' || pageMode === 'tabs')) {
-            const orphans = node.children.filter((c) => c.component !== 'Page');
-            const pages = node.children.filter((c) => c.component === 'Page');
+            const orphans = node.children.filter((c) => c.component !== 'Section');
+            const pages = node.children.filter((c) => c.component === 'Section');
             const fp = formPresentation ?? {};
 
             if (pageMode === 'wizard' && pages.length > 0) {
@@ -190,7 +190,7 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                                 || (p.props?.label as string | undefined)
                                 || (p.fieldItem?.label as string | undefined),
                         ),
-                        position: (fp.tabPosition as string | undefined) || 'top',
+                        placement: (fp.tabPosition as string | undefined) || 'top',
                         defaultTab: (fp.defaultTab as number | undefined) ?? 0,
                     },
                     cssClasses: node.cssClasses ?? [],
@@ -200,10 +200,10 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                 };
                 return (
                     <>
+                        <LayoutNodeInner node={tabsNode} />
                         {orphans.map((child) => (
                             <FormspecNode key={child.id} node={child} />
                         ))}
-                        <LayoutNodeInner node={tabsNode} />
                     </>
                 );
             }

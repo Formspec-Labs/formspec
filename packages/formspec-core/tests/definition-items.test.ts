@@ -430,7 +430,7 @@ describe('definition.moveItem — reference rewriting', () => {
       { type: 'definition.addItem', payload: { type: 'group', key: 'b' } },
     ]);
 
-    (project.mapping as any).rules = [
+    project.state.mappings.default.rules = [
       {
         sourcePath: 'a',
         targetPath: 'person',

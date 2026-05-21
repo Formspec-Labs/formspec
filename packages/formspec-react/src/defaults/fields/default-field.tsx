@@ -58,18 +58,17 @@ export function DefaultField({ field, node }: FieldComponentProps) {
         <abbr className="formspec-required usa-label--required" title="required"> *</abbr>
     ) : null;
 
-    if (node.component === 'Checkbox' || node.component === 'Toggle') {
-        const isToggle = node.component === 'Toggle';
+    if (node.component === 'Toggle') {
         const onLabel = node.props?.onLabel as string | undefined;
         const offLabel = node.props?.offLabel as string | undefined;
-        const hasToggleLabels = isToggle && (onLabel || offLabel);
+        const hasToggleLabels = onLabel || offLabel;
 
         const checkboxInput = (
             <input
                 id={field.id}
                 type="checkbox"
-                className={isToggle ? 'formspec-input' : undefined}
-                role={isToggle ? 'switch' : undefined}
+                className="formspec-input"
+                role="switch"
                 checked={!!field.value}
                 onChange={isReadonly ? undefined : (e) => field.setValue(e.target.checked)}
                 onBlur={() => field.touch()}
@@ -92,25 +91,21 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 </label>
                 {descriptionNode}
                 {hintNode}
-                {isToggle ? (
-                    <div
-                        className={`formspec-toggle${field.value ? ' formspec-toggle--on' : ''}`.trim()}
-                    >
-                        {hasToggleLabels && (
-                            <span className="formspec-toggle-label formspec-toggle-off" aria-hidden="true">
-                                {offLabel}
-                            </span>
-                        )}
-                        {checkboxInput}
-                        {hasToggleLabels && (
-                            <span className="formspec-toggle-label formspec-toggle-on" aria-hidden="true">
-                                {onLabel}
-                            </span>
-                        )}
-                    </div>
-                ) : (
-                    checkboxInput
-                )}
+                <div
+                    className={`formspec-toggle${field.value ? ' formspec-toggle--on' : ''}`.trim()}
+                >
+                    {hasToggleLabels && (
+                        <span className="formspec-toggle-label formspec-toggle-off" aria-hidden="true">
+                            {offLabel}
+                        </span>
+                    )}
+                    {checkboxInput}
+                    {hasToggleLabels && (
+                        <span className="formspec-toggle-label formspec-toggle-on" aria-hidden="true">
+                            {onLabel}
+                        </span>
+                    )}
+                </div>
                 {errorNode}
             </div>
         );

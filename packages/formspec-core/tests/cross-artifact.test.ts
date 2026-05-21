@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { createRawProject } from '../src/index.js';
 
-/** Get Page nodes from the component tree. */
+/** Get Section nodes from the component tree. */
 function getPageNodes(project: ReturnType<typeof createRawProject>): any[] {
   const tree = project.component.tree;
-  return (tree?.children ?? []).filter((c: any) => c.component === 'Page');
+  return (tree?.children ?? []).filter((c: any) => c.component === 'Section');
 }
 
-/** Get the nodeId of a Page node from the component tree. */
+/** Get the nodeId of a Section page unit from the component tree. */
 function getPageId(project: ReturnType<typeof createRawProject>, index = 0): string {
   const pages = getPageNodes(project);
   if (!pages[index]) throw new Error(`No page at index ${index}`);
@@ -23,7 +23,7 @@ function addPage(project: ReturnType<typeof createRawProject>, title: string, id
     type: 'component.addNode',
     payload: {
       parent: { nodeId: 'root' },
-      component: 'Page',
+      component: 'Section',
       props: { ...(id ? { nodeId: id } : {}), title },
     },
   }) as any;
@@ -155,11 +155,11 @@ describe('renameItem — cross-artifact rewriting', () => {
     const page1Id = addPage(project, 'P1');
     addPage(project, 'P2');
     // Assign 'phone' to page 1
-    placeOnPage(project, page1Id, 'phone', { span: 6 });
+    placeOnPage(project, page1Id, 'phone', { layout: { grid: { span: 6 } } });
 
     project.dispatch({ type: 'definition.renameItem', payload: { path: 'phone', newKey: 'mobile' } });
 
-    // Verify the component tree Page child bind was rewritten
+    // Verify the component tree Section child bind was rewritten
     const pages = getPageNodes(project);
     const page1Children = pages[0].children;
     expect(page1Children.some((c: any) => c.bind === 'mobile')).toBe(true);
@@ -197,8 +197,8 @@ describe('deleteItem — cross-artifact cleanup', () => {
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'addr' } });
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'city' } });
     const pageId = addPage(project, 'P1');
-    placeOnPage(project, pageId, 'addr', { span: 6 });
-    placeOnPage(project, pageId, 'city', { span: 6 });
+    placeOnPage(project, pageId, 'addr', { layout: { grid: { span: 6 } } });
+    placeOnPage(project, pageId, 'city', { layout: { grid: { span: 6 } } });
 
     project.dispatch({ type: 'definition.deleteItem', payload: { path: 'addr' } });
 

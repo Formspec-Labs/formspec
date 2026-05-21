@@ -12,7 +12,6 @@ function makeDefinition() {
             {
                 key: 'organization',
                 type: 'group',
-                presentation: { layout: { page: 'org' } },
                 children: [
                     { key: 'name', type: 'field', dataType: 'string', label: 'Organization Name' },
                     { key: 'ein', type: 'field', dataType: 'string', label: 'Employer Identification Number' },
@@ -22,7 +21,6 @@ function makeDefinition() {
             {
                 key: 'details',
                 type: 'group',
-                presentation: { layout: { page: 'details' } },
                 children: [
                     { key: 'summary', type: 'field', dataType: 'string', label: 'Project Summary' },
                 ],
@@ -42,13 +40,13 @@ describe('resolvePageSequence', () => {
                     component: 'Stack',
                     children: [
                         {
-                            component: 'Page',
+                            component: 'Section',
                             id: 'component-contact',
                             title: 'Component Contact',
                             children: [{ component: 'TextInput', bind: 'contactEmail' }],
                         },
                         {
-                            component: 'Page',
+                            component: 'Section',
                             id: 'component-org',
                             title: 'Component Organization',
                             children: [
@@ -57,7 +55,7 @@ describe('resolvePageSequence', () => {
                             ],
                         },
                         {
-                            component: 'Page',
+                            component: 'Section',
                             id: 'component-review',
                             title: 'Review',
                             children: [],
@@ -82,6 +80,34 @@ describe('resolvePageSequence', () => {
         ]);
     });
 
+    it('uses a root component Section before theme pages', () => {
+        const pages = resolvePageSequence(makeDefinition(), {
+            component: {
+                $formspecComponent: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'https://example.org/forms/grant' },
+                tree: {
+                    component: 'Section',
+                    id: 'component-root',
+                    title: 'Component Root',
+                    children: [{ component: 'TextInput', bind: 'contactEmail' }],
+                },
+            } as any,
+            theme: {
+                $formspecTheme: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'https://example.org/forms/grant' },
+                pages: [
+                    { id: 'theme-contact', title: 'Theme Contact', regions: [{ key: 'contactEmail' }] },
+                ],
+            } as any,
+        });
+
+        expect(pages).toEqual([
+            { id: 'component-root', title: 'Component Root', fields: ['contactEmail'] },
+        ]);
+    });
+
     it('resolves theme regions with bracket-indexed bind paths (fs-i17a)', () => {
         const definition = {
             $formspec: '1.0',
@@ -93,7 +119,6 @@ describe('resolvePageSequence', () => {
                     key: 'lineItems',
                     type: 'group',
                     repeatable: true,
-                    presentation: { layout: { page: 'lines' } },
                     children: [
                         { key: 'amount', type: 'field', dataType: 'decimal', label: 'Amount' },
                     ],
@@ -137,6 +162,11 @@ describe('resolvePageSequence', () => {
         expect(pages).toEqual([
             { id: 'theme-contact', title: 'Theme Contact', fields: ['contactEmail'] },
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
+            {
+                id: expect.stringMatching(/^fallback-section-/),
+                title: 'Additional Items',
+                fields: ['organization.name', 'organization.ein'],
+            },
         ]);
     });
 
@@ -162,11 +192,12 @@ describe('resolvePageSequence', () => {
         ]);
     });
 
-    it('falls back to definition page hints when no component or theme pages exist', () => {
+    it('falls back to generated definition group sections when no component or theme pages exist', () => {
         const pages = resolvePageSequence(makeDefinition());
         expect(pages).toEqual([
-            { id: 'org', fields: ['organization.name', 'organization.ein'] },
+            { id: 'organization', fields: ['organization.name', 'organization.ein'] },
             { id: 'details', fields: ['details.summary'] },
+            { id: 'additional-items', fields: ['contactEmail'] },
         ]);
     });
 
@@ -199,7 +230,7 @@ describe('resolvePageSequence', () => {
         ]);
     });
 
-    it('uses component-tree theme pages when a component doc has no explicit Page nodes', () => {
+    it('uses component-tree theme pages when a component doc has no explicit Section nodes', () => {
         const pages = resolvePageSequence(makeDefinition(), {
             component: {
                 $formspecComponent: '1.0',
@@ -228,10 +259,15 @@ describe('resolvePageSequence', () => {
 
         expect(pages).toEqual([
             { id: 'theme-org', title: 'Theme Org', fields: ['organization.name'] },
+            {
+                id: expect.stringMatching(/^fallback-section-/),
+                title: 'Additional Items',
+                fields: ['contactEmail', 'details.summary'],
+            },
         ]);
     });
 
-    it('ignores theme pages when explicit component Page nodes exist', () => {
+    it('ignores theme pages when explicit component Section nodes exist', () => {
         const pages = resolvePageSequence(makeDefinition(), {
             component: {
                 $formspecComponent: '1.0',
@@ -241,7 +277,7 @@ describe('resolvePageSequence', () => {
                     component: 'Stack',
                     children: [
                         {
-                            component: 'Page',
+                            component: 'Section',
                             id: 'component-only',
                             title: 'Component Only',
                             children: [{ component: 'TextInput', bind: 'contactEmail' }],
@@ -279,6 +315,11 @@ describe('resolvePageSequence', () => {
 
         expect(pages).toEqual([
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
+            {
+                id: expect.stringMatching(/^fallback-section-/),
+                title: 'Additional Items',
+                fields: ['organization.name', 'organization.ein', 'contactEmail'],
+            },
         ]);
     });
 });

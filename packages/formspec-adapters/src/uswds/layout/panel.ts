@@ -1,14 +1,15 @@
 /** @filedesc USWDS Panel layout — `usa-card` with optional heading and body slot. */
 import type { AdapterContext, PanelLayoutBehavior } from '@formspec-org/webcomponent';
+import { applyUSWDSSurfaceProps } from './grid-shared';
 
 export function renderUSWDSPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host, titleText, descriptionText } = behavior;
     const card = document.createElement('div');
     if (comp.id) card.id = comp.id;
     card.className = 'usa-card';
-    if (comp.position) {
-        card.dataset.position = comp.position;
-        card.style.order = comp.position === 'left' ? '-1' : '1';
+    if (comp.placement) {
+        card.dataset.placement = comp.placement;
+        card.style.order = comp.placement === 'left' ? '-1' : '1';
     }
     if (comp.width) card.style.width = comp.width;
 
@@ -44,5 +45,6 @@ export function renderUSWDSPanel(behavior: PanelLayoutBehavior, parent: HTMLElem
     actx.applyCssClass(card, comp);
     actx.applyAccessibility(card, comp);
     actx.applyStyle(card, comp.style);
+    applyUSWDSSurfaceProps(card, comp, host.resolveToken);
     parent.appendChild(card);
 }

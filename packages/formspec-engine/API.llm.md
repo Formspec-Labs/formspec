@@ -128,7 +128,7 @@ type ValidationReport = FormspecValidationReport;
 
 #### class `FormEngine`
 
-##### `constructor(definition: FormDefinition, runtimeContext?: FormEngineRuntimeContext, registryEntries?: RegistryEntry[], reactiveRuntime?: EngineReactiveRuntime)`
+##### `constructor(definition: FormDefinition, optionsOrRuntimeContext?: FormEngineOptions | FormEngineRuntimeContext, legacyRegistryEntries?: RegistryEntry[])`
 
 ##### `resolvePinnedDefinition(response: PinnedResponseReference, definitions: T[]): T`
 
@@ -146,21 +146,21 @@ type ValidationReport = FormspecValidationReport;
 
 ##### `waitForInstanceSources(): Promise<void>`
 
-##### `setInstanceValue(name: string, path: string | undefined, value: any): void`
+##### `setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void`
 
-##### `getInstanceData(name: string, path?: string): any`
+##### `getInstanceData(name: string, path?: string): FormFieldValue`
 
 ##### `getDisabledDisplay(path: string): 'hidden' | 'protected'`
 
-##### `getVariableValue(name: string, scopePath: string): any`
+##### `getVariableValue(name: string, scopePath: string): FormFieldValue`
 
 ##### `addRepeatInstance(itemName: string): number | undefined`
 
 ##### `removeRepeatInstance(itemName: string, index: number): void`
 
-##### `compileExpression(expression: string, currentItemName?: string): () => any`
+##### `compileExpression(expression: string, currentItemName?: string): () => FormFieldValue`
 
-##### `setValue(name: string, value: any): void`
+##### `setValue(name: string, value: FormFieldValue): void`
 
 ##### `getValidationReport(options?: {
         mode?: 'continuous' | 'submit';
@@ -186,7 +186,7 @@ type ValidationReport = FormspecValidationReport;
         };
         authoredSignatures?: AuthoredSignatureInput[];
         mode?: 'continuous' | 'submit';
-    }): any`
+    }): FormResponse`
 
 ##### `getDiagnosticsSnapshot(options?: {
         mode?: 'continuous' | 'submit';
@@ -232,9 +232,9 @@ type ValidationReport = FormspecValidationReport;
 
 ##### `dispose(): void`
 
-##### `setRegistryEntries(entries: any[]): void`
+##### `setRegistryEntries(entries: RegistryEntry[]): void`
 
-##### `migrateResponse(responseData: Record<string, any>, fromVersion: string): Record<string, any>`
+##### `migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord`
 
 ## `resolveOptionSetsOnDefinition(definition: FormDefinition): FormDefinition`
 
@@ -242,7 +242,7 @@ type ValidationReport = FormspecValidationReport;
 
 ## `validateCalculateBindCycles(bindConfigs: Record<string, EngineBindConfig>): void`
 
-## `normalizeRemoteOptions(payload: any): OptionEntry[]`
+## `normalizeRemoteOptions(payload: unknown): OptionEntry[]`
 
 ## `makeValidationResult(result: Pick<ValidationResult, 'path' | 'severity' | 'constraintKind' | 'code' | 'message' | 'source'> & Partial<Pick<ValidationResult, 'shapeId' | 'context'>>): ValidationResult`
 
@@ -252,24 +252,26 @@ type ValidationReport = FormspecValidationReport;
 
 ## `toRuntimeMappingResult(result: {
     direction: string;
-    output: any;
+    output: JsonValue;
     rulesApplied: number;
-    diagnostics: any[];
+    diagnostics: MappingDiagnostic[];
 }): RuntimeMappingResult`
 
-## `emptyValueForItem(item: FormItem): any`
+## `emptyValueForItem(item: FormItem): FormFieldValue`
 
-## `coerceInitialValue(item: FormItem, value: any): any`
+## `coerceInitialValue(item: FormItem, value: FormFieldValue): FormFieldValue`
 
-## `coerceFieldValue(item: FormItem, bind: EngineBindConfig | undefined, definition: FormDefinition, value: any): any`
+## `coerceFieldValue(item: FormItem, bind: EngineBindConfig | undefined, definition: FormDefinition, value: FormFieldValue): FormFieldValue`
 
-## `validateDataType(value: any, dataType: string): boolean`
+## `validateDataType(value: FormFieldValue, dataType: string): boolean`
 
 ## `cloneValue(value: T): T`
 
+## `isJsonRecord(value: unknown): value is JsonRecord`
+
 ## `normalizeWasmValue(value: T): T`
 
-## `tagMoneyByPath(path: string, value: any, bindConfigs: Record<string, EngineBindConfig>, fieldDataTypes?: Record<string, string | undefined>): any`
+## `tagMoneyByPath(path: string, value: FormFieldValue, bindConfigs: Record<string, EngineBindConfig>, fieldDataTypes?: Record<string, string | undefined>): FormFieldValue`
 
 ## `toWasmContextValue(value: T): T`
 
@@ -296,21 +298,21 @@ type ValidationReport = FormspecValidationReport;
 
 ## `getScopeAncestors(scopePath: string): string[]`
 
-## `getNestedValue(target: any, path: string): any`
+## `getNestedValue(target: unknown, path: string): FormFieldValue`
 
-## `setNestedPathValue(target: Record<string, any>, path: string, value: any): void`
+## `setNestedPathValue(target: JsonRecord, path: string, value: FormFieldValue): void`
 
-## `setExpressionContextValue(target: Record<string, any>, path: string, value: any): void`
+## `setExpressionContextValue(target: JsonRecord, path: string, value: FormFieldValue): void`
 
-## `setResponsePathValue(target: Record<string, any>, path: string, value: any): void`
+## `setResponsePathValue(target: JsonRecord, path: string, value: FormFieldValue): void`
 
 ## `replaceBareCurrentFieldRefs(expression: string, currentFieldName: string): string`
 
-## `flattenObject(value: any, prefix?: string, output?: Record<string, any>): Record<string, any>`
+## `flattenObject(value: JsonValue, prefix?: string, output?: JsonRecord): JsonRecord`
 
-## `buildGroupSnapshotForPath(prefix: string, signals: Record<string, EngineSignal<any>>): Record<string, any>`
+## `buildGroupSnapshotForPath(prefix: string, signals: Record<string, EngineSignal<FormFieldValue>>): JsonRecord`
 
-## `buildRepeatCollection(groupPath: string, count: number, signals: Record<string, EngineSignal<any>>): any[]`
+## `buildRepeatCollection(groupPath: string, count: number, signals: Record<string, EngineSignal<FormFieldValue>>): JsonValue[]`
 
 ## `getRepeatAncestors(currentItemPath: string, repeats: Record<string, EngineSignal<number>>): Array<{
     groupPath: string;
@@ -320,7 +322,7 @@ type ValidationReport = FormspecValidationReport;
 
 ## `isEmptyValue(value: unknown): boolean`
 
-## `safeEvaluateExpression(expression: string, context: WasmFelContext): any`
+## `safeEvaluateExpression(expression: string, context: WasmFelContext): FormFieldValue`
 
 ## `extractInlineBind(item: FormItem, path: string): EngineBindConfig | null`
 
@@ -328,11 +330,11 @@ type ValidationReport = FormspecValidationReport;
 
 ## `topoSortKeys(nodes: T[], graph: Map<string, Set<string>>): T[]`
 
-## `snapshotSignals(signals: Record<string, EngineSignal<any>>): Record<string, any>`
+## `snapshotSignals(signals: Record<string, EngineSignal<FormFieldValue>>): JsonRecord`
 
 ## `toFelIndexedPath(path: string): string`
 
-## `buildRepeatValueAliases(valuesByPath: Record<string, any>): Array<[string, any[]]>`
+## `buildRepeatValueAliases(valuesByPath: JsonRecord): Array<[string, FormFieldValue[]]>`
 
 ## `toRepeatWildcardPath(alias: string): string`
 
@@ -371,7 +373,7 @@ type EngineBindConfig = FormBind & {
 type RuntimeNowInput = Date | string | number;
 ```
 
-## `createFormEngine(definition: FormDefinition, context?: FormEngineRuntimeContext, registryEntries?: RegistryEntry[], reactiveRuntime?: EngineReactiveRuntime): FormEngine`
+## `createFormEngine(definition: FormDefinition, options?: FormEngineOptions): FormEngine`
 
 ## `validateInstanceDataAgainstSchema(instanceName: string, data: unknown, schema: Record<string, unknown> | undefined): void`
 
@@ -449,7 +451,7 @@ Restore nested field values after repeat rows were reindexed.
 
 Shape validations that only run on submit, from a WASM eval with `trigger: 'submit'`.
 
-## `buildValidationReportEnvelope(results: ValidationResult[], timestamp: string): ValidationReport`
+## `buildValidationReportEnvelope(results: ValidationResult[], timestamp: string, definitionUrl?: string, definitionVersion?: string): ValidationReport`
 
 Strip optional cardinality `source`, compute counts, and wrap the spec envelope.
 
@@ -493,7 +495,7 @@ Append engine-owned validations (e.g. extension hooks) after WASM batch evaluati
     fieldSignals: Record<string, EngineSignal<any>>;
 }): string`
 
-## `resolveFelFieldValueForWasm(path: string, value: unknown, bindConfigs: Record<string, EngineBindConfig>, fieldIsIrrelevant: (path: string) => boolean): unknown`
+## `resolveFelFieldValueForWasm(path: string, value: unknown, bindConfigs: Record<string, EngineBindConfig>, fieldIsIrrelevant: (path: string) => boolean): FormFieldValue`
 
 ## `visibleScopedVariableValues(scopePath: string, variableDefs: FormVariable[], variableSignals: Record<string, EngineSignal<any>>, overrides?: Record<string, any>): Record<string, any>`
 
@@ -716,7 +718,7 @@ type WasmFelAnalysisErrorWire = string | {
     }>`
 - **getOptionSetName**: `() => string | undefined`
 - **setFieldValue**: `(value: any) => void`
-- **evalFEL**: `(expr: string) => unknown`
+- **evalFEL**: `(expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown`
 
 ## `createFormViewModel(deps: FormViewModelDeps): FormViewModel`
 
@@ -732,7 +734,7 @@ type WasmFelAnalysisErrorWire = string | {
 - **getDefinitionDescription** (`() => string | undefined`): Returns definition.description
 - **getPageTitle** (`(pageId: string) => string | undefined`): Returns page title from theme pages array
 - **getPageDescription** (`(pageId: string) => string | undefined`): Returns page description from theme pages
-- **evalFEL** (`(expr: string) => unknown`): Evaluates a FEL expression in the form-level (global) context
+- **evalFEL** (`(expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown`): Evaluates a FEL expression in the form-level (global) context
 - **getValidationCounts** (`() => {
         errors: number;
         warnings: number;
@@ -876,31 +878,6 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **importedKeys**: `Set<string>`
 - **keyPrefix**: `string`
 
-#### interface `ComponentObject`
-
-- **component**: `string`
-- **bind?**: `string`
-- **when?**: `string`
-- **style?**: `Record<string, any>`
-- **children?**: `ComponentObject[]`
-
-#### interface `ComponentDocument`
-
-- **$formspecComponent**: `string`
-- **version**: `string`
-- **targetDefinition**: `{
-        url: string;
-        compatibleVersions?: string;
-    }`
-- **url?**: `string`
-- **name?**: `string`
-- **title?**: `string`
-- **description?**: `string`
-- **breakpoints?**: `Record<string, number>`
-- **tokens?**: `Record<string, any>`
-- **components?**: `Record<string, any>`
-- **tree**: `ComponentObject`
-
 #### interface `RemoteOptionsState`
 
 - **loading**: `boolean`
@@ -913,6 +890,14 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **timeZone?**: `string`
 - **seed?**: `string | number`
 - **meta?**: `Record<string, string | number | boolean>`
+
+#### interface `FormEngineOptions`
+
+Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createFormEngine`](./engine/init.ts).
+
+- **runtimeContext?**: `FormEngineRuntimeContext`
+- **registryEntries?**: `RegistryEntry[]`
+- **reactiveRuntime?**: `import('./reactivity/types.js').EngineReactiveRuntime`
 
 #### interface `RegistryEntry`
 
@@ -927,12 +912,11 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
     }`
 - **deprecationNotice?**: `string`
 - **baseType?**: `string`
-- **constraints?**: `{
+- **constraints?**: `Record<string, JsonValue> & {
         pattern?: string;
         maxLength?: number;
-        [key: string]: any;
     }`
-- **metadata?**: `Record<string, any>`
+- **metadata?**: `JsonRecord`
 
 #### interface `PinnedResponseReference`
 
@@ -1031,7 +1015,7 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **timestamp**: `string`
 - **structureVersion**: `number`
 - **repeats**: `Record<string, number>`
-- **values**: `Record<string, any>`
+- **values**: `JsonRecord`
 - **mips**: `Record<string, {
         relevant: boolean;
         required: boolean;
@@ -1050,7 +1034,7 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 
 - **ok**: `boolean`
 - **event**: `EngineReplayEvent`
-- **output?**: `any`
+- **output?**: `unknown`
 - **error?**: `string`
 
 #### interface `EngineReplayResult`
@@ -1089,21 +1073,21 @@ cascade so single-signal subscription is sufficient.
 
 ##### `waitForInstanceSources(): Promise<void>`
 
-##### `setInstanceValue(name: string, path: string | undefined, value: any): void`
+##### `setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void`
 
-##### `getInstanceData(name: string, path?: string): any`
+##### `getInstanceData(name: string, path?: string): FormFieldValue`
 
 ##### `getDisabledDisplay(path: string): 'hidden' | 'protected'`
 
-##### `getVariableValue(name: string, scopePath: string): any`
+##### `getVariableValue(name: string, scopePath: string): FormFieldValue`
 
 ##### `addRepeatInstance(itemName: string): number | undefined`
 
 ##### `removeRepeatInstance(itemName: string, index: number): void`
 
-##### `compileExpression(expression: string, currentItemName?: string): () => any`
+##### `compileExpression(expression: string, currentItemName?: string): () => FormFieldValue`
 
-##### `setValue(name: string, value: any): void`
+##### `setValue(name: string, value: FormFieldValue): void`
 
 ##### `getValidationReport(options?: {
         mode?: 'continuous' | 'submit';
@@ -1129,7 +1113,7 @@ cascade so single-signal subscription is sufficient.
         };
         authoredSignatures?: AuthoredSignatureInput[];
         mode?: 'continuous' | 'submit';
-    }): any`
+    }): FormResponse`
 
 ##### `getDiagnosticsSnapshot(options?: {
         mode?: 'continuous' | 'submit';
@@ -1177,9 +1161,9 @@ Resolve a locale string key with fallback. For component-tier `$component.` keys
 
 ##### `clearExternalValidation(path?: string): void`
 
-##### `setRegistryEntries(entries: any[]): void`
+##### `setRegistryEntries(entries: RegistryEntry[]): void`
 
-##### `migrateResponse(responseData: Record<string, any>, fromVersion: string): Record<string, any>`
+##### `migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord`
 
 #### interface `MappingDiagnostic`
 
@@ -1192,15 +1176,49 @@ Resolve a locale string key with fallback. For component-tier `$component.` keys
 #### interface `RuntimeMappingResult`
 
 - **direction**: `MappingDirection`
-- **output**: `any`
+- **output**: `JsonValue | string`
 - **appliedRules**: `number`
 - **diagnostics**: `MappingDiagnostic[]`
 
 #### interface `IRuntimeMappingEngine`
 
-##### `forward(source: any): RuntimeMappingResult`
+##### `forward(source: JsonValue | string): RuntimeMappingResult`
 
-##### `reverse(source: any): RuntimeMappingResult`
+##### `reverse(source: JsonValue | string): RuntimeMappingResult`
+
+#### type `JsonPrimitive`
+
+JSON-compatible scalar.
+
+```ts
+type JsonPrimitive = string | number | boolean | null;
+```
+
+#### type `JsonValue`
+
+JSON-compatible value crossing engine / mapping boundaries.
+
+```ts
+type JsonValue = JsonPrimitive | JsonValue[] | {
+    [key: string]: JsonValue;
+};
+```
+
+#### type `FormFieldValue`
+
+Field or instance slot value (undefined = unset).
+
+```ts
+type FormFieldValue = JsonValue | undefined;
+```
+
+#### type `JsonRecord`
+
+String-keyed JSON object (response data, instance maps).
+
+```ts
+type JsonRecord = Record<string, JsonValue>;
+```
 
 #### type `FELConditionBuilderOperator`
 
@@ -1261,23 +1279,10 @@ Rules (§3.3.1):
 - **text**: `string`
 - **warnings**: `InterpolationWarning[]`
 
-#### interface `LocaleDocument`
+## `normalizeBcp47(code: string): string`
 
-A loaded locale document providing translated strings for a target definition.
-
-- **$formspecLocale**: `string`
-- **locale**: `string`
-- **version**: `string`
-- **fallback?**: `string`
-- **targetDefinition**: `{
-        url: string;
-        compatibleVersions?: string;
-    }`
-- **strings**: `Record<string, string>`
-- **name?**: `string`
-- **title?**: `string`
-- **description?**: `string`
-- **url?**: `string`
+Normalize BCP 47: lowercase language, title-case script (4 chars),
+uppercase region (2 chars), lowercase variants/extensions.
 
 #### interface `LookupResult`
 
@@ -1312,15 +1317,15 @@ for active locale and text direction.
 Normalize BCP 47: lowercase language, title-case script (4 chars),
 uppercase region (2 chars), lowercase variants/extensions.
 
-## `createMappingEngine(mappingDoc: unknown): IRuntimeMappingEngine`
+## `createMappingEngine(mappingDoc: MappingDocument): IRuntimeMappingEngine`
 
 #### class `RuntimeMappingEngine`
 
-##### `constructor(mappingDocument: any)`
+##### `constructor(mappingDocument: MappingDocument)`
 
-##### `forward(source: any): RuntimeMappingResult`
+##### `forward(source: JsonValue | string): RuntimeMappingResult`
 
-##### `reverse(source: any): RuntimeMappingResult`
+##### `reverse(source: JsonValue | string): RuntimeMappingResult`
 
 #### interface `FormspecEnginePackage`
 
@@ -1415,11 +1420,15 @@ Not re-exported from the public `wasm-bridge` barrel.
 
 ## `wasmEvalFEL(expression: string, fields?: Record<string, any>): any`
 
-Evaluate a FEL expression with optional field values. Returns the evaluated result.
+Evaluate a FEL expression with optional field values. Returns the evaluated value.
+
+## `wasmEvalFELWithContextEnvelope(expression: string, context: WasmFelContext): FelEvalResult`
+
+Evaluate a FEL expression with full FormspecEnvironment context (value + diagnostics flag).
 
 ## `wasmEvalFELWithContext(expression: string, context: WasmFelContext): any`
 
-Evaluate a FEL expression with full FormspecEnvironment context.
+Evaluate a FEL expression with full FormspecEnvironment context. Returns the value only.
 
 ## `wasmEvalFELWithTrace(expression: string, fields?: Record<string, unknown>): FelTraceResult`
 
@@ -1432,12 +1441,6 @@ losing FEL type fidelity (money/date) but gaining universal readability.
 ## `wasmFelExprIsInterpolationStaticLiteral(expression: string): boolean`
 
 Locale §3.3.1 — true if the expression AST is only literals and unary `not` / `!` / `-`.
-
-## `wasmConsumeLastEvalErrorDiagnostics(): boolean`
-
-Locale §3.3.1 rule 2 — read and reset the error-diagnostics flag.
-Returns `true` if the most recent WASM FEL eval recorded error-severity
-diagnostics. The flag is reset to `false` after reading.
 
 ## `wasmPrepareFelExpression(optionsJson: string): string`
 
@@ -1532,6 +1535,13 @@ Sanitize a string into a valid FEL identifier.
 
 Compute dependency groups from recorded changeset entries (JSON round-trip to Rust).
 
+#### interface `FelEvalResult`
+
+In-band result from `evalFEL` / `evalFELWithContext` (Locale §3.3.1 rule 2).
+
+- **value**: `unknown`
+- **hasErrorDiagnostics**: `boolean`
+
 #### interface `WasmFelContext`
 
 FEL evaluation context for the richer WASM evaluator.
@@ -1544,6 +1554,7 @@ FEL evaluation context for the richer WASM evaluator.
 Result of a traced FEL evaluation.
 
 - **value** (`unknown`): Evaluated value (JSON-projected — no FEL type tags).
+- **hasErrorDiagnostics** (`boolean`): True when error-severity diagnostics were recorded (Locale §3.3.1 rule 2).
 - **diagnostics** (`Array<Record<string, unknown>>`): Diagnostics emitted during evaluation.
 - **trace** (`FelTraceStep[]`): Ordered trace steps, appended in evaluation order.
 
@@ -1680,7 +1691,7 @@ Execute a mapping transform.
 
 Execute a full mapping document (rules + defaults + autoMap).
 
-## `wasmLintDocument(doc: unknown): {
+## `wasmLintDocument(doc: unknown, options?: WasmLintDocumentOptions): {
     documentType: string | null;
     valid: boolean;
     diagnostics: any[];
@@ -1748,7 +1759,7 @@ Return the builtin FEL function catalog exported by the Rust runtime.
     diagnostics: any[];
 }`
 
-Lint a Formspec document with explicit registry documents.
+@deprecated Use `wasmLintDocument(doc, { registryDocuments })`.
 
 ## `wasmParseRegistry(registry: unknown): {
     publisher: {
@@ -1788,6 +1799,17 @@ Generate a structured changelog between two definitions.
 }>`
 
 Validate enabled x-extension usage in an item tree against registry entries.
+
+#### interface `WasmLintDocumentOptions`
+
+- **registryDocuments?**: `unknown[]`
+- **mode?**: `string`
+- **definitionDocument?**: `unknown`
+- **themeDocument?**: `unknown`
+- **componentDocuments?**: `unknown[]`
+- **localeDocuments?**: `unknown[]`
+- **schemaOnly?**: `boolean`
+- **noFel?**: `boolean`
 
 #### type `WasmToolsModule`
 

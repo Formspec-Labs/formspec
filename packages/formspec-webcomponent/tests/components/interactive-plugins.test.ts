@@ -37,7 +37,7 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
         el.componentDocument = minimalComponentDoc({
             component: 'Stack',
             children: pages.map(p => ({
-                component: 'Page',
+                component: 'Section',
                 ...p,
             })),
         });
@@ -199,12 +199,12 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 1',
                     children: [{ component: 'TextInput', bind: 'name' }],
                 },
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 2',
                     children: [{ component: 'Text', text: 'Done' }],
                 },
@@ -243,12 +243,12 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 1',
                     children: [{ component: 'TextInput', bind: 'step1field' }],
                 },
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 2',
                     children: [{ component: 'TextInput', bind: 'step2field' }],
                 },
@@ -278,12 +278,12 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 1',
                     children: [{ component: 'TextInput', bind: 'name' }],
                 },
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 2',
                     children: [{ component: 'Text', text: 'Done' }],
                 },
@@ -318,12 +318,12 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 1',
                     children: [{ component: 'TextInput', bind: 'name' }],
                 },
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Step 2',
                     children: [{ component: 'Text', text: 'Done' }],
                 },
@@ -397,7 +397,7 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         el.componentDocument = minimalComponentDoc({
             component: 'Stack',
             children: pages.map(p => ({
-                component: 'Page',
+                component: 'Section',
                 ...p,
             })),
         });
@@ -417,7 +417,7 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         return el;
     }
 
-    it('renders tab bar with one tab per Page child', () => {
+    it('renders tab bar with one tab per Section child', () => {
         const el = renderPageModeTabs([
             { title: 'Info', children: [{ component: 'Text', text: 'Info content' }] },
             { title: 'Review', children: [{ component: 'Text', text: 'Review content' }] },
@@ -481,15 +481,15 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         expect(panelIndex).toBeLessThan(barIndex);
     });
 
-    it('renders non-Page orphan children outside tabs', () => {
+    it('renders non-Section orphan children in a final fallback tab', () => {
         const el = document.createElement('formspec-render') as any;
         document.body.appendChild(el);
         el.componentDocument = minimalComponentDoc({
             component: 'Stack',
             children: [
                 { component: 'Text', text: 'Orphan banner' },
-                { component: 'Page', title: 'Tab A', children: [{ component: 'Text', text: 'A' }] },
-                { component: 'Page', title: 'Tab B', children: [{ component: 'Text', text: 'B' }] },
+                { component: 'Section', title: 'Tab A', children: [{ component: 'Text', text: 'A' }] },
+                { component: 'Section', title: 'Tab B', children: [{ component: 'Text', text: 'B' }] },
             ],
         });
         el.definition = {
@@ -502,16 +502,16 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         };
         el.render();
 
-        // Tabs should have only 2 tabs (the Page children)
         const buttons = el.querySelectorAll('.formspec-tab');
-        expect(buttons.length).toBe(2);
+        expect(buttons.length).toBe(3);
+        expect(buttons[2].textContent).toBe('Additional Items');
 
-        // The orphan Text should be rendered outside the tabs container
         const tabsContainer = el.querySelector('.formspec-tabs') as HTMLElement;
         expect(tabsContainer).not.toBeNull();
+        expect(tabsContainer.textContent).toContain('Orphan banner');
     });
 
-    it('tab labels derived from Page title property', () => {
+    it('tab labels derived from Section title property', () => {
         const el = renderPageModeTabs([
             { title: 'Personal Info', children: [{ component: 'Text', text: 'A' }] },
             { children: [{ component: 'Text', text: 'B' }] }, // no title
@@ -582,10 +582,10 @@ describe('Tabs plugin', () => {
         expect(buttons[1].classList.contains('formspec-tab--active')).toBe(true);
     });
 
-    it('position bottom renders panels before tab bar', () => {
+    it('placement bottom renders panels before tab bar', () => {
         const el = renderWithTree({
             component: 'Tabs',
-            position: 'bottom',
+            placement: 'bottom',
             tabLabels: ['Tab A'],
             children: [{ component: 'Text', text: 'Panel A' }],
         });

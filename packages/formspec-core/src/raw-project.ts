@@ -352,7 +352,7 @@ export class RawProject implements IProjectCore {
 
   get component(): Readonly<ComponentDocument> {
     if (this._cachedComponentForState !== this._state) {
-      this._cachedComponent = this._state.component as ComponentDocument;
+      this._cachedComponent = withComponentEnvelope(this._state.component, this._state.definition.url);
       this._cachedComponentForState = this._state;
     }
     return this._cachedComponent!;
@@ -363,13 +363,16 @@ export class RawProject implements IProjectCore {
   }
 
   get mappings(): Readonly<Record<string, MappingDocument>> {
-    return this._state.mappings as Readonly<Record<string, MappingDocument>>;
+    const url = this._state.definition.url;
+    return Object.fromEntries(
+      Object.entries(this._state.mappings).map(([id, mapping]) => [id, withMappingEnvelope(mapping, url)]),
+    );
   }
 
   /** Returns the mapping document for the currently selected integration. */
   get mapping(): Readonly<MappingDocument> {
     const id = this._state.selectedMappingId || 'default';
-    return (this._state.mappings[id] ?? {}) as MappingDocument;
+    return withMappingEnvelope(this._state.mappings[id] ?? {}, this._state.definition.url);
   }
 
   get locales(): Readonly<Record<string, LocaleState>> {

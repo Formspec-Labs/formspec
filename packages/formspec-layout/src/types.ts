@@ -25,7 +25,7 @@ export interface LayoutNode {
     /** Stable ID for diffing/keying (auto-generated during planning). */
     id: string;
 
-    /** Resolved component type: "Stack", "TextInput", "Page", etc. */
+    /** Resolved component type: "Stack", "TextInput", "Section", etc. */
     component: string;
 
     /** Node classification for renderer dispatch. */
@@ -45,6 +45,9 @@ export interface LayoutNode {
 
     /** Ordered child nodes. */
     children: LayoutNode[];
+
+    /** Page mode for a planner-authoritative root whose direct Section children are page units. */
+    pageMode?: 'wizard' | 'tabs';
 
     // ── Field binding ──
 

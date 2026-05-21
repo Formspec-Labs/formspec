@@ -31,7 +31,6 @@ export function makeDefinition() {
         key: 'organization',
         type: 'group',
         label: 'Organization',
-        presentation: { layout: { page: 'org' } },
         children: [
           {
             key: 'name',
@@ -57,13 +56,12 @@ export function makeDefinition() {
         dataType: 'string',
         label: 'Contact Email',
         required: true,
-        presentation: { widgetHint: 'email' },
+        presentation: { widgetHint: 'TextInput' },
       },
       {
         key: 'details',
         type: 'group',
         label: 'Project Details',
-        presentation: { layout: { page: 'details' } },
         children: [
           {
             key: 'summary',
@@ -216,7 +214,7 @@ export function makeComponent() : ComponentDocument {
       component: 'Stack',
       children: [
         {
-          component: 'Page',
+          component: 'Section',
           id: 'component-contact',
           title: 'Component Contact',
           children: [
@@ -224,7 +222,7 @@ export function makeComponent() : ComponentDocument {
           ],
         },
         {
-          component: 'Page',
+          component: 'Section',
           id: 'component-org',
           title: 'Component Organization',
           children: [
@@ -233,7 +231,7 @@ export function makeComponent() : ComponentDocument {
           ],
         },
         {
-          component: 'Page',
+          component: 'Section',
           id: 'component-review',
           title: 'Review',
           children: [],

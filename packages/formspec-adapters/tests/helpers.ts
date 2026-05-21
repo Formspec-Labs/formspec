@@ -181,7 +181,7 @@ export function mockTabs(overrides?: Partial<TabsBehavior>): TabsBehavior {
         id: 'tabs-1',
         compOverrides: {},
         tabLabels: ['Tab A', 'Tab B'],
-        tabCount: 2, position: 'top', defaultTab: 0,
+        tabCount: 2, placement: 'top', defaultTab: 0,
         activeTab: () => 0, setActiveTab: vi.fn(),
         renderTab: vi.fn(),
         bind: vi.fn(() => vi.fn()),

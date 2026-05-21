@@ -21,7 +21,7 @@ function renderWizard(tree: any) {
     const children = tree.children || [];
     el.componentDocument = minimalComponentDoc({
         component: 'Stack',
-        children: children.map((c: any) => c.component === 'Page' ? c : { component: 'Page', children: [c] }),
+        children: children.map((c: any) => c.component === 'Section' ? c : { component: 'Section', children: [c] }),
     });
     el.definition = {
         $formspec: '1.0',
@@ -80,9 +80,9 @@ describe('Wizard bind() manages sidenav updates', () => {
             component: 'Wizard',
             sidenav: true,
             children: [
-                { component: 'Page', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
-                { component: 'Page', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
-                { component: 'Page', title: 'Step 3', children: [{ component: 'Text', text: 'C' }] },
+                { component: 'Section', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
+                { component: 'Section', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
+                { component: 'Section', title: 'Step 3', children: [{ component: 'Text', text: 'C' }] },
             ],
         });
         const nextBtn = el.querySelector('.formspec-wizard-next') as HTMLButtonElement;
@@ -99,8 +99,8 @@ describe('Wizard bind() manages sidenav updates', () => {
             component: 'Wizard',
             sidenav: true,
             children: [
-                { component: 'Page', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
-                { component: 'Page', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
+                { component: 'Section', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
+                { component: 'Section', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
             ],
         });
         const nextBtn = el.querySelector('.formspec-wizard-next') as HTMLButtonElement;
@@ -116,8 +116,8 @@ describe('Wizard bind() manages sidenav updates', () => {
             component: 'Wizard',
             sidenav: true,
             children: [
-                { component: 'Page', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
-                { component: 'Page', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
+                { component: 'Section', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
+                { component: 'Section', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
             ],
         });
         const nextBtn = el.querySelector('.formspec-wizard-next') as HTMLButtonElement;
@@ -180,8 +180,8 @@ describe('Wizard sidenav collapse toggle is signal-free', () => {
             component: 'Wizard',
             sidenav: true,
             children: [
-                { component: 'Page', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
-                { component: 'Page', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
+                { component: 'Section', title: 'Step 1', children: [{ component: 'Text', text: 'A' }] },
+                { component: 'Section', title: 'Step 2', children: [{ component: 'Text', text: 'B' }] },
             ],
         });
         const sidenav = el.querySelector('.formspec-wizard-sidenav') as HTMLElement;

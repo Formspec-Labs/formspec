@@ -8,7 +8,7 @@ import type { LayoutComponentProps } from '../../component-map';
  * Tabs layout component.
  *
  * Renders a tab bar and tab panels following the WAI-ARIA Tabs pattern.
- * Supports top/bottom tab position, keyboard navigation (Arrow/Home/End),
+ * Supports top/bottom/side tab placement, keyboard navigation (Arrow/Home/End),
  * and automatic activation on arrow key press.
  *
  * Tab labels are read from child LayoutNode metadata (fieldItem.label, props.title,
@@ -22,7 +22,7 @@ export function Tabs({ node, children }: LayoutComponentProps) {
     const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
     const id = node.id || 'tabs';
-    const position: 'top' | 'bottom' | 'left' | 'right' = (node.props?.position as 'top' | 'bottom' | 'left' | 'right') || 'top';
+    const placement: 'top' | 'bottom' | 'left' | 'right' = (node.props?.placement as 'top' | 'bottom' | 'left' | 'right') || 'top';
     const ariaLabel = (node.props?.['aria-label'] as string)
         || node.fieldItem?.label
         || 'Tabs';
@@ -74,7 +74,7 @@ export function Tabs({ node, children }: LayoutComponentProps) {
         <div
             role="tablist"
             aria-label={ariaLabel}
-            aria-orientation={position === 'left' || position === 'right' ? 'vertical' : undefined}
+            aria-orientation={placement === 'left' || placement === 'right' ? 'vertical' : undefined}
             className="formspec-tab-bar"
             onKeyDown={handleKeyDown}
         >
@@ -129,11 +129,11 @@ export function Tabs({ node, children }: LayoutComponentProps) {
             className={cssClass}
             style={{
                 ...style,
-                ...(position === 'left' || position === 'right' ? { display: 'flex', flexDirection: 'row' } : {}),
+                ...(placement === 'left' || placement === 'right' ? { display: 'flex', flexDirection: 'row' } : {}),
             }}
-            data-position={position !== 'top' ? position : undefined}
+            data-placement={placement !== 'top' ? placement : undefined}
         >
-            {position === 'bottom' || position === 'right' ? (
+            {placement === 'bottom' || placement === 'right' ? (
                 <>
                     {panels}
                     {tabBar}

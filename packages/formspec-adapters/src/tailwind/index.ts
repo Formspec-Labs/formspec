@@ -12,7 +12,6 @@ import { renderRadioGroup } from './radio-group';
 import { renderCheckboxGroup } from './checkbox-group';
 import { renderSelect } from './select';
 import { renderDatePicker } from './date-picker';
-import { renderCheckbox } from './checkbox';
 import { renderToggle } from './toggle';
 import { renderMoneyInput } from './money-input';
 import { renderSlider } from './slider';
@@ -41,7 +40,6 @@ export const tailwindAdapter: RenderAdapter = {
         CheckboxGroup: renderCheckboxGroup,
         Select: renderSelect,
         DatePicker: renderDatePicker,
-        Checkbox: renderCheckbox,
         Toggle: renderToggle,
         MoneyInput: renderMoneyInput,
         Slider: renderSlider,

@@ -1,4 +1,4 @@
-/** @filedesc Structural DOM tests for all 15 USWDS adapter components. */
+/** @filedesc Structural DOM tests for canonical USWDS adapter components. */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { renderTextInput } from '../../src/uswds/text-input';
 import { renderNumberInput } from '../../src/uswds/number-input';
@@ -6,7 +6,6 @@ import { renderRadioGroup } from '../../src/uswds/radio-group';
 import { renderCheckboxGroup } from '../../src/uswds/checkbox-group';
 import { renderSelect } from '../../src/uswds/select';
 import { renderDatePicker } from '../../src/uswds/date-picker';
-import { renderCheckbox } from '../../src/uswds/checkbox';
 import { renderToggle } from '../../src/uswds/toggle';
 import { renderMoneyInput } from '../../src/uswds/money-input';
 import { renderSlider } from '../../src/uswds/slider';
@@ -17,7 +16,7 @@ import { renderWizard } from '../../src/uswds/wizard';
 import { renderTabs } from '../../src/uswds/tabs';
 import {
     mockTextInput, mockNumberInput, mockRadioGroup, mockCheckboxGroup,
-    mockSelect, mockDatePicker, mockFieldBehavior, mockToggle,
+    mockSelect, mockDatePicker, mockToggle,
     mockMoneyInput, mockSlider, mockRating, mockFileUpload,
     mockSignature, mockWizard, mockTabs, mockAdapterContext, captureBindRefs,
     mockCanvasContext,
@@ -182,18 +181,6 @@ describe('USWDS DatePicker', () => {
         expect(input.type).toBe('text');
         const hint = parent.querySelector('.usa-hint');
         expect(hint?.textContent).toContain('MM/DD/YYYY');
-    });
-});
-
-// ── Checkbox ───────────────────────────────────────────────────────
-
-describe('USWDS Checkbox', () => {
-    it('renders usa-checkbox with input and label', () => {
-        const parent = makeParent();
-        renderCheckbox(mockFieldBehavior(), parent, mockAdapterContext());
-        expect(parent.querySelector('.usa-checkbox')).toBeTruthy();
-        expect(parent.querySelector('.usa-checkbox__input')).toBeTruthy();
-        expect(parent.querySelector('.usa-checkbox__label')).toBeTruthy();
     });
 });
 

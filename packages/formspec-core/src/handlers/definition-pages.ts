@@ -9,7 +9,7 @@
  * - form presentation behavior such as `pageMode` (`definition.setFormPresentation`)
  * - group `$ref` composition (`definition.setGroupRef`)
  *
- * It does not author Tier 2 theme pages or Tier 3 component Page nodes. Those
+ * It does not author Tier 2 theme pages or Tier 3 component Section page units. Those
  * higher-precedence layout surfaces are handled elsewhere.
  *
  * @module definition-pages

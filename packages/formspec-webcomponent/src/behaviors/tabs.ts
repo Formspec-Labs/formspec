@@ -1,12 +1,26 @@
 /** @filedesc Tabs behavior hook — manages tabbed interface state. */
 import { signal } from '@preact/signals-core';
 import { effect } from '@preact/signals-core';
+import type { ComponentDescriptor } from '../hub-types.js';
 import type { TabsBehavior, TabsRefs, BehaviorContext } from './types';
 
-export function useTabs(ctx: BehaviorContext, comp: any): TabsBehavior {
-    const children: any[] = comp.children || [];
+type TabsPlacement = 'top' | 'bottom' | 'left' | 'right';
+
+type TabsComponentDescriptor = ComponentDescriptor & {
+    children?: ComponentDescriptor[];
+    tabLabels?: string[];
+    placement?: TabsPlacement;
+    defaultTab?: number;
+};
+
+function normalizeTabsPlacement(value: unknown): TabsPlacement {
+    return value === 'bottom' || value === 'left' || value === 'right' ? value : 'top';
+}
+
+export function useTabs(ctx: BehaviorContext, comp: TabsComponentDescriptor): TabsBehavior {
+    const children: ComponentDescriptor[] = comp.children || [];
     const tabLabels: string[] = comp.tabLabels || [];
-    const position: 'top' | 'bottom' = comp.position || 'top';
+    const placement = normalizeTabsPlacement(comp.placement);
     const defaultTab = comp.defaultTab || 0;
     const activeTabSignal = signal(defaultTab);
 
@@ -24,7 +38,7 @@ export function useTabs(ctx: BehaviorContext, comp: any): TabsBehavior {
         },
         tabLabels,
         tabCount: children.length,
-        position,
+        placement,
         defaultTab,
 
         activeTab(): number {

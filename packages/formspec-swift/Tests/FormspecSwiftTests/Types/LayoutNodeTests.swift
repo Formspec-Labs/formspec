@@ -61,7 +61,7 @@ final class LayoutNodeTests: XCTestCase {
         let fieldName = root.children[0]
 
         XCTAssertNotNil(fieldName.presentation)
-        XCTAssertEqual(fieldName.presentation?.widget, "text")
+        XCTAssertEqual(fieldName.presentation?.widget, "Text")
         XCTAssertEqual(fieldName.presentation?.labelPosition, .top)
     }
 

@@ -16,7 +16,7 @@
  * @module
  */
 
-import { widgetTokenToComponent } from '@formspec-org/types';
+import { widgetTokenToComponent, type Extensions } from '@formspec-org/types';
 
 // ── Shared Types ────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ export interface ThemeDocument {
     pages?: Page[];
     breakpoints?: Record<string, number>;
     stylesheets?: string[];
-    extensions?: Record<string, unknown>;
+    extensions?: Extensions;
     /**
      * CSS class merge strategy applied after cascade resolution.
      * - `"union"` (default): plain Set-based deduplication.
@@ -117,15 +117,18 @@ export interface ItemDescriptor {
     dataType?: FormspecDataType;
 }
 
-/** Tier 1 layout hints from the definition: flow direction, grid columns, collapsibility, and page assignment. */
+/** Tier 1 layout hints from the definition: flow direction, grid columns, collapsibility, and grid placement. */
 export interface LayoutHints {
     flow?: 'stack' | 'grid' | 'inline';
     columns?: number;
-    colSpan?: number;
-    newRow?: boolean;
+    grid?: {
+        span?: number;
+        start?: number;
+        rowSpan?: number;
+        rowStart?: number;
+    };
     collapsible?: boolean;
     collapsedByDefault?: boolean;
-    page?: string;
 }
 
 /** Tier 1 visual emphasis and sizing hints from the definition. */

@@ -17,7 +17,7 @@ function pageNode(title: string, id: string) {
     type: 'component.addNode',
     payload: {
       parent: { nodeId: 'root' },
-      component: 'Page',
+      component: 'Section',
       props: { nodeId: id, title },
     },
   };
@@ -167,7 +167,7 @@ describe('Formspec Studio Core E2E Validation', { timeout: 60_000 }, () => {
       { type: 'definition.setFormPresentation', payload: { property: 'pageMode', value: 'wizard' } },
       pageNode('Applicant Details', 'p1'),
       pageNode('Preferences', 'p2'),
-      { type: 'theme.setItemOverride', payload: { itemKey: 'page2.hasPet', property: 'widget', value: 'Switch' } }
+      { type: 'theme.setItemOverride', payload: { itemKey: 'page2.hasPet', property: 'widget', value: 'Toggle' } }
     ]);
     validateProject('1-greenfield-theme');
 

@@ -6,7 +6,6 @@ import { renderRadioGroup } from './radio-group';
 import { renderCheckboxGroup } from './checkbox-group';
 import { renderSelect } from './select';
 import { renderToggle } from './toggle';
-import { renderCheckbox } from './checkbox';
 import { renderDatePicker } from './date-picker';
 import { renderMoneyInput } from './money-input';
 import { renderSlider } from './slider';
@@ -16,12 +15,11 @@ import { renderSignature } from './signature';
 import { renderWizard } from './wizard';
 import { renderTabs } from './tabs';
 import {
-    renderPage,
+    renderSection,
     renderStack,
     renderGrid,
     renderDivider,
     renderCollapsible,
-    renderColumns,
     renderPanel,
     renderAccordion,
     renderModal,
@@ -31,7 +29,6 @@ import {
     renderDefaultHeading,
     renderDefaultText,
     renderDefaultCard,
-    renderDefaultSpacer,
     renderDefaultAlert,
     renderDefaultBadge,
     renderDefaultProgressBar,
@@ -43,12 +40,11 @@ import { renderDefaultConditionalGroup, renderDefaultDataTable } from './special
 export const defaultAdapter: RenderAdapter = {
     name: 'default',
     components: {
-        Page: renderPage,
+        Section: renderSection,
         Stack: renderStack,
         Grid: renderGrid,
         Divider: renderDivider,
         Collapsible: renderCollapsible,
-        Columns: renderColumns,
         Panel: renderPanel,
         Accordion: renderAccordion,
         Modal: renderModal,
@@ -56,7 +52,6 @@ export const defaultAdapter: RenderAdapter = {
         Heading: renderDefaultHeading,
         Text: renderDefaultText,
         Card: renderDefaultCard,
-        Spacer: renderDefaultSpacer,
         Alert: renderDefaultAlert,
         Badge: renderDefaultBadge,
         ProgressBar: renderDefaultProgressBar,
@@ -70,7 +65,6 @@ export const defaultAdapter: RenderAdapter = {
         CheckboxGroup: renderCheckboxGroup,
         Select: renderSelect,
         Toggle: renderToggle,
-        Checkbox: renderCheckbox,
         DatePicker: renderDatePicker,
         MoneyInput: renderMoneyInput,
         Slider: renderSlider,

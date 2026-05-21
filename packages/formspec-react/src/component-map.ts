@@ -31,7 +31,7 @@ export interface DisplayComponentProps {
 export interface ComponentMap {
     /** Field component overrides (TextInput, Select, RadioGroup, etc.). */
     fields?: Partial<Record<string, React.ComponentType<FieldComponentProps>>>;
-    /** Layout component overrides (Stack, Card, Grid, Columns, etc.). */
+    /** Layout component overrides (Section, Stack, Grid, Card, etc.). */
     layout?: Partial<Record<string, React.ComponentType<LayoutComponentProps>>>;
     /** Display component overrides (Heading, Text, Alert, Divider, etc.). */
     display?: Partial<Record<string, React.ComponentType<DisplayComponentProps>>>;

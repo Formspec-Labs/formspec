@@ -36,12 +36,12 @@ describe('ComponentRegistry', () => {
 
         const expectedTypes = [
             // Layout
-            'Page', 'Stack', 'Grid', 'Divider', 'Collapsible', 'Columns', 'Panel', 'Accordion', 'Modal', 'Popover',
+            'Section', 'Stack', 'Grid', 'Divider', 'Collapsible', 'Panel', 'Accordion', 'Modal', 'Popover',
             // Inputs
-            'TextInput', 'NumberInput', 'Select', 'Toggle', 'Checkbox', 'DatePicker',
+            'TextInput', 'NumberInput', 'Select', 'Toggle', 'DatePicker',
             'RadioGroup', 'CheckboxGroup', 'Slider', 'Rating', 'FileUpload', 'Signature', 'MoneyInput',
             // Display
-            'Heading', 'Text', 'Card', 'Spacer', 'Alert', 'Badge', 'ProgressBar', 'Summary', 'ValidationSummary',
+            'Heading', 'Text', 'Card', 'Alert', 'Badge', 'ProgressBar', 'Summary', 'ValidationSummary',
             // Interactive (Wizard is driven by formPresentation.pageMode, not a plugin)
             'Tabs', 'SubmitButton',
             // Special

@@ -48,6 +48,12 @@ export interface FormspecContextValue {
 
 const FormspecContext = createContext<FormspecContextValue | null>(null);
 
+function pageModeFromPresentation(presentation: Record<string, unknown> | undefined): 'wizard' | 'tabs' | undefined {
+    return presentation?.pageMode === 'wizard' || presentation?.pageMode === 'tabs'
+        ? presentation.pageMode
+        : undefined;
+}
+
 export interface FormspecProviderProps {
     /** Pre-built FormEngine instance. Mutually exclusive with `definition`. */
     engine?: IFormEngine;
@@ -154,6 +160,7 @@ export function FormspecProvider({
         if (!engine) return null;
         const def = engine.getDefinition();
         const items = def.items || [];
+        const pageMode = pageModeFromPresentation(mergedFormPresentation);
 
         const planCtx = preparePlanContext({
             items,
@@ -177,10 +184,15 @@ export function FormspecProvider({
                 props: {},
                 cssClasses: [],
                 children: nodes,
+                pageMode: pageMode && nodes.some((node) => node.component === 'Section')
+                    ? pageMode
+                    : undefined,
             };
         }
 
-        if (onSubmit) ensureSubmitButton(root, planCtx.nextId);
+        if (onSubmit) {
+            ensureSubmitButton(root, planCtx.nextId, { pageMode });
+        }
         return root;
     }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, mergedFormPresentation]);
 

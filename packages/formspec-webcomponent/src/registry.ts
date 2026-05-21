@@ -35,7 +35,7 @@ export class ComponentRegistry {
     /**
      * Look up a registered plugin by component type.
      *
-     * @param type - Component type identifier (e.g. `"TextInput"`, `"Wizard"`).
+     * @param type - Component type identifier (e.g. `"TextInput"`, `"Section"`).
      * @returns The matching plugin, or `undefined` if no plugin is registered for that type.
      */
     get(type: string): ComponentPlugin | undefined {
@@ -92,7 +92,7 @@ export class ComponentRegistry {
 /**
  * Application-wide singleton registry shared by all `<formspec-render>` instances.
  *
- * All 35 built-in component plugins are registered here at module load.
+ * All 33 built-in component plugins are registered here at module load.
  * External code can register additional plugins via `globalRegistry.register(plugin)`.
  */
 export const globalRegistry = new ComponentRegistry();

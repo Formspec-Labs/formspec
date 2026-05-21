@@ -4,7 +4,6 @@ import type { AdapterContext, DisplayComponentBehavior, DataTableBehavior } from
 import {
     formatMoney,
     renderMarkdown,
-    renderDefaultSpacer,
     renderDefaultProgressBar,
     renderDefaultDataTable,
 } from '@formspec-org/webcomponent';
@@ -131,10 +130,6 @@ export function renderUSWDSCard(behavior: DisplayComponentBehavior, parent: HTML
             host.renderComponent(child, body, host.prefix);
         }
     }
-}
-
-export function renderUSWDSSpacer(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    renderDefaultSpacer(behavior, parent, actx);
 }
 
 export function renderUSWDSAlert(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {

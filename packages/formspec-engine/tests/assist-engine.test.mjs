@@ -22,7 +22,7 @@ function makeDefinition() {
       },
       { key: 'contactEmail', type: 'field', dataType: 'string', label: 'Email', required: true },
       { key: 'optionalNote', type: 'field', dataType: 'string', label: 'Note' },
-      { key: 'displayOnly', type: 'display', label: 'Display only', widget: 'heading', content: 'Hello' },
+      { key: 'displayOnly', type: 'display', label: 'Display only', widget: 'Heading', content: 'Hello' },
       { key: 'derivedScore', type: 'field', dataType: 'integer', label: 'Derived', readonly: true, calculate: "1" },
     ],
   };

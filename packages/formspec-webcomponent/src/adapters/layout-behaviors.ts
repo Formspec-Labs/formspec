@@ -1,7 +1,7 @@
 /** @filedesc Behavior payloads for layout component adapter render functions. */
 import type { LayoutHostSlice } from './layout-host';
 
-export interface PageLayoutBehavior {
+export interface SectionLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
     titleText: string | null;
@@ -32,13 +32,6 @@ export interface CollapsibleLayoutBehavior {
     comp: any;
     host: LayoutHostSlice;
     titleText: string;
-    descriptionText: string | null;
-}
-
-export interface ColumnsLayoutBehavior {
-    comp: any;
-    host: LayoutHostSlice;
-    titleText: string | null;
     descriptionText: string | null;
 }
 

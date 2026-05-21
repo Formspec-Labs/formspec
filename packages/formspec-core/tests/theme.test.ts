@@ -61,9 +61,9 @@ describe('theme.setSelector', () => {
     });
     project.dispatch({
       type: 'theme.setSelector',
-      payload: { index: 0, apply: { widget: 'TextArea' } },
+      payload: { index: 0, apply: { widget: 'NumberInput' } },
     });
-    expect((project.theme as any).selectors[0].apply.widget).toBe('TextArea');
+    expect((project.theme as any).selectors[0].apply.widget).toBe('NumberInput');
   });
 });
 
@@ -101,9 +101,9 @@ describe('theme.setItemOverride', () => {
     const project = createRawProject();
     project.dispatch({
       type: 'theme.setItemOverride',
-      payload: { itemKey: 'name', property: 'widget', value: 'TextArea' },
+      payload: { itemKey: 'name', property: 'widget', value: 'TextInput' },
     });
-    expect((project.theme as any).items?.name?.widget).toBe('TextArea');
+    expect((project.theme as any).items?.name?.widget).toBe('TextInput');
   });
 
   it('removes property with null, cleans up empty', () => {

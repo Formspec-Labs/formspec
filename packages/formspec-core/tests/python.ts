@@ -54,7 +54,7 @@ PY`,
 function hasCrateVersionMatch(pythonBin: string, rootDir: string): boolean {
   try {
     const installed = execSync(
-      `${pythonBin} -c "import formspec_rust; print(formspec_rust.CRATE_VERSION)"`,
+      `${pythonBin} -c "import formspec._rust as rust; print(rust.formspec_rust.CRATE_VERSION)"`,
       { cwd: rootDir, env: pythonTestEnv(rootDir), encoding: 'utf8', stdio: 'pipe' },
     ).trim();
     const cargoToml = fs.readFileSync(path.join(rootDir, 'Cargo.toml'), 'utf8');
@@ -66,12 +66,51 @@ function hasCrateVersionMatch(pythonBin: string, rootDir: string): boolean {
   }
 }
 
+/** Smoke-check the editable native extension's embedded component vocabulary. */
+function hasCurrentComponentVocabulary(pythonBin: string, rootDir: string): boolean {
+  try {
+    const output = execSync(
+      `${pythonBin} - <<'PY'
+from formspec._rust import lint
+valid_component = {
+    "$formspecComponent": "1.0",
+    "version": "0.1.0",
+    "targetDefinition": {"url": "urn:formspec:test"},
+    "tree": {
+        "component": "Stack",
+        "children": [{"component": "Section", "title": "A", "children": []}],
+    },
+}
+valid_errors = [d.code for d in lint(valid_component) if d.severity == "error"]
+retired_results = []
+for name in ["Page", "Columns", "Spacer"]:
+    invalid_component = {
+        "$formspecComponent": "1.0",
+        "version": "0.1.0",
+        "targetDefinition": {"url": "urn:formspec:test"},
+        "tree": {"component": name},
+    }
+    retired_results.append(any(d.severity == "error" for d in lint(invalid_component)))
+print(valid_errors, retired_results)
+PY`,
+      { cwd: rootDir, env: pythonTestEnv(rootDir), encoding: 'utf8', stdio: 'pipe' },
+    ).trim();
+    return output === '[] [True, True, True]';
+  } catch {
+    return false;
+  }
+}
+
 export function ensureCurrentFormspecRust(pythonBin: string, rootDir: string): void {
-  if (hasCurrentEvaluateDefSignature(pythonBin, rootDir) && hasCrateVersionMatch(pythonBin, rootDir)) {
+  if (
+    hasCurrentEvaluateDefSignature(pythonBin, rootDir)
+    && hasCrateVersionMatch(pythonBin, rootDir)
+    && hasCurrentComponentVocabulary(pythonBin, rootDir)
+  ) {
     return;
   }
 
-  execSync(`${pythonBin} -m pip install --no-build-isolation ./crates/formspec-py`, {
+  execSync(`${pythonBin} -m maturin develop --release`, {
     cwd: rootDir,
     env: pythonTestEnv(rootDir),
     encoding: 'utf8',

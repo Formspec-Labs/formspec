@@ -42,12 +42,11 @@ export const defaultTheme = buildPlatformTheme();
 export type { RenderAdapter, AdapterRenderFn, AdapterContext } from './adapters/types';
 export type { LayoutHostSlice } from './adapters/layout-host';
 export type {
-    PageLayoutBehavior,
+    SectionLayoutBehavior,
     StackLayoutBehavior,
     GridLayoutBehavior,
     DividerLayoutBehavior,
     CollapsibleLayoutBehavior,
-    ColumnsLayoutBehavior,
     PanelLayoutBehavior,
     AccordionLayoutBehavior,
     ModalLayoutBehavior,
@@ -60,7 +59,6 @@ export {
     renderDefaultHeading,
     renderDefaultText,
     renderDefaultCard,
-    renderDefaultSpacer,
     renderDefaultAlert,
     renderDefaultBadge,
     renderDefaultProgressBar,
@@ -71,12 +69,11 @@ export { renderDefaultConditionalGroup, renderDefaultDataTable } from './adapter
 
 /** Default layout DOM builders — call from design-system adapters when falling back to canonical markup. */
 export {
-    renderPage as renderDefaultLayoutPage,
+    renderSection as renderDefaultLayoutSection,
     renderStack as renderDefaultLayoutStack,
     renderGrid as renderDefaultLayoutGrid,
     renderDivider as renderDefaultLayoutDivider,
     renderCollapsible as renderDefaultLayoutCollapsible,
-    renderColumns as renderDefaultLayoutColumns,
     renderPanel as renderDefaultLayoutPanel,
     renderAccordion as renderDefaultLayoutAccordion,
     renderModal as renderDefaultLayoutModal,

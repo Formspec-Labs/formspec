@@ -5,6 +5,15 @@ import type { DisplayComponentBehavior } from '../display-behaviors';
 import type { DataTableBehavior } from '../../behaviors/types';
 import { formatMoney } from '../../format';
 
+type SelectOption = { value: string; label?: string };
+
+function optionSetOptions(entry: unknown): SelectOption[] {
+    if (Array.isArray(entry)) return entry;
+    if (typeof entry !== 'object' || entry === null) return [];
+    const options = (entry as { options?: unknown }).options;
+    return Array.isArray(options) ? options : [];
+}
+
 export function renderDefaultConditionalGroup(
     behavior: DisplayComponentBehavior,
     parent: HTMLElement,
@@ -166,11 +175,12 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                             emptyOpt.value = '';
                             emptyOpt.textContent = '';
                             select.appendChild(emptyOpt);
-                            let options: Array<{ value: string; label: string }> = [];
+                            let options: SelectOption[] = [];
                             if (fieldDef.optionSet) {
                                 const def = host.engine.definition;
-                                const entry = def?.optionSets?.[fieldDef.optionSet];
-                                options = Array.isArray(entry) ? entry : ((entry as any)?.options ?? []);
+                                const optionSets = def?.optionSets as Record<string, unknown> | undefined;
+                                const entry = optionSets?.[fieldDef.optionSet];
+                                options = optionSetOptions(entry);
                             } else if (Array.isArray(fieldDef.options)) {
                                 options = fieldDef.options;
                             }

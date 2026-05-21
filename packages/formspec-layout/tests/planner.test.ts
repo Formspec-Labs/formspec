@@ -137,13 +137,13 @@ describe('planComponentTree', () => {
 
     it('resolves responsive overrides', () => {
         const tree = {
-            component: 'Columns',
-            widths: ['3fr', '1fr'],
-            responsive: { sm: { widths: ['1fr'] } },
+            component: 'Grid',
+            columns: ['3fr', '1fr'],
+            responsive: { sm: { columns: ['1fr'] } },
         };
         const ctx = makeCtx({ activeBreakpoint: 'sm' });
         const node = planComponentTree(tree, ctx);
-        expect(node.props.widths).toEqual(['1fr']);
+        expect(node.props.columns).toEqual(['1fr']);
     });
 
     it('preserves when condition as marker', () => {
@@ -301,7 +301,7 @@ describe('planComponentTree', () => {
         expect(node.children[0].bindPath).toBe('outer.inner');
     });
 
-    it('keeps explicit component Page nodes ahead of theme.pages', () => {
+    it('keeps explicit component Section nodes ahead of theme.pages', () => {
         const items = [
             { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
             { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
@@ -310,7 +310,7 @@ describe('planComponentTree', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Component Page',
                     children: [{ component: 'TextInput', bind: 'name' }],
                 },
@@ -328,12 +328,12 @@ describe('planComponentTree', () => {
 
         const node = planComponentTree(tree, ctx);
         expect(node.children).toHaveLength(1);
-        expect(node.children[0]?.component).toBe('Page');
+        expect(node.children[0]?.component).toBe('Section');
         expect(node.children[0]?.props.title).toBe('Component Page');
         expect(node.children[0]?.children[0]?.bindPath).toBe('name');
     });
 
-    it('uses theme.pages when the component tree has no explicit Page nodes', () => {
+    it('uses theme.pages when the component tree has no explicit Section nodes', () => {
         const items = [
             {
                 key: 'organization',
@@ -366,7 +366,7 @@ describe('planComponentTree', () => {
         });
 
         const node = planComponentTree(tree, ctx);
-        expect(node.children[0]?.component).toBe('Page');
+        expect(node.children[0]?.component).toBe('Section');
         expect(node.children[0]?.props.id).toBe('theme-org');
         expect(node.children[1]?.bindPath).toBe('email');
     });
@@ -421,15 +421,63 @@ describe('planComponentTree', () => {
         expect(node.accessibility).toEqual({ role: 'region', description: 'Main form' });
     });
 
+    it('translates Grid child layout placement into renderer-visible style', () => {
+        const items = [
+            { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+        ];
+        const tree = {
+            component: 'Grid',
+            columns: 12,
+            children: [
+                {
+                    component: 'TextInput',
+                    bind: 'name',
+                    layout: { grid: { span: 4, start: 2, rowSpan: 2, rowStart: 3 } },
+                },
+            ],
+        };
+        const ctx = makeCtx({
+            items,
+            findItem: (key) => findItems(items, key),
+        });
+
+        const node = planComponentTree(tree, ctx);
+
+        expect(node.children[0].style).toMatchObject({
+            gridColumn: '2 / span 4',
+            gridRow: '3 / span 2',
+        });
+    });
+
+    it('resolves token references inside Grid column tracks', () => {
+        const tree = {
+            component: 'Grid',
+            columns: ['$token.layout.sidebar', 1],
+            children: [],
+        };
+        const ctx = makeCtx({
+            componentDocument: {
+                $formspecComponent: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'urn:test' },
+                tree,
+                tokens: { 'layout.sidebar': '16rem' },
+            },
+        });
+
+        const node = planComponentTree(tree, ctx);
+
+        expect(node.props.columns).toEqual(['16rem', 1]);
+    });
+
     it('leaves pages as direct Stack children in wizard mode (no Wizard wrapper)', () => {
-        // Wizard component type is deprecated. Pages are direct children of the
-        // root Stack; the renderer applies navigation behavior based on pageMode.
+        // Page units are direct Section children of the root Stack; the renderer
+        // applies navigation behavior based on pageMode.
         const items = [
             {
                 key: 'basics',
                 type: 'group',
                 label: 'Basics',
-                presentation: { layout: { page: 'Basics' } },
                 children: [
                     { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
                 ],
@@ -438,7 +486,6 @@ describe('planComponentTree', () => {
                 key: 'details',
                 type: 'group',
                 label: 'Details',
-                presentation: { layout: { page: 'Details' } },
                 children: [
                     { key: 'desc', type: 'field', dataType: 'text', label: 'Description' },
                 ],
@@ -447,7 +494,6 @@ describe('planComponentTree', () => {
                 key: 'review',
                 type: 'group',
                 label: 'Review',
-                presentation: { layout: { page: 'Review' } },
                 children: [
                     { key: 'notes', type: 'display', label: 'Review notes' },
                 ],
@@ -466,7 +512,7 @@ describe('planComponentTree', () => {
                     component: 'Stack',
                     bind: 'details',
                     title: 'Details',
-                    children: [{ component: 'Textarea', bind: 'desc' }],
+                    children: [{ component: 'TextInput', bind: 'desc', maxLines: 3 }],
                 },
                 {
                     component: 'Stack',
@@ -496,22 +542,48 @@ describe('planComponentTree', () => {
 
         expect(countWizards(node)).toBe(0);
 
-        // Root is a Stack with Page children directly
+        // Root is a Stack with Section children directly
         expect(node.component).toBe('Stack');
-        const pages = node.children.filter(c => c.component === 'Page');
+        const pages = node.children.filter(c => c.component === 'Section');
         expect(pages).toHaveLength(3);
-        expect(pages.every(c => c.component === 'Page')).toBe(true);
+        expect(pages.every(c => c.component === 'Section')).toBe(true);
     });
 
-    it('strips group title from Stack nodes inside explicit pages (wizard mode)', () => {
-        // When a group is placed on an explicit page, the Page already shows
+    it('wraps a root Section page unit for tabs mode', () => {
+        const items = [
+            { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+        ];
+        const tree = {
+            component: 'Section',
+            id: 'root-page',
+            title: 'Root Page',
+            children: [{ component: 'TextInput', bind: 'name' }],
+        };
+        const ctx = makeCtx({
+            items,
+            formPresentation: { pageMode: 'tabs' },
+            componentDocument: { tree },
+            findItem: (key) => findItems(items, key),
+        });
+
+        const node = planComponentTree(tree, ctx);
+
+        expect(node.component).toBe('Stack');
+        expect(node.pageMode).toBe('tabs');
+        expect(node.children).toHaveLength(1);
+        expect(node.children[0].component).toBe('Section');
+        expect(node.children[0].props.title).toBe('Root Page');
+        expect(node.children[0].children[0].bindPath).toBe('name');
+    });
+
+    it('strips group title from Stack nodes inside generated pages (wizard mode)', () => {
+        // When a group is placed on a generated page, the Page already shows
         // the title in its heading. The inner Stack should not duplicate it.
         const items = [
             {
                 key: 'basics',
                 type: 'group',
                 label: 'Basics',
-                presentation: { layout: { page: 'Basics' } },
                 children: [
                     { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
                 ],
@@ -520,7 +592,6 @@ describe('planComponentTree', () => {
                 key: 'details',
                 type: 'group',
                 label: 'Details',
-                presentation: { layout: { page: 'Details' } },
                 children: [
                     { key: 'desc', type: 'field', dataType: 'text', label: 'Description' },
                 ],
@@ -539,7 +610,7 @@ describe('planComponentTree', () => {
                     component: 'Stack',
                     bind: 'details',
                     title: 'Details',
-                    children: [{ component: 'Textarea', bind: 'desc' }],
+                    children: [{ component: 'TextInput', bind: 'desc', maxLines: 3 }],
                 },
             ],
         };
@@ -553,17 +624,17 @@ describe('planComponentTree', () => {
         const node = planComponentTree(tree, ctx);
 
         // Pages are direct children of the root Stack (no Wizard wrapper)
-        const pages = node.children.filter(c => c.component === 'Page');
+        const pages = node.children.filter(c => c.component === 'Section');
         expect(pages.length).toBeGreaterThan(0);
         for (const page of pages) {
-            expect(page.component).toBe('Page');
+            expect(page.component).toBe('Section');
             const stackInPage = page.children.find(c => c.component === 'Stack');
             expect(stackInPage).toBeDefined();
             expect(stackInPage!.props.title).toBeUndefined();
         }
     });
 
-    it('wraps generated top-level groups in wizard mode while preserving orphan fields', () => {
+    it('wraps generated top-level groups in wizard mode with orphan fields in a final fallback section', () => {
         const items = [
             { key: 'intro', type: 'field', dataType: 'string', label: 'Intro' },
             {
@@ -607,15 +678,17 @@ describe('planComponentTree', () => {
         const node = planComponentTree(tree, ctx);
 
         expect(node.component).toBe('Stack');
-        expect(node.children[0].component).toBe('TextInput');
-        expect(node.children[0].bindPath).toBe('intro');
         // Page is a direct child of the root Stack (no Wizard wrapper)
-        expect(node.children[1].component).toBe('Page');
-        expect(node.children[1].props.title).toBe('Page One');
-        expect(node.children[1].children[0].component).toBe('Stack');
-        expect(node.children[1].children[0].bindPath).toBe('pageOne');
-        expect(node.children[1].children[0].children[0].component).toBe('RadioGroup');
-        expect(node.children[1].children[0].children[0].bindPath).toBe('pageOne.priority');
+        expect(node.children[0].component).toBe('Section');
+        expect(node.children[0].props.title).toBe('Page One');
+        expect(node.children[0].children[0].component).toBe('Stack');
+        expect(node.children[0].children[0].bindPath).toBe('pageOne');
+        expect(node.children[0].children[0].children[0].component).toBe('RadioGroup');
+        expect(node.children[0].children[0].children[0].bindPath).toBe('pageOne.priority');
+        expect(node.children[1].component).toBe('Section');
+        expect(node.children[1].props.title).toBe('Additional Items');
+        expect(node.children[1].children[0].component).toBe('TextInput');
+        expect(node.children[1].children[0].bindPath).toBe('intro');
     });
 
     it('sets scopeChange on group nodes from the component tree', () => {
@@ -629,7 +702,7 @@ describe('planComponentTree', () => {
                             { value: 'single', label: 'Single' },
                             { value: 'married', label: 'Married' },
                         ],
-                        presentation: { widgetHint: 'radio' },
+                        presentation: { widgetHint: 'RadioGroup' },
                     },
                 ],
             },
@@ -817,15 +890,15 @@ describe('planDefinitionFallback', () => {
 
         const nodes = planDefinitionFallback(items, ctx);
 
-        // Pages are direct children (no Wizard wrapper). Unassigned items come first.
+        // Pages are direct children (no Wizard wrapper). Unassigned items move to a final fallback section.
         expect(nodes).toHaveLength(3);
-        const introNode = nodes.find(n => n.bindPath === 'intro');
-        expect(introNode).toBeDefined();
-        const pages = nodes.filter(n => n.component === 'Page');
-        expect(pages).toHaveLength(2);
+        const pages = nodes.filter(n => n.component === 'Section');
+        expect(pages).toHaveLength(3);
         expect(pages[0].props.title).toBe('Applicant');
         expect(pages[0].children[0].component).toBe('Grid');
         expect(pages[1].props.title).toBe('Review');
+        expect(pages[2].props.title).toBe('Additional Items');
+        expect(pages[2].children[0].bindPath).toBe('intro');
     });
 
     it('groups top-level definition pages without wrapping nested groups again', () => {
@@ -883,20 +956,24 @@ describe('planDefinitionFallback', () => {
 
         const nodes = planDefinitionFallback(items, ctx);
 
-        // Pages are direct children (no Wizard wrapper). Orphan intro comes first.
-        expect(nodes).toHaveLength(3);
-        expect(nodes[0].bindPath).toBe('intro');
-        expect(nodes[1].component).toBe('Page');
-        expect(nodes[1].props.title).toBe('Applicant');
-        expect(nodes[1].children).toHaveLength(2);
-        expect(nodes[1].children[0].bindPath).toBe('applicant');
-        expect(nodes[1].children[1].bindPath).toBe('attachments');
-        expect(nodes[1].children[0].children[1].component).toBe('Stack');
-        expect(nodes[1].children[0].children[1].bindPath).toBe('applicant.address');
-        expect(nodes[1].children[0].children[1].children[0].bindPath).toBe('applicant.address.city');
-        expect(nodes[2].component).toBe('Page');
+        // Sections are direct children (no Wizard wrapper). Orphan intro moves to a final fallback section.
+        expect(nodes).toHaveLength(4);
+        expect(nodes[0].component).toBe('Section');
+        expect(nodes[0].props.title).toBe('Applicant Details');
+        expect(nodes[0].children).toHaveLength(1);
+        expect(nodes[0].children[0].bindPath).toBe('applicant');
+        expect(nodes[0].children[0].children[1].component).toBe('Stack');
+        expect(nodes[0].children[0].children[1].bindPath).toBe('applicant.address');
+        expect(nodes[0].children[0].children[1].children[0].bindPath).toBe('applicant.address.city');
+        expect(nodes[1].component).toBe('Section');
+        expect(nodes[1].props.title).toBe('Attachments');
+        expect(nodes[1].children[0].bindPath).toBe('attachments');
+        expect(nodes[2].component).toBe('Section');
         expect(nodes[2].props.title).toBe('Review');
         expect(nodes[2].children[0].bindPath).toBe('review');
+        expect(nodes[3].component).toBe('Section');
+        expect(nodes[3].props.title).toBe('Additional Items');
+        expect(nodes[3].children[0].bindPath).toBe('intro');
     });
 });
 
@@ -944,15 +1021,15 @@ describe('grant-application integration', () => {
 
         const node = planComponentTree(component.tree, ctx);
 
-        // Root should be a Stack with Page children (no Wizard wrapper)
+        // Root should be a Stack with Section children (no Wizard wrapper)
         expect(node.component).toBe('Stack');
         expect(node.category).toBe('layout');
 
-        // Should have Page children directly
+        // Should have Section children directly
         expect(node.children.length).toBeGreaterThan(0);
 
         // First child should be a theme-defined page
-        expect(node.children[0].component).toBe('Page');
+        expect(node.children[0].component).toBe('Section');
         expect(node.children[0].props.title).toBe('Applicant Info');
     });
 
@@ -1015,7 +1092,7 @@ describe('grant-application integration', () => {
         const nodes = planDefinitionFallback(definition.items, ctx);
         expect(nodes.length).toBeGreaterThan(0);
 
-        // When formPresentation.pageMode is 'wizard', groups become Page children.
+        // When formPresentation.pageMode is 'wizard', groups become Section children.
         // Find applicantInfo either at top level or inside a Page's children.
         function findNode(list: LayoutNode[], bindPath: string): LayoutNode | undefined {
             for (const n of list) {
@@ -1058,7 +1135,7 @@ describe('grant-application integration', () => {
         });
 
         const nodes = planDefinitionFallback(items, ctx);
-        expect(nodes[0].component).toBe('Page');
+        expect(nodes[0].component).toBe('Section');
         expect(nodes[0].props.title).toBe('Project Information');
         expect(nodes[0].children[0].component).toBe('Grid');
         expect(nodes[0].children[0].children[0].style).toEqual({ gridColumn: 'span 8' });
@@ -1101,7 +1178,7 @@ describe('grant-application integration', () => {
         const nodes = planDefinitionFallback(items, ctx);
 
         // The page should contain the orgName field
-        expect(nodes[0].component).toBe('Page');
+        expect(nodes[0].component).toBe('Section');
         expect(nodes[0].props.title).toBe('Applicant');
         const grid = nodes[0].children[0];
         expect(grid.component).toBe('Grid');
@@ -1154,7 +1231,7 @@ describe('grant-application integration', () => {
 
         const nodes = planDefinitionFallback(items, ctx);
 
-        expect(nodes[0].component).toBe('Page');
+        expect(nodes[0].component).toBe('Section');
         const grid = nodes[0].children[0];
         expect(grid.component).toBe('Grid');
         const fieldNode = grid.children[0].children[0];
@@ -1201,7 +1278,7 @@ describe('grant-application integration', () => {
 
         const nodes = planDefinitionFallback(items, ctx);
 
-        expect(nodes[0].component).toBe('Page');
+        expect(nodes[0].component).toBe('Section');
         const grid = nodes[0].children[0];
         expect(grid.component).toBe('Grid');
         const groupNode = grid.children[0].children[0];
@@ -1232,7 +1309,7 @@ describe('grant-application integration', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Columns',
+                    component: 'Grid',
                     children: [
                         {
                             component: 'Stack',
@@ -1271,7 +1348,7 @@ describe('grant-application integration', () => {
         });
 
         const node = planComponentTree(tree, ctx);
-        expect(node.children[0].component).toBe('Page');
+        expect(node.children[0].component).toBe('Section');
         const grid = node.children[0].children[0];
         expect(grid.component).toBe('Grid');
         // Both fields should be found despite nested layout structure
@@ -1314,7 +1391,7 @@ describe('grant-application integration', () => {
 
         const node = planComponentTree(tree, ctx);
         expect(node.component).toBe('Stack');
-        expect(node.children[0].component).toBe('Page');
+        expect(node.children[0].component).toBe('Section');
         expect(node.children[0].children[0].component).toBe('Grid');
         expect(node.children[0].children[0].children[0].style).toEqual({ gridColumn: 'span 7' });
         expect(node.children[0].children[0].children[0].children[0].component).toBe('TextInput');
@@ -1349,18 +1426,36 @@ describe('ensureSubmitButton', () => {
     });
 
     it('does not add a SubmitButton when the tree contains a Wizard', () => {
-        const root = makeNode('Stack', [makeNode('Wizard', [makeNode('Page')])]);
+        const root = makeNode('Stack', [makeNode('Wizard', [makeNode('Section')])]);
         ensureSubmitButton(root);
         expect(root.children.some(c => c.component === 'SubmitButton')).toBe(false);
     });
 
-    it('does not add a SubmitButton when the root Stack has Page children (pageMode wizard/tabs)', () => {
+    it('adds a SubmitButton when Section children are ordinary single-page structure', () => {
         const root = makeNode('Stack', [
-            makeNode('Page', [makeNode('TextInput')]),
-            makeNode('Page', [makeNode('Select')]),
+            makeNode('Section', [makeNode('TextInput')]),
+            makeNode('Section', [makeNode('Select')]),
         ]);
         ensureSubmitButton(root);
+        expect(root.children.at(-1)?.component).toBe('SubmitButton');
+    });
+
+    it('does not add a SubmitButton when the root Stack has Section page units in wizard mode', () => {
+        const root = makeNode('Stack', [
+            makeNode('Section', [makeNode('TextInput')]),
+            makeNode('Section', [makeNode('Select')]),
+        ]);
+        ensureSubmitButton(root, createNodeIdGenerator(), { pageMode: 'wizard' });
         expect(root.children.some(c => c.component === 'SubmitButton')).toBe(false);
+    });
+
+    it('adds a SubmitButton after Section page units in tabs mode', () => {
+        const root = makeNode('Stack', [
+            makeNode('Section', [makeNode('TextInput')]),
+            makeNode('Section', [makeNode('Select')]),
+        ]);
+        ensureSubmitButton(root, createNodeIdGenerator(), { pageMode: 'tabs' });
+        expect(root.children.map(c => c.component)).toEqual(['Section', 'Section', 'SubmitButton']);
     });
 
     it('wraps a root Accordion in Stack so SubmitButton is not an accordion section', () => {

@@ -6,7 +6,7 @@ import { resolveToken } from './tokens.js';
 // ── Component category classification ────────────────────────────────
 
 const LAYOUT_COMPONENTS = new Set([
-    'Page', 'Stack', 'Grid', 'Columns', 'Tabs', 'Accordion',
+    'Section', 'Stack', 'Grid', 'Tabs', 'Accordion',
 ]);
 
 const CONTAINER_COMPONENTS = new Set([
@@ -14,13 +14,13 @@ const CONTAINER_COMPONENTS = new Set([
 ]);
 
 const INPUT_COMPONENTS = new Set([
-    'TextInput', 'NumberInput', 'Select', 'Toggle', 'Checkbox',
+    'TextInput', 'NumberInput', 'Select', 'Toggle',
     'DatePicker', 'RadioGroup', 'CheckboxGroup', 'Slider', 'Rating',
     'FileUpload', 'Signature', 'MoneyInput',
 ]);
 
 const DISPLAY_COMPONENTS = new Set([
-    'Heading', 'Text', 'Divider', 'Spacer', 'Alert', 'Badge',
+    'Heading', 'Text', 'Divider', 'Alert', 'Badge',
     'ProgressBar', 'Summary', 'ValidationSummary',
 ]);
 
@@ -61,14 +61,14 @@ export function planContains(node: LayoutNode, component: string): boolean {
     return node.children.some(child => planContains(child, component));
 }
 
-const SUBMIT_MUST_BE_SIBLING_ROOTS = new Set(['Accordion']);
+const SUBMIT_MUST_BE_SIBLING_ROOTS = new Set(['Accordion', 'Tabs']);
 
 export function ensureSubmitButton(
     root: LayoutNode,
     nextId: NodeIdGenerator = createNodeIdGenerator(),
+    options: { pageMode?: string } = {},
 ): void {
     if (planContains(root, 'Wizard') || planContains(root, 'SubmitButton')) return;
-    if (root.children.some(c => c.component === 'Page')) return;
 
     const submitNode: LayoutNode = {
         id: nextId('submit'),
@@ -103,6 +103,10 @@ export function ensureSubmitButton(
         return;
     }
 
+    if (options.pageMode === 'wizard' && root.children.some(c => c.component === 'Section')) {
+        return;
+    }
+
     root.children.push(submitNode);
 }
 
@@ -122,6 +126,58 @@ export function resolveStyleTokens(
         resolved[k] = resolveTokenInContext(v, ctx) as string | number;
     }
     return resolved;
+}
+
+export function resolveGridTracks(val: unknown, ctx: PlanContext): unknown {
+    if (typeof val === 'string') {
+        return resolveTokenInContext(val, ctx);
+    }
+    if (Array.isArray(val)) {
+        return val.map(track => typeof track === 'string' ? resolveTokenInContext(track, ctx) : track);
+    }
+    return val;
+}
+
+function positiveInteger(val: unknown): number | undefined {
+    if (typeof val !== 'number' || !Number.isFinite(val)) return undefined;
+    const n = Math.floor(val);
+    return n > 0 ? n : undefined;
+}
+
+export function gridPlacementStyleFromLayout(layout: unknown): Record<string, string> | undefined {
+    if (!layout || typeof layout !== 'object') return undefined;
+    const grid = (layout as { grid?: unknown }).grid;
+    if (!grid || typeof grid !== 'object') return undefined;
+
+    const placement = grid as {
+        span?: unknown;
+        start?: unknown;
+        rowSpan?: unknown;
+        rowStart?: unknown;
+    };
+    const span = positiveInteger(placement.span);
+    const start = positiveInteger(placement.start);
+    const rowSpan = positiveInteger(placement.rowSpan);
+    const rowStart = positiveInteger(placement.rowStart);
+    const style: Record<string, string> = {};
+
+    if (span && start) {
+        style.gridColumn = `${start} / span ${span}`;
+    } else if (span) {
+        style.gridColumn = `span ${span}`;
+    } else if (start) {
+        style.gridColumn = String(start);
+    }
+
+    if (rowSpan && rowStart) {
+        style.gridRow = `${rowStart} / span ${rowSpan}`;
+    } else if (rowSpan) {
+        style.gridRow = `span ${rowSpan}`;
+    } else if (rowStart) {
+        style.gridRow = String(rowStart);
+    }
+
+    return Object.keys(style).length > 0 ? style : undefined;
 }
 
 export function normalizeCssClass(val: string | string[] | undefined): string[] {

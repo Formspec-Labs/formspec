@@ -40,10 +40,8 @@ export type TreeNode = {
   style?: Record<string, unknown>;
   accessibility?: Record<string, unknown>;
   responsive?: Record<string, unknown>;
-  /** Grid column span for items placed within a Page layout. */
-  span?: number;
-  /** Grid column start position for items placed within a Page layout. */
-  start?: number;
+  /** Typed layout placement for grid contexts. */
+  layout?: { grid?: { span?: number; start?: number; rowSpan?: number; rowStart?: number } };
   [key: string]: unknown;
 };
 

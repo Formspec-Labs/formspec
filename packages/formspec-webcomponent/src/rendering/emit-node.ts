@@ -14,6 +14,7 @@ import {
 import type { ValidationResult } from '@formspec-org/types';
 import { useWizard } from '../behaviors/wizard';
 import { useTabs } from '../behaviors/tabs';
+import { applySurfaceProps } from '../adapters/default/layout';
 
 export type { RenderHost } from '../hub-types.js';
 
@@ -152,6 +153,10 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         const nextPrefix = prefix ? `${prefix}.${bindKey}` : bindKey;
         const el = document.createElement('div');
         el.className = 'formspec-group';
+        if (node.cssClasses.length > 0) host.applyClassValue(el, node.cssClasses);
+        host.applyAccessibility(el, node);
+        host.applyStyle(el, node.style);
+        applySurfaceProps(el, node.props, host.resolveToken);
         if (node.props.title) {
             const heading = document.createElement(`h${Math.min(headingLevel, 6)}`);
             heading.className = 'formspec-group-title';
@@ -184,6 +189,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
     if (node.style) comp.style = node.style;
     if (node.cssClasses.length > 0) comp.cssClass = node.cssClasses;
     if (node.accessibility) comp.accessibility = node.accessibility;
+    if (node.pageMode) comp.pageMode = node.pageMode;
     comp.children = node.children;
     // Planner-only fields (theme cascade for definition fallback) live on the
     // LayoutNode alongside `props`. Props win when both are set (component doc).
@@ -271,7 +277,7 @@ export function renderActualComponent(host: RenderHost, comp: ComponentDescripto
         },
     };
 
-    // pageMode-driven rendering: a Stack root with Page children triggers the
+    // pageMode-driven rendering: a planner-marked Stack root with direct Section children triggers the
     // wizard or tabs behavior/adapter pipeline instead of plain Stack rendering.
     if (componentType === 'Stack' && isPageModeWizard(host, comp)) {
         renderPageModeWizard(host, comp, parent, ctx);
@@ -294,46 +300,52 @@ function effectiveFormPresentation(host: RenderHost): Record<string, unknown> {
     return (
         mergeFormPresentationForPlanning(
             host._definition?.formPresentation,
-            host._componentDocument?.formPresentation,
+            (host._componentDocument as (typeof host._componentDocument & { formPresentation?: unknown }))?.formPresentation,
         ) ?? {}
     );
 }
 
+function tabPlacementFromPresentation(value: unknown): 'top' | 'bottom' | 'left' | 'right' {
+    return value === 'bottom' || value === 'left' || value === 'right' ? value : 'top';
+}
+
+function defaultTabFromPresentation(value: unknown): number {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
 /**
  * Detect whether a Stack comp should render as a wizard based on pageMode.
- * True when children are Pages and formPresentation.pageMode === 'wizard'.
+ * True when children are direct root Sections and formPresentation.pageMode === 'wizard'.
  */
 function isPageModeWizard(host: RenderHost, comp: ComponentDescriptor): boolean {
-    const pageMode = effectiveFormPresentation(host).pageMode;
-    if (pageMode !== 'wizard') return false;
+    if (comp.pageMode !== 'wizard') return false;
     const children = comp.children;
     if (!Array.isArray(children) || children.length === 0) return false;
-    return children.some((c) => typeof c === 'object' && c !== null && (c as ComponentDescriptor).component === 'Page');
+    return children.some((c) => typeof c === 'object' && c !== null && (c as ComponentDescriptor).component === 'Section');
 }
 
 /**
  * Detect whether a Stack comp should render as tabs based on pageMode.
- * True when children are Pages and formPresentation.pageMode === 'tabs'.
+ * True when children are direct root Sections and formPresentation.pageMode === 'tabs'.
  */
 function isPageModeTabs(host: RenderHost, comp: ComponentDescriptor): boolean {
-    const pageMode = effectiveFormPresentation(host).pageMode;
-    if (pageMode !== 'tabs') return false;
+    if (comp.pageMode !== 'tabs') return false;
     const children = comp.children;
     if (!Array.isArray(children) || children.length === 0) return false;
-    return children.some((c) => typeof c === 'object' && c !== null && (c as ComponentDescriptor).component === 'Page');
+    return children.some((c) => typeof c === 'object' && c !== null && (c as ComponentDescriptor).component === 'Section');
 }
 
 /**
  * Render a Stack as a wizard when pageMode === 'wizard'.
- * Renders orphan (non-Page) children normally, then synthesizes a wizard-like
- * comp from the Page children and routes through the wizard behavior/adapter.
+ * Renders orphan (non-Section) children normally, then synthesizes a wizard-like
+ * comp from the Section children and routes through the wizard behavior/adapter.
  */
 function renderPageModeWizard(host: RenderHost, comp: ComponentDescriptor, parent: HTMLElement, ctx: RenderContext): void {
     const allChildren = (Array.isArray(comp.children) ? comp.children : []) as ComponentDescriptor[];
-    const orphans = allChildren.filter((c) => c.component !== 'Page');
-    const pageChildren = allChildren.filter((c) => c.component === 'Page');
+    const orphans = allChildren.filter((c) => c.component !== 'Section');
+    const pageChildren = allChildren.filter((c) => c.component === 'Section');
 
-    // Render orphan children (non-Page nodes) as plain layout
+    // Render orphan children (non-Section nodes) as plain layout
     for (const orphan of orphans) {
         ctx.renderComponent(orphan, parent, ctx.prefix);
     }
@@ -358,26 +370,21 @@ function renderPageModeWizard(host: RenderHost, comp: ComponentDescriptor, paren
 
 /**
  * Render a Stack as tabs when pageMode === 'tabs'.
- * Renders orphan (non-Page) children normally, then synthesizes a tabs-like
- * comp from the Page children and routes through the tabs behavior/adapter.
+ * Renders orphan (non-Section) children normally, then synthesizes a tabs-like
+ * comp from the Section children and routes through the tabs behavior/adapter.
  */
 function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent: HTMLElement, ctx: RenderContext): void {
     const allChildren = (Array.isArray(comp.children) ? comp.children : []) as ComponentDescriptor[];
-    const orphans = allChildren.filter((c) => c.component !== 'Page');
-    const pageChildren = allChildren.filter((c) => c.component === 'Page');
-
-    // Render orphan children (non-Page nodes) as plain layout
-    for (const orphan of orphans) {
-        ctx.renderComponent(orphan, parent, ctx.prefix);
-    }
+    const orphans = allChildren.filter((c) => c.component !== 'Section');
+    const pageChildren = allChildren.filter((c) => c.component === 'Section');
 
     const formPres = effectiveFormPresentation(host);
     const tabsComp = {
         component: 'Tabs',
         children: pageChildren,
         tabLabels: pageChildren.map((p) => String(p.title ?? (p.props as { title?: string } | undefined)?.title ?? '')),
-        position: formPres.tabPosition || 'top',
-        defaultTab: formPres.defaultTab ?? 0,
+        placement: tabPlacementFromPresentation(formPres.tabPosition),
+        defaultTab: defaultTabFromPresentation(formPres.defaultTab),
         cssClass: comp.cssClass,
         style: comp.style,
         accessibility: comp.accessibility,
@@ -387,4 +394,9 @@ function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent:
     const behavior = useTabs(ctx.behaviorContext, tabsComp);
     const adapterFn = globalRegistry.resolveAdapterFn('Tabs');
     if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
+
+    // Keep non-page siblings, such as an injected SubmitButton, after the tabs.
+    for (const orphan of orphans) {
+        ctx.renderComponent(orphan, parent, ctx.prefix);
+    }
 }

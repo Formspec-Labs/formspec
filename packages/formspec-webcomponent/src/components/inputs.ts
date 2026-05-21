@@ -6,7 +6,6 @@ import { useRadioGroup } from '../behaviors/radio-group';
 import { useCheckboxGroup } from '../behaviors/checkbox-group';
 import { useSelect } from '../behaviors/select';
 import { useToggle } from '../behaviors/toggle';
-import { useCheckbox } from '../behaviors/checkbox';
 import { useDatePicker } from '../behaviors/date-picker';
 import { useMoneyInput } from '../behaviors/money-input';
 import { useSlider } from '../behaviors/slider';
@@ -20,7 +19,6 @@ const INPUT_PLUGIN_ENTRIES: [string, InputBehaviorHook][] = [
     ['NumberInput', useNumberInput],
     ['Select', useSelect],
     ['Toggle', useToggle],
-    ['Checkbox', useCheckbox],
     ['DatePicker', useDatePicker],
     ['RadioGroup', useRadioGroup],
     ['CheckboxGroup', useCheckboxGroup],
@@ -31,7 +29,7 @@ const INPUT_PLUGIN_ENTRIES: [string, InputBehaviorHook][] = [
     ['MoneyInput', useMoneyInput],
 ];
 
-/** All 13 built-in input component plugins, exported as a single array for bulk registration. */
+/** All 12 built-in input component plugins, exported as a single array for bulk registration. */
 export const InputPlugins: ComponentPlugin[] = INPUT_PLUGIN_ENTRIES.map(([type, hook]) =>
     makeInputPlugin(type, hook),
 );

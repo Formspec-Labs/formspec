@@ -207,7 +207,7 @@ describe('Wizard submit integration', () => {
             props: {},
             cssClasses: [],
             children: [
-                { id: 'step-1', component: 'Page', category: 'layout', props: { title: 'Only Step' }, cssClasses: [], children: [] },
+                { id: 'step-1', component: 'Section', category: 'layout', props: { title: 'Only Step' }, cssClasses: [], children: [] },
             ],
         };
 
@@ -247,7 +247,7 @@ describe('Wizard step navigation', () => {
                 cssClasses: [],
                 children: [
                     {
-                        id: 'step-1', component: 'Page', category: 'layout',
+                        id: 'step-1', component: 'Section', category: 'layout',
                         props: { title: 'Step One' }, cssClasses: [],
                         children: items.length > 0 ? [{
                             id: 'f-name', component: 'TextInput', category: 'field',
@@ -256,7 +256,7 @@ describe('Wizard step navigation', () => {
                         }] : [],
                     },
                     {
-                        id: 'step-2', component: 'Page', category: 'layout',
+                        id: 'step-2', component: 'Section', category: 'layout',
                         props: { title: 'Step Two' }, cssClasses: [], children: [],
                     },
                 ],

@@ -1,7 +1,7 @@
 /** @filedesc USWDS layout grid — `grid-row` / `grid-col-*` with optional token gaps; string `columns` falls back to default CSS grid. */
 import type { AdapterContext, GridLayoutBehavior } from '@formspec-org/webcomponent';
 import { renderDefaultLayoutGrid } from '@formspec-org/webcomponent';
-import { USWDS_LAYOUT_ROW_CLASS, renderUSWDSLayoutHeader, uswdsGridCellClassForChild } from './grid-shared';
+import { USWDS_LAYOUT_ROW_CLASS, applyUSWDSSurfaceProps, renderUSWDSLayoutHeader, uswdsGridCellClassForChild } from './grid-shared';
 
 function stripGridColumnFromChild<T extends { style?: Record<string, string> }>(child: T): T {
     if (child.style?.gridColumn === undefined) {
@@ -16,11 +16,11 @@ function stripGridColumnFromChild<T extends { style?: Record<string, string> }>(
 }
 
 /**
- * Renders a USWDS flex row with responsive columns. Custom `columns` template strings delegate to {@link renderDefaultLayoutGrid}.
+ * Renders a USWDS flex row with responsive columns. Custom track templates delegate to {@link renderDefaultLayoutGrid}.
  */
 export function renderUSWDSGrid(behavior: GridLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host, titleText, descriptionText } = behavior;
-    if (typeof comp.columns === 'string') {
+    if (typeof comp.columns === 'string' || Array.isArray(comp.columns)) {
         renderDefaultLayoutGrid(behavior, parent, actx);
         return;
     }
@@ -35,6 +35,7 @@ export function renderUSWDSGrid(behavior: GridLayoutBehavior, parent: HTMLElemen
     actx.applyCssClass(row, comp);
     actx.applyAccessibility(row, comp);
     actx.applyStyle(row, comp.style);
+    applyUSWDSSurfaceProps(row, comp, host.resolveToken);
 
     renderUSWDSLayoutHeader(row, titleText, descriptionText);
 

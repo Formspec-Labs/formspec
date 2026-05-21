@@ -54,7 +54,18 @@ export function resolveAndStripTokens(
 }
 
 /** Warn if the component type is incompatible with the item's dataType. */
-export function warnIfIncompatible(componentType: string, dataType: string): void {
+export function warnIfIncompatible(
+    componentType: string,
+    dataType: string,
+    options: { multiple?: boolean } = {},
+): void {
+    if (componentType === 'Select' && dataType === 'multiChoice' && options.multiple === true) {
+        return;
+    }
+    if (componentType === 'Select' && dataType === 'multiChoice') {
+        console.warn(`Incompatible component ${componentType} for dataType ${dataType}.`);
+        return;
+    }
     if (COMPATIBILITY_MATRIX[dataType] && !COMPATIBILITY_MATRIX[dataType].includes(componentType)) {
         console.warn(`Incompatible component ${componentType} for dataType ${dataType}.`);
     }

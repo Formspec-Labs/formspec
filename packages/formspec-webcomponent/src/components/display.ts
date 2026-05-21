@@ -28,12 +28,6 @@ export const CardPlugin: ComponentPlugin = {
     render: (comp, parent, ctx) => runDisplayAdapter('Card', parent, ctx, comp),
 };
 
-/** Renders a vertical spacer from token `size`. */
-export const SpacerPlugin: ComponentPlugin = {
-    type: 'Spacer',
-    render: (comp, parent, ctx) => runDisplayAdapter('Spacer', parent, ctx, comp),
-};
-
 /** Renders an alert with optional dismiss control. */
 export const AlertPlugin: ComponentPlugin = {
     type: 'Alert',

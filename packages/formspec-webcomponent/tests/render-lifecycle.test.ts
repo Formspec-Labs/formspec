@@ -320,12 +320,12 @@ describe('render lifecycle', () => {
             component: 'Stack',
             children: [
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Applicant',
                     children: [{ component: 'TextInput', bind: 'applicant.name' }],
                 },
                 {
-                    component: 'Page',
+                    component: 'Section',
                     title: 'Narrative',
                     children: [
                         {

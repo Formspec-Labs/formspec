@@ -26,13 +26,13 @@ interface WrapperSnapshot {
 }
 
 function isLayoutWrapper(node: TreeNode): boolean {
-  return !!node._layout || node.component === 'Page';
+  return !!node._layout || node.component === 'Section';
 }
 
 /** Component types that allow `children` per the component schema. */
 const CONTAINER_COMPONENTS = new Set([
-  'Accordion', 'Card', 'Collapsible', 'Columns', 'ConditionalGroup',
-  'Grid', 'Modal', 'Page', 'Panel', 'Popover', 'Stack', 'Tabs',
+  'Accordion', 'Card', 'Collapsible', 'ConditionalGroup',
+  'Grid', 'Modal', 'Section', 'Panel', 'Popover', 'Stack', 'Tabs',
 ]);
 
 /**
@@ -74,7 +74,7 @@ export function defaultComponentType(item: FormItem): string {
  *   1. Snapshot layout wrappers (_layout: true) with their full subtrees.
  *   2. Collect existing bound/display nodes by path, rebuild from definition.
  *   3. Build a flat Stack root with all definition-derived nodes.
- *   4. Re-insert layout wrappers (including Page nodes) at original positions.
+ *   4. Re-insert layout wrappers (including Section nodes) at original positions.
  */
 export function reconcileComponentTree(
   definition: FormDefinition,
@@ -214,7 +214,7 @@ export function reconcileComponentTree(
 
   const builtNodes: TreeNode[] = definition.items.flatMap(item => buildNodes(item));
 
-  // Root is always Stack. Page structure is authored by page handlers
+  // Root is always Stack. Page-mode structure is authored by direct-root Sections
   // and preserved via the _layout snapshot/restore mechanism above.
   let newRoot: TreeNode = { component: 'Stack', nodeId: 'root', children: builtNodes };
 

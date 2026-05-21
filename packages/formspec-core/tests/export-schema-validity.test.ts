@@ -46,9 +46,9 @@ describe('BUG-12: definition status field', () => {
 // ── BUG-13: Checkbox is not a valid component schema type ──────────
 
 describe('BUG-13: Checkbox phantom component type', () => {
-  it('widgetTokenToComponent("checkbox") returns Toggle, not Checkbox', () => {
+  it('widgetTokenToComponent rejects removed checkbox alias', () => {
     const result = widgetTokenToComponent('checkbox');
-    expect(result).toBe('Toggle');
+    expect(result).toBeNull();
   });
 
   it('KNOWN_COMPONENT_TYPES does not contain Checkbox', () => {
@@ -68,7 +68,7 @@ describe('BUG-13: Checkbox phantom component type', () => {
         type: 'field',
         key: 'agreed',
         dataType: 'boolean',
-        presentation: { widgetHint: 'checkbox' },
+        presentation: { widgetHint: 'Toggle' },
       },
     });
     const node = project.componentFor('agreed');
@@ -82,14 +82,18 @@ describe('BUG-13: Checkbox phantom component type', () => {
 describe('BUG-14: widgetHint must not leak to exported tree', () => {
   it('exported tree nodes do not have widgetHint property', () => {
     const project = createRawProject();
-    // Add a field, then set widgetHint on its component node (simulating what addField does for textarea)
+    // Add a field, then set a canonical multiline TextInput hint on its component node.
     project.dispatch({
       type: 'definition.addItem',
       payload: { type: 'field', key: 'bio', dataType: 'string' },
     });
     project.dispatch({
       type: 'component.setNodeProperty',
-      payload: { node: { bind: 'bio' }, property: 'widgetHint', value: 'textarea' },
+      payload: { node: { bind: 'bio' }, property: 'widgetHint', value: 'TextInput' },
+    });
+    project.dispatch({
+      type: 'component.setNodeProperty',
+      payload: { node: { bind: 'bio' }, property: 'maxLines', value: 4 },
     });
 
     const bundle = project.export();

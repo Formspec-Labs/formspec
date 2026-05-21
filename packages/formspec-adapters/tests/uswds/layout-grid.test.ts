@@ -1,8 +1,7 @@
-/** @filedesc USWDS adapter layout — Grid/Columns USWDS row markup vs default fallback. */
+/** @filedesc USWDS adapter layout — Grid USWDS row markup vs default fallback. */
 import { describe, it, expect, vi } from 'vitest';
-import type { ColumnsLayoutBehavior, GridLayoutBehavior } from '@formspec-org/webcomponent';
+import type { GridLayoutBehavior } from '@formspec-org/webcomponent';
 import { renderUSWDSGrid } from '../../src/uswds/layout/grid';
-import { renderUSWDSColumns } from '../../src/uswds/layout/columns';
 import { mockAdapterContext } from '../helpers';
 
 function mockHost(): GridLayoutBehavior['host'] {
@@ -70,55 +69,57 @@ describe('renderUSWDSGrid', () => {
         expect(row.style.gap).toBe('');
         expect(parent.querySelector('.formspec-grid')).toBeNull();
     });
-});
 
-describe('renderUSWDSColumns', () => {
-    it('renders USWDS row for columnCount 2 without widths or gap', () => {
+    it('applies visual surface props to the USWDS grid row', () => {
+        const parent = document.createElement('div');
+        const behavior: GridLayoutBehavior = {
+            comp: { columns: 2, padding: '1rem', background: '#fff', children: [] },
+            host: mockHost(),
+        };
+        renderUSWDSGrid(behavior, parent, mockAdapterContext());
+        const row = parent.querySelector('.grid-row.grid-gap') as HTMLElement;
+        expect(row.style.padding).toBe('1rem');
+        expect(row.style.background).toBe('#fff');
+    });
+
+    it('maps child grid placement style to USWDS cell classes', () => {
         const parent = document.createElement('div');
         const host = mockHost();
-        const behavior: ColumnsLayoutBehavior = {
-            comp: { columnCount: 2, children: [{ component: 'TextInput', bind: 'a' }] },
+        const child = {
+            component: 'TextInput',
+            bind: 'x',
+            style: { gridColumn: '2 / span 4' },
+        };
+        const behavior: GridLayoutBehavior = {
+            comp: { columns: 12, children: [child] },
             host,
         };
-        renderUSWDSColumns(behavior, parent, mockAdapterContext());
-        expect(parent.querySelector('.grid-row.grid-gap')).toBeTruthy();
-        expect(parent.querySelector('.grid-col-12')?.className).toContain('tablet:grid-col-6');
-        expect(host.renderComponent).toHaveBeenCalledOnce();
-    });
+        renderUSWDSGrid(behavior, parent, mockAdapterContext());
 
-    it('defaults to 2 columns when columnCount is omitted', () => {
+        const cell = parent.querySelector('.grid-col-12') as HTMLElement | null;
+        expect(cell).not.toBeNull();
+        expect(cell?.className).toContain('tablet:grid-offset-1');
+        expect(cell?.className).toContain('tablet:grid-col-4');
+        expect(host.renderComponent).toHaveBeenCalledWith(
+            { component: 'TextInput', bind: 'x' },
+            cell,
+            '',
+        );
+    });
+});
+
+describe('renderUSWDSGrid track templates', () => {
+    it('falls back to formspec-grid when authored track arrays are set', () => {
         const parent = document.createElement('div');
-        const behavior: ColumnsLayoutBehavior = {
-            comp: { children: [{ component: 'TextInput', bind: 'b' }] },
+        const behavior: GridLayoutBehavior = {
+            comp: { columns: ['1fr', '2fr'], children: [] },
             host: mockHost(),
         };
-        renderUSWDSColumns(behavior, parent, mockAdapterContext());
-        const cell = parent.querySelector('.grid-col-12');
-        expect(cell?.className).toContain('tablet:grid-col-6');
-    });
-
-    it('falls back to formspec-columns when widths are set', () => {
-        const parent = document.createElement('div');
-        const behavior: ColumnsLayoutBehavior = {
-            comp: { columnCount: 2, widths: ['1fr', '2fr'], children: [] },
-            host: mockHost(),
-        };
-        renderUSWDSColumns(behavior, parent, mockAdapterContext());
-        expect(parent.querySelector('.formspec-columns')).toBeTruthy();
+        renderUSWDSGrid(behavior, parent, mockAdapterContext());
+        expect(parent.querySelector('.formspec-grid')).toBeTruthy();
         expect(parent.querySelector('.grid-row.grid-gap')).toBeNull();
     });
 
-    it('does not apply inline flex gap on USWDS columns rows', () => {
-        const parent = document.createElement('div');
-        const behavior: ColumnsLayoutBehavior = {
-            comp: { columnCount: 2, gap: '2rem', children: [] },
-            host: mockHost(),
-        };
-        renderUSWDSColumns(behavior, parent, mockAdapterContext());
-        const row = parent.querySelector('.grid-row.grid-gap') as HTMLElement;
-        expect(row.style.gap).toBe('');
-        expect(parent.querySelector('.formspec-columns')).toBeNull();
-    });
 });
 
 describe('USWDS integration CSS layout grid', () => {

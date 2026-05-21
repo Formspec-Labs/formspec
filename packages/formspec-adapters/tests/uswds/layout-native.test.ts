@@ -1,14 +1,14 @@
-/** @filedesc Smoke tests for USWDS-native layout renderers (Page, Stack, Divider, Collapsible, Panel). */
+/** @filedesc Smoke tests for USWDS-native layout renderers (Section, Stack, Divider, Collapsible, Panel). */
 import { describe, it, expect, vi } from 'vitest';
 import type {
-    PageLayoutBehavior,
+    SectionLayoutBehavior,
     StackLayoutBehavior,
     DividerLayoutBehavior,
     CollapsibleLayoutBehavior,
     PanelLayoutBehavior,
     ModalLayoutBehavior,
 } from '@formspec-org/webcomponent';
-import { renderUSWDSPage } from '../../src/uswds/layout/page';
+import { renderUSWDSSection } from '../../src/uswds/layout/page';
 import { renderUSWDSStack } from '../../src/uswds/layout/stack';
 import { renderUSWDSDivider } from '../../src/uswds/layout/divider';
 import { renderUSWDSCollapsible } from '../../src/uswds/layout/collapsible';
@@ -28,33 +28,51 @@ function layoutHost() {
 }
 
 describe('USWDS layout natives', () => {
-    it('renderUSWDSPage uses usa-section, grid-container, usa-prose', () => {
+    it('renderUSWDSSection uses usa-section, grid-container, usa-prose', () => {
         const parent = document.createElement('div');
-        const behavior: PageLayoutBehavior = {
+        const behavior: SectionLayoutBehavior = {
             comp: { children: [] },
             host: layoutHost(),
             titleText: 'T',
             headingLevel: 'h2',
             descriptionText: null,
         };
-        renderUSWDSPage(behavior, parent, mockAdapterContext());
-        expect(parent.querySelector('section.usa-section.formspec-page')).toBeTruthy();
+        renderUSWDSSection(behavior, parent, mockAdapterContext());
+        expect(parent.querySelector('section.usa-section.formspec-section')).toBeTruthy();
         expect(parent.querySelector('.grid-container > .usa-prose')).toBeTruthy();
     });
 
-    it('renderUSWDSPage skips the outer page shell inside wizard and tab panels', () => {
+    it('renderUSWDSSection applies visual surface props to the section shell', () => {
+        const parent = document.createElement('div');
+        const behavior: SectionLayoutBehavior = {
+            comp: { padding: '2rem', background: '#fff', border: '1px solid #000', radius: '4px', elevation: '2', children: [] },
+            host: layoutHost(),
+            titleText: null,
+            headingLevel: 'h2',
+            descriptionText: null,
+        };
+        renderUSWDSSection(behavior, parent, mockAdapterContext());
+        const section = parent.querySelector('section.usa-section.formspec-section') as HTMLElement;
+        expect(section.style.padding).toBe('2rem');
+        expect(section.style.background).toBe('#fff');
+        expect(section.style.border).toBe('1px solid #000');
+        expect(section.style.borderRadius).toBe('4px');
+        expect(section.dataset.elevation).toBe('2');
+    });
+
+    it('renderUSWDSSection skips the outer section shell inside wizard and tab panels', () => {
         const wizardPanel = document.createElement('div');
         wizardPanel.className = 'formspec-wizard-panel';
         const host = layoutHost();
-        const behavior: PageLayoutBehavior = {
+        const behavior: SectionLayoutBehavior = {
             comp: { children: [{ component: 'TextInput', bind: 'firstName' }] },
             host,
             titleText: 'Step 1',
             headingLevel: 'h2',
             descriptionText: null,
         };
-        renderUSWDSPage(behavior, wizardPanel, mockAdapterContext());
-        expect(wizardPanel.querySelector('.formspec-page')).toBeNull();
+        renderUSWDSSection(behavior, wizardPanel, mockAdapterContext());
+        expect(wizardPanel.querySelector('.formspec-section')).toBeNull();
         expect(host.renderComponent).toHaveBeenCalledTimes(1);
     });
 
@@ -83,7 +101,19 @@ describe('USWDS layout natives', () => {
         expect(row?.style.getPropertyValue('--formspec-uswds-stack-gap')).toBe('12px');
     });
 
-    it('renderUSWDSStack horizontal uses fill cells when children do not declare widths', () => {
+    it('renderUSWDSStack applies visual surface props to the row', () => {
+        const parent = document.createElement('div');
+        const behavior: StackLayoutBehavior = {
+            comp: { padding: '1rem', background: '#fff', children: [] },
+            host: layoutHost(),
+        };
+        renderUSWDSStack(behavior, parent, mockAdapterContext());
+        const row = parent.querySelector('.formspec-stack.grid-row.grid-gap') as HTMLElement;
+        expect(row.style.padding).toBe('1rem');
+        expect(row.style.background).toBe('#fff');
+    });
+
+    it('renderUSWDSStack horizontal uses fill cells when children do not declare columns', () => {
         const parent = document.createElement('div');
         const behavior: StackLayoutBehavior = {
             comp: { direction: 'horizontal', children: [{ component: 'TextInput', bind: 'a' }] },
@@ -106,6 +136,17 @@ describe('USWDS layout natives', () => {
         expect(row).not.toBeNull();
         expect(row?.style.columnGap).toBe('24px');
         expect(row?.style.gap).toBe('');
+    });
+
+    it('renderUSWDSStack maps justify tokens to CSS justify-content values', () => {
+        const parent = document.createElement('div');
+        const behavior: StackLayoutBehavior = {
+            comp: { direction: 'horizontal', justify: 'between', children: [{ component: 'TextInput', bind: 'a' }] },
+            host: layoutHost(),
+        };
+        renderUSWDSStack(behavior, parent, mockAdapterContext());
+        const row = parent.querySelector('.formspec-stack.grid-row.grid-gap') as HTMLDivElement | null;
+        expect(row?.style.justifyContent).toBe('space-between');
     });
 
     it('renderUSWDSStack horizontal lets only explicit-width children use auto columns', () => {
@@ -156,6 +197,20 @@ describe('USWDS layout natives', () => {
         expect(parent.querySelector('.usa-card .usa-card__container')).toBeTruthy();
         expect(parent.querySelector('.usa-card__heading')?.textContent).toBe('Aside');
         expect(parent.querySelector('.usa-card__body')).toBeTruthy();
+    });
+
+    it('renderUSWDSPanel applies visual surface props to the card', () => {
+        const parent = document.createElement('div');
+        const behavior: PanelLayoutBehavior = {
+            comp: { padding: '1rem', background: '#fff', children: [] },
+            host: layoutHost(),
+            titleText: null,
+            descriptionText: null,
+        };
+        renderUSWDSPanel(behavior, parent, mockAdapterContext());
+        const card = parent.querySelector('.usa-card') as HTMLElement;
+        expect(card.style.padding).toBe('1rem');
+        expect(card.style.background).toBe('#fff');
     });
 
     it('renderUSWDSModal keeps the dialog hidden until the trigger opens it', () => {

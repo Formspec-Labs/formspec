@@ -174,7 +174,7 @@ export function resolveValidationTarget(host: SubmitHost, resultOrPath: string |
     const keyPath = (path || normalizedPath).replace(/\[\d+\]/g, '');
     const item = keyPath ? host.findItemByKey(keyPath) : null;
     const label = formLevel
-        ? (host._definition?.title || 'Form')
+        ? (typeof host._definition?.title === 'string' ? host._definition.title : 'Form')
         : (item?.label || keyPath || normalizedPath || 'Field');
 
     return {

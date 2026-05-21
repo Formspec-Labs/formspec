@@ -8,12 +8,11 @@ import {
 import type { AdapterContext } from '../types';
 import { focusFirstIn } from '../../dom-utils';
 import type {
-    PageLayoutBehavior,
+    SectionLayoutBehavior,
     StackLayoutBehavior,
     GridLayoutBehavior,
     DividerLayoutBehavior,
     CollapsibleLayoutBehavior,
-    ColumnsLayoutBehavior,
     PanelLayoutBehavior,
     AccordionLayoutBehavior,
     ModalLayoutBehavior,
@@ -24,6 +23,31 @@ function parseModalPlacement(comp: any): PopupPlacement | undefined {
     const p = comp.placement as string | undefined;
     if (p === 'top' || p === 'right' || p === 'bottom' || p === 'left') return p;
     return undefined;
+}
+
+export function applySurfaceProps(el: HTMLElement, comp: any, resolveToken: (value: unknown) => unknown): void {
+    if (comp.padding != null) el.style.padding = String(resolveToken(comp.padding));
+    if (comp.background != null) el.style.background = String(resolveToken(comp.background));
+    if (comp.border != null) el.style.border = String(resolveToken(comp.border));
+    if (comp.radius != null) el.style.borderRadius = String(resolveToken(comp.radius));
+    if (comp.elevation != null) el.dataset.elevation = String(resolveToken(comp.elevation));
+}
+
+function stackJustifyContent(value: unknown): string | undefined {
+    switch (value) {
+        case 'between':
+            return 'space-between';
+        case 'around':
+            return 'space-around';
+        case 'evenly':
+            return 'space-evenly';
+        case 'start':
+        case 'center':
+        case 'end':
+            return String(value);
+        default:
+            return undefined;
+    }
 }
 
 /** Internal helper to render standard layout title/description headers. */
@@ -42,14 +66,15 @@ function renderLayoutHeader(el: HTMLElement, titleText: string | null, descripti
     }
 }
 
-export function renderPage(behavior: PageLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
+export function renderSection(behavior: SectionLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host, titleText, headingLevel, descriptionText } = behavior;
     const el = document.createElement('section');
     if (comp.id) el.id = comp.id;
-    el.className = 'formspec-page';
+    el.className = 'formspec-section';
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
+    applySurfaceProps(el, comp, host.resolveToken);
     if (titleText) {
         const h = document.createElement(headingLevel);
         h.textContent = titleText;
@@ -57,7 +82,7 @@ export function renderPage(behavior: PageLayoutBehavior, parent: HTMLElement, ac
     }
     if (descriptionText) {
         const desc = document.createElement('p');
-        desc.className = 'formspec-page-description';
+        desc.className = 'formspec-section-description';
         desc.textContent = descriptionText;
         el.appendChild(desc);
     }
@@ -74,11 +99,14 @@ export function renderStack(behavior: StackLayoutBehavior, parent: HTMLElement, 
     el.className = 'formspec-stack';
     if (comp.direction === 'horizontal') el.classList.add('formspec-stack--horizontal');
     if (comp.align) el.dataset.align = comp.align;
+    const justifyContent = stackJustifyContent(comp.justify);
+    if (justifyContent) el.style.justifyContent = justifyContent;
     if (comp.wrap) el.classList.add('formspec-stack--wrap');
     if (comp.gap) el.style.gap = String(host.resolveToken(comp.gap));
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
+    applySurfaceProps(el, comp, host.resolveToken);
 
     renderLayoutHeader(el, titleText, descriptionText);
 
@@ -97,6 +125,10 @@ export function renderGrid(behavior: GridLayoutBehavior, parent: HTMLElement, ac
         if (typeof comp.columns === 'number') {
             el.dataset.columns = String(comp.columns);
             el.style.gridTemplateColumns = `repeat(${comp.columns}, 1fr)`;
+        } else if (Array.isArray(comp.columns)) {
+            el.style.gridTemplateColumns = comp.columns
+                .map((track: unknown) => typeof track === 'number' ? `${track}fr` : String(track))
+                .join(' ');
         } else {
             el.style.gridTemplateColumns = comp.columns;
         }
@@ -106,6 +138,7 @@ export function renderGrid(behavior: GridLayoutBehavior, parent: HTMLElement, ac
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
+    applySurfaceProps(el, comp, host.resolveToken);
 
     renderLayoutHeader(el, titleText, descriptionText);
 
@@ -184,37 +217,14 @@ export function renderCollapsible(behavior: CollapsibleLayoutBehavior, parent: H
     parent.appendChild(details);
 }
 
-export function renderColumns(behavior: ColumnsLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    const { comp, host, titleText, descriptionText } = behavior;
-    const el = document.createElement('div');
-    if (comp.id) el.id = comp.id;
-    el.className = 'formspec-columns';
-    if (Array.isArray(comp.widths) && comp.widths.length > 0) {
-        el.style.gridTemplateColumns = comp.widths.join(' ');
-    } else if (comp.columnCount) {
-        el.dataset.columns = String(comp.columnCount);
-    }
-    if (comp.gap) el.style.gap = String(host.resolveToken(comp.gap));
-    actx.applyCssClass(el, comp);
-    actx.applyAccessibility(el, comp);
-    actx.applyStyle(el, comp.style);
-
-    renderLayoutHeader(el, titleText, descriptionText);
-
-    parent.appendChild(el);
-    for (const child of comp.children || []) {
-        host.renderComponent(child, el, host.prefix);
-    }
-}
-
 export function renderPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host, titleText, descriptionText } = behavior;
     const el = document.createElement('div');
     if (comp.id) el.id = comp.id;
     el.className = 'formspec-panel';
-    if (comp.position) {
-        el.dataset.position = comp.position;
-        el.style.order = comp.position === 'left' ? '-1' : '1';
+    if (comp.placement) {
+        el.dataset.placement = comp.placement;
+        el.style.order = comp.placement === 'left' ? '-1' : '1';
     }
     if (comp.width) el.style.width = comp.width;
 
@@ -248,6 +258,7 @@ export function renderPanel(behavior: PanelLayoutBehavior, parent: HTMLElement, 
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
+    applySurfaceProps(el, comp, host.resolveToken);
     parent.appendChild(el);
 }
 

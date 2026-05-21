@@ -48,13 +48,25 @@ export function themeStateFromDocument(doc: ThemeDocument): ThemeState {
 
 export function withMappingEnvelope(body: MappingState, definitionUrl: string): MappingDocument {
   const { rules, targetSchema, definitionRef, definitionVersion, ...rest } = body;
+  const extra = structuredClone(rest);
   return {
     $formspecMapping: '1.0',
     version: '0.1.0',
     definitionRef: definitionRef ?? definitionUrl,
     definitionVersion: definitionVersion ?? '>=0.0.0',
-    targetSchema: targetSchema ?? { format: 'json' },
-    rules: rules ?? [],
-    ...rest,
+    targetSchema: structuredClone(targetSchema ?? { format: 'json' }),
+    rules: structuredClone(rules ?? []),
+    ...extra,
   } as MappingDocument;
+}
+
+/** Strip envelope fields from an imported mapping document into working state. */
+export function mappingStateFromDocument(doc: MappingDocument): MappingState {
+  const {
+    $formspecMapping: _v,
+    $schema: _schema,
+    version: _version,
+    ...rest
+  } = doc;
+  return rest as MappingState;
 }

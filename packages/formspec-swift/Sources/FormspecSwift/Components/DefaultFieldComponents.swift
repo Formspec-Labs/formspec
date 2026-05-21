@@ -112,60 +112,10 @@ public struct DefaultNumberInput: FieldComponent {
     }
 }
 
-// MARK: - DefaultTextArea
-
-/// Default multi-line text area (min height 80 pt).
-public struct DefaultTextArea: FieldComponent {
-    public let state: FieldState
-    public let node: LayoutNode
-
-    public init(state: FieldState, node: LayoutNode) {
-        self.state = state
-        self.node = node
-    }
-
-    @State private var text: String = ""
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(requiredLabel(state.label, required: state.required))
-                .font(.subheadline)
-                .foregroundColor(.primary)
-
-            if let hint = state.hint {
-                Text(hint)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            TextEditor(text: $text)
-                .frame(minHeight: 80)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                )
-                .disabled(state.readonly)
-                .accessibilityLabel(state.label)
-                .onChange(of: text) { _, newValue in
-                    state.setValue(newValue)
-                }
-                .onAppear {
-                    text = (state.value as? String) ?? ""
-                }
-
-            if let error = state.firstError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-        }
-    }
-}
-
-// MARK: - DefaultCheckbox
+// MARK: - DefaultToggle
 
 /// Default boolean toggle.
-public struct DefaultCheckbox: FieldComponent {
+public struct DefaultToggle: FieldComponent {
     public let state: FieldState
     public let node: LayoutNode
 
@@ -251,10 +201,10 @@ public struct DefaultSelect: FieldComponent {
     }
 }
 
-// MARK: - DefaultMultiSelect
+// MARK: - DefaultCheckboxGroup
 
 /// Default multi-value selector rendered as a list of toggles.
-public struct DefaultMultiSelect: FieldComponent {
+public struct DefaultCheckboxGroup: FieldComponent {
     public let state: FieldState
     public let node: LayoutNode
 
@@ -358,13 +308,13 @@ public struct DefaultRadioGroup: FieldComponent {
     }
 }
 
-// MARK: - DefaultDateInput
+// MARK: - DefaultDatePicker
 
 /// Default date picker.
 ///
 /// - Note: Currently uses native `DatePicker`. ISO 8601 string parsing/serialization
 ///   is a TODO — values are stored as `Date` internally for now.
-public struct DefaultDateInput: FieldComponent {
+public struct DefaultDatePicker: FieldComponent {
     public let state: FieldState
     public let node: LayoutNode
 

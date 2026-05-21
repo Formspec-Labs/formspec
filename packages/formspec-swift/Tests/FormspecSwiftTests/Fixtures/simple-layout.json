@@ -20,7 +20,7 @@
                 "dataType": "string"
             },
             "presentation": {
-                "widget": "text",
+                "widget": "Text",
                 "labelPosition": "top"
             },
             "labelPosition": "top"

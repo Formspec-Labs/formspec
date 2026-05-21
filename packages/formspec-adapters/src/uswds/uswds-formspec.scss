@@ -116,7 +116,7 @@ $fs-trailing-checkbox-size: 1.25rem !default;
 
 // Do not zero `.usa-form-group` margin inside grid rows — USWDS uses `margin-top` on each group for
 // rhythm between fields (label of the next group sits below the prior control). A previous
-// `margin-top: 0` here removed that spacing for theme Page → Grid layouts; `row-gap` on the row
+// `margin-top: 0` here removed that spacing for theme page → Grid layouts; `row-gap` on the row
 // instead split flex lines and looked like extra space between labels and controls.
 
 .grid-row.grid-gap > [class*='grid-col'] > .usa-form-group {

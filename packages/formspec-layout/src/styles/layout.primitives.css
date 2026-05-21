@@ -26,7 +26,7 @@
 /* USWDS adapter: same node is `formspec-stack grid-row grid-gap` — column flex here wins in cascade over USWDS .grid-row (no flex-direction) and breaks the field grid. */
 .formspec-stack:not(.grid-row),
 .formspec-group,
-.formspec-page,
+.formspec-section,
 .formspec-repeat,
 .formspec-repeat-instance,
 .formspec-wizard-content,
@@ -46,7 +46,7 @@
   gap: var(--formspec-spacing-field, 0.75rem);
 }
 
-.formspec-page {
+.formspec-section {
   gap: var(--formspec-spacing-field, 0.75rem);
 }
 
@@ -98,8 +98,7 @@
   align-items: stretch;
 }
 
-.formspec-grid,
-.formspec-columns {
+.formspec-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
 }
@@ -108,41 +107,31 @@
   gap: var(--formspec-spacing-md, 1rem) var(--formspec-spacing-field, 0.75rem);
 }
 
-.formspec-columns {
-  gap: var(--formspec-spacing-md, 1rem);
-}
-
 .formspec-grid > * {
   min-width: 0;
 }
 
-.formspec-grid[data-columns="1"],
-.formspec-columns[data-columns="1"] {
+.formspec-grid[data-columns="1"] {
   grid-template-columns: 1fr;
 }
 
-.formspec-grid[data-columns="2"],
-.formspec-columns[data-columns="2"] {
+.formspec-grid[data-columns="2"] {
   grid-template-columns: repeat(2, 1fr);
 }
 
-.formspec-grid[data-columns="3"],
-.formspec-columns[data-columns="3"] {
+.formspec-grid[data-columns="3"] {
   grid-template-columns: repeat(3, 1fr);
 }
 
-.formspec-grid[data-columns="4"],
-.formspec-columns[data-columns="4"] {
+.formspec-grid[data-columns="4"] {
   grid-template-columns: repeat(4, 1fr);
 }
 
-.formspec-grid[data-columns="5"],
-.formspec-columns[data-columns="5"] {
+.formspec-grid[data-columns="5"] {
   grid-template-columns: repeat(5, 1fr);
 }
 
-.formspec-grid[data-columns="6"],
-.formspec-columns[data-columns="6"] {
+.formspec-grid[data-columns="6"] {
   grid-template-columns: repeat(6, 1fr);
 }
 
@@ -151,8 +140,8 @@
 }
 
 .formspec-wizard--with-sidenav,
-.formspec-tabs[data-position="left"],
-.formspec-tabs[data-position="right"] {
+.formspec-tabs[data-placement="left"],
+.formspec-tabs[data-placement="right"] {
   display: flex;
 }
 
@@ -227,16 +216,16 @@
   gap: 2px;
 }
 
-.formspec-tabs[data-position="right"] {
+.formspec-tabs[data-placement="right"] {
   flex-direction: row-reverse;
 }
 
-.formspec-tabs[data-position="left"] .formspec-tab-bar,
-.formspec-tabs[data-position="right"] .formspec-tab-bar {
+.formspec-tabs[data-placement="left"] .formspec-tab-bar,
+.formspec-tabs[data-placement="right"] .formspec-tab-bar {
   flex-direction: column;
 }
 
-.formspec-tabs[data-position="left"] .formspec-tab-panels,
-.formspec-tabs[data-position="right"] .formspec-tab-panels {
+.formspec-tabs[data-placement="left"] .formspec-tab-panels,
+.formspec-tabs[data-placement="right"] .formspec-tab-panels {
   flex: 1;
 }

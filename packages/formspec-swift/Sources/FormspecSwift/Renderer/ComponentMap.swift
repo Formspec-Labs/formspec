@@ -63,26 +63,25 @@ public struct ComponentMap: @unchecked Sendable {
 
     /// A `ComponentMap` populated with all built-in default SwiftUI components.
     ///
-    /// Field components: `TextInput`, `NumberInput`, `TextArea`, `Checkbox`,
-    ///   `Select`, `MultiSelect`, `RadioGroup`, `DateInput`.
+    /// Field components: `TextInput`, `NumberInput`, `Toggle`,
+    ///   `Select`, `CheckboxGroup`, `RadioGroup`, `DatePicker`.
     ///
-    /// Layout components: `Stack`, `Card`, `Grid`, `Page`, `Wizard`.
+    /// Layout components: `Stack`, `Card`, `Grid`, `Section`, `Wizard`.
     public static let defaults = ComponentMap(
         fields: [
-            "TextInput":   DefaultTextInput.self,
-            "NumberInput": DefaultNumberInput.self,
-            "TextArea":    DefaultTextArea.self,
-            "Checkbox":    DefaultCheckbox.self,
-            "Select":      DefaultSelect.self,
-            "MultiSelect": DefaultMultiSelect.self,
-            "RadioGroup":  DefaultRadioGroup.self,
-            "DateInput":   DefaultDateInput.self,
+            "TextInput":     DefaultTextInput.self,
+            "NumberInput":   DefaultNumberInput.self,
+            "Toggle":        DefaultToggle.self,
+            "Select":        DefaultSelect.self,
+            "CheckboxGroup": DefaultCheckboxGroup.self,
+            "RadioGroup":    DefaultRadioGroup.self,
+            "DatePicker":    DefaultDatePicker.self,
         ],
         layout: [
             "Stack":   DefaultStack.self,
             "Card":    DefaultCard.self,
             "Grid":    DefaultGrid.self,
-            "Page":    DefaultPage.self,
+            "Section": DefaultSection.self,
             "Wizard":  DefaultWizard.self,
         ]
     )

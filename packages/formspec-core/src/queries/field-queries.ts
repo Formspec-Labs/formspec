@@ -10,6 +10,7 @@ import { CORE_FIELD_DATA_TYPES, type CoreFieldDataType } from '@formspec-org/typ
 import { itemAtPath, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { editableComponentTree, walkComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
+import { resolveThemeCascade, type ThemeCascadeInput } from '../theme-cascade.js';
 import type {
   ProjectState,
   ItemFilter,
@@ -179,32 +180,15 @@ export function effectivePresentation(state: ProjectState, fieldKey: string): Re
   const item = itemAt(state, fieldKey);
   if (!item) return {};
 
-  const result: Record<string, unknown> = {};
-
-  // Tier 1: defaults
-  const defaults = state.theme.defaults as Record<string, unknown> | undefined;
-  if (defaults) Object.assign(result, defaults);
-
-  // Tier 2: selectors (document order)
-  for (const sel of state.theme.selectors ?? []) {
-    if (typeof sel !== 'object' || sel === null) continue;
-    const selector = sel as {
-      match?: { type?: string; dataType?: string };
-      apply?: Record<string, unknown>;
-    };
-    const match = selector.match;
-    if (!match) continue;
-    let matches = true;
-    if (match.type && item.type !== match.type) matches = false;
-    if (match.dataType && item.dataType !== match.dataType) matches = false;
-    if (matches && selector.apply) Object.assign(result, selector.apply);
-  }
-
-  // Tier 3: per-item overrides
-  const items = state.theme.items as Record<string, Record<string, unknown>> | undefined;
-  if (items?.[fieldKey]) Object.assign(result, items[fieldKey]);
-
-  return result;
+  const resolved = resolveThemeCascade(
+    state.theme as ThemeCascadeInput,
+    fieldKey,
+    item.type,
+    item.dataType,
+  );
+  return Object.fromEntries(
+    Object.entries(resolved).map(([prop, resolvedProperty]) => [prop, resolvedProperty.value]),
+  );
 }
 
 /**

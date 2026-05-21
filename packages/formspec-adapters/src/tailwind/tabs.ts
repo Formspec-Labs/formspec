@@ -7,7 +7,7 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     const root = document.createElement('div');
     if (behavior.id) root.id = behavior.id;
     root.className = 'formspec-tabs';
-    if (behavior.position !== 'top') root.dataset.position = behavior.position;
+    if (behavior.placement !== 'top') root.dataset.placement = behavior.placement;
     if (behavior.compOverrides.cssClass) actx.applyCssClass(root, behavior.compOverrides);
     if (behavior.compOverrides.accessibility) actx.applyAccessibility(root, behavior.compOverrides);
     if (behavior.compOverrides.style) actx.applyStyle(root, behavior.compOverrides.style);
@@ -23,6 +23,9 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     const tabList = document.createElement('nav');
     tabList.className = 'flex -mb-px space-x-4';
     tabList.setAttribute('role', 'tablist');
+    if (behavior.placement === 'left' || behavior.placement === 'right') {
+        tabList.setAttribute('aria-orientation', 'vertical');
+    }
     tabBar.appendChild(tabList);
 
     // Tab panels
@@ -63,7 +66,7 @@ export const renderTabs: AdapterRenderFn<TabsBehavior> = (
     }
 
     // Position: bottom puts panels before bar
-    if (behavior.position === 'bottom') {
+    if (behavior.placement === 'bottom') {
         root.appendChild(panelContainer);
         root.appendChild(tabBar);
     } else {

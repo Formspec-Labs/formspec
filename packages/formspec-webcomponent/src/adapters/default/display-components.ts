@@ -5,6 +5,14 @@ import type { DisplayComponentBehavior } from '../display-behaviors';
 import { renderMarkdown } from '../display-markdown';
 import { formatMoney } from '../../format';
 
+function applySurfaceProps(el: HTMLElement, comp: any, resolveToken: (value: unknown) => unknown): void {
+    if (comp.padding != null) el.style.padding = String(resolveToken(comp.padding));
+    if (comp.background != null) el.style.background = String(resolveToken(comp.background));
+    if (comp.border != null) el.style.border = String(resolveToken(comp.border));
+    if (comp.radius != null) el.style.borderRadius = String(resolveToken(comp.radius));
+    if (comp.elevation != null) el.dataset.elevation = String(resolveToken(comp.elevation));
+}
+
 export function renderDefaultHeading(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {
     const { comp, host } = behavior;
     const el = document.createElement(`h${comp.level || 2}`);
@@ -67,9 +75,6 @@ export function renderDefaultCard(behavior: DisplayComponentBehavior, parent: HT
     const el = document.createElement('div');
     if (comp.id) el.id = comp.id;
     el.className = 'formspec-card';
-    if (comp.elevation != null && comp.elevation > 0) {
-        el.dataset.elevation = String(comp.elevation);
-    }
     if (comp.title) {
         const h3 = document.createElement('h3');
         h3.className = 'formspec-card-title';
@@ -85,23 +90,13 @@ export function renderDefaultCard(behavior: DisplayComponentBehavior, parent: HT
     actx.applyCssClass(el, comp);
     actx.applyAccessibility(el, comp);
     actx.applyStyle(el, comp.style);
+    applySurfaceProps(el, comp, host.resolveToken);
     parent.appendChild(el);
     if (comp.children) {
         for (const child of comp.children) {
             host.renderComponent(child, el, host.prefix);
         }
     }
-}
-
-export function renderDefaultSpacer(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {
-    const { comp, host } = behavior;
-    const el = document.createElement('div');
-    if (comp.id) el.id = comp.id;
-    el.className = 'formspec-spacer';
-    if (comp.size) el.style.height = String(host.resolveToken(comp.size));
-    actx.applyCssClass(el, comp);
-    actx.applyStyle(el, comp.style);
-    parent.appendChild(el);
 }
 
 export function renderDefaultAlert(behavior: DisplayComponentBehavior, parent: HTMLElement, actx: AdapterContext): void {

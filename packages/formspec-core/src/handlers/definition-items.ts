@@ -418,7 +418,7 @@ export const definitionItemsHandlers = {
       }
     }
 
-    // Page child nodes referencing deleted items are cleaned up by the
+    // Section child nodes referencing deleted items are cleaned up by the
     // reconciler (rebuildComponentTree: true) — _layout wrappers survive
     // but their stale bound children are dropped during restore.
 
@@ -476,7 +476,7 @@ export const definitionItemsHandlers = {
       delete themeItems[oldKey];
     }
 
-    // Page children and other layout-preserved nodes are updated by the BFS above so
+    // Section children and other layout-preserved nodes are updated by the BFS above so
     // reconcile can match and re-splice them onto newRoot.
 
     return { rebuildComponentTree: true, newPath };

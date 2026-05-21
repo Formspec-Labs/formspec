@@ -165,7 +165,12 @@ describe('Assist provider tools', () => {
   it('formspec.form.pages returns page structure', async () => {
     const provider = createFullProvider();
     const result = await parse(provider, 'formspec.form.pages', {});
-    expect(result.pages.map((p: { id: string }) => p.id)).toEqual(['org', 'details']);
+    expect(result.pages.map((p: { id: string }) => p.id)).toEqual([
+      'organization',
+      'project-details',
+      'budget-items',
+      'additional-items',
+    ]);
   });
 
   it('formspec.form.nextIncomplete returns next empty field', async () => {
@@ -328,10 +333,10 @@ describe('Assist provider tools', () => {
 
   // T-15: formspec.field.describe full envelope (widget output)
 
-  it('formspec.field.describe includes widget from widgetHint', async () => {
+  it('formspec.field.describe includes canonical widgetHint', async () => {
     const provider = createAssistProvider({ engine: createEngine(), registerWebMCP: false });
     const result = await parse(provider, 'formspec.field.describe', { path: 'contactEmail' });
-    expect(result.widget).toBe('email');
+    expect(result.widget).toBe('TextInput');
   });
 
   // T-8: Repeat group paths — repeat metadata in field.describe
@@ -596,7 +601,7 @@ describe('Assist provider tools', () => {
     expect(provider.getFieldHelp('organization.ein').label).toBe('Federal Tax ID');
   });
 
-  it('infers pages from component first, then theme, then definition hints', async () => {
+  it('infers pages from component first, then theme, then generated definition groups', async () => {
     const parse = async (
       provider: ReturnType<typeof createAssistProvider>,
       name: string,
@@ -635,10 +640,12 @@ describe('Assist provider tools', () => {
     expect(themePages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
       ['theme-contact', 'Theme Contact'],
       ['theme-details', 'Theme Details'],
+      [expect.stringMatching(/^fallback-section-/), 'Additional Items'],
     ]);
     expect(themePages.pages.map((page: { id: string; fieldCount: number }) => [page.id, page.fieldCount])).toEqual([
       ['theme-contact', 1],
       ['theme-details', 1],
+      [expect.stringMatching(/^fallback-section-/), 5],
     ]);
 
     const definitionProvider = createAssistProvider({
@@ -647,8 +654,10 @@ describe('Assist provider tools', () => {
     });
     const definitionPages = await parse(definitionProvider, 'formspec.form.pages', {});
     expect(definitionPages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
-      ['org', undefined],
-      ['details', undefined],
+      ['organization', undefined],
+      ['project-details', undefined],
+      ['budget-items', undefined],
+      ['additional-items', undefined],
     ]);
   });
 
@@ -677,6 +686,7 @@ describe('Assist provider tools', () => {
     expect(invalidComponentPages.pages.map((page: { id: string }) => page.id)).toEqual([
       'theme-contact',
       'theme-details',
+      expect.stringMatching(/^fallback-section-/),
     ]);
 
     const invalidThemeProvider = createAssistProvider({
@@ -689,7 +699,12 @@ describe('Assist provider tools', () => {
     });
 
     const invalidThemePages = await parse(invalidThemeProvider, 'formspec.form.pages', {});
-    expect(invalidThemePages.pages.map((page: { id: string }) => page.id)).toEqual(['org', 'details']);
+    expect(invalidThemePages.pages.map((page: { id: string }) => page.id)).toEqual([
+      'organization',
+      'project-details',
+      'budget-items',
+      'additional-items',
+    ]);
   });
 
   it('uses component-tree theme fallback when the component doc has no explicit pages', async () => {
@@ -731,6 +746,13 @@ describe('Assist provider tools', () => {
         filledCount: 0,
         complete: false,
       },
+      expect.objectContaining({
+        id: expect.stringMatching(/^fallback-section-/),
+        title: 'Additional Items',
+        fieldCount: 5,
+        filledCount: 1,
+        complete: false,
+      }),
     ]);
   });
 
@@ -825,6 +847,8 @@ describe('Assist provider tools', () => {
     completeEngine.getFieldVM('organization.name')?.setValue('Acme Foundation');
     completeEngine.getFieldVM('organization.ein')?.setValue('12-3456789');
     completeEngine.getFieldVM('details.summary')?.setValue('Ready to submit');
+    completeEngine.getFieldVM('budgetItems[0].description')?.setValue('Printing');
+    completeEngine.getFieldVM('budgetItems[0].amount')?.setValue(1500);
     const completeProvider = createAssistProvider({
       engine: completeEngine,
       theme: makeTheme(),

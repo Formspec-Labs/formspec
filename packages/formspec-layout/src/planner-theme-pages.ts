@@ -67,7 +67,7 @@ export function buildThemePageNodes(
 
         nodes.push({
             id: nextId('page'),
-            component: 'Page',
+            component: 'Section',
             category: 'layout',
             props: {
                 id: page.id,

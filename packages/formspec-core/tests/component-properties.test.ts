@@ -113,11 +113,11 @@ describe('component.setFieldWidget', () => {
 
     project.dispatch({
       type: 'component.setFieldWidget',
-      payload: { fieldKey: 'name', widget: 'TextArea' },
+      payload: { fieldKey: 'name', widget: 'NumberInput' },
     });
 
     const tree = project.component.tree as any;
-    expect(tree.children[0].component).toBe('TextArea');
+    expect(tree.children[0].component).toBe('NumberInput');
   });
 });
 

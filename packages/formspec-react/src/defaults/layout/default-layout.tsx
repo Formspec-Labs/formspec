@@ -24,18 +24,16 @@ export function DefaultLayout({ node, children }: LayoutComponentProps) {
             return <StackLayout node={node} children={children} themeClass={themeClass} style={style} />;
 
         case 'Grid':
-        case 'Columns':
             return <GridLayout node={node} children={children} themeClass={themeClass} style={style} />;
 
         case 'Card':
-        case 'Section':
             return <CardLayout node={node} children={children} themeClass={themeClass} style={style} />;
 
         case 'Divider':
             return <DividerLayout node={node} themeClass={themeClass} style={style} />;
 
-        case 'Page':
-            return <PageLayout node={node} children={children} themeClass={themeClass} style={style} />;
+        case 'Section':
+            return <SectionLayout node={node} children={children} themeClass={themeClass} style={style} />;
 
         case 'Collapsible':
             return <CollapsibleLayout node={node} children={children} themeClass={themeClass} style={style} />;
@@ -72,21 +70,67 @@ function mergeClasses(baseClass: string, extraClasses?: string): string {
     return Array.from(new Set(parts)).join(' ');
 }
 
+function surfaceStyle(props: Record<string, unknown>, style?: React.CSSProperties): React.CSSProperties | undefined {
+    const next: React.CSSProperties = { ...(style ?? {}) };
+    if (props.padding != null) next.padding = String(props.padding);
+    if (props.background != null) next.background = String(props.background);
+    if (props.border != null) next.border = String(props.border);
+    if (props.radius != null) next.borderRadius = String(props.radius);
+    return Object.keys(next).length > 0 ? next : undefined;
+}
+
+function elevationAttrs(props: Record<string, unknown>): Record<string, string> {
+    return props.elevation != null ? { 'data-elevation': String(props.elevation) } : {};
+}
+
+function accessibilityAttrs(node: LayoutComponentProps['node']): Record<string, string> {
+    const accessibility = node.accessibility as {
+        role?: string;
+        description?: string;
+        liveRegion?: string;
+    } | undefined;
+    return {
+        ...(accessibility?.role ? { role: accessibility.role } : {}),
+        ...(accessibility?.description ? { 'aria-description': accessibility.description } : {}),
+        ...(accessibility?.liveRegion ? { 'aria-live': accessibility.liveRegion } : {}),
+    };
+}
+
+function stackJustifyContent(value: string | undefined): React.CSSProperties['justifyContent'] | undefined {
+    switch (value) {
+        case 'between':
+            return 'space-between';
+        case 'around':
+            return 'space-around';
+        case 'evenly':
+            return 'space-evenly';
+        case 'start':
+        case 'center':
+        case 'end':
+            return value;
+        default:
+            return undefined;
+    }
+}
+
 // ── Stack ─────────────────────────────────────────────────────────
 
 function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const direction = props.direction as string | undefined;
-    const alignment = props.alignment as string | undefined;
+    const alignment = props.align as string | undefined;
+    const justify = props.justify as string | undefined;
     const wrap = props.wrap as boolean | undefined;
     const gap = (props.gap as string | undefined) ?? (style?.gap as string | undefined);
+    const justifyContent = stackJustifyContent(justify);
 
     const stackStyle: React.CSSProperties = {
         display: 'flex',
         flexDirection: direction === 'horizontal' ? 'row' : 'column',
         ...(alignment ? { alignItems: alignment } : {}),
+        ...(justifyContent ? { justifyContent } : {}),
         ...(wrap ? { flexWrap: 'wrap' } : {}),
-        ...style,
+        ...surfaceStyle(props, style),
         // Props gap wins over theme style gap
         ...(gap ? { gap } : {}),
     };
@@ -96,7 +140,12 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     const title = props.title as string | undefined;
     if (title && node.bindPath) {
         return (
-            <section className={mergeClasses('formspec-group', themeClass)} style={node.style as React.CSSProperties}>
+            <section
+                className={mergeClasses('formspec-group', themeClass)}
+                style={surfaceStyle(props, style)}
+                {...elevationAttrs(props)}
+                {...accessibilityAttrs(node)}
+            >
                 <h3 className="formspec-group-title">{title}</h3>
                 {children}
             </section>
@@ -123,6 +172,10 @@ function GridLayout({ node, children, themeClass, style }: LayoutProps) {
         gridTemplateColumns = `repeat(${columns}, 1fr)`;
     } else if (typeof columns === 'string') {
         gridTemplateColumns = columns;
+    } else if (Array.isArray(columns) && columns.length > 0) {
+        gridTemplateColumns = columns
+            .map((track) => typeof track === 'number' ? `${track}fr` : String(track))
+            .join(' ');
     } else {
         gridTemplateColumns = 'repeat(1, 1fr)';
     }
@@ -132,7 +185,7 @@ function GridLayout({ node, children, themeClass, style }: LayoutProps) {
         gridTemplateColumns,
         gap: '1rem',
         ...(rowGap ? { rowGap } : {}),
-        ...style,
+        ...surfaceStyle(props, style),
         // Props gap/rowGap win over theme style
         ...(gap ? { gap } : {}),
         ...(rowGap ? { rowGap } : {}),
@@ -151,15 +204,14 @@ function CardLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const label = node.fieldItem?.label || (props.title as string | undefined);
     const subtitle = props.subtitle as string | undefined;
-    const elevation = props.elevation as number | string | undefined;
     const headingLevel = Math.min(6, Math.max(1, (props.headingLevel as number | undefined) ?? 3));
     const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return (
         <section
             className={mergeClasses('formspec-card', themeClass)}
-            style={style}
-            {...(elevation != null ? { 'data-elevation': String(elevation) } : {})}
+            style={surfaceStyle(props, style)}
+            {...elevationAttrs(props)}
         >
             {label && <Heading className="formspec-card-title">{label}</Heading>}
             {subtitle && <p className="formspec-card-subtitle">{subtitle}</p>}
@@ -186,9 +238,9 @@ function DividerLayout({ node, themeClass, style }: Omit<LayoutProps, 'children'
     return <hr className={mergeClasses('formspec-divider', themeClass)} style={style} />;
 }
 
-// ── Page ─────────────────────────────────────────────────────────
+// ── Section ──────────────────────────────────────────────────────
 
-function PageLayout({ node, children, themeClass, style }: LayoutProps) {
+function SectionLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const title = props.title as string | undefined;
     const description = props.description as string | undefined;
@@ -196,9 +248,9 @@ function PageLayout({ node, children, themeClass, style }: LayoutProps) {
     const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return (
-        <section className={mergeClasses('formspec-page', themeClass)} style={style}>
+        <section className={mergeClasses('formspec-section', themeClass)} style={surfaceStyle(props, style)} {...elevationAttrs(props)}>
             {title && <Heading>{title}</Heading>}
-            {description && <p className="formspec-page-description">{description}</p>}
+            {description && <p className="formspec-section-description">{description}</p>}
             {children}
         </section>
     );
@@ -320,17 +372,17 @@ function AccordionLayout({ node, children, themeClass, style }: LayoutProps) {
 function PanelLayout({ node, children, themeClass, style }: LayoutProps) {
     const props = node.props ?? {};
     const title = props.title as string | undefined;
-    const position = props.position as string | undefined;
+    const placement = props.placement as string | undefined;
     const width = props.width as string | undefined;
 
     const panelStyle: React.CSSProperties = {
-        ...(position === 'left' ? { order: -1 } : position === 'right' ? { order: 1 } : {}),
+        ...(placement === 'left' ? { order: -1 } : placement === 'right' ? { order: 1 } : {}),
         ...(width ? { width } : {}),
-        ...style,
+        ...surfaceStyle(props, style),
     };
 
     return (
-        <div className={mergeClasses('formspec-panel', themeClass)} style={panelStyle}>
+        <div className={mergeClasses('formspec-panel', themeClass)} style={panelStyle} {...elevationAttrs(props)}>
             {title && <div className="formspec-panel-header">{title}</div>}
             <div className="formspec-panel-body">
                 {children}

@@ -8,10 +8,10 @@ import { lintDocument, type SchemaValidator } from '@formspec-org/engine/fel-too
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = path.resolve(__dirname, '../../../schemas');
 
-/** Get the nodeId of a Page node from the component tree. */
+/** Get the nodeId of a Section page unit from the component tree. */
 function getPageId(project: ReturnType<typeof createRawProject>, index = 0): string {
   const tree = project.component.tree;
-  const pages = (tree?.children ?? []).filter((c: any) => c.component === 'Page');
+  const pages = (tree?.children ?? []).filter((c: any) => c.component === 'Section');
   if (!pages[index]) throw new Error(`No page at index ${index}`);
   return pages[index].nodeId;
 }
@@ -25,7 +25,7 @@ function addPage(project: ReturnType<typeof createRawProject>, title: string, id
     type: 'component.addNode',
     payload: {
       parent: { nodeId: 'root' },
-      component: 'Page',
+      component: 'Section',
       props: { ...(id ? { nodeId: id } : {}), title },
     },
   }) as any;

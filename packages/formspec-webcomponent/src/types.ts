@@ -133,7 +133,7 @@ export interface RenderContext {
 /**
  * Contract for a component plugin registered with the {@link ComponentRegistry}.
  *
- * Each plugin declares a `type` string (e.g. `"TextInput"`, `"Wizard"`) that
+ * Each plugin declares a `type` string (e.g. `"TextInput"`, `"Section"`) that
  * maps to a component document's `component` field, and a `render` function
  * that builds the DOM for that component type.
  */

@@ -60,13 +60,13 @@ function createPlanContext(
 
 function topLevelPages(nodes: LayoutNode[] | LayoutNode): LayoutNode[] {
     if (Array.isArray(nodes)) {
-        return nodes.filter((node) => node.component === 'Page');
+        return nodes.filter((node) => node.component === 'Section');
     }
-    if (nodes.component === 'Page') {
+    if (nodes.component === 'Section') {
         return [nodes];
     }
     return Array.isArray(nodes.children)
-        ? nodes.children.filter((node) => node.component === 'Page')
+        ? nodes.children.filter((node) => node.component === 'Section')
         : [];
 }
 
@@ -151,7 +151,7 @@ export function resolvePageSequence(
     options: { component?: ComponentDocument; theme?: ThemeDocument } = {},
 ): PageSequenceEntry[] {
     // Layer precedence is explicit:
-    // component Page nodes > theme.pages > definition-level page hints.
+    // root-level component Section units > theme.pages > generated definition group sections.
     if (options.component) {
         const componentPages = buildComponentSequence(definition, options.component);
         if (componentPages.length > 0) {

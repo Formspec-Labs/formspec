@@ -1,5 +1,5 @@
-/** @filedesc Resolves component-tree pages into enriched page structures with diagnostics. */
-import type { FormDefinition, FormItem, ComponentState } from './types.js';
+/** @filedesc Resolves component-tree or theme pages into enriched page structures with diagnostics. */
+import type { FormDefinition, FormItem, ComponentState, ThemeDocument } from './types.js';
 import type { TreeNode } from './handlers/tree-utils.js';
 import { resolvePageStructureFromTree } from './queries/component-page-resolution.js';
 
@@ -19,7 +19,8 @@ export interface ResolvedRegion {
 
 /**
  * Resolved page with enriched regions.
- * Derived from Page nodes in the component tree.
+ * Derived from direct-root Section nodes in the component tree, falling back
+ * to theme pages when no component-owned pages exist.
  */
 export interface ResolvedPage {
   id: string;
@@ -46,12 +47,14 @@ export interface ResolvedPageStructure {
 export type PageStructureInput = {
   definition: Pick<FormDefinition, 'formPresentation' | 'items'>;
   component?: Pick<ComponentState, 'tree'>;
+  theme?: Pick<ThemeDocument, 'pages'> | { pages?: unknown[] };
 };
 
 /**
  * Resolves the current page structure from the component tree.
  *
- * Reads Page nodes from `component.tree` (a Stack > Page* hierarchy).
+ * Reads direct-root Section nodes from `component.tree`, or `theme.pages`
+ * when the component tree has no root page Sections.
  * Applies bidirectional propagation (groups ↔ children) and emits diagnostics.
  */
 export function resolvePageStructure(
@@ -65,30 +68,60 @@ export function resolvePageStructure(
   const effectiveMode: 'single' | 'wizard' | 'tabs' =
     pageMode === 'tabs' ? 'tabs' : pageMode === 'wizard' ? 'wizard' : 'single';
 
-  // Extract raw page structure from the component tree
+  // Extract raw page structure from the component tree. Component-owned pages
+  // take precedence; theme pages are the lower-precedence declarative page
+  // source when no direct-root Section page units exist.
   const tree = state.component?.tree as TreeNode | undefined;
-  if (!tree) {
-    // No component tree — all items are unassigned
-    const unassignedItems: string[] = [];
-    const visited = new Set<string>();
-    collectUnassigned(state.definition.items ?? [], {}, visited, unassignedItems);
-    for (const key of definitionItemKeys) {
-      if (!visited.has(key)) unassignedItems.push(key);
+  if (tree) {
+    const rawResult = resolvePageStructureFromTree(tree, effectiveMode, definitionItemKeys);
+    if (rawResult.pages.length > 0) {
+      return finalizePageStructure({
+        effectiveMode,
+        pageMode,
+        pages: rawResult.pages,
+        itemPageMap: { ...rawResult.itemPageMap },
+        definitionItems: state.definition.items ?? [],
+        definitionItemKeys,
+        knownKeys,
+        diagnostics,
+      });
     }
-    return {
-      mode: effectiveMode,
-      pages: [],
-      diagnostics: [],
-      unassignedItems,
-      itemPageMap: {},
-    };
   }
 
-  const rawResult = resolvePageStructureFromTree(tree, effectiveMode, definitionItemKeys);
+  const themeResult = resolvePageStructureFromTheme(state.theme?.pages, knownKeys);
+  return finalizePageStructure({
+    effectiveMode,
+    pageMode,
+    pages: themeResult.pages,
+    itemPageMap: themeResult.itemPageMap,
+    definitionItems: state.definition.items ?? [],
+    definitionItemKeys,
+    knownKeys,
+    diagnostics,
+  });
+}
 
-  // Start with the raw itemPageMap from tree extraction
-  const itemPageMap: Record<string, string> = { ...rawResult.itemPageMap };
-  const pages = rawResult.pages;
+// ── Internal helpers ────────────────────────────────────────────────
+
+function finalizePageStructure(args: {
+  effectiveMode: 'single' | 'wizard' | 'tabs';
+  pageMode: string;
+  pages: ResolvedPage[];
+  itemPageMap: Record<string, string>;
+  definitionItems: FormItem[];
+  definitionItemKeys: string[];
+  knownKeys: Set<string>;
+  diagnostics: PageDiagnostic[];
+}): ResolvedPageStructure {
+  const {
+    effectiveMode,
+    pageMode,
+    pages,
+    itemPageMap,
+    definitionItems,
+    definitionItemKeys,
+    diagnostics,
+  } = args;
 
   // Emit UNKNOWN_REGION_KEY diagnostics for non-existent region keys
   for (const page of pages) {
@@ -106,12 +139,12 @@ export function resolvePageStructure(
   // Bidirectional page ID propagation on the definition item tree
   // Top-down: groups assigned to a page propagate to their children.
   // Bottom-up: groups whose children are ALL assigned inherit a page ID.
-  propagatePageIds(state.definition.items ?? [], itemPageMap);
+  propagatePageIds(definitionItems, itemPageMap);
 
   // Compute unassigned items with smart group/child logic
   const unassignedItems: string[] = [];
   const visited = new Set<string>();
-  collectUnassigned(state.definition.items ?? [], itemPageMap, visited, unassignedItems);
+  collectUnassigned(definitionItems, itemPageMap, visited, unassignedItems);
 
   // Keys from the input list not in the definition item tree
   for (const key of definitionItemKeys) {
@@ -138,7 +171,53 @@ export function resolvePageStructure(
   };
 }
 
-// ── Internal helpers ────────────────────────────────────────────────
+function resolvePageStructureFromTheme(
+  themePages: unknown,
+  knownKeys: Set<string>,
+): { pages: ResolvedPage[]; itemPageMap: Record<string, string> } {
+  const itemPageMap: Record<string, string> = {};
+  const pages: ResolvedPage[] = [];
+
+  for (const [index, rawPage] of (Array.isArray(themePages) ? themePages : []).entries()) {
+    if (!rawPage || typeof rawPage !== 'object') continue;
+    const page = rawPage as {
+      id?: unknown;
+      title?: unknown;
+      description?: unknown;
+      regions?: unknown;
+    };
+    const pageId = typeof page.id === 'string' && page.id ? page.id : `page-${index + 1}`;
+    const regions: ResolvedRegion[] = [];
+    for (const rawRegion of Array.isArray(page.regions) ? page.regions : []) {
+      if (!rawRegion || typeof rawRegion !== 'object') continue;
+      const region = rawRegion as {
+        key?: unknown;
+        span?: unknown;
+        start?: unknown;
+        responsive?: unknown;
+      };
+      if (typeof region.key !== 'string' || !region.key) continue;
+      regions.push({
+        key: region.key,
+        span: typeof region.span === 'number' ? region.span : 12,
+        ...(typeof region.start === 'number' ? { start: region.start } : {}),
+        ...(region.responsive && typeof region.responsive === 'object' && !Array.isArray(region.responsive)
+          ? { responsive: region.responsive as ResolvedRegion['responsive'] }
+          : {}),
+        exists: knownKeys.has(region.key),
+      });
+      itemPageMap[region.key] = pageId;
+    }
+    pages.push({
+      id: pageId,
+      title: typeof page.title === 'string' && page.title ? page.title : pageId,
+      ...(typeof page.description === 'string' ? { description: page.description } : {}),
+      regions,
+    });
+  }
+
+  return { pages, itemPageMap };
+}
 
 function propagatePageIds(
   items: FormItem[],

@@ -255,25 +255,25 @@
   background: var(--formspec-default-primary-fill-strong);
 }
 
-.formspec-tabs:not([data-position]) .formspec-tab-panels,
-.formspec-tabs[data-position="top"] .formspec-tab-panels {
+.formspec-tabs:not([data-placement]) .formspec-tab-panels,
+.formspec-tabs[data-placement="top"] .formspec-tab-panels {
   padding-top: 0.9rem;
 }
 
-.formspec-tabs[data-position="left"] .formspec-tab,
-.formspec-tabs[data-position="right"] .formspec-tab {
+.formspec-tabs[data-placement="left"] .formspec-tab,
+.formspec-tabs[data-placement="right"] .formspec-tab {
   justify-content: flex-start;
   min-width: 12rem;
   text-align: left;
 }
 
-.formspec-page h2 {
+.formspec-section h2 {
   margin-bottom: 0.25rem;
   padding-bottom: 0;
   border-bottom: none;
 }
 
-.formspec-page-description {
+.formspec-section-description {
   margin-bottom: 0.75rem;
   color: var(--formspec-default-text-subtle);
   font-size: 0.9375rem;
@@ -519,12 +519,12 @@
   gap: var(--formspec-spacing-field, 0.75rem);
 }
 
-.formspec-wizard-panel .formspec-page > h2 {
+.formspec-wizard-panel .formspec-section > h2 {
   margin: 0 0 0.35rem;
   color: var(--formspec-default-text-strong);
 }
 
-.formspec-wizard-panel .formspec-page-description {
+.formspec-wizard-panel .formspec-section-description {
   margin-bottom: 1rem;
   color: var(--formspec-default-text-muted);
 }
@@ -572,8 +572,4 @@
 .formspec-wizard-step-label--active {
   color: var(--formspec-default-text-strong);
   font-weight: 560;
-}
-
-.formspec-spacer {
-  height: 1rem;
 }

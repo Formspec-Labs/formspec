@@ -141,21 +141,21 @@ describe('reconcileComponentTree', () => {
           type: 'field',
           dataType: 'choice',
           options: [{ value: 'single', label: 'Single' }, { value: 'married', label: 'Married' }],
-          presentation: { widgetHint: 'radio' },
+          presentation: { widgetHint: 'RadioGroup' },
         },
         {
           key: 'agreed',
           type: 'field',
           dataType: 'boolean',
-          presentation: { widgetHint: 'checkbox' },
+          presentation: { widgetHint: 'Toggle' },
         },
       ],
     } as any;
 
     const tree = reconcileComponentTree(definition, undefined);
-    // widgetHint: 'radio' → RadioGroup, not the default Select
+    // widgetHint: 'RadioGroup' → RadioGroup, not the default Select
     expect(tree.children[0].component).toBe('RadioGroup');
-    // widgetHint: 'checkbox' → Toggle (Checkbox is not a valid schema component type)
+    // widgetHint: 'Toggle' → Toggle (Checkbox is not a valid schema component type)
     expect(tree.children[1].component).toBe('Toggle');
   });
 
@@ -177,7 +177,7 @@ describe('reconcileComponentTree', () => {
           key: 'marital',
           type: 'field',
           dataType: 'choice',
-          presentation: { widgetHint: 'radio' },
+          presentation: { widgetHint: 'RadioGroup' },
         },
       ],
     } as any;
@@ -201,7 +201,7 @@ describe('reconcileComponentTree', () => {
           key: 'color',
           type: 'field',
           dataType: 'choice',
-          presentation: { widgetHint: 'dropdown' },
+          presentation: { widgetHint: 'Select' },
         },
       ],
     } as any;
@@ -213,7 +213,7 @@ describe('reconcileComponentTree', () => {
     };
 
     const tree = reconcileComponentTree(definition, existing);
-    // Should keep Select (matches widgetHint 'dropdown' → Select) and preserve customProp
+    // Should keep Select (matches the canonical widgetHint) and preserve customProp
     expect(tree.children[0].component).toBe('Select');
     expect(tree.children[0].customProp).toBe(true);
   });
@@ -287,7 +287,7 @@ describe('reconcileComponentTree', () => {
     expect(tree.children[1].bind).toBe('age');
   });
 
-  it('preserves Page nodes marked _layout: true during reconcile', () => {
+  it('preserves Section nodes marked _layout: true during reconcile', () => {
     const definition = {
       items: [
         { key: 'name', type: 'field', dataType: 'string' },
@@ -297,7 +297,7 @@ describe('reconcileComponentTree', () => {
     const existing = {
       component: 'Stack', nodeId: 'root', children: [
         {
-          component: 'Page', nodeId: 'p1', title: 'Page 1', _layout: true,
+          component: 'Section', nodeId: 'p1', title: 'Page 1', _layout: true,
           children: [{ component: 'TextInput', bind: 'name' }],
         },
         { component: 'TextInput', bind: 'email' },
@@ -306,7 +306,7 @@ describe('reconcileComponentTree', () => {
 
     const tree = reconcileComponentTree(definition, existing);
     expect(tree.component).toBe('Stack');
-    const page = tree.children.find((c: any) => c.component === 'Page');
+    const page = tree.children.find((c: any) => c.component === 'Section');
     expect(page).toBeDefined();
     expect(page!._layout).toBe(true);
     expect(page!.title).toBe('Page 1');
@@ -489,7 +489,7 @@ describe('reconcileComponentTree', () => {
   it('respects widgetHint on calculated display item', () => {
     const definition = {
       items: [
-        { key: 'total_heading', type: 'display', label: 'Total', presentation: { widgetHint: 'heading' } },
+        { key: 'total_heading', type: 'display', label: 'Total', presentation: { widgetHint: 'Heading' } },
       ],
       binds: [
         { path: 'total_heading', calculate: "format('Total: $%s', $amount)" },

@@ -35,6 +35,42 @@ function selectorLabel(match: SelectorEntry['match'], index: number): string {
   return 'selector #' + (index + 1) + (parts.length ? ': ' + parts.join(' + ') : '');
 }
 
+function cssClassValues(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return value.split(/\s+/).filter(Boolean);
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => cssClassValues(item));
+  }
+  return [];
+}
+
+function setPresentationProperty(
+  result: Record<string, ResolvedProperty>,
+  prop: string,
+  value: unknown,
+  source: ResolvedProperty['source'],
+  sourceDetail?: string,
+): void {
+  if (prop !== 'cssClass') {
+    result[prop] = { value, source, ...(sourceDetail ? { sourceDetail } : {}) };
+    return;
+  }
+
+  const merged = cssClassValues(result.cssClass?.value);
+  const seen = new Set(merged);
+  for (const className of cssClassValues(value)) {
+    if (!seen.has(className)) {
+      seen.add(className);
+      merged.push(className);
+    }
+  }
+
+  if (merged.length > 0) {
+    result.cssClass = { value: merged, source, ...(sourceDetail ? { sourceDetail } : {}) };
+  }
+}
+
 export function resolveThemeCascade(
   theme: ThemeCascadeInput,
   itemKey: string,
@@ -48,7 +84,7 @@ export function resolveThemeCascade(
   if (definition?.formPresentation) {
     for (const [prop, value] of Object.entries(definition.formPresentation)) {
       if (value !== undefined) {
-        result[prop] = { value, source: 'form-default' };
+        setPresentationProperty(result, prop, value, 'form-default');
       }
     }
   }
@@ -57,7 +93,7 @@ export function resolveThemeCascade(
   if (definition?.itemPresentation) {
     for (const [prop, value] of Object.entries(definition.itemPresentation)) {
       if (value !== undefined) {
-        result[prop] = { value, source: 'item-hint' };
+        setPresentationProperty(result, prop, value, 'item-hint');
       }
     }
   }
@@ -65,7 +101,7 @@ export function resolveThemeCascade(
   // Level 1: theme defaults
   const defaults = (theme.defaults ?? {}) as Record<string, unknown>;
   for (const [prop, value] of Object.entries(defaults)) {
-    result[prop] = { value, source: 'default' };
+    setPresentationProperty(result, prop, value, 'default');
   }
 
   // Level 2: selectors (in array order, later overrides earlier)
@@ -75,11 +111,7 @@ export function resolveThemeCascade(
     if (!selectorMatches(sel.match, itemType, itemDataType)) continue;
     const apply = sel.apply ?? {};
     for (const [prop, value] of Object.entries(apply)) {
-      result[prop] = {
-        value,
-        source: 'selector',
-        sourceDetail: selectorLabel(sel.match, i),
-      };
+      setPresentationProperty(result, prop, value, 'selector', selectorLabel(sel.match, i));
     }
   }
 
@@ -88,7 +120,7 @@ export function resolveThemeCascade(
   const itemOverrides = items[itemKey];
   if (itemOverrides && typeof itemOverrides === 'object') {
     for (const [prop, value] of Object.entries(itemOverrides)) {
-      result[prop] = { value, source: 'item-override' };
+      setPresentationProperty(result, prop, value, 'item-override');
     }
   }
 

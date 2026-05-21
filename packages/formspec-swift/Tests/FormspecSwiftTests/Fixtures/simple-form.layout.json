@@ -29,7 +29,7 @@
         },
         {
             "id": "field-subscribe",
-            "component": "Checkbox",
+            "component": "Toggle",
             "category": "field",
             "props": {},
             "cssClasses": [],

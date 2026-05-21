@@ -16,12 +16,12 @@ describe('resolveResponsiveProps — no breakpoints map (single-breakpoint merge
 
     it('single-breakpoint merge when no breakpoints map provided', () => {
         const comp = {
-            component: 'Columns',
-            widths: ['3fr', '1fr'],
-            responsive: { sm: { widths: ['1fr'] } },
+            component: 'Grid',
+            columns: ['3fr', '1fr'],
+            responsive: { sm: { columns: ['1fr'] } },
         };
         const result = resolveResponsiveProps(comp, 'sm');
-        expect(result.widths).toEqual(['1fr']);
+        expect(result.columns).toEqual(['1fr']);
         expect(result).not.toBe(comp); // new object
     });
 
@@ -73,17 +73,17 @@ describe('resolveResponsiveProps — mobile-first cumulative cascade', () => {
 
     it('applies sm, md, then lg overrides cumulatively when active breakpoint is lg', () => {
         const comp = {
-            component: 'Columns',
-            widths: ['3fr', '1fr'],
+            component: 'Grid',
+            columns: ['3fr', '1fr'],
             gap: 4,
             responsive: {
-                sm: { widths: ['1fr'], gap: 8 },
+                sm: { columns: ['1fr'], gap: 8 },
                 md: { gap: 12 },
                 lg: { gap: 16, padding: 24 },
             },
         };
         const result = resolveResponsiveProps(comp, 'lg', breakpoints);
-        expect(result.widths).toEqual(['1fr']);  // from sm, not overridden
+        expect(result.columns).toEqual(['1fr']);  // from sm, not overridden
         expect(result.gap).toBe(16);             // lg wins over sm and md
         expect(result.padding).toBe(24);         // from lg
     });
@@ -214,11 +214,11 @@ describe('resolveResponsiveProps — integration with planner context', () => {
 
     it('handles null breakpoints argument (same as undefined)', () => {
         const comp = {
-            component: 'Columns',
-            widths: ['3fr', '1fr'],
-            responsive: { sm: { widths: ['1fr'] } },
+            component: 'Grid',
+            columns: ['3fr', '1fr'],
+            responsive: { sm: { columns: ['1fr'] } },
         };
         const result = resolveResponsiveProps(comp, 'sm', null);
-        expect(result.widths).toEqual(['1fr']);
+        expect(result.columns).toEqual(['1fr']);
     });
 });

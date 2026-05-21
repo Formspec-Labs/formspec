@@ -3,12 +3,11 @@ import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { resolveCompText } from './layout-plugin-factory';
 import type {
-    PageLayoutBehavior,
+    SectionLayoutBehavior,
     StackLayoutBehavior,
     GridLayoutBehavior,
     DividerLayoutBehavior,
     CollapsibleLayoutBehavior,
-    ColumnsLayoutBehavior,
     PanelLayoutBehavior,
     AccordionLayoutBehavior,
     ModalLayoutBehavior,
@@ -24,7 +23,7 @@ function hostWithTitleDescription(comp: any, ctx: RenderContext) {
     };
 }
 
-export function buildPageBehavior(comp: any, ctx: RenderContext): PageLayoutBehavior {
+export function buildSectionBehavior(comp: any, ctx: RenderContext): SectionLayoutBehavior {
     return {
         ...hostWithTitleDescription(comp, ctx),
         headingLevel: comp.headingLevel || 'h2',
@@ -51,10 +50,6 @@ export function buildCollapsibleBehavior(comp: any, ctx: RenderContext): Collaps
         ...hostWithTitleDescription(comp, ctx),
         titleText: resolveCompText(ctx, comp, 'title', comp.title || 'Details'),
     };
-}
-
-export function buildColumnsBehavior(comp: any, ctx: RenderContext): ColumnsLayoutBehavior {
-    return hostWithTitleDescription(comp, ctx);
 }
 
 export function buildPanelBehavior(comp: any, ctx: RenderContext): PanelLayoutBehavior {

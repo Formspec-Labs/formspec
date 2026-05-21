@@ -52,7 +52,7 @@ describe('custom components — template expansion', () => {
                     },
                 },
                 tree: {
-                    component: 'Page',
+                    component: 'Section',
                     children: [
                         { component: 'LabeledInput', title: 'Your First Name', field: 'firstName' },
                         { component: 'LabeledInput', title: 'Your Last Name', field: 'lastName' },

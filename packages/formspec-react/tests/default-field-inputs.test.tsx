@@ -656,11 +656,17 @@ describe('Toggle — role switch', () => {
         expect(input.getAttribute('role')).toBe('switch');
     });
 
-    it('Checkbox does NOT have role="switch"', () => {
-        const def = baseDef([{ key: 'agree', type: 'field', dataType: 'boolean', label: 'Agree' }]);
+    it('CheckboxGroup inputs do NOT have role="switch"', () => {
+        const def = baseDef([{
+            key: 'interests',
+            type: 'field',
+            dataType: 'multiChoice',
+            label: 'Interests',
+            options: [{ value: 'a', label: 'A' }],
+        }]);
         const node: LayoutNode = {
-            id: 'agree-field', component: 'Checkbox', category: 'field',
-            props: {}, cssClasses: [], children: [], bindPath: 'agree',
+            id: 'interests-field', component: 'CheckboxGroup', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'interests',
         };
         const container = renderField(def, node);
         const input = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
@@ -721,11 +727,17 @@ describe('Toggle — role switch', () => {
         expect(input).toBeTruthy();
     });
 
-    it('Checkbox does NOT have .formspec-toggle wrapper', () => {
-        const def = baseDef([{ key: 'agree', type: 'field', dataType: 'boolean', label: 'Agree' }]);
+    it('CheckboxGroup does NOT have .formspec-toggle wrapper', () => {
+        const def = baseDef([{
+            key: 'interests',
+            type: 'field',
+            dataType: 'multiChoice',
+            label: 'Interests',
+            options: [{ value: 'a', label: 'A' }],
+        }]);
         const node: LayoutNode = {
-            id: 'agree-field', component: 'Checkbox', category: 'field',
-            props: {}, cssClasses: [], children: [], bindPath: 'agree',
+            id: 'interests-field', component: 'CheckboxGroup', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'interests',
         };
         const container = renderField(def, node);
         const toggleWrapper = container.querySelector('.formspec-toggle');

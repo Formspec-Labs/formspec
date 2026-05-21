@@ -182,10 +182,10 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
 
     const heading = document.createElement('h2');
     heading.className = 'formspec-screener-heading';
-    heading.textContent = host._definition.title || 'Screening Questions';
+    heading.textContent = typeof host._definition.title === 'string' ? host._definition.title : 'Screening Questions';
     panel.appendChild(heading);
 
-    if (host._definition.description) {
+    if (typeof host._definition.description === 'string' && host._definition.description) {
         const intro = document.createElement('p');
         intro.className = 'formspec-screener-intro';
         intro.textContent = host._definition.description;

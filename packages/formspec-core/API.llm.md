@@ -12,6 +12,42 @@ undo/redo, and the IProjectCore abstraction.
 Schema-derived document types come from formspec-types (re-exported here).
 For the behavior-driven authoring API, use formspec-studio-core.
 
+## `bindFelExpression(bind: FormBind, prop: BindFelProperty): string | undefined`
+
+FEL expression on a bind property, if present and string-typed.
+
+## `forEachBindFelExpression(bind: FormBind, visit: (prop: BindFelProperty, expression: string) => void): void`
+
+## `forEachItemFelExpression(item: FormItem, visit: (prop: ItemFelProperty, expression: string) => void): void`
+
+## `rewriteBindFelExpressions(bind: FormBind, rewrite: (expr: string) => string): void`
+
+## `rewriteShapeFelExpressions(shape: FormShape, rewritePath: (path: string) => string, rewriteExpr: (expr: string) => string): void`
+
+## `rewriteItemFelExpressions(item: FormItem, rewrite: (expr: string) => string): void`
+
+## `rewriteVariableExpression(variable: FormVariable, rewrite: (expr: string) => string): void`
+
+## `allMappingRules(mappings: Record<string, MappingState>): FieldRule[]`
+
+## `rewriteMappingRuleFieldRefs(rule: FieldRule, rewritePath: (path: string) => string, rewriteExpr: (expr: string) => string): void`
+
+## `BIND_FEL_PROPERTIES: readonly ["calculate", "relevant", "required", "readonly", "constraint"]`
+
+## `ITEM_FEL_PROPERTIES: readonly ["relevant", "required", "readonly", "calculate", "constraint"]`
+
+#### type `BindFelProperty`
+
+```ts
+type BindFelProperty = (typeof BIND_FEL_PROPERTIES)[number];
+```
+
+#### type `ItemFelProperty`
+
+```ts
+type ItemFelProperty = (typeof ITEM_FEL_PROPERTIES)[number];
+```
+
 ## `createChangesetMiddleware(control: ChangesetRecorderControl): Middleware`
 
 Creates a recording middleware controlled by the given handle.
@@ -42,13 +78,57 @@ Called after each successful dispatch when recording is on.
 
 ## `createComponentArtifact(url?: string): ComponentState`
 
-## `normalizeComponentState(component: ComponentState | undefined, url?: string): ComponentState`
-
-## `getEditableComponentDocument(state: Pick<ProjectState, 'component'>): ComponentState`
+## `normalizeComponentState(component: ComponentState | ComponentDocument | undefined, url?: string): ComponentState`
 
 ## `getCurrentComponentDocument(state: Pick<ProjectState, 'component'>): ComponentState`
 
+## `getEditableComponentDocument: typeof getCurrentComponentDocument`
+
+@deprecated Use {@link getCurrentComponentDocument}.
+
+## `editableComponentTree(state: ProjectState): EditableComponentNode | undefined`
+
+## `currentComponentTree(state: ProjectState): EditableComponentNode | undefined`
+
+## `walkComponentTree(root: EditableComponentNode, visit: (node: EditableComponentNode) => void): void`
+
+#### interface `EditableComponentNode`
+
+Minimal shape of nodes in an editable component tree (ingress boundary).
+
+- **bind?**: `string`
+- **type?**: `string`
+- **children?**: `EditableComponentNode[]`
+
 ## `normalizeBindsFromUnknown(binds: unknown): FormBind[] | undefined`
+
+## `withComponentEnvelope(body: ComponentState, definitionUrl: string): ComponentDocument`
+
+## `withThemeEnvelope(body: ThemeState, definitionUrl: string): ThemeDocument`
+
+## `viewThemeDocument(theme: ThemeState): ThemeDocument`
+
+View working theme state as a ThemeDocument (same object reference; envelope
+fields are added only at export via {@link withThemeEnvelope}).
+
+## `themeStateFromDocument(doc: ThemeDocument): ThemeState`
+
+Strip envelope fields from an imported theme document into working state.
+
+## `withMappingEnvelope(body: MappingState, definitionUrl: string): MappingDocument`
+
+## `mappingStateFromDocument(doc: MappingDocument): MappingState`
+
+Strip envelope fields from an imported mapping document into working state.
+
+## `COMPONENT_BASE_PROP_NAMES: readonly ["accessibility", "component", "cssClass", "id", "layout", "responsive", "style", "when"]`
+
+AUTO-GENERATED — DO NOT EDIT
+
+Generated from schemas/component.schema.json by scripts/generate-component-schema-props.mjs.
+Re-run: npm run codegen:component-props (from packages/formspec-core)
+
+## `COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]>`
 
 ## `componentPropertiesHandlers: {
     'component.setNodeProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
@@ -111,7 +191,7 @@ Called after each successful dispatch when recording is on.
 ## `componentTreeHandlers: {
     /**
      * Rebuild bound/display nodes from the current definition while preserving
-     * layout wrappers (Page, Card, etc.). Used when a node was removed from the
+     * layout wrappers (Section, Card, etc.). Used when a node was removed from the
      * tree but the definition item still exists — e.g. Layout "Remove from Tree"
      * followed by placing the item on a page again.
      */
@@ -1193,7 +1273,8 @@ Normalize BCP 47: lowercase language, title-case script, uppercase region.
 
 Resolves the current page structure from the component tree.
 
-Reads Page nodes from `component.tree` (a Stack > Page* hierarchy).
+Reads direct-root Section nodes from `component.tree`, or `theme.pages`
+when the component tree has no root page Sections.
 Applies bidirectional propagation (groups ↔ children) and emits diagnostics.
 
 #### interface `ResolvedRegion`
@@ -1214,7 +1295,8 @@ Each region represents a bound item placed on a page.
 #### interface `ResolvedPage`
 
 Resolved page with enriched regions.
-Derived from Page nodes in the component tree.
+Derived from direct-root Section nodes in the component tree, falling back
+to theme pages when no component-owned pages exist.
 
 - **id**: `string`
 - **title**: `string`
@@ -1243,6 +1325,9 @@ The document slices resolvePageStructure reads.
 type PageStructureInput = {
     definition: Pick<FormDefinition, 'formPresentation' | 'items'>;
     component?: Pick<ComponentState, 'tree'>;
+    theme?: Pick<ThemeDocument, 'pages'> | {
+        pages?: unknown[];
+    };
 };
 ```
 
@@ -1397,7 +1482,7 @@ returns the new state plus all results. Middleware wraps the full plan.
 - **'screener.setResultValidity'**: `{
         duration: string | null;
     }`
-- **'project.import'**: `Record<string, any>`
+- **'project.import'**: `Partial<ProjectBundle>`
 - **'project.importSubform'**: `{
         definition: Record<string, unknown>;
         targetGroupPath?: string;
@@ -1415,7 +1500,7 @@ returns the new state plus all results. Middleware wraps the full plan.
     }`
 - **'mapping.create'**: `{
         id: string;
-        targetSchema?: any;
+        targetSchema?: TargetSchema;
     }`
 - **'mapping.delete'**: `{
         id: string;
@@ -1992,9 +2077,9 @@ type CreateFormspecCoreProject = (options?: ProjectOptions) => FormspecCoreProje
 
 Resolve page structure from the component tree.
 
-Walks the root node's direct children for `component: 'Page'` nodes.
-Each Page's subtree is recursively searched for bound items (any node with a
-`bind` property). Non-Page children of the root contribute unassigned items.
+Walks the root node's direct children for `component: 'Section'` nodes.
+Each Section's subtree is recursively searched for bound items (any node with a
+`bind` property). Non-Section children of the root contribute unassigned items.
 
 ## `fieldDependents(state: ProjectState, fieldPath: string): FieldDependents`
 
@@ -2364,6 +2449,26 @@ corrupting downstream reads.
 
 ##### `batch(commands: Command<T, ProjectCommandMap[T]>[]): CommandResult[]`
 
+## `asMutableRecord(target: object): Record<string, unknown>`
+
+Typed schema object as a mutable string-keyed record (one assertion at the seam).
+
+## `setRecordProperty(target: Record<string, unknown>, property: string, value: unknown): void`
+
+## `registryEntry(entry: unknown): RegistryEntryShape`
+
+#### interface `RegistryEntryShape`
+
+@filedesc Narrow loaded extension registry entries without casts in call sites.
+
+- **category?**: `string`
+- **name?**: `string`
+- **status?**: `string`
+- **baseType?**: `string`
+- **source?**: `string`
+- **functionCategory?**: `string`
+- **group?**: `string`
+
 ## `indexRegistryPayload(registry: Record<string, unknown>, fallbackUrl?: string): LoadedRegistry`
 
 Build a loaded registry record from a registry document payload.
@@ -2416,7 +2521,7 @@ The algorithm:
   1. Snapshot layout wrappers (_layout: true) with their full subtrees.
   2. Collect existing bound/display nodes by path, rebuild from definition.
   3. Build a flat Stack root with all definition-derived nodes.
-  4. Re-insert layout wrappers (including Page nodes) at original positions.
+  4. Re-insert layout wrappers (including Section nodes) at original positions.
 
 #### interface `ComponentState`
 
@@ -2454,8 +2559,8 @@ Handlers read/write defaults, selectors, items, pages, etc.
 Mapping working state — content without required envelope metadata.
 Handlers read/write rules, targetSchema, adapters, etc.
 
-- **rules?**: `unknown[]`
-- **targetSchema?**: `Record<string, unknown>`
+- **rules?**: `FieldRule[]`
+- **targetSchema?**: `TargetSchema`
 - **definitionRef?**: `string`
 - **definitionVersion?**: `string`
 - **direction?**: `'forward' | 'reverse' | 'both'`
@@ -2463,24 +2568,6 @@ Handlers read/write rules, targetSchema, adapters, etc.
 - **autoMap?**: `boolean`
 - **conformanceLevel?**: `'core' | 'bidirectional' | 'extended'`
 - **adapters?**: `Record<string, unknown>`
-
-#### interface `LocaleState`
-
-Working state for a single locale document.
-Keyed by BCP 47 code in ProjectState.locales.
-
-- **locale** (`string`): BCP 47 locale code (e.g. "fr", "fr-CA").
-- **version** (`string`): Locale document version.
-- **fallback** (`string`): BCP 47 code of the fallback locale (optional).
-- **targetDefinition** (`{
-        url: string;
-        compatibleVersions?: string;
-    }`): Target definition this locale was authored for.
-- **strings** (`Record<string, string>`): Locale string key-value pairs.
-- **name** (`string`): Human-readable name of the locale (e.g. "Français").
-- **title** (`string`): Display title for the locale.
-- **description** (`string`): Description of the locale document.
-- **url** (`string`): URL of the locale document source.
 
 #### interface `ExtensionsState`
 

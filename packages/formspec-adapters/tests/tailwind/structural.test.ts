@@ -1,4 +1,4 @@
-/** @filedesc Structural DOM tests for all 15 Tailwind adapter components. */
+/** @filedesc Structural DOM tests for canonical Tailwind adapter components. */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -8,7 +8,6 @@ import { renderRadioGroup } from '../../src/tailwind/radio-group';
 import { renderCheckboxGroup } from '../../src/tailwind/checkbox-group';
 import { renderSelect } from '../../src/tailwind/select';
 import { renderDatePicker } from '../../src/tailwind/date-picker';
-import { renderCheckbox } from '../../src/tailwind/checkbox';
 import { renderToggle } from '../../src/tailwind/toggle';
 import { renderMoneyInput } from '../../src/tailwind/money-input';
 import { renderSlider } from '../../src/tailwind/slider';
@@ -19,7 +18,7 @@ import { renderWizard } from '../../src/tailwind/wizard';
 import { renderTabs } from '../../src/tailwind/tabs';
 import {
     mockTextInput, mockNumberInput, mockRadioGroup, mockCheckboxGroup,
-    mockSelect, mockDatePicker, mockFieldBehavior, mockToggle,
+    mockSelect, mockDatePicker, mockToggle,
     mockMoneyInput, mockSlider, mockRating, mockFileUpload,
     mockSignature, mockWizard, mockTabs, mockAdapterContext, captureBindRefs,
     mockCanvasContext,
@@ -237,19 +236,6 @@ describe('Tailwind DatePicker', () => {
     });
 });
 
-// ── Checkbox ───────────────────────────────────────────────────────
-
-describe('Tailwind Checkbox', () => {
-    it('renders checkbox input with label', () => {
-        const parent = makeParent();
-        renderCheckbox(mockFieldBehavior(), parent, mockAdapterContext());
-        const input = parent.querySelector('input[type="checkbox"]')!;
-        expect(input).toBeTruthy();
-        expect(input.className).toContain('size-[1.125rem]');
-        expect(parent.querySelector('label')!.textContent).toContain('I agree');
-    });
-});
-
 // ── Toggle ─────────────────────────────────────────────────────────
 
 describe('Tailwind Toggle', () => {
@@ -404,12 +390,12 @@ describe('Tailwind cascade obligations', () => {
 // ── Adapter shape ──────────────────────────────────────────────────
 
 describe('tailwindAdapter shape', () => {
-    it('exports all 15 component render functions', async () => {
+    it('exports all 14 component render functions', async () => {
         const { tailwindAdapter } = await import('../../src/tailwind/index');
         expect(tailwindAdapter.name).toBe('tailwind');
         const expected = [
             'TextInput', 'NumberInput', 'RadioGroup', 'CheckboxGroup', 'Select',
-            'DatePicker', 'Checkbox', 'Toggle', 'MoneyInput', 'Slider',
+            'DatePicker', 'Toggle', 'MoneyInput', 'Slider',
             'Rating', 'FileUpload', 'Signature', 'Wizard', 'Tabs',
         ];
         for (const name of expected) {

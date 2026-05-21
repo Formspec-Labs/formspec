@@ -89,7 +89,7 @@ Maps a definition item's `dataType` to a default component type string. Used as 
 
 ### `widgetTokenToComponent(widget): string | null`
 
-Converts a Tier 1 or theme widget token (`radio`, `dropdown`, `textarea`) to a concrete component type (`RadioGroup`, `Select`, `TextInput`). Accepts both spec vocabulary and legacy component IDs.
+Converts a canonical PascalCase Tier 1 or theme widget token, or an `x-*` custom widget token, to a concrete component type. Non-canonical aliases return `null`.
 
 ### `createNodeIdGenerator(): (prefix: string) => string`
 
@@ -103,7 +103,7 @@ The planner emits a tree of `LayoutNode` objects. Every property is JSON-seriali
 interface LayoutNode {
   // Identity
   id: string;          // Stable ID for diffing/keying ("stack-1", "field-3")
-  component: string;   // Resolved component type: "Stack", "TextInput", "Wizard", etc.
+  component: string;   // Resolved component type: "Stack", "TextInput", "Section", etc.
   category: 'layout' | 'field' | 'display' | 'interactive' | 'special';
 
   // Visual (all tokens resolved, responsive merged)

@@ -47,6 +47,8 @@ export type ComponentDescriptor = ComponentPresentationSource & {
     presentation?: PresentationBlock;
     fieldItem?: LayoutNode['fieldItem'];
     bindPath?: string;
+    /** Planner-authoritative page mode for root Stack page containers. */
+    pageMode?: 'wizard' | 'tabs';
 };
 
 /** Response `data` / screener answer maps (JSON-compatible values). */

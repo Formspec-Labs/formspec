@@ -389,24 +389,29 @@ describe('extended display node rendering', () => {
         expect(badge).toBeTruthy();
     });
 
-    it('renders Spacer as an empty div with height style', () => {
+    it('uses Stack gap for intentional space between children', () => {
         const container = renderTree(makeTree({
-            id: 'spacer-1', component: 'Spacer', category: 'display',
-            props: { size: '2rem' }, cssClasses: [], children: [],
+            id: 'space-stack', component: 'Stack', category: 'layout',
+            props: { gap: '2rem' }, cssClasses: [],
+            children: [
+                { id: 'h-a', component: 'Heading', category: 'display', props: { text: 'A' }, cssClasses: [], children: [] },
+                { id: 'h-b', component: 'Heading', category: 'display', props: { text: 'B' }, cssClasses: [], children: [] },
+            ],
         }));
-        const spacer = container.querySelector('div.formspec-spacer');
-        expect(spacer).toBeTruthy();
-        expect((spacer as HTMLElement).style.height).toBe('2rem');
+        const stacks = container.querySelectorAll('.formspec-stack');
+        const spacingStack = stacks[1] as HTMLElement;
+        expect(spacingStack).toBeTruthy();
+        expect(spacingStack.style.gap).toBe('2rem');
     });
 
-    it('renders Spacer with default height when no size', () => {
+    it('uses surface padding for intentional space inside containers', () => {
         const container = renderTree(makeTree({
-            id: 'spacer-2', component: 'Spacer', category: 'display',
-            props: {}, cssClasses: [], children: [],
+            id: 'space-section', component: 'Section', category: 'layout',
+            props: { padding: '1.25rem' }, cssClasses: [], children: [],
         }));
-        const spacer = container.querySelector('div.formspec-spacer');
-        expect(spacer).toBeTruthy();
-        expect((spacer as HTMLElement).style.height).toBe('1rem');
+        const section = container.querySelector('section.formspec-section') as HTMLElement;
+        expect(section).toBeTruthy();
+        expect(section.style.padding).toBe('1.25rem');
     });
 
     it('renders ProgressBar as a progress element inside a wrapper', () => {

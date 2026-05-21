@@ -438,6 +438,27 @@ describe('effectivePresentation', () => {
     expect(pres.widget).toBe('Slider');
   });
 
+  it('unions cssClass across defaults, selectors, and per-item overrides', () => {
+    const project = createRawProject();
+    project.batch([
+      { type: 'definition.addItem', payload: { type: 'field', key: 'totalBudget', dataType: 'money' } },
+      { type: 'theme.setDefaults', payload: { property: 'cssClass', value: 'formspec-field' } },
+      { type: 'theme.addSelector', payload: { match: { type: 'field' }, apply: { cssClass: ['usa-input', 'formspec-field'] } } },
+      { type: 'theme.addSelector', payload: { match: { dataType: 'money' }, apply: { cssClass: 'usa-input--currency' } } },
+      { type: 'theme.setItemOverride', payload: { itemKey: 'totalBudget', property: 'cssClass', value: 'budget-highlight usa-input' } },
+      { type: 'theme.setItemOverride', payload: { itemKey: 'totalBudget', property: 'widget', value: 'MoneyInput' } },
+    ]);
+
+    const pres = project.effectivePresentation('totalBudget');
+    expect(pres.cssClass).toEqual([
+      'formspec-field',
+      'usa-input',
+      'usa-input--currency',
+      'budget-highlight',
+    ]);
+    expect(pres.widget).toBe('MoneyInput');
+  });
+
   it('returns empty object for nonexistent field', () => {
     const project = createRawProject();
     const pres = project.effectivePresentation('nonexistent');

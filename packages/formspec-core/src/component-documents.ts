@@ -3,6 +3,7 @@ import type {
   ComponentState,
   ProjectState,
 } from './types.js';
+import type { ComponentDocument } from '@formspec-org/types';
 
 export function isAuthoredComponentDocument(doc: unknown): doc is ComponentState {
   return !!doc && typeof doc === 'object' && typeof (doc as Record<string, unknown>).$formspecComponent === 'string';
@@ -17,7 +18,7 @@ export function createComponentArtifact(url?: string): ComponentState {
 }
 
 export function normalizeComponentState(
-  component: ComponentState | undefined,
+  component: ComponentState | ComponentDocument | undefined,
   url?: string,
 ): ComponentState {
   const normalized = {

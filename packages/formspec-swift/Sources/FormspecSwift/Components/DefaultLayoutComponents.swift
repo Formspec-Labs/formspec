@@ -113,12 +113,12 @@ public struct DefaultGrid: LayoutComponent {
     }
 }
 
-// MARK: - DefaultPage
+// MARK: - DefaultSection
 
-/// Default page container with optional title and description header.
+/// Default section container with optional title and description header.
 ///
 /// Reads `node.props["title"]` and `node.props["description"]`.
-public struct DefaultPage: LayoutComponent {
+public struct DefaultSection: LayoutComponent {
     public let node: LayoutNode
     public let children: [AnyView]
 

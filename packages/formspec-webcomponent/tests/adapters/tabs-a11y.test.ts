@@ -21,8 +21,8 @@ const tree = {
     id: 'test-tabs',
     tabLabels: ['Personal', 'Details'],
     children: [
-        { component: 'Page', children: [{ component: 'TextInput', bind: 'name' }] },
-        { component: 'Page', children: [{ component: 'NumberInput', bind: 'age' }] },
+        { component: 'Section', children: [{ component: 'TextInput', bind: 'name' }] },
+        { component: 'Section', children: [{ component: 'NumberInput', bind: 'age' }] },
     ],
 };
 
@@ -46,6 +46,26 @@ function renderTabs() {
     return el;
 }
 
+function renderTabsWithPlacement(placement: string) {
+    const el = document.createElement('formspec-render') as any;
+    document.body.appendChild(el);
+    el.componentDocument = {
+        $formspecComponent: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: 'urn:test:form' },
+        tree: { ...tree, placement },
+    };
+    el.definition = {
+        $formspec: '1.0',
+        url: 'urn:test:form',
+        version: '1.0.0',
+        title: 'Test',
+        items,
+    };
+    el.render();
+    return el;
+}
+
 afterEach(() => {
     document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
 });
@@ -55,6 +75,17 @@ describe('Tabs ARIA roles', () => {
         const el = renderTabs();
         const tabBar = el.querySelector('.formspec-tab-bar') as HTMLElement;
         expect(tabBar.getAttribute('role')).toBe('tablist');
+    });
+
+    it('left and right placements set vertical aria orientation', () => {
+        for (const placement of ['left', 'right']) {
+            const el = renderTabsWithPlacement(placement);
+            const tabs = el.querySelector('.formspec-tabs') as HTMLElement;
+            const tabBar = el.querySelector('.formspec-tab-bar') as HTMLElement;
+            expect(tabs.dataset.placement).toBe(placement);
+            expect(tabBar.getAttribute('aria-orientation')).toBe('vertical');
+            el.remove();
+        }
     });
 
     it('tab buttons have role="tab" and aria-controls linking to panel', () => {

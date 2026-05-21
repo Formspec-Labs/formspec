@@ -110,7 +110,7 @@ export const componentTreeHandlers = {
 
   /**
    * Rebuild bound/display nodes from the current definition while preserving
-   * layout wrappers (Page, Card, etc.). Used when a node was removed from the
+   * layout wrappers (Section, Card, etc.). Used when a node was removed from the
    * tree but the definition item still exists — e.g. Layout "Remove from Tree"
    * followed by placing the item on a page again.
    */

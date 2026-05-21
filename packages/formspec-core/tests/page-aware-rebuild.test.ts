@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { createRawProject } from '../src/index.js';
 
-/** Get Page nodes from the component tree. */
+/** Get Section nodes from the component tree. */
 function getPageNodes(project: ReturnType<typeof createRawProject>): any[] {
   const tree = project.component.tree;
-  return (tree?.children ?? []).filter((c: any) => c.component === 'Page');
+  return (tree?.children ?? []).filter((c: any) => c.component === 'Section');
 }
 
 /** Get the first page's nodeId from the component tree. */
@@ -23,7 +23,7 @@ function addPage(project: ReturnType<typeof createRawProject>, title: string, id
     type: 'component.addNode',
     payload: {
       parent: { nodeId: 'root' },
-      component: 'Page',
+      component: 'Section',
       props: { ...(id ? { nodeId: id } : {}), title, ...(description ? { description } : {}) },
     },
   }) as any;
@@ -59,11 +59,11 @@ describe('page-aware component tree rebuild', () => {
 
     const tree = project.component.tree;
     expect(tree.component).toBe('Stack');
-    // Page nodes are still present (dormant), but root is Stack not Wizard
-    // The renderer ignores Page nodes when pageMode is 'single'
+    // Section nodes are still present (dormant), but root is Stack not Wizard
+    // The renderer ignores Section nodes when pageMode is 'single'
   });
 
-  it('creates Page children in component tree when pages are added', () => {
+  it('creates Section children in component tree when pages are added', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name' } });
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'email' } });
@@ -82,7 +82,7 @@ describe('page-aware component tree rebuild', () => {
     expect(pages[1].children.some((c: any) => c.bind === 'email')).toBe(true);
   });
 
-  it('sets Page title and description from handler payload', () => {
+  it('sets Section title and description from handler payload', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name' } });
     addPage(project, 'My Step', undefined, 'Do this');
@@ -94,7 +94,7 @@ describe('page-aware component tree rebuild', () => {
     expect(pages[0].description).toBe('Do this');
   });
 
-  it('preserves Page structure after definition item changes trigger reconcile', () => {
+  it('preserves Section structure after definition item changes trigger reconcile', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name' } });
     const pageId = addPage(project, 'Step 1');

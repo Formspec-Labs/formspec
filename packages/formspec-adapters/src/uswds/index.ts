@@ -6,7 +6,6 @@ import { renderRadioGroup } from './radio-group';
 import { renderCheckboxGroup } from './checkbox-group';
 import { renderSelect } from './select';
 import { renderDatePicker } from './date-picker';
-import { renderCheckbox } from './checkbox';
 import { renderToggle } from './toggle';
 import { renderMoneyInput } from './money-input';
 import { renderSlider } from './slider';
@@ -17,9 +16,8 @@ import { renderWizard } from './wizard';
 import { renderTabs } from './tabs';
 import { renderSubmitButton } from './submit-button';
 import { renderUSWDSGrid } from './layout/grid';
-import { renderUSWDSColumns } from './layout/columns';
 import { renderUSWDSStack } from './layout/stack';
-import { renderUSWDSPage } from './layout/page';
+import { renderUSWDSSection } from './layout/page';
 import { renderUSWDSDivider } from './layout/divider';
 import { renderUSWDSCollapsible } from './layout/collapsible';
 import { renderUSWDSPanel } from './layout/panel';
@@ -30,7 +28,6 @@ import {
     renderUSWDSHeading,
     renderUSWDSText,
     renderUSWDSCard,
-    renderUSWDSSpacer,
     renderUSWDSAlert,
     renderUSWDSBadge,
     renderUSWDSProgressBar,
@@ -49,12 +46,11 @@ import {
 export const uswdsAdapter: RenderAdapter = {
     name: 'uswds',
     components: {
-        Page: renderUSWDSPage,
+        Section: renderUSWDSSection,
         Stack: renderUSWDSStack,
         Grid: renderUSWDSGrid,
         Divider: renderUSWDSDivider,
         Collapsible: renderUSWDSCollapsible,
-        Columns: renderUSWDSColumns,
         Panel: renderUSWDSPanel,
         Accordion: renderUSWDSAccordion,
         Modal: renderUSWDSModal,
@@ -62,7 +58,6 @@ export const uswdsAdapter: RenderAdapter = {
         Heading: renderUSWDSHeading,
         Text: renderUSWDSText,
         Card: renderUSWDSCard,
-        Spacer: renderUSWDSSpacer,
         Alert: renderUSWDSAlert,
         Badge: renderUSWDSBadge,
         ProgressBar: renderUSWDSProgressBar,
@@ -76,7 +71,6 @@ export const uswdsAdapter: RenderAdapter = {
         CheckboxGroup: renderCheckboxGroup,
         Select: renderSelect,
         DatePicker: renderDatePicker,
-        Checkbox: renderCheckbox,
         Toggle: renderToggle,
         MoneyInput: renderMoneyInput,
         Slider: renderSlider,

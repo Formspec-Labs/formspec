@@ -42,8 +42,3 @@ export {
 } from './node-utils.js';
 
 export type { NodeIdGenerator } from './types.js';
-
-/** @deprecated No-op — IDs are scoped per {@link PlanContext.nextId}. */
-export function resetNodeIdCounter(): void {
-    // retained for backward compatibility during migration
-}

@@ -90,16 +90,6 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
             );
         }
 
-        case 'Spacer': {
-            const height = (node.props?.size as string) || '1rem';
-            return (
-                <div
-                    className={`formspec-spacer${cssClass ? ' ' + cssClass : ''}`}
-                    style={{ height, ...style }}
-                />
-            );
-        }
-
         case 'ProgressBar': {
             const bindPath = node.props?.bind as string | undefined;
             const max = (node.props?.max as number) ?? 100;

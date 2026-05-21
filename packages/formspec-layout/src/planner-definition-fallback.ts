@@ -5,7 +5,7 @@ import type { ItemDescriptor, Tier1Hints } from './theme-resolver.js';
 import { resolvePresentation, resolveWidget } from './theme-resolver.js';
 import { getDefaultComponent } from './defaults.js';
 import type { FormItem, LayoutNode, PlanContext } from './types.js';
-import { normalizeCssClass, preparePlanContext } from './node-utils.js';
+import { gridPlacementStyleFromLayout, normalizeCssClass, preparePlanContext } from './node-utils.js';
 import {
     findItemAtPath,
     findItemPathByKey,
@@ -66,6 +66,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             component: 'Stack',
             category: 'layout',
             props: { title: item.label || key, bind: key },
+            style: gridPlacementStyleFromLayout((item.presentation as { layout?: unknown } | undefined)?.layout),
             cssClasses: normalizeCssClass(presentation.cssClass),
             children: [],
             bindPath: fullPath,
@@ -118,6 +119,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
             component: widget,
             category: 'field',
             props: fieldProps,
+            style: gridPlacementStyleFromLayout((fieldItem.presentation as { layout?: unknown } | undefined)?.layout),
             cssClasses: normalizeCssClass(presentation.cssClass),
             children: [],
             bindPath: fullPath,
@@ -145,6 +147,7 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
         component: displayWidget,
         category: 'display',
         props: { text: item.label || '', ...displayPresentationProps },
+        style: gridPlacementStyleFromLayout((displayItem.presentation as { layout?: unknown } | undefined)?.layout),
         cssClasses: normalizeCssClass(presentation.cssClass),
         children: [],
     };

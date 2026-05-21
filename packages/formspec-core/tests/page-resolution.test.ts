@@ -3,8 +3,8 @@ import { resolvePageStructure } from '../src/index.js';
 import type { ProjectState } from '../src/index.js';
 
 /**
- * Minimal state factory — constructs state with a component tree (Stack > Page*).
- * Page handlers now write to the component tree, not theme.pages.
+ * Minimal state factory — constructs state with a component tree (Stack > Section*).
+ * Page handlers now write Section page units to the component tree, not theme.pages.
  */
 function makeState(overrides: {
   definition?: Record<string, unknown>;
@@ -26,12 +26,12 @@ function makeState(overrides: {
   };
 }
 
-/** Helper: build a component tree with Pages containing bound items. */
+/** Helper: build a component tree with Sections containing bound items. */
 function makeTree(pages: Array<{ id: string; title: string; description?: string; binds: string[] }>) {
   return {
     component: 'Stack', nodeId: 'root',
     children: pages.map(p => ({
-      component: 'Page',
+      component: 'Section',
       nodeId: p.id,
       id: p.id,
       title: p.title,
@@ -78,6 +78,125 @@ describe('resolvePageStructure', () => {
     expect(result.pages[1].regions).toEqual([
       { key: 'age', span: 12, exists: true },
     ]);
+  });
+
+  it('falls back to theme pages when the component tree has no direct page Sections', () => {
+    const state = makeState({
+      definition: { formPresentation: { pageMode: 'tabs' } },
+      component: {
+        tree: {
+          component: 'Stack',
+          nodeId: 'root',
+          children: [{ component: 'TextInput', bind: 'orphan' }],
+        },
+      },
+      theme: {
+        pages: [
+          {
+            id: 'overview',
+            title: 'Overview',
+            regions: [{ key: 'name', span: 6, start: 2 }],
+          },
+        ],
+      },
+    });
+
+    const result = resolvePageStructure(state, ['name', 'orphan']);
+
+    expect(result.mode).toBe('tabs');
+    expect(result.pages).toEqual([
+      {
+        id: 'overview',
+        title: 'Overview',
+        regions: [{ key: 'name', span: 6, start: 2, exists: true }],
+      },
+    ]);
+    expect(result.itemPageMap).toEqual({ name: 'overview' });
+    expect(result.unassignedItems).toEqual(['orphan']);
+  });
+
+  it('prefers direct component page Sections over theme pages', () => {
+    const state = makeState({
+      definition: { formPresentation: { pageMode: 'wizard' } },
+      component: {
+        tree: makeTree([
+          { id: 'component-page', title: 'Component Page', binds: ['name'] },
+        ]),
+      },
+      theme: {
+        pages: [
+          { id: 'theme-page', title: 'Theme Page', regions: [{ key: 'email' }] },
+        ],
+      },
+    });
+
+    const result = resolvePageStructure(state, ['name', 'email']);
+
+    expect(result.pages.map(page => page.id)).toEqual(['component-page']);
+    expect(result.itemPageMap).toEqual({ name: 'component-page' });
+    expect(result.unassignedItems).toEqual(['email']);
+  });
+
+  it('prefers a root component Section over theme pages', () => {
+    const state = makeState({
+      definition: { formPresentation: { pageMode: 'tabs' } },
+      component: {
+        tree: {
+          component: 'Section',
+          nodeId: 'root-section',
+          id: 'component-root',
+          title: 'Component Root',
+          children: [{ component: 'TextInput', bind: 'name' }],
+        },
+      },
+      theme: {
+        pages: [
+          { id: 'theme-page', title: 'Theme Page', regions: [{ key: 'email' }] },
+        ],
+      },
+    });
+
+    const result = resolvePageStructure(state, ['name', 'email']);
+
+    expect(result.pages.map(page => page.id)).toEqual(['component-root']);
+    expect(result.itemPageMap).toEqual({ name: 'component-root' });
+    expect(result.unassignedItems).toEqual(['email']);
+  });
+
+  it('does not treat nested Section containers as component-owned pages', () => {
+    const state = makeState({
+      definition: { formPresentation: { pageMode: 'wizard' } },
+      component: {
+        tree: {
+          component: 'Stack',
+          nodeId: 'root',
+          children: [
+            {
+              component: 'Card',
+              children: [
+                {
+                  component: 'Section',
+                  id: 'nested-section',
+                  title: 'Nested',
+                  children: [{ component: 'TextInput', bind: 'nested' }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+      theme: {
+        pages: [
+          { id: 'theme-page', title: 'Theme Page', regions: [{ key: 'themeKey' }] },
+        ],
+      },
+    });
+
+    const result = resolvePageStructure(state, ['nested', 'themeKey']);
+
+    expect(result.pages.map(page => page.id)).toEqual(['theme-page']);
+    expect(result.itemPageMap).toEqual({ themeKey: 'theme-page' });
+    expect(result.unassignedItems).toEqual(['nested']);
   });
 
   it('builds itemPageMap from region assignments', () => {

@@ -33,7 +33,7 @@ hr.formspec-divider {
 }
 
 .formspec-group,
-.formspec-page {
+.formspec-section {
   position: relative;
 }
 

@@ -41,7 +41,7 @@ describe('a11y attributes — label/describedby', () => {
             [{ key: 'age', type: 'field', dataType: 'integer', label: 'Age', hint: 'Enter your age' }],
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'NumberInput', bind: 'age' }],
             },
         );
@@ -71,7 +71,7 @@ describe('a11y attributes — description linked via aria-describedby', () => {
             [{ key: 'name', type: 'field', dataType: 'string', label: 'Name', description: 'Your full legal name', hint: 'As it appears on your ID' }],
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'TextInput', bind: 'name' }],
             },
         );
@@ -98,7 +98,7 @@ describe('a11y attributes — description linked via aria-describedby', () => {
             [{ key: 'email', type: 'field', dataType: 'string', label: 'Email', description: 'Work email only' }],
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [{ component: 'TextInput', bind: 'email' }],
             },
         );
@@ -126,7 +126,7 @@ describe('a11y attributes — group heading levels', () => {
             ],
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [
                     { component: 'Group', bind: 'address', title: 'Address', children: [
                         { component: 'TextInput', bind: 'street' },
@@ -152,7 +152,7 @@ describe('a11y attributes — group heading levels', () => {
             ],
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [
                     { component: 'Group', bind: 'outer', title: 'Outer', children: [
                         { component: 'Group', bind: 'inner', title: 'Inner', children: [
@@ -182,7 +182,7 @@ describe('a11y attributes — accessibility metadata', () => {
             [{ key: 'search', type: 'field', dataType: 'string', label: 'Search' }],
             [],
             {
-                component: 'Page',
+                component: 'Section',
                 children: [
                     {
                         component: 'TextInput',
@@ -199,5 +199,42 @@ describe('a11y attributes — accessibility metadata', () => {
         expect(field).not.toBeNull();
         expect(field.getAttribute('role')).toBe('search');
         expect(field.getAttribute('aria-description')).toBe('Search for items');
+    });
+
+    it('applies surface and accessibility metadata to scoped groups', () => {
+        const el = renderWith(
+            [
+                { key: 'address', type: 'group', label: 'Address', children: [
+                    { key: 'street', type: 'field', dataType: 'string', label: 'Street' },
+                ] },
+            ],
+            [],
+            {
+                component: 'Section',
+                children: [
+                    {
+                        component: 'Group',
+                        bind: 'address',
+                        title: 'Address',
+                        padding: '1rem',
+                        background: '#fff',
+                        elevation: 'sm',
+                        accessibility: {
+                            role: 'group',
+                            description: 'Address section',
+                        },
+                        children: [{ component: 'TextInput', bind: 'street' }],
+                    },
+                ],
+            },
+        );
+
+        const group = el.querySelector('.formspec-group') as HTMLElement;
+        expect(group).not.toBeNull();
+        expect(group.style.padding).toBe('1rem');
+        expect(group.style.background).toBe('#fff');
+        expect(group.dataset.elevation).toBe('sm');
+        expect(group.getAttribute('role')).toBe('group');
+        expect(group.getAttribute('aria-description')).toBe('Address section');
     });
 });

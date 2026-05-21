@@ -18,7 +18,6 @@ type Audience = 'human' | 'agent' | 'both';
 interface FieldMetadata {
   path: string;
   item: FormItem;
-  pageId?: string;
 }
 
 function stripIndices(path: string): string {
@@ -214,15 +213,14 @@ function validateTargetDefinition(
 function buildFieldMetadata(definition: FormDefinition): Map<string, FieldMetadata> {
   const fields = new Map<string, FieldMetadata>();
 
-  function visit(items: FormItem[], prefix = '', currentPage?: string): void {
+  function visit(items: FormItem[], prefix = ''): void {
     for (const item of items) {
       const path = prefix ? `${prefix}.${item.key}` : item.key;
-      const nextPage = item.presentation?.layout?.page ?? currentPage;
       if (item.type === 'field') {
-        fields.set(path, { path, item, pageId: nextPage });
+        fields.set(path, { path, item });
       }
       if ('children' in item && Array.isArray(item.children)) {
-        visit(item.children, path, nextPage);
+        visit(item.children, path);
       }
     }
   }

@@ -49,10 +49,14 @@ describe('createRawProject', () => {
     const project = createRawProject();
 
     expect(project.definition).toBe(project.state.definition);
-    expect(project.component).toBe(project.state.component);
+    expect(project.component).toStrictEqual(project.state.component);
     expect(project.theme).toBe(project.state.theme);
     expect(project.mapping).toBeDefined();
-    expect(project.mappings).toBe(project.state.mappings);
+    expect(project.mappings).not.toBe(project.state.mappings);
+    expect(project.mappings.default.$formspecMapping).toBe('1.0');
+    expect(project.mappings.default.definitionRef).toBe(project.definition.url);
+    expect(project.mappings.default.rules).toEqual(project.state.mappings.default.rules);
+    expect(project.mappings.default.rules).not.toBe(project.state.mappings.default.rules);
   });
 });
 

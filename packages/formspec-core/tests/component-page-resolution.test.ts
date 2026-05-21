@@ -7,9 +7,9 @@ function rootStack(...children: TreeNode[]): TreeNode {
   return { component: 'Stack', nodeId: 'root', children };
 }
 
-/** Build a Page node. */
+/** Build a Section page unit. */
 function page(id: string, title: string, children: TreeNode[] = [], extra: Record<string, unknown> = {}): TreeNode {
-  return { component: 'Page', nodeId: id, id, title, children, ...extra };
+  return { component: 'Section', nodeId: id, id, title, children, ...extra };
 }
 
 /** Build a bound leaf node (e.g. Input). */
@@ -23,7 +23,7 @@ function container(nodeId: string, children: TreeNode[]): TreeNode {
 }
 
 describe('resolvePageStructureFromTree', () => {
-  it('returns empty pages with all items unassigned when root has no Page children', () => {
+  it('returns empty pages with all items unassigned when root has no Section children', () => {
     const tree = rootStack(bound('name'), bound('email'));
     const result = resolvePageStructureFromTree(tree, 'single', ['name', 'email']);
 
@@ -42,7 +42,7 @@ describe('resolvePageStructureFromTree', () => {
     expect(result.unassignedItems).toEqual(['name']);
   });
 
-  it('builds pages from Page children with bound items as regions', () => {
+  it('builds pages from Section children with bound items as regions', () => {
     const tree = rootStack(
       page('p1', 'Step 1', [bound('name'), bound('age')]),
       page('p2', 'Step 2', [bound('email')]),
@@ -149,10 +149,10 @@ describe('resolvePageStructureFromTree', () => {
     expect(result.itemPageMap).toEqual({ a: 'p1', b: 'p1', c: 'p2' });
   });
 
-  it('ignores non-Page siblings at the root level when collecting bound items', () => {
+  it('ignores non-Section siblings at the root level when collecting bound items', () => {
     const tree = rootStack(
       page('p1', 'Step 1', [bound('a')]),
-      container('layout1', [bound('b')]),  // non-Page sibling — b is unassigned
+      container('layout1', [bound('b')]),  // non-Section sibling — b is unassigned
     );
     const result = resolvePageStructureFromTree(tree, 'wizard', ['a', 'b']);
 

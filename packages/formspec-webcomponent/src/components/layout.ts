@@ -2,12 +2,11 @@
 import type { ComponentPlugin } from '../types';
 import { makeLayoutPlugin, type LayoutBehaviorBuilder } from './layout-plugin-factory';
 import {
-    buildPageBehavior,
+    buildSectionBehavior,
     buildStackBehavior,
     buildGridBehavior,
     buildDividerBehavior,
     buildCollapsibleBehavior,
-    buildColumnsBehavior,
     buildPanelBehavior,
     buildAccordionBehavior,
     buildModalBehavior,
@@ -15,19 +14,18 @@ import {
 } from './layout-plugin-builders';
 
 const LAYOUT_PLUGIN_ENTRIES: [string, LayoutBehaviorBuilder][] = [
-    ['Page', buildPageBehavior],
+    ['Section', buildSectionBehavior],
     ['Stack', buildStackBehavior],
     ['Grid', buildGridBehavior],
     ['Divider', buildDividerBehavior],
     ['Collapsible', buildCollapsibleBehavior],
-    ['Columns', buildColumnsBehavior],
     ['Panel', buildPanelBehavior],
     ['Accordion', buildAccordionBehavior],
     ['Modal', buildModalBehavior],
     ['Popover', buildPopoverBehavior],
 ];
 
-/** All 10 built-in layout component plugins, exported as a single array for bulk registration. */
+/** Built-in layout component plugins, exported as a single array for bulk registration. */
 export const LayoutPlugins: ComponentPlugin[] = LAYOUT_PLUGIN_ENTRIES.map(([type, build]) =>
     makeLayoutPlugin(type, build),
 );

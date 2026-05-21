@@ -59,7 +59,7 @@ describe('Bug 1: Wizard/Tabs default pipeline wiring', () => {
             children: [
                 {
                     id: 'step-1',
-                    component: 'Page',
+                    component: 'Section',
                     category: 'layout',
                     props: { title: 'Step One' },
                     cssClasses: [],
@@ -67,7 +67,7 @@ describe('Bug 1: Wizard/Tabs default pipeline wiring', () => {
                 },
                 {
                     id: 'step-2',
-                    component: 'Page',
+                    component: 'Section',
                     category: 'layout',
                     props: { title: 'Step Two' },
                     cssClasses: [],
@@ -508,7 +508,7 @@ describe('Item 6: Wizard submit calls engine with mode submit', () => {
             children: [
                 {
                     id: 'step-1',
-                    component: 'Page',
+                    component: 'Section',
                     category: 'layout',
                     props: { title: 'Only Step' },
                     cssClasses: [],
@@ -574,8 +574,8 @@ describe('Item 11: Wizard step indicator aria-live removed', () => {
         props: {},
         cssClasses: [],
         children: [
-            { id: 's1', component: 'Page', category: 'layout', props: { title: 'One' }, cssClasses: [], children: [] },
-            { id: 's2', component: 'Page', category: 'layout', props: { title: 'Two' }, cssClasses: [], children: [] },
+            { id: 's1', component: 'Section', category: 'layout', props: { title: 'One' }, cssClasses: [], children: [] },
+            { id: 's2', component: 'Section', category: 'layout', props: { title: 'Two' }, cssClasses: [], children: [] },
         ],
     };
 
@@ -693,7 +693,7 @@ describe('Item 31: FormspecForm does not render second submit when Wizard presen
                 props: {},
                 cssClasses: [],
                 children: [
-                    { id: 'step-a', component: 'Page', category: 'layout' as const, props: { title: 'Step A' }, cssClasses: [], children: [] },
+                    { id: 'step-a', component: 'Section', category: 'layout' as const, props: { title: 'Step A' }, cssClasses: [], children: [] },
                 ],
             },
         ],
@@ -718,7 +718,7 @@ describe('Item 31: FormspecForm does not render second submit when Wizard presen
             id: 'r', component: 'Stack', category: 'layout' as const,
             props: {}, cssClasses: [],
             children: [
-                { id: 'c', component: 'Page', category: 'layout' as const, props: {}, cssClasses: [], children: [] },
+                { id: 'c', component: 'Section', category: 'layout' as const, props: {}, cssClasses: [], children: [] },
             ],
         };
         expect(planContains(plainNode, 'Wizard')).toBe(false);

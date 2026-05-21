@@ -10,7 +10,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
     const item = ctx.findItemByKey(comp.bind);
     const multiple = !!comp.multiple;
     const searchable = !!comp.searchable;
-    warnIfIncompatible('Select', item?.dataType || 'string');
+    warnIfIncompatible('Select', item?.dataType || 'string', { multiple });
     const itemDesc = { key: item?.key || comp.bind, type: 'field' as const, dataType: item?.dataType || 'choice' };
     const rawPresentation = ctx.resolveItemPresentation(itemDesc);
     const presentation = resolveAndStripTokens(rawPresentation, ctx.resolveToken, comp);

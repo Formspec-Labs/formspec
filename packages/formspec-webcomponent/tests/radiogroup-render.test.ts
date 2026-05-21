@@ -34,7 +34,7 @@ describe('RadioGroup rendering', () => {
                         { value: 'single', label: 'Single' },
                         { value: 'married', label: 'Married' },
                     ],
-                    presentation: { widgetHint: 'radio' },
+                    presentation: { widgetHint: 'RadioGroup' },
                 },
             ],
         };
@@ -81,7 +81,7 @@ describe('RadioGroup rendering', () => {
                         { value: 'single', label: 'Single' },
                         { value: 'married', label: 'Married' },
                     ],
-                    presentation: { widgetHint: 'radio' },
+                    presentation: { widgetHint: 'RadioGroup' },
                 },
             ],
         };
@@ -133,7 +133,7 @@ describe('RadioGroup rendering', () => {
                         { value: 'single', label: 'Single' },
                         { value: 'married', label: 'Married' },
                     ],
-                    presentation: { widgetHint: 'radio' },
+                    presentation: { widgetHint: 'RadioGroup' },
                 },
             ],
         }));
@@ -180,7 +180,7 @@ describe('RadioGroup rendering', () => {
                         { value: 'blue', label: 'Blue' },
                         { value: 'green', label: 'Green' },
                     ],
-                    presentation: { widgetHint: 'radio' },
+                    presentation: { widgetHint: 'RadioGroup' },
                 },
             ],
         };
@@ -212,7 +212,7 @@ describe('RadioGroup accessibility', () => {
                         { value: 'red', label: 'Red' },
                         { value: 'blue', label: 'Blue' },
                     ],
-                    presentation: { widgetHint: 'radio' },
+                    presentation: { widgetHint: 'RadioGroup' },
                 },
             ],
         };
@@ -281,7 +281,7 @@ describe('CheckboxGroup accessibility', () => {
                         { value: 'red', label: 'Red' },
                         { value: 'blue', label: 'Blue' },
                     ],
-                    presentation: { widgetHint: 'checkbox' },
+                    presentation: { widgetHint: 'Toggle' },
                 },
             ],
         };

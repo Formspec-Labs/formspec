@@ -260,7 +260,7 @@ export interface TabsBehavior {
     compOverrides: ComponentPresentationOverrides;
     tabLabels: string[];
     tabCount: number;
-    position: 'top' | 'bottom';
+    placement: 'top' | 'bottom' | 'left' | 'right';
     defaultTab: number;
     activeTab(): number;
     setActiveTab(index: number): void;

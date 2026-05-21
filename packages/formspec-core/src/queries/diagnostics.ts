@@ -147,7 +147,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   const itemTypeByKey = new Map(itemRows.map((row) => [row.key, row.item.type] as const));
   const itemTypeByPath = new Map(itemRows.map((row) => [row.path, row.item.type] as const));
   const GROUP_AWARE_COMPONENTS = new Set([
-    'Stack', 'Grid', 'Columns', 'Panel', 'Collapsible',
+    'Stack', 'Grid', 'Panel', 'Collapsible',
     'DataTable', 'Accordion', 'Tabs',
   ]);
   log('component tree...');
@@ -266,14 +266,14 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
     }
   }
 
-  // Consistency: stale bound keys inside component tree Page nodes
-  // Page nodes live as children of the component tree root with component === 'Page'.
+  // Consistency: stale bound keys inside component tree Section page units.
+  // Section nodes live as children of the component tree root with component === 'Section'.
   const rootChildren = Array.isArray((tree as { children?: unknown[] } | undefined)?.children)
     ? (tree as { children: unknown[] }).children
     : [];
   const pageNodes = rootChildren.filter(
     (c): c is { component?: string; children?: { bind?: string }[] } =>
-      typeof c === 'object' && c !== null && (c as { component?: string }).component === 'Page',
+      typeof c === 'object' && c !== null && (c as { component?: string }).component === 'Section',
   );
   for (let i = 0; i < pageNodes.length; i++) {
     const pageChildren = pageNodes[i]?.children;
@@ -287,7 +287,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
         path: `tree.children[${i}].children[${j}].bind`,
         severity: 'warning',
         code: 'STALE_THEME_REGION_KEY',
-        message: `Page region key "${key}" does not match any item key in the definition`,
+          message: `Section region key "${key}" does not match any item key in the definition`,
       });
     }
   }
@@ -295,7 +295,7 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   // Consistency: root-level non-group items in paged definitions
   const defPageMode = state.definition.formPresentation?.pageMode;
   if (defPageMode === 'wizard' || defPageMode === 'tabs') {
-    // Build set of item keys placed on Page nodes in the component tree
+    // Build set of item keys placed on Section nodes in the component tree
     const pagePlacedKeys = new Set<string>();
     for (const pageNode of pageNodes) {
       for (const child of pageNode.children ?? []) {

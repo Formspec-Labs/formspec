@@ -1,4 +1,4 @@
-/** @filedesc Shared USWDS 12-column row helpers for Grid and Columns layout adapters (tablet col span classes). */
+/** @filedesc Shared USWDS 12-column row helpers for Grid layout adapters (tablet col span classes). */
 
 /** Equal column counts that map cleanly to USWDS’s 12-column row (12 % n === 0). */
 export const USWDS_EQUAL_COL_COUNTS = new Set([1, 2, 3, 4, 6]);
@@ -10,6 +10,18 @@ export function tabletColClass(n: number): string {
 
 /** USWDS layout row only (`usa-layout-grid`); integration SCSS targets `.grid-row.grid-gap` without a Formspec bridge class. */
 export const USWDS_LAYOUT_ROW_CLASS = 'grid-row grid-gap';
+
+export function applyUSWDSSurfaceProps(
+    el: HTMLElement,
+    comp: Record<string, unknown>,
+    resolveToken: (value: unknown) => unknown,
+): void {
+    if (comp.padding != null) el.style.padding = String(resolveToken(comp.padding));
+    if (comp.background != null) el.style.background = String(resolveToken(comp.background));
+    if (comp.border != null) el.style.border = String(resolveToken(comp.border));
+    if (comp.radius != null) el.style.borderRadius = String(resolveToken(comp.radius));
+    if (comp.elevation != null) el.dataset.elevation = String(resolveToken(comp.elevation));
+}
 
 /**
  * Full-width on small screens; on tablet+, equal columns — either explicit 12/n spans or `grid-col-fill` for other counts.

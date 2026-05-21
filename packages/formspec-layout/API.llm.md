@@ -26,6 +26,36 @@ component document. Component document wins on key conflicts — layout
 documents can set `pageMode`, `showProgress`, etc. without duplicating the
 whole definition.
 
+## `classifyComponent(type: string): LayoutNode['category']`
+
+## `createNodeIdGenerator(start?: number): NodeIdGenerator`
+
+## `preparePlanContext(ctx: Omit<PlanContext, 'nextId'> & Partial<Pick<PlanContext, 'nextId'>>): PlanContext`
+
+Attach a per-plan ID generator when callers omit `nextId`.
+
+## `planContains(node: LayoutNode, component: string): boolean`
+
+## `ensureSubmitButton(root: LayoutNode, nextId?: NodeIdGenerator, options?: {
+    pageMode?: string;
+}): void`
+
+## `resolveTokenInContext(val: unknown, ctx: PlanContext): unknown`
+
+## `resolveStyleTokens(style: Record<string, string | number> | undefined, ctx: PlanContext): Record<string, string | number> | undefined`
+
+## `resolveGridTracks(val: unknown, ctx: PlanContext): unknown`
+
+## `gridPlacementStyleFromLayout(layout: unknown): Record<string, string> | undefined`
+
+## `normalizeCssClass(val: string | string[] | undefined): string[]`
+
+## `resolveCssClasses(comp: {
+    cssClass?: string | string[];
+}, ctx: PlanContext): string[]`
+
+## `extractProps(comp: Record<string, unknown>): Record<string, unknown>`
+
 ## `resolvePageSequence(definition: FormDefinition, options?: {
     component?: ComponentDocument;
     theme?: ThemeDocument;
@@ -44,48 +74,56 @@ a params object. Walks string properties, arrays, and nested objects
 recursively. Used during custom component expansion to substitute
 parameterized values declared in component document templates.
 
-Layout planner — produces a JSON-serializable LayoutNode tree from a
-component document tree or a definition items array.
+## `planComponentTree(tree: ComponentTreeNode, ctx: PlanContext, prefix?: string, customComponentStack?: Set<string>, applyThemePages?: boolean): LayoutNode`
 
-The planner is pure: it reads from a PlanContext snapshot and emits
-LayoutNode trees with no side effects, signals, or DOM references.
+## `planDefinitionFallback(items: FormItem[], ctx: PlanContext, prefix?: string, applyThemePages?: boolean): LayoutNode[]`
 
-## `planContains(node: LayoutNode, component: string): boolean`
+## `planDefinitionItem(item: FormItem, ctx: PlanContext, prefix?: string): LayoutNode`
 
-Returns true if any node in the tree has the given component type.
+## `emitPageModePages(orphans: LayoutNode[], pages: PlannedPage[], nextId?: NodeIdGenerator): LayoutNode[]`
 
-## `ensureSubmitButton(root: LayoutNode): void`
+## `buildDefinitionPages(nodes: LayoutNode[], items: FormItem[]): {
+    orphans: LayoutNode[];
+    pages: PlannedPage[];
+}`
 
-Append a SubmitButton node to a plan root if one doesn't already exist
-and the plan isn't owned by a Wizard (which provides its own submit).
-Also skips when the root has direct Page children — pageMode wizard/tabs
-synthesizes its own submit via the wizard behavior's Next→Submit button.
-For Accordion (and similar), children are sections — wrap in Stack so submit is not a section.
+## `applyDefinitionPageMode(nodes: LayoutNode[], ctx: PlanContext): LayoutNode[]`
 
-## `preparePlanContext(ctx: PlanContext): PlanContext`
+## `applyGeneratedPageMode(rootNode: LayoutNode, componentType: string, ctx: PlanContext): LayoutNode`
 
-Returns a context with a fresh per-plan `nextId` generator (see `createNodeIdGenerator`). Prefer this over the legacy module-global counter so concurrent plans do not share IDs.
+## `isStudioGeneratedComponentDoc(doc: ComponentDocument | undefined): boolean`
 
-## `resetNodeIdCounter(): void`
+## `stripTitleFromGroupNode(node: LayoutNode): LayoutNode`
 
-**Deprecated (testing only).** Resets the legacy module-global ID counter. New code should use `preparePlanContext` instead.
+#### type `PlannedPage`
 
-## `planComponentTree(tree: any, ctx: PlanContext, prefix?: string, customComponentStack?: Set<string>, applyThemePages?: boolean): LayoutNode`
+```ts
+type PlannedPage = {
+    id?: string;
+    title: string;
+    children: LayoutNode[];
+};
+```
 
-Plan a component tree node into a LayoutNode tree.
+## `componentTreeOwnsPages(tree: ComponentTreeNode | null | undefined): boolean`
 
-Walks the component document tree, resolves responsive props, resolves
-tokens, expands custom components, and emits a JSON-serializable
-LayoutNode tree. Conditional rendering (`when`) and repeat groups are
-emitted as markers for the renderer to handle reactively.
+## `findItemPathByKey(items: FormItem[], key: string, prefix?: string): string | null`
 
-## `planDefinitionFallback(items: any[], ctx: PlanContext, prefix?: string, applyThemePages?: boolean): LayoutNode[]`
+## `findItemAtPath(items: FormItem[], path: string): FormItem | null`
 
-Plan definition items into LayoutNode trees (fallback when no component
-document is provided).
+## `getParentPath(path: string): string`
 
-Walks the definition items array, runs the theme cascade for each item,
-selects default widgets, and emits LayoutNode trees.
+## `findComponentNodeByPath(_items: FormItem[], rootNode: ComponentTreeNode, path: string): ComponentTreeNode | null`
+
+## `findNodeByBindPath(node: ComponentTreeNode, targetPath: string, currentPrefix: string): ComponentTreeNode | null`
+
+## `withoutThemePages(ctx: PlanContext): PlanContext`
+
+## `collectAssignedTopLevelKeys(items: FormItem[], pages: NonNullable<PlanContext['theme']>['pages']): Set<string>`
+
+## `buildThemePageNodes(planRegionNode: (regionPath: string) => LayoutNode | null, items: FormItem[], ctx: PlanContext): LayoutNode[]`
+
+## `wrapRegionNode(node: LayoutNode, region: Region, activeBreakpoint: string | null, nextId: PlanContext['nextId']): LayoutNode | null`
 
 ## `buildPlatformTheme(): ThemeDocument`
 
@@ -266,15 +304,18 @@ Lightweight identifier for a definition item, used as the input to the theme cas
 
 #### interface `LayoutHints`
 
-Tier 1 layout hints from the definition: flow direction, grid columns, collapsibility, and page assignment.
+Tier 1 layout hints from the definition: flow direction, grid columns, collapsibility, and grid placement.
 
 - **flow?**: `'stack' | 'grid' | 'inline'`
 - **columns?**: `number`
-- **colSpan?**: `number`
-- **newRow?**: `boolean`
+- **grid?**: `{
+        span?: number;
+        start?: number;
+        rowSpan?: number;
+        rowStart?: number;
+    }`
 - **collapsible?**: `boolean`
 - **collapsedByDefault?**: `boolean`
-- **page?**: `string`
 
 #### interface `StyleHints`
 
@@ -330,7 +371,7 @@ by renderers (webcomponent, React, PDF, SSR, etc.).
 All values are plain data — no functions, class instances, or signals.
 
 - **id** (`string`): Stable ID for diffing/keying (auto-generated during planning).
-- **component** (`string`): Resolved component type: "Stack", "TextInput", "Page", etc.
+- **component** (`string`): Resolved component type: "Stack", "TextInput", "Section", etc.
 - **category** (`'layout' | 'container' | 'field' | 'display' | 'interactive' | 'special'`): Node classification for renderer dispatch.
 - **props** (`Record<string, unknown>`): All resolved component props (tokens resolved, responsive merged). JSON-serializable.
 - **style** (`Record<string, string | number>`): Resolved inline styles (tokens resolved).
@@ -341,6 +382,7 @@ All values are plain data — no functions, class instances, or signals.
         liveRegion?: string;
     }`): Accessibility attributes.
 - **children** (`LayoutNode[]`): Ordered child nodes.
+- **pageMode** (`'wizard' | 'tabs'`): Page mode for a planner-authoritative root whose direct Section children are page units.
 - **bindPath** (`string`): Full bind path (e.g. "applicantInfo.orgName").
 - **fieldItem** (`{
         key: string;
@@ -370,11 +412,30 @@ Used by definition-fallback groups where item keys are relative.
 Plain-value snapshot the planner needs to produce a layout plan.
 Contains no signals or reactive references — just data.
 
-- **items** (`any[]`): The definition items array.
-- **formPresentation** (`any`): Definition-level formPresentation block.
-- **componentDocument** (`any`): The loaded component document (tree, components, tokens, breakpoints).
-- **theme** (`any`): The loaded theme document.
+- **items** (`FormItem[]`): The definition items array.
+- **formPresentation** (`FormDefinition['formPresentation']`): Definition-level formPresentation block.
+- **componentDocument** (`ComponentDocument`): The loaded component document (tree, components, tokens, breakpoints).
+- **theme** (`ThemeDocument`): The loaded theme document.
 - **activeBreakpoint** (`string | null`): Currently active breakpoint name, or null.
-- **findItem** (`(key: string) => any | null`): Lookup a definition item by key (supports dotted paths).
+- **nextId** (`NodeIdGenerator`): Generates unique layout node IDs for this plan invocation.
+- **findItem** (`(key: string) => FormItem | null`): Lookup a definition item by key (supports dotted paths).
 - **isComponentAvailable** (`(type: string) => boolean`): Check if a component type is registered in the renderer.
+
+#### type `NodeIdGenerator`
+
+Generates unique layout node IDs for a single plan invocation.
+
+```ts
+type NodeIdGenerator = (prefix: string) => string;
+```
+
+#### type `ComponentTreeNode`
+
+Component document tree node — runtime shape is wider than generated `AnyComponent`.
+
+```ts
+type ComponentTreeNode = Record<string, unknown> & {
+    component: string;
+};
+```
 

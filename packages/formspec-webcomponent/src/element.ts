@@ -34,6 +34,16 @@ import {
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
 
+function componentFormPresentation(componentDocument: ComponentDocument | null): unknown {
+    return (componentDocument as (ComponentDocument & { formPresentation?: unknown }) | null)?.formPresentation;
+}
+
+function pageModeFromPresentation(presentation: Record<string, unknown> | undefined): 'wizard' | 'tabs' | undefined {
+    return presentation?.pageMode === 'wizard' || presentation?.pageMode === 'tabs'
+        ? presentation.pageMode
+        : undefined;
+}
+
 // Extracted modules
 import {
     hasActiveScreener,
@@ -639,7 +649,7 @@ export class FormspecRender extends HTMLElement {
             items: this._definition.items,
             formPresentation: mergeFormPresentationForPlanning(
                 this._definition.formPresentation,
-                this._componentDocument?.formPresentation,
+                componentFormPresentation(this._componentDocument),
             ),
             componentDocument: this._componentDocument ?? undefined,
             theme: (this._themeDocument || this.getEffectiveTheme()) as unknown as SchemaThemeDocument,
@@ -653,10 +663,14 @@ export class FormspecRender extends HTMLElement {
                 this._componentDocument.tree as unknown as Parameters<typeof planComponentTree>[0],
                 planCtx,
             );
-            if (this._showSubmit) ensureSubmitButton(plan, planCtx.nextId);
+            const pageMode = pageModeFromPresentation(planCtx.formPresentation);
+            if (this._showSubmit) {
+                ensureSubmitButton(plan, planCtx.nextId, { pageMode });
+            }
             emitNodeFn(this._renderHost, plan, container, '');
         } else {
             const plans = planDefinitionFallback(this._definition.items, planCtx);
+            const pageMode = pageModeFromPresentation(planCtx.formPresentation);
             // Always wrap in a root Stack — needed for pageMode detection and submit button injection
             const wrapperNode: import('@formspec-org/layout').LayoutNode = {
                 id: '_root-stack',
@@ -665,8 +679,13 @@ export class FormspecRender extends HTMLElement {
                 props: {},
                 cssClasses: [],
                 children: plans,
+                pageMode: pageMode && plans.some((node) => node.component === 'Section')
+                    ? pageMode
+                    : undefined,
             };
-            if (this._showSubmit) ensureSubmitButton(wrapperNode, planCtx.nextId);
+            if (this._showSubmit) {
+                ensureSubmitButton(wrapperNode, planCtx.nextId, { pageMode });
+            }
             emitNodeFn(this._renderHost, wrapperNode, container, '');
         }
     }

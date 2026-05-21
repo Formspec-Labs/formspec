@@ -1,7 +1,7 @@
 /** @filedesc Mapping-specific state queries: bidirectional transform evaluation. */
 import { createMappingEngine } from '@formspec-org/engine';
-import type { MappingDocument } from '@formspec-org/types';
 import type { ProjectState, MappingPreviewParams, MappingPreviewResult } from '../types.js';
+import { withMappingEnvelope } from '../document-envelopes.js';
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -29,13 +29,13 @@ export function previewMapping(
   const target = state.mappings[id] || { rules: [] };
 
   // Clone mapping to avoid accidental mutations during simulation
-  const mappingDoc = structuredClone(target) as MappingDocument;
+  const mappingDoc = structuredClone(withMappingEnvelope(target, state.definition.url));
 
   // Optional: filter rules if requested
   if (Array.isArray(ruleIndices) && Array.isArray(mappingDoc.rules)) {
     mappingDoc.rules = ruleIndices
       .map((index: number) => mappingDoc.rules[index])
-      .filter((rule: unknown) => rule !== undefined) as MappingDocument['rules'];
+      .filter((rule: unknown) => rule !== undefined) as typeof mappingDoc.rules;
   }
 
   const runtime = createMappingEngine(mappingDoc);

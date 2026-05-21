@@ -14,7 +14,6 @@ export { useRadioGroup } from './radio-group';
 export { useCheckboxGroup } from './checkbox-group';
 export { useSelect } from './select';
 export { useToggle } from './toggle';
-export { useCheckbox } from './checkbox';
 export { useDatePicker } from './date-picker';
 export { useMoneyInput } from './money-input';
 export { useSlider } from './slider';

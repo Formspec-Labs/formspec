@@ -1,6 +1,6 @@
 # formspec-webcomponent
 
-`<formspec-render>` is a custom element that binds a `FormEngine` to the DOM. It ships 37 built-in components, a plugin registry, a 5-level theme cascade, reactive ARIA attributes, and responsive breakpoint support.
+`<formspec-render>` is a custom element that binds a `FormEngine` to the DOM. It ships 33 schema-defined built-in components, a plugin registry, a 5-level theme cascade, reactive ARIA attributes, and responsive breakpoint support.
 
 ## Install
 
@@ -98,7 +98,7 @@ All events bubble and are composed.
 
 ## Component Registry
 
-All 37 built-in components register automatically on import. Add custom components by registering a plugin on the global registry singleton.
+All 33 built-in components register automatically on import. Add custom components by registering a plugin on the global registry singleton.
 
 ```js
 import { globalRegistry } from 'formspec-webcomponent';
@@ -128,10 +128,10 @@ interface ComponentPlugin {
 
 | Category | Components |
 |---|---|
-| **Layout** (10) | Page, Stack, Grid, Divider, Collapsible, Columns, Panel, Accordion, Modal, Popover |
-| **Input** (13) | TextInput, NumberInput, Select, Toggle, Checkbox, DatePicker, RadioGroup, CheckboxGroup, Slider, Rating, FileUpload, Signature, MoneyInput |
-| **Display** (9) | Heading, Text, Card, Spacer, Alert, Badge, ProgressBar, Summary, ValidationSummary |
-| **Interactive** (3) | Wizard, Tabs, SubmitButton |
+| **Layout** (9) | Section, Stack, Grid, Divider, Collapsible, Panel, Accordion, Modal, Popover |
+| **Input** (12) | TextInput, NumberInput, Select, Toggle, DatePicker, RadioGroup, CheckboxGroup, Slider, Rating, FileUpload, Signature, MoneyInput |
+| **Display** (8) | Heading, Text, Card, Alert, Badge, ProgressBar, Summary, ValidationSummary |
+| **Interactive** (2) | Tabs, SubmitButton |
 | **Special** (2) | ConditionalGroup, DataTable |
 
 ## Render Adapters

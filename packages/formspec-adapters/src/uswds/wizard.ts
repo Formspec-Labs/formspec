@@ -1,7 +1,7 @@
 /** @filedesc USWDS v3 adapter for page-mode wizard rendering (formPresentation.pageMode: "wizard").
  *
  * This file styles the wizard UI synthesized by emit-node.ts when a Stack root
- * has Page children and formPresentation.pageMode is "wizard". The "Wizard"
+ * has direct Section children and formPresentation.pageMode is "wizard". The "Wizard"
  * adapter key is a rendering concept — the Wizard schema component type was
  * removed; all page navigation is now driven by formPresentation. */
 import type { WizardBehavior, AdapterRenderFn } from '@formspec-org/webcomponent';

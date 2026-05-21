@@ -71,6 +71,51 @@ describe('project.import', () => {
     expect(project.canUndo).toBe(true);
   });
 
+  it('imports mapping documents as working mapping state', () => {
+    const project = createRawProject();
+    project.dispatch({
+      type: 'project.import',
+      payload: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:formspec:imported',
+          version: '1.0.0',
+          title: 'Imported',
+          items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+        },
+        mappings: {
+          default: {
+            $formspecMapping: '1.0',
+            $schema: 'https://schemas.formspec.org/mapping/v1.json',
+            version: '2.0.0',
+            definitionRef: 'urn:formspec:imported',
+            definitionVersion: '1.2.3',
+            targetSchema: { format: 'json', root: 'payload' },
+            rules: [{ sourcePath: 'name', targetPath: 'fullName' }],
+          },
+        },
+      },
+    });
+
+    expect(project.state.mappings.default).toEqual({
+      definitionRef: 'urn:formspec:imported',
+      definitionVersion: '1.2.3',
+      targetSchema: { format: 'json', root: 'payload' },
+      rules: [{ sourcePath: 'name', targetPath: 'fullName' }],
+    });
+    expect(project.state.mappings.default).not.toHaveProperty('$formspecMapping');
+    expect(project.state.mappings.default).not.toHaveProperty('$schema');
+    expect(project.state.mappings.default).not.toHaveProperty('version');
+    expect(project.mapping).toMatchObject({
+      $formspecMapping: '1.0',
+      version: '0.1.0',
+      definitionRef: 'urn:formspec:imported',
+      definitionVersion: '1.2.3',
+      targetSchema: { format: 'json', root: 'payload' },
+      rules: [{ sourcePath: 'name', targetPath: 'fullName' }],
+    });
+  });
+
   it('preserves imported theme pages on definition-only import', () => {
     const project = createRawProject();
     project.dispatch({

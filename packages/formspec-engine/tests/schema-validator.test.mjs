@@ -94,7 +94,7 @@ test('component: custom component template tree is validated', () => {
     $formspecComponent: '1.0',
     version: '1.0.0',
     targetDefinition: { url: 'https://example.com/def' },
-    tree: { component: 'Page', title: 'Root', children: [] },
+    tree: { component: 'Section', title: 'Root', children: [] },
     components: {
       BadCustom: {
         tree: { component: 'TextInput', bind: 999 },
@@ -139,7 +139,7 @@ test('wasmPlanSchemaValidation enumerates component tree targets', () => {
     version: '1.0.0',
     targetDefinition: { url: 'https://example.com/def' },
     tree: {
-      component: 'Page',
+      component: 'Section',
       children: [{ component: 'TextInput', bind: 'name' }],
     },
     components: {

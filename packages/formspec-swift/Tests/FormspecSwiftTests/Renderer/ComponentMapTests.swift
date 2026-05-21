@@ -55,20 +55,12 @@ struct ComponentMapTests {
         #expect(map.fields["NumberInput"] != nil)
     }
 
-    // MARK: - testDefaultMapHasTextArea
+    // MARK: - testDefaultMapHasToggle
 
-    @Test("defaults contains TextArea field component")
-    func testDefaultMapHasTextArea() {
+    @Test("defaults contains Toggle field component")
+    func testDefaultMapHasToggle() {
         let map = ComponentMap.defaults
-        #expect(map.fields["TextArea"] != nil)
-    }
-
-    // MARK: - testDefaultMapHasCheckbox
-
-    @Test("defaults contains Checkbox field component")
-    func testDefaultMapHasCheckbox() {
-        let map = ComponentMap.defaults
-        #expect(map.fields["Checkbox"] != nil)
+        #expect(map.fields["Toggle"] != nil)
     }
 
     // MARK: - testDefaultMapHasSelect
@@ -79,12 +71,12 @@ struct ComponentMapTests {
         #expect(map.fields["Select"] != nil)
     }
 
-    // MARK: - testDefaultMapHasMultiSelect
+    // MARK: - testDefaultMapHasCheckboxGroup
 
-    @Test("defaults contains MultiSelect field component")
-    func testDefaultMapHasMultiSelect() {
+    @Test("defaults contains CheckboxGroup field component")
+    func testDefaultMapHasCheckboxGroup() {
         let map = ComponentMap.defaults
-        #expect(map.fields["MultiSelect"] != nil)
+        #expect(map.fields["CheckboxGroup"] != nil)
     }
 
     // MARK: - testDefaultMapHasRadioGroup
@@ -95,12 +87,23 @@ struct ComponentMapTests {
         #expect(map.fields["RadioGroup"] != nil)
     }
 
-    // MARK: - testDefaultMapHasDateInput
+    // MARK: - testDefaultMapHasDatePicker
 
-    @Test("defaults contains DateInput field component")
-    func testDefaultMapHasDateInput() {
+    @Test("defaults contains DatePicker field component")
+    func testDefaultMapHasDatePicker() {
         let map = ComponentMap.defaults
-        #expect(map.fields["DateInput"] != nil)
+        #expect(map.fields["DatePicker"] != nil)
+    }
+
+    // MARK: - testDefaultMapRejectsNonCanonicalAliases
+
+    @Test("defaults do not register non-canonical field aliases")
+    func testDefaultMapRejectsNonCanonicalAliases() {
+        let map = ComponentMap.defaults
+        #expect(map.fields["TextArea"] == nil)
+        #expect(map.fields["Checkbox"] == nil)
+        #expect(map.fields["MultiSelect"] == nil)
+        #expect(map.fields["DateInput"] == nil)
     }
 
     // MARK: - testDefaultMapHasStack
@@ -127,12 +130,12 @@ struct ComponentMapTests {
         #expect(map.layout["Grid"] != nil)
     }
 
-    // MARK: - testDefaultMapHasPage
+    // MARK: - testDefaultMapHasSection
 
-    @Test("defaults contains Page layout component")
-    func testDefaultMapHasPage() {
+    @Test("defaults contains Section layout component")
+    func testDefaultMapHasSection() {
         let map = ComponentMap.defaults
-        #expect(map.layout["Page"] != nil)
+        #expect(map.layout["Section"] != nil)
     }
 
     // MARK: - testDefaultMapHasWizard
@@ -197,9 +200,9 @@ struct ComponentMapTests {
 
     // MARK: - testDefaultMapFieldCount
 
-    @Test("defaults has exactly 8 field components")
+    @Test("defaults has exactly 7 field components")
     func testDefaultMapFieldCount() {
-        #expect(ComponentMap.defaults.fields.count == 8)
+        #expect(ComponentMap.defaults.fields.count == 7)
     }
 
     // MARK: - testDefaultMapLayoutCount
