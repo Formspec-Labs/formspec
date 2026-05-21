@@ -33,7 +33,7 @@ Additional terms:
 - **Experience Document** -- A JSON document conforming to this specification, identified by `$formspecExperience: "1.0"`.
 - **Actor** -- A role that interacts with the form (e.g., applicant, reviewer, assister).
 - **Task** -- A unit of user-visible work the form supports (e.g., "identify applicant", "submit application").
-- **Unit** -- A grouping of typed references to Definition items, concepts, and actions, organized under a single task and `unit.kind`.
+- **Unit** -- A grouping of typed references to Definition items, concepts, and actions, organized under `unit.kind` and, when applicable, one or more tasks.
 - **Coverage** -- A static predicate over a Definition and an Experience asserting that every required, visibly relevant Definition item is referenced by at least one Unit.
 - **Coverage-aware processor** -- An Extended processor that, in addition to schema validation, computes and reports coverage findings.
 
@@ -112,7 +112,7 @@ A conformant processor MUST NOT:
 1. Use Experience to alter data capture, validation, requiredness, relevance, calculation, or any other Core semantics.
 2. Treat Experience as authoritative for layout, widget selection, or page composition.
 3. Substitute Experience for a missing Definition; an Experience without a resolvable target is invalid (S2).
-4. Add `unit.kind` values outside the registry (S5.2) without using the `x-` extension mechanism (S12).
+4. Add `unit.kind` values outside the registry (S5.2). Custom semantics belong in `extensions`; they MUST NOT extend or override the closed `kind` registry.
 
 ## 2. Document Structure
 
@@ -439,7 +439,7 @@ A conformant processor MUST NOT:
 1. Use Experience to alter Core data capture, validation, requiredness, relevance, calculation, or any other Core semantics.
 2. Substitute Experience for missing Definition behavior -- Experience is metadata, not a fallback.
 3. Block Response submission, draft persistence, or any Core operation on the basis of an Experience finding.
-4. Add `unit.kind` values outside the registry in S5.2 without using the `x-` extension mechanism.
+4. Add `unit.kind` values outside the registry in S5.2. Custom semantics belong in `extensions`; they MUST NOT extend or override the closed `kind` registry.
 
 ## 12. Extension Points
 
