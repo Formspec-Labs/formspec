@@ -54,4 +54,4 @@ class TestExperienceSchemaInvalid:
     def test_bad_unit_kind_rejected(self, validator):
         doc = _load("invalid-bad-unit-kind.json")
         errors = list(validator.iter_errors(doc))
-        assert any("kind" in e.message or "enum" in e.message for e in errors), errors
+        assert any(e.validator == "enum" or list(e.path)[-1:] == ["kind"] for e in errors), errors

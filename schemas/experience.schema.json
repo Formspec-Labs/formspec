@@ -244,7 +244,45 @@
         }
       }
     },
-    "Applicability": true,
-    "Accessibility": true
+    "Applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actorRefs": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$" }
+        },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Open enum. Common values: web, mobile, pdf, cli, voice, agent."
+        },
+        "locales": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-zA-Z]{2,3}(-[A-Za-z0-9]+)*$" },
+          "description": "BCP 47 locale tags."
+        },
+        "posture": { "type": "string" },
+        "channels": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "Accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assistive": { "type": "boolean", "default": true },
+        "complexity": { "type": "string", "enum": ["low", "moderate", "high"] },
+        "requiresLiteracy": { "type": "boolean" },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    }
   }
 }
