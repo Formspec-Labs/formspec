@@ -1,0 +1,19 @@
+{
+  "$formspecTheme": "1.0",
+  "url": "https://example.com/themes/w712",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/w712" },
+  "items": {
+    "tags": { "widget": "Select" }
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/w712",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "W712 paired definition",
+    "items": [
+      { "key": "tags", "type": "field", "label": "Tags", "dataType": "multiChoice" }
+    ]
+  }
+}
