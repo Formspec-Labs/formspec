@@ -314,3 +314,46 @@ Applicability resolution is **last-write-wins, document-then-unit**: a Unit's `a
 A processor selecting an Experience for a given context (actor, platform, locale, posture, channel) SHOULD prefer documents and units whose applicability matches. This spec does NOT define a tie-break algorithm -- that belongs to a profile or selector spec.
 
 Applicability is INFORMATIVE for Core conformance and NORMATIVE for selectors that consume it (out of scope for this document).
+
+## 8. Coverage Expectations
+
+Coverage is the **load-bearing static predicate** that protects against the §9 stop condition of the concept note: *"required fields can disappear from generated experiences without detection."* This section is normative for Coverage-aware processors (S1.4).
+
+### 8.1 The Coverage Predicate
+
+Given a Definition `D` and an Experience `E` whose `targetDefinition.url` matches `D.url`:
+
+For every Definition item `i` in `D.items` such that:
+
+1. `i.bind.required` is the literal boolean `true`, AND
+2. `i.bind.relevant` is NOT the literal boolean `false` (a missing `relevant`, the literal `true`, or an FEL expression that is not the literal `false` all satisfy this), AND
+3. `i` is not transitively inside a repeat group whose `minRepeat` is `0` (such items are *conditionally* required and excluded from static coverage),
+
+there MUST exist at least one `Unit u` in `E.units` and at least one `ItemRef r` in `u.itemRefs` such that `r.path` matches `i.path` under the repeat-group rule in S6.1.
+
+If no such Unit exists, the item is **uncovered**.
+
+### 8.2 Coverage Findings
+
+A Coverage-aware processor MUST emit a finding for every uncovered required visible item. Each finding MUST carry:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | string | `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` |
+| `severity` | string | `warning` for `Experience Coverage-Aware`; processors MAY elevate to `error` per profile. |
+| `path` | string | The uncovered Definition item path. |
+| `experienceId` | string | The Experience's `name` or document URI for source attribution. |
+| `message` | string | Human-readable explanation. |
+
+Coverage findings are **reportable**, not blocking. The additive invariant (S1.3) forbids this spec from blocking validation, submission, or processing of the underlying Response. Coverage findings inform generators and reviewers; they do not invalidate a Response.
+
+### 8.3 What Coverage Does NOT Check
+
+The static predicate is intentionally narrow. It does NOT check:
+
+- Items whose `required` is an FEL expression (conditional requiredness). These are *best-effort* -- processors MAY surface an informative finding but MUST NOT treat them as uncovered.
+- Items whose `relevant` is an FEL expression that is not the literal `false`. These are conservatively treated as potentially visible (i.e., they are subject to the predicate).
+- Whether the user can actually reach the unit at runtime (that is a renderer / Component / Response Actions concern).
+- Whether the unit is well-formed for the user -- `unit.kind`, `taskRefs`, `actorRef`, and accessibility intent are not part of coverage.
+
+Future revisions MAY add a *dynamic coverage* predicate that exercises FEL evaluation against representative posture / Response snapshots. This spec defers that to a profile or a Trace-driven check (concept §10.6).
