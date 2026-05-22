@@ -1,0 +1,20 @@
+{
+  "$formspecIssuer": "1.0",
+  "url": "https://issuer.test/springfield.json",
+  "version": "1.0.0",
+  "name": "City of Springfield Department of Public Health",
+  "displayName": "Springfield Public Health",
+  "kind": "department",
+  "organizationName": "City of Springfield",
+  "parentOrganization": "https://issuer.test/city.json",
+  "logo": {
+    "primary": {
+      "url": "https://issuer.test/springfield-logo.svg",
+      "altText": "Springfield Public Health seal"
+    }
+  },
+  "contactPoint": {
+    "contactType": "customer support",
+    "email": "health@springfield.example"
+  }
+}

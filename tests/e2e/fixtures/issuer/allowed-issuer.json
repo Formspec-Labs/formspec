@@ -1,0 +1,7 @@
+{
+  "$formspecIssuer": "1.0",
+  "url": "https://allowed/issuer.json",
+  "version": "3.0.0",
+  "name": "Allowlisted Org",
+  "kind": "organization"
+}

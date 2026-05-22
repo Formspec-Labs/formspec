@@ -1,0 +1,17 @@
+{
+  "$formspecIssuer": "1.0",
+  "url": "https://issuer.test/state.json",
+  "version": "2.0.0",
+  "name": "State of Massachusetts",
+  "kind": "organization",
+  "logo": {
+    "primary": {
+      "url": "https://issuer.test/state-logo.svg",
+      "altText": "State seal"
+    }
+  },
+  "contactPoint": {
+    "contactType": "customer support",
+    "email": "help@state.example"
+  }
+}

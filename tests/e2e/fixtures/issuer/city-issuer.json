@@ -1,0 +1,7 @@
+{
+  "$formspecIssuer": "1.0",
+  "url": "https://issuer.test/city.json",
+  "version": "1.0.0",
+  "name": "City of Springfield",
+  "kind": "organization"
+}

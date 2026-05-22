@@ -1,0 +1,11 @@
+{
+  "$formspec": "1.0",
+  "url": "https://forms.example/issuer-e2e",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Issuer E2E",
+  "items": [],
+  "issuer": {
+    "url": "https://issuer.test/springfield.json"
+  }
+}
