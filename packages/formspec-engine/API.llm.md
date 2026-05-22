@@ -1799,6 +1799,15 @@ type ResponseActionLifecycleKind = 'action.invoked' | 'action.failed' | 'action.
 type ResponseActionInvocationStatus = 'unresolved' | 'blocked' | 'failed' | 'deferred' | 'completed';
 ```
 
+#### class `InvalidValidationTupleError`
+
+Structured error thrown when an explicit `action.validation` override
+fails the VM §6.3 closed-tuple predicate. The `code` mirrors the Rust
+lint pass identifier (formspec-lint VMAP-INVALID-OVERRIDE) so runtime
+findings line up with static-analysis output.
+
+##### `constructor(actionId: string, override: Record<string, unknown>, message: string)`
+
 ## `isNumericType(dataType: string): boolean`
 
 True if `dataType` is a numeric type (integer, decimal).

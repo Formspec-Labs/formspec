@@ -2,7 +2,9 @@
 
 import type {
     Action as ResponseAction,
+    BlockingPolicy,
     EffectRequest,
+    PersistencePolicy,
     Precondition,
     ResponseActionsDocument,
     ValidationOverride,
@@ -283,26 +285,59 @@ export class InvalidValidationTupleError extends Error {
 }
 
 const REQUIRED_TUPLE_KEYS = ['profile', 'blocking', 'persistence'] as const;
+const VALIDATION_PROFILES = new Set<ValidationProfile>(['live', 'on-submit', 'on-demand', 'off']);
+const BLOCKING_POLICIES = new Set<BlockingPolicy>(['non-blocking', 'block-on-error']);
+const PERSISTENCE_POLICIES = new Set<PersistencePolicy>(['none', 'draft-checkpoint', 'complete-response']);
 
-/**
- * Enforces VM §6.3 on a candidate ValidationOverride object. The schema
- * gate normally catches this, but a host that supplies an override directly
- * to runtime code (skipping schema validation) MUST still be rejected here
- * — a partial or self-contradictory tuple would otherwise corrupt the
- * blocking gate downstream.
- */
-function assertValidationTupleValid(actionId: string, override: ValidationOverride): void {
-    const overrideRecord = override as unknown as Record<string, unknown>;
-    const missing = REQUIRED_TUPLE_KEYS.filter(k => typeof overrideRecord[k] !== 'string');
-    if (missing.length > 0) {
+function overrideErrorPayload(candidate: unknown): Record<string, unknown> {
+    return candidate && typeof candidate === 'object'
+        ? candidate as Record<string, unknown>
+        : { validation: candidate };
+}
+
+function assertClosedTupleValue<T extends string>(
+    actionId: string,
+    overrideRecord: Record<string, unknown>,
+    key: (typeof REQUIRED_TUPLE_KEYS)[number],
+    value: unknown,
+    allowed: Set<T>,
+): asserts value is T {
+    if (typeof value !== 'string') {
         throw new InvalidValidationTupleError(
             actionId,
             overrideRecord,
-            `Response Action '${actionId}' validation override missing required keys: ${missing.join(', ')} (VM §6.3 requires the full closed (profile, blocking, persistence) tuple).`,
+            `Response Action '${actionId}' validation override missing required key '${key}' (VM §6.3 requires the full closed (profile, blocking, persistence) tuple).`,
         );
     }
-    const { profile, blocking, persistence } = override;
-    // VM §6.3 clause 1: persistence=complete-response => profile=on-submit AND blocking=block-on-error
+    if (!allowed.has(value as T)) {
+        throw new InvalidValidationTupleError(
+            actionId,
+            overrideRecord,
+            `Response Action '${actionId}' validation override has invalid ${key} '${value}' (VM §6.3 requires values from the closed Validation Mapping vocabularies).`,
+        );
+    }
+}
+
+/**
+ * Enforces VM §6.3 on a present validation override. The schema gate normally
+ * catches this, but a host that supplies runtime objects directly (skipping
+ * schema validation) MUST still be rejected here.
+ */
+function assertValidationTupleValid(actionId: string, candidate: unknown): ValidationOverride {
+    const overrideRecord = overrideErrorPayload(candidate);
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        throw new InvalidValidationTupleError(
+            actionId,
+            overrideRecord,
+            `Response Action '${actionId}' validation override must be an object carrying the closed (profile, blocking, persistence) tuple.`,
+        );
+    }
+    const { profile, blocking, persistence } = overrideRecord;
+    assertClosedTupleValue(actionId, overrideRecord, 'profile', profile, VALIDATION_PROFILES);
+    assertClosedTupleValue(actionId, overrideRecord, 'blocking', blocking, BLOCKING_POLICIES);
+    assertClosedTupleValue(actionId, overrideRecord, 'persistence', persistence, PERSISTENCE_POLICIES);
+
+    // VM §6.3: persistence=complete-response => profile=on-submit AND blocking=block-on-error
     if (persistence === 'complete-response') {
         if (profile !== 'on-submit') {
             throw new InvalidValidationTupleError(
@@ -319,7 +354,7 @@ function assertValidationTupleValid(actionId: string, override: ValidationOverri
             );
         }
     }
-    // VM §6.3 clause 2: blocking=block-on-error => persistence=complete-response
+    // VM §6.3: blocking=block-on-error => persistence=complete-response
     if (blocking === 'block-on-error' && persistence !== 'complete-response') {
         throw new InvalidValidationTupleError(
             actionId,
@@ -327,7 +362,7 @@ function assertValidationTupleValid(actionId: string, override: ValidationOverri
             `Response Action '${actionId}' violates VM §6.3 clause 2: blocking=block-on-error requires persistence=complete-response (got '${persistence}').`,
         );
     }
-    // VM §6.3 clause 3: NOT (profile=off AND blocking=block-on-error)
+    // VM §6.3: NOT (profile=off AND blocking=block-on-error)
     if (profile === 'off' && blocking === 'block-on-error') {
         throw new InvalidValidationTupleError(
             actionId,
@@ -335,16 +370,16 @@ function assertValidationTupleValid(actionId: string, override: ValidationOverri
             `Response Action '${actionId}' violates VM §6.3 clause 3: profile=off cannot combine with blocking=block-on-error.`,
         );
     }
+    return { profile, blocking, persistence };
 }
 
 export function resolveResponseActionValidationTuple(action: ResponseAction): ValidationOverride {
-    const override = action.validation;
-    if (override) {
+    if (Object.prototype.hasOwnProperty.call(action, 'validation')) {
+        const override = (action as unknown as { validation?: unknown }).validation;
         // VM §6.3 predicate enforcement: a schema-bypassing host (or a
         // malformed in-memory document) MUST be rejected with a structured
         // code so finding-aware UIs and the static lint pass align.
-        assertValidationTupleValid(action.id, override);
-        return override;
+        return assertValidationTupleValid(action.id, override);
     }
 
     const intent = action.intent;
@@ -429,6 +464,32 @@ function effectWithIdempotencyKey(effect: EffectRequest, idempotencyKey: string 
         return effect;
     }
     return { ...effect, idempotencyKey } as EffectRequest;
+}
+
+/**
+ * Static lint at runtime: warn when an idempotencyKey expression carries
+ * no FEL `@`-binding. A literal-string expression (e.g., `"static-key"`)
+ * is schema-valid but produces the same key for every invocation — hosts
+ * that dedupe by key silently drop legitimate later invocations. Spec §6.3
+ * expects an expression referencing at least one of @invocation, @action,
+ * @effects, etc. The matching Rust lint pass (sibling craftsman) emits a
+ * W18xx code; the runtime emits console.warn so authors catch it without
+ * breaking the flow.
+ */
+function maybeWarnAboutStaticIdempotencyKey(
+    actionId: string,
+    effectIndex: number,
+    keyExpression: unknown,
+): void {
+    if (typeof keyExpression !== 'string') return;
+    if (keyExpression.includes('@')) return;
+    // eslint-disable-next-line no-console
+    console.warn(
+        `[formspec-engine] Response Action '${actionId}' effect[${effectIndex}] idempotencyKey expression `
+        + `does not reference any @-binding (got "${keyExpression}"). A literal-string idempotencyKey `
+        + `produces the same key for every invocation, defeating idempotency. Use a FEL expression like `
+        + `"@invocation.id & '/<effect-name>'" so the key varies per invocation.`,
+    );
 }
 
 let invocationCounter = 0;
@@ -609,6 +670,14 @@ export function invokeResponseAction<TDetail>(
                 if (isDurableEffect(effect)) {
                     idempotencyKey = frozenIdempotencyKeys.get(effectIndex);
                     if (!idempotencyKey) {
+                        // Warn once per effect (only on first attempt) when the
+                        // author-supplied expression is a literal string with no
+                        // @-binding. Idempotency depends on the key varying.
+                        maybeWarnAboutStaticIdempotencyKey(
+                            actionId,
+                            effectIndex,
+                            (effect as { idempotencyKey?: unknown }).idempotencyKey,
+                        );
                         if (!ports.resolveIdempotencyKey) {
                             throw new Error('missing idempotency key resolver');
                         }

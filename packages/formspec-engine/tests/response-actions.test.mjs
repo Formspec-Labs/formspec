@@ -105,15 +105,16 @@ test('resolveResponseActionValidationTuple rejects partial override (VMAP-INVALI
   );
 });
 
-test('resolveResponseActionValidationTuple rejects override violating VM §6.3 clause 3 (profile=off + blocking=block-on-error)', () => {
-  // VM §6.3 clause 3 forbids `profile=off AND blocking=block-on-error`.
+test('resolveResponseActionValidationTuple rejects override violating VM §6.3 off + block-on-error predicate', () => {
+  // Use complete-response so this exercises the off+blocking predicate, not
+  // the blocking=>complete-response predicate first.
   const action = {
-    id: 'bad-clause3',
+    id: 'bad-off-blocking',
     intent: 'x-custom',
     validation: {
       profile: 'off',
       blocking: 'block-on-error',
-      persistence: 'draft-checkpoint',
+      persistence: 'complete-response',
     },
     effects: [{ type: 'hostEvent', eventName: 'noop' }],
   };
@@ -122,6 +123,81 @@ test('resolveResponseActionValidationTuple rejects override violating VM §6.3 c
     err => err.code === 'VMAP-INVALID-OVERRIDE'
       && /§6\.3|VM/i.test(err.message),
   );
+});
+
+test('resolveResponseActionValidationTuple rejects malformed present overrides before master-table fallback', () => {
+  const cases = [
+    {
+      name: 'null validation',
+      action: {
+        id: 'null-validation',
+        intent: 'submit',
+        validation: null,
+        effects: [{ type: 'hostEvent', eventName: 'noop' }],
+      },
+      match: /must be an object/i,
+    },
+    {
+      name: 'array validation',
+      action: {
+        id: 'array-validation',
+        intent: 'submit',
+        validation: [],
+        effects: [{ type: 'hostEvent', eventName: 'noop' }],
+      },
+      match: /must be an object/i,
+    },
+    {
+      name: 'invalid profile',
+      action: {
+        id: 'bad-profile',
+        intent: 'submit',
+        validation: {
+          profile: 'bogus',
+          blocking: 'non-blocking',
+          persistence: 'draft-checkpoint',
+        },
+        effects: [{ type: 'hostEvent', eventName: 'noop' }],
+      },
+      match: /invalid profile/i,
+    },
+    {
+      name: 'invalid blocking',
+      action: {
+        id: 'bad-blocking',
+        intent: 'submit',
+        validation: {
+          profile: 'off',
+          blocking: 'bogus',
+          persistence: 'draft-checkpoint',
+        },
+        effects: [{ type: 'hostEvent', eventName: 'noop' }],
+      },
+      match: /invalid blocking/i,
+    },
+    {
+      name: 'invalid persistence',
+      action: {
+        id: 'bad-persistence',
+        intent: 'submit',
+        validation: {
+          profile: 'off',
+          blocking: 'non-blocking',
+          persistence: 'bogus',
+        },
+        effects: [{ type: 'hostEvent', eventName: 'noop' }],
+      },
+      match: /invalid persistence/i,
+    },
+  ];
+
+  for (const { name, action, match } of cases) {
+    assert.throws(
+      () => resolveResponseActionValidationTuple(action),
+      err => err.code === 'VMAP-INVALID-OVERRIDE' && match.test(err.message),
+      name,
+    );
+  }
 });
 
 test('resolveResponseActionValidationTuple rejects override violating VM §6.3 clause 1 (persistence=complete-response requires on-submit + block-on-error)', () => {
@@ -494,6 +570,80 @@ test('invokeResponseAction rejects precondition with unregistered @name (catalog
   assert.equal(result.status, 'failed');
   assert.equal(result.failedPreconditionId, 'bogusGuard');
   assert.match(result.failureReason, /unbound context reference.*@bogus/);
+});
+
+test('invokeResponseAction warns when idempotencyKey expression contains no @ reference', () => {
+  // A literal-string idempotencyKey (e.g., "static-key") is schema-valid
+  // but defeats idempotency: every invocation evaluates to the same key,
+  // so a host that dedupes by key would silently drop subsequent legitimate
+  // invocations. Spec §6.3 expects FEL expressions with at least one
+  // @-binding so the key varies per invocation. The runtime emits a
+  // console.warn so authors catch the foot-gun without breaking flows.
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'static-key',
+      intent: 'submit',
+      effects: [
+        { type: 'ledgerAppend', eventKind: 'draft.saved', idempotencyKey: 'static-key' },
+      ],
+    }],
+  };
+  const warns = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warns.push(args.join(' '));
+  try {
+    const result = invokeResponseAction(document, 'static-key', {
+      submit: () => ({ response: {}, validationReport: { valid: true } }),
+      dispatchHostEvent: () => {},
+      resolveIdempotencyKey: () => 'static-key',
+      dispatchEffect: (effect) => ({ type: effect.type, status: 'succeeded' }),
+    });
+    assert.equal(result.status, 'completed');
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.ok(
+    warns.some(w => /idempotencyKey.*@/i.test(w)),
+    `expected console.warn about idempotencyKey lacking @, got: ${JSON.stringify(warns)}`,
+  );
+});
+
+test('invokeResponseAction does NOT warn when idempotencyKey expression references @', () => {
+  // Sanity check: the expected pattern (FEL @binding present) MUST NOT trip
+  // the warning.
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'good-key',
+      intent: 'submit',
+      effects: [
+        { type: 'ledgerAppend', eventKind: 'draft.saved', idempotencyKey: '@invocation.id & "/draft"' },
+      ],
+    }],
+  };
+  const warns = [];
+  const originalWarn = console.warn;
+  console.warn = (...args) => warns.push(args.join(' '));
+  try {
+    invokeResponseAction(document, 'good-key', {
+      submit: () => ({ response: {}, validationReport: { valid: true } }),
+      dispatchHostEvent: () => {},
+      resolveIdempotencyKey: () => 'inv-1/draft',
+      dispatchEffect: (effect) => ({ type: effect.type, status: 'succeeded' }),
+    });
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.equal(
+    warns.filter(w => /idempotencyKey/i.test(w)).length,
+    0,
+    `expected NO idempotencyKey warning for @-bound expression, got: ${JSON.stringify(warns)}`,
+  );
 });
 
 test('engine MASTER_TABLE matches generated VM schema const row-for-row', () => {
