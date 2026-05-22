@@ -240,7 +240,7 @@ Any difference is a designer edit. Differences are categorized for §6/§7 consu
 
 ## Task 7: Spec prose — §6 Merge algorithm
 
-- [ ] Draft §6 enumerating the baseline merge rules from concept §7.2 verbatim, then expanding each with full preconditions and outputs.
+- [x] Draft §6 enumerating the baseline merge rules from concept §7.2 verbatim, then expanding each with full preconditions and outputs.
 
 ```text
 Preserve designer edits when their source anchors still resolve.
@@ -331,6 +331,8 @@ merge_generated_node(N_new):
 
     else:
       deltas = classify_designer_deltas(N_old, N_designer)
+      # Base is N_new without children. Apply surviving designer deltas as
+      # overlays; unrelated generator-only changes remain from N_new.
       merged_node, node_conflicts, surviving_deltas = apply_three_way_node_merge(N_old, N_designer, N_new, deltas)
       if node_conflicts:
         report.conflicts += entry(merged_node, propertyDeltas: node_conflicts)
@@ -387,12 +389,12 @@ orphan_roots = maximal designer_edited nodes satisfying
   and no ancestor already selected as an orphan root
 
 for each orphan_root in orphan_roots sorted by designer_edited pre-order document order:
-  parent_in_merged = locate_merged_parent(orphan_root)
-  if parent_in_merged is not None:
-    append orphan_root subtree once as a child of parent_in_merged
-    report.orphaned += { ..., reattachedTo: parent_in_merged.nodePath }
+  direct_parent = locate_direct_parent_in_merged(orphan_root)
+  if direct_parent is not None:
+    append orphan_root subtree once as a child of direct_parent
+    report.orphaned += { ..., reattachedTo: direct_parent.nodePath }
   else:
-    nearest = locate_nearest_ancestor_in_merged(orphan_root)
+    nearest = locate_nearest_higher_ancestor_in_merged(orphan_root)
     if nearest is not None:
       append orphan_root subtree once as a child of nearest
       report.orphaned += { ..., reattachedTo: nearest.nodePath, cascaded: true }
@@ -400,14 +402,19 @@ for each orphan_root in orphan_roots sorted by designer_edited pre-order documen
       append orphan_root subtree once under /tree after the last root child
       report.orphaned += { ..., reattachedTo: "/tree", detached: true }
 
-locate_merged_parent(N): walk N's parent chain in designer-edited; for each
-  ancestor A, compute mapped match_key(A); if A's key resolves to a node in
-  merged and is not ambiguous, return that node; else continue up.
+locate_direct_parent_in_merged(N): inspect only N's immediate parent in
+  designer-edited; compute mapped match_key(parent); if the key resolves to a
+  node in merged and is not ambiguous, return that node; else return None.
+
+locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
+  parent in designer-edited; for each ancestor A, compute mapped match_key(A);
+  if A's key resolves to a node in merged and is not ambiguous, return that
+  node; else continue up.
 ```
 
 §6 MUST also pin: index construction and orphan-root selection use pre-order document order; recursive generated-node assembly starts from `new_generated` child order, then preserves designer-only child reorders when the generator did not also reorder that matched child set; child arrays are finalized before each merged node returns to its parent; orphan reattachment runs as a single pass after generated-node assembly, in designer-edited document order over maximal uncovered orphan roots, so reattachment ordering is deterministic and orphan descendants are not duplicated. Non-matchable old/designer nodes are never overlaid onto `new_generated` shells by path or `id`; they are only preserved through uncovered orphan subtree reattachment when doing so will not duplicate a descendant already represented by generated-node assembly.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 8: Spec prose — §7 Conflict severities + finding codes
 
@@ -1088,3 +1095,6 @@ Task 23:       promotion-gate + architecture review
   - Added a represented-designer-node set during generated-node assembly.
   - Constrained orphan roots to uncovered designer subtrees whose descendants are not already represented, so reattachment cannot append a designer ancestor containing already-merged descendants.
   - Restated that non-matchable old/designer nodes are not overlaid onto `new_generated` shells by path or `id`; they survive only as uncovered orphan subtrees.
+- 2026-05-22: Post-Task-7 architecture review found two §6 ambiguities. Remediated before commit:
+  - Split direct-parent orphan reattachment from higher-ancestor cascade reattachment so `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` is reachable.
+  - Pinned three-way node merge base to `N_new` without children, with surviving designer deltas overlaid, so mixed designer-only and generator-only changes produce one deterministic merged node.

@@ -21,7 +21,7 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1-§5 normative prose has landed. Later normative sections, schema,
+The §1-§6 normative prose has landed. Later normative sections, schema,
 fixtures, algorithm tests, invariant tests, registration, and generated
 artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
@@ -497,6 +497,218 @@ remain out of scope and MUST NOT change rendering behavior because a node has
 designer-edit deltas or `x-generation` metadata.
 
 ## 6. Merge Algorithm
+
+### 6.1 Baseline Rules
+
+The concept baseline for regeneration merge is:
+
+```text
+Preserve designer edits when their source anchors still resolve.
+Regenerate nodes whose itemRef, actionRef, or unitRef changed.
+Mark orphaned nodes when their bind, actionRef, or unitRef no longer resolves.
+Add newly generated fields and actions as pending review.
+Never silently delete designer-authored layout.
+```
+
+The quoted `itemRef` term is concept shorthand. Normative Component merge uses
+the actual Component item surface: `bind` and `item:` generation anchors.
+
+The merge algorithm applies those rules by treating `new_generated` as the
+structural authority for what the current source context produces, using
+`old_generated` as the common ancestor, and preserving designer changes from
+`designer_edited` when §3 identity and §5 deltas show that preservation is
+deterministic.
+
+### 6.2 Absent Common Ancestor
+
+If `old_generated` is `null` or otherwise absent, the processor MUST NOT perform
+two-way merge. It MUST return a deep copy of `new_generated` as `merged` and MUST
+add a `report.conflicts[]` entry with:
+
+- `code: "COMP-REGENERATION-NO-COMMON-ANCESTOR"`;
+- `severity: "error"`;
+- `nodePath: "/tree"` or the equivalent root Component tree path; and
+- an empty `anchors` array unless a host supplies a more precise root anchor.
+
+Designer edits from `designer_edited` are not preserved on this path.
+
+### 6.3 Match Indexes
+
+For the conforming three-way path, a processor MUST build explicit match indexes
+before assembling output:
+
+- `new_index` from `new_generated`;
+- `old_index` from `old_generated`, applying `context.anchorMappings` when
+  present; and
+- `designer_index` from `designer_edited`, applying `context.anchorMappings` when
+  present.
+
+Each index is built by walking the corresponding Component tree in pre-order
+document order. For each node, the processor computes a match key under §3:
+
+1. If the node has no matchable anchors, the key is `UNMATCHABLE`.
+2. Otherwise, the key starts with the §3.1 computed anchor set, after
+   `context.anchorMappings` substitution when the index is old or designer.
+3. Duplicate anchor sets are disambiguated under §3.3 by recursive
+   `parent_match_key` and, if necessary, a stable local discriminator.
+4. If §3.3 cannot resolve a duplicate, the key is `AMBIGUOUS`.
+
+`UNMATCHABLE` nodes are omitted from anchor indexes. `AMBIGUOUS` nodes and keys
+that collide after mapping MUST be recorded as ambiguous and MUST NOT be used for
+deterministic lookup. A lookup against `old_index` or `designer_index` returns no
+node when the key is missing or ambiguous.
+
+The processor MUST keep a `represented_designer_nodes` set while assembling the
+generated tree. Whenever a deterministic `designer_index` lookup contributes to
+a generated-node merge decision, the corresponding designer node is added to
+that set. §6.7 uses the set to prevent the orphan pass from reattaching a
+designer ancestor whose descendant has already been represented in the generated
+tree.
+
+### 6.4 Generated-Node Assembly
+
+The processor assembles output recursively from `new_generated`, beginning at
+`new_generated.tree`. For each `N_new`, it computes `key = match_key(N_new)` and
+selects one of the following outcomes:
+
+| Condition | Merged node | Report placement |
+|---|---|---|
+| `key` is `UNMATCHABLE` | Shallow copy of `N_new` without children; children still recurse. | No entry for the unmatchable shell solely because it is unmatchable. |
+| `key` is `AMBIGUOUS` or ambiguous in `new_index` | Shallow copy of `N_new` without children; children still recurse. | `pendingReview[]` with `COMP-REGENERATION-PENDING-REVIEW`. |
+| No deterministic `N_old` and no deterministic `N_designer` | Shallow copy of `N_new` without children. | `pendingReview[]` with `COMP-REGENERATION-PENDING-REVIEW`. |
+| No deterministic `N_old`, deterministic `N_designer` | Designer shell copied without children; children are merged from `N_new`. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-PRECEDES`. |
+| Deterministic `N_old`, no deterministic `N_designer` | No merged node. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-REMOVED`. |
+| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]`. |
+| `N_old` and `N_designer` differ | Apply §6.5 three-way node merge. | `conflicts[]`, `surviving[]`, or `regenerated[]` as defined by §6.5. |
+
+When the selected outcome returns a merged node, the processor MUST set that
+node's `children` from §6.6 before returning the node to its parent.
+
+Unmatchable `new_generated` nodes are never overlaid with old or designer nodes
+by path or `id`. Nodes without matchable anchors may be preserved only through
+old-to-designer preservation under §3.4 and through uncovered orphan subtree
+reattachment under §6.7.
+
+### 6.5 Three-Way Node Merge
+
+When `N_old`, `N_designer`, and `N_new` all exist and `N_designer` differs from
+`N_old`, the processor MUST start the merged node from a shallow copy of `N_new`
+without children. It then classifies designer deltas under §5 and overlays only
+the designer deltas that survive the rules below:
+
+- If a non-`children`, non-`component` property changed only in
+  `designer_edited`, the designer value survives and the report entry belongs in
+  `surviving[]` with that JSON Pointer in `propertyDeltas[]`.
+- If a property changed only in `new_generated`, the generated value from
+  `N_new` remains in the merged node and the report entry belongs in
+  `regenerated[]`.
+- If designer and generator changed the same property to the same value, the
+  `N_new` value remains in the merged node and the processor MUST NOT report a
+  conflict for that property.
+- If designer and generator changed the same property to different values, the
+  processor MUST preserve the designer value in `merged` and MUST report
+  `COMP-REGENERATION-PROPERTY-CONFLICT` in `conflicts[]` with that JSON Pointer
+  in `propertyDeltas[]`.
+- If `component` changed only in `designer_edited`, the designer component value
+  survives and the processor MUST report
+  `COMP-REGENERATION-WIDGET-SWAP` in `conflicts[]` unless `new_generated`
+  independently made the same component choice.
+- If `component` changed in both designer and generator to different values, the
+  processor MUST preserve the designer component value in `merged` and MUST
+  report `COMP-REGENERATION-WIDGET-SWAP` in `conflicts[]`.
+
+If any delta for the node produces a conflict, the node's merge entry belongs in
+`conflicts[]`. If no conflict occurs and at least one designer delta survives,
+the entry belongs in `surviving[]`, even when unrelated generated-only changes
+also remain from `N_new`. If no designer delta survives, the entry belongs in
+`regenerated[]`.
+
+`propertyDeltas[]` entries are JSON Pointer strings for the node-local
+properties that changed, such as `/props/label`, `/component`, or `/children`.
+Report array placement defines the outcome role; §7 defines the finding codes
+and severities.
+
+### 6.6 Child Assembly and Reorder Preservation
+
+Child arrays are assembled recursively from `N_new.children` first. A processor
+MUST call the generated-node assembly rule for each child in `N_new.children`
+order and MUST omit child results that returned no merged node.
+
+After that recursive pass, if `N_old` and `N_designer` have a §5 `childReorder`
+delta, the processor compares matched child-key order:
+
+- If the matched-child order in `N_new` equals the matched-child order in
+  `N_old`, the reorder is designer-only. The processor MUST reorder the matched
+  entries in the merged child list to the designer order, keep newly generated
+  children in their `N_new` relative positions, and add `/children` to the
+  parent entry's `propertyDeltas[]` in `surviving[]`.
+- If `N_new` also reordered the same matched child set and the `N_new` order does
+  not equal the designer order, the processor MUST keep the `N_new` order for
+  matched generated children and MUST report `COMP-REGENERATION-PROPERTY-CONFLICT`
+  for `/children`.
+- If `N_new` and `N_designer` have the same matched-child order, the processor
+  MUST NOT report a child-order conflict.
+
+Designer-added children that are not present in `new_generated` are not inserted
+by the recursive `N_new.children` walk. They are handled by the uncovered-orphan
+pass in §6.7 and reported through `orphaned[]`, not through `pendingReview[]`.
+
+### 6.7 Uncovered Orphan Reattachment
+
+After generated-node assembly completes, the processor MUST perform exactly one
+orphan reattachment pass over `designer_edited` in pre-order document order.
+
+A designer node is an uncovered orphan candidate only when all of the following
+are true:
+
+1. the designer node is not in `represented_designer_nodes`;
+2. no descendant of the designer node is in `represented_designer_nodes`; and
+3. its mapped match key is `UNMATCHABLE`, `AMBIGUOUS`, ambiguous in
+   `designer_index`, ambiguous in `new_index`, or does not resolve in
+   `new_index`.
+
+The processor selects maximal uncovered orphan roots: when an uncovered orphan
+candidate has an uncovered orphan ancestor already selected as a root, only the
+ancestor is appended. This prevents duplicate orphan descendants.
+
+For each orphan root, the processor locates a reattachment target as follows:
+
+1. First inspect the orphan root's immediate parent in `designer_edited`. If that
+   parent has a mapped match key that resolves to a non-ambiguous node in
+   `merged`, append the orphan root subtree once as the last child of that merged
+   parent and add an `orphaned[]` entry whose `reattachedTo` is the parent's
+   merged `nodePath`.
+2. Otherwise, walk higher ancestors in `designer_edited` until the nearest
+   ancestor with a mapped match key that resolves to a non-ambiguous node in
+   `merged` is found. Append the orphan root subtree once as the last child of
+   that ancestor, add the base `COMP-REGENERATION-ORPHAN-NODE` entry, and also
+   add `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE`.
+3. Otherwise, append the orphan root subtree once under `/tree` after the last
+   root child, add the base orphan entry, and also add
+   `COMP-REGENERATION-ORPHAN-DETACHED`.
+
+The orphan subtree is copied from `designer_edited`. The processor MUST NOT
+append an orphan root whose subtree contains a represented designer descendant,
+because that would duplicate a node already merged during generated-node
+assembly.
+
+Reference-resolution failures for orphan nodes are not emitted by this section.
+They are produced by the Component or Component Reference Fields resolver and
+composed into the review surface under §8 and §11.
+
+### 6.8 Determinism and Output Discipline
+
+The algorithm's deterministic ordering rules are:
+
+- match indexes are built in pre-order document order;
+- generated-node assembly starts from `new_generated` child order;
+- designer-only child reorders are applied only after recursive child assembly;
+- orphan roots are selected as maximal uncovered roots; and
+- orphan roots are appended in `designer_edited` pre-order document order.
+
+The processor MUST return new `merged` and `report` documents and MUST NOT mutate
+`old_generated`, `designer_edited`, `new_generated`, or
+`RegenerationMergeContext`.
 
 ## 7. Conflict Severities and Finding Codes
 
