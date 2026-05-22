@@ -1,12 +1,18 @@
 /** @filedesc Response Actions runtime helper contract. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import {
   defaultActionRefForIntent,
   invokeResponseAction,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
 } from '../dist/index.js';
+import { VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const responseActions = {
   $formspecResponseActions: '1.0',
@@ -278,4 +284,44 @@ test('retry-once reuses frozen idempotency keys and retries only the failed effe
     { type: 'handoffAssembly', key: 'inv-1/effect-1', attempt: 1 },
   ]);
   assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'failed', 'succeeded']);
+});
+
+test('engine MASTER_TABLE matches generated VM schema const row-for-row', () => {
+  // VALIDATION_MAPPING_MASTER_TABLE is generated from
+  // schemas/validation-mapping.schema.json#/$defs/MasterTable/const.
+  // The engine's intent->tuple lookup must reflect that const exactly.
+  for (const row of VALIDATION_MAPPING_MASTER_TABLE) {
+    const tuple = resolveResponseActionValidationTuple({
+      id: `probe-${row.intent}`,
+      intent: row.intent,
+      effects: [{ type: 'hostEvent', eventName: 'noop' }],
+    });
+    assert.deepEqual(tuple, {
+      profile: row.profile,
+      blocking: row.blocking,
+      persistence: row.persistence,
+    }, `intent ${row.intent} should resolve to VM schema row`);
+  }
+});
+
+test('engine MASTER_TABLE matches raw VM schema const (defense-in-depth)', () => {
+  const schemaPath = resolve(
+    __dirname,
+    '../../../schemas/validation-mapping.schema.json',
+  );
+  const schema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
+  const schemaRows = schema.$defs.MasterTable.const;
+  // Re-derive the engine's tuple map by probing every schema row.
+  for (const row of schemaRows) {
+    const tuple = resolveResponseActionValidationTuple({
+      id: `probe-${row.intent}`,
+      intent: row.intent,
+      effects: [{ type: 'hostEvent', eventName: 'noop' }],
+    });
+    assert.deepEqual(tuple, {
+      profile: row.profile,
+      blocking: row.blocking,
+      persistence: row.persistence,
+    }, `intent ${row.intent} (raw schema) should resolve to VM schema row`);
+  }
 });
