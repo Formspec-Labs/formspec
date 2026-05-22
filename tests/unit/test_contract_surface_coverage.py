@@ -1,9 +1,9 @@
 """Contract surface coverage checks.
 
-This is intentionally small: it verifies that a contract promoted to
-``status=enforced`` has concrete proof points in conformance, crates, and
-package tests. It does not execute those tests; focused scripts choose which
-test commands to run for each contract family.
+This verifies that each configured spec/schema pair is inventoried and that
+local Formspec contracts do not disappear behind a generic deferral. It does
+not execute the listed tests; focused scripts choose which commands to run for
+each contract family.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 LEDGER_PATH = REPO_ROOT / "tests" / "contracts" / "surface-coverage.json"
 SPEC_ARTIFACTS_CONFIG = REPO_ROOT / "scripts" / "spec-artifacts.config.json"
 REQUIRED_CONTRACT_FIELDS = {"status", "spec", "schema", "conformance", "crates", "packages"}
-ALLOWED_STATUSES = {"enforced", "deferred"}
+ALLOWED_STATUSES = {"enforced", "partial", "deferred"}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -36,6 +36,26 @@ def _assert_paths_exist(paths: list[str], *, label: str) -> None:
     for rel_path in paths:
         assert not rel_path.startswith("/"), f"{label}: path must be repo-relative: {rel_path}"
         assert (REPO_ROOT / rel_path).exists(), f"{label}: path does not exist: {rel_path}"
+
+
+def _assert_non_empty_text(value: Any, *, label: str) -> None:
+    assert isinstance(value, str) and value.strip(), f"{label} must be non-empty text"
+
+
+def _assert_non_empty_text_list(value: Any, *, label: str) -> None:
+    assert isinstance(value, list) and value, f"{label} must be a non-empty list"
+    for item in value:
+        _assert_non_empty_text(item, label=f"{label} entry")
+
+
+def _has_any_proof_path(contract: dict[str, Any]) -> bool:
+    packages = contract.get("packages", {})
+    package_paths = []
+    if isinstance(packages, dict):
+        for paths in packages.values():
+            if isinstance(paths, list):
+                package_paths.extend(paths)
+    return bool(contract.get("conformance") or contract.get("crates") or package_paths)
 
 
 def _configured_spec_schema_pairs() -> set[tuple[str, str]]:
@@ -123,14 +143,36 @@ def test_deferred_contract_surfaces_explain_the_gap() -> None:
     for contract_id, contract in ledger["contracts"].items():
         if contract["status"] != "deferred":
             continue
-        reason = contract.get("reason")
-        tracking = contract.get("tracking")
-        assert isinstance(reason, str) and reason.strip(), (
-            f"{contract_id}: deferred contracts must explain why"
+        _assert_non_empty_text(contract.get("reason"), label=f"{contract_id}: deferred reason")
+        _assert_non_empty_text(contract.get("tracking"), label=f"{contract_id}: deferred tracking")
+
+
+def test_partial_contract_surfaces_call_out_gaps() -> None:
+    ledger = _load_json(LEDGER_PATH)
+
+    for contract_id, contract in ledger["contracts"].items():
+        if contract["status"] != "partial":
+            continue
+        _assert_non_empty_text(contract.get("reason"), label=f"{contract_id}: partial reason")
+        _assert_non_empty_text(contract.get("tracking"), label=f"{contract_id}: partial tracking")
+        _assert_non_empty_text_list(contract.get("callouts"), label=f"{contract_id}: callouts")
+        assert _has_any_proof_path(contract), (
+            f"{contract_id}: partial contracts must still list existing proof surfaces"
         )
-        assert isinstance(tracking, str) and tracking.strip(), (
-            f"{contract_id}: deferred contracts must point to a tracker"
-        )
+
+
+def test_formspec_contract_surfaces_are_not_deferred() -> None:
+    ledger = _load_json(LEDGER_PATH)
+
+    local_deferred = sorted(
+        contract_id
+        for contract_id, contract in ledger["contracts"].items()
+        if not str(contract["spec"]).startswith("../") and contract["status"] == "deferred"
+    )
+    assert not local_deferred, (
+        "Formspec-owned contracts must be enforced or partial with explicit callouts, "
+        f"not deferred: {local_deferred}"
+    )
 
 
 def test_contract_spec_schema_pairs_are_declared_in_spec_artifacts_config() -> None:

@@ -31,19 +31,27 @@ Do not add speculative rows for ideas that are still research or planning.
 ## Status Values
 
 Use `enforced` when the contract has concrete proof points in the listed
-surfaces. Every listed path must exist, and package parity tests should use
-discoverable names such as `issuer-parity.test.tsx`.
+surfaces and no known intended surface is missing. Every listed path must
+exist, and package parity tests should use discoverable names such as
+`issuer-parity.test.tsx`.
 
-Use `deferred` when a configured spec/schema pair is real but the repo lacks a
-complete proof bundle across the relevant surfaces. Deferred rows must include
-both:
+Use `partial` for Formspec-owned contracts where some proof exists but an
+intended surface is still missing or only indirectly covered. Partial rows must
+include:
 
 - `reason`: why the surface is not expected yet
 - `tracking`: the TODO, issue, or plan that owns the gap
+- `callouts`: the concrete missing or indirect surfaces
 
-Do not omit a package silently. Either list its proof path or defer the contract
-with a reason. For deferred rows, empty `crates` arrays or empty `packages`
-objects are allowed only when the reason names the missing surface.
+Use `deferred` only when the configured spec/schema pair is external to this
+repo or not yet owned by a local Formspec proof bundle. Local Formspec contracts
+must be `enforced` or `partial`; the meta-test fails if a local row is marked
+`deferred`.
+
+Do not omit a package silently. Either list its proof path or mark the contract
+`partial` with a callout naming the missing package. For partial rows, empty
+`crates` arrays or empty `packages` objects are allowed only when `callouts`
+names the missing surface.
 
 ## Relationship To Existing Patterns
 

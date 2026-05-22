@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "description": "Contract surface coverage ledger. Each configured spec/schema pairing must have a contract row. Each enforced contract must point to conformance, crate, and package tests that prove the spec obligation is not stranded in one layer.",
+  "description": "Contract surface coverage ledger. Each configured spec/schema pairing must have a contract row. Enforced contracts point to complete conformance, crate, and package proof. Partial Formspec contracts name the missing or indirect surfaces so local gaps are not hidden as generic deferrals.",
   "contracts": {
     "theme": {
       "status": "enforced",
@@ -90,7 +90,7 @@
       ]
     },
     "intake-handoff": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/core/spec.md",
       "schema": "schemas/intake-handoff.schema.json",
       "conformance": [
@@ -102,14 +102,19 @@
       ],
       "packages": {},
       "reason": "Schema and Python validation coverage exists, but no package surface currently proves intake-handoff production or consumption.",
-      "tracking": "specs/core/intake-handoff-spec.md"
+      "tracking": "specs/core/intake-handoff-spec.md",
+      "callouts": [
+        "No package test proves intake-handoff production or consumption.",
+        "The crate proof is schema vendoring only, not a runtime producer/consumer implementation."
+      ]
     },
     "validation-report": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/core/spec.md",
       "schema": "schemas/validation-report.schema.json",
       "conformance": [
-        "tests/conformance/schemas/test_response_schema.py"
+        "tests/conformance/schemas/test_response_schema.py",
+        "tests/conformance/spec/test_cross_spec_contracts.py"
       ],
       "crates": [
         "crates/formspec-core/src/schema_validator.rs",
@@ -117,14 +122,19 @@
       ],
       "packages": {
         "engine": [
-          "packages/formspec-engine/tests/response-contract-and-pruning.test.mjs"
+          "packages/formspec-engine/tests/response-contract-and-pruning.test.mjs",
+          "packages/formspec-engine/tests/validation-shapes-and-binds.test.mjs"
         ]
       },
       "reason": "ValidationReport shape is covered as part of response/report tests, but the valid/count derivation contract is not yet isolated across crate and package surfaces.",
-      "tracking": "specs/core/validation-report-spec.md"
+      "tracking": "specs/core/validation-report-spec.md",
+      "callouts": [
+        "No crate test isolates valid/count derivation for the ValidationReport contract.",
+        "React and webcomponent submit payload checks exist elsewhere, but there is no named package parity test for ValidationReport."
+      ]
     },
     "validation-mapping": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/core/validation-mapping.md",
       "schema": "schemas/validation-mapping.schema.json",
       "conformance": [
@@ -134,7 +144,11 @@
       "crates": [],
       "packages": {},
       "reason": "Schema, master table, and fixture semantics are pinned. Runtime crate/package execution is intentionally deferred to the Response Actions layer, which will consume ValidationMapping as a public contract.",
-      "tracking": "thoughts/specs/2026-05-20-formspec-semantic-layers.md"
+      "tracking": "thoughts/specs/2026-05-20-formspec-semantic-layers.md",
+      "callouts": [
+        "No crate runtime consumes ValidationMapping as an executable contract.",
+        "No package test exposes ValidationMapping behavior through a public API."
+      ]
     },
     "definition": {
       "status": "enforced",
@@ -195,21 +209,30 @@
       ]
     },
     "changelog": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/registry/changelog-spec.md",
       "schema": "schemas/changelog.schema.json",
       "conformance": [
         "tests/conformance/roundtrip/test_changelog_generation_roundtrip.py",
-        "tests/unit/test_changelog.py"
+        "tests/unit/test_changelog.py",
+        "tests/conformance/spec/test_spec_examples.py"
       ],
       "crates": [
         "crates/formspec-core/src/changelog.rs",
         "crates/formspec-core/tests/changelog_test.rs",
         "crates/formspec-wasm/src/changelog.rs"
       ],
-      "packages": {},
+      "packages": {
+        "core": [
+          "packages/formspec-core/tests/queries.test.ts"
+        ]
+      },
       "reason": "Rust/Python round-trip proof exists, but there is no package-level contract test named as the changelog public surface.",
-      "tracking": "tests/conformance/roundtrip/test_changelog_generation_roundtrip.py"
+      "tracking": "tests/conformance/roundtrip/test_changelog_generation_roundtrip.py",
+      "callouts": [
+        "The core package has previewChangelog coverage, but no named package parity test proves the public changelog contract.",
+        "The engine tool export path for changelog generation is not covered by a package contract test."
+      ]
     },
     "component": {
       "status": "enforced",
@@ -249,10 +272,11 @@
       ]
     },
     "locale": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/locale/locale-spec.md",
       "schema": "schemas/locale.schema.json",
       "conformance": [
+        "tests/conformance/spec/test_cross_spec_contracts.py",
         "tests/fixtures/lint/E1400-locale-semantic-invalid.json",
         "tests/fixtures/lint/E1406-locale-fallback-cycle.json",
         "tests/fixtures/lint/valid-locale-semantic.json"
@@ -261,6 +285,9 @@
         "crates/formspec-lint/src/pass_locale.rs"
       ],
       "packages": {
+        "core": [
+          "packages/formspec-core/tests/locale.test.ts"
+        ],
         "engine": [
           "packages/formspec-engine/tests/locale-store.test.mjs",
           "packages/formspec-engine/tests/engine-locale.test.mjs"
@@ -269,8 +296,12 @@
           "packages/formspec-webcomponent/tests/locale-integration.test.ts"
         ]
       },
-      "reason": "Locale lint and package behavior exist, but there is no dedicated locale schema/conformance test row yet.",
-      "tracking": "specs/locale/locale-spec.md"
+      "reason": "Locale lint and package behavior exist, but schema/conformance proof is still broad or fixture-based and React locale parity is not isolated.",
+      "tracking": "specs/locale/locale-spec.md",
+      "callouts": [
+        "No dedicated tests/conformance/schemas/test_locale_schema.py row exists for locale.schema.json.",
+        "React exposes useLocale, but there is no named React/webcomponent locale parity test."
+      ]
     },
     "issuer": {
       "status": "enforced",
@@ -308,7 +339,7 @@
       ]
     },
     "experience": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/experience/experience-spec.md",
       "schema": "schemas/experience.schema.json",
       "conformance": [
@@ -318,13 +349,18 @@
       "crates": [],
       "packages": {},
       "reason": "Current proof is schema plus Python reference predicates; the test explicitly notes Rust and TS runtime implementations are follow-on work.",
-      "tracking": "tests/conformance/spec/test_experience_coverage.py"
+      "tracking": "tests/conformance/spec/test_experience_coverage.py",
+      "callouts": [
+        "No Rust runtime implementation proves the Experience predicates.",
+        "No TypeScript package implementation proves the Experience predicates."
+      ]
     },
     "references": {
-      "status": "deferred",
+      "status": "partial",
       "spec": "specs/core/references-spec.md",
       "schema": "schemas/references.schema.json",
       "conformance": [
+        "tests/conformance/spec/test_cross_spec_contracts.py",
         "tests/fixtures/lint/E1300-references-semantic-invalid.json",
         "tests/fixtures/lint/valid-references-semantic.json"
       ],
@@ -332,8 +368,12 @@
         "crates/formspec-lint/src/pass_references_doc.rs"
       ],
       "packages": {},
-      "reason": "References semantic lint fixtures exist, but no conformance/schema test or package runtime surface proves the sidecar contract end to end.",
-      "tracking": "specs/core/references-spec.md"
+      "reason": "References semantic lint fixtures and broad cross-spec schema checks exist, but no package runtime surface proves the sidecar contract end to end.",
+      "tracking": "specs/core/references-spec.md",
+      "callouts": [
+        "No dedicated references.schema.json conformance test isolates the sidecar schema.",
+        "No package API consumes or emits references sidecars as a public contract."
+      ]
     },
     "wos-kernel": {
       "status": "deferred",
