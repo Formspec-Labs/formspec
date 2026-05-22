@@ -10,7 +10,10 @@ Formspec has several valid proof surfaces:
 
 A contract is not production-ready until the relevant surfaces are named and
 tested. The ledger in `surface-coverage.json` is the small index that ties those
-surfaces together.
+surfaces together. Rows are keyed by contract name, but inventory completeness
+is checked against each `spec` + `schema` pairing in
+`scripts/spec-artifacts.config.json` so reused spec files still get separate
+contract rows.
 
 ## When To Add A Contract
 
@@ -31,14 +34,16 @@ Use `enforced` when the contract has concrete proof points in the listed
 surfaces. Every listed path must exist, and package parity tests should use
 discoverable names such as `issuer-parity.test.tsx`.
 
-Use `deferred` only when a surface is intentionally out of scope. Deferred rows
-must include both:
+Use `deferred` when a configured spec/schema pair is real but the repo lacks a
+complete proof bundle across the relevant surfaces. Deferred rows must include
+both:
 
 - `reason`: why the surface is not expected yet
 - `tracking`: the TODO, issue, or plan that owns the gap
 
-Do not omit a package silently. Either list its proof path or defer it with a
-reason.
+Do not omit a package silently. Either list its proof path or defer the contract
+with a reason. For deferred rows, empty `crates` arrays or empty `packages`
+objects are allowed only when the reason names the missing surface.
 
 ## Relationship To Existing Patterns
 

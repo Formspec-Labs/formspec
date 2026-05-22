@@ -1,10 +1,281 @@
 {
   "version": "1.0.0",
-  "description": "Contract surface coverage ledger. Each enforced contract must point to conformance, crate, and package tests that prove the spec obligation is not stranded in one layer.",
+  "description": "Contract surface coverage ledger. Each configured spec/schema pairing must have a contract row. Each enforced contract must point to conformance, crate, and package tests that prove the spec obligation is not stranded in one layer.",
   "contracts": {
+    "theme": {
+      "status": "enforced",
+      "spec": "specs/theme/theme-spec.md",
+      "schema": "schemas/theme.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_theme_schema.py",
+        "tests/unit/test_validator_theme_semantics.py"
+      ],
+      "crates": [
+        "crates/formspec-lint/src/pass_theme/mod.rs",
+        "crates/formspec-lint/src/pass_theme/tests.rs",
+        "crates/formspec-lint/src/pass_theme/token_refs.rs"
+      ],
+      "packages": {
+        "core": [
+          "packages/formspec-core/tests/theme-cascade.test.ts",
+          "packages/formspec-core/tests/theme.test.ts"
+        ],
+        "layout": [
+          "packages/formspec-layout/tests/theme-resolver.test.ts"
+        ],
+        "webcomponent": [
+          "packages/formspec-webcomponent/tests/theme-resolver.test.ts",
+          "packages/formspec-webcomponent/tests/styling/token-resolution.test.ts"
+        ]
+      },
+      "checks": [
+        "theme schema shape and semantic lint warnings are covered",
+        "Rust lint enforces theme token/reference compatibility",
+        "core, layout, and webcomponent packages resolve the documented cascade and token behavior"
+      ]
+    },
+    "mapping": {
+      "status": "enforced",
+      "spec": "specs/mapping/mapping-spec.md",
+      "schema": "schemas/mapping.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_mapping_schema.py",
+        "tests/conformance/schemas/test_mapping_adapter_schema_contracts.py",
+        "tests/unit/test_mapping_engine.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/runtime_mapping/engine.rs",
+        "crates/formspec-core/src/runtime_mapping/tests.rs",
+        "crates/formspec-lint/src/pass_mapping.rs"
+      ],
+      "packages": {
+        "core": [
+          "packages/formspec-core/tests/mapping.test.ts"
+        ],
+        "engine": [
+          "packages/formspec-engine/tests/runtime-mapping.test.mjs",
+          "packages/formspec-engine/tests/runtime-mapping-adapters.test.mjs",
+          "packages/formspec-engine/tests/runtime-mapping-phases123.test.mjs"
+        ]
+      },
+      "checks": [
+        "mapping schema and adapter shapes are covered by conformance tests",
+        "Rust runtime mapping covers transform ordering, direction, defaults, and adapter behavior",
+        "core and engine package tests cover authoring commands and runtime mapping execution"
+      ]
+    },
+    "response": {
+      "status": "enforced",
+      "spec": "specs/core/spec.md",
+      "schema": "schemas/response.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_response_schema.py",
+        "tests/unit/test_response_pinning_version_substitution.py",
+        "tests/unit/test_signed_response_fixture.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/schema_validator.rs",
+        "crates/formspec-lint/src/pass_response.rs"
+      ],
+      "packages": {
+        "engine": [
+          "packages/formspec-engine/tests/response-contract-and-pruning.test.mjs",
+          "packages/formspec-engine/tests/response-pinning-version-substitution.test.mjs"
+        ]
+      },
+      "checks": [
+        "response schema, authored signatures, and validation result embedding are covered",
+        "runtime validation pins responses to exact definition versions",
+        "engine getResponse emits the required response envelope and rejects identity drift"
+      ]
+    },
+    "intake-handoff": {
+      "status": "deferred",
+      "spec": "specs/core/spec.md",
+      "schema": "schemas/intake-handoff.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_intake_handoff_schema.py",
+        "tests/unit/test_intake_handoff_validation.py"
+      ],
+      "crates": [
+        "crates/formspec-lint/schemas/intake-handoff.schema.json"
+      ],
+      "packages": {},
+      "reason": "Schema and Python validation coverage exists, but no package surface currently proves intake-handoff production or consumption.",
+      "tracking": "specs/core/intake-handoff-spec.md"
+    },
+    "validation-report": {
+      "status": "deferred",
+      "spec": "specs/core/spec.md",
+      "schema": "schemas/validation-report.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_response_schema.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/schema_validator.rs",
+        "crates/formspec-lint/schemas/validation-report.schema.json"
+      ],
+      "packages": {
+        "engine": [
+          "packages/formspec-engine/tests/response-contract-and-pruning.test.mjs"
+        ]
+      },
+      "reason": "ValidationReport shape is covered as part of response/report tests, but the valid/count derivation contract is not yet isolated across crate and package surfaces.",
+      "tracking": "specs/core/validation-report-spec.md"
+    },
+    "validation-mapping": {
+      "status": "deferred",
+      "spec": "specs/core/validation-mapping.md",
+      "schema": "schemas/validation-mapping.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_validation_mapping_schema.py",
+        "tests/conformance/spec/test_validation_mapping_table.py"
+      ],
+      "crates": [],
+      "packages": {},
+      "reason": "Schema, master table, and fixture semantics are pinned, but no runtime package surface executes ValidationMapping as a public contract.",
+      "tracking": "tests/conformance/spec/test_validation_mapping_table.py"
+    },
+    "definition": {
+      "status": "enforced",
+      "spec": "specs/core/spec.md",
+      "schema": "schemas/definition.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_definition_schema.py",
+        "tests/integration/test_definition_schema_acceptance.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/definition_items.rs",
+        "crates/formspec-eval/src/types/definition.rs",
+        "crates/formspec-lint/src/schema_validation.rs"
+      ],
+      "packages": {
+        "core": [
+          "packages/formspec-core/tests/definition-items.test.ts",
+          "packages/formspec-core/tests/definition-fields.test.ts"
+        ],
+        "engine": [
+          "packages/formspec-engine/tests/definition-schema-acceptance.test.mjs",
+          "packages/formspec-engine/tests/definition-assembly.test.mjs"
+        ]
+      },
+      "checks": [
+        "definition schema and shared fixtures are covered by conformance/integration tests",
+        "Rust evaluation and lint surfaces accept schema-valid definitions",
+        "core and engine packages cover definition editing, loading, and assembly behavior"
+      ]
+    },
+    "registry": {
+      "status": "enforced",
+      "spec": "specs/registry/extension-registry.md",
+      "schema": "schemas/registry.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_registry_schema.py",
+        "tests/conformance/registry/test_registry_entry_constraints.py",
+        "tests/unit/test_registry.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/registry_client/registry.rs",
+        "crates/formspec-core/src/registry_client/tests.rs",
+        "crates/formspec-py/src/registry.rs"
+      ],
+      "packages": {
+        "engine": [
+          "packages/formspec-engine/tests/registry-entry-constraints.test.mjs",
+          "packages/formspec-engine/tests/registry-constraints.test.mjs"
+        ],
+        "webcomponent": [
+          "packages/formspec-webcomponent/tests/registry.test.ts"
+        ]
+      },
+      "checks": [
+        "registry document and entry schemas are covered",
+        "Rust/Python registry parsing, lookup, and lifecycle behavior are covered",
+        "engine and webcomponent package tests exercise registry constraints and rendering integration"
+      ]
+    },
+    "changelog": {
+      "status": "deferred",
+      "spec": "specs/registry/changelog-spec.md",
+      "schema": "schemas/changelog.schema.json",
+      "conformance": [
+        "tests/conformance/roundtrip/test_changelog_generation_roundtrip.py",
+        "tests/unit/test_changelog.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/changelog.rs",
+        "crates/formspec-core/tests/changelog_test.rs",
+        "crates/formspec-wasm/src/changelog.rs"
+      ],
+      "packages": {},
+      "reason": "Rust/Python round-trip proof exists, but there is no package-level contract test named as the changelog public surface.",
+      "tracking": "tests/conformance/roundtrip/test_changelog_generation_roundtrip.py"
+    },
+    "component": {
+      "status": "enforced",
+      "spec": "specs/component/component-spec.md",
+      "schema": "schemas/component.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_component_schema.py",
+        "tests/unit/test_validator_component_semantics.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/component_tree.rs",
+        "crates/formspec-lint/src/component_matrix.rs",
+        "crates/formspec-lint/src/pass_component/tests.rs"
+      ],
+      "packages": {
+        "core": [
+          "packages/formspec-core/tests/component-tree.test.ts",
+          "packages/formspec-core/tests/component-properties.test.ts",
+          "packages/formspec-core/tests/component-page-resolution.test.ts"
+        ],
+        "webcomponent": [
+          "packages/formspec-webcomponent/tests/components/component-props.test.ts",
+          "packages/formspec-webcomponent/tests/components/custom-components.test.ts",
+          "packages/formspec-webcomponent/tests/components/layout-components.test.ts"
+        ],
+        "react": [
+          "packages/formspec-react/tests/button-parity.test.ts",
+          "packages/formspec-react/tests/choice-control-parity.test.ts",
+          "packages/formspec-react/tests/display-parity.test.ts",
+          "packages/formspec-react/tests/layout-chrome-parity.test.ts"
+        ]
+      },
+      "checks": [
+        "component schema and semantic lint behavior are covered",
+        "Rust component tree and compatibility lint surfaces are covered",
+        "core, webcomponent, and React packages cover component authoring and rendering parity"
+      ]
+    },
+    "locale": {
+      "status": "deferred",
+      "spec": "specs/locale/locale-spec.md",
+      "schema": "schemas/locale.schema.json",
+      "conformance": [
+        "tests/fixtures/lint/E1400-locale-semantic-invalid.json",
+        "tests/fixtures/lint/E1406-locale-fallback-cycle.json",
+        "tests/fixtures/lint/valid-locale-semantic.json"
+      ],
+      "crates": [
+        "crates/formspec-lint/src/pass_locale.rs"
+      ],
+      "packages": {
+        "engine": [
+          "packages/formspec-engine/tests/locale-store.test.mjs",
+          "packages/formspec-engine/tests/engine-locale.test.mjs"
+        ],
+        "webcomponent": [
+          "packages/formspec-webcomponent/tests/locale-integration.test.ts"
+        ]
+      },
+      "reason": "Locale lint and package behavior exist, but there is no dedicated locale schema/conformance test row yet.",
+      "tracking": "specs/locale/locale-spec.md"
+    },
     "issuer": {
       "status": "enforced",
       "spec": "specs/issuer/issuer-spec.md",
+      "schema": "schemas/issuer.schema.json",
       "conformance": [
         "tests/conformance/test_issuer_fixtures.py",
         "tests/conformance/test_definition_issuer_binding.py",
@@ -35,6 +306,161 @@
         "engine resolves issuer cascade and pins displayedIssuer",
         "webcomponent and React render Definition issuer chrome, host embed override, and allowlisted query override"
       ]
+    },
+    "experience": {
+      "status": "deferred",
+      "spec": "specs/experience/experience-spec.md",
+      "schema": "schemas/experience.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_experience_schema.py",
+        "tests/conformance/spec/test_experience_coverage.py"
+      ],
+      "crates": [],
+      "packages": {},
+      "reason": "Current proof is schema plus Python reference predicates; the test explicitly notes Rust and TS runtime implementations are follow-on work.",
+      "tracking": "tests/conformance/spec/test_experience_coverage.py"
+    },
+    "references": {
+      "status": "deferred",
+      "spec": "specs/core/references-spec.md",
+      "schema": "schemas/references.schema.json",
+      "conformance": [
+        "tests/fixtures/lint/E1300-references-semantic-invalid.json",
+        "tests/fixtures/lint/valid-references-semantic.json"
+      ],
+      "crates": [
+        "crates/formspec-lint/src/pass_references_doc.rs"
+      ],
+      "packages": {},
+      "reason": "References semantic lint fixtures exist, but no conformance/schema test or package runtime surface proves the sidecar contract end to end.",
+      "tracking": "specs/core/references-spec.md"
+    },
+    "wos-kernel": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/kernel/spec.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/crates/wos-conformance/tests/fixture_shape.rs",
+        "../work-spec/tests/schemas/test_fixture_validity.py"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-core/src/lib.rs",
+        "../work-spec/crates/wos-runtime/src/runtime.rs"
+      ],
+      "packages": {},
+      "reason": "WOS kernel has its own reference-stack proof, but this Formspec contract runner does not yet own a complete WOS spec/schema/package proof bundle.",
+      "tracking": "../work-spec/WOS-IMPLEMENTATION-STATUS.md"
+    },
+    "wos-workflow-governance": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/governance/workflow-governance.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/crates/wos-conformance/tests/fixture_shape.rs",
+        "../work-spec/tests/schemas/test_fixture_validity.py"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-core/src/model/governance.rs",
+        "../work-spec/crates/wos-lint/src/lib.rs"
+      ],
+      "packages": {},
+      "reason": "Governance schema/lint/runtime coverage is partial by feature; active TODO entries still track policy, runtime emission, and conformance gaps.",
+      "tracking": "../work-spec/TODO.md"
+    },
+    "wos-ai-integration": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/ai/ai-integration.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/crates/wos-conformance/tests/fixture_shape.rs",
+        "../work-spec/tests/schemas/test_fixture_validity.py"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-core/src/model/ai.rs",
+        "../work-spec/crates/wos-agent-stub/src/lib.rs"
+      ],
+      "packages": {},
+      "reason": "AI schema/conformance coverage exists, but active backlog still tracks runtime invocation/precondition emission and real adapter bodies.",
+      "tracking": "../work-spec/TODO.md"
+    },
+    "wos-correspondence-metadata": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/kernel/correspondence-metadata.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/tests/schemas/test_spec_examples.py",
+        "../work-spec/crates/wos-conformance/tests/fixture_shape.rs"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-runtime/src/companion.rs"
+      ],
+      "packages": {},
+      "reason": "Correspondence metadata is covered inside broader WOS schema/runtime tests, but no isolated contract row proves this spec across all WOS surfaces.",
+      "tracking": "../work-spec/specs/kernel/correspondence-metadata.md"
+    },
+    "wos-policy-parameters": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/governance/policy-parameters.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/tests/schemas/test_fixture_validity.py",
+        "../work-spec/crates/wos-conformance/tests/fixture_shape.rs"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-core/src/model/governance.rs",
+        "../work-spec/crates/wos-runtime/src/policy_decision.rs"
+      ],
+      "packages": {},
+      "reason": "Policy parameter shape is present, but feature-matrix notes and TODO entries still track processor semantics and migration-policy gaps.",
+      "tracking": "../work-spec/TODO.md"
+    },
+    "wos-drift-monitor": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/ai/drift-monitor.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/crates/wos-conformance/fixtures/AI-AUTO-002-drift-alert-demotion.json",
+        "../work-spec/tests/schemas/test_fixture_validity.py"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-core/src/model/ai.rs",
+        "../work-spec/crates/wos-runtime/src/companion.rs"
+      ],
+      "packages": {},
+      "reason": "Drift-monitor fixtures exist, but deployment sequencing/canary schema and companion drift lint remain active backlog gaps.",
+      "tracking": "../work-spec/TODO.md"
+    },
+    "wos-semantic-profile": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/profiles/semantic.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/crates/wos-conformance/tests/export_conformance.rs",
+        "../work-spec/tests/schemas/test_fixture_validity.py"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-export/src/lib.rs",
+        "../work-spec/crates/wos-core/src/lib.rs"
+      ],
+      "packages": {},
+      "reason": "Semantic export proof exists for core PROV-O/XES/OCEL paths, but implementation status still documents deferred higher-tier bundles, per-item OCEL links, and SHACL validation.",
+      "tracking": "../work-spec/WOS-IMPLEMENTATION-STATUS.md"
+    },
+    "wos-signature-profile": {
+      "status": "deferred",
+      "spec": "../work-spec/specs/profiles/signature.md",
+      "schema": "../work-spec/schemas/wos-workflow.schema.json",
+      "conformance": [
+        "../work-spec/crates/wos-conformance/tests/fixture_shape.rs",
+        "../work-spec/crates/wos-conformance/tests/fixtures/SIG-001-sequential-single-signer.json"
+      ],
+      "crates": [
+        "../work-spec/crates/wos-runtime/src/runtime/signature.rs",
+        "../work-spec/crates/wos-formspec-binding/src/lib.rs"
+      ],
+      "packages": {},
+      "reason": "Signature Profile has substantial WOS proof, but active WOS TODO entries still track verifier dispatch, receipt consumption, and remaining admission-failure paths.",
+      "tracking": "../work-spec/TODO.md"
     }
   }
 }
