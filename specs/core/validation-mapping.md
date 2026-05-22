@@ -75,6 +75,43 @@ These five values are the closed initial set. Future revisions of this spec MAY 
 **`x-` extensions.** An author MAY introduce custom intents under the `x-` prefix (e.g., `x-acme-bulk-import`). Such intents MUST carry an explicit `(profile, blocking, persistence)` triple in the Response Actions document; Mapping-Aware processors that do not recognize an `x-` intent MUST use the document-supplied triple verbatim. Mapping-Aware processors that *do* recognize an `x-` intent MAY honor a publisher-supplied default.
 
 Intent names are descriptive of caller goal, not implementation: `save-draft` does not specify whether the persistence target is local storage, server, or any other medium — that belongs to Response Actions effect requests (concept §6.3). Likewise `submit` does not specify whether the host accepts, defers, or rejects — that belongs to Intake Handoff (concept §6.9).
+
+## 3. Validation Profile
+
+`ValidationProfile` is a **closed, named enum** that pins (Core global validation mode, per-shape timing filter) under a single identifier. Profile names MUST be used in place of inline mode+timing tuples in Mapping-Aware documents.
+
+This section resolves the concept-note §11.2 open question (validation profile names).
+
+| Profile | Core global mode (§5.5) | Per-shape timing filter (§5.2.1) | Meaning |
+|---------|-------------------------|----------------------------------|---------|
+| `live` | `continuous` | continuous-timing shapes fire during normal revalidation; submit and demand shapes wait for their explicit triggers | Validation evaluates on every value change; matches current Core default and `SubmitButton.mode: continuous` report production. |
+| `on-submit` | `continuous` | continuous and submit-timing shapes fire; demand shapes do NOT fire | Validation evaluates the completion-eligible shape set once; matches `SubmitButton.mode: submit` report production without redefining demand timing. |
+| `on-demand` | `deferred` | only shapes with `timing: demand` fire | Used by `request-evidence` intent. Continuous and submit shapes are deferred per Core §5.5 deferred-mode override. |
+| `off` | `disabled` | no shapes fire | Used by `save-draft` and `autosave`. ValidationReport is NOT produced. |
+
+### 3.1 Profile Resolution
+
+A Mapping-Aware processor applies a profile by:
+
+1. Setting the engine's global validation mode to the profile's Core mode column.
+2. Applying the per-shape timing filter:
+   - `continuous trigger` — shapes whose declared `timing` is `continuous` fire during normal revalidation; `submit` and `demand` shapes wait for their explicit triggers.
+   - `submit trigger` — shapes whose declared `timing` is `continuous` or `submit` fire for the submit pass; `demand` shapes remain deferred until explicitly requested by the consuming application.
+   - `only demand` — only shapes whose declared `timing` is `demand` evaluate; all others are deferred.
+   - `no shapes` — every shape is suppressed; no ValidationResults are produced (Core §5.5 disabled-mode).
+
+### 3.2 What Profile Does NOT Affect
+
+Profile does NOT change:
+
+- ValidationResult schema (Core §5.3.1). All findings keep their existing shape.
+- Non-relevant field suppression (Core §5.6). Profiles MUST honor §5.6 rule 1 — non-relevant fields produce no results regardless of profile.
+- External validation injection (Core §5.7). Externally injected results are merged into ValidationReport under any profile that produces a report. Under `off`, no report is produced and external results are discarded for that intent.
+- Profile-to-profile state. Profiles are stateless; switching profile mid-session has no memory.
+
+### 3.3 Profile Closure
+
+Profile names are closed. Authors MUST NOT introduce additional profile names (e.g., `partial`, `silent`, `batch`), including `x-`-prefixed profile names. Publisher-specific behavior MUST use an `x-` ActionIntent paired with one of this section's four profiles. The four named profiles cover the existing Core terms that interact with action intent; additional profiles would re-open the §9 row-3 stop condition.
 title: Formspec Validation Mapping
 version: 1.0.0-draft.1
 date: 2026-05-22
