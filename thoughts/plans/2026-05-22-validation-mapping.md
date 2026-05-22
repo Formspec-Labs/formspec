@@ -235,8 +235,10 @@ This specification defines one conformance level for documents and a separate le
 
 | Level | Requirements |
 |-------|--------------|
-| **Mapping-Aware Document** | Any document (Response Action, SubmitButton without `actionRef`, etc.) whose intent identifier is a member of the closed `ActionIntent` enum (§2). |
-| **Mapping-Aware Processor** | A processor that, given a Mapping-Aware Document with intent `I`, MUST apply the Master Mapping Table tuple `(profile, blocking, persistence)` keyed by `I` unless the document explicitly overrides one or more axes. |
+| **Mapping-Aware Document** | Any document with an explicit intent identifier whose value is a member of the closed `ActionIntent` enum (§2) or an `x-` extension intent (§10). |
+| **Mapping-Aware Processor** | A processor that, given a Mapping-Aware Document with intent `I`, MUST apply the Master Mapping Table tuple `(profile, blocking, persistence)` keyed by `I` unless the document explicitly overrides one or more axes. The same processor MUST also apply the §7 default-submit-action fallback for legacy `SubmitButton` nodes without `actionRef`. |
+
+A `SubmitButton` without `actionRef` is not a Mapping-Aware Document because current Component §5.19 does not carry an intent identifier. Its default submit semantics are a processor fallback defined in §7.1, not a document-conformance claim.
 
 A conformant Core processor that is NOT Mapping-Aware MAY ignore this specification entirely. Existing engines that only support `SubmitButton.mode` continue to satisfy Core §5.5 and Component §5.19 without consulting this mapping; the §7 default-submit-action rule (concept §6.6) takes effect only when an engine is Mapping-Aware.
 
@@ -662,7 +664,7 @@ This specification defines two conformance levels (§1.4):
 
 | Level | Requirements |
 |-------|--------------|
-| **Mapping-Aware Document** | Intent identifier ∈ closed `ActionIntent` enum (§2). Any override tuple satisfies the §6.3 permitted-tuple predicate. |
+| **Mapping-Aware Document** | Explicit intent identifier ∈ closed `ActionIntent` enum (§2) or `x-` extension intent (§10). Any override tuple satisfies the §6.3 permitted-tuple predicate. |
 | **Mapping-Aware Processor** | Applies §6 master-table tuple unless the document explicitly overrides. Rejects prohibited override combinations with `VMAP-INVALID-OVERRIDE`. Honors §7.1 default-submit-action rule for SubmitButton-without-actionRef. Preserves VE-05 under all blocked-completion scenarios. |
 
 #### 9.1.1 Mapping-Aware Document
