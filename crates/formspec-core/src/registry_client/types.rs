@@ -18,8 +18,34 @@ pub enum ExtensionCategory {
 #[derive(Debug, Clone)]
 pub struct Publisher {
     pub name: String,
-    pub url: String,
-    pub contact: Option<String>,
+    pub identifier: Option<String>,
+    pub homepage: Option<String>,
+    pub contact_points: Vec<ContactPoint>,
+    pub legacy_url: Option<String>,
+    pub legacy_contact: Option<String>,
+}
+
+/// Structured publisher contact information.
+#[allow(missing_docs)]
+#[derive(Debug, Clone)]
+pub struct ContactPoint {
+    pub contact_type: Option<String>,
+    pub email: Option<String>,
+    pub telephone: Option<String>,
+    pub url: Option<String>,
+    pub available_language: Vec<String>,
+}
+
+/// Non-fatal registry parse warning.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RegistryWarning {
+    /// A deprecated field was present.
+    DeprecatedField {
+        /// Deprecated field path.
+        field: String,
+        /// Preferred replacement field path.
+        replacement: String,
+    },
 }
 
 /// A single extension record with full metadata.
@@ -75,6 +101,7 @@ impl std::error::Error for RegistryError {}
 pub struct Registry {
     pub publisher: Publisher,
     pub published: String,
+    pub warnings: Vec<RegistryWarning>,
     pub(super) entries: Vec<RegistryEntry>,
     pub(super) by_name: std::collections::HashMap<String, Vec<usize>>,
 }

@@ -379,10 +379,28 @@ export function wasmLintDocumentWithRegistries(
 
 /** Parse and validate a registry document, returning summary metadata. */
 export function wasmParseRegistry(registry: unknown): {
-    publisher: { name?: string; url?: string; contact?: string };
+    publisher: {
+        name?: string;
+        identifier?: string | null;
+        homepage?: string | null;
+        url?: string | null;
+        contactPoint?: Array<{
+            contactType?: string | null;
+            email?: string | null;
+            telephone?: string | null;
+            url?: string | null;
+            availableLanguage?: string[];
+        }>;
+        contact?: string | null;
+    };
     published?: string;
     entryCount: number;
     validationIssues: any[];
+    warnings: Array<{
+        kind: 'deprecatedField';
+        field: string;
+        replacement: string;
+    }>;
 } {
     assertWasmToolsReadySync();
     const resultJson = wasmTools().parseRegistry(JSON.stringify(registry));

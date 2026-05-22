@@ -10,7 +10,10 @@ mod wire_json;
 #[cfg(test)]
 mod tests;
 
-pub use types::{ExtensionCategory, Parameter, Publisher, Registry, RegistryEntry, RegistryError};
+pub use types::{
+    ContactPoint, ExtensionCategory, Parameter, Publisher, Registry, RegistryEntry, RegistryError,
+    RegistryWarning,
+};
 pub use version::version_satisfies;
 pub use wire_json::{
     registry_entry_count_from_raw, registry_entry_to_json_value,

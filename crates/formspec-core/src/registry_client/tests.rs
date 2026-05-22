@@ -76,12 +76,161 @@ fn sample_registry_json() -> serde_json::Value {
 fn parse_valid_registry() {
     let reg = Registry::from_json(&sample_registry_json()).unwrap();
     assert_eq!(reg.publisher.name, "Test Org");
-    assert_eq!(reg.publisher.url, "https://test.org");
-    assert_eq!(reg.publisher.contact.as_deref(), Some("test@test.org"));
+    assert_eq!(reg.publisher.homepage.as_deref(), Some("https://test.org"));
+    assert_eq!(
+        reg.publisher.legacy_url.as_deref(),
+        Some("https://test.org")
+    );
+    assert_eq!(
+        reg.publisher.legacy_contact.as_deref(),
+        Some("test@test.org")
+    );
+    assert_eq!(reg.warnings.len(), 2);
     assert_eq!(reg.published, "2026-03-18T00:00:00Z");
     assert_eq!(reg.entries.len(), 5);
     // Name index: x-test-currency has 2 entries
     assert_eq!(reg.by_name.get("x-test-currency").unwrap().len(), 2);
+}
+
+#[test]
+fn publisher_preferred_homepage_parses() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": {
+            "name": "Acme",
+            "identifier": "https://ror.org/12345",
+            "homepage": "https://acme.example"
+        },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    assert_eq!(parsed.publisher.name, "Acme");
+    assert_eq!(
+        parsed.publisher.identifier.as_deref(),
+        Some("https://ror.org/12345")
+    );
+    assert_eq!(
+        parsed.publisher.homepage.as_deref(),
+        Some("https://acme.example")
+    );
+    assert!(parsed.warnings.is_empty(), "no warnings on preferred form");
+}
+
+#[test]
+fn publisher_legacy_url_aliases_homepage_and_warns() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": { "name": "Acme", "url": "https://acme.example" },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    assert_eq!(
+        parsed.publisher.homepage.as_deref(),
+        Some("https://acme.example")
+    );
+    assert!(
+        parsed.warnings.iter().any(|w| matches!(
+            w,
+            RegistryWarning::DeprecatedField { field, .. } if field == "publisher.url"
+        )),
+        "expected deprecation warning for publisher.url"
+    );
+}
+
+#[test]
+fn publisher_legacy_contact_string_warns() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": {
+            "name": "Acme",
+            "homepage": "https://acme.example",
+            "contact": "support@acme.example"
+        },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    assert_eq!(
+        parsed.publisher.legacy_contact.as_deref(),
+        Some("support@acme.example")
+    );
+    assert!(parsed.warnings.iter().any(|w| matches!(
+        w,
+        RegistryWarning::DeprecatedField { field, .. } if field == "publisher.contact"
+    )));
+}
+
+#[test]
+fn publisher_contact_point_preferred() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": {
+            "name": "Acme",
+            "homepage": "https://acme.example",
+            "contactPoint": {
+                "contactType": "customer support",
+                "email": "support@acme.example"
+            }
+        },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    assert_eq!(parsed.publisher.contact_points.len(), 1);
+    assert_eq!(
+        parsed.publisher.contact_points[0].email.as_deref(),
+        Some("support@acme.example")
+    );
+    assert!(parsed.warnings.is_empty());
+}
+
+#[test]
+fn publisher_wire_summary_includes_preferred_and_legacy_fields() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": {
+            "name": "Acme",
+            "homepage": "https://acme.example",
+            "url": "https://legacy.example",
+            "contact": "legacy@acme.example",
+            "contactPoint": [{
+                "contactType": "customer support",
+                "email": "support@acme.example",
+                "availableLanguage": ["en", "es"]
+            }]
+        },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    let summary = registry_parse_summary_to_json_value(
+        &parsed,
+        &doc,
+        &parsed.validate(),
+        crate::JsonWireStyle::JsCamel,
+    );
+    assert_eq!(
+        summary["publisher"]["homepage"].as_str(),
+        Some("https://acme.example")
+    );
+    assert_eq!(
+        summary["publisher"]["url"].as_str(),
+        Some("https://legacy.example")
+    );
+    assert_eq!(
+        summary["publisher"]["contact"].as_str(),
+        Some("legacy@acme.example")
+    );
+    assert_eq!(
+        summary["publisher"]["contactPoint"][0]["email"].as_str(),
+        Some("support@acme.example")
+    );
+    assert_eq!(
+        summary["warnings"][0]["kind"].as_str(),
+        Some("deprecatedField")
+    );
 }
 
 #[test]

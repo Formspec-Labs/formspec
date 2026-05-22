@@ -22,7 +22,7 @@ impl Registry {
         let pub_val = obj
             .get("publisher")
             .ok_or_else(|| RegistryError::MissingField("publisher".into()))?;
-        let publisher = parse_publisher(pub_val)?;
+        let (publisher, warnings) = parse_publisher(pub_val)?;
 
         // published
         let published = obj
@@ -49,6 +49,7 @@ impl Registry {
         Ok(Registry {
             publisher,
             published,
+            warnings,
             entries,
             by_name,
         })
