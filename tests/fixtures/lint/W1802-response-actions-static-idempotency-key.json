@@ -1,0 +1,26 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/intake",
+    "compatibleVersions": ">=1.0.0"
+  },
+  "actions": [
+    {
+      "id": "submit-application",
+      "intent": "submit",
+      "effects": [
+        {
+          "type": "mappingExecution",
+          "mappingRef": "applicant-record",
+          "idempotencyKey": "static-key-1"
+        },
+        {
+          "type": "mappingExecution",
+          "mappingRef": "auxiliary-record",
+          "idempotencyKey": "@invocation.id & '/aux'"
+        }
+      ]
+    }
+  ]
+}

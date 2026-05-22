@@ -29,6 +29,7 @@ pub(crate) fn lint_response_actions(
     analyzer.check_target_definition();
     analyzer.check_duplicate_action_ids();
     analyzer.check_invalid_validation_overrides();
+    analyzer.check_static_idempotency_keys();
     analyzer.check_component_action_refs();
     analyzer.diagnostics
 }
@@ -163,6 +164,42 @@ impl Analyzer<'_> {
                         "VMAP-INVALID-OVERRIDE: Action {id:?} validation override \
                          (profile={profile:?}, blocking={blocking:?}, persistence={persistence:?}) \
                          violates the VM §6.3 permitted-tuple predicate: {rationale}"
+                    ),
+                ));
+            }
+        }
+    }
+
+    fn check_static_idempotency_keys(&mut self) {
+        let Some(actions) = self.doc.get("actions").and_then(Value::as_array) else {
+            return;
+        };
+        for (action_index, action) in actions.iter().enumerate() {
+            let Some(effects) = action.get("effects").and_then(Value::as_array) else {
+                continue;
+            };
+            for (effect_index, effect) in effects.iter().enumerate() {
+                let Some(key) = effect.get("idempotencyKey").and_then(Value::as_str) else {
+                    continue;
+                };
+                if key.contains('@') {
+                    continue;
+                }
+                let id = action
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("<unknown>");
+                self.diagnostics.push(warning(
+                    crate::LintCode::W1802,
+                    PASS,
+                    format!(
+                        "$.actions[{action_index}].effects[{effect_index}].idempotencyKey"
+                    ),
+                    format!(
+                        "Response Action {id:?} effect[{effect_index}] idempotencyKey {key:?} \
+                         contains no @-binding; a literal-string key produces the same value for every \
+                         invocation, silently defeating idempotency. Use a FEL expression like \
+                         \"@invocation.id & '/<effect-name>'\" so the key varies per invocation."
                     ),
                 ));
             }

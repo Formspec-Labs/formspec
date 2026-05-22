@@ -1204,6 +1204,16 @@
       "suggestedFix": "replace the per-action validation tuple with one that satisfies VM §6.3: complete-response requires (on-submit, block-on-error); block-on-error requires complete-response; off + block-on-error is forbidden",
       "fixtures": ["tests/fixtures/lint/E1803-response-actions-invalid-override.json"],
       "state": "tested"
+    },
+    {
+      "code": "W1802",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Response Actions idempotencyKey lacks @-binding",
+      "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
+      "suggestedFix": "use a FEL expression that references at least one @-binding (e.g., \"@invocation.id & '/<effect-name>'\") so the key varies per invocation; literal-string keys silently defeat idempotency by producing the same value for every attempt",
+      "fixtures": ["tests/fixtures/lint/W1802-response-actions-static-idempotency-key.json"],
+      "state": "tested"
     }
   ]
 }
