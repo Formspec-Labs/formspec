@@ -1,7 +1,7 @@
 ---
 title: Regeneration Merge — three-way Component merge driven by x-generation.anchors
 date: 2026-05-22
-status: draft
+status: paused-after-task-16
 owner: spec-author
 related:
   - thoughts/specs/2026-05-20-formspec-semantic-layers.md
@@ -16,7 +16,7 @@ related:
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:test-driven-development.
 
-**Status:** draft. This plan executes AFTER the [Component Reference Fields plan](2026-05-22-component-reference-fields.md) lands (`x-generation` shape stable, anchor taxonomy pinned). It implements [follow-on spec #5 of the semantic-layers concept note](../specs/2026-05-20-formspec-semantic-layers.md) — the "small generation companion" branch of concept §10.5. Concept §10.5 names the artifact and concept §7.2 enumerates its contents; this plan turns both into a canonical spec, fixtures, and a deterministic algorithm pytest.
+**Status:** paused after Task 16. The draft spec, MergeReport schema, schema-shape pytest, base fixtures, and 17 per-case fixtures have landed. Execution stops before Task 17 because the next task would implement the whole-document reference merge algorithm, while the current architecture question is whether Studio should instead route regeneration-like changes through the existing MCP/ProposalManager command-stream review surface.
 
 **Goal:** Author the canonical regeneration merge spec at `specs/component/regeneration-merge-spec.md`. Define a deterministic three-way merge (`old-generated` ⊕ `designer-edited` ⊕ `new-generated` → `merged + merge-report`) keyed by `x-generation.anchors`. Pin source-anchor identity, generated-node detection, designer-edit preservation rules, conflict severities, orphan handling, anchor-mapped rename handling, and Studio review UX expectations. Prove the algorithm is deterministic, no-mutation on inputs, and identical-output across implementations via fixture-driven pytest.
 
@@ -1091,6 +1091,8 @@ Each case is a directory with five required files: `old-generated.json`, `design
 
 ## Task 17: Algorithm pytest
 
+> **Paused before this task:** do not start Task 17 until the whole-document merge path is explicitly reaffirmed. The reusable artifacts from Tasks 1–16 are preserved, but this task would harden the disputed algorithm framing by adding an executable conformance oracle. Resolve whether the next implementation should be this §6 reference merger or a ProposalManager extension with anchor-based grouping, re-anchor resolution, and diff-as-commands for external Component imports.
+
 - [ ] Create `tests/conformance/spec/test_regeneration_merge_algorithm.py`.
 
 ```python
@@ -1501,3 +1503,7 @@ Task 23:       promotion-gate + architecture review
   - Added clean `COMP-REGENERATION-REGENERATED` entries for matched generated nodes that the fixture reports previously left implicit.
   - Normalized report anchor arrays to §3.1 bytewise order, changed `rename-migrated/context.json` to the full `$formspecAnchorMappings` shape, moved the `designer-removed` report `nodePath` to an existing merged-tree path, and changed `duplicate-anchor-set` to same-parent duplicate anchors so the stable local discriminator path is exercised.
   - Added the required `COMP-REGENERATION-REGENERATED` entry for `rename-migrated` generated-only non-anchor field updates (`/id`, `/bind`, `/x-generation/source`) while keeping the anchor-set update represented only by `COMP-REGENERATION-RENAME-MIGRATED`.
+- 2026-05-22: Paused before Task 17 by owner direction:
+  - Tasks 1–16 captured the durable contract artifacts: draft spec prose, MergeReport schema, schema-shape tests, base fixtures, and 17 per-case fixture scenarios.
+  - Task 17 is intentionally left unchecked because it would implement the whole-document reference merge algorithm and make that framing load-bearing before resolving the MCP/ProposalManager architecture question.
+  - Resume only after deciding whether regeneration ships as the current §6 whole-document merge oracle or as ProposalManager extensions: anchor-based grouping, re-anchor resolution, and diff-as-commands for external Component imports.
