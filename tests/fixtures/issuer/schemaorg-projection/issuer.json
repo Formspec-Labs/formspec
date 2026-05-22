@@ -1,0 +1,50 @@
+{
+  "$formspecIssuer": "1.0",
+  "url": "https://springfield.gov/health/issuer.json",
+  "version": "3.0.0",
+  "defaultLanguage": "en",
+  "kind": "department",
+  "name": {
+    "en": "City of Springfield Department of Public Health",
+    "es": "Departamento de Salud Publica de la Ciudad de Springfield"
+  },
+  "displayName": {
+    "en": "Springfield Public Health",
+    "es": "Salud Publica de Springfield"
+  },
+  "shortName": {
+    "en": "Springfield Health"
+  },
+  "organizationName": {
+    "en": "City of Springfield"
+  },
+  "departmentName": {
+    "en": "Department of Public Health"
+  },
+  "parentOrganization": "https://springfield.gov/issuer.json",
+  "identifier": "https://ror.org/01s7zjk96",
+  "homepage": "https://springfield.gov/health",
+  "jurisdiction": {
+    "level": "municipal",
+    "name": "Springfield",
+    "code": "US-MA-Springfield"
+  },
+  "logo": {
+    "primary": {
+      "url": "https://springfield.gov/health/logo.svg",
+      "altText": {
+        "en": "Springfield Public Health seal"
+      },
+      "aspectRatio": "1:1",
+      "preferredBackground": "light"
+    }
+  },
+  "contactPoint": [
+    {
+      "contactType": "customer support",
+      "email": "health@springfield.gov",
+      "telephone": "+1-555-555-0100",
+      "availableLanguage": ["en", "es"]
+    }
+  ]
+}

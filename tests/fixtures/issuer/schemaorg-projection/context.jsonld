@@ -1,0 +1,51 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "schema": "https://schema.org/",
+    "Issuer": "schema:Organization",
+    "name": {
+      "@id": "schema:name",
+      "@container": "@language"
+    },
+    "displayName": {
+      "@id": "schema:alternateName",
+      "@container": "@language"
+    },
+    "shortName": {
+      "@id": "schema:alternateName",
+      "@container": "@language"
+    },
+    "identifier": {
+      "@id": "schema:identifier",
+      "@type": "@id"
+    },
+    "homepage": {
+      "@id": "schema:url",
+      "@type": "@id"
+    },
+    "parentOrganization": {
+      "@id": "schema:parentOrganization",
+      "@type": "@id"
+    },
+    "organizationName": {
+      "@id": "schema:parentOrganization",
+      "@container": "@language"
+    },
+    "departmentName": {
+      "@id": "schema:department",
+      "@container": "@language"
+    },
+    "jurisdiction": {
+      "@id": "schema:jurisdiction"
+    },
+    "logo": {
+      "@id": "schema:logo"
+    },
+    "contactPoint": {
+      "@id": "schema:contactPoint"
+    },
+    "kind": {
+      "@id": "schema:additionalType"
+    }
+  }
+}
