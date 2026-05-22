@@ -106,6 +106,8 @@ Architecture review found that Task 1B and Task 1C cannot be scaffold-only in th
 
 ## Task 2: Spec prose — §1 Introduction + §1.5 promotion resolution
 
+- [x] Draft §1 Introduction and §1.5 promotion resolution.
+
 Draft §1 (purpose, relationship to existing specs, design principles, conformance levels, prohibitions) and §1.5 explaining that concept §11.3 promotes the four field names from "future" to current Component schema. Cite Plan E's `actionRef` as the precedent.
 
 ## Task 3: §2 unitRef
