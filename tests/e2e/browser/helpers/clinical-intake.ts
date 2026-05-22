@@ -12,6 +12,7 @@ import {
   waitForFormEngine,
 } from './engine-harness';
 import { waitForWasm } from './harness';
+import { createDemoSubmitResponseActions } from '@formspec-org/engine';
 
 export {
   engineSetValue,
@@ -25,18 +26,11 @@ export {
 const ROOT = path.resolve(__dirname, '../../../../');
 const INTAKE_DIR = path.join(ROOT, 'examples/clinical-intake');
 const REGISTRIES_DIR = path.join(ROOT, 'registries');
-const CLINICAL_RESPONSE_ACTIONS = {
-  $formspecResponseActions: '1.0',
-  version: '1.0.0',
-  targetDefinition: { url: 'https://formspec.org/examples/clinical-intake' },
-  actions: [
-    {
-      id: 'submit-intake',
-      intent: 'submit',
-      effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
-    },
-  ],
-};
+const CLINICAL_RESPONSE_ACTIONS = createDemoSubmitResponseActions({
+  definitionUrl: 'https://formspec.org/examples/clinical-intake',
+  actionId: 'submit-intake',
+  emitOnValidationError: false,
+});
 
 export function loadClinicalIntakeArtifacts() {
   return {

@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { initFormspecEngine } from '@formspec-org/engine';
+import { initFormspecEngine, createDemoSubmitResponseActions } from '@formspec-org/engine';
 import { FormspecForm } from '../src/renderer';
 
 beforeAll(async () => {
@@ -27,18 +27,9 @@ const definition = {
     binds: [{ path: 'name', required: 'true' }],
 };
 
-const responseActionsDocument = {
-    $formspecResponseActions: '1.0',
-    version: '1.0.0',
-    actions: [
-        {
-            id: 'submit',
-            intent: 'submit',
-            validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
-            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
-        },
-    ],
-};
+const responseActionsDocument = createDemoSubmitResponseActions({
+    definitionUrl: definition.url,
+});
 
 function renderInto(element: React.ReactElement): { container: HTMLElement; root: ReturnType<typeof createRoot> } {
     const container = document.createElement('div');

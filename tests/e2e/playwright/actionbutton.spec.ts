@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
+import { createDemoSubmitResponseActions } from '@formspec-org/engine';
 import { expect, test } from '@playwright/test';
 import { gotoHarness } from '../browser/helpers/harness';
 
@@ -49,24 +50,10 @@ const COMPONENT = {
 // ValidationOverride => ValidationTuple is closed and requires the full
 // (profile, blocking, persistence) tuple. Drop the override; master-table
 // inheritance for intent=submit produces the same tuple.
-const RESPONSE_ACTIONS = {
-  $formspecResponseActions: '1.0',
-  version: '1.0.0',
-  targetDefinition: { url: DEFINITION.url },
-  actions: [
-    {
-      id: 'submit-application',
-      intent: 'submit',
-      // Non-blocking: this test asserts formspec-submit detail carries invalid
-      // validationReport; master-table submit uses block-on-error and suppresses
-      // hostEvent when validation fails.
-      validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
-      effects: [
-        { type: 'hostEvent', eventName: 'formspec-submit' },
-      ],
-    },
-  ],
-};
+const RESPONSE_ACTIONS = createDemoSubmitResponseActions({
+  definitionUrl: DEFINITION.url,
+  actionId: 'submit-application',
+});
 
 function loadSchema(name: string): any {
   const path = resolve(__dirname, '..', '..', '..', 'schemas', name);
