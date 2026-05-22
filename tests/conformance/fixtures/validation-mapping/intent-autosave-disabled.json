@@ -1,0 +1,25 @@
+{
+  "fixture": "intent-autosave-disabled",
+  "description": "Background autosave of invalid Response. Profile 'off' produces NO ValidationReport; profile 'off' identical to save-draft mapping but named separately for audit/telemetry distinction (§2). Persistence 'draft-checkpoint' succeeds.",
+  "definition": "definition-base.json",
+  "action": {
+    "intent": "autosave",
+    "profile": "off",
+    "blocking": "non-blocking",
+    "persistence": "draft-checkpoint"
+  },
+  "responseBefore": {
+    "$formspecResponse": "1.0",
+    "id": "rsp-autosave-0001",
+    "definitionUrl": "https://example.gov/forms/validation-mapping-base",
+    "definitionVersion": "1.0.0",
+    "status": "in-progress",
+    "data": { "applicantName": "", "phone": null },
+    "authored": "2026-05-22T10:00:00Z"
+  },
+  "expected": {
+    "statusAfter": "in-progress",
+    "persisted": true,
+    "validationReportProduced": false
+  }
+}

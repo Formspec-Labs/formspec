@@ -1,0 +1,61 @@
+{
+  "$formspec": "1.0",
+  "version": "1.0.0",
+  "url": "https://example.gov/forms/validation-mapping-base",
+  "status": "active",
+  "title": "Validation Mapping Base",
+  "items": [
+    {
+      "key": "applicantName",
+      "type": "field",
+      "dataType": "string",
+      "label": "Applicant name"
+    },
+    {
+      "key": "phone",
+      "type": "field",
+      "dataType": "string",
+      "label": "Phone"
+    }
+  ],
+  "binds": [
+    {
+      "path": "applicantName",
+      "required": "true"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "phone-format-warning",
+      "severity": "warning",
+      "timing": "continuous",
+      "target": "phone",
+      "constraint": "$ = null or matches($, '^\\\\+?[0-9 ()-]{7,}$')",
+      "message": "Phone number format looks unusual; please confirm."
+    },
+    {
+      "id": "applicantName-min-length",
+      "severity": "error",
+      "timing": "continuous",
+      "target": "applicantName",
+      "constraint": "$ = null or length($) >= 2",
+      "message": "Applicant name must be at least 2 characters."
+    },
+    {
+      "id": "submit-review-check",
+      "severity": "error",
+      "timing": "submit",
+      "target": "applicantName",
+      "constraint": "$ != 'A'",
+      "message": "Applicant name must pass the submit-time review check."
+    },
+    {
+      "id": "duplicate-applicant-check",
+      "severity": "error",
+      "timing": "demand",
+      "target": "applicantName",
+      "constraint": "false",
+      "message": "Server-side duplicate-applicant check failed (demand-timing placeholder)."
+    }
+  ]
+}

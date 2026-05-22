@@ -1,0 +1,71 @@
+{
+  "fixture": "intent-submit-blocked",
+  "description": "Invalid Response submit attempt. Profile 'on-submit' evaluates continuous and submit-timing shapes; demand shapes remain deferred. Error-severity findings present. Blocking 'block-on-error' halts completion. Persistence 'complete-response' NOT reached; Response remains in-progress with full data (VE-05).",
+  "definition": "definition-base.json",
+  "action": {
+    "intent": "submit",
+    "profile": "on-submit",
+    "blocking": "block-on-error",
+    "persistence": "complete-response"
+  },
+  "responseBefore": {
+    "$formspecResponse": "1.0",
+    "id": "rsp-submit-blocked-0001",
+    "definitionUrl": "https://example.gov/forms/validation-mapping-base",
+    "definitionVersion": "1.0.0",
+    "status": "in-progress",
+    "data": { "applicantName": "A", "phone": "not-a-phone" },
+    "authored": "2026-05-22T10:00:00Z"
+  },
+  "expected": {
+    "statusAfter": "in-progress",
+    "responseAfter": {
+      "$formspecResponse": "1.0",
+      "id": "rsp-submit-blocked-0001",
+      "definitionUrl": "https://example.gov/forms/validation-mapping-base",
+      "definitionVersion": "1.0.0",
+      "status": "in-progress",
+      "data": { "applicantName": "A", "phone": "not-a-phone" },
+      "authored": "2026-05-22T10:00:00Z"
+    },
+    "checkpointPersisted": true,
+    "completedPersisted": false,
+    "validationReportProduced": true,
+    "validationReport": {
+      "$formspecValidationReport": "1.0",
+      "valid": false,
+      "results": [
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "phone",
+          "severity": "warning",
+          "constraintKind": "shape",
+          "shapeId": "phone-format-warning",
+          "message": "Phone number format looks unusual; please confirm."
+        },
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "applicantName",
+          "severity": "error",
+          "constraintKind": "shape",
+          "shapeId": "applicantName-min-length",
+          "message": "Applicant name must be at least 2 characters."
+        },
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "applicantName",
+          "severity": "error",
+          "constraintKind": "shape",
+          "shapeId": "submit-review-check",
+          "message": "Applicant name must pass the submit-time review check."
+        }
+      ],
+      "counts": { "error": 2, "warning": 1, "info": 0 },
+      "timestamp": "2026-05-22T10:00:00Z"
+    },
+    "shapesFired": ["phone-format-warning", "applicantName-min-length", "submit-review-check"],
+    "shapesDeferred": ["duplicate-applicant-check"],
+    "transitionBlocked": true,
+    "blockReason": "block-on-error: counts.error > 0"
+  }
+}

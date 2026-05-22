@@ -1,0 +1,44 @@
+{
+  "fixture": "intent-submit-warning-only",
+  "description": "Response with only warning findings is submittable. Profile 'on-submit' produces report with counts.error === 0; ValidationReport.valid === true (Core §5.4 invariant). Blocking 'block-on-error' does not engage. Persistence 'complete-response' transitions status to 'completed'.",
+  "definition": "definition-base.json",
+  "action": {
+    "intent": "submit",
+    "profile": "on-submit",
+    "blocking": "block-on-error",
+    "persistence": "complete-response"
+  },
+  "responseBefore": {
+    "$formspecResponse": "1.0",
+    "id": "rsp-submit-warning-0001",
+    "definitionUrl": "https://example.gov/forms/validation-mapping-base",
+    "definitionVersion": "1.0.0",
+    "status": "in-progress",
+    "data": { "applicantName": "Alex", "phone": "not-a-phone" },
+    "authored": "2026-05-22T10:00:00Z"
+  },
+  "expected": {
+    "statusAfter": "completed",
+    "persisted": true,
+    "validationReportProduced": true,
+    "validationReport": {
+      "$formspecValidationReport": "1.0",
+      "valid": true,
+      "results": [
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "phone",
+          "severity": "warning",
+          "constraintKind": "shape",
+          "shapeId": "phone-format-warning",
+          "message": "Phone number format looks unusual; please confirm."
+        }
+      ],
+      "counts": { "error": 0, "warning": 1, "info": 0 },
+      "timestamp": "2026-05-22T10:00:00Z"
+    },
+    "shapesFired": ["phone-format-warning", "applicantName-min-length", "submit-review-check"],
+    "shapesDeferred": ["duplicate-applicant-check"],
+    "transitionBlocked": false
+  }
+}

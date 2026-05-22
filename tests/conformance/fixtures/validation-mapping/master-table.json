@@ -1,0 +1,11 @@
+{
+  "fixture": "master-table",
+  "description": "Machine-readable form of the §6 Master Mapping Table. Single source of truth for tests/conformance/spec/test_validation_mapping_table.py. MUST equal schema MasterTable const row-for-row.",
+  "table": [
+    { "intent": "save-draft", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
+    { "intent": "autosave", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
+    { "intent": "review", "profile": "on-submit", "blocking": "non-blocking", "persistence": "none" },
+    { "intent": "submit", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" },
+    { "intent": "request-evidence", "profile": "on-demand", "blocking": "non-blocking", "persistence": "draft-checkpoint" }
+  ]
+}

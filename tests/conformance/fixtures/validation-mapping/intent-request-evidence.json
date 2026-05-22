@@ -1,0 +1,43 @@
+{
+  "fixture": "intent-request-evidence",
+  "description": "Demand-timing shape invocation. Profile 'on-demand' fires ONLY shapes whose declared timing is 'demand'; continuous and submit-timing shapes are deferred. duplicate-applicant-check evaluates and fails; phone-format-warning, applicantName-min-length, and submit-review-check do NOT fire. Non-blocking; persistence 'draft-checkpoint'.",
+  "definition": "definition-base.json",
+  "action": {
+    "intent": "request-evidence",
+    "profile": "on-demand",
+    "blocking": "non-blocking",
+    "persistence": "draft-checkpoint"
+  },
+  "responseBefore": {
+    "$formspecResponse": "1.0",
+    "id": "rsp-evidence-0001",
+    "definitionUrl": "https://example.gov/forms/validation-mapping-base",
+    "definitionVersion": "1.0.0",
+    "status": "in-progress",
+    "data": { "applicantName": "Alex Quill", "phone": "+1 555 0100" },
+    "authored": "2026-05-22T10:00:00Z"
+  },
+  "expected": {
+    "statusAfter": "in-progress",
+    "persisted": true,
+    "validationReportProduced": true,
+    "validationReport": {
+      "$formspecValidationReport": "1.0",
+      "valid": false,
+      "results": [
+        {
+          "$formspecValidationResult": "1.0",
+          "path": "applicantName",
+          "severity": "error",
+          "constraintKind": "shape",
+          "shapeId": "duplicate-applicant-check",
+          "message": "Server-side duplicate-applicant check failed (demand-timing placeholder)."
+        }
+      ],
+      "counts": { "error": 1, "warning": 0, "info": 0 },
+      "timestamp": "2026-05-22T10:00:00Z"
+    },
+    "shapesFired": ["duplicate-applicant-check"],
+    "shapesDeferred": ["phone-format-warning", "applicantName-min-length", "submit-review-check"]
+  }
+}
