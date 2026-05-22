@@ -938,9 +938,29 @@ describe('ActionButton', () => {
             />
         );
 
-        const button = container.querySelector('button[type="submit"]');
+        const button = container.querySelector('button.formspec-submit');
         expect(button).toBeTruthy();
         expect(button!.textContent).toBe('Submit');
+    });
+
+    it('emits type="button" to mirror the webcomponent renderer (parity)', () => {
+        // §13.6 is silent on HTML type; both reference renderers MUST
+        // emit type="button" so that an ActionButton inside a parent
+        // <form> does not cascade to native submit on handler-throw.
+        // Webcomponent: packages/formspec-webcomponent/src/components/interactive.ts
+        // ("button.type = 'button'").
+        const onSubmit = () => {};
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={onSubmit}
+            />
+        );
+
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement | null;
+        expect(button).toBeTruthy();
+        expect(button!.type).toBe('button');
     });
 
     it('does not render an action button when onSubmit is absent', () => {
@@ -948,7 +968,7 @@ describe('ActionButton', () => {
             <FormspecForm definition={testDefinition} />
         );
 
-        const button = container.querySelector('button[type="submit"]');
+        const button = container.querySelector('button.formspec-submit');
         expect(button).toBeNull();
     });
 
@@ -964,7 +984,7 @@ describe('ActionButton', () => {
             />
         );
 
-        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         expect(button).toBeTruthy();
 
         flushSync(() => { button.click(); });
@@ -994,7 +1014,7 @@ describe('ActionButton', () => {
         expect(nameInput.getAttribute('aria-invalid')).not.toBe('true');
 
         flushSync(() => {
-            const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+            const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
             button.click();
         });
 
@@ -1013,7 +1033,7 @@ describe('ActionButton', () => {
             />
         );
 
-        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         expect(button).toBeNull();
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(onActionFinding).not.toHaveBeenCalled();
@@ -1049,7 +1069,7 @@ describe('ActionButton', () => {
             />
         );
 
-        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         flushSync(() => { button.click(); });
 
         expect(onHostEvent).toHaveBeenCalledWith(
@@ -1103,7 +1123,7 @@ describe('ActionButton', () => {
             />
         );
 
-        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         flushSync(() => { button.click(); });
 
         expect(dispatchActionEffect).toHaveBeenCalledWith(

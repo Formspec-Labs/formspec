@@ -55,7 +55,7 @@ describe('React Response Actions parity', () => {
             />,
         );
 
-        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         expect(button).toBeTruthy();
         expect(button.disabled).toBe(false);
 

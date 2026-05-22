@@ -59,7 +59,7 @@ describe('React ValidationReport parity', () => {
             />,
         );
 
-        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
         expect(button).toBeTruthy();
 
         flushSync(() => { button.click(); });
