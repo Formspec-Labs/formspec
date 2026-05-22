@@ -71,6 +71,77 @@
         "intent": "Closed persistence-policy vocabulary; preserves VE-05 by distinguishing draft checkpoints from completed-response transitions"
       }
     },
+    "ValidationTuplePredicate": {
+      "type": "object",
+      "properties": {
+        "profile": { "$ref": "#/$defs/ValidationProfile" },
+        "blocking": { "$ref": "#/$defs/BlockingPolicy" },
+        "persistence": { "$ref": "#/$defs/PersistencePolicy" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "persistence": { "const": "complete-response" } },
+            "required": ["persistence"]
+          },
+          "then": {
+            "properties": {
+              "profile": { "const": "on-submit" },
+              "blocking": { "const": "block-on-error" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "blocking": { "const": "block-on-error" } },
+            "required": ["blocking"]
+          },
+          "then": {
+            "properties": {
+              "persistence": { "const": "complete-response" }
+            }
+          }
+        },
+        {
+          "not": {
+            "properties": {
+              "profile": { "const": "off" },
+              "blocking": { "const": "block-on-error" }
+            },
+            "required": ["profile", "blocking"]
+          }
+        }
+      ],
+      "description": "Reusable §6.3 validity predicate for any object carrying profile, blocking, and persistence. This $def is intentionally open so composing schemas such as MappingEntry can add intent while reusing the predicate. Consumers that need exactly the tuple MUST $ref ValidationTuple, not this predicate helper.",
+      "examples": [
+        { "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Composable validation tuple predicate for schemas that add fields while retaining VM §6.3 constraints"
+      }
+    },
+    "ValidationTuple": {
+      "type": "object",
+      "required": ["profile", "blocking", "persistence"],
+      "additionalProperties": false,
+      "properties": {
+        "profile": { "$ref": "#/$defs/ValidationProfile" },
+        "blocking": { "$ref": "#/$defs/BlockingPolicy" },
+        "persistence": { "$ref": "#/$defs/PersistencePolicy" }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/ValidationTuplePredicate" }
+      ],
+      "description": "The exact (profile, blocking, persistence) triple defined by VM §3-§5 with the §6.3 validity predicate enforced as schema-level constraints. Response Actions ValidationOverride and other consumers that carry only the tuple MUST $ref this closed $def.",
+      "examples": [
+        { "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Closed validation tuple for Response Actions overrides and other exact tuple consumers"
+      }
+    },
     "MappingEntry": {
       "type": "object",
       "required": ["intent", "profile", "blocking", "persistence"],
@@ -91,36 +162,16 @@
         "persistence": { "$ref": "#/$defs/PersistencePolicy" }
       },
       "allOf": [
-        {
-          "if": {
-            "properties": { "persistence": { "const": "complete-response" } },
-            "required": ["persistence"]
-          },
-          "then": {
-            "properties": {
-              "profile": { "const": "on-submit" },
-              "blocking": { "const": "block-on-error" }
-            }
-          }
-        },
-        {
-          "not": {
-            "properties": {
-              "profile": { "const": "off" },
-              "blocking": { "const": "block-on-error" }
-            },
-            "required": ["profile", "blocking"]
-          }
-        }
+        { "$ref": "#/$defs/ValidationTuplePredicate" }
       ],
-      "description": "A single row of the master mapping table or a Response Actions override. Permitted (profile, blocking, persistence) tuples are governed by the §6.3 predicate; processors MUST reject overrides that violate it.",
+      "description": "A single row of the master mapping table. Permitted (profile, blocking, persistence) tuples are governed by the §6.3 predicate via ValidationTuplePredicate; processors MUST reject rows that violate it. Response Actions overrides use the exact ValidationTuple $def, not MappingEntry, because overrides do not carry intent.",
       "examples": [
         { "intent": "submit", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" },
         { "intent": "x-acme-bulk-import", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Single mapping row referenced by Response Actions schema (forthcoming, concept §10.2)"
+        "intent": "Single master-table row; composes ActionIntent with ValidationTuplePredicate. Exact override consumers use ValidationTuple."
       }
     },
     "MasterTable": {

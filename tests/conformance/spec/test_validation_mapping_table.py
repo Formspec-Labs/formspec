@@ -217,6 +217,7 @@ class TestPermittedTuplePredicate:
        permitted(profile, blocking, persistence) :=
            NOT (persistence == complete-response AND blocking != block-on-error)
          AND NOT (persistence == complete-response AND profile != on-submit)
+         AND NOT (blocking == block-on-error AND persistence != complete-response)
          AND NOT (profile == off AND blocking == block-on-error)
     """
 
@@ -225,6 +226,8 @@ class TestPermittedTuplePredicate:
         if persistence == "complete-response" and blocking != "block-on-error":
             return False
         if persistence == "complete-response" and profile != "on-submit":
+            return False
+        if blocking == "block-on-error" and persistence != "complete-response":
             return False
         if profile == "off" and blocking == "block-on-error":
             return False
@@ -241,6 +244,9 @@ class TestPermittedTuplePredicate:
         assert not self.permitted("live", "block-on-error", "complete-response")
         assert not self.permitted("on-demand", "block-on-error", "complete-response")
         assert not self.permitted("off", "block-on-error", "complete-response")
+        assert not self.permitted("on-submit", "block-on-error", "none")
+        assert not self.permitted("on-submit", "block-on-error", "draft-checkpoint")
+        assert not self.permitted("on-demand", "block-on-error", "draft-checkpoint")
 
 
 class TestValidationMappingFixtureShape:

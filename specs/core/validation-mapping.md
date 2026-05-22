@@ -51,7 +51,7 @@ Additional terms:
 - Validation Profile names (`live`, `on-submit`, `on-demand`, `off`) pin existing Core terms: global mode (`continuous` / `deferred` / `disabled`) plus per-shape timing filter (`continuous` / `submit` / `demand`). No new runtime behavior is introduced.
 - The mapping preserves Core §5.5 VE-05 ("saving data MUST never be blocked by validation"). Persistence Policy `draft-checkpoint` is non-blocking regardless of validation findings; only `complete-response` requires `valid = true`.
 - A `SubmitButton` without an `actionRef` MUST be treated as invoking the implementation's default submit action (Master Mapping Table row for `submit`): profile `on-submit`, blocking `block-on-error`, persistence `complete-response`. Component §5.19 `mode` ∈ {`continuous`, `submit`} maps to profile `live` / `on-submit` for emitted-report production; Response status `completed` still requires the `on-submit` completion gate.
-- This BLUF is governed by `schemas/validation-mapping.schema.json` (the four enums + `MappingEntry` + `MasterTable` const). The schema is the canonical structural contract; prose is normative.
+- This BLUF is governed by `schemas/validation-mapping.schema.json` (the four enums, `ValidationTuplePredicate`, closed `ValidationTuple`, `MappingEntry`, and `MasterTable` const). The schema is the canonical structural contract; prose is normative.
 <!-- bluf:end -->
 
 ---
@@ -251,6 +251,7 @@ Overrides MUST NOT:
 2. Pair `complete-response` persistence with any Blocking Policy other than `block-on-error` (would allow Responses with error-severity findings to reach `completed`, violating Core §5.4 invariant `valid = (counts.error === 0)`).
 3. Pair `complete-response` persistence with any Validation Profile other than `on-submit` (would allow completion from a partial report that did not include the complete completion-eligible shape set).
 4. Pair `off` profile with `block-on-error` policy (no ValidationReport is produced under `off`, so `block-on-error` has no input).
+5. Pair `block-on-error` with any Persistence Policy other than `complete-response` (blocked draft checkpoints or no-persistence reviews would violate VE-05 and create incoherent blocked terminal semantics).
 
 A processor that encounters any of these prohibited combinations MUST reject the document with a structural finding (`VMAP-INVALID-OVERRIDE`).
 
@@ -262,6 +263,7 @@ The set of permitted (profile, blocking, persistence) tuples is governed by §6.
 permitted(profile, blocking, persistence) :=
     NOT (persistence = complete-response AND blocking != block-on-error)
   AND NOT (persistence = complete-response AND profile != on-submit)
+  AND NOT (blocking = block-on-error AND persistence != complete-response)
   AND NOT (profile = off AND blocking = block-on-error)
 ```
 
@@ -388,7 +390,7 @@ A conformant **Mapping-Aware Processor** MUST:
 
 ### 9.3 `$defs` Reference
 
-<!-- schema-ref:start id=validation-mapping-defs schema=schemas/validation-mapping.schema.json pointers=#/$defs/ActionIntent,#/$defs/ValidationProfile,#/$defs/BlockingPolicy,#/$defs/PersistencePolicy,#/$defs/MappingEntry,#/$defs/MasterTable -->
+<!-- schema-ref:start id=validation-mapping-defs schema=schemas/validation-mapping.schema.json pointers=#/$defs/ActionIntent,#/$defs/ValidationProfile,#/$defs/BlockingPolicy,#/$defs/PersistencePolicy,#/$defs/ValidationTuplePredicate,#/$defs/ValidationTuple,#/$defs/MappingEntry,#/$defs/MasterTable -->
 <!-- generated:schema-ref id=validation-mapping-defs -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
@@ -396,6 +398,12 @@ A conformant **Mapping-Aware Processor** MUST:
 | `#/$defs/ValidationProfile` | `(self)` | <code>string</code> | — | enum: <code>"live"</code>, <code>"on-submit"</code>, <code>"on-demand"</code>, <code>"off"</code>; critical | Closed named profile pinning a (Core global mode, per-shape timing filter) pair under a single identifier. live: Core 'continuous' + continuous-timing shapes during normal revalidation. on-submit: Core 'continuous' + continuous and submit-timing shapes; demand shapes excluded. on-demand: Core 'deferred' + only demand-timing shapes fire. off: Core 'disabled' + no shapes fire (no ValidationReport produced). See specs/core/validation-mapping.md §3. |
 | `#/$defs/BlockingPolicy` | `(self)` | <code>string</code> | — | enum: <code>"non-blocking"</code>, <code>"block-on-error"</code>; critical | Closed two-value enum naming whether error-severity findings stop the surrounding intent. non-blocking: findings never stop the intent. block-on-error: intent halts before higher-persistence transitions when ValidationReport.valid is false (counts.error > 0). Preserves Core §5.5 VE-05 by blocking the transition, not the underlying data persistence. See specs/core/validation-mapping.md §4. |
 | `#/$defs/PersistencePolicy` | `(self)` | <code>string</code> | — | enum: <code>"none"</code>, <code>"draft-checkpoint"</code>, <code>"complete-response"</code>; critical | Closed three-value enum naming the Response lifecycle effect of the intent. none: no status change, no persistence. draft-checkpoint: persist current Response state, status remains 'in-progress' (permitted under any validation outcome, VE-05). complete-response: persist AND transition status to 'completed' (requires ValidationReport.valid === true, Core §5.4 invariant). See specs/core/validation-mapping.md §5. |
+| `#/$defs/ValidationTuplePredicate/properties/blocking` | `blocking` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/BlockingPolicy</code> | — |
+| `#/$defs/ValidationTuplePredicate/properties/persistence` | `persistence` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/PersistencePolicy</code> | — |
+| `#/$defs/ValidationTuplePredicate/properties/profile` | `profile` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ValidationProfile</code> | — |
+| `#/$defs/ValidationTuple/properties/blocking` | `blocking` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/BlockingPolicy</code> | — |
+| `#/$defs/ValidationTuple/properties/persistence` | `persistence` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/PersistencePolicy</code> | — |
+| `#/$defs/ValidationTuple/properties/profile` | `profile` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ValidationProfile</code> | — |
 | `#/$defs/MappingEntry/properties/blocking` | `blocking` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/BlockingPolicy</code> | — |
 | `#/$defs/MappingEntry/properties/intent` | `intent` | <code>composite</code> | yes | — | — |
 | `#/$defs/MappingEntry/properties/persistence` | `persistence` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/PersistencePolicy</code> | — |

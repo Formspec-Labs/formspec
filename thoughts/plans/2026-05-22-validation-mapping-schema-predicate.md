@@ -15,7 +15,7 @@ related:
 
 **Goal:** Extract the VM §6.3 validity predicate (currently embedded in `$defs/MappingEntry`) into a reusable `$defs/ValidationTuple` so any consumer (Response Actions today, future Mapping/Experience overrides tomorrow) can `$ref` it and inherit the predicate at JSON-Schema-validation time. **Also**: tighten the predicate to add a fourth clause that makes `block-on-error` exclusive to `complete-response` — closing the §6.3-vs-§5.2 gap where `block-on-error + draft-checkpoint` is currently permitted by the predicate but is incoherent in Response Actions' `blocked` terminal semantics. Closes Expert BLOCKER 2, Scout M6, and the §6.3 gap finding from the post-refactor architecture review.
 
-**Architecture:** Strictly additive — `MappingEntry` extends a new `$defs/ValidationTuple` that owns the predicate (`allOf` clauses) and the three enum slots (`profile`, `blocking`, `persistence`). `MappingEntry` adds the `intent` slot via JSON-Schema composition. Existing consumers of `MappingEntry` are unaffected: a tuple-conforming entry remains entry-conforming, and the existing `const` block on `MasterTable` continues to constrain the canonical table row-for-row. Response Actions `ValidationOverride` becomes a `$ref` to `ValidationTuple` (the override is exactly the tuple, minus `intent`).
+**Architecture:** Strictly additive — extract the VM §6.3 predicate into an open `$defs/ValidationTuplePredicate` helper and expose a closed `$defs/ValidationTuple` for exact tuple consumers. `MappingEntry` composes the open predicate helper while adding the `intent` slot; Response Actions `ValidationOverride` `$ref`s the closed `ValidationTuple` so the override is exactly the tuple, minus `intent`. Existing consumers of `MappingEntry` are unaffected: a tuple-conforming entry remains entry-conforming, and the existing `const` block on `MasterTable` continues to constrain the canonical table row-for-row.
 
 **Tech Stack:** JSON Schema 2020-12, pytest under `formspec/tests/conformance/`, `npm run docs:generate`.
 
@@ -38,7 +38,7 @@ related:
 | Path | Why |
 |---|---|
 | `specs/core/validation-mapping.md` | §6.2 add a fifth prohibition entry; §6.3 add the fourth predicate clause. The new clause: `block-on-error` MUST be paired with `complete-response` (the blocking gate halts all effects and prevents the persistence transition; allowing it for `draft-checkpoint` or `none` creates a semantic conflict with VM §5.2's guarantee that non-complete-response persistence is unaffected by blocking). |
-| `schemas/validation-mapping.schema.json` | Extract `ValidationTuple` $def carrying the three slots + `allOf` predicate (now with **four** clauses). `MappingEntry` composes via `allOf: [{$ref: ValidationTuple}, {intent-shape}]`. The new fourth clause is enforced as part of the `ValidationTuple.allOf` — every consumer `$ref`ing the tuple inherits it. |
+| `schemas/validation-mapping.schema.json` | Extract an open `ValidationTuplePredicate` $def carrying the **four** predicate clauses, then expose closed `ValidationTuple` as the exact three-slot tuple. `MappingEntry` composes with `ValidationTuplePredicate`; exact consumers `$ref` `ValidationTuple`. |
 | `tests/conformance/spec/test_validation_mapping_table.py` | Add a new pytest enumerating prohibited tuples (including the new clause's case) and asserting rejection via the schema validator. |
 | `tests/contracts/surface-coverage.json` | Add the new predicate test to the Validation Mapping row so the enforced row names the executable proof. |
 | `scripts/run-contract-surface-tests.mjs` | Run the Validation Mapping schema/table/predicate tests in the focused contract-surface gate. |
@@ -55,8 +55,8 @@ related:
 ## Self-Review Note
 
 - The predicate is currently inside `MappingEntry`. Refactoring **does not weaken** the constraint: `MappingEntry` will still satisfy the predicate via composition. Negative tests prove the refactor doesn't introduce regressions.
-- Response Actions `ValidationOverride` will be a one-line `$ref` to `ValidationTuple` after this lands. The override implicitly inherits the predicate; no override-side `allOf` duplication.
-- Cold-read test: a future agent reading the schema can find the predicate in one place (`ValidationTuple.allOf`), not duplicated across consumers.
+- Response Actions `ValidationOverride` will be a one-line `$ref` to closed `ValidationTuple` after this lands. The override implicitly inherits the predicate and rejects extra properties; no override-side `allOf` duplication.
+- Cold-read test: a future agent reading the schema can find the predicate in one place (`ValidationTuplePredicate.allOf`) and the exact consumer shape in `ValidationTuple`.
 - The schema-level enforcement is **additive** to the existing prose §6.2/§6.3 rules. Processors MAY catch violations earlier (at schema-validate time) instead of waiting until runtime evaluation. User value: fewer round-trips for malformed Response Actions documents.
 
 ---
@@ -115,8 +115,8 @@ Master-table rows unchanged; override space shrinks but stays coherent."
 """Predicate refactor tests for validation-mapping.schema.json.
 
 Pins:
-- $defs/ValidationTuple exists with the predicate.
-- MappingEntry composes ValidationTuple + intent.
+- $defs/ValidationTuple exists as the closed exact tuple and composes the reusable predicate.
+- MappingEntry composes ValidationTuplePredicate + intent.
 - All five master-table rows satisfy the predicate.
 - Each prohibited tuple is rejected.
 - ValidationOverride consumers (forthcoming response-actions schema)
@@ -167,21 +167,23 @@ def build_consumer_validator():
 
 def test_validation_tuple_def_exists():
     schema = load_schema()
+    assert "ValidationTuplePredicate" in schema["$defs"], "missing $defs/ValidationTuplePredicate"
     assert "ValidationTuple" in schema["$defs"], "missing $defs/ValidationTuple"
     vt = schema["$defs"]["ValidationTuple"]
     assert set(vt["properties"]) >= {"profile", "blocking", "persistence"}
-    assert "allOf" in vt, "predicate clauses MUST live in ValidationTuple.allOf"
+    assert vt.get("additionalProperties") is False, "exact tuple consumers MUST reject extra properties"
+    assert vt.get("allOf") == [{"$ref": "#/$defs/ValidationTuplePredicate"}]
 
 
-def test_mapping_entry_composes_validation_tuple():
+def test_mapping_entry_composes_validation_tuple_predicate():
     schema = load_schema()
     entry = schema["$defs"]["MappingEntry"]
-    # The entry MUST compose tuple via allOf or by inheriting via reference structure.
-    found_tuple_ref = False
+    # The entry MUST compose the open predicate helper so its own intent slot is accepted.
+    found_predicate_ref = False
     for clause in entry.get("allOf", []):
-        if clause.get("$ref", "").endswith("/ValidationTuple"):
-            found_tuple_ref = True
-    assert found_tuple_ref, "MappingEntry MUST $ref ValidationTuple"
+        if clause.get("$ref", "").endswith("/ValidationTuplePredicate"):
+            found_predicate_ref = True
+    assert found_predicate_ref, "MappingEntry MUST $ref ValidationTuplePredicate"
 
 
 def test_mapping_entry_still_rejects_prohibited_tuples():
@@ -197,7 +199,7 @@ def test_mapping_entry_still_rejects_prohibited_tuples():
 
 
 @pytest.mark.parametrize("tup", [
-    # The five master-table rows.
+    # Unique permitted tuples used by the master table plus the live/no-persistence tuple.
     {"profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint"},
     {"profile": "on-submit", "blocking": "non-blocking", "persistence": "none"},
     {"profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response"},
@@ -273,60 +275,42 @@ six prohibited rows, and downstream consumer \$ref inheritance."
 **Files:**
 - Modify: `schemas/validation-mapping.schema.json`
 
-- [ ] **Step 1: Extract `ValidationTuple`**
+- [ ] **Step 1: Extract `ValidationTuplePredicate` + closed `ValidationTuple`**
 
-Insert a new $def *before* `MappingEntry` (alphabetical-ish):
+Insert two new $defs *before* `MappingEntry`: an open predicate helper for composition and a closed exact tuple for downstream consumers such as Response Actions.
 
 ```json
-"ValidationTuple": {
+"ValidationTuplePredicate": {
   "type": "object",
-  "required": ["profile", "blocking", "persistence"],
   "properties": {
     "profile": { "$ref": "#/$defs/ValidationProfile" },
     "blocking": { "$ref": "#/$defs/BlockingPolicy" },
     "persistence": { "$ref": "#/$defs/PersistencePolicy" }
   },
   "allOf": [
-    {
-      "if": {
-        "properties": { "persistence": { "const": "complete-response" } },
-        "required": ["persistence"]
-      },
-      "then": {
-        "properties": {
-          "profile": { "const": "on-submit" },
-          "blocking": { "const": "block-on-error" }
-        }
-      }
-    },
-    {
-      "not": {
-        "properties": {
-          "profile": { "const": "off" },
-          "blocking": { "const": "block-on-error" }
-        },
-        "required": ["profile", "blocking"]
-      }
-    },
-    {
-      "if": {
-        "properties": { "blocking": { "const": "block-on-error" } },
-        "required": ["blocking"]
-      },
-      "then": {
-        "properties": {
-          "persistence": { "const": "complete-response" }
-        }
-      }
-    }
+    "... four VM §6.3 predicate clauses ..."
   ],
-  "description": "The (profile, blocking, persistence) triple defined by VM §3-§5 with the §6.3 validity predicate enforced as schema-level constraints. The allOf entries enforce the four §6.3 conjuncts — block-on-error and complete-response are co-required; complete-response requires on-submit profile; off profile excludes block-on-error. Consumers MUST $ref this $def whenever a tuple is carried.",
+  "description": "Reusable §6.3 validity predicate for any object carrying profile, blocking, and persistence. This $def is intentionally open so composing schemas such as MappingEntry can add intent while reusing the predicate."
+},
+"ValidationTuple": {
+  "type": "object",
+  "required": ["profile", "blocking", "persistence"],
+  "additionalProperties": false,
+  "properties": {
+    "profile": { "$ref": "#/$defs/ValidationProfile" },
+    "blocking": { "$ref": "#/$defs/BlockingPolicy" },
+    "persistence": { "$ref": "#/$defs/PersistencePolicy" }
+  },
+  "allOf": [
+    { "$ref": "#/$defs/ValidationTuplePredicate" }
+  ],
+  "description": "The exact (profile, blocking, persistence) triple defined by VM §3-§5 with the §6.3 validity predicate enforced as schema-level constraints. Response Actions ValidationOverride and other consumers that carry only the tuple MUST $ref this closed $def.",
   "examples": [
     { "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
   ],
   "x-lm": {
     "critical": true,
-    "intent": "Single carrier of the §6.3 validity predicate; every override consumer MUST $ref this $def"
+    "intent": "Closed validation tuple for Response Actions overrides and other exact tuple consumers"
   }
 }
 ```
@@ -356,25 +340,23 @@ Replace the existing `MappingEntry` $def with:
     "persistence": { "$ref": "#/$defs/PersistencePolicy" }
   },
   "allOf": [
-    { "$ref": "#/$defs/ValidationTuple" }
+    { "$ref": "#/$defs/ValidationTuplePredicate" }
   ],
-  "description": "A single row of the master mapping table. Composes ValidationTuple (predicate carrier) with the intent slot. Response Actions overrides use ValidationTuple directly (no intent slot at override time).",
+  "description": "A single row of the master mapping table. Composes ValidationTuplePredicate with the intent slot. Response Actions overrides use the closed ValidationTuple directly (no intent slot at override time).",
   "examples": [
     { "intent": "submit", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" },
     { "intent": "x-acme-bulk-import", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
   ],
   "x-lm": {
     "critical": true,
-    "intent": "Master-table row; composes ValidationTuple + intent. Predicate enforcement delegated to ValidationTuple."
+    "intent": "Master-table row; composes ValidationTuplePredicate + intent. Exact override consumers use ValidationTuple."
   }
 }
 ```
 
-The duplicate `properties` for `profile`/`blocking`/`persistence` is intentional: `additionalProperties: false` at `MappingEntry` requires every permitted property to be enumerated at the entry level. The `$ref: ValidationTuple` in `allOf` re-enforces the predicate; `ValidationTuple` itself OMITS `additionalProperties: false` so that composition with `MappingEntry` (which adds `intent`) does not reject the additional property at the `ValidationTuple` evaluation site.
+The duplicate `properties` for `profile`/`blocking`/`persistence` is intentional: `additionalProperties: false` at `MappingEntry` requires every permitted property to be enumerated at the entry level. `MappingEntry` composes the open `ValidationTuplePredicate` helper so `intent` is not rejected during `$ref` evaluation. Exact consumers such as Response Actions `ValidationOverride` `$ref` the closed `ValidationTuple`, which adds `additionalProperties: false` and composes the same predicate helper.
 
-JSON Schema 2020-12 evaluates `additionalProperties` relative to each subschema's own `properties` — it does NOT propagate across `allOf` siblings. If `ValidationTuple` carried `additionalProperties: false`, the `$ref` evaluation would see `intent` as an additional property and reject every master-table row. The closure constraint lives on `MappingEntry` instead (the composing schema); `ValidationTuple` is closed by virtue of its `required: [profile, blocking, persistence]` + the enum constraints on each — no extra properties can pass a downstream `additionalProperties: false` if a consumer adds one.
-
-Alternative composition idiom (also valid): drop `additionalProperties: false` from `MappingEntry` and add `unevaluatedProperties: false`. `unevaluatedProperties` DOES propagate across `allOf` and would let `ValidationTuple` keep its closure. Either pattern works; the recommendation here is the former because it minimizes 2020-12 keyword surface for existing schema readers.
+JSON Schema 2020-12 evaluates `additionalProperties` relative to each subschema's own `properties` — it does NOT propagate across `allOf` siblings. Splitting `ValidationTuplePredicate` (open, reusable constraints) from `ValidationTuple` (closed, exact tuple) keeps both consumers correct without relying on `unevaluatedProperties` propagation.
 
 - [ ] **Step 3: Schema well-formed**
 
@@ -508,7 +490,7 @@ This plan MUST land before the Response Actions plan's `ValidationOverride` sche
 
 ```json
 "ValidationOverride": {
-  "$ref": "validation-mapping.schema.json#/$defs/ValidationTuple",
+  "$ref": "https://formspec.org/schemas/validationMapping/1.0#/$defs/ValidationTuple",
   "description": "Per-action override of the master-table triple. Predicate enforced via $ref."
 }
 ```
