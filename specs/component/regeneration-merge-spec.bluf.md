@@ -1,0 +1,5 @@
+- Regeneration merge is a deterministic three-way merge from `old-generated`, `designer-edited`, and `new-generated` Component documents into a merged draft plus `MergeReport`.
+- Merge identity is based on `x-generation.anchors` from the Component Reference Fields spec, with no runtime rendering effect.
+- Designer-authored presentation changes are preserved when their source anchors still resolve; conflicts and orphaned nodes are reported instead of silently discarded.
+- Rename handling is explicit: only `$formspecAnchorMappings.anchorMappings[]` substitution can preserve presentation across changed anchors.
+- Conformance is fixture-driven: schema shape, merge algorithm behavior, and invariants are proven by the regeneration merge pytest suite.

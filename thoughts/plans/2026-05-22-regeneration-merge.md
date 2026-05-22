@@ -121,7 +121,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 
 ## Task 1: Scaffold spec files
 
-- [ ] Task 1A: Create `specs/component/regeneration-merge-spec.{md,bluf.md}` scaffold with frontmatter, status block, BLUF marker block, TOC, and §1–§11 headers (empty bodies).
+- [x] Task 1A: Create `specs/component/regeneration-merge-spec.{md,bluf.md}` scaffold with frontmatter, status block, BLUF marker block, TOC, and §1–§11 headers (empty bodies).
 
 ```bash
 # Spec file frontmatter (mirror component-reference-fields-spec.md)
@@ -142,7 +142,7 @@ depends_on:
 
 Reasoning for the split: the active Component Reference Fields plan documents this exact constraint in its Task 1 note. Every configured spec/schema pair must have an enforced contract row pointing at existing proof surfaces; scaffold-only registration fails the metadata gate.
 
-- [ ] Task 1D: Commit.
+- [x] Task 1D: Commit.
 
 ```bash
 git commit specs/component/regeneration-merge-spec.md specs/component/regeneration-merge-spec.bluf.md -m "spec(regeneration-merge): scaffold spec files (draft)"
