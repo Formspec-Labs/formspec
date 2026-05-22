@@ -601,7 +601,35 @@ Component schema failure.
 
 ## 7. Findings
 
-Task 8 drafts this section.
+All findings emitted by this specification use the existing
+`COMP-REFERENTIAL-INTEGRITY` finding code. The `kind` discriminator identifies
+which reference surface produced the finding.
+
+| `kind` | Condition | Default severity | Cardinality |
+|---|---|---:|---|
+| `actionRef` | Owned by Component §5.19; included here only by reference. | Component §5.19 owns | Component §5.19 owns |
+| `unitRef` | Component node carries `unitRef`, Experience is loaded, and no `experience.units[*].id` matches. | `error` | One finding per node |
+| `unitRef` | Component node carries `unitRef`, but no Experience document is loaded. | `info` | One finding per node |
+| `taskRefs` | Component node carries `taskRefs`, Experience is loaded, and one or more entries do not match `experience.tasks[*].id`. | `warning` | One finding per node listing all missing task ids |
+| `taskRefs` | Component node carries `taskRefs`, but no Experience document is loaded. | `info` | One finding per node |
+| `conceptRefs` | Host policy attempts concept resolution and one or more ConceptRefs do not resolve. | `info` | One finding per node listing all unresolved concept ids |
+| `x-generation.anchors` | Anchor checking is enabled and one or more anchors do not resolve. | `info` | One finding per node listing all unresolved anchors |
+
+Component §5.19 remains the authority for `actionRef` severity, inert-button
+behavior, and the no-fallback rule. A resolver that includes `actionRef`
+findings in the same report MUST NOT change or soften those semantics.
+
+Hosts MUST NOT downgrade any `error` finding defined by Component §5.19 or this
+specification. Hosts MAY upgrade lower severities under an explicit strict
+policy. For example, a host MAY upgrade unresolved `conceptRefs` to `warning` or
+`error` when a loaded Registry is required for the deployment. Host upgrades MUST
+be deterministic and report-visible; they MUST NOT silently change runtime
+behavior.
+
+Findings are authoring and provenance diagnostics. They MUST NOT mutate source
+documents, rewrite references, invoke actions, trigger regeneration, alter
+rendering, or change Response status. Runtime effects remain owned by their
+source specifications.
 
 ## 8. Conformance
 

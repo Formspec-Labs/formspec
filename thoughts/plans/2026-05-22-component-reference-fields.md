@@ -142,6 +142,8 @@ Define `ResolutionContext = (Component, Definition?, Experience?, ResponseAction
 
 ## Task 8: §7 Findings — severity-by-kind table
 
+- [x] Draft §7 findings severity-by-kind table and host-upgrade closure.
+
 | `kind` | Condition | Severity |
 |---|---|---|
 | `actionRef` | (from Plan E §5.19.4.2 — not redefined here) | (Plan E owns) |
