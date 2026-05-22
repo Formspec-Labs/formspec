@@ -98,7 +98,11 @@ cd formspec && grep -q "COMP-REFERENTIAL-INTEGRITY" specs/component/component-sp
 
 ## Task 1: Scaffold spec files
 
-Create `specs/component/component-reference-fields-spec.{md,bluf.md}`. Register in `spec-artifacts.config.json`. Add surface-coverage row in `tests/contracts/surface-coverage.json`. Commit per Plan E's Task 3 / Task 1 patterns.
+- [x] Task 1A: Create `specs/component/component-reference-fields-spec.{md,bluf.md}` scaffold.
+- [ ] Task 1B: Register in `spec-artifacts.config.json` with generated `.llm.md` once proof-surface files exist.
+- [ ] Task 1C: Add `tests/contracts/surface-coverage.json` row in the same proof-surface slice as Task 1B.
+
+Architecture review found that Task 1B and Task 1C cannot be scaffold-only in the current repo gates: every configured spec/schema pair must have a local enforced contract row, and every enforced row must point at existing proof surfaces. Deferring both avoids either a failing metadata gate or a false proof claim.
 
 ## Task 2: Spec prose — §1 Introduction + §1.5 promotion resolution
 
@@ -239,3 +243,4 @@ Task 21:       promotion-gate + architecture review
 ## Deviations
 
 - 2026-05-22: Before Task 1, external review found Response Actions validation-tuple hardening gaps in the dirty precondition slice. Remediated those HIGH/WARNING findings first so the Response Actions precondition remains audit-ready before component reference fields land; also fixed the related dist-backed warning-test isolation and archived thought-plan links needed by the gate.
+- 2026-05-22: Architecture review blocked scaffold-only `spec-artifacts.config.json` and `surface-coverage.json` edits. Repo gates require every configured spec/schema pair to have an enforced, path-backed contract row; adding either now would fail metadata checks or overclaim proof. Task 1 was split into Task 1A now, with Task 1B/1C deferred to the proof-surface slice.

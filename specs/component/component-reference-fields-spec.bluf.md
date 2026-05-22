@@ -1,0 +1,5 @@
+- Component reference fields are additive metadata on Component nodes: `unitRef`, `taskRefs`, `conceptRefs`, and `x-generation` do not change rendering, binding, validation, or Response semantics.
+- `unitRef` and `taskRefs` resolve against the loaded Experience document; unresolved `unitRef` is authoring-critical when Experience is present, while unresolved `taskRefs` remain advisory warnings.
+- `conceptRefs` reuse the Experience `ConceptRef` shape and are host-policy metadata; default processors report unresolved concepts at `info` severity unless strict mode upgrades them.
+- `x-generation` records provenance and anchor metadata only; renderers MUST ignore it, and regeneration merge behavior is explicitly out of scope for this spec.
+- Cross-document resolution is deterministic, no-mutation, and one-directional: Component may read Experience, Response Actions, and Registry/Ontology context, but it MUST NOT write into those documents.
