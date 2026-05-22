@@ -1065,6 +1065,17 @@ even if one exists (Pinning Rule VP-01). Once set, this value MUST NOT
 change for the lifetime of the Response.</td>
 </tr>
 <tr>
+<td><code>#/properties/displayedIssuer</code></td>
+<td><code>displayedIssuer</code></td>
+<td><code>object</code></td>
+<td>no</td>
+<td>critical</td>
+<td>Submit-time pin of the resolved Issuer (post-cascade). Inside the
+signed-payload preimage by the existing authoredSignatures-only omission
+rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer
+pinning is a v1 non-goal.</td>
+</tr>
+<tr>
 <td><code>#/properties/extensions</code></td>
 <td><code>extensions</code></td>
 <td><code>object</code></td>
@@ -1443,7 +1454,7 @@ tag and the canonical payload bytes.</li>
 rule</strong> — strip the <code>authoredSignatures</code> array before
 canonicalization; all other top-level fields (including <code>id</code>,
 <code>definitionUrl</code>, <code>definitionVersion</code>,
-<code>data</code>, <code>authored</code>,
+<code>data</code>, <code>authored</code>, <code>displayedIssuer</code>,
 <code>validationResults</code>) are part of the canonical payload.</li>
 <li><strong>Canonicalization identifier</strong> — currently
 <code>formspec-response-signing-v1</code>; this names the JCS-based
