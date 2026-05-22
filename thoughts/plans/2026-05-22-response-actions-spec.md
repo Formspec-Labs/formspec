@@ -149,7 +149,7 @@ The five coupled plans listed at the top of this document MUST be merged before 
 ```bash
 cd formspec && grep -q "action.invoked" schemas/respondent-ledger-event.schema.json && echo "Plan A: OK"
 cd ../fel-core && grep -q "Host-Supplied Context Bindings" specs/fel/fel-grammar.md && echo "Plan B: OK"
-cd ../formspec && grep -q "ValidationProfileResolver" packages/formspec-engine/src/validation/profile-resolver.ts && echo "Plan C: OK"
+cd ../formspec && grep -q "getValidationReport(options.*profile" packages/formspec-engine/src/engine/FormEngine.ts && echo "Plan C: OK"
 cd formspec && grep -q "ValidationTuple" schemas/validation-mapping.schema.json && echo "Plan D: OK"
 cd ../formspec && \
   grep -q '"ActionButton"' schemas/component.schema.json && \
@@ -552,16 +552,16 @@ git commit -m "feat(spec): draft response-actions §2-§3 (document structure, a
 
 ### 4.2 FEL Host-Binding Catalog (cites FEL §6.3)
 
-Per [FEL §6.3](../../../fel-core/specs/fel/fel-grammar.md#63-host-supplied-context-bindings), this spec declares the following closed catalog of `@name` context bindings for precondition expressions. A conformant FEL evaluator MUST reject any `@name` reference outside this catalog (combined with the grammar-reserved context names `@current`, `@index`, `@count`, `@instance`, `@source`, `@target` — note: `@source` and `@target` are Mapping-DSL grammar-built-ins per FEL §6.1, NOT host-supplied bindings).
+Per [FEL §6.3](../../../fel-core/specs/fel/fel-grammar.md#63-host-supplied-context-bindings), this spec declares the following closed catalog of `@name` context bindings for precondition expressions. A conformant FEL evaluator MUST reject any `@name` reference outside this catalog (combined with the grammar-reserved context names `@current`, `@index`, `@count`, `@instance`). `@source` and `@target` are Mapping-owned context bindings and are NOT available to Response Actions unless this catalog explicitly registers them.
 
-| name | kind | type | purity | evaluationTiming |
-|---|---|---|---|---|
-| `response` | object | Current Response (immutable snapshot taken at §7.2 invocation time, before any effect). | pure | eager |
-| `definition` | object | Pinned Definition referenced by `targetDefinition`. | pure | eager |
-| `action` | object | The Action being invoked: `{ id, intent, actor }`. | pure | eager |
-| `now` | function | `() -> datetime` returning implementation's current time. | impure | lazy |
-| `validation` | object | `{ lastReport: ValidationReport \| null }` — the most recent ValidationReport state at invocation, regardless of profile. | pure | eager |
-| `invocation` | object | `{ id: string, attempt: integer }`. `id` is stable across replays of the same invocation; `attempt` is 1 on first attempt, 2 on `retry-once`. | pure | eager |
+| name | kind | type | purity | evaluationTiming | scope |
+|---|---|---|---|---|---|
+| `response` | object | Current Response (immutable snapshot taken at §7.2 invocation time, before any effect). | pure | eager | expression |
+| `definition` | object | Pinned Definition referenced by `targetDefinition`. | pure | eager | expression |
+| `action` | object | The Action being invoked: `{ id, intent, actor }`. | pure | eager | expression |
+| `now` | function | `() -> datetime` returning implementation's current time. | impure | lazy | expression |
+| `validation` | object | `{ lastReport: ValidationReport \| null }` — the most recent ValidationReport state at invocation, regardless of profile. | pure | eager | expression |
+| `invocation` | object | `{ id: string, attempt: integer }`. `id` is stable across replays of the same invocation; `attempt` is 1 on first attempt, 2 on `retry-once`. | pure | eager | expression |
 
 Example precondition expressions: `not isEmpty(@response.applicantName)`; `@validation.lastReport != null and @validation.lastReport.valid`; `@now() > @response.openedAt`; `@action.intent = 'submit' and @invocation.attempt = 1`.
 
@@ -639,7 +639,7 @@ Schema-level enforcement: `ValidationOverride` `$ref`s `https://formspec.org/sch
 
 ### 5.3 Validation Execution
 
-The validation pass MUST be a single ValidationReport produced by the Core engine using the resolved profile. Reference implementations use `FormEngine.getValidationReport({ profile })` (per [the FormEngine ValidationProfile Adapter plan](2026-05-22-formengine-validation-profile-adapter.md)), which accepts the VM vocabulary directly via the `ValidationProfileResolver` DI port. The report becomes input to:
+The validation pass MUST be a single ValidationReport produced by the Core engine using the resolved profile. Reference implementations use `FormEngine.getValidationReport({ profile })` (per [the FormEngine ValidationProfile Adapter plan](2026-05-22-formengine-validation-profile-adapter.md)), which accepts the closed VM `ValidationProfile` vocabulary directly. The report becomes input to:
 
 1. The blocking gate (§7.3).
 2. Any subsequent effect that consumes the report (e.g., `handoffAssembly` MUST include the report by reference).
@@ -737,12 +737,12 @@ A processor receiving an effect with an idempotency key it has previously execut
 
 For FEL expressions OTHER than `idempotencyKey` (`payloadRef`, `detailRef`), the catalog at evaluation time extends the §4.2 catalog with:
 
-| name | kind | type | purity | evaluationTiming |
-|---|---|---|---|---|
-| `effects` | object | Array-indexed `{ [i]: { type, status, outcomeRef } }` of prior effect outcomes in this invocation. Index `i` is the zero-based declared position. | pure | lazy |
-| `invocation.attempt` | (extends `@invocation`) | Integer ≥ 1 | pure | eager |
+| name | kind | type | purity | evaluationTiming | scope |
+|---|---|---|---|---|---|
+| `effects` | object | Array-indexed `{ [i]: { type, status, outcomeRef } }` of prior effect outcomes in this invocation. FEL indices are one-based; `@effects[1]` is the first declared effect. | pure | lazy | expression |
+| `invocation.attempt` | (extends `@invocation`) | Integer ≥ 1 | pure | eager | expression |
 
-`payloadRef` example: `{ reportRef: @validation.lastReport, mappingOutcomeRef: @effects[0].outcomeRef }`. Accessing `@effects[i]` where `i` ≥ the current effect's index is an evaluation error (no forward references).
+`payloadRef` example: `{ reportRef: @validation.lastReport, mappingOutcomeRef: @effects[1].outcomeRef }`. Accessing `@effects[i]` where `i` is greater than or equal to the current effect's one-based position is an evaluation error (no forward references).
 
 ### 6.6 Effect Outcomes
 
@@ -933,10 +933,10 @@ Example named submit Action bound by an `ActionButton`:
   "intent": "submit",
   "effects": [
     { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "@response.applicationId & '/v' & @response.version" },
-    { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "payloadRef": "{ reportRef: @validation.lastReport, mappingOutcomeRef: @effects[0].outcomeRef }", "idempotencyKey": "@invocation.id & '/submit-attempted'" },
+    { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "payloadRef": "{ reportRef: @validation.lastReport, mappingOutcomeRef: @effects[1].outcomeRef }", "idempotencyKey": "@invocation.id & '/submit-attempted'" },
     { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" },
-    { "type": "ledgerAppend", "eventKind": "response.completed", "payloadRef": "{ handoffOutcomeRef: @effects[2].outcomeRef }", "idempotencyKey": "@invocation.id & '/completed'" },
-    { "type": "hostEvent", "eventName": "formspec-submit", "detailRef": "{ reportRef: @validation.lastReport, handoffOutcomeRef: @effects[2].outcomeRef }" }
+    { "type": "ledgerAppend", "eventKind": "response.completed", "payloadRef": "{ handoffOutcomeRef: @effects[3].outcomeRef }", "idempotencyKey": "@invocation.id & '/completed'" },
+    { "type": "hostEvent", "eventName": "formspec-submit", "detailRef": "{ reportRef: @validation.lastReport, handoffOutcomeRef: @effects[3].outcomeRef }" }
   ]
 }
 ```
@@ -2123,7 +2123,7 @@ Before declaring "draft landed," manually walk every concept §9 promotion gate.
 - [ ] **Gate: Response Actions runtime (§9 row 2)**
   - [ ] Invocation state — encoded in §7. Four terminals enumerated (`completed`, `failed`, `deferred`, `blocked` with `cause` discriminator).
   - [ ] Preconditions — encoded in §4 with FEL host-binding catalog declared per FEL §6.3.
-  - [ ] Validation profile mapping — encoded in §5 citing VM; the resolved profile flows through the `ValidationProfileResolver` port to the engine (no spec dependency on engine internals).
+  - [ ] Validation profile mapping — encoded in §5 citing VM; the resolved profile flows through `getValidationReport({ profile })` to the engine (no spec dependency on engine internals).
   - [ ] Blocking policy — encoded in §5 citing VM.
   - [ ] Persistence policy — encoded in §5 citing VM §5.2.
   - [ ] Effect ordering — encoded in §6.3.
@@ -2231,7 +2231,7 @@ These will tempt you. Resist:
 - **Reaching into Core engine internals from the spec.** §5.3 cites the `getValidationReport({ profile })` port; the spec does NOT describe trigger names, internal `_produceReport`, or Rust-side eval details. Engine internals are the engine's concern; the spec depends only on the port shape.
 - **Reaching into Trellis internals from the spec.** §6.6's `sha256:<lower-hex>` handle shape is content-addressable in the abstract; Trellis envelope binding is one consumer pattern, not a dependency. A non-Trellis consumer reads the same handle the same way.
 - **Defining a compensation framework when the no-rollback rule feels uncomfortable.** Concept §6.4 forbids fictional rollback; compensation is a future concern with no current consumer.
-- **Inventing parallel validation vocabulary because "live" vs "continuous" feels ambiguous.** VM owns the profile names; the engine owns the trigger names. The `ValidationProfileResolver` port is the bridge; do not collapse the vocabularies.
+- **Inventing parallel validation vocabulary because "live" vs "continuous" feels ambiguous.** VM owns the profile names; the engine owns the trigger names. `getValidationReport({ profile })` is the public bridge; do not collapse the vocabularies.
 - **Allowing `Action.effects` to be empty.** Schema requires `minItems: 1`. An Action with no effects has no observable consequence and is meaningless; if the use case is "validation pass only," set `intent: review` and add a single `hostEvent` for the UI signal.
 - **Including `@effects[*]` in `idempotencyKey` FEL expressions.** Forbidden per §6.5: keys MUST be deterministic from the invocation snapshot, not from prior outcomes. The FEL §6.3 evaluator rejects the unbound `@effects` reference at idempotency-key evaluation time.
 - **Specifying a replay-token wire contract.** §9 is explicit out-of-scope; processor-defined.
