@@ -66,20 +66,20 @@ Implementer MUST verify all five are merged on the parent before executing Task 
 | `specs/response-actions/response-actions-spec.md` | Canonical prose. W3C-style, BCP-14 normative language. |
 | `specs/response-actions/response-actions-spec.bluf.md` | BLUF source (3–5 falsifiable bullets). |
 | `specs/response-actions/response-actions-spec.llm.md` | Generated LLM artifact. **Never hand-edited.** |
-| `schemas/response-actions.schema.json` | `Action`, `Precondition`, `EffectRequest` (closed `type` taxonomy), `IdempotencyKey`, `ValidationOverride`, `DefaultSubmitAction` shapes. `$id`: `https://formspec.org/schemas/responseActions/1.0`. |
-| `tests/conformance/schemas/test_response_actions_schema.py` | Schema-shape pytest. Pins `$defs`, enum closure on `EffectRequest.type`, `Action.intent` cross-ref to validation-mapping, idempotency-key requirement on durable effect types. |
+| `schemas/response-actions.schema.json` | `Action`, `Precondition`, `EffectRequest` (closed `type` taxonomy), `IdempotencyKey`, and `ValidationOverride` shapes. `$id`: `https://formspec.org/schemas/responseActions/1.0`. |
+| `tests/conformance/schemas/test_response_actions_schema.py` | Schema-shape pytest. Pins `$defs`, enum closure on `EffectRequest.type`, `Action.intent` cross-ref to validation-mapping, `x-` intent explicit validation tuple requirement, and idempotency-key requirement on durable effect types. |
 | `tests/conformance/spec/test_response_actions_runtime.py` | Runtime contract pytest: fixture audits over the required §6.5 + §6.9 + §6.4 set. Validates each fixture's Action document against the live schema; runs the reference invocation harness (added by this plan); asserts observed (state, effect-trace, persistence delta, validation-report, ledger-event-request, handoff-assembled) tuple matches the fixture's `expected` block. |
 | `tests/conformance/fixtures/response-actions/definition-base.json` | Shared Definition. One required item; one warning shape (continuous timing); one error shape (continuous timing); one submit-timing error shape; one demand-timing error shape. **Identical to the validation-mapping fixture** to permit cross-suite reuse and pin behavioral parity. |
-| `tests/conformance/fixtures/response-actions/intent-save-draft.json` | Invalid Response, intent `save-draft`. Action with effects `[ledgerAppend(draft.saved), ledgerAppend(action.invoked)]` — two separate `ledgerAppend` effects with different eventKinds. Expects: terminal `completed`, persistence `draft-checkpoint`, status remains `in-progress`, no ValidationReport produced (profile `off`), ledger-event-requests issued with the named kinds. |
+| `tests/conformance/fixtures/response-actions/intent-save-draft.json` | Invalid Response, intent `save-draft`. Action with effects `[ledgerAppend(draft.saved)]`. Expects: terminal `completed`, persistence `draft-checkpoint`, status remains `in-progress`, no ValidationReport produced (profile `off`), ledger-event-request issued for `draft.saved`. Processor lifecycle audit records such as `action.invoked` are outside the declared effect chain and are not pinned by this fixture. |
 | `tests/conformance/fixtures/response-actions/intent-submit-blocked.json` | Same invalid Response, intent `submit`, action with effects `[mappingExecution, handoffAssembly, ledgerAppend(response.submit-attempted), hostEvent]`. Expects: terminal `blocked` with `cause: "validation"`, validation halts at the blocking gate (VM §4.1), **zero effects invoked**, status remains `in-progress`, persistence `none` (Response data unchanged; existing draft state untouched). |
 | `tests/conformance/fixtures/response-actions/intent-warning-only-submit.json` | Response failing only the warning shape, intent `submit`, same effect chain as above. Expects: terminal `completed`, ValidationReport `valid: true` with `counts.warning >= 1`, all four effects invoked in declared order, status `completed`. |
 | `tests/conformance/fixtures/response-actions/intent-request-evidence-demand.json` | Valid field data, intent `request-evidence`, action with effects `[evidenceRequest, ledgerAppend(draft.saved)]`. Expects: profile `on-demand` (only demand-timing shape fires), the demand shape fails, blocking `non-blocking` (per VM master row), effects invoked, terminal `completed`. |
 | `tests/conformance/fixtures/response-actions/intent-disabled-no-validation.json` | Same invalid Response, intent `autosave`, action with effects `[ledgerAppend(draft.saved)]`. Expects: profile `off`, no ValidationReport produced, ledgerAppend invoked, persistence `draft-checkpoint`, status `in-progress`. |
 | `tests/conformance/fixtures/response-actions/effect-ordering.json` | Submit-intent action with effects in non-trivial order: `[mappingExecution, ledgerAppend(response.submit-attempted), handoffAssembly, ledgerAppend(response.completed), hostEvent(formspec-submit)]`. Expects effect trace recorded in exactly that order; `hostEvent` is transient (non-durable) and carries no idempotency key. |
 | `tests/conformance/fixtures/response-actions/effect-failure-no-rollback.json` | Submit-intent action where `handoffAssembly` fails. Expects: terminal `failed`, prior `mappingExecution` and `ledgerAppend(response.submit-attempted)` remain in the effect trace (NOT rolled back; concept §6.4), trailing effects `not-invoked`, `hostEvent` NOT emitted, UI must not report success. Per Ledger §8.5, an `action.failed` event MAY be emitted by the processor at its discretion — the fixture does NOT pin that observable because it is processor-policy, not protocol behavior. |
-| `tests/conformance/fixtures/response-actions/effect-deferred-evidence.json` | Submit-intent action whose `evidenceRequest` returns deferred. Expects: terminal `deferred`, partial effect trace recorded, `ledgerAppend(action.deferred)` recorded, replay key issued, Response status remains `in-progress`, no `handoffAssembly` invoked yet. |
-| `tests/conformance/fixtures/response-actions/effect-idempotent-replay.json` | Submit-intent action invoked twice with identical `invocation.id`. Expects: second invocation observes prior effect outcomes via the replay contract; no duplicate `ledgerAppend`, no duplicate `handoffAssembly`; observable terminal on the second invocation is `completed` with all effects marked `replayed`. Fixture's `responseActions` MUST declare a `ledgerAppend(action.replayed)` effect in the Action's effect chain — Ledger events are caller-declared, never harness-implicit (Ledger §8.5). |
-| `tests/conformance/fixtures/response-actions/precondition-fails-blocked.json` | Action whose `precondition` (FEL expression) evaluates `false` with `severity: block`. Expects: terminal `blocked` with `cause: "precondition"`, **no validation pass run**, **zero effects invoked**, `ledgerAppend(action.failed)` MAY be emitted at processor discretion. |
+| `tests/conformance/fixtures/response-actions/effect-deferred-evidence.json` | Submit-intent action whose `evidenceRequest` returns deferred. Expects: terminal `deferred`, partial effect trace recorded, replay key issued, Response status remains `in-progress`, no `handoffAssembly` invoked yet. Optional `action.deferred` lifecycle audit records are processor policy and are not pinned by this fixture. |
+| `tests/conformance/fixtures/response-actions/effect-idempotent-replay.json` | Submit-intent action invoked twice with identical `invocation.id`. Expects: second invocation observes prior effect outcomes via the replay contract; no duplicate `ledgerAppend`, no duplicate `handoffAssembly`; observable terminal on the second invocation is `completed` with all effects marked `replayed`. Optional `action.replayed` lifecycle audit records are processor policy and are not pinned by this fixture. |
+| `tests/conformance/fixtures/response-actions/precondition-fails-blocked.json` | Action whose `precondition` (FEL expression) evaluates `false` with `severity: block`. Expects: terminal `blocked` with `cause: "precondition"`, **no validation pass run**, **zero effects invoked**. Optional `action.failed` lifecycle audit records are processor policy and are not pinned by this fixture. |
 | `tests/conformance/fixtures/response-actions/cross-spec-intake-handoff-seam.json` | The required §6.9 cross-spec fixture. Submit-intent action with effects `[mappingExecution, ledgerAppend(response.submit-attempted), handoffAssembly, ledgerAppend(response.completed)]`. Expects: a Response snapshot, a ValidationReport snapshot, a Respondent Ledger boundary event (or head reference), an Intake Handoff document (content-addressable outcome handle), AND a workflow-host outcome of one of `accepted` / `rejected` / `deferred` recorded *outside* this spec's responsibility. **MUST NOT include a Formspec-authored `case.created` event** (per concept §6.9). |
 | `tests/conformance/fixtures/response-actions/master-action-shapes.json` | Canonical Action document covering every `Action.intent` value (`save-draft`, `autosave`, `review`, `submit`, `request-evidence`) and every `EffectRequest.type` branch (`mappingExecution`, `ledgerAppend`, `handoffAssembly`, `evidenceRequest`, `hostEvent`). Single source of truth for fixture-cross-reference. |
 
@@ -87,8 +87,8 @@ Implementer MUST verify all five are merged on the parent before executing Task 
 
 | Path | Why |
 |---|---|
-| `specs/core/validation-mapping.md` | Append a §1.2 forward-link from "Future Response Actions documents MUST cite this table" to the now-landed Response Actions spec. **One-paragraph append.** Existing §6 master table unchanged. (VM §7 is deleted by Plan E; not by this plan.) |
-| `specs/experience/experience-spec.md` | Update EXP §6.3 `ActionRef` to drop the "forthcoming companion spec" carve-out. Resolution contract is added by Plan E (mandatory resolution against Response Actions document; no free-string fallback); this plan's only EXP edit is the front-matter reference list addition. |
+| `specs/core/validation-mapping.md` | Append a §1.2 forward-link from "Future Response Actions documents MUST cite this table" to the now-landed Response Actions spec. Replace stale §6.1 prose that allowed partial-axis overrides with the full-tuple replacement rule carried by `ValidationTuple`. Existing §6 master table unchanged. (VM §7 is deleted by Plan E; not by this plan.) |
+| `specs/experience/experience-spec.md` | Update EXP §6.3 and nearby wording to remove stale pre-landing language now that Plan E made `ActionRef` resolution mandatory against a Response Actions document. Also add the front-matter reference list entry. |
 | `specs/component/component-spec.md` | No edit by this plan. Component §5.19 is rewritten as `ActionButton` by Plan E (precondition); this plan consumes that result and does NOT add further cross-references — `ActionButton` already documents its `actionRef` resolution against this spec. |
 | `thoughts/specs/2026-05-20-formspec-semantic-layers.md` | Mark §10.2 landed (Landed: link); mark §11.1 resolved in this spec (with link to §1.5 of new spec). **Two-line edits.** |
 | `scripts/spec-artifacts.config.json` | Add the Response Actions spec/schema/BLUF/LLM row so `npm run docs:generate` materializes `response-actions-spec.llm.md`. |
@@ -274,12 +274,12 @@ Add this entry to the `specs` array (preserve array order: insert immediately af
   "behaviorEssentials": [
     "Invocation MUST follow the §7 state machine: preconditions → validation per VM profile → blocking gate → ordered effect execution → terminal completed | failed | deferred | blocked (with blockedCause discriminator per §7.1). Effects MUST execute in declared order.",
     "Durable effect types (mappingExecution, ledgerAppend, handoffAssembly, evidenceRequest) MUST carry an idempotencyKey evaluated at invocation; replay with identical keys MUST observe prior effect outcomes without duplicating side effects.",
-    "Blocking validation failure stops effect execution before any effect is invoked. UI MUST NOT report success when a declared effect failed; the failed-effect case MAY append an `action.failed` ledger event (caller-declared via a `ledgerAppend` effect per Ledger §8.5; processor-discretionary) and does NOT roll back prior effects (concept §6.4).",
+    "Blocking validation failure stops effect execution before any effect is invoked. UI MUST NOT report success when a declared effect failed; the failed-effect case MAY record an `action.failed` processor lifecycle audit event per Ledger §8.5 and does NOT roll back prior effects (concept §6.4).",
     "Action invocation is bound by ActionButton.actionRef (Component §5.19, owned by Plan E). The Action's resolved (profile, blocking, persistence) triple comes from VM §6 master row for the Action's intent, with optional ValidationOverride per VM §6.3."
   ],
   "conformanceEssentials": [
     "A conforming Response Actions document must include $formspecResponseActions=1.0, version, targetDefinition, and at least one action.",
-    "Action.intent values are drawn from the closed VM ActionIntent enum OR an x-prefixed publisher extension per VM §6.1. Action.effects[*].type MUST be drawn from the closed EffectRequest taxonomy. Action.onFailure and Action.onDeferred MUST be drawn from closed enums.",
+    "Action.intent values are drawn from the closed VM ActionIntent enum OR an x-prefixed publisher extension per VM §6.1; every x-prefixed intent MUST carry a full validation tuple. Action.effects[*].type MUST be drawn from the closed EffectRequest taxonomy. Action.onFailure and Action.onDeferred MUST be drawn from closed enums.",
     "Processors MUST reject Response Actions documents that author Respondent Ledger event semantics, inline Mapping body rules, or include a case.created event."
   ]
 }
@@ -296,12 +296,23 @@ Add an entry to `tests/contracts/surface-coverage.json` under `contracts.respons
   "schema": "schemas/response-actions.schema.json",
   "conformance": [
     "tests/conformance/schemas/test_response_actions_schema.py",
-    "tests/conformance/spec/test_response_actions_runtime.py",
+    "tests/conformance/spec/test_response_actions_runtime.py"
   ],
   "crates": [],
-  "packages": {},
+  "packages": {
+    "react": [
+      "packages/formspec-react/src/context.tsx",
+      "packages/formspec-react/src/node-renderer.tsx",
+      "packages/formspec-react/tests/renderer.test.tsx"
+    ],
+    "webcomponent": [
+      "packages/formspec-webcomponent/src/action-invocation.ts",
+      "packages/formspec-webcomponent/src/components/interactive.ts",
+      "packages/formspec-webcomponent/tests/components/interactive-plugins.test.ts"
+    ]
+  },
   "checks": [
-    "Schema shape pinned (closed EffectRequest taxonomy, idempotency on durable effects, ValidationOverride $refs ValidationTuple)",
+    "Schema shape pinned (closed EffectRequest taxonomy, idempotency on durable effects, ValidationOverride full tuple $refs ValidationTuple)",
     "Runtime contract pinned via reference §7 state-machine harness (terminals, ordering, idempotent replay, no-rollback, blocking gate)",
     "ActionButton.actionRef resolves against actions[*].id; unresolved refs produce inert widget + informative finding (Component §5.19 + Plan E)",
     "Cross-spec Intake Handoff seam produces the required tuple without a Formspec-authored case.created event"
@@ -309,7 +320,7 @@ Add an entry to `tests/contracts/surface-coverage.json` under `contracts.respons
 }
 ```
 
-`crates` is `[]` because this spec ships no Rust crate (the §5 validation pipeline runs through the existing engine via the FormEngine ValidationProfile adapter port; no new crate). `packages` is `{}` for the same reason; the engine, webcomponent, etc., do not gain Response-Actions-specific code yet — that lands when a renderer consumes Actions (concept §10.4 and beyond).
+`crates` is `[]` because this spec ships no Rust crate (the §5 validation pipeline runs through the existing engine via the FormEngine ValidationProfile adapter port; no new crate). The `packages` rows reflect the current Plan E ActionButton resolver surfaces already present in React and webcomponent. This plan does not add a full Response Actions runtime processor to those packages; it records the existing package boundary so contract coverage does not hide a live surface.
 
 - [ ] **Step 3: Validate both configs parse + contract pytest passes**
 
@@ -391,14 +402,14 @@ This document specifies the **Response Actions** sidecar — a form-scoped, auth
 - **[FEL grammar](../../../fel-core/specs/fel/fel-grammar.md)**: Response Actions declares its FEL host bindings per FEL §6.3 "Host-Supplied Context Bindings". `@response`, `@definition`, `@action`, `@now`, `@validation`, `@invocation` are catalog entries; the FEL evaluator MUST reject any other `@name` reference as unbound.
 - **[Mapping](../mapping/mapping-spec.md)**: Response Actions references Mapping documents by handle in `EffectRequest.mappingExecution`. It does NOT inline Mapping rules.
 - **[Intake Handoff](../core/intake-handoff-spec.semantic.md)**: Response Actions assembles or requests Intake Handoff via `EffectRequest.handoffAssembly`. It does NOT author the Handoff body shape.
-- **[Respondent Ledger](../audit/respondent-ledger-spec.md)** (and `respondent-ledger-event.schema.json`): Response Actions requests Ledger events via `EffectRequest.ledgerAppend`. The event kind names MUST be drawn from the Ledger spec's published taxonomy (§8), including the optional `action.*` kinds added in Ledger §8.5.
+- **[Respondent Ledger](../audit/respondent-ledger-spec.md)** (and `respondent-ledger-event.schema.json`): Response Actions requests domain Ledger events via `EffectRequest.ledgerAppend`. The event kind names MUST be drawn from the Ledger spec's published taxonomy (§8). The optional `action.*` kinds added in Ledger §8.5 are processor lifecycle audit observations, not author-declared post-gate effects.
 
 ### 1.3 Design Principles
 
 1. **Additive.** No existing schema or spec is modified semantically. Response Actions is a new sidecar that COMPOSES with current artifacts.
 2. **Closed taxonomies.** `Action.intent` values are drawn from the closed VM `ActionIntent` enum OR an `x-`-prefixed publisher extension per VM §6.1. `EffectRequest.type`, `Action.onFailure`, and `Action.onDeferred` are closed enums with no extension carve-out. Publisher extensions use `x-` prefixed properties on object types.
 3. **Cite, do not invent.** Validation vocabulary is cited from VM. Ledger kinds are cited from Respondent Ledger. Mapping handles are cited from Mapping documents. Handoff profiles are cited from Intake Handoff.
-4. **No fictional rollback.** Concept §6.4 forbids global transactional rollback. Effects execute in declared order; failure halts the chain and MAY append an `action.failed` ledger event (caller-declared via a `ledgerAppend` effect per Ledger §8.5; processor-discretionary); prior effects remain. Compensation is a future concern outside this spec.
+4. **No fictional rollback.** Concept §6.4 forbids global transactional rollback. Effects execute in declared order; failure halts the chain and MAY record an `action.failed` processor lifecycle audit event per Ledger §8.5; prior effects remain. Compensation is a future concern outside this spec.
 5. **Idempotency at the durable boundary.** Every durable effect MUST carry an idempotency key. Transient effects (`hostEvent`) MUST NOT carry one.
 6. **Authored, not generated.** Action documents are written by humans or tools. Generators MAY produce seed documents (concept §8) but the artifact is canonical author-owned.
 
@@ -561,9 +572,9 @@ Per [FEL §6.3](../../../fel-core/specs/fel/fel-grammar.md#63-host-supplied-cont
 | `action` | object | The Action being invoked: `{ id, intent, actor }`. | pure | eager | expression |
 | `now` | function | `() -> datetime` returning implementation's current time. | impure | lazy | expression |
 | `validation` | object | `{ lastReport: ValidationReport \| null }` — the most recent ValidationReport state at invocation, regardless of profile. | pure | eager | expression |
-| `invocation` | object | `{ id: string, attempt: integer }`. `id` is stable across replays of the same invocation; `attempt` is 1 on first attempt, 2 on `retry-once`. | pure | eager | expression |
+| `invocation` | object | `{ id: string }`. `id` is stable across replays of the same invocation. `attempt` is intentionally absent from the precondition and idempotency-key catalogs. | pure | eager | expression |
 
-Example precondition expressions: `not isEmpty(@response.applicantName)`; `@validation.lastReport != null and @validation.lastReport.valid`; `@now() > @response.openedAt`; `@action.intent = 'submit' and @invocation.attempt = 1`.
+Example precondition expressions: `not isEmpty(@response.applicantName)`; `@validation.lastReport != null and @validation.lastReport.valid`; `@now() > @response.openedAt`; `@action.intent = 'submit' and @invocation.id != null`.
 
 The catalog MUST NOT expose: mutable Definition, Component tree, prior effect outcomes (see §6.5 for the separate effect-time tier), ledger contents, handoff documents, or host-application state. Processors enforce closure via the FEL §6.3.2 evaluator obligation; an evaluator that auto-binds an undeclared `@name` is non-conforming.
 
@@ -611,7 +622,7 @@ This table MUST equal VM §6 row-for-row structurally. Conformance test `test_re
 
 ### 5.2 Per-Action Overrides
 
-An Action MAY include a `validation` block to override one or more axes:
+An Action MAY include a `validation` block to replace the VM master-row triple. When present, `validation` MUST specify the full `(profile, blocking, persistence)` tuple. Partial-axis overrides are forbidden because the schema `$ref`s VM `ValidationTuple`, which requires all three fields and carries the VM §6.3 predicate.
 
 ```json
 {
@@ -728,7 +739,7 @@ Per concept §6.4: when an effect fails (`onError: fail`), the processor MUST ha
 Every durable effect MUST carry `idempotencyKey`. The key is a FEL expression. **Evaluation timing — load-bearing**:
 
 1. **Frozen at first attempt.** The processor evaluates the key once when the effect is first about to execute (i.e., when traversal reaches that effect in the §7 `effects-running` state) and MUST cache the resolved string for the lifetime of the invocation. On `retry-once` (§8) or any replay, the cached key is reused. This guarantees a `retry-once` retry hits the same idempotency record.
-2. **Catalog at idempotency-key evaluation time.** The FEL evaluator uses the §4.2 catalog PLUS `@invocation.id` (UUID, stable across replays). `@invocation.attempt` is NOT available at idempotency-key evaluation time — including it would defeat dedup by producing different keys per attempt.
+2. **Catalog at idempotency-key evaluation time.** The FEL evaluator uses the stable §4.2 catalog. The `@invocation` object exposes only `id` (UUID, stable across replays). `@invocation.attempt` is NOT available at idempotency-key evaluation time — including it would defeat dedup by producing different keys per attempt.
 3. **`@effects[*]` is NOT in the idempotency-key catalog.** The key MUST NOT depend on prior effect outcomes. A processor MUST reject an `idempotencyKey` FEL expression that references `@effects` (FEL §6.3 evaluator obligation — unbound name during idempotency-key evaluation).
 
 A processor receiving an effect with an idempotency key it has previously executed MUST observe the prior outcome WITHOUT re-executing the side effect. The effect trace records `status: "replayed"` for that effect.
@@ -740,7 +751,7 @@ For FEL expressions OTHER than `idempotencyKey` (`payloadRef`, `detailRef`), the
 | name | kind | type | purity | evaluationTiming | scope |
 |---|---|---|---|---|---|
 | `effects` | object | Array-indexed `{ [i]: { type, status, outcomeRef } }` of prior effect outcomes in this invocation. FEL indices are one-based; `@effects[1]` is the first declared effect. | pure | lazy | expression |
-| `invocation.attempt` | (extends `@invocation`) | Integer ≥ 1 | pure | eager | expression |
+| `invocation` | object | Effect-time replacement for the §4.2 `@invocation` binding: `{ id: string, attempt: integer }`. `attempt` is a property of `@invocation`, not a separate FEL binding name. | pure | eager | expression |
 
 `payloadRef` example: `{ reportRef: @validation.lastReport, mappingOutcomeRef: @effects[1].outcomeRef }`. Accessing `@effects[i]` where `i` is greater than or equal to the current effect's one-based position is an evaluation error (no forward references).
 
@@ -843,7 +854,7 @@ If `blocking` is `block-on-error`, the gate evaluates `ValidationReport.valid`. 
 | `blocked` (cause: "precondition") | Surface precondition id and FEL expression that failed. | Re-invoke after user correction. |
 | `deferred` | Surface deferral reason and replay token. | Resume per processor's deferral protocol. |
 
-The UI MUST NOT report `completed` on any other terminal. A processor that conflates `failed` with `completed` is non-conforming. The `cause` discriminator on `blocked` is observable in the effect-trace structure (§6.6) and the optional `action.failed` ledger event (Ledger §8.5 payload `terminal` and the implementation-defined `causeRef`).
+The UI MUST NOT report `completed` on any other terminal. A processor that conflates `failed` with `completed` is non-conforming. The `cause` discriminator on `blocked` is observable in the effect-trace structure (§6.6) and, when the processor records lifecycle audit events, the optional `action.failed` ledger record (Ledger §8.5 payload `terminal` and the implementation-defined `causeRef`).
 
 ### 7.5 Replay
 
@@ -884,7 +895,7 @@ Processors MUST NOT redact `failedEffect.reason` from the caller. Sensitive oper
 
 A processor with `onFailure: retry-once` performs exactly one retry before terminating as `failed`. Retry semantics:
 
-- `@invocation.attempt` increments from 1 to 2. The attempt counter is observable to ledger events and effect-time FEL expressions (§6.5.1) but is NOT in the idempotency-key catalog (§6.5).
+- `@invocation.attempt` increments from 1 to 2. The attempt counter is observable to processor lifecycle audit events and effect-time FEL expressions (§6.5.1) but is NOT in the idempotency-key catalog (§6.5).
 - Idempotency keys are **frozen at first attempt** per §6.5 and reused verbatim on retry. A retried `mappingExecution` with prior outcome MUST observe the prior outcome via the replay contract; a retried effect that had no prior outcome MUST re-execute.
 - Retry re-enters at `effects-running` with the same `invocation.id` and the same Response snapshot. Preconditions and validation are NOT re-evaluated.
 
@@ -947,7 +958,7 @@ The Component side declares:
 { "component": "ActionButton", "actionRef": "submit-application", "label": { "literal": "Submit" } }
 ```
 
-Event-kind notes: `response.submit-attempted` and `response.completed` are Ledger §8 published kinds, NOT spec-invented synonyms. The optional `action.invoked` / `action.failed` / `action.deferred` / `action.replayed` kinds from Ledger §8.5 are processor-discretionary — an Action MAY declare them as additional `ledgerAppend` effects.
+Event-kind notes: `response.submit-attempted` and `response.completed` are Ledger §8 published kinds, NOT spec-invented synonyms. The optional `action.invoked` / `action.failed` / `action.deferred` / `action.replayed` kinds from Ledger §8.5 are processor-discretionary lifecycle audit observations recorded outside the declared post-gate effect chain. Authors MUST NOT model those lifecycle moments as ordinary `ledgerAppend` effects.
 
 Unresolved `actionRef` (no matching Action in the loaded document, OR no document loaded) MUST produce an inert widget + informative finding per Component §5.19. There is no implicit fallthrough, no default-Action lookup, no legacy SubmitButton behavior.
 ```
@@ -956,7 +967,7 @@ Unresolved `actionRef` (no matching Action in the loaded document, OR no documen
 
 ```bash
 cd formspec && git add specs/response-actions/response-actions-spec.md
-git commit -m "feat(spec): draft response-actions §8-§10 (failure, deferred, host event boundaries, default submit)"
+git commit -m "feat(spec): draft response-actions §8-§10 (failure, deferred, host event boundaries)"
 ```
 
 ---
@@ -985,7 +996,7 @@ The cross-spec fixture (`cross-spec-intake-handoff-seam.json`) covers the full s
 
 `ledgerAppend.eventKind` MUST be a kind name published in the Respondent Ledger spec (`respondent-ledger.md` / `respondent-ledger-event.schema.json`). Authors MUST NOT invent new kinds in a Response Actions document. The Ledger spec owns materiality, durability, integrity profile, and append semantics; this Action only requests the append.
 
-The four optional `action.*` kinds (`action.invoked`, `action.failed`, `action.deferred`, `action.replayed`) added in [Ledger §8.5](../audit/respondent-ledger-spec.md#85-action-lifecycle-events) carry the `actionEvent` payload shape (`{ actionId, invocationId, attempt, terminal, effectIndex?, causeRef?, replayTokenRef?, priorInvocationRef? }`). An Action MAY emit any subset of the lifecycle moments via declared `ledgerAppend` effects.
+The four optional `action.*` kinds (`action.invoked`, `action.failed`, `action.deferred`, `action.replayed`) added in [Ledger §8.5](../audit/respondent-ledger-spec.md#85-action-lifecycle-events) carry the `actionEvent` payload shape (`{ actionId, invocationId, attempt, terminal, effectIndex?, causeRef?, replayTokenRef?, priorInvocationRef? }`). They are processor lifecycle audit records, not author-declared `EffectRequest.ledgerAppend` entries. Processors MAY record any subset at their documented lifecycle moments; this spec's declared effect chain begins only after preconditions, validation, and the blocking gate have passed.
 
 **Terminal vocabulary mapping.** This spec defines four terminals (`completed`, `failed`, `deferred`, `blocked`). The Ledger §8.5 `actionEvent.terminal` enum is restricted to `{failed, deferred, replayed}` — only the values the four published kinds emit. The mapping:
 
@@ -1135,6 +1146,19 @@ Write the file with this exact structure (every field MUST have `description`; `
       "type": "object",
       "required": ["id", "intent", "effects"],
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "intent": { "type": "string", "pattern": "^x-" }
+            },
+            "required": ["intent"]
+          },
+          "then": {
+            "required": ["validation"]
+          }
+        }
+      ],
       "properties": {
         "id": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "description": "Unique within document. Starts with a letter; allows letters, digits, hyphens (camelCase and kebab-case both acceptable)." },
         "intent": { "$ref": "#/$defs/ActionIntent" },
@@ -1278,8 +1302,8 @@ git commit -m "feat(schema): add response-actions.schema.json
 Closed Action.intent (cited from validation-mapping), closed
 EffectRequest.type taxonomy with oneOf discriminator. Durable types
 require idempotencyKey; hostEvent forbids it. ValidationOverride refs
-validation-mapping enums to enforce the §6.3 validity predicate at
-schema level."
+validation-mapping ValidationTuple to require the full tuple and enforce
+the §6.3 validity predicate at schema level."
 ```
 
 ---
@@ -1396,7 +1420,7 @@ validation-mapping enums."
 Use the same shape as Task 13's fixtures. Key expectations to pin:
 
 - `effect-ordering.json` — `effectTrace` array MUST be in exact declared order; `expected.effectTraceOrder` matches `responseActions.actions[0].effects` indices 0..4.
-- `effect-failure-no-rollback.json` — index 2 (`handoffAssembly`) has `status: "failed"`. Indices 0 and 1 have `status: "succeeded"` and MUST remain in the trace (NOT marked rolled-back). Index 3 (`hostEvent`) has `status: "not-invoked"`. Expected adds `expected.compensationsAttempted: false`. **Do NOT expect an automatic `action.failed` ledger event** — Ledger §8.5 lifecycle events are processor-discretionary and NOT pinned by this harness. Authors who want the lifecycle event MUST declare it as a `ledgerAppend` effect.
+- `effect-failure-no-rollback.json` — index 2 (`handoffAssembly`) has `status: "failed"`. Indices 0 and 1 have `status: "succeeded"` and MUST remain in the trace (NOT marked rolled-back). Index 3 (`hostEvent`) has `status: "not-invoked"`. Expected adds `expected.compensationsAttempted: false`. **Do NOT expect an automatic `action.failed` ledger event** — Ledger §8.5 lifecycle events are processor-discretionary and NOT pinned by this harness. Authors MUST NOT declare `action.*` lifecycle moments as ordinary `ledgerAppend` effects.
 - `effect-deferred-evidence.json` — `evidenceRequest` returns `deferred`; subsequent effects `not-invoked`; expected has `replayTokenIssued: true`.
 - `effect-idempotent-replay.json` — fixture includes TWO invocation blocks: `invocation.first` and `invocation.replay`. Second invocation uses identical `invocation.id`. Expected: first invocation's effect trace has all `succeeded`; replay's trace has all `replayed`. Idempotency keys MUST be identical between runs.
 - `precondition-fails-blocked.json` — precondition with `severity: block` evaluates `false`. No validation pass run; zero effects invoked; expected terminal `blocked` with `blockedCause: "precondition"`.
@@ -1499,6 +1523,7 @@ Pins:
 - Durable effect types require idempotencyKey.
 - HostEventEffect FORBIDS idempotencyKey.
 - ValidationOverride uses $refs into validation-mapping.schema.json.
+- x-prefixed Action.intent requires an explicit full validation tuple.
 - master-action-shapes.json exercises every closed-enum branch.
 """
 
@@ -1643,6 +1668,38 @@ def test_action_intent_allows_vm_enum_and_x_extension():
     assert has_x_pattern, "ActionIntent oneOf MUST include ^x- extension pattern"
 
 
+def test_x_intent_requires_explicit_full_validation_tuple():
+    """x- publisher intents cannot inherit a VM master-table row."""
+    validator = build_validator()
+    base = {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {"url": "https://example.gov/x", "compatibleVersions": ">=1.0.0"},
+        "actions": [{
+            "id": "customAction",
+            "intent": "x-custom",
+            "effects": [{"type": "hostEvent", "eventName": "x"}],
+        }],
+    }
+
+    assert list(validator.iter_errors(base)), "x- intents MUST require validation"
+
+    partial = json.loads(json.dumps(base))
+    partial["actions"][0]["validation"] = {
+        "profile": "on-submit",
+        "blocking": "block-on-error",
+    }
+    assert list(validator.iter_errors(partial)), "validation MUST be a full tuple"
+
+    full = json.loads(json.dumps(base))
+    full["actions"][0]["validation"] = {
+        "profile": "on-submit",
+        "blocking": "block-on-error",
+        "persistence": "complete-response",
+    }
+    assert not list(validator.iter_errors(full))
+
+
 def test_master_action_shapes_exercises_every_branch():
     """master-action-shapes.json MUST contain every Action.intent and every EffectRequest.type."""
     fixture = json.loads((FIXTURE_DIR / "master-action-shapes.json").read_text())
@@ -1688,7 +1745,8 @@ git commit -m "test(conformance): pin response-actions schema shape
 
 Closed EffectRequest taxonomy, idempotency requirement on durable
 types, HostEventEffect prohibition, ValidationOverride VM cross-refs,
-master-shapes branch exhaustiveness."
+x-intent explicit tuple enforcement, and master-shapes branch
+exhaustiveness."
 ```
 
 ---
@@ -1755,13 +1813,17 @@ MASTER_TABLE = {
 
 
 def resolve_triple(action: Dict[str, Any]) -> tuple:
-    profile, blocking, persistence = MASTER_TABLE[action["intent"]]
-    override = action.get("validation", {})
-    return (
-        override.get("profile", profile),
-        override.get("blocking", blocking),
-        override.get("persistence", persistence),
-    )
+    intent = action["intent"]
+    override = action.get("validation")
+    if intent.startswith("x-"):
+        if override is None:
+            raise AssertionError("x- intents MUST carry explicit validation tuple")
+        return (override["profile"], override["blocking"], override["persistence"])
+
+    if override is not None:
+        return (override["profile"], override["blocking"], override["persistence"])
+
+    return MASTER_TABLE[intent]
 
 
 def invoke(fixture: Dict[str, Any], replay_store: Optional[Dict[str, EffectOutcome]] = None) -> InvocationResult:
@@ -1842,7 +1904,7 @@ def invoke(fixture: Dict[str, Any], replay_store: Optional[Dict[str, EffectOutco
             for rest_idx in range(idx + 1, len(action["effects"])):
                 trace.append(EffectOutcome(type=action["effects"][rest_idx]["type"], status="not-invoked"))
             if on_err == "fail":
-                # Halt — record action.failed but no rollback.
+                # Halt without rollback; optional action.failed lifecycle audit is processor policy.
                 return InvocationResult(terminal="failed", effect_trace=trace, validation_report=report)
             if on_err == "defer":
                 return InvocationResult(terminal="deferred", effect_trace=trace, validation_report=report, replay_token="opaque-defer-" + action_id)
@@ -1994,7 +2056,7 @@ no-case.created prohibition."
 
 ## Task 18: (removed)
 
-The SubmitButton default-action pytest is no longer needed. The Component Action References precondition plan renames `SubmitButton` → `ActionButton` and makes `actionRef` required; the legacy VM §7.1 fallthrough path no longer exists. ActionButton's binding contract is pinned by `tests/conformance/spec/test_actionbutton_binding.py` (created by [the Component Action References plan](2026-05-22-component-action-references.md) Task 8). No equivalent test belongs in this plan.
+The legacy SubmitButton fallback pytest is no longer needed. The Component Action References precondition plan renames `SubmitButton` → `ActionButton` and makes `actionRef` required; the legacy VM §7.1 fallthrough path no longer exists. ActionButton's binding contract is pinned by `tests/conformance/spec/test_actionbutton_binding.py` (created by [the Component Action References plan](2026-05-22-component-action-references.md) Task 8). No equivalent test belongs in this plan.
 
 ---
 
@@ -2007,7 +2069,7 @@ The SubmitButton default-action pytest is no longer needed. The Component Action
 - Modify: `thoughts/specs/2026-05-20-formspec-semantic-layers.md`
 - Modify: `../TODO-STACK.md`
 
-- [ ] **Step 1: validation-mapping.md back-reference**
+- [ ] **Step 1: validation-mapping.md back-reference and §6.1 override wording**
 
 Find this line in §1.2 of `specs/core/validation-mapping.md`:
 
@@ -2015,11 +2077,27 @@ Find this line in §1.2 of `specs/core/validation-mapping.md`:
 
 Append after that sentence: " The Response Actions companion has landed; see [`../response-actions/response-actions-spec.md`](../response-actions/response-actions-spec.md)."
 
-- [ ] **Step 2: experience-spec.md §6.3 — defer to Plan E**
+In §6.1, replace the stale partial-override text:
 
-Plan E (Component Action References) rewrites EXP §6.3 to make `ActionRef` resolution mandatory (no free-string fallback; loading a Response Actions document is required whenever Experience contains any `ActionRef`). This plan does NOT modify EXP §6.3 further.
+> "A Response Actions document MAY override one, two, or three of (profile, blocking, persistence) per action while retaining a master-table intent. Overrides are explicit and MUST appear in the Response Actions document; processors MUST NOT silently substitute non-default tuples."
 
-Update the EXP front-matter reference list to include `specs/response-actions/response-actions-spec.md` (the only EXP edit by this plan).
+and:
+
+> "A Response Actions document that overrides all three axes is equivalent to using an `x-`-extension intent — the processor MUST treat it as a publisher-defined intent and MUST NOT consult the master table for that action."
+
+with:
+
+> "A Response Actions document MAY include an explicit `validation` block per action. When present, that block MUST specify the full `(profile, blocking, persistence)` tuple using `ValidationTuple`; partial-axis overrides are forbidden. Processors MUST validate the explicit tuple against the §6.3 predicate before invocation."
+
+> "For a master-table intent, the explicit tuple replaces only the validation, blocking, and persistence policies; the `intent` value remains the authored action semantics. For an `x-` extension intent, the explicit tuple is required because no master-table row exists, and processors MUST NOT consult the master table for that action."
+
+- [ ] **Step 2: experience-spec.md §6.3 and stale wording**
+
+Plan E (Component Action References) rewrites EXP §6.3 to make `ActionRef` resolution mandatory (no free-string fallback; loading a Response Actions document is required whenever Experience contains any `ActionRef`). This plan does NOT change that resolution contract further.
+
+Update the EXP front-matter reference list to include `specs/response-actions/response-actions-spec.md`.
+
+Also remove stale wording that still describes Response Actions as not-yet-landed or only anticipatory. Replace that language with wording that points to the landed Response Actions companion. This edit is wording-only and must preserve Plan E's mandatory `ActionRef` resolution semantics.
 
 - [ ] **Step 3: component-spec.md cross-reference**
 
@@ -2210,7 +2288,7 @@ Tasks 1-3: scaffolding + pipeline
 Tasks 4-11: spec prose (§1 → §13)
 Task 12: schema
 Tasks 13-15: fixtures (vocabulary → effects → cross-spec)
-Tasks 16-18: pytest (schema-shape → runtime contract → SubmitButton default)
+Tasks 16-18: pytest (schema-shape → runtime contract → ActionButton binding/no default)
 Task 19: upstream back-references
 Task 20: doc pipeline + filemap
 Task 21: full test sweep
