@@ -12,7 +12,7 @@ import type {
     ThemeDocument as SchemaThemeDocument,
     ValidationResult,
 } from '@formspec-org/types';
-import type { EngineReplayEvent } from '@formspec-org/engine';
+import type { EngineReplayEvent, Issuer, IssuerSource } from '@formspec-org/engine';
 import { globalRegistry } from './registry';
 import {
     ScreenerRoute,
@@ -42,6 +42,45 @@ function pageModeFromPresentation(presentation: Record<string, unknown> | undefi
     return presentation?.pageMode === 'wizard' || presentation?.pageMode === 'tabs'
         ? presentation.pageMode
         : undefined;
+}
+
+function parseIssuerOverrideAttribute(value: string | null): IssuerSource | undefined {
+    if (!value) {
+        return undefined;
+    }
+    try {
+        return normalizeIssuerOverride(JSON.parse(value));
+    } catch {
+        return undefined;
+    }
+}
+
+function parseIssuerAllowedOriginsAttribute(value: string | null): string[] {
+    if (!value) {
+        return [];
+    }
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed)
+            ? parsed.filter((origin): origin is string => typeof origin === 'string')
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+function normalizeIssuerOverride(value: unknown): IssuerSource | undefined {
+    if (!value || typeof value !== 'object') {
+        return undefined;
+    }
+    const record = value as Record<string, unknown>;
+    if (record.kind === 'url' && typeof record.url === 'string') {
+        return { kind: 'url', url: record.url, source: 'host-embed' };
+    }
+    if (record.kind === 'inline' && record.issuer && typeof record.issuer === 'object') {
+        return { kind: 'inline', issuer: record.issuer as Issuer, source: 'host-embed' };
+    }
+    return undefined;
 }
 
 // Extracted modules
@@ -83,6 +122,8 @@ import {
     isSubmitPending as isSubmitPendingFn,
     resolveValidationTarget as resolveValidationTargetFn,
 } from './submit';
+import { IssuerChrome } from './issuer/IssuerChrome';
+import { parseQueryIssuerOverride } from './issuer/queryOverride';
 
 /**
  * `<formspec-render>` custom element -- the entry point for rendering a
@@ -111,7 +152,7 @@ import {
  */
 export class FormspecRender extends HTMLElement {
     static get observedAttributes(): string[] {
-        return ['data-formspec-appearance'];
+        return ['data-formspec-appearance', 'issuer-override', 'issuer-allowed-origins'];
     }
 
     // ── Internal state ────────────────────────────────────────────────
@@ -130,6 +171,9 @@ export class FormspecRender extends HTMLElement {
     private readonly _handleColorSchemeChange = () => this.syncRootContainerAppearance();
     private _locale = '';
     private _pendingLocaleDocuments: LocaleDocument[] = [];
+    private _issuerOverride: IssuerSource | undefined;
+    private _issuerAllowedOrigins: string[] = [];
+    private _issuerChromeEpoch = 0;
 
     constructor() {
         super();
@@ -140,6 +184,19 @@ export class FormspecRender extends HTMLElement {
     attributeChangedCallback(name: string): void {
         if (name === 'data-formspec-appearance') {
             this.syncRootContainerAppearance();
+            this.scheduleRender();
+            return;
+        }
+        if (name === 'issuer-override') {
+            this._issuerOverride = parseIssuerOverrideAttribute(this.getAttribute('issuer-override'));
+            this.applyEffectiveIssuerOverride();
+            return;
+        }
+        if (name === 'issuer-allowed-origins') {
+            this._issuerAllowedOrigins = parseIssuerAllowedOriginsAttribute(
+                this.getAttribute('issuer-allowed-origins'),
+            );
+            this.applyEffectiveIssuerOverride();
         }
     }
 
@@ -334,6 +391,7 @@ export class FormspecRender extends HTMLElement {
             }
             this.engine = createFormEngine(val, {
                 registryEntries: Array.from(this._registryEntries.values()),
+                issuerOverride: this.effectiveIssuerOverride(),
             });
 
             // Replay buffered locale documents and active locale
@@ -380,6 +438,26 @@ export class FormspecRender extends HTMLElement {
     /** The currently loaded form definition object. */
     get definition(): FormDefinition | null {
         return this._definition;
+    }
+
+    set issuerOverride(source: IssuerSource | undefined) {
+        this._issuerOverride = normalizeIssuerOverride(source);
+        this.applyEffectiveIssuerOverride();
+    }
+
+    get issuerOverride(): IssuerSource | undefined {
+        return this._issuerOverride;
+    }
+
+    set issuerAllowedOrigins(origins: readonly string[] | undefined) {
+        this._issuerAllowedOrigins = Array.isArray(origins)
+            ? origins.filter((origin): origin is string => typeof origin === 'string')
+            : [];
+        this.applyEffectiveIssuerOverride();
+    }
+
+    get issuerAllowedOrigins(): string[] {
+        return [...this._issuerAllowedOrigins];
     }
 
     /**
@@ -635,6 +713,7 @@ export class FormspecRender extends HTMLElement {
         container.replaceChildren();
 
         emitTokenPropertiesFn(this._stylingHost, container);
+        this.renderIssuerChrome(container);
 
         if (hasActiveScreener(this._screenerDocument) && !this._screenerCompleted) {
             this.tryAutoCompleteScreenerFromSeed();
@@ -690,6 +769,67 @@ export class FormspecRender extends HTMLElement {
         }
     }
 
+    private effectiveIssuerOverride(): IssuerSource | undefined {
+        return this._issuerOverride ?? this.queryIssuerOverride();
+    }
+
+    private queryIssuerOverride(): IssuerSource | undefined {
+        const view = this.ownerDocument?.defaultView;
+        if (!view) {
+            return undefined;
+        }
+        return parseQueryIssuerOverride(new URL(view.location.href), this._issuerAllowedOrigins);
+    }
+
+    private applyEffectiveIssuerOverride(): void {
+        this.engine?.setIssuerOverride(this.effectiveIssuerOverride());
+        this.scheduleRender();
+    }
+
+    private renderIssuerChrome(container: HTMLDivElement): void {
+        const slot = document.createElement('div');
+        slot.className = 'fs-issuer-chrome-slot';
+        container.appendChild(slot);
+
+        const engine = this.engine;
+        if (!engine?.getResolvedIssuer) {
+            return;
+        }
+
+        const epoch = ++this._issuerChromeEpoch;
+        void engine.getResolvedIssuer()
+            .then((resolved) => {
+                if (this.engine !== engine || this._issuerChromeEpoch !== epoch || !slot.isConnected) {
+                    return;
+                }
+                const chrome = IssuerChrome({
+                    resolved,
+                    locale: this._locale || engine.getActiveLocale?.() || 'en',
+                    hostOrigin: this.ownerDocument?.defaultView?.location.origin,
+                    mode: this.issuerChromeMode(),
+                    headerWidth: this.issuerChromeHeaderWidth(),
+                    document: this.ownerDocument,
+                });
+                slot.replaceChildren(...(chrome ? [chrome] : []));
+            })
+            .catch((error) => {
+                console.warn('Issuer resolution failed', error);
+            });
+    }
+
+    private issuerChromeMode(): 'light' | 'dark' | 'high-contrast' {
+        return this.rootContainer?.classList.contains('formspec-appearance-dark')
+            ? 'dark'
+            : 'light';
+    }
+
+    private issuerChromeHeaderWidth(): 'wide' | 'narrow' {
+        const breakpoint = this.activeBreakpoint;
+        return breakpoint === 'mobile' || breakpoint === 'sm' || breakpoint === 'narrow'
+            ? 'narrow'
+            : 'wide';
+    }
+
     /** Returns the screener route selected during the screening phase, or null. */
     getScreenerRoute() {
         return this._screenerRoute;
@@ -740,6 +880,7 @@ export class FormspecRender extends HTMLElement {
      * and removes the root container.
      */
     disconnectedCallback() {
+        this._issuerChromeEpoch += 1;
         this.cleanup();
         cleanupStylesheetsFn(this._stylingHost);
         cleanupBreakpoints(this._breakpoints);
