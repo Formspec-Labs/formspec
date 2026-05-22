@@ -450,18 +450,18 @@ locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
 | `COMP-REGENERATION-PROPERTY-CONFLICT` | Both designer and new-generation changed the same property to different values | `warning` |
 | `COMP-REGENERATION-WIDGET-SWAP` | Designer changed a node's `component` type from old-generated and the change requires human review; emitted as a conflict unless new-generation independently made the same widget choice | `warning` |
 | `COMP-REGENERATION-DESIGNER-SURVIVED` | One or more non-conflicting designer deltas survived in the merged node | `info` |
-| `COMP-REGENERATION-REGENERATED` | Node regenerated from `new-generated` with no surviving designer delta and no conflict | `info` |
+| `COMP-REGENERATION-REGENERATED` | Node regenerated from `new-generated` with no surviving designer delta and no conflict. Not emitted solely for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED` | `info` |
 | `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Remains `warning` in `MergeReport`; review surfaces MAY show an error-level effective severity when a separate resolver error composes against the same node. | `warning` |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | Designer subtree reattached above its original parent because the parent chain orphaned | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | Designer subtree reattached at root because no ancestor matches in merged | `warning` |
-| `COMP-REGENERATION-RENAME-MIGRATED` | Anchor sets differ between old and new but anchor-mapping substitution makes them equal | `info` |
+| `COMP-REGENERATION-RENAME-MIGRATED` | Anchor sets differ between old and new but anchor-mapping substitution makes them equal and preserves presentation continuity | `info` |
 | `COMP-REGENERATION-PENDING-REVIEW` | Newly generated node not present in old or designer | `info` |
 
 §7 MUST state:
 
 - Hosts MUST NOT downgrade `error`. Hosts MAY upgrade lower severities under a host-defined strict mode.
 - The merge MUST NOT emit `COMP-REGENERATION-ORPHAN-BINDING` or any other reference-resolution finding under the regeneration family. Bind/reference failures are emitted by the resolver and composed into the review surface as separate findings against the same node; they are not duplicated in `MergeReport`.
-- **No heuristic rename detection** (H3 fix). A `COMP-REGENERATION-RENAME-UNDOCUMENTED` finding does not exist; if anchor sets differ and no anchor-mapping substitution makes them equal, the nodes simply do not match (the N_old becomes an `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW`). Authors who want rename support author an anchor-mapping entry.
+- **No heuristic rename detection** (H3 fix). A `COMP-REGENERATION-RENAME-UNDOCUMENTED` finding does not exist; if anchor sets differ and no anchor-mapping substitution makes them equal, the nodes simply do not match (any corresponding `designer_edited` subtree that remains uncovered becomes `ORPHAN-NODE`; N_new becomes `PENDING-REVIEW`). Authors who want rename support author an anchor-mapping entry.
 
 - [x] Commit.
 
@@ -485,7 +485,7 @@ Rules:
 
 ## Task 10: Spec prose — §9 Rename and anchor-mapping handling
 
-- [ ] Draft §9 defining rename detection via anchor-mapping substitution. **H3 fix: no heuristic detection — the anchor-mappings document is the only signal.**
+- [x] Draft §9 defining rename detection via anchor-mapping substitution. **H3 fix: no heuristic detection — the anchor-mappings document is the only signal.**
 
 **Anchor-mappings document shape (L3 + F6 fix).** No `migration-spec.md` exists in `formspec/specs/` as of this writing. This spec defines the minimum **anchor-mappings document** shape consumed by the merge. The artifact is named `anchorMappings`, NOT `migrations`, to avoid conceptual collision with Core §6.7 (which uses `migrations` for Response-data field transformations within a Definition document — a different concept).
 
@@ -516,11 +516,11 @@ substitute(N_old.anchors, M) == N_new.anchors
 3. Preserves designer presentation choices via the standard three-way merge (§6).
 4. Emits `COMP-REGENERATION-RENAME-MIGRATED` at `info` severity.
 
-**When no anchor-mapping match succeeds and anchor-set equality also fails,** the nodes simply do not match. N_old becomes `COMP-REGENERATION-ORPHAN-NODE`; N_new becomes `COMP-REGENERATION-PENDING-REVIEW`. No `RENAME-UNDOCUMENTED` finding exists — the orphan + pending-review pair is the signal.
+**When no anchor-mapping match succeeds and anchor-set equality also fails,** the nodes simply do not match. Any corresponding `designer_edited` subtree that remains uncovered becomes `COMP-REGENERATION-ORPHAN-NODE`; N_new becomes `COMP-REGENERATION-PENDING-REVIEW`. No `RENAME-UNDOCUMENTED` finding exists — the orphan + pending-review pair is the signal.
 
 §9 MUST NOT define heuristic rename detection (set-distance, edit-distance, prefix-family matching). Authors who want rename support author anchor-mapping entries.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 11: Spec prose — §10 Studio review UX expectations
 
@@ -776,7 +776,7 @@ Each case is a directory with five required files: `old-generated.json`, `design
 
 - [ ] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; an anchor-mapping document maps the substitution. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`.
 
-- [ ] **Case `rename-no-migration`** — anchors changed without an anchor-mapping entry. Expected: NOT matched; N_old becomes `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
+- [ ] **Case `rename-no-anchor-mapping`** — anchors changed without an anchor-mapping entry. Expected: NOT matched; any corresponding designer subtree becomes `ORPHAN-NODE` only if it remains uncovered; N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
 
 - [ ] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; `orphaned[]` entry for the child. `pendingReview[]` is reserved for newly generated nodes.
 
@@ -1092,7 +1092,7 @@ Task 23:       promotion-gate + architecture review
   - **M1 (old-generated requirement):** §2/Task 3 — added `COMP-REGENERATION-NO-COMMON-ANCESTOR` and pinned no-two-way-fallback degradation.
   - **M2 (DOM contract):** §10/Task 11 — paired `data-merge-status` with `data-merge-anchors` for specificity.
   - **M3 (CRF BLUF):** Task 20 — extended CRF update to include matching BLUF bullet.
-  - **L1 (subtree/duplicate-anchor coverage):** Task 16 — dropped degenerate `unchanged` case; added `orphan-cascade`, `orphan-detached`, `subtree-children-add`, `subtree-children-reorder`, `duplicate-anchor-set`, `no-common-ancestor`, `rename-no-migration` cases.
+  - **L1 (subtree/duplicate-anchor coverage):** Task 16 — dropped degenerate `unchanged` case; added `orphan-cascade`, `orphan-detached`, `subtree-children-add`, `subtree-children-reorder`, `duplicate-anchor-set`, `no-common-ancestor`, `rename-no-anchor-mapping` cases.
 - 2026-05-22: Pre-execution architecture-review pass #2 by `formspec-specs:spec-expert` (verdict REVISE) surfaced normative gaps the scout could not see. Remediated inline:
   - **F1 (anchor set-equality not in CRF):** §3/Task 4 — added explicit normative statement that order-normalized set-equality is a regeneration-merge-only rule, NOT a CRF §5 claim.
   - **F2 (CRF §6.3 "authored" interpretive gap):** §11/Task 12 — cited CRF §6.1 (input) + §6.4 (report-only, no-mutation) as the grounding for invoking the resolver on the merged document; clarified that merged ≠ DOM expansion.
@@ -1157,3 +1157,14 @@ Task 23:       promotion-gate + architecture review
   - Added `COMP-REGENERATION-DESIGNER-SURVIVED` and `COMP-REGENERATION-REGENERATED` so `surviving[]` and `regenerated[]` entries satisfy the required `code`/`severity` schema contract.
   - Replaced the planned broad code regex with an exact enum and tests that reserved non-codes stay invalid.
   - Split CRF/Component resolver composition by affected Component node key/path from EXP coverage's two-hop Definition-path-to-anchor composition.
+- 2026-05-22: Pre-Task-10 architecture/cadence reviews found no blockers but steered §9 drafting:
+  - Corrected no-mapping wording so `old_generated` is not itself reported as orphaned; only still-present uncovered `designer_edited` subtrees go through §6.7 orphaning, while unmatched `new_generated` nodes become `pendingReview[]`.
+  - Renamed planned `rename-no-migration` fixture to `rename-no-anchor-mapping` to avoid reviving Core migration vocabulary in fixture names.
+  - Drafted §9 with one-pass, non-transitive substitution; ambiguous mapping entries and post-substitution collisions remain ambiguous, not heuristic rename evidence.
+  - Cross-referenced §6/§7 so a rename-migrated node is not also reported as plain `COMP-REGENERATION-REGENERATED` solely for the same anchor-set update.
+- 2026-05-22: Post-Task-10 architecture review approved with one LOW cleanup before commit:
+  - Tightened §6.5's fallback regenerated-entry rule with the same `no §9 anchor-mapping substitution` exception used by §7/§9, preventing accidental double-reporting of the rename anchor update path.
+- 2026-05-22: Focused Task 10 re-review found the first cleanup over-excluded legitimate regenerated-only delta entries on rename-migrated nodes:
+  - Narrowed §6.5/§7 wording so `COMP-REGENERATION-REGENERATED` is excluded only for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED`, while real regenerated-only property deltas may still produce their own code-scoped entries.
+- 2026-05-22: Focused Task 10 re-review pass #2 found the §6.5 wording still grammatically ambiguous for rename plus real generated delta:
+  - Rephrased §6.5 to require a generated-only non-anchor property delta after excluding the rename anchor-set update, matching the intended §7/§9 behavior.

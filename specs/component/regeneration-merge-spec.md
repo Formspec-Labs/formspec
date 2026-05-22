@@ -21,7 +21,7 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1-§8 normative prose has landed. Later normative sections, schema,
+The §1-§9 normative prose has landed. Later normative sections, schema,
 fixtures, algorithm tests, invariant tests, registration, and generated
 artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
@@ -578,7 +578,7 @@ selects one of the following outcomes:
 | No deterministic `N_old` and no deterministic `N_designer` | Shallow copy of `N_new` without children. | `pendingReview[]` with `COMP-REGENERATION-PENDING-REVIEW`. |
 | No deterministic `N_old`, deterministic `N_designer` | Designer shell copied without children; children are merged from `N_new`. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-PRECEDES`. |
 | Deterministic `N_old`, no deterministic `N_designer` | No merged node. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-REMOVED`. |
-| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]` with `COMP-REGENERATION-REGENERATED`. |
+| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]` with `COMP-REGENERATION-REGENERATED`, unless the match depended on §9 anchor-mapping substitution; in that case `surviving[]` with `COMP-REGENERATION-RENAME-MIGRATED`. |
 | `N_old` and `N_designer` differ | Apply §6.5 three-way node merge. | `conflicts[]`, `surviving[]`, or `regenerated[]` as defined by §6.5. |
 
 When the selected outcome returns a merged node, the processor MUST set that
@@ -632,8 +632,10 @@ For a node with three-way deltas:
 - non-conflicting designer deltas that survive are reported in one
   `surviving[]` entry with `COMP-REGENERATION-DESIGNER-SURVIVED`, even when the
   same node also has conflict entries for other deltas; and
-- if no designer delta survives and no conflict applies, the node is reported in
-  `regenerated[]` with `COMP-REGENERATION-REGENERATED`.
+- if no designer delta survives, no conflict applies, and at least one
+  generated-only non-anchor property delta remains after excluding any anchor-set
+  update already represented by §9 `COMP-REGENERATION-RENAME-MIGRATED`, the node
+  is reported in `regenerated[]` with `COMP-REGENERATION-REGENERATED`.
 
 `propertyDeltas[]` entries are JSON Pointer strings for the node-local
 properties that changed, such as `/props/label`, `/component`, or `/children`.
@@ -758,11 +760,11 @@ version of the specification:
 | `COMP-REGENERATION-PROPERTY-CONFLICT` | `conflicts[]` | Designer and generator changed the same node-local property, including `/children` ordering, to different values. | `warning` |
 | `COMP-REGENERATION-WIDGET-SWAP` | `conflicts[]` | The designer changed a node's `component` value and the change requires review, or designer and generator chose different component values. | `warning` |
 | `COMP-REGENERATION-DESIGNER-SURVIVED` | `surviving[]` | One or more non-conflicting designer deltas survived in the merged node. | `info` |
-| `COMP-REGENERATION-REGENERATED` | `regenerated[]` | The node regenerated from `new_generated` with no surviving designer delta and no conflict. | `info` |
+| `COMP-REGENERATION-REGENERATED` | `regenerated[]` | The node regenerated from `new_generated` with no surviving designer delta and no conflict. This code is not emitted solely for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED`. | `info` |
 | `COMP-REGENERATION-ORPHAN-NODE` | `orphaned[]` | A designer subtree has no deterministic match in `new_generated` and is preserved by uncovered orphan reattachment. | `warning` |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | `orphaned[]` | An orphan subtree reattached above its immediate parent because the immediate parent did not survive in `merged`. | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | `orphaned[]` | An orphan subtree reattached under `/tree` because no surviving ancestor resolved in `merged`. | `warning` |
-| `COMP-REGENERATION-RENAME-MIGRATED` | `surviving[]` | Anchor sets differed, but §9 anchor-mapping substitution produced a deterministic old/new match and preserved presentation. | `info` |
+| `COMP-REGENERATION-RENAME-MIGRATED` | `surviving[]` | Anchor sets differed, but §9 anchor-mapping substitution produced a deterministic old/new match and preserved presentation continuity. | `info` |
 | `COMP-REGENERATION-PENDING-REVIEW` | `pendingReview[]` | `new_generated` produced a node with no deterministic old or designer match, or produced an ambiguous generated node that requires human review. | `info` |
 
 Report array placement is part of the code contract. A processor MUST NOT emit a
@@ -908,6 +910,118 @@ Cascade and detached state are report metadata; this specification does not
 require additional runtime rendering attributes for those states.
 
 ## 9. Rename and Anchor-Mapping Handling
+
+### 9.1 Scope
+
+Rename handling is limited to deterministic source-anchor substitution. This
+specification defines only the minimum `$formspecAnchorMappings` input shape
+needed by regeneration merge; it does not define broad migration, changelog,
+versioning, conditional transform, or Response-data migration semantics.
+
+The anchor-mappings input is an optional member of `RegenerationMergeContext`.
+When present, it MUST contain at least this shape:
+
+```json
+{
+  "$formspecAnchorMappings": "1.0",
+  "anchorMappings": [
+    { "from": "item:dateOfBirth", "to": "item:birthDate" },
+    { "from": "unit:legacyIdentity", "to": "unit:identity" }
+  ]
+}
+```
+
+Each `anchorMappings[]` entry maps exactly one old anchor string, `from`, to
+exactly one new anchor string, `to`. Entries are unordered and processed as a
+set. Exact duplicate entries are equivalent to one entry.
+
+Processors conforming to this version consume only `$formspecAnchorMappings` and
+`anchorMappings[]`. They MUST NOT infer rename semantics from additional members.
+
+### 9.2 Substitution Rule
+
+`substitute(anchors, M)` takes the §3.1 computed anchor set for an old or
+designer node and returns a new computed anchor set by applying mapping document
+`M`.
+
+When no anchor-mappings input is supplied, substitution is identity and no
+`COMP-REGENERATION-RENAME-MIGRATED` entry can be emitted.
+
+Substitution is one-pass and non-transitive:
+
+1. for each anchor in the original computed anchor set, if `M` contains a single
+   mapping entry whose `from` value equals that anchor, replace that anchor with
+   the entry's `to` value;
+2. otherwise, leave the original anchor unchanged; and
+3. after all original anchors have been processed, duplicate-strip and sort the
+   resulting anchors under §3.1.
+
+If `M` contains more than one distinct `to` value for the same `from` value, any
+node whose computed anchor set contains that `from` anchor has an ambiguous
+mapped key. The processor MUST NOT choose between the competing mappings.
+
+Mappings created by substitution do not cascade. For example, if `M` contains
+`item:a -> item:b` and `item:b -> item:c`, then `item:a` maps to `item:b`, not
+to `item:c`, unless the original anchor set itself also contained `item:b`.
+
+### 9.3 Match Rule
+
+A processor compares mapped old and designer keys against unmapped
+`new_generated` keys through the same §3 match-key machinery used by the
+algorithm in §6.3:
+
+```text
+substitute(N_old.anchors, M) == N_new.anchors
+substitute(N_designer.anchors, M) == N_new.anchors
+```
+
+The equality comparator is the §3.1 order-normalized, duplicate-stripped set
+rule. Anchor-mapping substitution is therefore a way to produce the same
+deterministic match key, not a separate rename heuristic.
+
+Post-substitution collisions are ambiguous under §6.3. If two nodes within the
+same old or designer index map to the same key and §3.3 duplicate handling
+cannot disambiguate them, the key is ambiguous and MUST NOT be used for
+deterministic lookup.
+
+### 9.4 Successful Anchor-Mapping Match
+
+When anchor-mapping substitution creates a deterministic old/designer-to-new
+match that raw anchor equality would not have created, the processor treats the
+nodes as matched for the standard §6 generated-node assembly and §6.5 three-way
+node merge.
+
+The merged node MUST carry the `new_generated` anchor set. The processor MUST
+NOT copy the old anchor strings back into `merged`.
+
+The processor MUST emit `COMP-REGENERATION-RENAME-MIGRATED` at `info` severity
+in `surviving[]` for each merged node whose deterministic match depended on
+anchor-mapping substitution. The processor MUST NOT also emit
+`COMP-REGENERATION-REGENERATED` solely for the anchor-set update represented by
+the rename entry.
+
+The rename entry is code-scoped: if the same node also has surviving designer
+deltas, regenerated-only deltas, or conflicts under §6.5, those conditions
+produce their own report entries under §7.2 rather than being combined with the
+rename entry.
+
+### 9.5 No Heuristic Rename Detection
+
+If raw anchor equality fails and no anchor-mapping substitution produces an
+exact §3.1 match, the processor MUST NOT infer a rename from edit distance,
+shared prefixes, source-path similarity, schema labels, sibling position,
+component type, or any other heuristic.
+
+In that case, the unmatched `new_generated` node follows §6.4 and is reported in
+`pendingReview[]` with `COMP-REGENERATION-PENDING-REVIEW` when no deterministic
+old or designer match exists. Any corresponding designer-authored subtree that
+remains in `designer_edited` but is not represented in the generated-node
+assembly follows the §6.7 uncovered-orphan pass and is reported in `orphaned[]`
+with `COMP-REGENERATION-ORPHAN-NODE`.
+
+There is no `COMP-REGENERATION-RENAME-UNDOCUMENTED` code. The orphan plus
+pending-review pair is the review signal when authors changed anchors without
+supplying an anchor-mapping entry.
 
 ## 10. Studio Review UX Expectations
 
