@@ -15,8 +15,9 @@ What this guard enforces TODAY (in scope of the Response Actions remediation):
    ``*.response-actions.json`` document.
 2. Every ``ActionButton.actionRef`` in a reference component tree MUST
    resolve to an Action ``id`` in a sibling Response Actions document under
-   the same task's ``reference/`` directory. Mirrors the Rust
-   ``W1801`` / promoted-severity check at the conformance layer.
+   the same task's ``reference/`` directory. Mirrors the Rust ``E1802``
+   (error severity per Component §5.19 Resolver Invariants) at the
+   conformance layer.
 
 What this guard does NOT enforce yet (out of scope, tracked separately):
 

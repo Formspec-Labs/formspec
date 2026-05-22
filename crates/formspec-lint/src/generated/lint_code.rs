@@ -227,8 +227,8 @@ pub enum LintCode {
     W1800,
     /// Registry code `E1801`.
     E1801,
-    /// Registry code `W1801`.
-    W1801,
+    /// Registry code `E1802`.
+    E1802,
 }
 
 impl LintCode {
@@ -344,7 +344,7 @@ impl LintCode {
             LintCode::E1800 => "E1800",
             LintCode::W1800 => "W1800",
             LintCode::E1801 => "E1801",
-            LintCode::W1801 => "W1801",
+            LintCode::E1802 => "E1802",
         }
     }
 
@@ -460,7 +460,7 @@ impl LintCode {
             LintCode::E1800 => 9,
             LintCode::W1800 => 9,
             LintCode::E1801 => 9,
-            LintCode::W1801 => 9,
+            LintCode::E1802 => 9,
         }
     }
 
@@ -576,7 +576,7 @@ impl LintCode {
             "E1800" => Some(LintCode::E1800),
             "W1800" => Some(LintCode::W1800),
             "E1801" => Some(LintCode::E1801),
-            "W1801" => Some(LintCode::W1801),
+            "E1802" => Some(LintCode::E1802),
             _ => None,
         }
     }
@@ -692,7 +692,7 @@ impl LintCode {
         LintCode::E1800,
         LintCode::W1800,
         LintCode::E1801,
-        LintCode::W1801,
+        LintCode::E1802,
     ];
 }
 

@@ -522,7 +522,7 @@ Specs should land before schemas. Schemas should encode the prose contract; they
 
 ### 11.1 Response Actions As Peer Or Overlay
 
-Response Actions remains a peer artifact while it orchestrates actions. If it repeatedly needs to suppress, override, or alter Definition semantics, it must become an explicit behavioral overlay with merge rules or move into a future Definition model.
+Response Actions remains a peer artifact while it orchestrates actions. If it repeatedly needs to suppress, override, or alter Definition semantics, it must become an explicit behavioral overlay with merge rules or move into a future Definition model. **Resolved:** Response Actions is a peer artifact; see [`specs/response-actions/response-actions-spec.md §1.5`](../../specs/response-actions/response-actions-spec.md#15-peer-artifact-stance-resolves-concept-111) for overlay-promotion criteria.
 
 ### 11.2 Validation Profile Names
 

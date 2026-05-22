@@ -1186,11 +1186,11 @@
       "state": "tested"
     },
     {
-      "code": "W1801",
+      "code": "E1802",
       "pass": 9,
-      "severity": "warning",
+      "severity": "error",
       "title": "Component ActionButton actionRef unresolved",
-      "specRef": "specs/response-actions/response-actions-spec.md#3-action-identity-and-resolution",
+      "specRef": "specs/component/component-spec.md#519-actionbutton",
       "suggestedFix": "declare a matching Response Actions actions[].id or update the ActionButton actionRef",
       "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
       "state": "tested"

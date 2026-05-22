@@ -218,7 +218,13 @@
         "ActionButton actionRef resolver surfaces in React, layout, and webcomponent are included in package coverage",
         "Rust core and lint detect the document and validate schema plus static semantic references",
         "cross-spec Intake Handoff seam is pinned without Formspec-authored case.created events"
-      ]
+      ],
+      "severityFloor": {
+        "E1802": {
+          "minimum": "error",
+          "rationale": "Component §5.19 Resolver Invariants: unresolved ActionButton actionRef MUST be an error finding (hosts MUST NOT downgrade). A future downgrade to warning would let broken docs slip past `lint --deny error` gates."
+        }
+      }
     },
     "definition": {
       "status": "enforced",

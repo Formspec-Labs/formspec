@@ -243,6 +243,51 @@ class TestValidationMappingSchemaShape:
             "persistence": "complete-response",
         })
 
+    @pytest.mark.parametrize(("master_intent", "tuple_value"), [
+        ("save-draft", {
+            "profile": "live",
+            "blocking": "non-blocking",
+            "persistence": "draft-checkpoint",
+        }),
+        ("autosave", {
+            "profile": "off",
+            "blocking": "non-blocking",
+            "persistence": "draft-checkpoint",
+        }),
+        ("review", {
+            "profile": "on-demand",
+            "blocking": "non-blocking",
+            "persistence": "none",
+        }),
+        ("submit", {
+            "profile": "on-submit",
+            "blocking": "block-on-error",
+            "persistence": "complete-response",
+        }),
+        ("request-evidence", {
+            "profile": "on-submit",
+            "blocking": "non-blocking",
+            "persistence": "none",
+        }),
+    ])
+    def test_validation_tuple_accepts_every_master_table_row(
+        self, schema, master_intent, tuple_value
+    ):
+        """Predicate-acceptance coverage for all five VM §6 master-table rows.
+
+        Each named ActionIntent maps to exactly one (profile, blocking,
+        persistence) tuple in the master table. Response Actions overrides
+        $ref ValidationTuple directly, so a per-action override that mirrors
+        any standard row MUST validate cleanly against the predicate.
+        """
+        tuple_schema = {
+            "$schema": schema["$schema"],
+            "$defs": schema["$defs"],
+            "$ref": "#/$defs/ValidationTuple",
+        }
+
+        jsonschema.Draft202012Validator(tuple_schema).validate(tuple_value)
+
     def test_validation_tuple_rejects_extra_properties_for_exact_consumers(self, schema):
         tuple_schema = {
             "$schema": schema["$schema"],

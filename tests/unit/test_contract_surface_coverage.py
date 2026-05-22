@@ -205,6 +205,54 @@ def test_spec_artifacts_config_entries_are_inventoried() -> None:
     )
 
 
+SEVERITY_RANK = {"info": 0, "warning": 1, "error": 2}
+
+
+def test_severity_floor_pins_are_honoured_by_the_registry() -> None:
+    """Every ``severityFloor.<code>`` pin in the contract ledger MUST be
+    matched by a registry entry whose severity is at least as strict.
+
+    Pinning is the contract gate that catches an accidental downgrade — for
+    example, if Component §5.19 promotes ``E1802`` to error severity but a
+    later edit relaxes the registry back to ``warning``, this test fails.
+    """
+    ledger = _load_json(LEDGER_PATH)
+    registry_path = REPO_ROOT / "specs" / "lint-codes.json"
+    registry = _load_json(registry_path)
+    rules_by_code = {rule["code"]: rule for rule in registry.get("rules", [])}
+
+    failures: list[str] = []
+    for contract_id, contract in ledger["contracts"].items():
+        floor = contract.get("severityFloor")
+        if not isinstance(floor, dict):
+            continue
+        for code, spec in floor.items():
+            assert isinstance(spec, dict) and "minimum" in spec, (
+                f"{contract_id}.severityFloor.{code}: must declare {{ minimum, rationale }}"
+            )
+            assert spec.get("rationale"), (
+                f"{contract_id}.severityFloor.{code}: rationale must be non-empty"
+            )
+            minimum = spec["minimum"]
+            assert minimum in SEVERITY_RANK, (
+                f"{contract_id}.severityFloor.{code}: invalid minimum {minimum!r}"
+            )
+            rule = rules_by_code.get(code)
+            if not rule:
+                failures.append(
+                    f"{contract_id}.severityFloor.{code}: code not in registry"
+                )
+                continue
+            actual = rule.get("severity")
+            if SEVERITY_RANK.get(actual, -1) < SEVERITY_RANK[minimum]:
+                failures.append(
+                    f"{contract_id}.severityFloor.{code}: registry severity "
+                    f"{actual!r} weaker than pinned minimum {minimum!r}"
+                )
+
+    assert not failures, "\n".join(failures)
+
+
 def test_react_package_parity_tests_use_discoverable_names() -> None:
     ledger = _load_json(LEDGER_PATH)
 

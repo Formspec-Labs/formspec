@@ -131,8 +131,8 @@ impl Analyzer<'_> {
                 return;
             };
             if !self.action_ids.contains(action_ref) {
-                self.diagnostics.push(warning(
-                    crate::LintCode::W1801,
+                self.diagnostics.push(error(
+                    crate::LintCode::E1802,
                     PASS,
                     format!("{path}.actionRef"),
                     format!(
@@ -256,7 +256,11 @@ mod tests {
     }
 
     #[test]
-    fn unresolved_component_action_ref_emits_w1801() {
+    fn unresolved_component_action_ref_emits_e1802_at_error_severity() {
+        // Component spec §5.19 Resolver Invariants mandate error severity for
+        // unresolved actionRef. A warning would let broken docs sneak past
+        // `lint --deny error` gates, defeating the trust contract that the
+        // ActionButton resolver never silently degrades.
         let component = json!({
             "$formspecComponent": "1.0",
             "version": "1.0.0",
@@ -271,6 +275,14 @@ mod tests {
 
         let diags = lint_response_actions(&response_actions(), None, &[component]);
 
-        assert!(diags.iter().any(|diag| diag.code == crate::LintCode::W1801));
+        let actionref_diag = diags
+            .iter()
+            .find(|diag| diag.code == crate::LintCode::E1802)
+            .expect("E1802 not emitted");
+        assert_eq!(
+            actionref_diag.severity,
+            crate::types::LintSeverity::Error,
+            "E1802 MUST be error severity per Component §5.19 Resolver Invariants"
+        );
     }
 }
