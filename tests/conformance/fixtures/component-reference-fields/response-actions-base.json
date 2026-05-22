@@ -1,0 +1,43 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "save-draft",
+      "intent": "save-draft",
+      "effects": [
+        {
+          "type": "ledgerAppend",
+          "eventKind": "draft.saved",
+          "payloadRef": "{ responseId: @response.id }",
+          "idempotencyKey": "@invocation.id & '/draft-saved'"
+        }
+      ]
+    },
+    {
+      "id": "submit",
+      "intent": "submit",
+      "effects": [
+        {
+          "type": "hostEvent",
+          "eventName": "formspec-submit"
+        }
+      ]
+    },
+    {
+      "id": "request-evidence",
+      "intent": "request-evidence",
+      "effects": [
+        {
+          "type": "evidenceRequest",
+          "requestRef": "signatureEvidence",
+          "idempotencyKey": "@invocation.id & '/signature-evidence'"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "$formspecOntology": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "name": "componentReferenceFieldsBase",
+  "title": "Component Reference Fields Base Ontology",
+  "defaultSystem": "https://example.gov/concepts",
+  "concepts": {
+    "applicantName": {
+      "concept": "https://example.gov/concepts/person-name",
+      "system": "https://example.gov/concepts",
+      "display": "Applicant legal name",
+      "code": "person-name"
+    },
+    "householdSize": {
+      "concept": "https://example.gov/concepts/household-size",
+      "system": "https://example.gov/concepts",
+      "display": "Household size",
+      "code": "household-size"
+    }
+  }
+}

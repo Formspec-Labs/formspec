@@ -1,0 +1,31 @@
+{
+  "$formspecRegistry": "1.0",
+  "publisher": {
+    "name": "Example Fixture Publisher"
+  },
+  "published": "2026-05-22T00:00:00Z",
+  "entries": [
+    {
+      "name": "x-example-person-name",
+      "category": "concept",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Fixture concept for an applicant legal name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "conceptUri": "https://example.gov/concepts/person-name"
+    },
+    {
+      "name": "x-example-household-size",
+      "category": "concept",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Fixture concept for the number of household members.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "conceptUri": "https://example.gov/concepts/household-size"
+    }
+  ]
+}

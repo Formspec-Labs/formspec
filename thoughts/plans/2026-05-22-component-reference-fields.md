@@ -174,6 +174,8 @@ Add four properties to `$defs/ComponentBase.properties`. Bump `$id` to `/1.1`. B
 
 ## Task 11: Author shared base fixtures
 
+- [x] Add shared Definition, Experience, Response Actions, Registry, and Ontology base fixtures for later reference-field tests.
+
 Definition / Experience / Response Actions base documents — same shape family as Plan E's fixtures so cross-fixture composition works.
 
 ## Task 12: Author additivity + happy-path fixtures
@@ -264,3 +266,4 @@ Task 21:       promotion-gate + architecture review
 - 2026-05-22: Architecture review blocked scaffold-only `spec-artifacts.config.json` and `surface-coverage.json` edits. Repo gates require every configured spec/schema pair to have an enforced, path-backed contract row; adding either now would fail metadata checks or overclaim proof. Task 1 was split into Task 1A now, with Task 1B/1C deferred to the proof-surface slice.
 - 2026-05-22: Task 7 architecture review expanded the resolver context from the plan's original Component/Experience/ResponseActions/Registry tuple to include optional Definition and Ontology context, and required an explicit authored-tree/custom-template traversal surface so `item:` anchors and nodes without `id` have deterministic report keys.
 - 2026-05-22: Task 10 architecture review expanded the schema delta beyond `schemas/component.schema.json`. Bumping the Component schema `$id` to `/1.1` requires canonical TargetDefinition `$ref` consumers and the lint-crate schema registration/mirror to move with it, otherwise local schema registries and generated types lose the component resource.
+- 2026-05-22: Task 11 architecture review added minimal Registry and Ontology base fixtures to the planned Definition/Experience/Response Actions base set. Task 12's all-resolved fixture needs explicit concept context for `conceptRefs`; otherwise concept resolution would be not-attempted rather than resolved.

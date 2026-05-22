@@ -1,0 +1,41 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/component-reference-fields-base",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Component Reference Fields Base Definition",
+  "items": [
+    {
+      "key": "applicantName",
+      "type": "field",
+      "dataType": "string",
+      "label": "Applicant name"
+    },
+    {
+      "key": "householdSize",
+      "type": "field",
+      "dataType": "integer",
+      "label": "Household size"
+    },
+    {
+      "key": "applicantSignature",
+      "type": "field",
+      "dataType": "attachment",
+      "label": "Applicant signature"
+    }
+  ],
+  "binds": [
+    {
+      "path": "applicantName",
+      "required": "true"
+    },
+    {
+      "path": "householdSize",
+      "required": "true"
+    },
+    {
+      "path": "applicantSignature",
+      "required": "true"
+    }
+  ]
+}
