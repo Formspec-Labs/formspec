@@ -112,6 +112,8 @@ Draft §1 (purpose, relationship to existing specs, design principles, conforman
 
 ## Task 3: §2 unitRef
 
+- [x] Draft §2 `unitRef` shape, resolution, findings, and runtime semantics.
+
 Shape (string matching `Unit.id` pattern), resolution (against `experience.units[*].id`), severity (`error` for unresolved when Experience present; `info` per-node when Experience absent). Reference-only — no rendering effect, no Experience coverage mutation.
 
 ## Task 4: §3 taskRefs

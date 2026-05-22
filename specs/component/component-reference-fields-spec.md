@@ -169,7 +169,65 @@ kept so this follow-up remains additive to current Component schema truth.
 
 ## 2. `unitRef`
 
-Task 3 drafts this section.
+### 2.1 Shape
+
+`unitRef` is an OPTIONAL string field on a Component node. When present, it
+identifies the Experience Unit that most directly explains the node's task
+intent.
+
+The value MUST match the identifier profile used by Experience `Unit.id`. The
+current Experience schema accepts identifiers that start with an ASCII letter
+and continue with ASCII letters, digits, or underscores. Authors SHOULD continue
+to use the user-domain camelCase style recommended by the Experience
+specification.
+
+`unitRef` is a single reference, not an array. A Component node has at most one
+primary Unit relationship. Secondary or cross-cutting task relationships belong
+in `taskRefs`, not in multiple `unitRef` values.
+
+### 2.2 Resolution Target
+
+When an Experience document is loaded, `unitRef` resolves against
+`experience.units[*].id`. Resolution is exact string equality after JSON parsing.
+Resolvers MUST NOT normalize case, trim whitespace, replace separators, infer
+near matches, or synthesize missing Units.
+
+Resolution reads the Experience document only. It MUST NOT add a Unit to
+Experience, move the Component node, alter `unit.taskRefs[]`, or mark Experience
+coverage as satisfied or unsatisfied.
+
+### 2.3 Findings
+
+If a Component node carries `unitRef` and an Experience document is loaded, the
+reference MUST resolve to exactly one Unit. If no Unit has that `id`, the
+resolver MUST emit a `COMP-REFERENTIAL-INTEGRITY` finding with:
+
+- `kind: "unitRef"`;
+- `severity: "error"`;
+- the offending Component node id when the node has `id`;
+- the stable node path when the node has no `id`; and
+- the unresolved Unit id.
+
+If a Component node carries `unitRef` and no Experience document is loaded, the
+resolver MUST emit an `info` finding of kind `"unitRef"` for that node. The
+absence of Experience prevents confirmation, but it is not itself a Component
+schema error.
+
+Processors MAY include the resolved Unit in their annotation map when resolution
+succeeds. They MUST keep that annotation report-only and MUST NOT write it back
+into Component or Experience.
+
+### 2.4 Runtime Semantics
+
+`unitRef` is reference metadata. It MUST NOT affect rendering, layout grouping,
+page or section boundaries, wizard step order, visibility, validation,
+calculation, Mapping execution, Response status, Response Actions invocation,
+Experience coverage, or Respondent Ledger behavior.
+
+Renderers MAY expose resolved Unit metadata in authoring or debugging tools.
+They MUST NOT use `unitRef` as an input to the default runtime view unless a
+separate host feature explicitly layers that behavior outside this
+specification.
 
 ## 3. `taskRefs`
 
