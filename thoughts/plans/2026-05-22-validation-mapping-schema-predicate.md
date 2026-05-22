@@ -1,7 +1,7 @@
 ---
 title: Validation-Mapping Schema — Predicate Refactor for Reuse
 date: 2026-05-22
-status: active
+status: completed
 owner: spec-author
 related:
   - thoughts/plans/2026-05-22-response-actions-spec.md

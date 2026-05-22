@@ -1,7 +1,7 @@
 ---
 title: Response Actions Companion Spec Implementation Plan
 date: 2026-05-22
-status: active
+status: completed
 owner: spec-author
 related:
   - thoughts/specs/2026-05-20-formspec-semantic-layers.md
