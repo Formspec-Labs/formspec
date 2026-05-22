@@ -13,6 +13,8 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from jsonschema import Draft202012Validator, RefResolver
 
+from formspec._rust import lint
+
 ROOT = Path(__file__).parents[2]
 ISSUER_CASES = ROOT / "tests" / "fixtures" / "issuer"
 MAX_CHAIN_DEPTH = 8
@@ -46,6 +48,9 @@ def drive_schema_validate(case_dir: Path, case: dict):
             assert copy.deepcopy(doc) == doc
         if "expectedWarnings" in entry:
             assert issuer_warnings(doc) == entry["expectedWarnings"]
+            assert issuer_lint_codes(doc) == issuer_expected_lint_codes(
+                entry["expectedWarnings"]
+            )
 
     for entry in case.get("invalid", []):
         doc = load_case_json(case_dir, entry)
@@ -283,6 +288,18 @@ def issuer_warnings(issuer: dict) -> list[str]:
     if issuer.get("kind") == "individual" and issuer.get("parentOrganization"):
         warnings.append("individual-with-parent")
     return warnings
+
+
+def issuer_expected_lint_codes(warnings: list[str]) -> list[str]:
+    mapping = {
+        "department-missing-parent": "W1600",
+        "individual-with-parent": "W1600",
+    }
+    return [mapping[warning] for warning in warnings]
+
+
+def issuer_lint_codes(issuer: dict) -> list[str]:
+    return [diag.code for diag in lint(issuer) if diag.code == "W1600"]
 
 
 def publisher_warnings(publisher: dict) -> list[dict[str, str]]:

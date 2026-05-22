@@ -1,13 +1,15 @@
 'use client';
 
 /** @filedesc FormspecForm — auto-renderer that walks LayoutNode tree into React elements. */
-import React, { useState, useCallback, useLayoutEffect, useRef } from 'react';
+import React, { useState, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import type { IssuerSource } from '@formspec-org/engine';
 import { buildPlatformTheme, emitMergedThemeCssVars } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
 import { FormspecProvider } from './context';
 import type { FormspecProviderProps } from './context';
 import { useFormspecContext } from './context';
 import { FormspecNode } from './node-renderer';
+import { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
 import { FormspecScreener } from './screener/FormspecScreener';
 import type { ScreenerRoute, ScreenerRouteType } from './screener/types';
 
@@ -69,6 +71,8 @@ function useEmitThemeTokensOnFormspecContainerRef(): React.RefObject<HTMLDivElem
 export interface FormspecFormProps extends Omit<FormspecProviderProps, 'children'> {
     /** Optional className on the root container. */
     className?: string;
+    /** Origins allowed to supply `?_issuer=` branding overrides. Empty or absent disables query overrides. */
+    issuerAllowedOrigins?: readonly string[];
     /** Standalone Screener Document. */
     screenerDocument?: any;
     /** When true, bypass the screener gate entirely. */
@@ -92,17 +96,28 @@ export interface FormspecFormProps extends Omit<FormspecProviderProps, 'children
  * When the definition contains a screener, the screener gate is rendered first.
  * Once the screener routes internally (or is skipped), the form is shown.
  */
-export function FormspecForm({
-    definition,
-    className,
-    screenerDocument,
-    skipScreener,
-    screenerSeedAnswers,
-    renderExternalRoute,
-    renderNoMatch,
-    onScreenerRoute,
-    ...providerProps
-}: FormspecFormProps) {
+export function FormspecForm(props: FormspecFormProps) {
+    const {
+        definition,
+        className,
+        issuerAllowedOrigins,
+        issuerOverride,
+        screenerDocument,
+        skipScreener,
+        screenerSeedAnswers,
+        renderExternalRoute,
+        renderNoMatch,
+        onScreenerRoute,
+        ...providerProps
+    } = props;
+    const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
+    const effectiveIssuerOverride = useEffectiveIssuerOverride(
+        hasIssuerOverrideProp ? issuerOverride : undefined,
+        issuerAllowedOrigins,
+    );
+    const issuerProviderProps = hasIssuerOverrideProp || effectiveIssuerOverride
+        ? { issuerOverride: effectiveIssuerOverride }
+        : {};
     const hasScreener = !skipScreener && hasActiveScreenerDoc(screenerDocument);
 
     const [screenerDone, setScreenerDone] = useState(!hasScreener);
@@ -120,7 +135,7 @@ export function FormspecForm({
     // If the screener is active and not yet resolved, render it standalone
     if (hasScreener && !screenerDone) {
         return (
-            <FormspecProvider definition={definition} {...providerProps}>
+            <FormspecProvider definition={definition} {...providerProps} {...issuerProviderProps}>
                 <ScreenerGate
                     screenerDocument={screenerDocument}
                     className={className}
@@ -135,7 +150,7 @@ export function FormspecForm({
     }
 
     return (
-        <FormspecProvider definition={definition} {...providerProps}>
+        <FormspecProvider definition={definition} {...providerProps} {...issuerProviderProps}>
             <FormspecFormInner className={className} />
         </FormspecProvider>
     );
@@ -164,12 +179,18 @@ function ScreenerGate({
     onSkip: () => void;
 }) {
     const containerRef = useEmitThemeTokensOnFormspecContainerRef();
+    const { engine } = useFormspecContext();
 
     return (
         <div
             ref={containerRef}
             className={className ? `formspec-container ${className}` : 'formspec-container'}
         >
+            <IssuerChromeSlot
+                engine={engine}
+                hostOrigin={browserHostOrigin()}
+                mode={issuerChromeModeFromClassName(className)}
+            />
             <FormspecScreener
                 screenerDocument={screenerDocument}
                 seedAnswers={seedAnswers}
@@ -189,7 +210,7 @@ function ScreenerGate({
 }
 
 function FormspecFormInner({ className }: { className?: string }) {
-    const { layoutPlan } = useFormspecContext();
+    const { engine, layoutPlan } = useFormspecContext();
     const containerRef = useEmitThemeTokensOnFormspecContainerRef();
 
     if (!layoutPlan) {
@@ -198,6 +219,11 @@ function FormspecFormInner({ className }: { className?: string }) {
             : 'formspec-container';
         return (
             <div ref={containerRef} className={containerClass}>
+                <IssuerChromeSlot
+                    engine={engine}
+                    hostOrigin={browserHostOrigin()}
+                    mode={issuerChromeModeFromClassName(className)}
+                />
                 No layout plan available.
             </div>
         );
@@ -209,6 +235,11 @@ function FormspecFormInner({ className }: { className?: string }) {
 
     return (
         <div ref={containerRef} className={containerClass}>
+            <IssuerChromeSlot
+                engine={engine}
+                hostOrigin={browserHostOrigin()}
+                mode={issuerChromeModeFromClassName(className)}
+            />
             <FormspecNode node={layoutPlan} />
         </div>
     );
@@ -221,4 +252,34 @@ function hasActiveScreenerDoc(screenerDocument: any | null | undefined): boolean
         Array.isArray(screenerDocument?.items) &&
         screenerDocument.items.length > 0
     );
+}
+
+function useEffectiveIssuerOverride(
+    issuerOverride: IssuerSource | undefined,
+    issuerAllowedOrigins: readonly string[] | undefined,
+): IssuerSource | undefined {
+    return useMemo(() => {
+        if (issuerOverride) {
+            return withEmbedSource(issuerOverride);
+        }
+        if (typeof window === 'undefined') {
+            return undefined;
+        }
+        return parseQueryIssuerOverride(new URL(window.location.href), issuerAllowedOrigins ?? []);
+    }, [issuerOverride, issuerAllowedOrigins]);
+}
+
+function withEmbedSource(source: IssuerSource): IssuerSource {
+    if (source.kind === 'inline') {
+        return { kind: 'inline', issuer: source.issuer, source: 'host-embed' };
+    }
+    return { kind: 'url', url: source.url, source: 'host-embed' };
+}
+
+function browserHostOrigin(): string | undefined {
+    return typeof window === 'undefined' ? undefined : window.location.origin;
+}
+
+function issuerChromeModeFromClassName(className?: string): 'light' | 'dark' | 'high-contrast' {
+    return className?.split(/\s+/).includes('formspec-appearance-dark') ? 'dark' : 'light';
 }

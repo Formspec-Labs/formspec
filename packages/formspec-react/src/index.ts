@@ -37,6 +37,8 @@ export type { FieldComponentProps, LayoutComponentProps, DisplayComponentProps, 
 export { FormspecForm } from './renderer';
 export type { FormspecFormProps } from './renderer';
 export { FormspecNode } from './node-renderer';
+export { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
+export type { IssuerChromeSlotProps } from './issuer';
 
 // ── Screener ──
 export { FormspecScreener, useScreener } from './screener';

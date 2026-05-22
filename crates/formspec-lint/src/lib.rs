@@ -23,6 +23,7 @@
 mod generated;
 mod lint_json;
 mod metadata;
+mod pass_issuer;
 mod pass_locale;
 pub mod pass_mapping;
 pub mod pass_ontology;
@@ -120,6 +121,9 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),
         DocumentType::Response => {
             diagnostics.extend(pass_response::lint_response(doc));
+        }
+        DocumentType::Issuer => {
+            diagnostics.extend(pass_issuer::lint_issuer(doc));
         }
         _ => {}
     }
@@ -277,6 +281,71 @@ mod tests {
                 .collect::<Vec<_>>()
         );
         assert_eq!(result.document_type, Some(DocumentType::Issuer));
+    }
+
+    #[test]
+    fn department_issuer_without_parent_emits_semantic_warning() {
+        let issuer = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.com/issuers/department.json",
+            "version": "1.0.0",
+            "name": "Department",
+            "kind": "department"
+        });
+
+        let result = lint(&issuer);
+
+        assert_eq!(result.document_type, Some(DocumentType::Issuer));
+        assert!(
+            result.valid,
+            "issuer warning must not make document invalid: {:?}",
+            result.diagnostics
+        );
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::W1600),
+            "department issuer should emit W1600, got: {:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn individual_issuer_with_parent_emits_semantic_warning() {
+        let issuer = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.com/issuers/individual.json",
+            "version": "1.0.0",
+            "name": "Individual",
+            "kind": "individual",
+            "parentOrganization": "https://example.com/issuers/org.json"
+        });
+
+        let result = lint(&issuer);
+
+        assert_eq!(result.document_type, Some(DocumentType::Issuer));
+        assert!(
+            result.valid,
+            "issuer warning must not make document invalid: {:?}",
+            result.diagnostics
+        );
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::W1600),
+            "individual issuer should emit W1600, got: {:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]

@@ -1,0 +1,7 @@
+{
+  "$formspecIssuer": "1.0",
+  "url": "https://example.com/issuers/department.json",
+  "version": "1.0.0",
+  "name": "Department Without Parent",
+  "kind": "department"
+}

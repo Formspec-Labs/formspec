@@ -3,8 +3,7 @@
 /** @filedesc FormspecProvider — React context wrapping a FormEngine + optional layout plan. */
 import React, { createContext, useContext, useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { signal } from '@preact/signals-core';
-import type { ReadonlyEngineSignal } from '@formspec-org/engine';
-import type { IFormEngine } from '@formspec-org/engine';
+import type { IFormEngine, IssuerFetcher, IssuerSource, ReadonlyEngineSignal } from '@formspec-org/engine';
 import type { FormResponse, ValidationReport } from '@formspec-org/types';
 import { createFormEngine } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
@@ -69,6 +68,10 @@ export interface FormspecProviderProps {
     registryEntries?: any[];
     /** Runtime context for FEL today(), locale formatting, etc. */
     runtimeContext?: any;
+    /** Optional fetcher for remote Issuer documents. */
+    issuerFetcher?: IssuerFetcher;
+    /** Host-supplied Issuer override. */
+    issuerOverride?: IssuerSource;
     /** Component map overrides. */
     components?: ComponentMap;
     /** Callback for form submission. If provided, a submit button is rendered. */
@@ -81,27 +84,43 @@ export interface FormspecProviderProps {
  *
  * Accepts either a pre-built `engine` or a raw `definition` (creates engine internally).
  */
-export function FormspecProvider({
-    engine: externalEngine,
-    definition,
-    componentDocument,
-    themeDocument,
-    initialData,
-    registryEntries,
-    runtimeContext,
-    components = {},
-    onSubmit,
-    children,
-}: FormspecProviderProps) {
+export function FormspecProvider(props: FormspecProviderProps) {
+    const {
+        engine: externalEngine,
+        definition,
+        componentDocument,
+        themeDocument,
+        initialData,
+        registryEntries,
+        runtimeContext,
+        issuerFetcher,
+        issuerOverride,
+        components = {},
+        onSubmit,
+        children,
+    } = props;
+    const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
+
     const engine = useMemo(() => {
         if (externalEngine) return externalEngine;
         if (!definition) throw new Error('FormspecProvider requires either engine or definition');
-        const eng = createFormEngine(definition, { runtimeContext, registryEntries });
+        const eng = createFormEngine(definition, {
+            runtimeContext,
+            registryEntries,
+            issuerFetcher,
+            issuerOverride,
+        });
         if (initialData) {
             applyInitialData(eng, initialData);
         }
         return eng;
-    }, [externalEngine, definition, registryEntries, runtimeContext, initialData]);
+    }, [externalEngine, definition, registryEntries, runtimeContext, initialData, issuerFetcher]);
+
+    useEffect(() => {
+        if (hasIssuerOverrideProp) {
+            engine.setIssuerOverride(issuerOverride);
+        }
+    }, [engine, hasIssuerOverrideProp, issuerOverride]);
 
     // Build registry entry map for extension resolution
     const registryMap = useMemo(() => {

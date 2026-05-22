@@ -1094,6 +1094,16 @@
       "suggestedFix": "move unconditional first-match routes after narrower routes or make the earlier condition selective",
       "fixtures": ["tests/fixtures/lint/E1500-screener-semantic-invalid.json"],
       "state": "tested"
+    },
+    {
+      "code": "W1600",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Issuer kind and parentOrganization mismatch",
+      "specRef": "specs/issuer/issuer-spec.md#75-kind-disambiguation",
+      "suggestedFix": "add parentOrganization to department issuers, or remove parentOrganization from individual issuers",
+      "fixtures": ["tests/fixtures/lint/W1600-issuer-kind-parent-warning.json"],
+      "state": "tested"
     }
   ]
 }

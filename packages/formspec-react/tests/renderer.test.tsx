@@ -20,6 +20,9 @@ const originalMatchMedia = window.matchMedia;
 
 afterEach(() => {
     window.matchMedia = originalMatchMedia;
+    window.history.pushState({}, '', '/');
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
 });
 
 const testDefinition = {
@@ -161,10 +164,11 @@ describe('FormspecForm', () => {
 
         const host = container.querySelector('.formspec-container') as HTMLElement;
         expect(host).toBeTruthy();
-        const rootStack = host.firstElementChild as HTMLElement;
+        const rootStack = Array.from(host.children)
+            .find((el) => el.classList.contains('formspec-stack')) as HTMLElement | undefined;
         expect(rootStack).toBeTruthy();
-        expect(rootStack.classList.contains('formspec-stack')).toBe(true);
-        expect(rootStack.classList.contains('formspec-container')).toBe(false);
+        expect(rootStack!.classList.contains('formspec-stack')).toBe(true);
+        expect(rootStack!.classList.contains('formspec-container')).toBe(false);
     });
 
     it('emits default theme CSS variables on formspec-container (parity with web component)', () => {
