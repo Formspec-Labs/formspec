@@ -38,6 +38,87 @@
         "minimum": 0
       }
     },
+    "ContactPoint": {
+      "type": "object",
+      "description": "Contact point - schema.org-aligned, vCard 4.0 semantics.",
+      "additionalProperties": false,
+      "properties": {
+        "contactType": {
+          "type": "string",
+          "description": "Open vocabulary: 'customer support', 'accessibility', 'language line', etc. Renderers SHOULD honor 'customer support' as default."
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "telephone": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "availableLanguage": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$"
+          }
+        }
+      }
+    },
+    "LangMap": {
+      "type": "object",
+      "description": "Language-keyed string map (BCP 47 keys). JSON-LD-compatible with @container: '@language'.",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$",
+        "description": "BCP 47 language tag (e.g., 'en', 'es-MX', 'zh-Hant-TW')."
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "Party": {
+      "type": "object",
+      "description": "Shared base for entities that publish or issue Formspec documents. Issuer and Publisher both extend Party.",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/LangMap"
+            }
+          ],
+          "description": "Display name. Plain string or LangMap."
+        },
+        "identifier": {
+          "type": "string",
+          "format": "uri",
+          "description": "Stable entity URI - ROR, Wikidata, DID, or own-domain URL."
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri",
+          "description": "Public organizational homepage (distinct from any document URL)."
+        },
+        "contactPoint": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ContactPoint"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ContactPoint"
+              }
+            }
+          ]
+        }
+      }
+    },
     "StyleMap": {
       "type": "object",
       "description": "Flat style map. Values may contain $token.path references.",
