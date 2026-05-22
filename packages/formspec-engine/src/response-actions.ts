@@ -472,9 +472,9 @@ function effectWithIdempotencyKey(effect: EffectRequest, idempotencyKey: string 
  * is schema-valid but produces the same key for every invocation — hosts
  * that dedupe by key silently drop legitimate later invocations. Spec §6.3
  * expects an expression referencing at least one of @invocation, @action,
- * @effects, etc. The matching Rust lint pass (sibling craftsman) emits a
- * W18xx code; the runtime emits console.warn so authors catch it without
- * breaking the flow.
+ * @effects, etc. The Rust lint pass `pass_response_actions` emits W1802 at
+ * authoring time; the runtime emits console.warn so authors catch it even
+ * when the lint hasn't run (e.g., dynamic document construction in tests).
  */
 function maybeWarnAboutStaticIdempotencyKey(
     actionId: string,
