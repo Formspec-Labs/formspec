@@ -63,7 +63,7 @@ Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in belo
 | MergeReport schema | New `regeneration-merge-report.schema.json` | HIGH | Cross-runtime conformance + concrete structural seed for Trace (concept §10.6). |
 | Coverage findings | **Delegated to Experience resolver** (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`, EXP §S8). MergeReport does NOT carry coverage gaps | HIGH | H2 fix: concept §10.6 lists four things Studio review needs; the fourth ("required items lack coverage") is already owned by EXP-COVERAGE. Studio composes the MergeReport AND the Experience resolver findings; duplicating coverage in MergeReport would re-create dual-ownership. |
 | Rename handling | **Migration document is the primary signal — no heuristic detection.** A rename is detected ONLY when a migration entry maps `old_anchor → new_anchor` such that substituting the mapping in N_old's anchor set yields exactly N_new's anchor set | HIGH | H3 fix: "pattern consistent with a rename" cannot be defined without picking arbitrary set-distance thresholds. Migration-as-substitution gives a deterministic, two-implementation-agreement rule. |
-| Migration document format | **Defined inline by this spec** as a minimum shape: `{ migrations: [{ from: "<anchor>", to: "<anchor>" }] }`. Anchor-pair only; richer migration semantics deferred | MEDIUM | L3 fix: no `migration-spec.md` exists in `formspec/specs/`. Defining a minimum here unblocks rename handling without forcing a separate migration plan. If a richer migration spec lands later, this minimum is a forward-compatible subset. |
+| Anchor-mappings document format | **Defined inline by this spec** as a minimum shape: `{ "$formspecAnchorMappings": "1.0", "anchorMappings": [{ "from": "<anchor>", "to": "<anchor>" }] }`. Anchor-pair only; named `anchorMappings` to avoid collision with Core §6.7 `migrations` (which transforms Response data, a different domain) | MEDIUM | L3 + F6 fix: no `migration-spec.md` exists in `formspec/specs/`; the term "migration" is already taken by Core §6.7. Defining a minimum here unblocks rename handling under a non-colliding name. If a richer anchor-mappings spec lands later, this minimum is a forward-compatible subset. |
 | Convergence (not idempotency) | Re-running merge after no source change yields zero conflicts and zero pendingReview | HIGH | H1 fix: original "idempotency" definition (`merge(new, merged1, new) == merged1`) requires undefined `x-generation` carry-forward semantics for pendingReview nodes and would fail/pass for wrong reasons. Pure determinism is covered by `test_determinism`; the meaningful steady-state invariant is convergence. |
 | Studio DOM contract | `data-merge-status` AND `data-merge-anchors` on every report-affected node | MEDIUM | M2 fix: `data-merge-status` alone could pass with a single root marker; pairing with `data-merge-anchors` (sorted, comma-joined) ties the DOM assertion to a specific MergeReport entry. |
 
@@ -166,7 +166,7 @@ merge(
   old_generated: Component v1.1,
   designer_edited: Component v1.1,
   new_generated: Component v1.1,
-  context: { definition?, experience?, response_actions?, registry?, ontology?, migrations? }
+  context: { definition?, experience?, response_actions?, registry?, ontology?, anchorMappings? }
 ) -> { merged: Component v1.1, report: MergeReport }
 ```
 
@@ -184,7 +184,9 @@ merge(
 
 - [ ] Draft §3 defining how nodes are matched across the three input trees.
 
-**Primary rule:** a node N_old in `old-generated` matches a node N_new in `new-generated` iff `N_old.x-generation.anchors` equals `N_new.x-generation.anchors` as a set (order-independent, duplicate-free). Same rule applies to matching `designer-edited` nodes against `new-generated`.
+**Normative set-equality (F1 fix).** CRF §5.1 declares `x-generation.anchors` as "array of string" without ordering semantics. This spec defines a stronger normative rule applicable only to regeneration merge: for merge-identity purposes, anchor arrays are compared as **order-normalized, duplicate-stripped sets**. Two anchor arrays match iff their string-sorted, deduplicated forms are byte-identical. This rule lives in regeneration-merge-spec §3 and is NOT a CRF claim.
+
+**Primary rule:** a node N_old in `old-generated` matches a node N_new in `new-generated` iff `N_old.x-generation.anchors` and `N_new.x-generation.anchors` compare equal under the order-normalized set rule above. Same rule applies to matching `designer-edited` nodes against `new-generated`.
 
 **Tiebreaker for duplicated anchor sets (B1 fix):** anchor uniqueness is NOT enforced by CRF — a `Section` and a `Label` inside it can both carry `["unit:identity"]`. When multiple candidate nodes within the SAME tree share an identical anchor set, the matching key extends to `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. Parent identity recurses via the same rule; the ordinal sibling index counts only siblings that share the anchor set (so unrelated siblings don't shift the index).
 
@@ -346,12 +348,12 @@ Rules:
 
 - [ ] Draft §9 defining rename detection via migration substitution. **H3 fix: no heuristic detection — migration document is the only signal.**
 
-**Migration document shape (L3 fix).** No `migration-spec.md` exists in `formspec/specs/` as of this writing. This spec defines the minimum migration document shape consumed by the merge:
+**Anchor-mappings document shape (L3 + F6 fix).** No `migration-spec.md` exists in `formspec/specs/` as of this writing. This spec defines the minimum **anchor-mappings document** shape consumed by the merge. The artifact is named `anchorMappings`, NOT `migrations`, to avoid conceptual collision with Core §6.7 (which uses `migrations` for Response-data field transformations within a Definition document — a different concept).
 
 ```json
 {
-  "$formspecMigration": "1.0",
-  "migrations": [
+  "$formspecAnchorMappings": "1.0",
+  "anchorMappings": [
     { "from": "item:dateOfBirth", "to": "item:birthDate" },
     { "from": "unit:legacyIdentity", "to": "unit:identity" }
   ]
@@ -360,13 +362,13 @@ Rules:
 
 Each entry maps a single old anchor (`from`) to a single new anchor (`to`). Entries are unordered and processed as a set. A richer migration spec MAY land later (semantic versioning, conditional migrations, value transforms); the minimum shape above is its forward-compatible subset.
 
-**Match-via-migration rule.** Let `substitute(anchors, M)` apply every applicable migration entry in `M` to the anchor set `anchors`. A node N_old matches N_new via migration iff:
+**Match-via-substitution rule.** Let `substitute(anchors, M)` apply every applicable mapping entry in `M` to the anchor set `anchors`. A node N_old matches N_new via substitution iff:
 
 ```text
 substitute(N_old.anchors, M) == N_new.anchors
 ```
 
-— that is, applying the migration to N_old's anchor set yields EXACTLY N_new's anchor set. Set equality, not subset. If the substitution does not produce equality, no match is declared.
+— that is, applying the mappings to N_old's anchor set yields EXACTLY N_new's anchor set under the §3 order-normalized set rule. If substitution does not produce equality, no match is declared.
 
 **When a migration match succeeds, the merge:**
 
@@ -401,14 +403,32 @@ A Studio-grade review surface MUST:
 
 ## Task 12: Spec prose — §11 Conformance
 
-- [ ] Draft §11 pinning four conformance levels:
+- [ ] Draft §11 pinning four conformance levels.
 
-1. **Algorithm.** Implements §6 algorithm; emits findings per §7; honors §8 orphan rules and §9 rename rules.
-2. **Report shape.** `MergeReport` validates against `regeneration-merge-report.schema.json`.
-3. **Invariants.** Determinism (two identical inputs → identical merged + report); no-mutation (inputs deep-equal before and after merge); **convergence** (H1 fix: re-running the merge after no source change yields zero conflicts and zero pendingReview — formal statement below).
-4. **Composition with resolvers.** After producing `merged`, a conforming runtime MUST invoke the CRF §6 cross-document resolver AND the Experience coverage resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` per EXP §S8) against the merged document, joining their findings to MergeReport entries by `nodePath`. The merge does NOT duplicate those findings; the review surface composes them.
+**Level 1 — Algorithm.** Implements §6 algorithm; emits findings per §7; honors §8 orphan rules and §9 substitution rules.
 
-**Convergence (H1).** Given `(merged, report) = merge(old, designer, new, ctx)`, the operation `merge(old', merged, new, ctx)` — where `old' = old-generated produced ALONGSIDE the same `new` (so `old'` is the same input that produced `new` and contains the same node identities as `new` minus the designer's pending-review acceptances) — MUST produce a `report'` with empty `conflicts` and empty `pendingReview`, and a `merged'` structurally equal to `merged`. Convergence is a host-cycle invariant: once a designer reviews and accepts pending nodes, the next regeneration MUST be a no-op until a source artifact changes.
+**Level 2 — Report shape.** `MergeReport` validates against `regeneration-merge-report.schema.json`.
+
+**Level 3 — Invariants.** Determinism, no-mutation, and convergence-under-no-source-change (definition below).
+
+**Level 4 — Composition with resolvers.** After producing `merged`, a conforming runtime MUST run the CRF §6 cross-document resolver on the merged document AND MUST run the Experience coverage resolver per EXP §10 on the loaded `(Definition, Experience)` pair. Findings from both resolvers compose into the review surface alongside MergeReport entries.
+
+**F2 grounding for invoking CRF §6 on a synthesized document.** CRF §6.3 limits resolver traversal to the "authored Component document, not an implementation-specific rendered DOM or host widget tree." A merged Component document is structurally a Component document, not a DOM, and is NOT an expansion of custom component instances (CRF §6.3 line 519 forbids pre-expansion). CRF §6.1 takes a `component` document as input without an authorship constraint, and CRF §6.4 establishes the resolver as deterministic, no-mutation, one-directional, and report-only. Regeneration-merge §11 MUST cite CRF §6.1 + §6.4 (NOT §6.3's "authored" word) as the basis for invoking the resolver on the merged document. The merged document satisfies the structural requirement of §6.1; the side-effect-free guarantee of §6.4 makes the invocation safe.
+
+**F3 EXP coverage composition.** EXP §8.1 (`experience-spec.md` line 327) defines coverage as a predicate over `(Definition, Experience)` — NOT over a Component document. EXP coverage findings carry the field `path` (Definition item path, e.g., `applicantName`), NOT `nodePath` (Component tree path). Therefore the merge runtime MUST NOT attempt to feed the merged Component document into the Experience resolver. Instead:
+
+1. The merge runtime invokes the Experience coverage resolver on the loaded `(Definition, Experience)` pair independently of merge inputs.
+2. The resolver emits zero or more `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` findings, each carrying `path` (Definition item path).
+3. The review surface composes each EXP finding to MergeReport entries via a **two-hop join**: EXP `path` → anchor string `"item:<path>"` → MergeReport entry whose `anchors` contains that string → MergeReport entry's `nodePath`. The first hop is the canonical anchor-prefix rule (CRF §5.2 `item:` prefix); the second is the standard MergeReport indexing.
+4. EXP findings for items that no MergeReport entry covers (no anchor `item:<path>` exists in the merged document) surface as uncovered-and-unanchored — Studio displays them in the coverage panel without a node link.
+
+MergeReport itself does NOT carry coverage findings. The merge schema description (Task 13) documents the two-hop join explicitly.
+
+**F4 Convergence — narrowed.** Convergence guarantees apply only after the designer's review-and-resolve cycle completes. Formally:
+
+> Given `(merged, report) = merge(old, designer, new, ctx)`, if `report.conflicts == [] AND report.pendingReview == []`, then `merge(new, merged, new, ctx)` MUST produce a `report'` with empty `conflicts` and empty `pendingReview`, and `merged'` structurally equal to `merged`.
+
+If cycle 1's report has non-empty `conflicts` or `pendingReview`, the convergence guarantee does NOT apply until the designer resolves those entries (semantics of "resolve" — accept-regenerated, accept-designer-with-tombstone, manual edit — are host-defined). Without conflict resolution, cycle 2 may legitimately re-raise the same findings (e.g., the `DESIGNER-REMOVED` case: if the designer does not reverse the removal or supply a tombstone, the source still mandates the node and the conflict persists on every cycle until resolved). This is correct behavior, not a convergence failure.
 
 §11 MUST state: a runtime that fails any one level does not conform. Schema-validity of the merged Component document is implicit (the output is a Component v1.1 document).
 
@@ -418,7 +438,7 @@ A Studio-grade review surface MUST:
 
 - [ ] Create `schemas/regeneration-merge-report.schema.json`. JSON Schema 2020-12.
 
-Shape:
+Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` added so Studio can identify which properties survived/changed without re-diffing inputs):
 
 ```json
 {
@@ -434,15 +454,22 @@ Shape:
     "pendingReview":{ "type": "array", "items": { "$ref": "#/$defs/Entry" } },
     "conflicts":    { "type": "array", "items": { "$ref": "#/$defs/ConflictEntry" } }
   },
-  "description": "Coverage-against-Experience findings are NOT included here. They are emitted by the Experience resolver as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM and composed into the review surface alongside this report by joining on nodePath. Same for CRF/Component bind/reference-resolution failures.",
+  "description": "Coverage findings are NOT included here. They are emitted by the Experience coverage resolver (EXP §10) as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM, carry the field `path` (Definition item path, NOT `nodePath`), and compose into the review surface via a two-hop join: EXP `path` -> anchor string `item:<path>` -> MergeReport entry whose `anchors` includes that string -> MergeReport entry's `nodePath`. CRF and Component bind/reference-resolution failures compose via the same two-hop pattern under their respective anchor prefixes (`unit:`, `task:`, `action:`, `concept:`).",
   "$defs": {
     "Entry": {
       "type": "object",
-      "required": ["anchors", "nodePath"],
+      "required": ["anchors", "nodePath", "code", "severity"],
       "properties": {
-        "anchors":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-        "nodePath": { "type": "string", "description": "Stable path in the merged document tree." },
-        "reason":   { "type": "string" }
+        "anchors":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Anchor set compared under §3 order-normalized set-equality (NOT a CRF semantic; regeneration-merge-spec only)." },
+        "nodePath": { "type": "string", "description": "Stable path in the merged document tree (e.g., /tree/children/0)." },
+        "code":     { "type": "string", "pattern": "^COMP-REGENERATION-[A-Z-]+$" },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "reason":   { "type": "string" },
+        "propertyDeltas": {
+          "type": "array",
+          "description": "JSON Pointer strings for properties on this node that differ between old, designer, and new. Studio uses these as the diff key set; actual property values are read from the three input documents the merge consumed. OPTIONAL: empty array allowed when no property-level change applies (e.g., orphans, pending-review nodes).",
+          "items": { "type": "string", "pattern": "^/" }
+        }
       }
     },
     "OrphanEntry": {
@@ -459,17 +486,8 @@ Shape:
       ]
     },
     "ConflictEntry": {
-      "allOf": [
-        { "$ref": "#/$defs/Entry" },
-        {
-          "type": "object",
-          "required": ["code", "severity"],
-          "properties": {
-            "code":     { "type": "string", "pattern": "^COMP-REGENERATION-[A-Z-]+$" },
-            "severity": { "enum": ["error", "warning", "info"] }
-          }
-        }
-      ]
+      "$ref": "#/$defs/Entry",
+      "description": "Same shape as Entry. Conflicts are distinguished by array placement (conflicts[]), not by extra fields. Conflict-specific finding codes (DESIGNER-PRECEDES, DESIGNER-REMOVED, PROPERTY-CONFLICT, WIDGET-SWAP, NO-COMMON-ANCESTOR) appear here; non-conflict codes (ORPHAN-NODE, PENDING-REVIEW, RENAME-MIGRATED, etc.) appear in their own arrays."
     }
   }
 }
@@ -510,24 +528,39 @@ def test_required_top_level_arrays(schema):
     required = set(schema["required"])
     assert required == {"version", "surviving", "regenerated", "orphaned", "pendingReview", "conflicts"}
 
-def test_entry_requires_anchors_and_path(schema):
+def test_entry_required_fields(schema):
+    """F7: code/severity hoisted from ConflictEntry to base Entry."""
     entry = schema["$defs"]["Entry"]
-    assert set(entry["required"]) == {"anchors", "nodePath"}
+    assert set(entry["required"]) == {"anchors", "nodePath", "code", "severity"}
     assert entry["properties"]["anchors"]["uniqueItems"] is True
 
-def test_conflict_code_pattern(schema):
-    conflict_props = schema["$defs"]["ConflictEntry"]["allOf"][1]["properties"]
-    assert conflict_props["code"]["pattern"] == "^COMP-REGENERATION-[A-Z-]+$"
-    assert set(conflict_props["severity"]["enum"]) == {"error", "warning", "info"}
+def test_entry_code_pattern(schema):
+    entry_props = schema["$defs"]["Entry"]["properties"]
+    assert entry_props["code"]["pattern"] == "^COMP-REGENERATION-[A-Z-]+$"
+    assert set(entry_props["severity"]["enum"]) == {"error", "warning", "info"}
+
+def test_entry_has_property_deltas(schema):
+    """F5: Studio needs property-level diff visibility."""
+    entry_props = schema["$defs"]["Entry"]["properties"]
+    assert "propertyDeltas" in entry_props
+    assert entry_props["propertyDeltas"]["items"]["pattern"] == "^/"
 
 def test_orphan_entry_has_reattachment_fields(schema):
     orphan_props = schema["$defs"]["OrphanEntry"]["allOf"][1]["properties"]
     assert {"reattachedTo", "cascaded", "detached"} <= set(orphan_props)
 
-def test_coverage_delegation_documented(schema):
-    """H2: schema MUST document that EXP-COVERAGE findings live elsewhere."""
-    assert "EXP-COVERAGE" in schema["description"]
-    assert "joining on nodePath" in schema["description"] or "compose" in schema["description"].lower()
+def test_conflict_entry_is_alias_of_base(schema):
+    """F7: ConflictEntry no longer extends Entry with additional required fields."""
+    conflict = schema["$defs"]["ConflictEntry"]
+    assert conflict.get("$ref") == "#/$defs/Entry"
+
+def test_exp_two_hop_join_documented(schema):
+    """F3: schema MUST document the EXP path -> item:<path> -> anchors join,
+    NOT a direct join-by-nodePath claim."""
+    desc = schema["description"]
+    assert "EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM" in desc
+    assert "two-hop join" in desc
+    assert "item:<path>" in desc
 ```
 
 - [ ] Run, expect PASS.
@@ -672,22 +705,24 @@ def test_no_mutation(case_dir):
 
 @pytest.mark.parametrize("case_dir", CASES)
 def test_convergence(case_dir):
-    """Host-cycle invariant (spec §11 convergence clause).
+    """Host-cycle invariant (spec §11 convergence clause, F4-narrowed).
 
-    Given (merged, report) = merge(old, designer, new):
-      after the designer reviews and accepts pending nodes, the NEXT
-      generation cycle starts with old' = new (the new-generation that
-      just landed) and designer' = merged (the accepted state). The
-      same new is fed in again because no source artifact has changed.
+    Convergence applies ONLY when cycle 1's report has empty conflicts AND
+    empty pendingReview. Fixtures whose cycle 1 produces conflicts or
+    pendingReview require designer resolution before convergence applies;
+    semantics of resolution are host-defined and out of scope for the
+    algorithm contract. Skip such fixtures.
 
-      Expected: report' has empty conflicts AND empty pendingReview;
-      merged' equals merged.
+    For fixtures with clean cycle 1: feed merged back as designer' with
+    old' = new; cycle 2 must produce zero conflicts, zero pendingReview,
+    and merged' structurally equal to merged.
     """
     old, designer, new = _load(case_dir, "old-generated"), _load(case_dir, "designer-edited"), _load(case_dir, "new-generated")
     merged, report = _merge(old, designer, new, {})
 
-    # Designer accepts the merged state; the next regeneration cycle begins
-    # with no source change (same `new` document).
+    if report["conflicts"] or report["pendingReview"]:
+        pytest.skip(f"{case_dir.name}: cycle 1 has conflicts/pendingReview — convergence requires resolution first (F4 narrowing)")
+
     merged2, report2 = _merge(copy.deepcopy(new), copy.deepcopy(merged), copy.deepcopy(new), {})
 
     assert merged2 == merged, "merge did not converge: merged drifted on re-run"
@@ -878,3 +913,11 @@ Task 23:       promotion-gate + architecture review
   - **M2 (DOM contract):** §10/Task 11 — paired `data-merge-status` with `data-merge-anchors` for specificity.
   - **M3 (CRF BLUF):** Task 20 — extended CRF update to include matching BLUF bullet.
   - **L1 (subtree/duplicate-anchor coverage):** Task 16 — dropped degenerate `unchanged` case; added `orphan-cascade`, `orphan-detached`, `subtree-children-add`, `subtree-children-reorder`, `duplicate-anchor-set`, `no-common-ancestor`, `rename-no-migration` cases.
+- 2026-05-22: Pre-execution architecture-review pass #2 by `formspec-specs:spec-expert` (verdict REVISE) surfaced normative gaps the scout could not see. Remediated inline:
+  - **F1 (anchor set-equality not in CRF):** §3/Task 4 — added explicit normative statement that order-normalized set-equality is a regeneration-merge-only rule, NOT a CRF §5 claim.
+  - **F2 (CRF §6.3 "authored" interpretive gap):** §11/Task 12 — cited CRF §6.1 (input) + §6.4 (report-only, no-mutation) as the grounding for invoking the resolver on the merged document; clarified that merged ≠ DOM expansion.
+  - **F3 (EXP composition was mechanically wrong):** §11 conformance level 4 + Task 13 schema description rewritten — EXP §S8 takes `(Definition, Experience)` not Component, and EXP findings carry `path` not `nodePath`. Composition uses a two-hop join (EXP `path` → anchor `item:<path>` → MergeReport `nodePath`). MergeReport itself does NOT duplicate EXP findings.
+  - **F4 (convergence over-claimed):** §11/Task 18 — narrowed convergence guarantee to "applies only when cycle 1's report has empty conflicts AND empty pendingReview"; `test_convergence` skips fixtures that produced cycle-1 findings (resolution semantics are host-defined).
+  - **F5 (property-level diff missing):** Task 13 schema — added OPTIONAL `propertyDeltas[]` (JSON Pointer strings) to base `Entry`. Studio uses the pointer set to drive its diff view; values are read from input documents the merge consumed.
+  - **F6 (migration name collision):** §9/Task 10 — renamed document type from `$formspecMigration.migrations` to `$formspecAnchorMappings.anchorMappings`. Avoids Core §6.7 `migrations` (Response-data transforms) collision. Updated context tuple, Design Decisions row, and §9 prose.
+  - **F7 (schema-prose code inconsistency):** Task 13 schema — hoisted `code` and `severity` from `ConflictEntry` to base `Entry` so every report entry carries them. `ConflictEntry` becomes a `$ref` alias of `Entry`; array placement (conflicts[] vs orphaned[] vs pendingReview[]) is the role discriminator, code identifies the specific finding within that role. Task 14 tests updated.
