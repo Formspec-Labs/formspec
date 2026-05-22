@@ -1,5 +1,7 @@
 # Refactoring Plan: USWDS Adapters & Webcomponent Core Parity
 
+> **Status: completed.** All five phases landed: ARIA describedBy moved to core behaviors, fieldset/legend grouping via `asGroup`, reactive callbacks replacing MutationObserver, shared formatting utilities extracted, USWDS DRY cleanups done.
+
 ## Phase 1: ARIA DescribedBy Management (Move to Core)
 **Goal:** Eliminate boilerplate `aria-describedby` concatenation across all 26 input adapters.
 - [ ] Modify `bindSharedFieldEffects` in `packages/formspec-webcomponent/src/behaviors/shared.ts`.

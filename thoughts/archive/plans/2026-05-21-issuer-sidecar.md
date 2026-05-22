@@ -1,5 +1,7 @@
 # Issuer Sidecar Implementation Plan
 
+> **Status: completed.** All phases landed: schema substrate (issuer.schema.json, Party, definition/response bindings), Rust Publisher migration, generated TS types, spec at specs/issuer/issuer-spec.md, engine IssuerStore with cascade/parent walk, webcomponent IssuerChrome, 21 fixtures, E2E test.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Spec:** [`thoughts/specs/2026-05-21-issuer-sidecar.md`](../specs/2026-05-21-issuer-sidecar.md). Read first — this plan is execution scaffolding, not the design.

@@ -1,5 +1,7 @@
 # Validation Mapping Implementation Plan
 
+> **Status: completed.** All deliverables landed: spec prose (§1–§11), schema (four closed enums + MappingEntry + MasterTable const), 7 fixtures, 2 pytest files, contract-surface wiring, and concept-note back-references (§10.3 landed, §11.2 resolved). 50/50 conformance tests pass. Note: §7 SubmitButton Compatibility was subsequently deleted by Plan E (`2026-05-22-component-action-references.md`), which renumbered §8→§7 and deleted the original §7 entirely — expected downstream modification.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Land a normative **Validation Mapping** companion under `specs/core/` — prose, schema, fixtures, pytest — that reconciles Core validation modes, per-shape timing, Component `SubmitButton.mode`, Component `ValidationSummary.source` and `mode`, ValidationReport severity, and Response status transitions. Closes the §9 row-3 promotion gate and resolves §11.2 of [`../specs/2026-05-20-formspec-semantic-layers.md`](../specs/2026-05-20-formspec-semantic-layers.md). Required to land *before* any Response Actions schema (§10.2 / §10.3 order).
