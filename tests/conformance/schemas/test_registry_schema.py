@@ -4,11 +4,13 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, ValidationError, validate
+from jsonschema import Draft202012Validator, ValidationError
 
-from tests.unit.support.schema_fixtures import load_schema
+from tests.unit.support.schema_fixtures import build_schema_registry, load_schema
 
+COMMON_SCHEMA = load_schema("common.schema.json")
 SCHEMA = load_schema("registry.schema.json")
+SCHEMA_REGISTRY = build_schema_registry(COMMON_SCHEMA, SCHEMA)
 REGISTRY_PATH = (
     Path(__file__).resolve().parents[3]
     / "registries"
@@ -17,7 +19,7 @@ REGISTRY_PATH = (
 
 
 def _validate(instance):
-    validate(instance, SCHEMA, cls=Draft202012Validator)
+    Draft202012Validator(SCHEMA, registry=SCHEMA_REGISTRY).validate(instance)
 
 
 def _load_registry():
