@@ -1,0 +1,5 @@
+- This document defines the Formspec Issuer Document - a sidecar declaring who is asking the form as respondent-facing chrome identity.
+- Cardinality is inverse to Locale, References, and Ontology: one Issuer publishes many Definitions; Definitions point OUT via `definition.issuer`.
+- The shared `Party` base (`common.schema.json#/$defs/Party`) collapses Registry/Ontology Publisher duplication while keeping Issuer and Publisher roles distinct.
+- Resolution cascade: host override > Definition declaration > unbranded fallback. Response `displayedIssuer` pins the resolved Issuer at submit time inside the signed-payload preimage.
+- This BLUF is governed by `schemas/issuer.schema.json`; generated schema references are the canonical structural contract.

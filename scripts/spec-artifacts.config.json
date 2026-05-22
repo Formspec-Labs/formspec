@@ -182,6 +182,26 @@
       ]
     },
     {
+      "spec": "specs/issuer/issuer-spec.md",
+      "schema": "schemas/issuer.schema.json",
+      "bluf": "specs/issuer/issuer-spec.bluf.md",
+      "llm": "specs/issuer/issuer-spec.llm.md",
+      "behaviorEssentials": [
+        "Issuer Documents declare respondent-facing identity for the organization or individual asking the form; they are data sidecars, not Theme presentation.",
+        "Definitions point OUT to Issuer through definition.issuer because one Issuer may publish many Definitions.",
+        "Renderers resolve Issuer identity with deterministic precedence: host override, then Definition declaration, then unbranded fallback.",
+        "When host override is active, processors walk only the host-injected Issuer's parentOrganization chain and must not merge it with the Definition-declared chain.",
+        "Response displayedIssuer pins the submit-time resolved Issuer and is included in the signed-payload preimage by the existing authoredSignatures-only omission rule."
+      ],
+      "conformanceEssentials": [
+        "A conforming Issuer document must include $formspecIssuer=1.0, url, version, name, and kind.",
+        "The definition.issuer binding accepts either a full inline Issuer document or exactly {url}; the ref branch must not accept additional properties.",
+        "LangMap-valued Issuer fields use inline BCP 47 language maps; Locale Documents are not used for Issuer translations.",
+        "Renderers must detect parentOrganization cycles, cap chain depth, and fail soft when parent fetches fail.",
+        "Query-parameter Issuer overrides must be origin-allowlisted and visibly indicated when applied."
+      ]
+    },
+    {
       "spec": "specs/experience/experience-spec.md",
       "schema": "schemas/experience.schema.json",
       "bluf": "specs/experience/experience-spec.bluf.md",
