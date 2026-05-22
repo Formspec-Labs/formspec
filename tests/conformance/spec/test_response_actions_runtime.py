@@ -9,14 +9,29 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES_DIR = ROOT / "tests" / "conformance" / "fixtures" / "response-actions"
+VALIDATION_MAPPING_SCHEMA = ROOT / "schemas" / "validation-mapping.schema.json"
 
-MASTER_TABLE = {
-    "save-draft": {"profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint"},
-    "autosave": {"profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint"},
-    "review": {"profile": "on-submit", "blocking": "non-blocking", "persistence": "none"},
-    "submit": {"profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response"},
-    "request-evidence": {"profile": "on-demand", "blocking": "non-blocking", "persistence": "draft-checkpoint"},
-}
+
+def _load_master_table() -> dict[str, dict[str, str]]:
+    """Derive the intent→(profile, blocking, persistence) map from the
+    Validation Mapping schema's canonical MasterTable.const. The schema is
+    the single source of truth — duplicating the rows in this harness
+    would break the §9 row-3 promotion gate the moment §6 prose moved.
+    """
+    with VALIDATION_MAPPING_SCHEMA.open(encoding="utf-8") as handle:
+        schema = json.load(handle)
+    rows = schema["$defs"]["MasterTable"]["const"]
+    return {
+        row["intent"]: {
+            "profile": row["profile"],
+            "blocking": row["blocking"],
+            "persistence": row["persistence"],
+        }
+        for row in rows
+    }
+
+
+MASTER_TABLE = _load_master_table()
 
 
 def _fixture(name: str) -> dict:
