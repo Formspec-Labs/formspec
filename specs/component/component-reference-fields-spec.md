@@ -231,7 +231,70 @@ specification.
 
 ## 3. `taskRefs`
 
-Task 4 drafts this section.
+### 3.1 Shape
+
+`taskRefs` is an OPTIONAL array of string fields on a Component node. Each entry
+identifies an Experience Task that the node helps support, explain, display, or
+complete.
+
+Each entry MUST match the identifier profile used by Experience `Task.id`. The
+current Experience schema accepts identifiers that start with an ASCII letter
+and continue with ASCII letters, digits, or underscores. Authors SHOULD continue
+to use the user-domain camelCase style recommended by the Experience
+specification.
+
+`taskRefs` is plural because a single Component node may support more than one
+task. The array order is authoring and reporting order only. It is not workflow
+order, rendering order, validation order, or task-execution order.
+
+### 3.2 Resolution Target
+
+When an Experience document is loaded, every `taskRefs[]` entry resolves against
+`experience.tasks[*].id`. Resolution is exact string equality after JSON
+parsing. Resolvers MUST NOT normalize case, trim whitespace, replace separators,
+infer near matches, synthesize missing Tasks, or infer task coverage from
+Component order.
+
+Resolution reads the Experience document only. It MUST NOT add a Task to
+Experience, mutate `unit.taskRefs[]`, assign the Component node to a Unit, change
+task participation, or mark Experience coverage as satisfied or unsatisfied.
+
+### 3.3 Findings
+
+If a Component node carries `taskRefs` and an Experience document is loaded,
+each entry MUST resolve to a Task. If one or more entries on the same Component
+node do not resolve, the resolver MUST emit one `COMP-REFERENTIAL-INTEGRITY`
+finding for that node with:
+
+- `kind: "taskRefs"`;
+- `severity: "warning"`;
+- the offending Component node id when the node has `id`;
+- the stable node path when the node has no `id`; and
+- the unresolved Task ids from that node.
+
+The finding is per node, not per unresolved entry. A single node with three
+missing task ids produces one warning that lists all three ids.
+
+If a Component node carries `taskRefs` and no Experience document is loaded, the
+resolver MUST emit an `info` finding of kind `"taskRefs"` for that node. The
+absence of Experience prevents confirmation, but it does not make the Component
+document invalid.
+
+Processors MAY include resolved Task ids in their annotation map when resolution
+succeeds. They MUST keep that annotation report-only and MUST NOT write it back
+into Component or Experience.
+
+### 3.4 Runtime Semantics
+
+`taskRefs` is advisory reference metadata. It MUST NOT affect rendering,
+layout, page or section grouping, wizard navigation, visibility, validation,
+calculation, Mapping execution, Response status, Response Actions invocation,
+Experience coverage, task assignment, or Respondent Ledger behavior.
+
+Renderers MAY expose resolved Task metadata in authoring, debugging, review, or
+analytics tools. They MUST NOT use `taskRefs` to reorder or suppress runtime
+content unless a separate host feature explicitly layers that behavior outside
+this specification.
 
 ## 4. `conceptRefs`
 

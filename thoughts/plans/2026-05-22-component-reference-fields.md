@@ -118,6 +118,8 @@ Shape (string matching `Unit.id` pattern), resolution (against `experience.units
 
 ## Task 4: §3 taskRefs
 
+- [x] Draft §3 `taskRefs` shape, resolution, findings, and runtime semantics.
+
 Shape (array of strings matching `Task.id` pattern), resolution (against `experience.tasks[*].id`), severity (`warning` per node with at least one miss; `info` per node when Experience absent). Advisory — task references do not block rendering.
 
 ## Task 5: §4 conceptRefs
