@@ -1436,3 +1436,5 @@ Task 23:       promotion-gate + architecture review
   - Updated §6.7 task pseudocode so every orphan entry includes explicit `reattachedTo`, `cascaded`, and `detached` fields, including false values when cascade/detachment does not apply.
   - Tightened the committed §8 orphan report prose to describe `cascaded` and `detached` as required booleans rather than true-only optional flags, aligning it with §11 Level 2 and the schema.
   - Expanded the planned Task 14 tests with instance-validation cases for valid reports, wrong role placement, wrong code severity, and missing orphan metadata.
+- 2026-05-22: Post-Task-15 cadence review found stale §2 future-tense schema wording after Task 13 landed:
+  - Updated §2 to require `MergeReport` validation against `schemas/regeneration-merge-report.schema.json` version `1.0` and point to §11.3 for report-shape conformance.

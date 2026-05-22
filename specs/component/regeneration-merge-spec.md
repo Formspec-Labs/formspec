@@ -203,9 +203,8 @@ document that does not declare `$formspecComponent: "1.1"` for `old_generated`,
 `designer_edited`, `new_generated`, or `merged`.
 
 `MergeReport` MUST validate against
-`schemas/regeneration-merge-report.schema.json` once that schema lands. Until
-that Task 13 schema lands, §2 references `MergeReport` only as the named report
-output and does not claim a complete report wire shape.
+`schemas/regeneration-merge-report.schema.json` version `1.0`; §11.3 defines
+the report-shape conformance requirement.
 
 ### 2.2 Inputs
 
