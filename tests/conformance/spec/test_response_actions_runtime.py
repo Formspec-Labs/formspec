@@ -89,10 +89,25 @@ def _evaluate(fixture: dict) -> dict:
 
     effect_statuses: list[str] = []
     simulated_effects = simulated.get("effects", {})
-    for index, _effect in enumerate(effects):
+    for index, effect in enumerate(effects):
         status = simulated_effects.get(str(index), "succeeded")
         effect_statuses.append(status)
         if status == "failed":
+            # §6.5 default onError policy: evidenceRequest defaults to 'defer';
+            # all other durable effects default to 'fail'. Mirrors
+            # packages/formspec-engine/src/response-actions.ts effectErrorPolicy.
+            default_policy = "defer" if effect.get("type") == "evidenceRequest" else "fail"
+            on_error = effect.get("onError", default_policy)
+            if on_error == "defer":
+                effect_statuses.extend(_not_invoked(len(effects) - index - 1))
+                return {
+                    "terminal": "deferred",
+                    "persistence": "none",
+                    "statusAfter": fixture["responseBefore"]["status"],
+                    "validationReportProduced": validation_report_produced,
+                    "effectStatuses": effect_statuses,
+                    "replayTokenIssued": True,
+                }
             effect_statuses.extend(_not_invoked(len(effects) - index - 1))
             return {
                 "terminal": "failed",
@@ -144,6 +159,7 @@ def _evaluate(fixture: dict) -> dict:
         "effect-ordering.json",
         "effect-failure-no-rollback.json",
         "effect-deferred-evidence.json",
+        "effect-evidence-default-defer.json",
         "precondition-fails-blocked.json",
         "precondition-fails-deferred.json",
     ],
