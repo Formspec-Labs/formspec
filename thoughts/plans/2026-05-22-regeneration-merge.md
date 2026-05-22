@@ -52,20 +52,22 @@ If any check fails, stop and surface to the user — the Component Reference Fie
 
 ## Design Decisions (load-bearing)
 
-Flagged here so an architecture-review pass can pressure-test them before prose lands.
+Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in below.
 
-| Decision | Choice | HIGH/MED/LOW confidence | Rationale |
+| Decision | Choice | Confidence | Rationale |
 |---|---|---|---|
-| Merge identity key | `x-generation.anchors` set, not `id` or tree position | HIGH | `ComponentBase.id` is OPTIONAL; tree position is unstable across designer reordering and regeneration; anchors are the only semantic identity carried into the merge. |
-| Merge model | Three-way (`old-generated` ⊕ `designer-edited` ⊕ `new-generated`) | HIGH | Concept §7.2 enumerates exactly these three inputs. Two-way merge cannot distinguish "designer changed this" from "regenerator changed this." |
-| Required input | `old-generated` snapshot MUST be persisted between generations | HIGH | Without the common ancestor, three-way merge collapses to two-way and loses the ability to detect designer intent. The spec MUST require hosts to persist it; the storage mechanism is host-defined. |
-| Anchor mismatch policy | Multi-anchor nodes match by anchor-set equality (not subset) | MEDIUM | Subset-match would let a refactor that drops an anchor silently merge into the wrong target. Equality + an explicit `rename` migration concept is cleaner. |
-| Finding code family | New `COMP-REGENERATION-*` codes, NOT extending `COMP-REFERENTIAL-INTEGRITY` | HIGH | Reference-integrity findings are static (read-time); regeneration findings are merge-time conflicts. Conflating them collapses two distinct surfaces in tooling. |
-| MergeReport schema | Yes — new `regeneration-merge-report.schema.json` | MEDIUM | Schematizing the report enables cross-runtime conformance and gives Trace (concept §10.6) a concrete structural seed. Alternative: prose-only seed with no schema until Trace lands. Recommend schema. |
-| Rename handling | Honor `migration` markers in `x-generation`; otherwise warn | HIGH | Concept §7.2 explicit: "If no migration explains the rename, the generator should warn instead of guessing." Pin in spec. |
-| Studio E2E scope | Optional in v1.0 of this spec; pending-review-marker DOM assertion only | MEDIUM | Full Studio review UX is product surface; pinning DOM-level review-marker behavior is the minimum conformance lever. |
+| Merge identity key | `x-generation.anchors` set, **with sibling tree-path tiebreaker** when two nodes share an anchor set | HIGH | `ComponentBase.id` is OPTIONAL; tree position alone is unstable; anchor-set alone collides when a `Section` and a `Label` inside it both carry `["unit:identity"]` (B1 fix). Anchor set is primary; when the input tree contains multiple nodes with identical anchor sets, the tiebreaker is the ordinal sibling index under each node's parent (parent identity itself recurses via the same rule). |
+| Merge model | Three-way (`old-generated` ⊕ `designer-edited` ⊕ `new-generated`) | HIGH | Concept §7.2 enumerates exactly these three inputs. |
+| Required input | `old-generated` snapshot MUST be persisted between generations | HIGH | Without the common ancestor, three-way merge collapses to two-way and silently loses the ability to detect designer intent. **No two-way fallback exists.** A host that cannot supply `old-generated` MUST treat the operation as fresh generation — designer edits are lost — and surface a host-level warning (M1 fix). |
+| Finding code family | New `COMP-REGENERATION-*` for **merge-context-only findings**; **reference-resolution failures route through existing `COMP-REFERENTIAL-INTEGRITY`** (or Component-resolver bind findings) **plus a merge-context annotation** | HIGH | Reviewer's H4: the "static vs merge-time" framing was wrong because CRF resolvers can run at any time. The real boundary is "findings that only exist because a merge happened" vs "findings about reference integrity that exist independent of merge." Bind/actionRef/unitRef failures from an orphaned node MUST be emitted by the existing CRF/Component resolver, not duplicated in the regeneration family. |
+| MergeReport schema | New `regeneration-merge-report.schema.json` | HIGH | Cross-runtime conformance + concrete structural seed for Trace (concept §10.6). |
+| Coverage findings | **Delegated to Experience resolver** (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`, EXP §S8). MergeReport does NOT carry coverage gaps | HIGH | H2 fix: concept §10.6 lists four things Studio review needs; the fourth ("required items lack coverage") is already owned by EXP-COVERAGE. Studio composes the MergeReport AND the Experience resolver findings; duplicating coverage in MergeReport would re-create dual-ownership. |
+| Rename handling | **Migration document is the primary signal — no heuristic detection.** A rename is detected ONLY when a migration entry maps `old_anchor → new_anchor` such that substituting the mapping in N_old's anchor set yields exactly N_new's anchor set | HIGH | H3 fix: "pattern consistent with a rename" cannot be defined without picking arbitrary set-distance thresholds. Migration-as-substitution gives a deterministic, two-implementation-agreement rule. |
+| Migration document format | **Defined inline by this spec** as a minimum shape: `{ migrations: [{ from: "<anchor>", to: "<anchor>" }] }`. Anchor-pair only; richer migration semantics deferred | MEDIUM | L3 fix: no `migration-spec.md` exists in `formspec/specs/`. Defining a minimum here unblocks rename handling without forcing a separate migration plan. If a richer migration spec lands later, this minimum is a forward-compatible subset. |
+| Convergence (not idempotency) | Re-running merge after no source change yields zero conflicts and zero pendingReview | HIGH | H1 fix: original "idempotency" definition (`merge(new, merged1, new) == merged1`) requires undefined `x-generation` carry-forward semantics for pendingReview nodes and would fail/pass for wrong reasons. Pure determinism is covered by `test_determinism`; the meaningful steady-state invariant is convergence. |
+| Studio DOM contract | `data-merge-status` AND `data-merge-anchors` on every report-affected node | MEDIUM | M2 fix: `data-merge-status` alone could pass with a single root marker; pairing with `data-merge-anchors` (sorted, comma-joined) ties the DOM assertion to a specific MergeReport entry. |
 
-Decisions marked HIGH should not change without owner pushback. MEDIUM decisions are open to architecture-review feedback.
+Decisions marked HIGH should not change without owner pushback. MEDIUM decisions remain open.
 
 ---
 
@@ -170,15 +172,27 @@ merge(
 
 §2 MUST clarify that `context` is the same `ResolutionContext` as CRF §6 — the merge consumes the same cross-document context as the resolver.
 
+§2 MUST also pin the **`old-generated` persistence requirement** as load-bearing (M1 fix):
+
+> Hosts that perform regeneration MUST persist the `old-generated` Component document produced by each generation cycle. The storage mechanism is host-defined (project file, cache, database column, etc.).
+>
+> A host that cannot supply `old-generated` MUST NOT attempt three-way merge. The operation degrades to fresh generation: the new-generated document REPLACES the designer-edited document, all designer edits are lost, and the host MUST surface a `COMP-REGENERATION-NO-COMMON-ANCESTOR` finding at `error` severity (added to §7) explaining that merge was skipped. No two-way fallback exists.
+
 - [ ] Commit.
 
 ## Task 4: Spec prose — §3 Source anchor identity
 
 - [ ] Draft §3 defining how nodes are matched across the three input trees.
 
-Rule: a node N_old in `old-generated` matches a node N_new in `new-generated` iff `N_old.x-generation.anchors` equals `N_new.x-generation.anchors` as a set (order-independent, duplicate-free). Same rule applies to matching `designer-edited` nodes against `new-generated`.
+**Primary rule:** a node N_old in `old-generated` matches a node N_new in `new-generated` iff `N_old.x-generation.anchors` equals `N_new.x-generation.anchors` as a set (order-independent, duplicate-free). Same rule applies to matching `designer-edited` nodes against `new-generated`.
 
-§3 MUST address: nodes without `x-generation` (treated as designer-authored from inception; matched by `id` if present, otherwise by stable tree-path); nodes with empty `anchors` (treated same as no `x-generation`); anchors taxonomy reuse (`item:`, `unit:`, `task:`, `action:`, `concept:` — already pinned by CRF §5).
+**Tiebreaker for duplicated anchor sets (B1 fix):** anchor uniqueness is NOT enforced by CRF — a `Section` and a `Label` inside it can both carry `["unit:identity"]`. When multiple candidate nodes within the SAME tree share an identical anchor set, the matching key extends to `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. Parent identity recurses via the same rule; the ordinal sibling index counts only siblings that share the anchor set (so unrelated siblings don't shift the index).
+
+**Nodes without `x-generation`:** treated as designer-authored from inception. Matched across `old-generated` ↔ `designer-edited` by `id` if present, otherwise by full tree-path (`/tree/children[2]/children[0]`). Never matched against `new-generated` (the generator did not produce them).
+
+**Nodes with empty `anchors`:** treated identically to nodes without `x-generation`.
+
+**Anchor taxonomy:** reuses CRF §5 prefixes (`item:`, `unit:`, `task:`, `action:`, `concept:`). This spec does not introduce new prefixes.
 
 - [ ] Commit.
 
@@ -225,20 +239,23 @@ Never silently delete designer-authored layout.
 §6 MUST present the algorithm as a deterministic node-by-node walk:
 
 ```text
+match_key(N) = (N.anchors_set, parent_match_key(N), ordinal_sibling_index_among_anchor_set_peers(N))
+
 for each N_new in new_generated (depth-first, document order):
-  N_old = match_in(old_generated, N_new.anchors)
-  N_designer = match_in(designer_edited, N_new.anchors)
+  key      = match_key(N_new)
+  N_old      = match_in(old_generated,   key)
+  N_designer = match_in(designer_edited, key)
 
   if N_old is None and N_designer is None:
     emit N_new to merged; report.pendingReview += N_new
 
   elif N_old is None and N_designer is not None:
     # Designer authored independently; new-generation reaches into this anchor.
-    emit N_designer to merged; report.conflicts += { kind: "designer-precedes-generation", ... }
+    emit N_designer to merged; report.conflicts += { code: "COMP-REGENERATION-DESIGNER-PRECEDES", ... }
 
   elif N_old is not None and N_designer is None:
     # Designer removed the generated node; treat as designer-removal conflict.
-    emit nothing to merged; report.conflicts += { kind: "designer-removed", ... }
+    emit nothing to merged; report.conflicts += { code: "COMP-REGENERATION-DESIGNER-REMOVED", ... }
 
   elif structurally_equal(N_old, N_designer):
     # Designer untouched; regenerate from N_new.
@@ -253,81 +270,130 @@ for each N_new in new_generated (depth-first, document order):
     else:
       report.surviving += merged_node
 
-# Orphan pass:
-for each N_designer in designer_edited with no matching N_new:
-  emit N_designer to merged (preserve); report.orphaned += N_designer
+# Orphan pass — B2 fix: reattachment is explicit.
+for each N_designer in designer_edited with no matching N_new (in document order):
+  parent_in_merged = locate_merged_parent(N_designer)
+  if parent_in_merged is not None:
+    # Designer-authored subtree whose parent regenerated cleanly.
+    append N_designer as a child of parent_in_merged (after the last regenerated child)
+    report.orphaned += { ..., reattachedTo: parent_in_merged.nodePath }
+  else:
+    # Parent itself was orphaned or removed; cascade attempts to grandparent, etc.
+    nearest = locate_nearest_ancestor_in_merged(N_designer)
+    if nearest is not None:
+      append N_designer as a child of nearest with surviving-subtree marker
+      report.orphaned += { ..., reattachedTo: nearest.nodePath, cascaded: true }
+    else:
+      # No ancestor survives — designer subtree becomes a top-level orphan.
+      append N_designer to merged.tree at root (after last sibling)
+      report.orphaned += { ..., reattachedTo: "/tree", detached: true }
+
+locate_merged_parent(N): walk N's parent chain in designer-edited; for each
+  ancestor A, compute match_key(A); if A's key resolves to a node in merged,
+  return that node; else continue up. Returns None if no ancestor matches.
 ```
 
-§6 MUST also pin: traversal order is depth-first document order (deterministic); a node's children are merged before the node itself is emitted (so subtree conflicts surface inline).
+§6 MUST also pin: traversal order is depth-first document order (deterministic); a node's children are merged before the node itself is emitted (so subtree conflicts surface inline); orphan reattachment runs as a single pass after the main walk, in designer-edited document order, so reattachment ordering is deterministic.
 
 - [ ] Commit.
 
 ## Task 8: Spec prose — §7 Conflict severities + finding codes
 
-- [ ] Draft §7 introducing the `COMP-REGENERATION-*` finding family and pinning the severity table.
+- [ ] Draft §7 introducing the `COMP-REGENERATION-*` finding family for **merge-context-only findings**.
+
+**Family scope (H4 fix).** `COMP-REGENERATION-*` covers findings that exist BECAUSE a merge happened — merge-decision conflicts, orphan reattachment, rename detection, missing-common-ancestor. Reference-resolution failures (bind no longer resolves, actionRef unresolvable, unitRef points at a removed unit) are NOT in this family — they route through the existing `COMP-REFERENTIAL-INTEGRITY` (CRF §7) or Component-resolver findings, with the MergeReport surfacing them by composition (see §11). The merge MUST run the cross-document resolver against the merged document and forward those findings into the review surface alongside `COMP-REGENERATION-*` entries.
 
 | Code | Condition | Severity |
 |---|---|---|
-| `COMP-REGENERATION-DESIGNER-PRECEDES` | Designer-authored node at an anchor that new-generation also produced | `warning` |
+| `COMP-REGENERATION-NO-COMMON-ANCESTOR` | Host invoked merge without supplying `old-generated`; operation degraded to fresh generation | `error` |
+| `COMP-REGENERATION-DESIGNER-PRECEDES` | Designer-authored node at an anchor that new-generation also produced (no N_old) | `warning` |
 | `COMP-REGENERATION-DESIGNER-REMOVED` | Designer deleted a generated node; new-generation still produces it | `warning` |
-| `COMP-REGENERATION-PROPERTY-CONFLICT` | Both designer and new-generation changed the same property | `warning` |
-| `COMP-REGENERATION-WIDGET-SWAP` | Designer swapped widget; new-generation changed widget | `warning` (pending-review) |
-| `COMP-REGENERATION-ORPHAN-BINDING` | Designer node's `bind` / `actionRef` / `unitRef` no longer resolves | `error` |
-| `COMP-REGENERATION-ORPHAN-NODE` | Designer-edited subtree has no matching anchor in new-generation and no resolvable references | `warning` |
-| `COMP-REGENERATION-RENAME-UNDOCUMENTED` | Anchor set differs between old and new in a pattern consistent with a rename, no `migration` marker present | `warning` |
-| `COMP-REGENERATION-RENAME-MIGRATED` | Anchor set differs between old and new, `migration` marker explains the rename | `info` |
+| `COMP-REGENERATION-PROPERTY-CONFLICT` | Both designer and new-generation changed the same property to different values | `warning` |
+| `COMP-REGENERATION-WIDGET-SWAP` | Designer swapped widget; new-generation changed the same widget differently | `warning` (pending-review) |
+| `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Default `warning`. Escalates to `error` ONLY if accompanied by an unresolved CRF/bind finding emitted by the resolver for the same node. | `warning` (→ `error` via composition) |
+| `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | Designer subtree reattached above its original parent because the parent chain orphaned | `info` |
+| `COMP-REGENERATION-ORPHAN-DETACHED` | Designer subtree reattached at root because no ancestor matches in merged | `warning` |
+| `COMP-REGENERATION-RENAME-MIGRATED` | Anchor sets differ between old and new but migration document substitution makes them equal | `info` |
 | `COMP-REGENERATION-PENDING-REVIEW` | Newly generated node not present in old or designer | `info` |
 
-§7 MUST state: hosts MUST NOT downgrade `error`. Hosts MAY upgrade lower severities under a host-defined strict mode.
+§7 MUST state:
+
+- Hosts MUST NOT downgrade `error`. Hosts MAY upgrade lower severities under a host-defined strict mode.
+- The merge MUST NOT emit `COMP-REGENERATION-ORPHAN-BINDING` or any other reference-resolution finding under the regeneration family. Bind/reference failures are emitted by the resolver and composed into the review surface as separate findings against the same node.
+- **No heuristic rename detection** (H3 fix). A `COMP-REGENERATION-RENAME-UNDOCUMENTED` finding does not exist; if anchor sets differ and no migration substitution makes them equal, the nodes simply do not match (the N_old becomes an `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW`). Authors who want rename support author a migration entry.
 
 - [ ] Commit.
 
 ## Task 9: Spec prose — §8 Orphan handling
 
-- [ ] Draft §8 defining orphan handling end-to-end.
+- [ ] Draft §8 defining orphan handling end-to-end. Reflects H4 (finding-family separation) and B2 (reattachment is explicit).
 
 Rules:
 
-1. A designer-edited node with no anchor match in new-generation is preserved in `merged` (concept §7.2: "Never silently delete designer-authored layout").
-2. If the orphan's `bind` / `actionRef` / `unitRef` reference still resolves in the current cross-document context, severity is `warning` (`COMP-REGENERATION-ORPHAN-NODE`).
-3. If the orphan's references no longer resolve, severity escalates to `error` (`COMP-REGENERATION-ORPHAN-BINDING`).
-4. Orphans appear in `MergeReport.orphaned[]` with their full anchor set and resolution status.
+1. A designer-edited node with no anchor-set match in `new-generated` is preserved in `merged` (concept §7.2: "Never silently delete designer-authored layout"). Reattachment rule lives in §6 (Task 7).
+2. Every orphan emits `COMP-REGENERATION-ORPHAN-NODE` at `warning` severity by default.
+3. After the merge completes, the spec REQUIRES the merge runtime to invoke the CRF §6 cross-document resolver against the merged document. Any resolver findings for orphan nodes (unresolved `bind`, `actionRef`, `unitRef`) appear as separate findings in the review surface, composed alongside the `COMP-REGENERATION-ORPHAN-NODE` entry. The review surface elevates the orphan to "error severity in context" when either:
+   - The orphan carries an `error`-severity CRF finding (e.g., `unitRef` unresolved with Experience loaded), or
+   - The Component-resolver emits an error-level bind-resolution finding against the orphan.
+4. Cascade and detachment cases (§6 algorithm) emit `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` (`info`) and `COMP-REGENERATION-ORPHAN-DETACHED` (`warning`) respectively, in ADDITION to the base `ORPHAN-NODE` entry.
+5. Orphans appear in `MergeReport.orphaned[]` with full anchor set, `nodePath` in merged (the reattached path), `reattachedTo`, and `cascaded`/`detached` flags. The resolver-emitted reference findings are NOT duplicated in `MergeReport`; they live in their own resolver report and the review surface joins them by `nodePath`.
 
-§8 MUST address rendering: orphan nodes render normally (the designer authored them, they should display). Tooling MAY visually mark them; the spec does not mandate.
+§8 MUST address rendering: orphan nodes render normally (the designer authored them, they should display). Tooling MAY visually mark them via the §10 `data-merge-status` attribute; the spec does not mandate visual treatment.
 
 - [ ] Commit.
 
 ## Task 10: Spec prose — §9 Rename and migration handling
 
-- [ ] Draft §9 defining rename detection and migration honoring.
+- [ ] Draft §9 defining rename detection via migration substitution. **H3 fix: no heuristic detection — migration document is the only signal.**
 
-Rule: if a node N_new has anchors that differ from candidate N_old by a pattern consistent with a rename (e.g., `item:dateOfBirth` → `item:birthDate`), the merge consults the loaded migration document (if any). If a migration entry maps the old anchor → new anchor, the merge:
+**Migration document shape (L3 fix).** No `migration-spec.md` exists in `formspec/specs/` as of this writing. This spec defines the minimum migration document shape consumed by the merge:
 
-1. Treats N_old and N_new as matched.
-2. Applies the new anchor and binding.
-3. Preserves designer presentation choices (label, widget, layout).
-4. Emits `COMP-REGENERATION-RENAME-MIGRATED` finding at `info` severity.
+```json
+{
+  "$formspecMigration": "1.0",
+  "migrations": [
+    { "from": "item:dateOfBirth", "to": "item:birthDate" },
+    { "from": "unit:legacyIdentity", "to": "unit:identity" }
+  ]
+}
+```
 
-If no migration explains the rename, the merge:
+Each entry maps a single old anchor (`from`) to a single new anchor (`to`). Entries are unordered and processed as a set. A richer migration spec MAY land later (semantic versioning, conditional migrations, value transforms); the minimum shape above is its forward-compatible subset.
 
-1. Does NOT match N_old to N_new (anchor-set equality rule remains primary).
-2. Marks N_old as orphan; N_new as pending-review.
-3. Emits `COMP-REGENERATION-RENAME-UNDOCUMENTED` at `warning` severity (per concept §7.2: "the generator should warn instead of guessing").
+**Match-via-migration rule.** Let `substitute(anchors, M)` apply every applicable migration entry in `M` to the anchor set `anchors`. A node N_old matches N_new via migration iff:
 
-§9 MUST point at the existing migration document format; this spec does not redefine it.
+```text
+substitute(N_old.anchors, M) == N_new.anchors
+```
+
+— that is, applying the migration to N_old's anchor set yields EXACTLY N_new's anchor set. Set equality, not subset. If the substitution does not produce equality, no match is declared.
+
+**When a migration match succeeds, the merge:**
+
+1. Treats N_old and N_new as matched (in the same pass as the primary anchor-equality check).
+2. Applies N_new's anchor set to the merged node.
+3. Preserves designer presentation choices via the standard three-way merge (§6).
+4. Emits `COMP-REGENERATION-RENAME-MIGRATED` at `info` severity.
+
+**When no migration match succeeds and anchor-set equality also fails,** the nodes simply do not match. N_old becomes `COMP-REGENERATION-ORPHAN-NODE`; N_new becomes `COMP-REGENERATION-PENDING-REVIEW`. No `RENAME-UNDOCUMENTED` finding exists — the orphan + pending-review pair is the signal.
+
+§9 MUST NOT define heuristic rename detection (set-distance, edit-distance, prefix-family matching). Authors who want rename support author migration entries.
 
 - [ ] Commit.
 
 ## Task 11: Spec prose — §10 Studio review UX expectations
 
-- [ ] Draft §10 defining the minimum review-surface contract.
+- [ ] Draft §10 defining the minimum review-surface contract. M2 fix: DOM contract pairs status with anchors so assertions identify a specific report entry.
 
 A Studio-grade review surface MUST:
 
 1. Render every entry in `MergeReport.conflicts[]` with its anchor set, severity, finding code, and human-readable reason.
 2. Provide per-conflict resolution affordance (accept designer / accept regenerated / manual edit) — affordance is host-defined; the spec only mandates that conflicts surface.
-3. Render every entry in `MergeReport.pendingReview[]` with a `pending-review` marker on the affected node in the rendered Component preview. DOM-level: the rendered node MUST carry `data-merge-status="pending-review"` (the only DOM-level conformance lever in this spec).
-4. Render every entry in `MergeReport.orphaned[]` with an `orphan` marker; DOM-level: `data-merge-status="orphan"`.
+3. Render every entry in `MergeReport.pendingReview[]` with a `pending-review` marker on the affected node in the rendered Component preview. **DOM-level:** the rendered node MUST carry BOTH:
+   - `data-merge-status="pending-review"`
+   - `data-merge-anchors="<sorted-comma-joined anchor set>"` (e.g., `"item:applicantName,unit:identity"`)
+4. Render every entry in `MergeReport.orphaned[]` with an `orphan` marker; DOM-level: `data-merge-status="orphan"` AND `data-merge-anchors="..."`. Cascade-reattached and detached orphans use the same `data-merge-status="orphan"`; the `cascaded` / `detached` flags from `MergeReport.orphaned[]` are surfaced via host-defined visual treatment, NOT additional DOM attributes (spec-minimum stays narrow).
+5. Render coverage findings — `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` from the Experience resolver (H2 delegation) — alongside the MergeReport entries. The composition rule lives in §11.
 
 §10 MUST clarify: these are minimum conformance levers. Full Studio review UX (visual design, interaction model, keyboard flows, undo/redo) is product surface, not spec.
 
@@ -335,11 +401,14 @@ A Studio-grade review surface MUST:
 
 ## Task 12: Spec prose — §11 Conformance
 
-- [ ] Draft §11 pinning three conformance levels:
+- [ ] Draft §11 pinning four conformance levels:
 
-1. **Algorithm.** Implements §6 algorithm; emits findings per §7; honors §8/§9 orphan and rename rules.
+1. **Algorithm.** Implements §6 algorithm; emits findings per §7; honors §8 orphan rules and §9 rename rules.
 2. **Report shape.** `MergeReport` validates against `regeneration-merge-report.schema.json`.
-3. **Invariants.** Determinism (two identical inputs → identical merged + report); no-mutation (inputs deep-equal before and after merge); idempotency (re-merging with identical sources yields identical output).
+3. **Invariants.** Determinism (two identical inputs → identical merged + report); no-mutation (inputs deep-equal before and after merge); **convergence** (H1 fix: re-running the merge after no source change yields zero conflicts and zero pendingReview — formal statement below).
+4. **Composition with resolvers.** After producing `merged`, a conforming runtime MUST invoke the CRF §6 cross-document resolver AND the Experience coverage resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` per EXP §S8) against the merged document, joining their findings to MergeReport entries by `nodePath`. The merge does NOT duplicate those findings; the review surface composes them.
+
+**Convergence (H1).** Given `(merged, report) = merge(old, designer, new, ctx)`, the operation `merge(old', merged, new, ctx)` — where `old' = old-generated produced ALONGSIDE the same `new` (so `old'` is the same input that produced `new` and contains the same node identities as `new` minus the designer's pending-review acceptances) — MUST produce a `report'` with empty `conflicts` and empty `pendingReview`, and a `merged'` structurally equal to `merged`. Convergence is a host-cycle invariant: once a designer reviews and accepts pending nodes, the next regeneration MUST be a no-op until a source artifact changes.
 
 §11 MUST state: a runtime that fails any one level does not conform. Schema-validity of the merged Component document is implicit (the output is a Component v1.1 document).
 
@@ -361,10 +430,11 @@ Shape:
     "version": { "const": "1.0" },
     "surviving":    { "type": "array", "items": { "$ref": "#/$defs/Entry" } },
     "regenerated":  { "type": "array", "items": { "$ref": "#/$defs/Entry" } },
-    "orphaned":     { "type": "array", "items": { "$ref": "#/$defs/Entry" } },
+    "orphaned":     { "type": "array", "items": { "$ref": "#/$defs/OrphanEntry" } },
     "pendingReview":{ "type": "array", "items": { "$ref": "#/$defs/Entry" } },
     "conflicts":    { "type": "array", "items": { "$ref": "#/$defs/ConflictEntry" } }
   },
+  "description": "Coverage-against-Experience findings are NOT included here. They are emitted by the Experience resolver as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM and composed into the review surface alongside this report by joining on nodePath. Same for CRF/Component bind/reference-resolution failures.",
   "$defs": {
     "Entry": {
       "type": "object",
@@ -374,6 +444,19 @@ Shape:
         "nodePath": { "type": "string", "description": "Stable path in the merged document tree." },
         "reason":   { "type": "string" }
       }
+    },
+    "OrphanEntry": {
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        {
+          "type": "object",
+          "properties": {
+            "reattachedTo": { "type": "string", "description": "nodePath of the merged-tree node the orphan was reattached under." },
+            "cascaded":     { "type": "boolean", "description": "True when reattachment had to walk above the original parent." },
+            "detached":     { "type": "boolean", "description": "True when no surviving ancestor existed and the orphan reattached at /tree." }
+          }
+        }
+      ]
     },
     "ConflictEntry": {
       "allOf": [
@@ -436,6 +519,15 @@ def test_conflict_code_pattern(schema):
     conflict_props = schema["$defs"]["ConflictEntry"]["allOf"][1]["properties"]
     assert conflict_props["code"]["pattern"] == "^COMP-REGENERATION-[A-Z-]+$"
     assert set(conflict_props["severity"]["enum"]) == {"error", "warning", "info"}
+
+def test_orphan_entry_has_reattachment_fields(schema):
+    orphan_props = schema["$defs"]["OrphanEntry"]["allOf"][1]["properties"]
+    assert {"reattachedTo", "cascaded", "detached"} <= set(orphan_props)
+
+def test_coverage_delegation_documented(schema):
+    """H2: schema MUST document that EXP-COVERAGE findings live elsewhere."""
+    assert "EXP-COVERAGE" in schema["description"]
+    assert "joining on nodePath" in schema["description"] or "compose" in schema["description"].lower()
 ```
 
 - [ ] Run, expect PASS.
@@ -454,9 +546,7 @@ cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_r
 
 ## Task 16: Author per-case fixtures
 
-Each case is a directory with five files: `old-generated.json`, `designer-edited.json`, `new-generated.json`, `expected-merged.json`, `expected-report.json`.
-
-- [ ] **Case `unchanged`** — designer-edited equals old-generated; new-generated equals old-generated. Expected: every node in `regenerated`, zero conflicts.
+Each case is a directory with five files: `old-generated.json`, `designer-edited.json`, `new-generated.json`, `expected-merged.json`, `expected-report.json`. L1 fix: degenerate `unchanged` case removed; subtree add/reorder cases added.
 
 - [ ] **Case `designer-only-property`** — designer changed one `props.label`; new-generated equals old. Expected: surviving entry for the edited node; merged carries the designer's label.
 
@@ -468,17 +558,29 @@ Each case is a directory with five files: `old-generated.json`, `designer-edited
 
 - [ ] **Case `pending-review-new-node`** — new-generated added a node not in old or designer. Expected: `pendingReview` entry, `COMP-REGENERATION-PENDING-REVIEW` at `info`.
 
-- [ ] **Case `orphan-node-resolved-refs`** — designer-edited has a node with anchors not in new-generated; the node's `bind` still resolves. Expected: `orphaned` entry, `COMP-REGENERATION-ORPHAN-NODE` at `warning`.
+- [ ] **Case `orphan-node-resolved-refs`** — designer-edited has a node with anchors not in new-generated; the node's `bind` still resolves. Expected: `orphaned` entry, `COMP-REGENERATION-ORPHAN-NODE` at `warning`; reattached at original parent.
 
-- [ ] **Case `orphan-broken-binding`** — same as above but `bind` no longer resolves. Expected: `COMP-REGENERATION-ORPHAN-BINDING` at `error`.
+- [ ] **Case `orphan-broken-binding`** — same as above but `bind` no longer resolves. Expected: `COMP-REGENERATION-ORPHAN-NODE` at `warning` in MergeReport PLUS a separate Component-resolver bind-failure finding at `error` (composed in the review surface, NOT duplicated in MergeReport per H4).
+
+- [ ] **Case `orphan-cascade`** — designer subtree's parent is itself orphaned; reattaches to grandparent. Expected: `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info` plus base `ORPHAN-NODE`.
+
+- [ ] **Case `orphan-detached`** — designer subtree has no surviving ancestor in merged; reattaches at root. Expected: `COMP-REGENERATION-ORPHAN-DETACHED` at `warning`.
 
 - [ ] **Case `designer-removed`** — old has a generated node; designer deleted it; new-generated still produces it. Expected: `COMP-REGENERATION-DESIGNER-REMOVED` at `warning`.
 
 - [ ] **Case `designer-precedes`** — designer authored a node at an anchor that new-generation now also produces (old does not have it). Expected: `COMP-REGENERATION-DESIGNER-PRECEDES` at `warning`.
 
-- [ ] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; migration document present. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`.
+- [ ] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; migration document maps the substitution. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`.
 
-- [ ] **Case `rename-undocumented`** — anchors changed without migration. Expected: orphan + pending-review pair, `COMP-REGENERATION-RENAME-UNDOCUMENTED` at `warning`.
+- [ ] **Case `rename-no-migration`** — anchors changed without migration entry. Expected: NOT matched; N_old becomes `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
+
+- [ ] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; orphan/pending-review entry for the child.
+
+- [ ] **Case `subtree-children-reorder`** — designer reordered two children under a regenerated `Section`; new-generation kept the original order. Expected: designer order preserved in merged; reorder surfaced as `surviving` entry on the Section (designer-only change).
+
+- [ ] **Case `duplicate-anchor-set`** — `Section` and `Label` inside it both carry `["unit:identity"]`. Designer edits the `Label`'s text. Expected: tiebreaker by sibling-ordinal correctly matches the `Label` (not the `Section`); `Label` survives with designer text; `Section` regenerates cleanly.
+
+- [ ] **Case `no-common-ancestor`** — `old-generated` is absent (caller passes `None` or empty). Expected: fresh generation; merged equals new-generated; `MergeReport.conflicts` contains `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error`.
 
 - [ ] Commit fixtures.
 
@@ -537,10 +639,10 @@ cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_a
 
 ## Task 18: Invariant pytest
 
-- [ ] Create `tests/conformance/spec/test_regeneration_merge_invariants.py`.
+- [ ] Create `tests/conformance/spec/test_regeneration_merge_invariants.py`. H1 fix: replaces idempotency with convergence.
 
 ```python
-"""Pin determinism, no-mutation, idempotency."""
+"""Pin determinism, no-mutation, convergence."""
 import copy
 import json
 from pathlib import Path
@@ -569,17 +671,28 @@ def test_no_mutation(case_dir):
     assert new == new_snap, "merge mutated new-generated"
 
 @pytest.mark.parametrize("case_dir", CASES)
-def test_idempotency(case_dir):
-    """Re-running merge with no source change yields identical output.
+def test_convergence(case_dir):
+    """Host-cycle invariant (spec §11 convergence clause).
 
-    Sequence: merge(old, designer, new) -> merged1.
-    Then treating merged1 as the new designer-edited and re-running
-    with the same new-generated should yield merged1 again.
+    Given (merged, report) = merge(old, designer, new):
+      after the designer reviews and accepts pending nodes, the NEXT
+      generation cycle starts with old' = new (the new-generation that
+      just landed) and designer' = merged (the accepted state). The
+      same new is fed in again because no source artifact has changed.
+
+      Expected: report' has empty conflicts AND empty pendingReview;
+      merged' equals merged.
     """
     old, designer, new = _load(case_dir, "old-generated"), _load(case_dir, "designer-edited"), _load(case_dir, "new-generated")
-    merged1, _ = _merge(old, designer, new, {})
-    merged2, _ = _merge(copy.deepcopy(new), copy.deepcopy(merged1), copy.deepcopy(new), {})
-    assert merged1 == merged2, "merge is not idempotent"
+    merged, report = _merge(old, designer, new, {})
+
+    # Designer accepts the merged state; the next regeneration cycle begins
+    # with no source change (same `new` document).
+    merged2, report2 = _merge(copy.deepcopy(new), copy.deepcopy(merged), copy.deepcopy(new), {})
+
+    assert merged2 == merged, "merge did not converge: merged drifted on re-run"
+    assert report2["conflicts"] == [], "merge did not converge: conflicts persisted"
+    assert report2["pendingReview"] == [], "merge did not converge: pendingReview persisted"
 ```
 
 - [ ] Run, expect ALL PASS.
@@ -616,7 +729,7 @@ three-way regeneration merge. See
 [Regeneration Merge Specification](regeneration-merge-spec.md).
 ```
 
-- [ ] Update `specs/component/component-reference-fields-spec.md` §5: replace the "regeneration merge behavior is explicitly out of scope" disclaimer with a forward-pointer to `regeneration-merge-spec.md`.
+- [ ] Update `specs/component/component-reference-fields-spec.md` §5: replace the "regeneration merge behavior is explicitly out of scope" disclaimer with a forward-pointer to `regeneration-merge-spec.md`. **Also update the matching BLUF bullet** (M3 fix — currently at `component-reference-fields-spec.md:33`) so it doesn't drift from §5.
 
 - [ ] Update `thoughts/specs/2026-05-20-formspec-semantic-layers.md`:
   - §10.5 — change "(may live with...)" to "**Landed:** [`specs/component/regeneration-merge-spec.md`](../../specs/component/regeneration-merge-spec.md) (draft, 2026-05-22)."
@@ -753,4 +866,15 @@ Task 23:       promotion-gate + architecture review
 
 ## Deviations
 
-(Recorded here as deviations occur during execution.)
+- 2026-05-22: Pre-execution architecture-review scout (verdict REVISE) surfaced 2 BLOCKER + 4 HIGH + 3 MEDIUM findings. Remediated inline before commit:
+  - **B1 (anchor-set duplicates):** §3/Task 4 — added sibling-ordinal tiebreaker when multiple nodes share an anchor set; algorithm pseudocode uses `match_key` recursively.
+  - **B2 (orphan reattachment):** §6/Task 7 — explicit `locate_merged_parent` rule; orphans reattach to nearest surviving ancestor or cascade to root with `detached` flag.
+  - **H1 (idempotency → convergence):** §11/Task 18 — replaced idempotency claim with convergence (re-running after no source change yields zero conflicts + zero pendingReview).
+  - **H2 (coverage findings):** §11/Task 12/13 — delegated coverage to Experience resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`); MergeReport schema description documents the join-by-`nodePath` composition rule.
+  - **H3 (rename algorithm):** §9/Task 10 — pinned migration-substitution rule (`substitute(N_old.anchors, M) == N_new.anchors`), removed heuristic and `RENAME-UNDOCUMENTED` code.
+  - **H4 (finding family boundary):** §7/Task 8 — restated as merge-context-only; dropped `COMP-REGENERATION-ORPHAN-BINDING`; orphan severity composes with CRF/Component resolver findings.
+  - **L3 (migration document):** §9/Task 10 — defined minimum migration shape inline since no `migration-spec.md` exists.
+  - **M1 (old-generated requirement):** §2/Task 3 — added `COMP-REGENERATION-NO-COMMON-ANCESTOR` and pinned no-two-way-fallback degradation.
+  - **M2 (DOM contract):** §10/Task 11 — paired `data-merge-status` with `data-merge-anchors` for specificity.
+  - **M3 (CRF BLUF):** Task 20 — extended CRF update to include matching BLUF bullet.
+  - **L1 (subtree/duplicate-anchor coverage):** Task 16 — dropped degenerate `unchanged` case; added `orphan-cascade`, `orphan-detached`, `subtree-children-add`, `subtree-children-reorder`, `duplicate-anchor-set`, `no-common-ancestor`, `rename-no-migration` cases.
