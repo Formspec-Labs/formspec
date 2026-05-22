@@ -25,7 +25,8 @@ const OUT_DIR = resolve(__dirname, '../src/generated');
  * and $ref each other by those URIs. This map resolves them locally.
  */
 const URI_TO_LOCAL = {};
-for (const f of ['common', 'definition', 'component', 'theme', 'mapping', 'registry',
+for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
+  'ontology',
   'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'verification-receipt',
   'token-registry']) {
@@ -58,11 +59,13 @@ const $refOptions = {
 /** Schema files to generate types from. Order matters: earlier = canonical source. */
 const SCHEMA_SOURCES = [
   { file: 'common.schema.json', title: 'CommonSchema' },
+  { file: 'issuer.schema.json', title: 'IssuerDocument' },
   { file: 'definition.schema.json', title: 'FormDefinition' },
   { file: 'component.schema.json', title: 'ComponentDocument' },
   { file: 'theme.schema.json', title: 'ThemeDocument' },
   { file: 'mapping.schema.json', title: 'MappingDocument' },
   { file: 'registry.schema.json', title: 'RegistryDocument' },
+  { file: 'ontology.schema.json', title: 'OntologyDocument' },
   { file: 'validation-result.schema.json', title: 'ValidationResult' },
   { file: 'verification-receipt.schema.json', title: 'VerificationReceipt' },
   { file: 'response.schema.json', title: 'FormResponse' },
@@ -157,7 +160,16 @@ function removeDeclBlock(source, name) {
 
   // Find block end — matching closing brace, handling intersections
   let pos = match.index + match[0].length;
-  while (pos < source.length && source[pos] !== '{') pos++;
+  const nextBrace = source.indexOf('{', pos);
+  const nextSemicolon = source.indexOf(';', pos);
+  if (nextSemicolon !== -1 && (nextBrace === -1 || nextSemicolon < nextBrace)) {
+    pos = nextSemicolon + 1;
+    while (pos < source.length && source[pos] === '\n') pos++;
+    return source.substring(0, start) + source.substring(pos);
+  }
+
+  if (nextBrace === -1) return source;
+  pos = nextBrace;
   let depth = 0;
   while (pos < source.length) {
     if (source[pos] === '{') depth++;

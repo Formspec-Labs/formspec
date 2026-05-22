@@ -40,6 +40,13 @@ export interface FormResponse {
    */
   authored: string;
   /**
+   * Submit-time pin of the resolved Issuer (post-cascade). Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal.
+   */
+  displayedIssuer?: {
+    url: string;
+    version: string;
+  };
+  /**
    * A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.
    */
   id?: string;

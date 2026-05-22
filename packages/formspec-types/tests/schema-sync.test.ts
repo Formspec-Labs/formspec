@@ -8,6 +8,9 @@ import type {
   FormDefinition, FormItem, FormBind, FormShape, FormVariable,
   FormInstance, FormOption,
   ComponentDocument,
+  IssuerDocument,
+  OntologyDocument,
+  RegistryDocument,
   ThemeDocument,
   MappingDocument,
 } from '../src/index.js';
@@ -27,6 +30,15 @@ describe('generated types smoke test', () => {
 
     const mapping = {} as MappingDocument;
     expect(mapping).toBeDefined();
+
+    const issuer = {} as IssuerDocument;
+    expect(issuer).toBeDefined();
+
+    const registry = {} as RegistryDocument;
+    expect(registry).toBeDefined();
+
+    const ontology = {} as OntologyDocument;
+    expect(ontology).toBeDefined();
   });
 
   it('Form-prefixed canonical types resolve to schema types', () => {

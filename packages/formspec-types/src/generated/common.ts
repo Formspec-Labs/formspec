@@ -101,6 +101,52 @@ export interface Breakpoints {
   [k: string]: number;
 }
 /**
+ * Contact point - schema.org-aligned, vCard 4.0 semantics.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "ContactPoint".
+ */
+export interface ContactPoint {
+  /**
+   * Open vocabulary: 'customer support', 'accessibility', 'language line', etc. Renderers SHOULD honor 'customer support' as default.
+   */
+  contactType?: string;
+  email?: string;
+  telephone?: string;
+  url?: string;
+  availableLanguage?: string[];
+}
+/**
+ * Language-keyed string map (BCP 47 keys). JSON-LD-compatible with @container: '@language'.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "LangMap".
+ */
+export interface LangMap {
+  [k: string]: string;
+}
+/**
+ * Shared base for entities that publish or issue Formspec documents. Issuer and Publisher both extend Party.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "Party".
+ */
+export interface Party {
+  /**
+   * Display name. Plain string or LangMap.
+   */
+  name: string | LangMap;
+  /**
+   * Stable entity URI - ROR, Wikidata, DID, or own-domain URL.
+   */
+  identifier?: string;
+  /**
+   * Public organizational homepage (distinct from any document URL).
+   */
+  homepage?: string;
+  contactPoint?: ContactPoint | ContactPoint[];
+}
+/**
  * Flat style map. Values may contain $token.path references.
  *
  * This interface was referenced by `CommonSchema`'s JSON-Schema

@@ -6,7 +6,9 @@
  */
 
 /* eslint-disable */
+import type { IssuerDocument as FormspecIssuerDocument } from './issuer.js';
 import type { Extensions, WidgetName } from './common.js';
+export type { FormspecIssuerDocument };
 /**
  * A node in the form's structural tree. Every Item has a key (stable machine identifier unique across the entire Definition), a type ('field', 'group', or 'display'), and a label (human-readable). The type determines which additional properties apply. Items form a tree via the 'children' property on groups. The item tree determines the shape of the Instance (form data): fields produce values, groups produce JSON objects (or arrays if repeatable), display items produce nothing.
  *
@@ -234,7 +236,6 @@ export type OptionSet = OptionSet1 & {
 export type OptionSet1 = {
   [k: string]: unknown;
 };
-
 /**
  * A Formspec Definition document per the Formspec v1.0 specification. A Definition is a versioned, self-contained JSON document that completely describes the structure, behavior, and constraints of a data-collection instrument. The tuple (url, version) uniquely identifies a Definition across all systems. Definitions are organized into three layers: Structure (Items), Behavior (Binds + Shapes), and Presentation (advisory hints). A conformant processor implements the four-phase processing cycle: Rebuild → Recalculate → Revalidate → Notify.
  */
@@ -317,6 +318,14 @@ export interface FormDefinition {
     [k: string]: OptionSet;
   };
   migrations?: Migrations;
+  /**
+   * Optional Issuer binding. Inline (full Issuer document) for individual/small-org case; ref ({url} only) for shared/agency case. Inverse cardinality from locale/references/ontology (Definition points OUT to Issuer).
+   */
+  issuer?:
+    | FormspecIssuerDocument
+    | {
+        url: string;
+      };
   extensions?: Extensions;
   /**
    * Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics.
@@ -565,6 +574,53 @@ export interface MigrationDescriptor {
    */
   defaults?: {};
   extensions?: Extensions;
+}
+/**
+ * Shared base for entities that publish or issue Formspec documents. Issuer and Publisher both extend Party.
+ */
+export interface Party {
+  /**
+   * Display name. Plain string or LangMap.
+   */
+  name: string | LangMap;
+  /**
+   * Stable entity URI - ROR, Wikidata, DID, or own-domain URL.
+   */
+  identifier?: string;
+  /**
+   * Public organizational homepage (distinct from any document URL).
+   */
+  homepage?: string;
+  contactPoint?: ContactPoint | ContactPoint[];
+}
+/**
+ * Language-keyed string map (BCP 47 keys). JSON-LD-compatible with @container: '@language'.
+ */
+export interface LangMap {
+  [k: string]: string;
+}
+/**
+ * Contact point - schema.org-aligned, vCard 4.0 semantics.
+ */
+export interface ContactPoint {
+  /**
+   * Open vocabulary: 'customer support', 'accessibility', 'language line', etc. Renderers SHOULD honor 'customer support' as default.
+   */
+  contactType?: string;
+  email?: string;
+  telephone?: string;
+  url?: string;
+  availableLanguage?: string[];
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "LogoVariant".
+ */
+export interface LogoVariant {
+  url: string;
+  altText?: string | LangMap;
+  aspectRatio?: string;
+  preferredBackground?: 'light' | 'dark' | 'any';
 }
 /**
  * Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.

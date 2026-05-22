@@ -12,7 +12,7 @@ const SCHEMAS_DIR = resolve(__dirname, '../../../schemas');
 // ─── Schema loading & $ref resolution ────────────────────────────────
 
 const SCHEMA_FILES = [
-  'definition', 'component', 'theme', 'mapping', 'registry',
+  'issuer', 'definition', 'component', 'theme', 'mapping', 'registry', 'ontology',
   'response', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
   'token-registry',
 ];
@@ -82,7 +82,8 @@ function resolveExternalRefs(obj: any): any {
 
     if (byId[ref]) {
       const { $id, ...rest } = byId[ref];
-      return resolveExternalRefs({ ...rest });
+      const inlined = resolveLocalDefsRefs({ ...rest }, byId[ref].$defs || {});
+      return resolveExternalRefs(inlined);
     }
   }
 
@@ -93,10 +94,22 @@ function resolveExternalRefs(obj: any): any {
   return result;
 }
 
+function stripVendorKeywords(obj: any, parentKey?: string): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map((item: any) => stripVendorKeywords(item, parentKey));
+
+  const result: any = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (parentKey !== 'properties' && key.startsWith('x-')) continue;
+    result[key] = stripVendorKeywords(val, key);
+  }
+  return result;
+}
+
 /** Load schema with external refs resolved and $id stripped. */
 function loadResolved(name: string) {
   const raw = JSON.parse(readFileSync(resolve(SCHEMAS_DIR, `${name}.schema.json`), 'utf-8'));
-  const resolved = resolveExternalRefs(raw);
+  const resolved = stripVendorKeywords(resolveExternalRefs(raw));
   delete resolved.$id;
   return resolved;
 }

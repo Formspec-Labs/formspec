@@ -135,6 +135,7 @@ type FormDefinitionKnownFields = Pick<
   | 'instances'
   | 'variables'
   | 'nonRelevantBehavior'
+  | 'issuer'
   | 'optionSets'
   | 'migrations'
   | 'extensions'

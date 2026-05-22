@@ -6,6 +6,26 @@
  */
 
 /* eslint-disable */
+import type { Party, LangMap, ContactPoint } from './common.js';
+/**
+ * Organization publishing this registry document. Provides provenance and contact information for all entries unless overridden at the entry level.
+ */
+export type Publisher = Party & {
+  name: string | LangMap;
+  identifier?: string;
+  homepage?: string;
+  contactPoint?: ContactPoint | ContactPoint[];
+  /**
+   * @deprecated
+   * DEPRECATED: alias for `homepage`. Removed in v1.2.
+   */
+  url?: string;
+  /**
+   * @deprecated
+   * DEPRECATED: prefer structured `contactPoint`. Removed in v1.2.
+   */
+  contact?: string;
+};
 /**
  * A single registry entry. Describes one Formspec extension or semantic metadata entry — its identity, category, lifecycle status, compatibility bounds, and category-specific metadata. Category-specific properties become required based on the category value: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem.
  *
@@ -136,7 +156,6 @@ export type RegistryEntry = {
   vocabularyVersion?: string;
   filter?: VocabularyFilter;
 };
-
 /**
  * A static JSON document format for publishing, discovering, and validating Formspec extensions and semantic metadata. A Registry Document enumerates named entries — custom data types, functions, constraints, properties, namespaces, concept identities, and vocabulary bindings — with metadata, version history, compatibility bounds, and machine-readable schemas. Any organization MAY publish its own Registry Document. Interoperability is achieved through the common format, not centralized authority.
  */
@@ -162,23 +181,6 @@ export interface RegistryDocument {
    * Registry-level extension properties for vendor-specific metadata. All property keys MUST be x-prefixed.
    */
   extensions?: {};
-}
-/**
- * Organization publishing this registry document. Provides provenance and contact information for all entries unless overridden at the entry level.
- */
-export interface Publisher {
-  /**
-   * Human-readable organization name.
-   */
-  name: string;
-  /**
-   * Organization home page URI.
-   */
-  url: string;
-  /**
-   * Contact email address or URI for extension-related inquiries.
-   */
-  contact?: string;
 }
 /**
  * Declares that the bound concept is equivalent to a concept in another system. Relationship types follow SKOS (Simple Knowledge Organization System) semantics.
