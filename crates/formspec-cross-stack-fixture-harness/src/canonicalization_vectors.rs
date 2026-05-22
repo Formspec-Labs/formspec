@@ -118,11 +118,20 @@ pub fn vector_c_bundle_001() -> CanonicalizationVector {
 /// Resolves the path relative to this crate's manifest dir so the loader stays
 /// reproducible across workspaces.
 fn bundle_001_response() -> Value {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("crate dir has a parent")
-        .parent()
-        .expect("crates dir has a parent")
+    let formspec_root = std::env::var_os("FORMSPEC_ROOT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+            manifest_dir
+                .parent()
+                .expect("crate dir has a parent")
+                .parent()
+                .expect("crates dir has a parent")
+                .to_path_buf()
+        });
+    let path = formspec_root
         .join("tests")
         .join("fixtures")
         .join("cross-stack")

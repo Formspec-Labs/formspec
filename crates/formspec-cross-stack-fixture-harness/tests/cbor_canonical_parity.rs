@@ -38,11 +38,14 @@ fn bundle_file(bundle: &str, name: &str) -> std::path::PathBuf {
     let formspec_root = std::env::var_os("FORMSPEC_ROOT_DIR")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| {
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+            manifest_dir
                 .parent()
-                .unwrap()
+                .expect("crate dir has a parent")
                 .parent()
-                .unwrap()
+                .expect("crates dir has a parent")
                 .to_path_buf()
         });
     formspec_root

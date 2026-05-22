@@ -147,21 +147,25 @@ struct TrellisEventData {
 
 /// Resolves the formspec crate root.
 ///
-/// Default path: walks up two parents from `CARGO_MANIFEST_DIR`
+/// Default path: walks up two parents from runtime `CARGO_MANIFEST_DIR`
 /// (`crates/formspec-cross-stack-fixture-harness/` → `crates/` → repo root).
-/// `FORMSPEC_ROOT_DIR` env var overrides — set this when the harness moves to
-/// another location relative to the formspec repo, rather than rewriting the
-/// parent walk. Uses `var_os` so non-UTF8 paths work on platforms where
-/// filesystem paths are not guaranteed UTF-8.
+/// Falls back to the compile-time manifest dir when the test binary is invoked
+/// outside `cargo test`. `FORMSPEC_ROOT_DIR` env var overrides — set this when
+/// the harness moves to another location relative to the formspec repo, rather
+/// than rewriting the parent walk. Uses `var_os` so non-UTF8 paths work on
+/// platforms where filesystem paths are not guaranteed UTF-8.
 fn formspec_root() -> PathBuf {
     if let Some(override_path) = std::env::var_os("FORMSPEC_ROOT_DIR") {
         return PathBuf::from(override_path);
     }
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+    manifest_dir
         .parent()
-        .unwrap()
+        .expect("crate dir has a parent")
         .parent()
-        .unwrap()
+        .expect("crates dir has a parent")
         .to_path_buf()
 }
 

@@ -279,14 +279,41 @@ mod tests {
             .collect()
     }
 
-    #[test]
-    fn method_uri_rejection_fixtures_decode_with_expected_reason() {
-        let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..")
+    /// Resolves the formspec repo root for shared workspace fixtures.
+    ///
+    /// Prefers the runtime `CARGO_MANIFEST_DIR` that Cargo injects when running
+    /// tests so stale compile-time paths from other worktrees do not break fixture
+    /// discovery. `FORMSPEC_ROOT_DIR` overrides the walk when the repo layout moves.
+    fn formspec_root() -> std::path::PathBuf {
+        if let Some(override_path) = std::env::var_os("FORMSPEC_ROOT_DIR") {
+            return override_path.into();
+        }
+        let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")));
+        manifest_dir
+            .parent()
+            .expect("crate dir has a parent")
+            .parent()
+            .expect("crates dir has a parent")
+            .to_path_buf()
+    }
+
+    fn signature_method_uri_fail_closed_fixtures() -> std::path::PathBuf {
+        let root = formspec_root()
             .join("tests")
             .join("fixtures")
             .join("signature-method-uri-fail-closed");
+        assert!(
+            root.join("unknown-exact.json").is_file(),
+            "signature-method-uri fail-closed fixtures not found at {root:?} — set FORMSPEC_ROOT_DIR if the repo moved",
+        );
+        root
+    }
+
+    #[test]
+    fn method_uri_rejection_fixtures_decode_with_expected_reason() {
+        let fixture_dir = signature_method_uri_fail_closed_fixtures();
 
         for fixture_name in [
             "unknown-exact.json",
