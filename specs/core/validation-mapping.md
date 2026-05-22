@@ -219,3 +219,45 @@ When `BlockingPolicy` is `block-on-error` and validation fails:
 Under `ValidationProfile: off`, no ValidationReport is produced. The persistence effect proceeds regardless. This applies to `save-draft` and `autosave` and is consistent with VE-05.
 
 A processor that wishes to produce a ValidationReport during a draft save (for telemetry, audit, or UI display) MUST use a different intent (`review` runs validation without persisting) or a Response Actions `x-` ActionIntent whose explicit mapping uses one of this spec's closed profiles.
+
+## 6. The Master Mapping Table
+
+This section is the **load-bearing reconciliation** required by concept §9 row 3 ("one table that reconciles action intent, Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, severity, and Response status transitions"). The table below is normative. The schema's `MasterTable` const (§9 / `schemas/validation-mapping.schema.json`) MUST equal this table row-for-row; the pytest in `tests/conformance/spec/test_validation_mapping_table.py` MUST pin it.
+
+| Action Intent | Validation Profile | Blocking Policy | Persistence Policy |
+|---------------|--------------------|-----------------|--------------------|
+| `save-draft`  | `off`              | `non-blocking`  | `draft-checkpoint` |
+| `autosave`    | `off`              | `non-blocking`  | `draft-checkpoint` |
+| `review`      | `on-submit`        | `non-blocking`  | `none`             |
+| `submit`      | `on-submit`        | `block-on-error`| `complete-response`|
+| `request-evidence` | `on-demand`   | `non-blocking`  | `draft-checkpoint` |
+
+### 6.1 Overriding the Defaults
+
+A Response Actions document MAY override one, two, or three of (profile, blocking, persistence) per action while retaining a master-table intent. Overrides are explicit and MUST appear in the Response Actions document; processors MUST NOT silently substitute non-default tuples.
+
+A Response Actions document that overrides all three axes is equivalent to using an `x-`-extension intent — the processor MUST treat it as a publisher-defined intent and MUST NOT consult the master table for that action.
+
+### 6.2 What Overrides Cannot Do
+
+Overrides MUST NOT:
+
+1. Reintroduce a blocked persistence below `complete-response` (would violate VE-05).
+2. Pair `complete-response` persistence with any Blocking Policy other than `block-on-error` (would allow Responses with error-severity findings to reach `completed`, violating Core §5.4 invariant `valid = (counts.error === 0)`).
+3. Pair `complete-response` persistence with any Validation Profile other than `on-submit` (would allow completion from a partial report that did not include the complete completion-eligible shape set).
+4. Pair `off` profile with `block-on-error` policy (no ValidationReport is produced under `off`, so `block-on-error` has no input).
+
+A processor that encounters any of these prohibited combinations MUST reject the document with a structural finding (`VMAP-INVALID-OVERRIDE`).
+
+### 6.3 Validity Predicate
+
+The set of permitted (profile, blocking, persistence) tuples is governed by §6.1 + §6.2. Expressed as a single rule:
+
+```
+permitted(profile, blocking, persistence) :=
+    NOT (persistence = complete-response AND blocking != block-on-error)
+  AND NOT (persistence = complete-response AND profile != on-submit)
+  AND NOT (profile = off AND blocking = block-on-error)
+```
+
+The five master-table rows satisfy this predicate. Implementations MUST validate any override against it.
