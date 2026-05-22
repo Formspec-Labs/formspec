@@ -306,3 +306,37 @@ Until concept §10.4 lands, `actionRef` is future shape. Existing `SubmitButton`
 ### 7.4 Migration
 
 There is no migration. Existing Component documents continue to work unchanged. Mapping-Aware processors gain the §7.1 interpretation; non-Mapping-Aware processors continue to follow Component §5.19 directly (which produces equivalent observable behavior for the default submit case).
+
+## 8. ValidationSummary Compatibility
+
+Component §6.13 `ValidationSummary` has two existing props that intersect this mapping:
+
+- `source` ∈ {`live`, `submit`}, default `live`.
+- `mode` ∈ {`continuous`, `submit`} when `source` is `live`, default `continuous`.
+
+These are PRESERVED.
+
+### 8.1 `source` Reconciliation
+
+`source` selects which validation state the summary displays:
+
+| `ValidationSummary.source` | Data displayed |
+|----------------------------|----------------|
+| `"live"`                   | Continuous engine state. Re-renders as Bind constraints and Shape constraints (matching `mode`) re-evaluate. |
+| `"submit"`                 | The latest `formspec-submit` event detail (ValidationReport from the last submit pass). Static between submits. |
+
+A Mapping-Aware processor MUST treat:
+
+- `source: live` + `mode: continuous` as a passive reader of the current `live` profile state.
+- `source: live` + `mode: submit` as a passive reader of the latest submit-profile state when another trigger has produced one.
+- `source: submit` as a passive reader of the most recent ValidationReport regardless of profile — the report itself was produced under whatever profile applied to the prior action.
+
+`ValidationSummary` never starts a profile run. It only reads state already produced by the engine or by a prior submit/action trigger.
+
+### 8.2 `ValidationSummary` Has No Persistence Effect
+
+`ValidationSummary` is a Display component. It MUST NOT trigger any Action Intent, MUST NOT mutate Response data, and MUST NOT transition Response status. This spec adds no behavior; the reconciliation here exists solely so that ValidationSummary's `source` and `mode` props have a single normative term to be expressed in.
+
+### 8.3 Future `actionRef` Out of Scope
+
+Unlike `SubmitButton`, `ValidationSummary` is not a trigger and SHOULD NOT receive `actionRef` in the future Component reference additions (concept §10.4). The summary reflects state; it does not cause intents.
