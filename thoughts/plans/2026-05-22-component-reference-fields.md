@@ -124,6 +124,8 @@ Shape (array of strings matching `Task.id` pattern), resolution (against `experi
 
 ## Task 5: §4 conceptRefs
 
+- [x] Draft §4 `conceptRefs` shape, resolution policy, findings, and runtime semantics.
+
 Shape (array of `ConceptRef` objects, $ref to `experience.schema.json#/$defs/ConceptRef`), resolution (host-policy), default severity `info`. Hosts MAY upgrade via strict mode.
 
 ## Task 6: §5 x-generation

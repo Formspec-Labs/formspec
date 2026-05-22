@@ -298,7 +298,82 @@ this specification.
 
 ## 4. `conceptRefs`
 
-Task 5 drafts this section.
+### 4.1 Shape
+
+`conceptRefs` is an OPTIONAL array of ConceptRef objects on a Component node.
+Each entry identifies a Registry, Ontology, or external concept associated with
+the node.
+
+Each entry MUST use the Experience `ConceptRef` shape. Component does not define
+a parallel concept-reference vocabulary. A ConceptRef has a required non-empty
+`id`, an optional `source` of `"registry"`, `"ontology"`, or `"external"`, an
+optional `description`, and optional `extensions` following the Experience
+extension model.
+
+`conceptRefs` is plural because a Component node may represent, display, or
+collect information related to more than one concept. Array order is authoring
+and reporting order only; it is not precedence, validation order, or Mapping
+order.
+
+### 4.2 Resolution Policy
+
+Concept resolution is host-policy driven. A resolver MAY receive Registry,
+Ontology, or other allowlisted concept context. When context is present, each
+`conceptRefs[]` entry resolves according to its `source`:
+
+- `"registry"` resolves against the loaded Registry concept id space.
+- `"ontology"` resolves against the loaded Ontology concept id or IRI space.
+- `"external"` resolves only if host policy declares an allowlisted external
+  source for that id.
+
+Resolvers MUST NOT blindly fetch `conceptRefs[].id` values that contain URLs or
+IRIs. Hosts that support external resolution MUST apply an allowlist and resource
+limits before consulting any networked or file-backed source.
+
+When no Registry, Ontology, or external concept context is loaded, `conceptRefs`
+remain informative metadata. The processor may preserve them in annotations or
+reports, but it MUST NOT treat missing concept context as a Component validation
+error.
+
+### 4.3 Findings
+
+If host policy attempts concept resolution and one or more ConceptRefs on a
+Component node do not resolve, the resolver MUST emit one
+`COMP-REFERENTIAL-INTEGRITY` finding for that node with:
+
+- `kind: "conceptRefs"`;
+- `severity: "info"` under the default host policy;
+- the offending Component node id when the node has `id`;
+- the stable node path when the node has no `id`; and
+- the unresolved ConceptRef ids from that node.
+
+The finding is per node, not per unresolved ConceptRef entry. A single node with
+multiple unresolved concepts produces one `info` finding that lists the missing
+concept ids.
+
+Hosts MAY upgrade `conceptRefs` findings under an explicit strict concept policy.
+For example, a host that requires every Component concept to resolve against a
+loaded Registry MAY upgrade unresolved concepts to `warning` or `error`.
+Strict-mode upgrades are host policy; this specification's default severity is
+`info`.
+
+### 4.4 Runtime Semantics
+
+`conceptRefs` is reference metadata. It MUST NOT affect rendering, layout,
+visibility, validation, calculation, Mapping execution, Response status,
+Response Actions invocation, Registry or Ontology content, Experience coverage,
+or Respondent Ledger behavior.
+
+Component processors MUST NOT use `conceptRefs` as executable validation,
+calculation, or transformation logic. Deep concept validation, ontology
+reasoning, Registry governance, and concept-to-field inference belong to the
+Registry, Ontology, or host policy layers, not to this Component reference-field
+specification.
+
+Renderers MAY expose resolved ConceptRef metadata in authoring, debugging,
+review, search, or analytics tools. They MUST NOT use `conceptRefs` to alter the
+default runtime view unless a separate host feature explicitly layers that
+behavior outside this specification.
 
 ## 5. `x-generation`
 
