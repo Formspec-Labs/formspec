@@ -1,0 +1,21 @@
+{
+  "kind": "schema-validate",
+  "valid": [
+    {
+      "expectRoundTripStable": true,
+      "doc": {
+        "$formspecIssuer": "1.0",
+        "url": "https://issuer.example/i.json",
+        "version": "1.0.0",
+        "name": "Example",
+        "kind": "organization",
+        "extensions": {
+          "x-vendor": {
+            "tenant": "abc",
+            "displayOrder": 1
+          }
+        }
+      }
+    }
+  ]
+}

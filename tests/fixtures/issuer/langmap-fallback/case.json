@@ -1,0 +1,23 @@
+{
+  "kind": "langmap-fallback",
+  "scenarios": [
+    {
+      "value": { "en": "Springfield Health", "es": "Salud Springfield" },
+      "locale": "en-US",
+      "defaultLanguage": "en",
+      "expected": "Springfield Health"
+    },
+    {
+      "value": { "en": "Springfield Health", "es": "Salud Springfield" },
+      "locale": "fr-CA",
+      "defaultLanguage": "en",
+      "expected": "Springfield Health"
+    },
+    {
+      "value": { "cy": "Iechyd Springfield" },
+      "locale": "fr",
+      "defaultLanguage": "en",
+      "expected": "Iechyd Springfield"
+    }
+  ]
+}

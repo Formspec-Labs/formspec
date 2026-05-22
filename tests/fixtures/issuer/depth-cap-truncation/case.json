@@ -1,0 +1,33 @@
+{
+  "kind": "chain",
+  "definitionIssuer": { "kind": "url", "url": "https://depth.example/i1.json" },
+  "issuers": [
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i1.json", "version": "1.0.0", "name": "I1", "kind": "organization", "parentOrganization": "https://depth.example/i2.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i2.json", "version": "1.0.0", "name": "I2", "kind": "organization", "parentOrganization": "https://depth.example/i3.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i3.json", "version": "1.0.0", "name": "I3", "kind": "organization", "parentOrganization": "https://depth.example/i4.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i4.json", "version": "1.0.0", "name": "I4", "kind": "organization", "parentOrganization": "https://depth.example/i5.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i5.json", "version": "1.0.0", "name": "I5", "kind": "organization", "parentOrganization": "https://depth.example/i6.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i6.json", "version": "1.0.0", "name": "I6", "kind": "organization", "parentOrganization": "https://depth.example/i7.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i7.json", "version": "1.0.0", "name": "I7", "kind": "organization", "parentOrganization": "https://depth.example/i8.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i8.json", "version": "1.0.0", "name": "I8", "kind": "organization", "parentOrganization": "https://depth.example/i9.json" },
+    { "$formspecIssuer": "1.0", "url": "https://depth.example/i9.json", "version": "1.0.0", "name": "I9", "kind": "organization" }
+  ],
+  "expected": {
+    "source": "definition",
+    "primaryUrl": "https://depth.example/i1.json",
+    "chainUrls": [
+      "https://depth.example/i1.json",
+      "https://depth.example/i2.json",
+      "https://depth.example/i3.json",
+      "https://depth.example/i4.json",
+      "https://depth.example/i5.json",
+      "https://depth.example/i6.json",
+      "https://depth.example/i7.json",
+      "https://depth.example/i8.json"
+    ],
+    "degraded": {
+      "reason": "depth-capped",
+      "atUrl": "https://depth.example/i9.json"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "schemaorg-projection",
+  "issuer": "issuer.json",
+  "context": "context.jsonld",
+  "expected": "expected-jsonld.json"
+}

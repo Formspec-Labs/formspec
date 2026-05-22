@@ -1,0 +1,6 @@
+{
+  "kind": "query-override",
+  "pageUrl": "https://embed.example/form?_issuer=https%3A%2F%2Fbad.example%2Fissuer.json",
+  "allowedOrigins": [],
+  "expected": null
+}

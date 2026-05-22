@@ -1,0 +1,42 @@
+{
+  "kind": "cascade",
+  "scenarios": [
+    {
+      "definitionIssuer": {
+        "kind": "inline",
+        "issuer": {
+          "$formspecIssuer": "1.0",
+          "url": "https://example.gov/issuer.json",
+          "version": "1.0.0",
+          "name": "Example Agency",
+          "kind": "organization"
+        }
+      },
+      "expected": {
+        "source": "definition",
+        "primaryUrl": "https://example.gov/issuer.json",
+        "chainUrls": ["https://example.gov/issuer.json"]
+      }
+    },
+    {
+      "definitionIssuer": {
+        "kind": "url",
+        "url": "https://example.gov/issuer.json"
+      },
+      "issuers": [
+        {
+          "$formspecIssuer": "1.0",
+          "url": "https://example.gov/issuer.json",
+          "version": "1.0.0",
+          "name": "Example Agency",
+          "kind": "organization"
+        }
+      ],
+      "expected": {
+        "source": "definition",
+        "primaryUrl": "https://example.gov/issuer.json",
+        "chainUrls": ["https://example.gov/issuer.json"]
+      }
+    }
+  ]
+}

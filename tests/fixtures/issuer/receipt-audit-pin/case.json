@@ -1,0 +1,54 @@
+{
+  "kind": "cascade",
+  "scenarios": [
+    {
+      "definitionIssuer": { "kind": "url", "url": "https://definition.example/issuer.json" },
+      "hostOverride": {
+        "kind": "inline",
+        "issuer": {
+          "$formspecIssuer": "1.0",
+          "url": "https://host.example/issuer.json",
+          "version": "2.0.0",
+          "name": "Host Org",
+          "kind": "organization"
+        },
+        "source": "host-embed"
+      },
+      "issuers": [
+        { "$formspecIssuer": "1.0", "url": "https://definition.example/issuer.json", "version": "1.0.0", "name": "Definition Org", "kind": "organization" }
+      ],
+      "response": {
+        "$formspecResponse": "1.0",
+        "definitionUrl": "https://forms.example/f",
+        "definitionVersion": "1.0.0",
+        "status": "completed",
+        "data": {},
+        "authored": "2026-05-21T00:00:00Z",
+        "displayedIssuer": {
+          "url": "https://host.example/issuer.json",
+          "version": "2.0.0"
+        }
+      },
+      "signedPayload": {
+        "definitionUrl": "https://forms.example/f",
+        "definitionVersion": "1.0.0",
+        "status": "completed",
+        "data": {},
+        "authored": "2026-05-21T00:00:00Z",
+        "displayedIssuer": {
+          "url": "https://host.example/issuer.json",
+          "version": "2.0.0"
+        }
+      },
+      "expectedDisplayedIssuer": {
+        "url": "https://host.example/issuer.json",
+        "version": "2.0.0"
+      },
+      "expected": {
+        "source": "host-embed",
+        "primaryUrl": "https://host.example/issuer.json",
+        "chainUrls": ["https://host.example/issuer.json"]
+      }
+    }
+  ]
+}

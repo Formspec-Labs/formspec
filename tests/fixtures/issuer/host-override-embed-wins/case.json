@@ -1,0 +1,28 @@
+{
+  "kind": "cascade",
+  "scenarios": [
+    {
+      "definitionIssuer": { "kind": "url", "url": "https://definition.example/issuer.json" },
+      "hostOverride": {
+        "kind": "inline",
+        "issuer": {
+          "$formspecIssuer": "1.0",
+          "url": "https://embed.example/issuer.json",
+          "version": "1.0.0",
+          "name": "Embed Org",
+          "kind": "organization"
+        },
+        "source": "host-embed"
+      },
+      "issuers": [
+        { "$formspecIssuer": "1.0", "url": "https://definition.example/issuer.json", "version": "1.0.0", "name": "Definition Org", "kind": "organization" },
+        { "$formspecIssuer": "1.0", "url": "https://query.example/issuer.json", "version": "1.0.0", "name": "Query Org", "kind": "organization" }
+      ],
+      "expected": {
+        "source": "host-embed",
+        "primaryUrl": "https://embed.example/issuer.json",
+        "chainUrls": ["https://embed.example/issuer.json"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "kind": "schema-validate",
+  "valid": [
+    {
+      "doc": {
+        "$formspecIssuer": "1.0",
+        "url": "https://issuer.example/i.json",
+        "version": "1.0.0",
+        "name": { "en": "Example", "es-MX": "Ejemplo" },
+        "kind": "organization"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "doc": {
+        "$formspecIssuer": "1.0",
+        "url": "https://issuer.example/i.json",
+        "version": "1.0.0",
+        "name": { "english": "Example" },
+        "kind": "organization"
+      }
+    }
+  ]
+}

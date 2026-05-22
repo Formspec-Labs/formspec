@@ -1,0 +1,26 @@
+{
+  "kind": "schema-validate",
+  "valid": [
+    {
+      "expectedWarnings": ["department-missing-parent"],
+      "doc": {
+        "$formspecIssuer": "1.0",
+        "url": "https://issuer.example/department.json",
+        "version": "1.0.0",
+        "name": "Unparented Department",
+        "kind": "department"
+      }
+    },
+    {
+      "expectedWarnings": ["individual-with-parent"],
+      "doc": {
+        "$formspecIssuer": "1.0",
+        "url": "https://issuer.example/person.json",
+        "version": "1.0.0",
+        "name": "Jane Example",
+        "kind": "individual",
+        "parentOrganization": "https://issuer.example/org.json"
+      }
+    }
+  ]
+}

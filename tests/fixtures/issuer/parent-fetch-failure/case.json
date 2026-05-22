@@ -1,0 +1,25 @@
+{
+  "kind": "chain",
+  "definitionIssuer": { "kind": "url", "url": "https://city.example/health.json" },
+  "issuers": [
+    {
+      "$formspecIssuer": "1.0",
+      "url": "https://city.example/health.json",
+      "version": "1.0.0",
+      "name": "Public Health",
+      "kind": "department",
+      "organizationName": "City of Example",
+      "parentOrganization": "https://city.example/city.json"
+    }
+  ],
+  "fetchFailures": ["https://city.example/city.json"],
+  "expected": {
+    "source": "definition",
+    "primaryUrl": "https://city.example/health.json",
+    "chainUrls": ["https://city.example/health.json"],
+    "degraded": {
+      "reason": "parent-fetch-failed",
+      "atUrl": "https://city.example/city.json"
+    }
+  }
+}

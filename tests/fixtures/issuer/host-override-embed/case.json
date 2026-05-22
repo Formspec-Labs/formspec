@@ -1,0 +1,30 @@
+{
+  "kind": "cascade",
+  "scenarios": [
+    {
+      "definitionIssuer": {
+        "kind": "url",
+        "url": "https://federal.example/program.json"
+      },
+      "hostOverride": {
+        "kind": "inline",
+        "issuer": {
+          "$formspecIssuer": "1.0",
+          "url": "https://state.example/issuer.json",
+          "version": "2.0.0",
+          "name": "State Example",
+          "kind": "organization"
+        },
+        "source": "host-embed"
+      },
+      "issuers": [
+        { "$formspecIssuer": "1.0", "url": "https://federal.example/program.json", "version": "1.0.0", "name": "Federal Program", "kind": "program" }
+      ],
+      "expected": {
+        "source": "host-embed",
+        "primaryUrl": "https://state.example/issuer.json",
+        "chainUrls": ["https://state.example/issuer.json"]
+      }
+    }
+  ]
+}

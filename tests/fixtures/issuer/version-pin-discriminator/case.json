@@ -1,0 +1,52 @@
+{
+  "kind": "schema-validate",
+  "valid": [
+    {
+      "schema": "definition",
+      "doc": {
+        "$formspec": "1.0",
+        "url": "https://forms.example/f",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Inline Issuer",
+        "items": [],
+        "issuer": {
+          "$formspecIssuer": "1.0",
+          "url": "https://issuer.example/i.json",
+          "version": "1.0.0",
+          "name": "Inline Org",
+          "kind": "organization"
+        }
+      }
+    },
+    {
+      "schema": "definition",
+      "doc": {
+        "$formspec": "1.0",
+        "url": "https://forms.example/f",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Referenced Issuer",
+        "items": [],
+        "issuer": { "url": "https://issuer.example/i.json" }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "schema": "definition",
+      "doc": {
+        "$formspec": "1.0",
+        "url": "https://forms.example/f",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Ambiguous Issuer",
+        "items": [],
+        "issuer": {
+          "url": "https://issuer.example/i.json",
+          "name": "Looks inline but lacks version"
+        }
+      }
+    }
+  ]
+}

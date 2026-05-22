@@ -1,0 +1,33 @@
+{
+  "kind": "logo-variant",
+  "issuer": {
+    "$formspecIssuer": "1.0",
+    "url": "https://issuer.example/i.json",
+    "version": "1.0.0",
+    "name": "Example",
+    "kind": "organization",
+    "logo": {
+      "primary": { "url": "https://issuer.example/logo-primary.svg" },
+      "wordmark": { "url": "https://issuer.example/logo-wordmark.svg" },
+      "monochrome": { "url": "https://issuer.example/logo-mono.svg" }
+    }
+  },
+  "scenarios": [
+    {
+      "context": { "mode": "light", "headerWidth": "wide" },
+      "expectedUrl": "https://issuer.example/logo-primary.svg"
+    },
+    {
+      "context": { "mode": "dark", "headerWidth": "wide" },
+      "expectedUrl": "https://issuer.example/logo-mono.svg"
+    },
+    {
+      "context": { "mode": "high-contrast", "headerWidth": "wide" },
+      "expectedUrl": "https://issuer.example/logo-mono.svg"
+    },
+    {
+      "context": { "mode": "light", "headerWidth": "narrow" },
+      "expectedUrl": "https://issuer.example/logo-wordmark.svg"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "kind": "chain",
+  "definitionIssuer": { "kind": "url", "url": "https://cycle.example/a.json" },
+  "issuers": [
+    {
+      "$formspecIssuer": "1.0",
+      "url": "https://cycle.example/a.json",
+      "version": "1.0.0",
+      "name": "A",
+      "kind": "organization",
+      "parentOrganization": "https://cycle.example/b.json"
+    },
+    {
+      "$formspecIssuer": "1.0",
+      "url": "https://cycle.example/b.json",
+      "version": "1.0.0",
+      "name": "B",
+      "kind": "organization",
+      "parentOrganization": "https://cycle.example/a.json"
+    }
+  ],
+  "expected": {
+    "source": "definition",
+    "primaryUrl": "https://cycle.example/a.json",
+    "chainUrls": [
+      "https://cycle.example/a.json",
+      "https://cycle.example/b.json"
+    ],
+    "degraded": {
+      "reason": "cycle-detected",
+      "atUrl": "https://cycle.example/a.json"
+    }
+  }
+}

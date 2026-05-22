@@ -1,0 +1,17 @@
+{
+  "kind": "content-hash",
+  "cached": {
+    "$formspecIssuer": "1.0",
+    "url": "https://issuer.example/i.json",
+    "version": "1.0.0+sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "name": "Example",
+    "kind": "organization"
+  },
+  "fresh": {
+    "$formspecIssuer": "1.0",
+    "url": "https://issuer.example/i.json",
+    "version": "1.0.1+sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "name": "Example Renamed",
+    "kind": "organization"
+  }
+}

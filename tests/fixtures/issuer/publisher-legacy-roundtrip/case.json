@@ -1,0 +1,21 @@
+{
+  "kind": "publisher-legacy",
+  "registry": {
+    "$formspecRegistry": "1.0",
+    "published": "2026-05-21T00:00:00Z",
+    "publisher": {
+      "name": "Legacy Publisher",
+      "url": "https://legacy.example",
+      "contact": "legacy@example.org",
+      "contactPoint": {
+        "contactType": "customer support",
+        "email": "support@example.org"
+      }
+    },
+    "entries": []
+  },
+  "expectedWarnings": [
+    { "field": "publisher.url", "replacement": "publisher.homepage" },
+    { "field": "publisher.contact", "replacement": "publisher.contactPoint" }
+  ]
+}

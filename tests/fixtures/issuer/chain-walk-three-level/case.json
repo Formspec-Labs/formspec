@@ -1,0 +1,38 @@
+{
+  "kind": "chain",
+  "definitionIssuer": { "kind": "url", "url": "https://city.example/health.json" },
+  "issuers": [
+    {
+      "$formspecIssuer": "1.0",
+      "url": "https://city.example/health.json",
+      "version": "1.0.0",
+      "name": "Public Health",
+      "kind": "department",
+      "parentOrganization": "https://city.example/city.json"
+    },
+    {
+      "$formspecIssuer": "1.0",
+      "url": "https://city.example/city.json",
+      "version": "1.0.0",
+      "name": "City of Example",
+      "kind": "organization",
+      "parentOrganization": "https://state.example/state.json"
+    },
+    {
+      "$formspecIssuer": "1.0",
+      "url": "https://state.example/state.json",
+      "version": "1.0.0",
+      "name": "Example State",
+      "kind": "organization"
+    }
+  ],
+  "expected": {
+    "source": "definition",
+    "primaryUrl": "https://city.example/health.json",
+    "chainUrls": [
+      "https://city.example/health.json",
+      "https://city.example/city.json",
+      "https://state.example/state.json"
+    ]
+  }
+}
