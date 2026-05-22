@@ -247,6 +247,8 @@ Component §11 Cross-References + BLUF bullet. Experience prop descriptions upda
 
 ## Task 20: Doc pipeline + filemap + full sweep
 
+- [x] Run `npm run docs:generate`, `npm run docs:check`, `npm run docs:filemap`, full conformance, dependency-layer check, and `cargo nextest run -p formspec-lint`.
+
 `npm run docs:generate`, `npm run docs:check`, `npm run docs:filemap`. Full conformance suite. Layering check. Cargo nextest for any crate that consumes `component.schema.json`.
 
 ## Task 21: Promotion-gate verification + architecture review dispatch

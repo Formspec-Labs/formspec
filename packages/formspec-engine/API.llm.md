@@ -94,6 +94,19 @@ type ValidationResult = FormspecValidationResult;
 type ValidationReport = FormspecValidationReport;
 ```
 
+## `createDemoSubmitResponseActions(options: DemoSubmitResponseActionsOptions): ResponseActionsDocumentInput`
+
+Build a minimal Response Actions sidecar for demos, stories, and test fixtures.
+
+#### interface `DemoSubmitResponseActionsOptions`
+
+- **definitionUrl** (`string`): Definition url for `targetDefinition` binding.
+- **actionId** (`string`): Action id; default `'submit'`.
+- **emitOnValidationError** (`boolean`): When true (default), override the master-table submit tuple with
+`(on-submit, non-blocking, none)` so `formspec-submit` hostEvent fires
+even when validation fails — required for demo `onSubmit` error UX.
+When false, inherit master-table submit semantics (`block-on-error`).
+
 ## `diffEvalResults(previous: EvalResult | null, next: EvalResult): EvalDelta`
 
 #### interface `EvalValidation`
@@ -1649,6 +1662,10 @@ Pluggable batching + signal factory so FormEngine does not import `@preact/signa
 
 ##### `batch(fn: () => T): T`
 
+## `missingSubmitActionFinding(): ActionRefFinding`
+
+Host finding when `onSubmit` is wired but no submit-intent Action is published.
+
 ## `resolveResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, nodeId?: string): ActionResolution`
 
 ## `findResponseActionByIntent(document: ResponseActionsDocumentInput | null | undefined, intent: string): ResponseAction | null`
@@ -1672,7 +1689,7 @@ Pluggable batching + signal factory so FormEngine does not import `@preact/signa
 - **kind**: `'actionRef'`
 - **nodeId?**: `string`
 - **target**: `string`
-- **reason?**: `'missing-actionRef' | 'no-response-actions-document'`
+- **reason?**: `'missing-actionRef' | 'no-response-actions-document' | 'missing-submit-action'`
 
 #### interface `ActionResolution`
 
@@ -2166,6 +2183,14 @@ Execute a full mapping document (rules + defaults + autoMap).
 
 Lint a Formspec document.
 
+## `wasmLintDocumentWithRegistries(doc: unknown, registries: unknown[]): {
+    documentType: string | null;
+    valid: boolean;
+    diagnostics: any[];
+}`
+
+@deprecated Use `wasmLintDocument(doc, { registryDocuments })`.
+
 ## `wasmCollectFELRewriteTargets(expression: string): {
     fieldPaths: string[];
     currentPaths: string[];
@@ -2219,14 +2244,6 @@ Parse FEL and lift a homogeneous `and` / `or` chain into Studio condition-group 
 }>`
 
 Return the builtin FEL function catalog exported by the Rust runtime.
-
-## `wasmLintDocumentWithRegistries(doc: unknown, registries: unknown[]): {
-    documentType: string | null;
-    valid: boolean;
-    diagnostics: any[];
-}`
-
-@deprecated Use `wasmLintDocument(doc, { registryDocuments })`.
 
 ## `wasmParseRegistry(registry: unknown): {
     publisher: {

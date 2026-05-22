@@ -121,7 +121,7 @@ Strip envelope fields from an imported theme document into working state.
 
 Strip envelope fields from an imported mapping document into working state.
 
-## `COMPONENT_BASE_PROP_NAMES: readonly ["accessibility", "component", "cssClass", "id", "layout", "responsive", "style", "when"]`
+## `COMPONENT_BASE_PROP_NAMES: readonly ["accessibility", "component", "conceptRefs", "cssClass", "id", "layout", "responsive", "style", "taskRefs", "unitRef", "when", "x-generation"]`
 
 AUTO-GENERATED — DO NOT EDIT
 
