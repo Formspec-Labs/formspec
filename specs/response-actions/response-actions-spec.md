@@ -177,16 +177,16 @@ For an `x-` intent, `validation` is REQUIRED. Processors MUST NOT consult the VM
 
 ### 4.1 Precondition FEL Catalog
 
-Precondition expressions evaluate in this closed FEL host-binding catalog:
+Precondition expressions evaluate in this closed FEL host-binding catalog. The catalog conforms to [FEL §6.3.1](../../../fel-core/specs/fel/fel-grammar.md) — every entry MUST publish `name`, `kind`, `type`, `purity`, `evaluationTiming`, and `scope` so a catalog-aware FEL evaluator can satisfy the [FEL §6.3.5](../../../fel-core/specs/fel/fel-grammar.md) acceptance bar (closed catalog, evaluation-moment binding, negative fixtures for unbound names).
 
-| name | kind | type | purity | timing |
-|---|---|---|---|---|
-| `response` | object | Immutable Response snapshot taken at invocation start. | pure | eager |
-| `definition` | object | Pinned Definition referenced by `targetDefinition`. | pure | eager |
-| `action` | object | Current Action `{ id, intent, actor }`. | pure | eager |
-| `now` | function | `() -> datetime` current processor time. | impure | lazy |
-| `validation` | object | `{ lastReport: ValidationReport \| null }` from prior state. | pure | eager |
-| `invocation` | object | `{ id: string }`; stable across replays. | pure | eager |
+| name | kind | type | purity | evaluationTiming | scope |
+|---|---|---|---|---|---|
+| `response` | object | Immutable Response snapshot taken at invocation start. | pure | eager | expression |
+| `definition` | object | Pinned Definition referenced by `targetDefinition`. | pure | eager | expression |
+| `action` | object | Current Action `{ id, intent, actor }`. | pure | eager | expression |
+| `now` | function | `() -> datetime` current processor time. | impure | lazy | expression |
+| `validation` | object | `{ lastReport: ValidationReport \| null }` from prior state. | pure | eager | expression |
+| `invocation` | object | `{ id: string }`; stable across replays. | pure | eager | expression |
 
 `@invocation.attempt` is intentionally absent from the precondition catalog. Preconditions also MUST NOT access prior effect outcomes, Ledger contents, Handoff documents, mutable Definition state, or host-application state. FEL evaluators MUST reject unregistered `@name` bindings.
 
@@ -277,12 +277,12 @@ A processor receiving a durable effect with a previously executed idempotency ke
 
 ### 6.4 Effect-Time FEL Catalog
 
-For non-idempotency expressions (`payloadRef`, `detailRef`), the effect-time catalog extends the precondition catalog with:
+For non-idempotency expressions (`payloadRef`, `detailRef`), the effect-time catalog extends the precondition catalog. Entries follow [FEL §6.3.1](../../../fel-core/specs/fel/fel-grammar.md) and publish all six fields:
 
-| name | kind | type | timing |
-|---|---|---|---|
-| `effects` | object | One-based array of prior effect outcomes `{ type, status, outcomeRef }`. | lazy |
-| `invocation` | object | `{ id: string, attempt: integer }`; `attempt` is a property of `@invocation`, not a separate binding. | eager |
+| name | kind | type | purity | evaluationTiming | scope |
+|---|---|---|---|---|---|
+| `effects` | object | One-based array of prior effect outcomes `{ type, status, outcomeRef }`. | pure | lazy | expression |
+| `invocation` | object | `{ id: string, attempt: integer }`; `attempt` is a property of `@invocation`, not a separate binding. | pure | eager | expression |
 
 `@effects[i]` MUST only reference prior effects. Referencing the current or a future effect is an evaluation error.
 
