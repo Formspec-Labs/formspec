@@ -46,14 +46,14 @@ Per-ADR detail → [`thoughts/TODO.md`](thoughts/TODO.md). Blocked stack-level A
 | ADR | Blocker |
 |-----|---------|
 | 0051 — PDF | Three crates (`formspec-theme`, `formspec-plan`, `formspec-pdf`) don't exist. Rust spec `rust-layout-planner-and-pdf.md` status: Design only. `x-pdf` extension hook in schema but no renderer. |
-| 0052 — Remove Theme Pages | All artifacts intact: `theme.pages` (`theme.schema.json:205`), `PageLayout` (`:542`), `Region` (`:594`), spec §6 (140 lines). No deprecation markers. ADR unresolved: Remove vs. Studio-only. |
+| 0052 — Remove Theme Pages | Superseded for v1 by [`ADR 0063`](thoughts/adr/0063-page-authority-split.md). `theme.pages`, `PageLayout`, and `Region` remain as the compact page-grid surface with explicit Component/Theme precedence. |
 
 ### Done & archived (2026-05-14)
 
 | ADR | What |
 |-----|------|
-| 0062 — Post-Split Follow-Ups | All 5 slices verified. `CommandPipeline` exists (`pipeline.ts:11`), `RawProject` 2,346→683 lines, batch API collapsed to single `_execute` path. → [`thoughts/archive/adr/`](thoughts/archive/adr/) |
-| 48 earlier ADRs | 0001–0028, 0032–0038, 0041, 0043–0047, 0049–0050, 0057–0061, 0064–0065, 0077. |
+| Archived 0062 — Post-Split Follow-Ups | All 5 slices verified. `CommandPipeline` exists (`pipeline.ts:11`), `RawProject` 2,346→683 lines, batch API collapsed to single `_execute` path. → [`thoughts/archive/adr/0062-post-split-follow-ups.md`](thoughts/archive/adr/0062-post-split-follow-ups.md). Active 0062 now lives at [`thoughts/adr/0062-fallback-transformation-is-a-render-time-projection.md`](thoughts/adr/0062-fallback-transformation-is-a-render-time-projection.md). |
+| 48 earlier ADRs | 0001–0028, 0032–0038, 0041, 0043–0047, 0049–0050, 0057–0060, and archived 0061/0064–0065/0077 under [`thoughts/archive/adr/`](thoughts/archive/adr/). Active 0061–0064 now live under [`thoughts/adr/`](thoughts/adr/). |
 
 ### Relocated (2026-05-14)
 
@@ -110,7 +110,7 @@ result = evaluate_definition(definition, submitted_data)
 - [x] Companion specs: Locale, Ontology, References, Screener, Assist, Respondent Ledger.
 - [ ] Conformance test suite — formalize cross-runtime parity tests into spec-defined suite format.
 - [ ] Stack-level semantic fixture — exercise canonical response → WOS → Trellis → export → verify across 5 contracts.
-- [ ] ADR closeout: schema parity gaps (0029/0030/0031), MCP consolidation (0040), i18n FEL functions + lint (0048), WebMCP transports + annotations (0053), PDF crates (0051), theme pages deprecation (0052).
+- [ ] ADR closeout: schema parity gaps (0029/0030/0031), MCP consolidation (0040), i18n FEL functions + lint (0048), WebMCP transports + annotations (0053), PDF crates (0051), page-authority closeout (0063).
 
 ---
 

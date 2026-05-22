@@ -1,7 +1,12 @@
 # ADR 0052: Remove Page Layout System from Theme Specification
 
-**Status:** Proposed
+**Status:** Superseded for v1 by [ADR 0063](0063-page-authority-split.md)
 **Date:** 2026-03-25
+
+> Historical note: this ADR records the Theme page-layout removal proposal.
+> [ADR 0063](0063-page-authority-split.md) supersedes the removal decision for
+> v1 by keeping `theme.pages` as the compact page-grid surface and making
+> Theme/Component page precedence explicit.
 
 ## Context
 

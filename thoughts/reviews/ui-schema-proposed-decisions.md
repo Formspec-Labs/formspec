@@ -5,11 +5,11 @@ Source review: `thoughts/reviews/ui-schema.md`
 Lens: greenfield project, cheap refactoring, no ratified legacy surface, maximize user value, extension flexibility, and low architecture debt.
 Status: controlling decision artifact for the UI-schema cleanup. `ui-schema.md` remains the evidence record; this file wins if the two diverge.
 
-Current implementation status, validated 2026-05-21: **needs hardening**. The core schema/runtime migration is mostly landed and tested, but the governance layer is not complete: page-conflict lint, shared policy matrices, structured fallback policy, breakpoint alignment, and some authoring-surface cleanup remain open.
+Current implementation status, validated 2026-05-21: **structural schema, lint, and runtime-plumbing decisions are landed**. Page-authority governance, the shared UI policy artifact, breakpoint alignment, responsive-prop lint, fixture coverage, and stale authoring-surface cleanup are implemented. Runtime fallback transformation remains a separate future implementation step governed by [ADR 0062](../adr/0062-fallback-transformation-is-a-render-time-projection.md).
 
 ## Executive Verdict
 
-Use the ADR 0052 accepted-alternative path for v1.
+Use [ADR 0063](../adr/0063-page-authority-split.md), which supersedes [ADR 0052](../adr/0052-remove-theme-page-layout.md)'s Theme page-layout removal path for v1.
 
 Keep `theme.pages` because it gives non-Studio and compact JSON authors a useful page-layout surface that the current system can reconcile with Component documents. The architecture work is not immediate removal; it is making the authority rules explicit enough that Theme page layout does not become an accidental second source of truth.
 
@@ -33,22 +33,22 @@ Current v1 direction:
 
 | Area | Status | Current read |
 |---|---|---|
-| Independent fixes and schema posture | Done | Numeric compatibility, `cssClass` merge behavior, responsive structural-key blocking, root `x-*`, and closed-schema posture are implemented. Add a Definition-root `x-*` conformance test for parity with Theme and Component. |
+| Independent fixes and schema posture | Done | Numeric compatibility, `cssClass` merge behavior, responsive structural-key blocking, root `x-*`, closed-schema posture, and Definition-root `x-*` conformance coverage are implemented. |
 | `common.schema.json` extraction | Done | Shared `TargetDefinition`, `Tokens`, `Breakpoints`, `AccessibilityBlock`, `Extensions`, and visual surface primitives exist and generated types consume them. |
-| Coordinated schema/runtime bump | Mostly done | `Section`, `Grid`, `Stack`, canonical PascalCase widgets, `GridTrack`, `layout.grid`, visual surface props, and generated/runtime surfaces are in place. Remaining drift is in authoring examples/stories and some stale explanatory labels. |
-| Page authority precedence | Partial | Runtime precedence is implemented: direct-root `Section` page units win, then `theme.pages`, then generated definition-group fallback. Missing: author-facing lint/diagnostics for shadowed or incompatible Theme/Component page structures. |
-| Shared policy matrices | Partial | TS has a shared widget compatibility surface and Rust lint has a tested compatibility table, but they are still separate sources. Fallback policy, attention policy, token namespace rules, extension discovery, breakpoint alignment, and page-conflict rules are not yet one shared machine-readable seam. |
-| Lint/tooling governance | Partial | W711/W712 and token warnings cover part of the surface. Missing: Theme/Component page-structure conflict lint, same-name breakpoint mismatch lint, component-specific responsive-prop lint, and structured fallback-policy validation. |
+| Coordinated schema/runtime bump | Done | `Section`, `Grid`, `Stack`, canonical PascalCase widgets, `GridTrack`, `layout.grid`, visual surface props, generated/runtime surfaces, examples, stories, and explanatory labels are aligned. Retired names remain intentionally reserved in the custom-component guard so authors cannot reintroduce `Page`, `Columns`, or `Spacer` as custom components. |
+| Page authority precedence | Done | Runtime precedence is implemented across split owners: `formspec-core` resolves direct-root `Section` page units ahead of `theme.pages`, and `formspec-layout` materializes generated definition-group fallback when neither authored page source applies. Lint now reports shadowed Theme pages (`W805`) and incompatible Theme/Component active page assignments (`E805`). |
+| Shared policy matrices | Done | `specs/ui-policy.json` is the shared machine-readable seam for component/widget vocabulary, compatibility, fallback carry/drop/translate, responsive allowed props, breakpoint alignment, page precedence, token governance hooks, attention routing, and extension discovery. TypeScript generates `UI_POLICY` from it; Rust lint consumes it for compatibility and responsive-prop validation. Page precedence is mirrored in the policy artifact while runtime implements the order directly. Fallback carry/drop/translate is structured and exported, but not yet a runtime transformation engine. |
+| Lint/tooling governance | Done | W708/W709, W711/W712, W805/E805, W806, and W807 cover token namespace, Theme widget compatibility, Theme responsive breakpoints, page-structure conflicts, component responsive props, and Theme/Component breakpoint alignment. Tested lint fixtures cover the new rules. |
 
-### Hardening Backlog
+### Completion Evidence
 
-1. Add page-structure conflict diagnostics and lint fixtures for Theme pages shadowed by direct-root Component `Section` page units and for incompatible active page assignments.
-2. Replace prose fallback notes with a structured fallback-policy artifact or ADR covering `carry`, `drop`, and `translate`.
-3. Unify compatibility/fallback/breakpoint/token policy into a shared machine-readable matrix consumed by Rust lint first, then runtime/tooling.
-4. Add same-name Theme/Component breakpoint alignment checks and component-specific responsive override validation.
-5. Clean remaining authoring-surface drift: stale `Page`/`Columns`/`Spacer` narration in planner tests and stories, and decide whether retired names stay reserved for custom components or are removed from the reserved-name guard.
-6. Strengthen fixture coverage by asserting direct-root `Section` page units and absence of legacy component aliases in migrated component examples.
-7. Fix repo hygiene blockers before closeout, including current `git diff --check` trailing-whitespace failure outside this document.
+1. Page-structure conflict diagnostics and lint fixtures landed for Theme pages shadowed by direct-root Component `Section` page units (`W805`) and incompatible active page assignments (`E805`).
+2. Prose-only component fallback notes were replaced with references to the structured fallback policy in `specs/ui-policy.json`, which records `carry`, `drop`, and `translate`; runtime fallback transformation remains future work.
+3. Compatibility, fallback, responsive, breakpoint, page-precedence, token, attention, and extension-discovery policy now share one machine-readable artifact. TypeScript policy generation guards drift; Rust lint consumes the policy for compatibility and responsive-prop checks. Page precedence is recorded there as policy mirror data until runtime consumers are wired to it directly.
+4. Same-name Theme/Component breakpoint alignment (`W807`) and component-specific responsive override validation (`W806`) are implemented with registry fixtures.
+5. Stale authoring drift in stories and planner/e2e test labels was cleaned. Current examples use `Section`, `Grid`, `Stack.gap`, and surface spacing rather than `Page`, `Columns`, or `Spacer`.
+6. Grant fixture coverage asserts direct-root `Section` page units and absence of legacy component aliases in migrated component examples.
+7. Repo hygiene is clean for this lane: `git diff --check` passes after the previous trailing-whitespace blocker was removed.
 
 ## User Value Narratives
 
@@ -116,12 +116,13 @@ Rename Component `Page` to `Section` and remove the generic Component `Page` pri
 - Component `Section` is the structural grouping primitive.
 - Direct root `Section` children are the Component-side page units when `pageMode` calls for wizard or tabs navigation.
 - Nested `Section` nodes are ordinary structure and MUST NOT shadow `theme.pages`.
-- Core spec §4.1.2 and Component spec §5.4 must replace `Stack > Page*` language with an abstract active page unit: direct root `Section` units when present, otherwise Theme `PageLayout` units when a Component document has no page-bearing structure.
+- Core spec §4.1.2 and Component spec §5.4 use the abstract active page unit: direct root `Section` units when present, otherwise Theme `PageLayout` units when a Component document has no page-bearing structure.
 
 ### 5. Theme/Component Precedence Lint
 
 Keep both Theme and Component layout surfaces, but make conflicts visible.
 
+- [ADR 0063](../adr/0063-page-authority-split.md) codifies the page-authority split and runtime ownership.
 - Runtime rule: explicit Component structure wins over Theme page layout.
 - `theme.pages` applies when no explicit direct-root Component `Section` page units exist.
 - A partial Component tree without direct-root `Section` page units may still use Theme page regions for fallback/unbound items.
@@ -143,16 +144,19 @@ Use PascalCase as the canonical built-in widget/component vocabulary across Defi
 
 Replace prose fallback notes with structured fallback policy.
 
-- Keep a default preservation set: `bind`, `when`, `responsive`, `style`, `cssClass`, `accessibility`, and compatible `children`.
+- [ADR 0062](../adr/0062-fallback-transformation-is-a-render-time-projection.md) codifies fallback transformation as a render-time projection, not source-document mutation.
+- Keep a default preservation set: `bind`, `when`, `responsive`, `style`, `cssClass`, and `accessibility`.
+- Preserve compatible `children` through the separate policy switch when the fallback accepts children.
 - For component-specific props, require explicit `carry`, `drop`, or `translate` lists.
 - Unknown component-specific props should drop with a warning unless a fallback policy carries or translates them.
 - Custom `x-*` widgets/components that require fallback should declare one explicitly; missing required fallback is a lint error.
-- Write this as a small ADR because fallback behavior is runtime policy.
+- Fallback behavior is runtime policy and should follow [ADR 0062](../adr/0062-fallback-transformation-is-a-render-time-projection.md).
 
 ### 8. Responsive Model
 
 Keep responsive overrides as shallow presentational patches, but add stronger validation.
 
+- [ADR 0061](../adr/0061-responsive-overrides-are-presentation-patches.md) codifies the responsive override boundary: breakpoint patches are presentation and affordance changes, not alternate component definitions or breakpoint-local initial state.
 - Keep the current forbidden structural keys: `component`, `bind`, `when`, `children`, and recursive `responsive`.
 - Allow `hidden` as a presentational override with data-preserving semantics.
 - Normative rewrite: replace current Component-over-Theme same-name breakpoint precedence with a shared breakpoint namespace. Resolve breakpoints from Theme plus Component additions; same-name breakpoint values must match.
@@ -174,6 +178,7 @@ Close schemas by default with two intentional escape hatches.
 
 Build one shared machine-readable matrix for cross-tier authoring checks.
 
+- [ADR 0064](../adr/0064-shared-ui-policy-artifact.md) codifies `specs/ui-policy.json` as the shared UI policy artifact.
 - Include bind-path syntax.
 - Split bind-path checks from item-key checks: `Bind.path` and `Shape.target` use path syntax; Theme `Region.key` resolves against item keys and is not a bind path unless the Theme spec changes.
 - Include component/widget to `dataType` compatibility.
@@ -214,6 +219,8 @@ Rationale: a greenfield schema should catch mistakes early while still giving us
 Keep `theme.pages`, `PageLayout`, `Region`, and locale `$page.*` for now.
 
 Do not treat this as a legacy concession. Treat it as the compact page-level grid surface for authors who need page regions without writing a full Component tree.
+
+See [ADR 0063](../adr/0063-page-authority-split.md) for the page-authority precedence and runtime ownership split.
 
 Rationale: this matches the CSS Grid mental model: named regions, column spans, starts, and responsive placement. The architectural cost is manageable if precedence is explicit.
 
@@ -313,10 +320,11 @@ Rationale: authoring assistance is valuable, but it should not create hidden eng
 
 Replace prose fallback notes with a structured fallback policy.
 
-- Default preservation set: `bind`, `when`, `responsive`, `style`, `cssClass`, `accessibility`, and compatible `children`.
+- Default preservation set: `bind`, `when`, `responsive`, `style`, `cssClass`, and `accessibility`.
+- Children are preserved through the separate policy switch when the fallback accepts them.
 - Component-specific props must be listed as `carry`, `drop`, or `translate`.
 - Unknown component-specific props drop with a warning unless the fallback policy carries or translates them.
-- Capture the runtime policy in a small ADR before broad implementation.
+- Follow [ADR 0062](../adr/0062-fallback-transformation-is-a-render-time-projection.md) for runtime fallback transformation before broad implementation.
 
 Rationale: fallback paths are user-visible reliability behavior, not loose metadata.
 
