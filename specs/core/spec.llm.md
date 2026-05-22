@@ -87,7 +87,7 @@ A completed/in-progress instance pinned to a specific definition version.
 
 Required: `definitionUrl`, `definitionVersion`, `status` (in-progress | completed | amended | stopped), `data` (the instance), `authored` (ISO 8601 datetime).
 
-Optional: `id` (UUID), `author`, `subject` (entity the response is about), `validationResults`.
+Optional: `id` (UUID), `author`, `subject` (entity the response is about), `displayedIssuer` (submit-time resolved Issuer pin), `validationResults`, `authoredSignatures`.
 
 ### 7. Data Source
 Declares external/supplemental data available to FEL expressions at runtime. Populates secondary instances.
@@ -111,6 +111,14 @@ Secondary instances are **read-only** — calculate binds must not target them.
 | **Presentation** | HOW is data displayed? | Optional advisory hints only; must not affect data/validation semantics; renderers may ignore |
 
 This separation means one definition can drive web, mobile, PDF, voice, and API-only endpoints without modification.
+
+## Issuer Binding
+
+Definitions may declare `issuer` as either a full inline Issuer document or exactly `{url}`. The referenced Issuer sidecar declares who is asking the form as respondent-facing identity data. Issuer is not Theme: Theme may style issuer chrome, but Issuer owns name, logo URL, parent chain, contact point, jurisdiction, and document identity.
+
+Resolution order is deterministic: host override, then Definition declaration, then unbranded fallback. Host override is a full Issuer document or URL, not a partial overlay. Programmatic embed config is trusted. `?_issuer=` is respondent-controlled and may apply only when its origin is allowlisted; renderers must visibly indicate query-supplied branding. Embed config wins over query override.
+
+When host override is active, renderers walk only the host-injected Issuer's `parentOrganization` chain. They must not merge it with the Definition-declared chain. Response `displayedIssuer` pins the resolved primary Issuer at submit time and remains inside the signed-payload preimage because the v1 omission rule strips only `authoredSignatures`.
 
 ## Processing Model (4 phases, in order)
 
@@ -259,7 +267,7 @@ Must: not collide with builtins, be pure, be total (return value for all valid i
 
 Required: `$formspec` ("1.0"), `url` (canonical URI, doesn't change between versions), `version`, `status` ("draft"/"active"/"retired"), `title`, `items` (array).
 
-Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semver"), `derivedFrom` (parent definition — either a URI string or `{url, version}` object), `description`, `binds`, `shapes`, `instances` (secondary data sources), `variables` (named computed values), `nonRelevantBehavior` ("remove"/"empty"/"keep", default "remove"), `optionSets`, `screener`, `migrations`, `date`, `name` (machine-friendly), `extensions`, `formPresentation`.
+Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semver"), `derivedFrom` (parent definition — either a URI string or `{url, version}` object), `description`, `issuer` (inline Issuer or strict `{url}` reference), `binds`, `shapes`, `instances` (secondary data sources), `variables` (named computed values), `nonRelevantBehavior` ("remove"/"empty"/"keep", default "remove"), `optionSets`, `screener`, `migrations`, `date`, `name` (machine-friendly), `extensions`, `formPresentation`.
 
 ### Form Presentation (advisory)
 

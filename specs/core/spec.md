@@ -785,6 +785,52 @@ Items 1-5 are versioned by the `canonicalization` identifier in `signedPayload`;
 
 Conformant verifiers MUST reject any authored signature whose protected-header `method_uri` resolves to a profile not present in the verifier's registered profile set; method dispatch is closed-enum at the verifier (see ADR 0109). Profile additions are coordinated spec changes, not additive registry entries: a new profile lands together with its preimage definition, its fixture vector, and its registered `method_uri`.
 
+#### Issuer Binding
+
+A Definition MAY declare `issuer`. The property binds the Definition to the
+respondent-facing Issuer identity described in
+[`specs/issuer/issuer-spec.md`](../issuer/issuer-spec.md). The binding accepts
+either a full inline Issuer document or exactly `{ "url": "..." }`; the URL-ref
+branch is deliberately strict (`additionalProperties: false`) so processors can
+distinguish an embedded Issuer from a fetchable Issuer reference without
+heuristics.
+
+Renderers resolve Issuer identity with this cascade:
+
+1. host override,
+2. Definition declaration,
+3. unbranded fallback.
+
+The host override is a full Issuer document or a URL to one. It is not a partial
+overlay. If no host override and no Definition declaration exists, the renderer
+MUST render the Definition without Issuer chrome rather than inventing identity.
+
+Two host-override transports are normative. The embed-time config object is the
+trusted programmatic transport supplied by the deployment host. The
+`?_issuer=<url-encoded-issuer-document-url>` query parameter is
+respondent-controllable; renderers MUST apply it only when the override URL's
+origin is in a deploy-time allowlist, MUST ignore it when no allowlist is
+configured, and MUST display a visible indicator when query-supplied Issuer
+branding is applied. When both transports are present, embed-time config wins.
+
+When a host override is active, the renderer walks only the host-injected
+Issuer's `parentOrganization` chain. It MUST NOT fetch, render, or merge the
+Definition-declared Issuer chain. This two-chain rule keeps template authorship
+and deployment-host branding auditable without producing a blended authority
+story.
+
+Theme remains presentation tier. Theme MAY define how issuer chrome is laid out,
+colored, or sized. Theme MUST NOT define who the Issuer is. Issuer identity data,
+including name, parent chain, logo URL, contact point, jurisdiction, and document
+identity, lives in the Issuer document.
+
+Response `displayedIssuer` records the resolved primary Issuer at submit time.
+As specified in the Signed Response Payload rules above, the only top-level
+field omitted from the JCS preimage is `authoredSignatures`; `displayedIssuer`
+therefore remains inside `response_without_authoredSignatures` and inside the
+signed-payload digest. No canonicalization-profile change is required for
+Issuer pinning.
+
 #### 2.1.6.1 Intake Handoff
 
 An **Intake Handoff** is the boundary record emitted when a Formspec intake
