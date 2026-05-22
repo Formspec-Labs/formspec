@@ -578,7 +578,7 @@ selects one of the following outcomes:
 | No deterministic `N_old` and no deterministic `N_designer` | Shallow copy of `N_new` without children. | `pendingReview[]` with `COMP-REGENERATION-PENDING-REVIEW`. |
 | No deterministic `N_old`, deterministic `N_designer` | Designer shell copied without children; children are merged from `N_new`. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-PRECEDES`. |
 | Deterministic `N_old`, no deterministic `N_designer` | No merged node. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-REMOVED`. |
-| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]`. |
+| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]` with `COMP-REGENERATION-REGENERATED`. |
 | `N_old` and `N_designer` differ | Apply §6.5 three-way node merge. | `conflicts[]`, `surviving[]`, or `regenerated[]` as defined by §6.5. |
 
 When the selected outcome returns a merged node, the processor MUST set that
@@ -617,11 +617,23 @@ the designer deltas that survive the rules below:
   processor MUST preserve the designer component value in `merged` and MUST
   report `COMP-REGENERATION-WIDGET-SWAP` in `conflicts[]`.
 
-If any delta for the node produces a conflict, the node's merge entry belongs in
-`conflicts[]`. If no conflict occurs and at least one designer delta survives,
-the entry belongs in `surviving[]`, even when unrelated generated-only changes
-also remain from `N_new`. If no designer delta survives, the entry belongs in
-`regenerated[]`.
+Report entries are code-scoped. A single merged node MAY appear in more than one
+report entry when more than one code condition applies. A processor MUST NOT
+combine multiple finding codes into one entry, and MUST NOT choose one code and
+drop the others.
+
+For a node with three-way deltas:
+
+- all non-`component` property conflicts for that node, including `/children`,
+  are reported in one `conflicts[]` entry with
+  `COMP-REGENERATION-PROPERTY-CONFLICT`;
+- a widget swap is reported in a separate `conflicts[]` entry with
+  `COMP-REGENERATION-WIDGET-SWAP` and `/component` in `propertyDeltas[]`;
+- non-conflicting designer deltas that survive are reported in one
+  `surviving[]` entry with `COMP-REGENERATION-DESIGNER-SURVIVED`, even when the
+  same node also has conflict entries for other deltas; and
+- if no designer delta survives and no conflict applies, the node is reported in
+  `regenerated[]` with `COMP-REGENERATION-REGENERATED`.
 
 `propertyDeltas[]` entries are JSON Pointer strings for the node-local
 properties that changed, such as `/props/label`, `/component`, or `/children`.
@@ -756,6 +768,13 @@ version of the specification:
 Report array placement is part of the code contract. A processor MUST NOT emit a
 code in a different array unless a later version of this specification explicitly
 changes the table.
+
+Each report entry carries exactly one `code`. If more than one code condition
+applies to the same merged node, the processor MUST emit one entry per code, with
+the same `nodePath` and applicable `anchors`, rather than combining codes or
+dropping a lower-priority code. For example, a node with both property conflicts
+and a widget swap emits separate `conflicts[]` entries for
+`COMP-REGENERATION-PROPERTY-CONFLICT` and `COMP-REGENERATION-WIDGET-SWAP`.
 
 ### 7.3 Severity Rules
 

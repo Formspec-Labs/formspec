@@ -81,7 +81,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 | `specs/component/regeneration-merge-spec.md` | Canonical prose for the merge contract — algorithm, severities, orphan handling, rename handling, review UX. |
 | `specs/component/regeneration-merge-spec.bluf.md` | BLUF source. |
 | `specs/component/regeneration-merge-spec.llm.md` | Generated LLM artifact (do not hand-edit). |
-| `schemas/regeneration-merge-report.schema.json` | Structured shape of the `MergeReport`: `surviving[]`, `regenerated[]`, `orphaned[]`, `pendingReview[]`, `conflicts[]`, each entry carrying `anchors`, `nodePath`, `reason`, `severity`. |
+| `schemas/regeneration-merge-report.schema.json` | Structured shape of the `MergeReport`: `surviving[]`, `regenerated[]`, `orphaned[]`, `pendingReview[]`, `conflicts[]`, each entry carrying `anchors`, `nodePath`, `code`, `reason`, `severity`. |
 | `tests/conformance/spec/test_regeneration_merge_algorithm.py` | Algorithm pytest. Drives every fixture pair through an inline reference merger; asserts merged document + MergeReport shape against expected output. |
 | `tests/conformance/spec/test_regeneration_merge_invariants.py` | Invariant pytest: determinism (two runs identical), no-mutation (inputs unchanged after merge), convergence (clean cycle re-run yields identical output with zero conflicts and zero pendingReview). |
 | `tests/conformance/spec/test_regeneration_merge_report_schema.py` | Schema-shape pytest for `regeneration-merge-report.schema.json`. |
@@ -327,19 +327,21 @@ merge_generated_node(N_new):
 
     elif structurally_equal(N_old, N_designer):
       merged_node = shallow_copy_without_children(N_new)
-      report.regenerated += entry(merged_node)
+      report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED")
 
     else:
       deltas = classify_designer_deltas(N_old, N_designer)
       # Base is N_new without children. Apply surviving designer deltas as
       # overlays; unrelated generator-only changes remain from N_new.
-      merged_node, node_conflicts, surviving_deltas = apply_three_way_node_merge(N_old, N_designer, N_new, deltas)
-      if node_conflicts:
-        report.conflicts += entry(merged_node, propertyDeltas: node_conflicts)
-      elif surviving_deltas:
-        report.surviving += entry(merged_node, propertyDeltas: surviving_deltas)
-      else:
-        report.regenerated += entry(merged_node)
+      merged_node, conflict_entries, surviving_deltas = apply_three_way_node_merge(N_old, N_designer, N_new, deltas)
+      # Report entries are code-scoped. The same node may emit both
+      # PROPERTY-CONFLICT and WIDGET-SWAP conflict entries, and may also emit a
+      # DESIGNER-SURVIVED entry for unrelated non-conflicting designer deltas.
+      report.conflicts += conflict_entries
+      if surviving_deltas:
+        report.surviving += entry(merged_node, code: "COMP-REGENERATION-DESIGNER-SURVIVED", propertyDeltas: surviving_deltas)
+      if not conflict_entries and not surviving_deltas:
+        report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED")
 
   # Children are assembled recursively in new_generated child order before this
   # function returns merged_node to its parent. This is recursive assembly, not
@@ -360,7 +362,9 @@ merge_children(N_new, N_old, N_designer, merged_node):
     if new_order == old_order:
       reorder the matched entries in children to designer_order
       leave newly generated children in their N_new relative positions
-      report.surviving += entry(merged_node, propertyDeltas: ["/children"])
+      report.surviving += entry(merged_node,
+        code: "COMP-REGENERATION-DESIGNER-SURVIVED",
+        propertyDeltas: ["/children"])
     elif new_order != designer_order:
       keep N_new order for matched generated children
       report.conflicts += entry(merged_node,
@@ -392,15 +396,31 @@ for each orphan_root in orphan_roots sorted by designer_edited pre-order documen
   direct_parent = locate_direct_parent_in_merged(orphan_root)
   if direct_parent is not None:
     append orphan_root subtree once as a child of direct_parent
-    report.orphaned += { ..., reattachedTo: direct_parent.nodePath }
+    report.orphaned += entry(orphan_root,
+      code: "COMP-REGENERATION-ORPHAN-NODE",
+      reattachedTo: direct_parent.nodePath)
   else:
     nearest = locate_nearest_higher_ancestor_in_merged(orphan_root)
     if nearest is not None:
       append orphan_root subtree once as a child of nearest
-      report.orphaned += { ..., reattachedTo: nearest.nodePath, cascaded: true }
+      report.orphaned += entry(orphan_root,
+        code: "COMP-REGENERATION-ORPHAN-NODE",
+        reattachedTo: nearest.nodePath,
+        cascaded: true)
+      report.orphaned += entry(orphan_root,
+        code: "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+        reattachedTo: nearest.nodePath,
+        cascaded: true)
     else:
       append orphan_root subtree once under /tree after the last root child
-      report.orphaned += { ..., reattachedTo: "/tree", detached: true }
+      report.orphaned += entry(orphan_root,
+        code: "COMP-REGENERATION-ORPHAN-NODE",
+        reattachedTo: "/tree",
+        detached: true)
+      report.orphaned += entry(orphan_root,
+        code: "COMP-REGENERATION-ORPHAN-DETACHED",
+        reattachedTo: "/tree",
+        detached: true)
 
 locate_direct_parent_in_merged(N): inspect only N's immediate parent in
   designer-edited; compute mapped match_key(parent); if the key resolves to a
@@ -453,11 +473,11 @@ Rules:
 
 1. A designer-edited node with no anchor-set match in `new-generated` is preserved in `merged` (concept §7.2: "Never silently delete designer-authored layout"). Reattachment rule lives in §6 (Task 7).
 2. Every orphan emits `COMP-REGENERATION-ORPHAN-NODE` at `warning` severity by default.
-3. After the merge completes, the spec REQUIRES the merge runtime to invoke the CRF §6 cross-document resolver against the merged document. Any resolver findings for orphan nodes (unresolved `bind`, `actionRef`, `unitRef`) appear as separate findings in the review surface, composed alongside the `COMP-REGENERATION-ORPHAN-NODE` entry. The review surface elevates the orphan to "error severity in context" when either:
+3. After the merge completes, the spec REQUIRES the merge runtime to invoke the CRF §6 cross-document resolver against the merged document. Any resolver findings for orphan nodes (unresolved `bind`, `actionRef`, `unitRef`) appear as separate findings in the review surface, composed alongside the `COMP-REGENERATION-ORPHAN-NODE` entry. The review surface MAY show an error-level effective severity when either:
    - The orphan carries an `error`-severity CRF finding (e.g., `unitRef` unresolved with Experience loaded), or
    - The Component-resolver emits an error-level bind-resolution finding against the orphan.
 4. Cascade and detachment cases (§6 algorithm) emit `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` (`info`) and `COMP-REGENERATION-ORPHAN-DETACHED` (`warning`) respectively, in ADDITION to the base `ORPHAN-NODE` entry.
-5. Orphans appear in `MergeReport.orphaned[]` with full anchor set, `nodePath` in merged (the reattached path), `reattachedTo`, and `cascaded`/`detached` flags. The resolver-emitted reference findings are NOT duplicated in `MergeReport`; they live in their own resolver report and the review surface joins them by `nodePath`.
+5. Orphans appear in `MergeReport.orphaned[]` with full anchor set, `nodePath` in merged (the reattached path), `reattachedTo`, and `cascaded`/`detached` flags. The resolver-emitted reference findings are NOT duplicated in `MergeReport`; they live in their own resolver report and the review surface composes them to orphan entries by the resolver's affected Component node key/path when available.
 
 §8 MUST address rendering: orphan nodes render normally (the designer authored them, they should display). Tooling MAY visually mark them via the §10 `data-merge-status` attribute; the spec does not mandate visual treatment.
 
@@ -573,7 +593,7 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` 
     "pendingReview":{ "type": "array", "items": { "$ref": "#/$defs/Entry" } },
     "conflicts":    { "type": "array", "items": { "$ref": "#/$defs/ConflictEntry" } }
   },
-  "description": "Coverage findings are NOT included here. They are emitted by the Experience coverage resolver (EXP §10) as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM, carry the field `path` (Definition item path, NOT `nodePath`), and compose into the review surface via a two-hop join: EXP `path` -> anchor string `item:<path>` -> MergeReport entry whose `anchors` includes that string -> MergeReport entry's `nodePath`. CRF and Component bind/reference-resolution failures compose via the same two-hop pattern under their respective anchor prefixes (`unit:`, `task:`, `action:`, `concept:`).",
+  "description": "Coverage findings are NOT included here. They are emitted by the Experience coverage resolver (EXP §10) as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM, carry the field `path` (Definition item path, NOT `nodePath`), and compose into the review surface via a two-hop join: EXP `path` -> anchor string `item:<path>` -> MergeReport entry whose `anchors` includes that string -> MergeReport entry's `nodePath`. CRF and Component bind/reference-resolution failures are also NOT included here; when those resolver findings identify an affected Component node by node key/path, review surfaces compose them to MergeReport entries for that same merged node without duplicating resolver findings inside MergeReport.",
   "$defs": {
     "Entry": {
       "type": "object",
@@ -581,7 +601,22 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` 
       "properties": {
         "anchors":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Anchor set compared under §3 order-normalized set-equality (NOT a CRF semantic; regeneration-merge-spec only)." },
         "nodePath": { "type": "string", "description": "Stable path in the merged document tree (e.g., /tree/children/0)." },
-        "code":     { "type": "string", "pattern": "^COMP-REGENERATION-[A-Z-]+$" },
+        "code": {
+          "enum": [
+            "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+            "COMP-REGENERATION-DESIGNER-PRECEDES",
+            "COMP-REGENERATION-DESIGNER-REMOVED",
+            "COMP-REGENERATION-PROPERTY-CONFLICT",
+            "COMP-REGENERATION-WIDGET-SWAP",
+            "COMP-REGENERATION-DESIGNER-SURVIVED",
+            "COMP-REGENERATION-REGENERATED",
+            "COMP-REGENERATION-ORPHAN-NODE",
+            "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+            "COMP-REGENERATION-ORPHAN-DETACHED",
+            "COMP-REGENERATION-RENAME-MIGRATED",
+            "COMP-REGENERATION-PENDING-REVIEW"
+          ]
+        },
         "severity": { "enum": ["error", "warning", "info"] },
         "reason":   { "type": "string" },
         "propertyDeltas": {
@@ -653,9 +688,26 @@ def test_entry_required_fields(schema):
     assert set(entry["required"]) == {"anchors", "nodePath", "code", "severity"}
     assert entry["properties"]["anchors"]["uniqueItems"] is True
 
-def test_entry_code_pattern(schema):
+def test_entry_code_enum(schema):
     entry_props = schema["$defs"]["Entry"]["properties"]
-    assert entry_props["code"]["pattern"] == "^COMP-REGENERATION-[A-Z-]+$"
+    codes = set(entry_props["code"]["enum"])
+    assert codes == {
+        "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+        "COMP-REGENERATION-DESIGNER-PRECEDES",
+        "COMP-REGENERATION-DESIGNER-REMOVED",
+        "COMP-REGENERATION-PROPERTY-CONFLICT",
+        "COMP-REGENERATION-WIDGET-SWAP",
+        "COMP-REGENERATION-DESIGNER-SURVIVED",
+        "COMP-REGENERATION-REGENERATED",
+        "COMP-REGENERATION-ORPHAN-NODE",
+        "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+        "COMP-REGENERATION-ORPHAN-DETACHED",
+        "COMP-REGENERATION-RENAME-MIGRATED",
+        "COMP-REGENERATION-PENDING-REVIEW",
+    }
+    assert "COMP-REGENERATION-ORPHAN-BINDING" not in codes
+    assert "COMP-REGENERATION-RENAME-UNDOCUMENTED" not in codes
+    assert "COMP-REGENERATION-DESIGNER-INSERTED" not in codes
     assert set(entry_props["severity"]["enum"]) == {"error", "warning", "info"}
 
 def test_entry_has_property_deltas(schema):
@@ -1035,7 +1087,7 @@ Task 23:       promotion-gate + architecture review
   - **H1 (idempotency → convergence):** §11/Task 18 — replaced idempotency claim with convergence (re-running after no source change yields zero conflicts + zero pendingReview).
   - **H2 (coverage findings):** §11/Task 12/13 — delegated coverage to Experience resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`); MergeReport composition uses EXP `path` → anchor string `item:<path>` → MergeReport entry whose `anchors` includes that string → the entry's `nodePath`.
   - **H3 (rename algorithm):** §9/Task 10 — pinned anchor-mapping substitution rule (`substitute(N_old.anchors, M) == N_new.anchors`), removed heuristic and `RENAME-UNDOCUMENTED` code.
-  - **H4 (finding family boundary):** §7/Task 8 — restated as merge-context-only; dropped `COMP-REGENERATION-ORPHAN-BINDING`; orphan severity composes with CRF/Component resolver findings.
+  - **H4 (finding family boundary):** §7/Task 8 — restated as merge-context-only; dropped `COMP-REGENERATION-ORPHAN-BINDING`; orphan canonical severity remains stable while review surfaces may compute effective severity from CRF/Component resolver findings.
   - **L3 (anchor-mappings document):** §9/Task 10 — defined minimum anchor-mappings shape inline since no `migration-spec.md` exists.
   - **M1 (old-generated requirement):** §2/Task 3 — added `COMP-REGENERATION-NO-COMMON-ANCESTOR` and pinned no-two-way-fallback degradation.
   - **M2 (DOM contract):** §10/Task 11 — paired `data-merge-status` with `data-merge-anchors` for specificity.
@@ -1100,3 +1152,8 @@ Task 23:       promotion-gate + architecture review
 - 2026-05-22: Post-Task-7 architecture review found two §6 ambiguities. Remediated before commit:
   - Split direct-parent orphan reattachment from higher-ancestor cascade reattachment so `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` is reachable.
   - Pinned three-way node merge base to `N_new` without children, with surviving designer deltas overlaid, so mixed designer-only and generator-only changes produce one deterministic merged node.
+- 2026-05-22: Post-Task-8 cadence review found report-code/schema and composition drift. Remediated before Task 9:
+  - Made report entries code-scoped: nodes with multiple applicable findings emit one entry per code rather than packing multiple codes into one entry.
+  - Added `COMP-REGENERATION-DESIGNER-SURVIVED` and `COMP-REGENERATION-REGENERATED` so `surviving[]` and `regenerated[]` entries satisfy the required `code`/`severity` schema contract.
+  - Replaced the planned broad code regex with an exact enum and tests that reserved non-codes stay invalid.
+  - Split CRF/Component resolver composition by affected Component node key/path from EXP coverage's two-hop Definition-path-to-anchor composition.
