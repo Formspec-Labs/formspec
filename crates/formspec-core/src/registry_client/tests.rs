@@ -75,7 +75,7 @@ fn sample_registry_json() -> serde_json::Value {
 #[test]
 fn parse_valid_registry() {
     let reg = Registry::from_json(&sample_registry_json()).unwrap();
-    assert_eq!(reg.publisher.name, "Test Org");
+    assert_eq!(reg.publisher.name.as_str(), Some("Test Org"));
     assert_eq!(reg.publisher.homepage.as_deref(), Some("https://test.org"));
     assert_eq!(
         reg.publisher.legacy_url.as_deref(),
@@ -105,7 +105,7 @@ fn publisher_preferred_homepage_parses() {
         "entries": []
     });
     let parsed = Registry::from_json(&doc).expect("ok");
-    assert_eq!(parsed.publisher.name, "Acme");
+    assert_eq!(parsed.publisher.name.as_str(), Some("Acme"));
     assert_eq!(
         parsed.publisher.identifier.as_deref(),
         Some("https://ror.org/12345")
@@ -115,6 +115,51 @@ fn publisher_preferred_homepage_parses() {
         Some("https://acme.example")
     );
     assert!(parsed.warnings.is_empty(), "no warnings on preferred form");
+}
+
+#[test]
+fn publisher_name_langmap_parses() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": {
+            "name": {
+                "en": "Acme",
+                "es": "Acme ES"
+            },
+            "homepage": "https://acme.example"
+        },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    assert_eq!(parsed.publisher.name["en"].as_str(), Some("Acme"));
+    assert_eq!(parsed.publisher.name["es"].as_str(), Some("Acme ES"));
+    assert!(parsed.warnings.is_empty());
+}
+
+#[test]
+fn publisher_name_langmap_preserved_in_wire_summary() {
+    let doc = json!({
+        "$formspecRegistry": "1.0",
+        "published": "2026-05-21T00:00:00Z",
+        "publisher": {
+            "name": {
+                "en": "Acme",
+                "es": "Acme ES"
+            },
+            "homepage": "https://acme.example"
+        },
+        "entries": []
+    });
+    let parsed = Registry::from_json(&doc).expect("ok");
+    let summary = registry_parse_summary_to_json_value(
+        &parsed,
+        &doc,
+        &parsed.validate(),
+        crate::JsonWireStyle::JsCamel,
+    );
+    assert_eq!(summary["publisher"]["name"]["en"].as_str(), Some("Acme"));
+    assert_eq!(summary["publisher"]["name"]["es"].as_str(), Some("Acme ES"));
 }
 
 #[test]
@@ -771,7 +816,7 @@ fn parse_real_formspec_common_registry() {
     let json_str = include_str!("../../../../registries/formspec-common.registry.json");
     let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
     let reg = Registry::from_json(&val).unwrap();
-    assert_eq!(reg.publisher.name, "Formspec Project");
+    assert_eq!(reg.publisher.name.as_str(), Some("Formspec Project"));
     assert!(reg.entries.len() >= 15);
     // All entries should validate clean
     assert!(reg.validate().is_empty());

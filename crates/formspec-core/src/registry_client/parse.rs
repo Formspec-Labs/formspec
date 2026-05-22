@@ -18,11 +18,7 @@ pub(super) fn parse_publisher(
     let obj = val
         .as_object()
         .ok_or_else(|| RegistryError::InvalidField("publisher must be an object".into()))?;
-    let name = obj
-        .get("name")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| RegistryError::MissingField("publisher.name".into()))?
-        .to_string();
+    let name = parse_name(obj, "publisher.name")?;
 
     let mut warnings = Vec::new();
     let identifier = optional_string_field(obj, "identifier", "publisher.identifier")?;
@@ -74,6 +70,32 @@ fn optional_string_field(
             })
         })
         .transpose()
+}
+
+fn parse_name(obj: &Map<String, Value>, field_path: &str) -> Result<Value, RegistryError> {
+    let value = obj
+        .get("name")
+        .ok_or_else(|| RegistryError::MissingField(field_path.into()))?;
+    match value {
+        Value::String(_) => Ok(value.clone()),
+        Value::Object(map) => {
+            if map.is_empty() {
+                return Err(RegistryError::InvalidField(format!(
+                    "{field_path} language map must not be empty"
+                )));
+            }
+            if map.values().all(Value::is_string) {
+                Ok(value.clone())
+            } else {
+                Err(RegistryError::InvalidField(format!(
+                    "{field_path} language map values must be strings"
+                )))
+            }
+        }
+        _ => Err(RegistryError::InvalidField(format!(
+            "{field_path} must be a string or language map"
+        ))),
+    }
 }
 
 fn parse_contact_points(val: &Value) -> Result<Vec<ContactPoint>, RegistryError> {

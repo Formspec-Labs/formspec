@@ -1,6 +1,7 @@
 //! Registry document types and parse errors.
 
 use crate::extension_analysis::RegistryEntryStatus;
+use serde_json::Value;
 
 /// Extension mechanism category.
 #[allow(missing_docs)]
@@ -17,7 +18,7 @@ pub enum ExtensionCategory {
 #[allow(missing_docs)]
 #[derive(Debug, Clone)]
 pub struct Publisher {
-    pub name: String,
+    pub name: Value,
     pub identifier: Option<String>,
     pub homepage: Option<String>,
     pub contact_points: Vec<ContactPoint>,

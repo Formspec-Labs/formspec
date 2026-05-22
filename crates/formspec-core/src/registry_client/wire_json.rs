@@ -33,7 +33,7 @@ pub fn registry_parse_summary_to_json_value(
     let (entry_count_k, validation_k) = registry_parse_summary_keys(style);
 
     let mut publisher = Map::new();
-    publisher.insert("name".into(), json!(registry.publisher.name));
+    publisher.insert("name".into(), registry.publisher.name.clone());
     publisher.insert("identifier".into(), json!(registry.publisher.identifier));
     publisher.insert("homepage".into(), json!(registry.publisher.homepage));
     publisher.insert("url".into(), json!(registry.publisher.legacy_url));

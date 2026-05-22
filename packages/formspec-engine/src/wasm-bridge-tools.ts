@@ -380,7 +380,7 @@ export function wasmLintDocumentWithRegistries(
 /** Parse and validate a registry document, returning summary metadata. */
 export function wasmParseRegistry(registry: unknown): {
     publisher: {
-        name?: string;
+        name?: string | Record<string, string>;
         identifier?: string | null;
         homepage?: string | null;
         url?: string | null;
