@@ -289,6 +289,112 @@ test('retry-once reuses frozen idempotency keys and retries only the failed effe
   assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'failed', 'succeeded']);
 });
 
+test('recordActionLifecycle emits action.invoked once on happy-path invocation', () => {
+  // Ledger §8.5 + RA §11.3 publish four action.* lifecycle kinds. The
+  // engine MUST emit action.invoked at the moment an invocation begins
+  // and (for happy path) no other action.* kind.
+  const events = [];
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'happy',
+      intent: 'submit',
+      effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+    }],
+  };
+  const result = invokeResponseAction(document, 'happy', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    recordActionLifecycle: (kind, payload) => events.push({ kind, payload }),
+  }, 'node-1', { invocationId: 'inv-happy-1' });
+  assert.equal(result.status, 'completed');
+  assert.equal(events.length, 1);
+  assert.equal(events[0].kind, 'action.invoked');
+  assert.equal(events[0].payload.actionId, 'happy');
+  assert.equal(events[0].payload.invocationId, 'inv-happy-1');
+});
+
+test('recordActionLifecycle emits action.invoked then action.failed when an effect fails', () => {
+  const events = [];
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'fails',
+      intent: 'submit',
+      effects: [
+        { type: 'ledgerAppend', eventKind: 'draft.saved', idempotencyKey: '@invocation.id & "/k"' },
+      ],
+    }],
+  };
+  const result = invokeResponseAction(document, 'fails', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    resolveIdempotencyKey: () => 'inv-fails-1/k',
+    dispatchEffect: () => ({ type: 'ledgerAppend', status: 'failed', reason: 'transport down' }),
+    recordActionLifecycle: (kind, payload) => events.push({ kind, payload }),
+  }, 'node-1', { invocationId: 'inv-fails-1' });
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(events.map(e => e.kind), ['action.invoked', 'action.failed']);
+  assert.equal(events[1].payload.terminal, 'failed');
+  assert.equal(events[1].payload.effectIndex, 0);
+});
+
+test('recordActionLifecycle emits action.invoked then action.deferred for a deferred effect', () => {
+  const events = [];
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'defers',
+      intent: 'request-evidence',
+      effects: [
+        { type: 'evidenceRequest', requestRef: 'evidence:income', idempotencyKey: '@invocation.id & "/k"' },
+      ],
+    }],
+  };
+  const result = invokeResponseAction(document, 'defers', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    resolveIdempotencyKey: () => 'inv-defer-1/k',
+    dispatchEffect: () => ({ type: 'evidenceRequest', status: 'deferred', replayToken: 'rep-1' }),
+    recordActionLifecycle: (kind, payload) => events.push({ kind, payload }),
+  }, 'node-1', { invocationId: 'inv-defer-1' });
+  assert.equal(result.status, 'deferred');
+  assert.deepEqual(events.map(e => e.kind), ['action.invoked', 'action.deferred']);
+  assert.equal(events[1].payload.terminal, 'deferred');
+  assert.equal(events[1].payload.replayTokenRef, 'rep-1');
+});
+
+test('recordActionLifecycle emits action.replayed when invocation supplies priorInvocationRef', () => {
+  // §11.3 action.replayed is the continuation lifecycle moment — the host
+  // signals "this invocation continues prior-invocation-X" via the
+  // priorInvocationRef context.
+  const events = [];
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'replay',
+      intent: 'submit',
+      effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+    }],
+  };
+  const result = invokeResponseAction(document, 'replay', {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    recordActionLifecycle: (kind, payload) => events.push({ kind, payload }),
+  }, 'node-1', { invocationId: 'inv-replay-2', priorInvocationRef: 'inv-replay-1' });
+  assert.equal(result.status, 'completed');
+  assert.deepEqual(events.map(e => e.kind), ['action.replayed']);
+  assert.equal(events[0].payload.priorInvocationRef, 'inv-replay-1');
+});
+
 test('invokeResponseAction rejects precondition with unregistered @name (catalog gate before host evaluator)', () => {
   // Spec §4.1: FEL evaluators MUST reject unregistered @name bindings. The
   // engine consults the catalog BEFORE delegating to ports.evaluatePrecondition,
