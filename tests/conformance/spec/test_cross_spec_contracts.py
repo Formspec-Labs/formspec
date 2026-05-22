@@ -31,6 +31,8 @@ COMMON_S = _load("common.schema.json")
 CHGLOG_S = _load("changelog.schema.json")
 REFS_S = _load("references.schema.json")
 LOCALE_S = _load("locale.schema.json")
+ISSUER_S = _load("issuer.schema.json")
+ONT_S = _load("ontology.schema.json")
 
 ALL_SCHEMAS = {
     "definition": DEF_S,
@@ -44,6 +46,8 @@ ALL_SCHEMAS = {
     "changelog": CHGLOG_S,
     "references": REFS_S,
     "locale": LOCALE_S,
+    "issuer": ISSUER_S,
+    "ontology": ONT_S,
 }
 
 
@@ -117,12 +121,10 @@ class TestCrossSchemaConsistency:
 
     def test_definition_response_use_propertynames_extensions(self):
         """Definition, Response, Registry, Mapping, Component, References, Ontology use extensions.propertyNames pattern."""
-        REFS_S = _load("references.schema.json")
-        ONT_S = _load("ontology.schema.json")
-        COMP_S = _load("component.schema.json")
         for name, schema in [
             ("definition", DEF_S), ("response", RESP_S), ("registry", REG_S),
-            ("mapping", MAP_S), ("component", COMP_S), ("references", REFS_S), ("ontology", ONT_S),
+            ("mapping", MAP_S), ("component", COMP_S), ("references", REFS_S),
+            ("issuer", ISSUER_S), ("ontology", ONT_S),
         ]:
             ext = _extension_schema(schema)
             pn = ext.get("propertyNames", {}).get("pattern")

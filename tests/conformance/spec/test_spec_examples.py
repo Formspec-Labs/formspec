@@ -172,6 +172,7 @@ for spec_file in SPEC_FILES:
 
 DEFINITION_SCHEMA = load_schema("definition.schema.json")
 COMMON_SCHEMA = load_schema("common.schema.json")
+ISSUER_SCHEMA = load_schema("issuer.schema.json")
 RESPONSE_SCHEMA = load_schema("response.schema.json")
 VALIDATION_REPORT_SCHEMA = load_schema("validation-report.schema.json")
 MAPPING_SCHEMA = load_schema("mapping.schema.json")
@@ -189,6 +190,7 @@ CHANGE_SCHEMA = CHANGELOG_SCHEMA["$defs"]["Change"]
 # Build a referencing registry so sub-schema $refs resolve against parent.
 _REGISTRY = build_schema_registry(
     COMMON_SCHEMA,
+    ISSUER_SCHEMA,
     MAPPING_SCHEMA,
     DEFINITION_SCHEMA,
     THEME_SCHEMA,
@@ -401,7 +403,7 @@ class TestRegistryDocExamples:
         ids=[_make_id(f, l, h) for f, l, h, _ in REGISTRY_DOC_BLOCKS],
     )
     def test_validates(self, filepath, line_no, heading, obj):
-        validate(obj, REGISTRY_SCHEMA)
+        Draft202012Validator(REGISTRY_SCHEMA, registry=_REGISTRY).validate(obj)
 
 
 # ---------------------------------------------------------------------------

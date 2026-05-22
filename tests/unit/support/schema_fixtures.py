@@ -53,6 +53,11 @@ def response_schema() -> dict:
 
 
 @pytest.fixture(scope="session")
+def issuer_schema() -> dict:
+    return load_schema("issuer.schema.json")
+
+
+@pytest.fixture(scope="session")
 def validation_report_schema() -> dict:
     return load_schema("validation-report.schema.json")
 
@@ -70,6 +75,11 @@ def mapping_schema() -> dict:
 @pytest.fixture(scope="session")
 def registry_schema() -> dict:
     return load_schema("registry.schema.json")
+
+
+@pytest.fixture(scope="session")
+def ontology_schema() -> dict:
+    return load_schema("ontology.schema.json")
 
 
 @pytest.fixture(scope="session")
@@ -107,11 +117,13 @@ def schema_registry(
     common_schema: dict,
     definition_schema: dict,
     response_schema: dict,
+    issuer_schema: dict,
     intake_handoff_schema: dict,
     validation_report_schema: dict,
     validation_result_schema: dict,
     mapping_schema: dict,
     registry_schema: dict,
+    ontology_schema: dict,
     theme_schema: dict,
     component_schema: dict,
     changelog_schema: dict,
@@ -122,11 +134,13 @@ def schema_registry(
         common_schema,
         definition_schema,
         response_schema,
+        issuer_schema,
         intake_handoff_schema,
         validation_report_schema,
         validation_result_schema,
         mapping_schema,
         registry_schema,
+        ontology_schema,
         theme_schema,
         component_schema,
         changelog_schema,

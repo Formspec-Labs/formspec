@@ -22,21 +22,25 @@ from tests.unit.support.schema_fixtures import build_schema_registry, load_schem
 
 DEFINITION_SCHEMA = load_schema("definition.schema.json")
 COMMON_SCHEMA = load_schema("common.schema.json")
+ISSUER_SCHEMA = load_schema("issuer.schema.json")
 RESPONSE_SCHEMA = load_schema("response.schema.json")
 VALIDATION_REPORT_SCHEMA = load_schema("validation-report.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
 MAPPING_SCHEMA = load_schema("mapping.schema.json")
 REGISTRY_SCHEMA = load_schema("registry.schema.json")
+ONTOLOGY_SCHEMA = load_schema("ontology.schema.json")
 
 # Pre-build referencing registry so cross-file $refs resolve.
 _REF_REGISTRY = build_schema_registry(
     COMMON_SCHEMA,
+    ISSUER_SCHEMA,
     DEFINITION_SCHEMA,
     RESPONSE_SCHEMA,
     VALIDATION_REPORT_SCHEMA,
     VALIDATION_RESULT_SCHEMA,
     MAPPING_SCHEMA,
     REGISTRY_SCHEMA,
+    ONTOLOGY_SCHEMA,
 )
 
 # Cached validator instances (compiled once)
