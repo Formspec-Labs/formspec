@@ -772,7 +772,7 @@ Expected: `ajv standalone ok`.
 
 ## Task 14: Schema-shape pytest
 
-- [ ] Create `tests/conformance/spec/test_regeneration_merge_report_schema.py`.
+- [x] Create `tests/conformance/spec/test_regeneration_merge_report_schema.py`.
 
 ```python
 """Pin the regeneration-merge-report schema shape."""
@@ -982,13 +982,13 @@ def test_exp_two_hop_join_documented(schema):
     assert "item:<path>" in desc
 ```
 
-- [ ] Run, expect PASS.
+- [x] Run, expect PASS.
 
 ```bash
 cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_report_schema.py -v
 ```
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 15: Author shared base fixtures
 
