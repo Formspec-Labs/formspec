@@ -210,9 +210,12 @@ properties:
 
 | Property | Type | Req | Description |
 |---|---|---|---|
-| `name` | string | REQUIRED | Human-readable organization name. |
-| `url` | string (URI) | REQUIRED | Organization home page. |
-| `contact` | string | OPTIONAL | Contact email or URI. |
+| `name` | string or LangMap | REQUIRED | Human-readable organization name. |
+| `identifier` | string (URI) | OPTIONAL | Stable entity URI. |
+| `homepage` | string (URI) | OPTIONAL | Public organizational homepage. |
+| `contactPoint` | object or array | OPTIONAL | Structured contact information. |
+| `url` | string (URI) | DEPRECATED | Legacy alias for `homepage`; retained for two minor versions. |
+| `contact` | string | DEPRECATED | Legacy contact string; retained for two minor versions in favor of `contactPoint`. |
 
 ### 2.3 Validation Rules
 

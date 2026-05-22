@@ -482,6 +482,12 @@ following properties:</p>
 </table>
 <h3 id="publisher-object">2.2 Publisher Object</h3>
 <table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
 <thead>
 <tr>
 <th>Property</th>
@@ -493,21 +499,41 @@ following properties:</p>
 <tbody>
 <tr>
 <td><code>name</code></td>
-<td>string</td>
+<td>string or LangMap</td>
 <td>REQUIRED</td>
 <td>Human-readable organization name.</td>
 </tr>
 <tr>
+<td><code>identifier</code></td>
+<td>string (URI)</td>
+<td>OPTIONAL</td>
+<td>Stable entity URI.</td>
+</tr>
+<tr>
+<td><code>homepage</code></td>
+<td>string (URI)</td>
+<td>OPTIONAL</td>
+<td>Public organizational homepage.</td>
+</tr>
+<tr>
+<td><code>contactPoint</code></td>
+<td>object or array</td>
+<td>OPTIONAL</td>
+<td>Structured contact information.</td>
+</tr>
+<tr>
 <td><code>url</code></td>
 <td>string (URI)</td>
-<td>REQUIRED</td>
-<td>Organization home page.</td>
+<td>DEPRECATED</td>
+<td>Legacy alias for <code>homepage</code>; retained for two minor
+versions.</td>
 </tr>
 <tr>
 <td><code>contact</code></td>
 <td>string</td>
-<td>OPTIONAL</td>
-<td>Contact email or URI.</td>
+<td>DEPRECATED</td>
+<td>Legacy contact string; retained for two minor versions in favor of
+<code>contactPoint</code>.</td>
 </tr>
 </tbody>
 </table>
