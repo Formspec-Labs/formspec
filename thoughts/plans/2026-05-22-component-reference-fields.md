@@ -196,6 +196,8 @@ Definition / Experience / Response Actions base documents — same shape family 
 
 ## Task 14: Author x-generation fixture
 
+- [x] Add x-generation anchor coverage Component fixture with expected 100% coverage and runtime-ignore claim metadata.
+
 - `x-generation-anchors-coverage.json`: every anchor resolves; coverage report 100%; runtime-ignore invariant claim recorded (actual DOM-identity check is a renderer test, not this fixture).
 
 ## Task 15: Schema-shape pytest

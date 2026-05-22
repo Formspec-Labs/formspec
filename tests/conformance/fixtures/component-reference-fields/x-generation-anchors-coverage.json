@@ -1,0 +1,60 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "x-fixture": {
+    "expectedAnchorCoverage": {
+      "total": 8,
+      "resolved": 8,
+      "unresolved": []
+    },
+    "runtimeIgnoreInvariant": {
+      "claim": "x-generation is provenance metadata and does not affect default runtime rendering.",
+      "assertedHere": false,
+      "assertedBy": "Task 18 renderer-ignore E2E"
+    }
+  },
+  "tree": {
+    "component": "Section",
+    "id": "generationCoverageSection",
+    "title": "Generation coverage",
+    "unitRef": "identity",
+    "taskRefs": ["identifyApplicant"],
+    "x-generation": {
+      "source": "unit:identity",
+      "strategy": "unit-to-section",
+      "generatedBy": "component-reference-fields-fixture/1.0.0",
+      "generatedAt": "2026-05-22T00:00:00Z",
+      "anchors": [
+        "item:applicantName",
+        "unit:identity",
+        "task:identifyApplicant",
+        "action:save-draft",
+        "concept:x-example-person-name"
+      ]
+    },
+    "children": [
+      {
+        "component": "TextInput",
+        "id": "generationCoverageNameInput",
+        "bind": "applicantName",
+        "unitRef": "identity",
+        "taskRefs": ["identifyApplicant"],
+        "x-generation": {
+          "source": "item:applicantName",
+          "strategy": "item-to-input",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "generatedAt": "2026-05-22T00:00:00Z",
+          "anchors": [
+            "item:applicantName",
+            "unit:identity",
+            "task:identifyApplicant"
+          ]
+        }
+      }
+    ]
+  }
+}
