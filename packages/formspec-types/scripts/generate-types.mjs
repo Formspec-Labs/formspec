@@ -26,7 +26,7 @@ const OUT_DIR = resolve(__dirname, '../src/generated');
  */
 const URI_TO_LOCAL = {};
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
-  'ontology',
+  'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
   'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'verification-receipt',
   'token-registry']) {
@@ -66,6 +66,10 @@ const SCHEMA_SOURCES = [
   { file: 'mapping.schema.json', title: 'MappingDocument' },
   { file: 'registry.schema.json', title: 'RegistryDocument' },
   { file: 'ontology.schema.json', title: 'OntologyDocument' },
+  { file: 'references.schema.json', title: 'ReferencesDocument' },
+  { file: 'validation-mapping.schema.json', title: 'ValidationMappingDocument' },
+  { file: 'experience.schema.json', title: 'ExperienceDocument' },
+  { file: 'changelog.schema.json', title: 'ChangelogDocument' },
   { file: 'validation-result.schema.json', title: 'ValidationResult' },
   { file: 'verification-receipt.schema.json', title: 'VerificationReceipt' },
   { file: 'response.schema.json', title: 'FormResponse' },

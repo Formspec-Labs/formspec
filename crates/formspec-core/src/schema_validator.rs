@@ -17,9 +17,11 @@ pub enum DocumentType {
     Issuer,
     Theme,
     Mapping,
+    ValidationMapping,
     Ontology,
     References,
     Locale,
+    Experience,
     Component,
     Response,
     IntakeHandoff,
@@ -40,9 +42,11 @@ impl DocumentType {
             DocumentType::Issuer => "issuer",
             DocumentType::Theme => "theme",
             DocumentType::Mapping => "mapping",
+            DocumentType::ValidationMapping => "validation_mapping",
             DocumentType::Ontology => "ontology",
             DocumentType::References => "references",
             DocumentType::Locale => "locale",
+            DocumentType::Experience => "experience",
             DocumentType::Component => "component",
             DocumentType::Response => "response",
             DocumentType::IntakeHandoff => "intake_handoff",
@@ -63,9 +67,13 @@ impl DocumentType {
             "issuer" => Some(DocumentType::Issuer),
             "theme" => Some(DocumentType::Theme),
             "mapping" => Some(DocumentType::Mapping),
+            "validation_mapping" | "validationMapping" | "validation-mapping" => {
+                Some(DocumentType::ValidationMapping)
+            }
             "ontology" => Some(DocumentType::Ontology),
             "references" => Some(DocumentType::References),
             "locale" => Some(DocumentType::Locale),
+            "experience" => Some(DocumentType::Experience),
             "component" => Some(DocumentType::Component),
             "response" => Some(DocumentType::Response),
             "intake_handoff" | "intakeHandoff" | "intake-handoff" => {
@@ -139,7 +147,9 @@ pub struct SchemaValidationPlan {
 ///   - Registry:          `$formspecRegistry`
 ///   - Locale:            `$formspecLocale`
 ///   - References:        `$formspecReferences`
+///   - Experience:        `$formspecExperience`
 ///   - Mapping:           `$formspecMapping`
+///   - ValidationMapping: `$formspecValidationMapping`
 ///   - Response:          `$formspecResponse`
 ///   - Issuer:            `$formspecIssuer`
 ///   - IntakeHandoff:     `$formspecIntakeHandoff`
@@ -157,6 +167,11 @@ const MARKER_FIELDS: &[(&str, DocumentType)] = &[
     ("$formspecReferences", DocumentType::References),
     ("$formspecOntology", DocumentType::Ontology),
     ("$formspecMapping", DocumentType::Mapping),
+    (
+        "$formspecValidationMapping",
+        DocumentType::ValidationMapping,
+    ),
+    ("$formspecExperience", DocumentType::Experience),
     ("$formspecResponse", DocumentType::Response),
     ("$formspecIntakeHandoff", DocumentType::IntakeHandoff),
     ("$formspecValidationReport", DocumentType::ValidationReport),
@@ -352,6 +367,18 @@ mod tests {
     }
 
     #[test]
+    fn test_detect_validation_mapping() {
+        let doc = json!({
+            "$formspecValidationMapping": "1.0",
+            "version": "1.0.0"
+        });
+        assert_eq!(
+            detect_document_type(&doc),
+            Some(DocumentType::ValidationMapping)
+        );
+    }
+
+    #[test]
     fn test_detect_ontology() {
         let doc = json!({
             "$formspecOntology": "1.0",
@@ -382,6 +409,16 @@ mod tests {
             "strings": {}
         });
         assert_eq!(detect_document_type(&doc), Some(DocumentType::Locale));
+    }
+
+    #[test]
+    fn test_detect_experience() {
+        let doc = json!({
+            "$formspecExperience": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.org/forms/x" }
+        });
+        assert_eq!(detect_document_type(&doc), Some(DocumentType::Experience));
     }
 
     #[test]
@@ -580,9 +617,14 @@ mod tests {
         assert_eq!(DocumentType::Issuer.schema_key(), "issuer");
         assert_eq!(DocumentType::Theme.schema_key(), "theme");
         assert_eq!(DocumentType::Mapping.schema_key(), "mapping");
+        assert_eq!(
+            DocumentType::ValidationMapping.schema_key(),
+            "validation_mapping"
+        );
         assert_eq!(DocumentType::Ontology.schema_key(), "ontology");
         assert_eq!(DocumentType::References.schema_key(), "references");
         assert_eq!(DocumentType::Locale.schema_key(), "locale");
+        assert_eq!(DocumentType::Experience.schema_key(), "experience");
         assert_eq!(DocumentType::Component.schema_key(), "component");
         assert_eq!(DocumentType::Response.schema_key(), "response");
         assert_eq!(DocumentType::IntakeHandoff.schema_key(), "intake_handoff");
@@ -626,6 +668,18 @@ mod tests {
             Some(DocumentType::IntakeHandoff)
         );
         assert_eq!(
+            DocumentType::from_schema_key("validation_mapping"),
+            Some(DocumentType::ValidationMapping)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("validation-mapping"),
+            Some(DocumentType::ValidationMapping)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("validationMapping"),
+            Some(DocumentType::ValidationMapping)
+        );
+        assert_eq!(
             DocumentType::from_schema_key("fel_functions"),
             Some(DocumentType::FelFunctions)
         );
@@ -640,6 +694,10 @@ mod tests {
         assert_eq!(
             DocumentType::from_schema_key("locale"),
             Some(DocumentType::Locale)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("experience"),
+            Some(DocumentType::Experience)
         );
         assert_eq!(DocumentType::from_schema_key("missing"), None);
     }

@@ -13,7 +13,8 @@ const SCHEMAS_DIR = resolve(__dirname, '../../../schemas');
 
 const SCHEMA_FILES = [
   'issuer', 'definition', 'component', 'theme', 'mapping', 'registry', 'ontology',
-  'response', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
+  'references', 'validation-mapping', 'experience', 'changelog',
+  'response', 'intake-handoff', 'locale', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
   'token-registry',
 ];
 const REF_SCHEMA_FILES = ['common', ...SCHEMA_FILES];

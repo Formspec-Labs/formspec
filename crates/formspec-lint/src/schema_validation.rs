@@ -27,9 +27,11 @@ const ISSUER_SCHEMA: &str = include_str!("../schemas/issuer.schema.json");
 const RESPONSE_SCHEMA: &str = include_str!("../schemas/response.schema.json");
 const INTAKE_HANDOFF_SCHEMA: &str = include_str!("../schemas/intake-handoff.schema.json");
 const MAPPING_SCHEMA: &str = include_str!("../schemas/mapping.schema.json");
+const VALIDATION_MAPPING_SCHEMA: &str = include_str!("../schemas/validation-mapping.schema.json");
 const ONTOLOGY_SCHEMA: &str = include_str!("../schemas/ontology.schema.json");
 const REFERENCES_SCHEMA: &str = include_str!("../schemas/references.schema.json");
 const LOCALE_SCHEMA: &str = include_str!("../schemas/locale.schema.json");
+const EXPERIENCE_SCHEMA: &str = include_str!("../schemas/experience.schema.json");
 const CHANGELOG_SCHEMA: &str = include_str!("../schemas/changelog.schema.json");
 const REGISTRY_SCHEMA: &str = include_str!("../schemas/registry.schema.json");
 const VALIDATION_REPORT_SCHEMA: &str = include_str!("../schemas/validation-report.schema.json");
@@ -79,9 +81,11 @@ struct SchemaSet {
     response: Validator,
     intake_handoff: Validator,
     mapping: Validator,
+    validation_mapping: Validator,
     ontology: Validator,
     references: Validator,
     locale: Validator,
+    experience: Validator,
     changelog: Validator,
     registry: Validator,
     validation_report: Validator,
@@ -100,9 +104,11 @@ fn schema_set() -> &'static SchemaSet {
         response: build_validator(RESPONSE_SCHEMA),
         intake_handoff: build_validator(INTAKE_HANDOFF_SCHEMA),
         mapping: build_validator(MAPPING_SCHEMA),
+        validation_mapping: build_validator(VALIDATION_MAPPING_SCHEMA),
         ontology: build_validator(ONTOLOGY_SCHEMA),
         references: build_validator(REFERENCES_SCHEMA),
         locale: build_validator(LOCALE_SCHEMA),
+        experience: build_validator(EXPERIENCE_SCHEMA),
         changelog: build_validator(CHANGELOG_SCHEMA),
         registry: build_validator(REGISTRY_SCHEMA),
         validation_report: build_validator(VALIDATION_REPORT_SCHEMA),
@@ -241,9 +247,11 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         DocumentType::Response => &set.response,
         DocumentType::IntakeHandoff => &set.intake_handoff,
         DocumentType::Mapping => &set.mapping,
+        DocumentType::ValidationMapping => &set.validation_mapping,
         DocumentType::Ontology => &set.ontology,
         DocumentType::References => &set.references,
         DocumentType::Locale => &set.locale,
+        DocumentType::Experience => &set.experience,
         DocumentType::Changelog => &set.changelog,
         DocumentType::Registry => &set.registry,
         DocumentType::ValidationReport => &set.validation_report,
@@ -374,8 +382,12 @@ mod tests {
         include_str!("../../../schemas/definition.schema.json");
     const CANONICAL_ISSUER_SCHEMA: &str = include_str!("../../../schemas/issuer.schema.json");
     const CANONICAL_ONTOLOGY_SCHEMA: &str = include_str!("../../../schemas/ontology.schema.json");
+    const CANONICAL_EXPERIENCE_SCHEMA: &str =
+        include_str!("../../../schemas/experience.schema.json");
     const CANONICAL_REGISTRY_SCHEMA: &str = include_str!("../../../schemas/registry.schema.json");
     const CANONICAL_RESPONSE_SCHEMA: &str = include_str!("../../../schemas/response.schema.json");
+    const CANONICAL_VALIDATION_MAPPING_SCHEMA: &str =
+        include_str!("../../../schemas/validation-mapping.schema.json");
 
     fn assert_embedded_schema_matches_canonical(
         embedded_text: &str,
@@ -477,6 +489,15 @@ mod tests {
     }
 
     #[test]
+    fn embedded_experience_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            EXPERIENCE_SCHEMA,
+            CANONICAL_EXPERIENCE_SCHEMA,
+            "experience.schema.json",
+        );
+    }
+
+    #[test]
     fn embedded_registry_schema_matches_canonical_schema() {
         assert_embedded_schema_matches_canonical(
             REGISTRY_SCHEMA,
@@ -491,6 +512,15 @@ mod tests {
             RESPONSE_SCHEMA,
             CANONICAL_RESPONSE_SCHEMA,
             "response.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_validation_mapping_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            VALIDATION_MAPPING_SCHEMA,
+            CANONICAL_VALIDATION_MAPPING_SCHEMA,
+            "validation-mapping.schema.json",
         );
     }
 
@@ -861,6 +891,176 @@ mod tests {
         assert!(
             diags.iter().any(|d| d.code == crate::LintCode::E101),
             "Invalid locale should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_validation_report_produces_no_e101() {
+        let report = json!({
+            "$formspecValidationReport": "1.0",
+            "valid": true,
+            "results": [],
+            "counts": { "error": 0, "warning": 0, "info": 0 },
+            "timestamp": "2026-04-22T17:15:00Z"
+        });
+        let diags = validate_schema(&report, DocumentType::ValidationReport);
+        assert!(
+            diags.is_empty(),
+            "Valid validation report should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_validation_report_routes_to_e101() {
+        let report = json!({
+            "$formspecValidationReport": "1.0",
+            "valid": true,
+            "results": [],
+            "counts": { "error": 0, "warning": 0 },
+            "timestamp": "2026-04-22T17:15:00Z"
+        });
+        let diags = validate_schema(&report, DocumentType::ValidationReport);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid validation report should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_validation_mapping_produces_no_e101() {
+        let mapping = json!({
+            "$formspecValidationMapping": "1.0",
+            "version": "1.0.0"
+        });
+        let diags = validate_schema(&mapping, DocumentType::ValidationMapping);
+        assert!(
+            diags.is_empty(),
+            "Valid validation mapping should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_validation_mapping_routes_to_e101() {
+        let mapping = json!({
+            "$formspecValidationMapping": "1.0",
+            "version": "1.0.0",
+            "masterTable": []
+        });
+        let diags = validate_schema(&mapping, DocumentType::ValidationMapping);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid validation mapping should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_experience_produces_no_e101() {
+        let experience = json!({
+            "$formspecExperience": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "units": [
+                {
+                    "id": "identity",
+                    "kind": "data-entry",
+                    "itemRefs": [{ "path": "name" }]
+                }
+            ]
+        });
+        let diags = validate_schema(&experience, DocumentType::Experience);
+        assert!(
+            diags.is_empty(),
+            "Valid experience should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_experience_routes_to_e101() {
+        let experience = json!({
+            "$formspecExperience": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "units": [
+                { "id": "identity", "kind": "screen" }
+            ]
+        });
+        let diags = validate_schema(&experience, DocumentType::Experience);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid experience should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_changelog_produces_no_e101() {
+        let changelog = json!({
+            "$formspecChangelog": "1.0",
+            "definitionUrl": "https://example.com/forms/x",
+            "fromVersion": "1.0.0",
+            "toVersion": "1.1.0",
+            "semverImpact": "minor",
+            "changes": [
+                {
+                    "type": "added",
+                    "target": "item",
+                    "path": "name",
+                    "impact": "compatible"
+                }
+            ]
+        });
+        let diags = validate_schema(&changelog, DocumentType::Changelog);
+        assert!(
+            diags.is_empty(),
+            "Valid changelog should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_changelog_routes_to_e101() {
+        let changelog = json!({
+            "$formspecChangelog": "1.0",
+            "definitionUrl": "https://example.com/forms/x",
+            "fromVersion": "1.0.0",
+            "toVersion": "1.1.0",
+            "semverImpact": "sideways",
+            "changes": []
+        });
+        let diags = validate_schema(&changelog, DocumentType::Changelog);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid changelog should produce E101, got: {:?}",
             diags
                 .iter()
                 .map(|d| (&d.code, &d.path, &d.message))

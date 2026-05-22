@@ -161,17 +161,17 @@ def test_partial_contract_surfaces_call_out_gaps() -> None:
         )
 
 
-def test_formspec_contract_surfaces_are_not_deferred() -> None:
+def test_formspec_contract_surfaces_are_enforced() -> None:
     ledger = _load_json(LEDGER_PATH)
 
-    local_deferred = sorted(
+    local_incomplete = sorted(
         contract_id
         for contract_id, contract in ledger["contracts"].items()
-        if not str(contract["spec"]).startswith("../") and contract["status"] == "deferred"
+        if not str(contract["spec"]).startswith("../") and contract["status"] != "enforced"
     )
-    assert not local_deferred, (
-        "Formspec-owned contracts must be enforced or partial with explicit callouts, "
-        f"not deferred: {local_deferred}"
+    assert not local_incomplete, (
+        "Formspec-owned contracts must have conformance, crate, and package parity: "
+        f"{local_incomplete}"
     )
 
 

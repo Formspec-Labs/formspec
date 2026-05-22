@@ -15,6 +15,10 @@ export type { PresentationBlock, SelectorMatch, ThemeDocument, Selector, PageLay
 export type { TargetSchema, FieldRule, InnerRule, MappingDocument, Coerce, ValueMap, ReverseOverride, ArrayDescriptor, ProjectionHint, JsonAdapter, XmlAdapter, CsvAdapter } from './mapping.js';
 export type { Publisher, RegistryEntry, RegistryDocument, ConceptEquivalent, VocabularyFilter } from './registry.js';
 export type { OntologyDocument, ConceptBinding, VocabularyBinding, Alignment } from './ontology.js';
+export type { Reference, BoundReference, ReferenceOrRef, ReferencesDocument, ReferenceDefs } from './references.js';
+export type { ActionIntent, ValidationProfile, BlockingPolicy, PersistencePolicy, MappingEntry, MasterTable, ValidationMappingDocument } from './validation-mapping.js';
+export type { UnitKind, ExperienceDocument, Applicability, Actor, Task, Unit, ItemRef, ConceptRef, ActionRef, Accessibility } from './experience.js';
+export type { ChangelogDocument, Change } from './changelog.js';
 export type { ValidationResult } from './validation-result.js';
 export type { VerificationReceipt } from './verification-receipt.js';
 export type { FormResponse, AuthoredSignature, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding } from './response.js';

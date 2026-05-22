@@ -8,11 +8,18 @@ import type {
   FormDefinition, FormItem, FormBind, FormShape, FormVariable,
   FormInstance, FormOption,
   ComponentDocument,
+  ChangelogDocument,
+  ExperienceDocument,
   IssuerDocument,
+  IntakeHandoff,
+  LocaleDocument,
   OntologyDocument,
+  ReferencesDocument,
   RegistryDocument,
   ThemeDocument,
   MappingDocument,
+  ValidationMappingDocument,
+  ValidationReport,
 } from '../src/index.js';
 
 describe('generated types smoke test', () => {
@@ -39,6 +46,27 @@ describe('generated types smoke test', () => {
 
     const ontology = {} as OntologyDocument;
     expect(ontology).toBeDefined();
+
+    const references = {} as ReferencesDocument;
+    expect(references).toBeDefined();
+
+    const validationMapping = {} as ValidationMappingDocument;
+    expect(validationMapping).toBeDefined();
+
+    const experience = {} as ExperienceDocument;
+    expect(experience).toBeDefined();
+
+    const changelog = {} as ChangelogDocument;
+    expect(changelog).toBeDefined();
+
+    const intakeHandoff = {} as IntakeHandoff;
+    expect(intakeHandoff).toBeDefined();
+
+    const validationReport = {} as ValidationReport;
+    expect(validationReport).toBeDefined();
+
+    const locale = {} as LocaleDocument;
+    expect(locale).toBeDefined();
   });
 
   it('Form-prefixed canonical types resolve to schema types', () => {

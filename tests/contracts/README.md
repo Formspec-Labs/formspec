@@ -35,9 +35,8 @@ surfaces and no known intended surface is missing. Every listed path must
 exist, and package parity tests should use discoverable names such as
 `issuer-parity.test.tsx`.
 
-Use `partial` for Formspec-owned contracts where some proof exists but an
-intended surface is still missing or only indirectly covered. Partial rows must
-include:
+Use `partial` only as a temporary inventory state while a local contract is
+being promoted. Partial rows must include:
 
 - `reason`: why the surface is not expected yet
 - `tracking`: the TODO, issue, or plan that owns the gap
@@ -45,7 +44,7 @@ include:
 
 Use `deferred` only when the configured spec/schema pair is external to this
 repo or not yet owned by a local Formspec proof bundle. Local Formspec contracts
-must be `enforced` or `partial`; the meta-test fails if a local row is marked
+must be `enforced`; the meta-test fails if a local row is marked `partial` or
 `deferred`.
 
 Do not omit a package silently. Either list its proof path or mark the contract
