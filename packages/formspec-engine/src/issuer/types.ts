@@ -56,11 +56,15 @@ export interface Issuer {
     extensions?: Record<string, unknown>;
 }
 
-export type IssuerSource =
-    | { kind: 'inline'; issuer: Issuer }
-    | { kind: 'url'; url: string };
-
 export type IssuerResolutionSource = 'host-embed' | 'host-query' | 'definition' | 'unbranded';
+export type IssuerOverrideResolutionSource = Extract<
+    IssuerResolutionSource,
+    'host-embed' | 'host-query'
+>;
+
+export type IssuerSource =
+    | { kind: 'inline'; issuer: Issuer; source?: IssuerOverrideResolutionSource }
+    | { kind: 'url'; url: string; source?: IssuerOverrideResolutionSource };
 
 export interface ResolvedIssuer {
     /** Primary Issuer after cascade resolution. */

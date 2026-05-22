@@ -40,6 +40,18 @@ test('IssuerStore resolves cascade: host embed wins', async () => {
   assert.equal(resolved.primary.url, 'https://x/host.json');
 });
 
+test('IssuerStore preserves host-query override provenance', async () => {
+  const host = mkIssuer({ url: 'https://x/host.json' });
+  const store = new IssuerStore(mkFetcher({}));
+
+  const resolved = await store.resolve({
+    hostOverride: { kind: 'inline', issuer: host, source: 'host-query' },
+  });
+
+  assert.equal(resolved.source, 'host-query');
+  assert.equal(resolved.primary.url, 'https://x/host.json');
+});
+
 test('IssuerStore falls back to Definition issuer when no host override exists', async () => {
   const def = mkIssuer({ url: 'https://x/def.json' });
   const store = new IssuerStore(mkFetcher({}));

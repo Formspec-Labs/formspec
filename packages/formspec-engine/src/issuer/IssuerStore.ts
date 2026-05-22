@@ -43,7 +43,7 @@ export class IssuerStore {
     public async resolve(input: IssuerResolveInput): Promise<ResolvedIssuer> {
         if (input.hostOverride) {
             const primary = await this.materialize(input.hostOverride);
-            return this.walkChain(primary, 'host-embed');
+            return this.walkChain(primary, input.hostOverride.source ?? 'host-embed');
         }
         if (input.definitionIssuer) {
             const primary = await this.materialize(input.definitionIssuer);
