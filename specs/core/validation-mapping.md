@@ -261,3 +261,48 @@ permitted(profile, blocking, persistence) :=
 ```
 
 The five master-table rows satisfy this predicate. Implementations MUST validate any override against it.
+
+## 7. SubmitButton Compatibility
+
+Component §5.19 defines `SubmitButton` with the following load-bearing existing behavior (PRESERVED by this spec):
+
+- `bind` is forbidden.
+- `mode` ∈ {`continuous`, `submit`}, default `submit`. Controls which validation pass produces the report emitted on click.
+- `emitEvent` defaults to `false`; when `true`, click dispatches `formspec-submit` CustomEvent.
+- `pendingLabel` and `disableWhenPending` handle in-flight submission state.
+
+### 7.1 The Default Submit Action Rule
+
+Per concept §6.6: *"A SubmitButton without `actionRef` invokes the implementation's default submit action."*
+
+A Mapping-Aware processor that encounters a `SubmitButton` MUST treat it as invoking an action with intent `submit`, profile `on-submit`, blocking `block-on-error`, persistence `complete-response` — the master-table row for `submit` (§6).
+
+Concretely, this means:
+
+1. When the button is clicked, the processor runs the `on-submit` validation profile for completion gating (Core `continuous` mode + continuous and submit-timing shapes; demand shapes remain deferred).
+2. If the resulting ValidationReport's `valid` is `false`, the processor MUST NOT transition Response `status` to `completed`. It MUST preserve the Response in `status: in-progress` with full data (VE-05).
+3. If `valid` is `true`, the processor MUST transition `status` to `completed`.
+4. The processor's existing emit/event behavior (`formspec-submit` CustomEvent or host renderer submit API call, per Component §5.19) continues unchanged.
+
+### 7.2 `SubmitButton.mode` Reconciliation
+
+`SubmitButton.mode` controls the validation pass that produces the report carried on the `formspec-submit` event detail. It maps to `ValidationProfile`:
+
+| `SubmitButton.mode` | `ValidationProfile` |
+|---------------------|---------------------|
+| `"continuous"`      | `live`              |
+| `"submit"`          | `on-submit`         |
+
+Authors who set `mode: "continuous"` are opting into the `live` profile for the report emitted with the event. A Mapping-Aware processor MUST honor the prop for report production, but `complete-response` persistence still requires the `on-submit` completion gate from §6.3 before Response status can become `completed`.
+
+`SubmitButton.mode` does NOT affect Blocking Policy or Persistence Policy — those remain master-table defaults (`block-on-error`, `complete-response`). To override those, an author MUST move to a future Response Actions document with an explicit `actionRef`.
+
+### 7.3 Future `actionRef` Compatibility
+
+Component reference additions (concept §10.4) MAY add `actionRef` to `SubmitButton` and other trigger nodes. That future spec, not this document, will define the lookup and precedence rules for resolved Response Action documents. The only compatibility rule defined here is the fallback path for existing `SubmitButton` documents without `actionRef` (§7.1).
+
+Until concept §10.4 lands, `actionRef` is future shape. Existing `SubmitButton` documents without `actionRef` continue to behave per §7.1.
+
+### 7.4 Migration
+
+There is no migration. Existing Component documents continue to work unchanged. Mapping-Aware processors gain the §7.1 interpretation; non-Mapping-Aware processors continue to follow Component §5.19 directly (which produces equivalent observable behavior for the default submit case).
