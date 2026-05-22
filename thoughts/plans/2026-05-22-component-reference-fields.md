@@ -215,6 +215,8 @@ from tests.unit.support.schema_fixtures import build_schema_registry
 
 ## Task 16: No-rewrite regression pytest
 
+- [x] Add no-rewrite regression pytest validating pre-existing Component payloads against the amended schema while excluding the new reference-field fixture directory, lint harness metadata, and the known schema-negative W801 lint fixture.
+
 ```python
 # Discover every JSON file under tests/conformance/fixtures/, tests/e2e/fixtures/,
 # tests/fixtures/, examples/, benchmarks/tasks/**/reference/, and docs/ that looks
