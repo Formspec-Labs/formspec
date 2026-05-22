@@ -5,7 +5,7 @@ status: draft
 owner: spec-author
 related:
   - thoughts/archive/plans/2026-05-22-component-action-references.md
-  - thoughts/plans/2026-05-22-component-references-spec.md
+  - thoughts/archive/plans/2026-05-22-component-references-spec.md
   - thoughts/specs/2026-05-20-formspec-semantic-layers.md
   - specs/component/component-spec.md
   - specs/experience/experience-spec.md
@@ -17,7 +17,7 @@ related:
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:test-driven-development.
 
-**Status:** draft. This plan executes AFTER Plan E (Component Action References) and the Response Actions plan have landed. It carries forward the reference-field family from the superseded [Component References Spec plan](2026-05-22-component-references-spec.md) — minus the dropped `defaultSubmitActionRef`-dependent precedence rule, since `actionRef` already landed via Plan E as required-not-optional.
+**Status:** draft. This plan executes AFTER Plan E (Component Action References) and the Response Actions plan have landed. It carries forward the reference-field family from the superseded [Component References Spec plan](../archive/plans/2026-05-22-component-references-spec.md) — minus the dropped `defaultSubmitActionRef`-dependent precedence rule, since `actionRef` already landed via Plan E as required-not-optional.
 
 **Goal:** Add four OPTIONAL reference fields to `ComponentBase` so every Component widget can carry them: `unitRef` (resolves against Experience), `taskRefs` (resolves against Experience), `conceptRefs` (resolves against Registry/Ontology), `x-generation` (provenance metadata, runtime-ignored). Define the cross-document resolver algorithm covering all reference fields. Pin a `COMP-REFERENTIAL-INTEGRITY` severity ladder. Prove zero migration of existing Component documents via a regression test loading every pre-existing fixture and benchmark reference against the amended schema.
 
@@ -235,3 +235,7 @@ Task 21:       promotion-gate + architecture review
 - **Do not define merge semantics for x-generation.** Anchor shape only; concept §10.5 owns merge behavior.
 - **Do not deep-validate conceptRefs.** Host policy.
 - **Do not tighten any existing field.** The no-rewrite regression test catches it.
+
+## Deviations
+
+- 2026-05-22: Before Task 1, external review found Response Actions validation-tuple hardening gaps in the dirty precondition slice. Remediated those HIGH/WARNING findings first so the Response Actions precondition remains audit-ready before component reference fields land; also fixed the related dist-backed warning-test isolation and archived thought-plan links needed by the gate.

@@ -35,7 +35,7 @@ export type BlockingPolicy = 'non-blocking' | 'block-on-error';
  */
 export type PersistencePolicy = 'none' | 'draft-checkpoint' | 'complete-response';
 /**
- * Reusable §6.3 validity predicate for any object carrying profile, blocking, and persistence. This $def is intentionally open so composing schemas such as MappingEntry can add intent while reusing the predicate. Consumers that need exactly the tuple MUST $ref ValidationTuple, not this predicate helper.
+ * Reusable §6.3 validity predicate for any object carrying profile, blocking, and persistence. The four prose clauses collapse into three allOf entries because clauses 1+2 share the antecedent persistence=complete-response and merge into a single if/then. This $def is intentionally open so composing schemas such as MappingEntry can add intent while reusing the predicate. Consumers that need exactly the tuple MUST $ref ValidationTuple, not this predicate helper.
  *
  * This interface was referenced by `ValidationMappingDocument`'s JSON-Schema
  * via the `definition` "ValidationTuplePredicate".
@@ -53,7 +53,11 @@ export type ValidationTuplePredicate = {
  * This interface was referenced by `ValidationMappingDocument`'s JSON-Schema
  * via the `definition` "ValidationTuple".
  */
-export type ValidationTuple = ValidationTuplePredicate;
+export type ValidationTuple = {
+  profile: ValidationProfile;
+  blocking: BlockingPolicy;
+  persistence: PersistencePolicy;
+};
 /**
  * A single row of the master mapping table. Permitted (profile, blocking, persistence) tuples are governed by the §6.3 predicate via ValidationTuplePredicate; processors MUST reject rows that violate it. Response Actions overrides use the exact ValidationTuple $def, not MappingEntry, because overrides do not carry intent.
  *

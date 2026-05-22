@@ -121,7 +121,7 @@ test('resolveResponseActionValidationTuple rejects override violating VM §6.3 o
   assert.throws(
     () => resolveResponseActionValidationTuple(action),
     err => err.code === 'VMAP-INVALID-OVERRIDE'
-      && /§6\.3|VM/i.test(err.message),
+      && /profile=off cannot combine with blocking=block-on-error/i.test(err.message),
   );
 });
 
@@ -572,14 +572,14 @@ test('invokeResponseAction rejects precondition with unregistered @name (catalog
   assert.match(result.failureReason, /unbound context reference.*@bogus/);
 });
 
-test('invokeResponseAction warns when idempotencyKey expression contains no @ reference', () => {
+test('invokeResponseAction warns only when idempotencyKey expression contains no @ reference', () => {
   // A literal-string idempotencyKey (e.g., "static-key") is schema-valid
   // but defeats idempotency: every invocation evaluates to the same key,
   // so a host that dedupes by key would silently drop subsequent legitimate
   // invocations. Spec §6.3 expects FEL expressions with at least one
   // @-binding so the key varies per invocation. The runtime emits a
   // console.warn so authors catch the foot-gun without breaking flows.
-  const document = {
+  const staticKeyDocument = {
     $formspecResponseActions: '1.0',
     version: '1.0.0',
     targetDefinition: { url: 'https://example.gov/forms/intake' },
@@ -591,30 +591,10 @@ test('invokeResponseAction warns when idempotencyKey expression contains no @ re
       ],
     }],
   };
-  const warns = [];
-  const originalWarn = console.warn;
-  console.warn = (...args) => warns.push(args.join(' '));
-  try {
-    const result = invokeResponseAction(document, 'static-key', {
-      submit: () => ({ response: {}, validationReport: { valid: true } }),
-      dispatchHostEvent: () => {},
-      resolveIdempotencyKey: () => 'static-key',
-      dispatchEffect: (effect) => ({ type: effect.type, status: 'succeeded' }),
-    });
-    assert.equal(result.status, 'completed');
-  } finally {
-    console.warn = originalWarn;
-  }
-  assert.ok(
-    warns.some(w => /idempotencyKey.*@/i.test(w)),
-    `expected console.warn about idempotencyKey lacking @, got: ${JSON.stringify(warns)}`,
-  );
-});
 
-test('invokeResponseAction does NOT warn when idempotencyKey expression references @', () => {
   // Sanity check: the expected pattern (FEL @binding present) MUST NOT trip
   // the warning.
-  const document = {
+  const dynamicKeyDocument = {
     $formspecResponseActions: '1.0',
     version: '1.0.0',
     targetDefinition: { url: 'https://example.gov/forms/intake' },
@@ -630,19 +610,32 @@ test('invokeResponseAction does NOT warn when idempotencyKey expression referenc
   const originalWarn = console.warn;
   console.warn = (...args) => warns.push(args.join(' '));
   try {
-    invokeResponseAction(document, 'good-key', {
+    const staticResult = invokeResponseAction(staticKeyDocument, 'static-key', {
+      submit: () => ({ response: {}, validationReport: { valid: true } }),
+      dispatchHostEvent: () => {},
+      resolveIdempotencyKey: () => 'static-key',
+      dispatchEffect: (effect) => ({ type: effect.type, status: 'succeeded' }),
+    });
+    assert.equal(staticResult.status, 'completed');
+
+    const dynamicResult = invokeResponseAction(dynamicKeyDocument, 'good-key', {
       submit: () => ({ response: {}, validationReport: { valid: true } }),
       dispatchHostEvent: () => {},
       resolveIdempotencyKey: () => 'inv-1/draft',
       dispatchEffect: (effect) => ({ type: effect.type, status: 'succeeded' }),
     });
+    assert.equal(dynamicResult.status, 'completed');
   } finally {
     console.warn = originalWarn;
   }
+  assert.ok(
+    warns.some(w => /idempotencyKey.*@/i.test(w)),
+    `expected console.warn about idempotencyKey lacking @, got: ${JSON.stringify(warns)}`,
+  );
   assert.equal(
     warns.filter(w => /idempotencyKey/i.test(w)).length,
-    0,
-    `expected NO idempotencyKey warning for @-bound expression, got: ${JSON.stringify(warns)}`,
+    1,
+    `expected only the static idempotencyKey expression to warn, got: ${JSON.stringify(warns)}`,
   );
 });
 

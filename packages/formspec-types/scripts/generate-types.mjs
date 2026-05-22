@@ -362,6 +362,17 @@ function postProcess(ts, moduleName) {
     );
   }
 
+  if (moduleName === 'validation-mapping') {
+    result = result.replace(
+      'export type ValidationTuple = ValidationTuplePredicate;',
+      `export type ValidationTuple = {
+  profile: ValidationProfile;
+  blocking: BlockingPolicy;
+  persistence: PersistencePolicy;
+};`,
+    );
+  }
+
   return result;
 }
 

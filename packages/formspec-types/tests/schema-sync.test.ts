@@ -123,4 +123,18 @@ describe('generated types — tightness against permissive intersections', () =>
     );
     expect(src).not.toMatch(/ActionIntent =[^;]*\) \| string;/);
   });
+
+  it('ValidationMapping ValidationTuple remains a required closed triple', () => {
+    // ValidationTuple is the exact override shape. It must not collapse to
+    // ValidationTuplePredicate, whose axes are optional and whose object is
+    // intentionally open for composition by MappingEntry.
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/validation-mapping.ts'),
+      'utf-8',
+    );
+    expect(src).not.toContain('export type ValidationTuple = ValidationTuplePredicate;');
+    expect(src).toMatch(
+      /export type ValidationTuple = \{\s*profile: ValidationProfile;\s*blocking: BlockingPolicy;\s*persistence: PersistencePolicy;\s*\};/m,
+    );
+  });
 });

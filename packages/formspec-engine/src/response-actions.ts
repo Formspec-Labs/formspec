@@ -337,6 +337,14 @@ function assertValidationTupleValid(actionId: string, candidate: unknown): Valid
     assertClosedTupleValue(actionId, overrideRecord, 'blocking', blocking, BLOCKING_POLICIES);
     assertClosedTupleValue(actionId, overrideRecord, 'persistence', persistence, PERSISTENCE_POLICIES);
 
+    // VM §6.3: NOT (profile=off AND blocking=block-on-error)
+    if (profile === 'off' && blocking === 'block-on-error') {
+        throw new InvalidValidationTupleError(
+            actionId,
+            overrideRecord,
+            `Response Action '${actionId}' violates VM §6.3 clause 3: profile=off cannot combine with blocking=block-on-error.`,
+        );
+    }
     // VM §6.3: persistence=complete-response => profile=on-submit AND blocking=block-on-error
     if (persistence === 'complete-response') {
         if (profile !== 'on-submit') {
@@ -360,14 +368,6 @@ function assertValidationTupleValid(actionId: string, candidate: unknown): Valid
             actionId,
             overrideRecord,
             `Response Action '${actionId}' violates VM §6.3 clause 2: blocking=block-on-error requires persistence=complete-response (got '${persistence}').`,
-        );
-    }
-    // VM §6.3: NOT (profile=off AND blocking=block-on-error)
-    if (profile === 'off' && blocking === 'block-on-error') {
-        throw new InvalidValidationTupleError(
-            actionId,
-            overrideRecord,
-            `Response Action '${actionId}' violates VM §6.3 clause 3: profile=off cannot combine with blocking=block-on-error.`,
         );
     }
     return { profile, blocking, persistence };
