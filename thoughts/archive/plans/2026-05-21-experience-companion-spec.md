@@ -1,16 +1,22 @@
 # Experience Companion Spec Implementation Plan
 
+> **Archived 2026-05-22.** The active implementation work is reflected in
+> `specs/experience/experience-spec.md`, `schemas/experience.schema.json`,
+> `specs/experience/experience-spec.llm.md`, and the Experience conformance
+> fixtures/tests under `tests/conformance/`. This file is retained as historical
+> execution context, not an active task queue.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Land a draft Formspec **Experience** companion spec — prose, schema, examples, conformance fixtures — that satisfies the §10.1 follow-on and §9 "Experience shape" promotion gate of [`../specs/2026-05-20-formspec-semantic-layers.md`](../specs/2026-05-20-formspec-semantic-layers.md).
+**Goal:** Land a draft Formspec **Experience** companion spec — prose, schema, examples, conformance fixtures — that satisfies the §10.1 follow-on and §9 "Experience shape" promotion gate of [`../../specs/2026-05-20-formspec-semantic-layers.md`](../../specs/2026-05-20-formspec-semantic-layers.md).
 
 **Architecture:** New sidecar document type at `specs/experience/` + `schemas/experience.schema.json`, structurally a peer of Locale / References / Ontology. Pure metadata: a Core processor MAY ignore it; Extended processors load it for generation, review, and coverage checks. Strictly additive — no Definition / Component / Validation behavior changes. Defines `actor`, `task`, `unit`, `unit.kind` registry (closed, abstract, task-oriented), typed references (`itemRefs`, `conceptRefs`, `actionRefs`), `applicability`, and a static **coverage predicate** (required visible items → at least one unit).
 
 **Tech Stack:** Markdown (W3C-style), JSON Schema 2020-12, `npm run docs:generate` / `docs:check` pipeline (`generate-spec-artifacts.mjs`), Python pytest conformance suite under `tests/conformance/`, auto-derived TS types via `@formspec-org/types` `types:generate`.
 
-**Sequencing (per user direction):** prose contract first → schema encodes it → examples validate against schema → conformance fixtures pin behavior. Schema does not become the place where unresolved prose questions hide ([concept §10 closing line](../specs/2026-05-20-formspec-semantic-layers.md)).
+**Sequencing (per user direction):** prose contract first → schema encodes it → examples validate against schema → conformance fixtures pin behavior. Schema does not become the place where unresolved prose questions hide ([concept §10 closing line](../../specs/2026-05-20-formspec-semantic-layers.md)).
 
-**Citations used throughout this plan refer to the concept note** ([`../specs/2026-05-20-formspec-semantic-layers.md`](../specs/2026-05-20-formspec-semantic-layers.md)) unless prefixed with another spec name.
+**Citations used throughout this plan refer to the concept note** ([`../../specs/2026-05-20-formspec-semantic-layers.md`](../../specs/2026-05-20-formspec-semantic-layers.md)) unless prefixed with another spec name.
 
 ---
 
@@ -2041,9 +2047,9 @@ After completing all tasks, verify:
 
 ---
 
-## Execution Handoff
+## Original Execution Handoff
 
-Plan complete and saved to `formspec/thoughts/plans/2026-05-21-experience-companion-spec.md`. Two execution options:
+Original pre-execution handoff follows. Two execution options:
 
 **1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, fast iteration. Good fit because each task is self-contained and the prose / schema / fixtures phases have clear handoff points.
 
