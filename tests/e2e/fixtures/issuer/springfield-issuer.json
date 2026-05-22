@@ -11,6 +11,14 @@
     "primary": {
       "url": "https://issuer.test/springfield-logo.svg",
       "altText": "Springfield Public Health seal"
+    },
+    "wordmark": {
+      "url": "https://issuer.test/springfield-logo-wordmark.svg",
+      "altText": "Springfield Public Health wordmark"
+    },
+    "monochrome": {
+      "url": "https://issuer.test/springfield-logo-mono.svg",
+      "altText": "Springfield Public Health monochrome seal"
     }
   },
   "contactPoint": {

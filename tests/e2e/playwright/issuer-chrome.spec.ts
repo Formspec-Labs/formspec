@@ -21,6 +21,41 @@ test.describe('Issuer chrome - browser', () => {
         await expect(page.locator('.fs-issuer-name')).toHaveText('Springfield Public Health');
         await expect(page.locator('.fs-issuer-org-breadcrumb')).toContainText('City of Springfield');
         await expect(page.locator('.fs-issuer-support')).toHaveText('health@springfield.example');
+        await expect(page.locator('.fs-issuer-logo')).toHaveAttribute('src', /springfield-logo\.svg$/);
+        await expect(page.locator('.fs-issuer-logo')).toHaveAttribute('alt', 'Springfield Public Health seal');
+    });
+
+    test('Dark appearance selects monochrome logo variant', async ({ page }) => {
+        await routeIssuers(page);
+        await gotoHarness(page);
+        await page.evaluate(() => {
+            const el = document.querySelector('formspec-render');
+            el?.setAttribute('data-formspec-appearance', 'dark');
+        });
+        await mountDefinition(page, DEFINITION);
+
+        await expect(page.locator('.fs-issuer-logo')).toHaveAttribute('src', /springfield-logo-mono\.svg$/);
+        await expect(page.locator('.fs-issuer-logo')).toHaveAttribute('alt', 'Springfield Public Health monochrome seal');
+    });
+
+    test('Narrow breakpoint selects wordmark logo variant', async ({ page }) => {
+        await page.setViewportSize({ width: 375, height: 720 });
+        await routeIssuers(page);
+        await gotoHarness(page);
+        await page.evaluate(() => {
+            const el: any = document.querySelector('formspec-render');
+            el.componentDocument = {
+                $formspecComponent: '1.0',
+                breakpoints: {
+                    narrow: 0,
+                    wide: 640,
+                },
+            };
+        });
+        await mountDefinition(page, DEFINITION);
+
+        await expect(page.locator('.fs-issuer-logo')).toHaveAttribute('src', /springfield-logo-wordmark\.svg$/);
+        await expect(page.locator('.fs-issuer-logo')).toHaveAttribute('alt', 'Springfield Public Health wordmark');
     });
 
     test('Embed-time override replaces chrome', async ({ page }) => {
