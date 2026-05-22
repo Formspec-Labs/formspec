@@ -51,7 +51,8 @@ function runProcessingCase(caseDoc) {
     engine.setValue(path, value);
   }
   const mode = caseDoc.mode || 'submit';
-  const report = engine.getValidationReport({ mode });
+  const profile = mode === 'continuous' ? 'live' : mode === 'demand' ? 'on-demand' : 'on-submit';
+  const report = engine.getValidationReport({ profile });
   return normalizeJson({
     valid: report.valid,
     counts: report.counts,

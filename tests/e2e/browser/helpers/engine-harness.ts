@@ -68,6 +68,11 @@ export async function waitForRelevant(
 }
 
 type ValidationMatch = { path?: string; code?: string; id?: string; severity?: string };
+type EngineValidationMode = 'continuous' | 'submit' | 'demand';
+
+function validationProfileForMode(mode: EngineValidationMode) {
+  return mode === 'submit' ? 'on-submit' : mode === 'demand' ? 'on-demand' : 'live';
+}
 
 /** Wait until validation report contains a matching result. */
 export async function waitForValidationMatch(
@@ -79,7 +84,12 @@ export async function waitForValidationMatch(
   await page.waitForFunction(
     ({ m, mode: validationMode }) => {
       const el: any = document.querySelector('formspec-render');
-      const results = el?.getEngine()?.getValidationReport({ mode: validationMode })?.results ?? [];
+      const profile = validationMode === 'submit'
+        ? 'on-submit'
+        : validationMode === 'demand'
+          ? 'on-demand'
+          : 'live';
+      const results = el?.getEngine()?.getValidationReport({ profile })?.results ?? [];
       return results.some(
         (r: any) =>
           (m.path == null || r.path === m.path) &&
@@ -161,18 +171,18 @@ export async function engineSetValue(page: Page, fieldPath: string, value: any):
 /** Get the full validation report. */
 export async function getValidationReport(
   page: Page,
-  mode: 'continuous' | 'submit' | 'demand' = 'continuous'
+  mode: EngineValidationMode = 'continuous'
 ) {
-  return page.evaluate((m) => {
+  return page.evaluate((profile) => {
     const el: any = document.querySelector('formspec-render');
-    return el.getEngine().getValidationReport({ mode: m });
-  }, mode);
+    return el.getEngine().getValidationReport({ profile });
+  }, validationProfileForMode(mode));
 }
 
 /** Get the full response object. */
 export async function getResponse(page: Page, mode: 'continuous' | 'submit' = 'submit') {
-  return page.evaluate((m) => {
+  return page.evaluate((profile) => {
     const el: any = document.querySelector('formspec-render');
-    return el.getEngine().getResponse({ mode: m });
-  }, mode);
+    return el.getEngine().getResponse({ profile });
+  }, validationProfileForMode(mode));
 }

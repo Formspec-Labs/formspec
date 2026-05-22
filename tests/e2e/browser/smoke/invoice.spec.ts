@@ -386,7 +386,7 @@ test.describe('Validation: Required Fields and Constraints', () => {
     await engineSetValue(page, 'header.customerName', 'Acme Corp');
     await page.waitForFunction(() => {
       const el: any = document.querySelector('formspec-render');
-      const results = el?.getEngine()?.getValidationReport({ mode: 'submit' })?.results ?? [];
+      const results = el?.getEngine()?.getValidationReport({ profile: 'on-submit' })?.results ?? [];
       return !results.some((r: any) => r.path === 'header.customerName' && r.severity === 'error');
     });
 
@@ -404,7 +404,7 @@ test.describe('Validation: Required Fields and Constraints', () => {
     await engineSetValue(page, 'header.customerEmail', 'not-an-email');
     await page.waitForFunction(() => {
       const el: any = document.querySelector('formspec-render');
-      const results = el?.getEngine()?.getValidationReport({ mode: 'continuous' })?.results ?? [];
+      const results = el?.getEngine()?.getValidationReport({ profile: 'live' })?.results ?? [];
       return results.some(
         (r: any) =>
           r.path === 'header.customerEmail' &&

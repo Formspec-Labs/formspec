@@ -2,6 +2,7 @@
 
 /** @filedesc useReplay — event sourcing and deterministic replay for form state. */
 import { useCallback } from 'react';
+import type { ValidationProfile } from '@formspec-org/types';
 import { useFormspecContext } from './context';
 
 export type ReplayEvent =
@@ -9,8 +10,8 @@ export type ReplayEvent =
     | { type: 'addRepeatInstance'; path: string }
     | { type: 'removeRepeatInstance'; path: string; index: number }
     | { type: 'evaluateShape'; shapeId: string }
-    | { type: 'getValidationReport'; mode?: 'continuous' | 'submit' }
-    | { type: 'getResponse'; mode?: 'continuous' | 'submit' };
+    | { type: 'getValidationReport'; profile?: ValidationProfile }
+    | { type: 'getResponse'; profile?: ValidationProfile };
 
 export interface ReplayApplyResult {
     ok: boolean;

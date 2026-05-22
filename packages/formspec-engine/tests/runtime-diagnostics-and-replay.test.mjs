@@ -47,8 +47,8 @@ test('should use runtime context now provider for deterministic response/report 
   const fixedNow = '2026-02-24T12:00:00.000Z';
   const engine = new FormEngine(buildReplayDefinition(), { runtimeContext: { now: fixedNow } });
 
-  const report = engine.getValidationReport({ mode: 'submit' });
-  const response = engine.getResponse({ mode: 'submit' });
+  const report = engine.getValidationReport({ profile: 'on-submit' });
+  const response = engine.getResponse({ profile: 'on-submit' });
 
   assert.equal(report.timestamp, fixedNow);
   assert.equal(response.authored, fixedNow);
@@ -71,7 +71,7 @@ test('should produce diagnostics snapshots with values repeats mips and validati
   engine.setValue('rows[0].qty', 2);
   engine.setValue('rows[0].price', 100);
 
-  const snapshot = engine.getDiagnosticsSnapshot({ mode: 'submit' });
+  const snapshot = engine.getDiagnosticsSnapshot({ profile: 'on-submit' });
 
   assert.equal(snapshot.definition.url, 'http://example.org/replay');
   assert.equal(snapshot.repeats.rows, 1);
@@ -97,7 +97,7 @@ test('should apply replay events and return structured replay output', () => {
     { type: 'addRepeatInstance', path: 'rows' },
     { type: 'setValue', path: 'rows[1].qty', value: 1 },
     { type: 'setValue', path: 'rows[1].price', value: 10 },
-    { type: 'getResponse', mode: 'submit' }
+    { type: 'getResponse', profile: 'on-submit' }
   ]);
 
   assert.equal(replay.applied, 7);

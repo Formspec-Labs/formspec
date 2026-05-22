@@ -251,7 +251,7 @@ test('website field should accept a valid URL with path', () => {
   const value = engineValue(engine, 'applicantInfo.projectWebsite');
   assert.equal(value, 'https://example.com/my-project');
 
-  const report = getValidationReport(engine, 'demand');
+  const report = getValidationReport(engine, 'continuous');
   const websiteErr = report.results.find(
     r => r.path === 'applicantInfo.projectWebsite' && r.severity === 'error'
   );
@@ -262,7 +262,7 @@ test('website field should reject a non-URL value', () => {
   const engine = createGrantEngine();
   engine.setValue('applicantInfo.projectWebsite', 'not-a-url');
 
-  const report = getValidationReport(engine, 'demand');
+  const report = getValidationReport(engine, 'continuous');
   const websiteErr = report.results.find(
     r => r.path === 'applicantInfo.projectWebsite' && r.severity === 'error'
   );

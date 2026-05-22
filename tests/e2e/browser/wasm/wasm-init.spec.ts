@@ -90,8 +90,8 @@ test('WASM FEL validation constraints work', async ({ page }) => {
         });
 
         engine.setValue('age', 200);
-        const report = engine.getValidationReport({ mode: 'submit' });
-        const snapshot = engine.getDiagnosticsSnapshot({ mode: 'submit' });
+        const report = engine.getValidationReport({ profile: 'on-submit' });
+        const snapshot = engine.getDiagnosticsSnapshot({ profile: 'on-submit' });
         return {
             valid: report.valid,
             errorCount: report.counts?.error ?? 0,

@@ -34,7 +34,7 @@ for (const fixturePath of fixturePaths) {
   test(`schema-valid definition fixture loads without processor setup errors: ${path.basename(fixturePath)}`, () => {
     const definition = loadSharedFixture(fixturePath);
     const engine = new FormEngine(definition);
-    const report = engine.getValidationReport({ mode: 'continuous' });
+    const report = engine.getValidationReport({ profile: 'live' });
 
     assert.equal(engine.definition.url, definition.url);
     assert.ok(Object.keys(engine.signals).length > 0);

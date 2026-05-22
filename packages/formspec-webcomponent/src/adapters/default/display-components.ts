@@ -277,7 +277,8 @@ export function renderDefaultValidationSummary(
                       ? fromResponse
                       : [];
             } else {
-                const submitOccurred = host.latestSubmitDetailSignal.value !== null;
+                const detail = host.latestSubmitDetailSignal.value;
+                const submitOccurred = detail !== null;
                 const wizardNavigated = host.touchedVersion.value > 0;
                 const gateOpen = mode === 'submit' ? submitOccurred : submitOccurred || wizardNavigated;
                 if (!gateOpen) {
@@ -285,8 +286,18 @@ export function renderDefaultValidationSummary(
                     el.classList.remove('formspec-validation-summary--visible');
                     return;
                 }
-                host.engine.structureVersion.value;
-                rawResults = host.engine.getValidationReport({ mode }).results;
+                if (mode === 'submit') {
+                    const fromReport = detail?.validationReport?.results;
+                    const fromResponse = detail?.response?.validationResults;
+                    rawResults = Array.isArray(fromReport)
+                        ? fromReport
+                        : Array.isArray(fromResponse)
+                          ? fromResponse
+                          : [];
+                } else {
+                    host.engine.structureVersion.value;
+                    rawResults = host.engine.getValidationReport({ profile: 'live' }).results;
+                }
             }
 
             const filteredResults = rawResults.filter((r: any) => {

@@ -5,8 +5,10 @@ import { useMemo, useCallback } from 'react';
 import { useFormspecContext } from './context';
 import { useSignal } from './use-signal';
 
+type SubmitMode = 'continuous' | 'submit';
+
 export interface SubmitOptions {
-    mode?: 'continuous' | 'submit';
+    mode?: SubmitMode;
     id?: string;
     author?: { id: string; name?: string };
     subject?: { id: string; type?: string };
@@ -19,6 +21,10 @@ export interface UseFormResult {
     validationSummary: { errors: number; warnings: number; infos: number };
     submit(options?: SubmitOptions): any;
     getResponse(meta?: Record<string, any>): any;
+}
+
+function validationProfileForMode(mode: SubmitMode | undefined) {
+    return mode === 'submit' ? 'on-submit' : 'live';
 }
 
 /**
@@ -37,9 +43,10 @@ export function useForm(): UseFormResult {
 
     const submit = useCallback((options?: SubmitOptions) => {
         touchAllFields();
-        const report = engine.getValidationReport({ mode: options?.mode });
+        const reportProfile = validationProfileForMode(options?.mode);
+        const report = engine.getValidationReport({ profile: reportProfile });
         const response = engine.getResponse({
-            mode: options?.mode,
+            profile: 'on-submit',
             id: options?.id,
             author: options?.author,
             subject: options?.subject,

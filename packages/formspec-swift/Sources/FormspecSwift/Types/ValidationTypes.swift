@@ -7,9 +7,31 @@ public struct ValidationReport: Codable, Sendable {
     public let results: [ResolvedValidationResult]
     public let isValid: Bool
 
+    private enum CodingKeys: String, CodingKey {
+        case results
+        case isValid
+        case valid
+    }
+
     public init(results: [ResolvedValidationResult], isValid: Bool) {
         self.results = results
         self.isValid = isValid
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        results = try container.decode([ResolvedValidationResult].self, forKey: .results)
+        if let valid = try container.decodeIfPresent(Bool.self, forKey: .valid) {
+            isValid = valid
+        } else {
+            isValid = try container.decode(Bool.self, forKey: .isValid)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(results, forKey: .results)
+        try container.encode(isValid, forKey: .isValid)
     }
 }
 

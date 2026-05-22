@@ -126,6 +126,18 @@ describe('ValidationSummary — source: live', () => {
         el.submit({ mode: 'submit', emitEvent: false });
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(false);
     });
+
+    it('keeps the latest submit-profile summary static until another submit', () => {
+        const el = renderWithValidationSummary({ source: 'live', mode: 'submit', showFieldErrors: true });
+        el.submit({ mode: 'submit', emitEvent: false });
+        const summary = el.querySelector('.formspec-validation-summary') as HTMLElement;
+        expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
+
+        el.getEngine().setValue('name', 'Alice');
+
+        expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
+        expect(summary.textContent).toContain('Name');
+    });
 });
 
 describe('ValidationSummary — live in wizard', () => {

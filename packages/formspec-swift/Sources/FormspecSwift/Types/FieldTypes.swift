@@ -1,4 +1,4 @@
-/// @filedesc Field-level supporting types: ResolvedOption, DisabledDisplay, ValidationMode.
+/// @filedesc Field-level supporting types: ResolvedOption, DisabledDisplay, ValidationProfile.
 
 import Foundation
 
@@ -21,10 +21,14 @@ public enum DisabledDisplay: String, Codable, Sendable {
     case protected
 }
 
-/// When the engine emits validation results.
-public enum ValidationMode: Sendable {
-    /// Validate continuously as the user types.
-    case continuous
-    /// Validate only on form submission.
-    case submit
+/// Validation profile used when requesting engine validation results.
+public enum ValidationProfile: String, Codable, Sendable {
+    /// Continuous validation across non-demand-timing shapes.
+    case live
+    /// Validation scoped to continuous and submit-timing shapes.
+    case onSubmit = "on-submit"
+    /// Validation scoped to demand-timing shapes.
+    case onDemand = "on-demand"
+    /// No validation report is produced.
+    case off
 }

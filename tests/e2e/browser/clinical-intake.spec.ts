@@ -786,7 +786,7 @@ test.describe('Clinical Intake: Validation', () => {
     await engineSetValue(page, 'patient.email', 'notanemail');
     await page.waitForFunction(() => {
       const el: any = document.querySelector('formspec-render');
-      const results = el?.getEngine()?.getValidationReport({ mode: 'continuous' })?.results ?? [];
+      const results = el?.getEngine()?.getValidationReport({ profile: 'live' })?.results ?? [];
       return results.some(
         (r: any) =>
           r.path === 'patient.email' &&
@@ -805,7 +805,7 @@ test.describe('Clinical Intake: Validation', () => {
     await engineSetValue(page, 'patient.phone', '555-1234');
     await page.waitForFunction(() => {
       const el: any = document.querySelector('formspec-render');
-      const results = el?.getEngine()?.getValidationReport({ mode: 'continuous' })?.results ?? [];
+      const results = el?.getEngine()?.getValidationReport({ profile: 'live' })?.results ?? [];
       return results.some(
         (r: any) =>
           r.path === 'patient.phone' &&
@@ -852,7 +852,7 @@ test.describe('Clinical Intake: Validation', () => {
     await engineSetValue(page, 'medicalHistory.hasAllergies', false);
     await page.waitForFunction(() => {
       const el: any = document.querySelector('formspec-render');
-      const results = el?.getEngine()?.getValidationReport({ mode: 'submit' })?.results ?? [];
+      const results = el?.getEngine()?.getValidationReport({ profile: 'on-submit' })?.results ?? [];
       return !results.some(
         (r: any) => r.code === 'ALLERGY_DETAIL_REQUIRED' || r.id === 'allergyDetailRequired'
       );

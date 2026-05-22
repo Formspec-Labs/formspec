@@ -88,7 +88,7 @@ test.describe('Kitchen Sink Holistic UI Coverage', () => {
       const input = document.querySelector('input[name="vipCode"]') as HTMLInputElement | null;
       const fieldWrapper = input?.closest('.formspec-field');
       const whenWrapper = input?.closest('.formspec-when');
-      const response = engine.getResponse({ mode: 'submit' });
+      const response = engine.getResponse({ profile: 'on-submit' });
       return {
         whenHidden: whenWrapper?.classList.contains('formspec-hidden') ?? null,
         fieldHidden: fieldWrapper?.classList.contains('formspec-hidden') ?? null,
@@ -115,7 +115,7 @@ test.describe('Kitchen Sink Holistic UI Coverage', () => {
       const input = document.querySelector('input[name="vipCode"]') as HTMLInputElement | null;
       const fieldWrapper = input?.closest('.formspec-field');
       const whenWrapper = input?.closest('.formspec-when');
-      const response = engine.getResponse({ mode: 'submit' });
+      const response = engine.getResponse({ profile: 'on-submit' });
       return {
         whenHidden: whenWrapper?.classList.contains('formspec-hidden') ?? null,
         fieldHidden: fieldWrapper?.classList.contains('formspec-hidden') ?? null,

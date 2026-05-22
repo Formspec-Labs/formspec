@@ -80,7 +80,7 @@ export function ValidationSummary({
         if (source === 'live') {
             // structureVersion consumed above ensures this memo re-runs on changes
             void structureVersion;
-            return engine.getValidationReport({ mode: 'continuous' }).results as Array<{
+            return engine.getValidationReport({ profile: 'live' }).results as Array<{
                 path: string;
                 message: string;
                 severity: string;

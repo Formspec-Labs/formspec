@@ -47,7 +47,7 @@ public final class FormspecEngine {
     private var pendingResponseContinuation: CheckedContinuation<JSONValue, Never>?
 
     /// Continuation for a pending `getValidationReport` call.
-    private var pendingReportContinuation: CheckedContinuation<ValidationReport, Never>?
+    private var pendingReportContinuation: CheckedContinuation<ValidationReport?, Never>?
 
     // MARK: - Internal init (for testing — no WebView)
 
@@ -176,11 +176,10 @@ public final class FormspecEngine {
     }
 
     /// Request a validation report from the JS engine (async).
-    public func getValidationReport(mode: ValidationMode = .continuous) async -> ValidationReport {
-        let modeString = mode == .submit ? "submit" : "continuous"
+    public func getValidationReport(profile: ValidationProfile = .live) async -> ValidationReport? {
         return await withCheckedContinuation { continuation in
             pendingReportContinuation = continuation
-            Task { try? await bridge?.send(.getValidationReport(mode: modeString)) }
+            Task { try? await bridge?.send(.getValidationReport(profile: profile.rawValue)) }
         }
     }
 

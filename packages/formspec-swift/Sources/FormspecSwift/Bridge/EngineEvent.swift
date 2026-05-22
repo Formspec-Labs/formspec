@@ -99,7 +99,7 @@ public enum EngineEvent: Decodable, Sendable {
     /// A `getResponse` command produced a result.
     case responseResult(JSONValue)
     /// A `getValidationReport` command produced a result.
-    case validationReportResult(ValidationReport)
+    case validationReportResult(ValidationReport?)
     /// The engine finished initializing and is ready to accept commands.
     case engineReady
     /// The engine encountered a fatal error.
@@ -156,7 +156,7 @@ public enum EngineEvent: Decodable, Sendable {
             self = .responseResult(response)
 
         case .validationReportResult:
-            let report = try container.decode(ValidationReport.self, forKey: .key("report"))
+            let report = try container.decodeIfPresent(ValidationReport.self, forKey: .key("report"))
             self = .validationReportResult(report)
 
         case .engineReady:

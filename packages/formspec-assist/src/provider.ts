@@ -6,6 +6,7 @@ import type {
   FormDefinition,
   FormItem,
   RegistryDocument,
+  ValidationProfile,
   ValidationResult,
 } from '@formspec-org/types';
 import { ContextResolver, collectFieldMetadata, normalizeFieldPath, targetDefinitionMatches } from './context-resolver.js';
@@ -122,14 +123,19 @@ function readAudience(input: Record<string, unknown>): 'human' | 'agent' | 'both
   return input.audience === undefined ? 'agent' : input.audience as 'human' | 'agent' | 'both';
 }
 
-function readValidationMode(input: Record<string, unknown>): 'continuous' | 'submit' {
-  if (input.mode === undefined) {
-    return 'continuous';
+function readValidationProfile(input: Record<string, unknown>): ValidationProfile {
+  if (input.profile === undefined) {
+    return 'live';
   }
-  if (input.mode === 'continuous' || input.mode === 'submit') {
-    return input.mode;
+  if (
+    input.profile === 'live'
+    || input.profile === 'on-submit'
+    || input.profile === 'on-demand'
+    || input.profile === 'off'
+  ) {
+    return input.profile;
   }
-  throw new AssistError('INVALID_VALUE', 'Expected mode to be one of: continuous, submit');
+  throw new AssistError('INVALID_VALUE', 'Expected profile to be one of: live, on-submit, on-demand, off');
 }
 
 function readNextIncompleteScope(input: Record<string, unknown>): 'field' | 'page' {
@@ -329,7 +335,7 @@ function buildToolDeclarations(): ToolDeclaration[] {
       description: 'Get the full validation report.',
       inputSchema: {
         type: 'object',
-        properties: { mode: { type: 'string', enum: ['continuous', 'submit'] } },
+        properties: { profile: { type: 'string', enum: ['live', 'on-submit', 'on-demand', 'off'] } },
         additionalProperties: false,
       },
       annotations: { readOnlyHint: true },
@@ -551,7 +557,7 @@ class AssistProviderImpl implements AssistProvider {
       case 'formspec.field.bulkSet':
         return (input) => this.bulkSet(readEntries(input));
       case 'formspec.form.validate':
-        return (input) => this.engine.getValidationReport({ mode: readValidationMode(input) });
+        return (input) => this.engine.getValidationReport({ profile: readValidationProfile(input) });
       case 'formspec.field.validate':
         return (input) => ({
           results: this.fieldValidation(readPath(input)),

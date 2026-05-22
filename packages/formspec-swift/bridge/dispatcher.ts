@@ -57,7 +57,7 @@ interface GetResponseCommand {
 
 interface GetValidationReportCommand {
     type: 'getValidationReport';
-    mode: 'continuous' | 'submit';
+    profile: 'live' | 'on-submit' | 'on-demand' | 'off';
 }
 
 type EngineCommand =
@@ -261,7 +261,7 @@ function handleGetResponse(_cmd: GetResponseCommand): void {
 
 function handleGetValidationReport(cmd: GetValidationReportCommand): void {
     if (!engine) return;
-    const report = engine.getValidationReport({ mode: cmd.mode });
+    const report = engine.getValidationReport({ profile: cmd.profile });
     postEvent({ type: 'validationReportResult', report });
 }
 

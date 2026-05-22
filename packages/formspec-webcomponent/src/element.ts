@@ -588,7 +588,7 @@ export class FormspecRender extends HTMLElement {
      * Capture a diagnostics snapshot from the engine, including current signal
      * values, validation state, and repeat counts.
      */
-    getDiagnosticsSnapshot(options?: { mode?: 'continuous' | 'submit' }) {
+    getDiagnosticsSnapshot(options?: { profile?: 'live' | 'on-submit' | 'on-demand' | 'off' }) {
         return this.engine?.getDiagnosticsSnapshot?.(options) || null;
     }
 

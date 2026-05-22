@@ -133,8 +133,8 @@ test('kitchen-sink runtime: shape and bind validation contract', () => {
   const engine = createKitchenSinkEngine();
   populateKitchenSinkMixedData(engine);
 
-  const continuous = engine.getValidationReport({ mode: 'continuous' });
-  const submit = engine.getValidationReport({ mode: 'submit' });
+  const continuous = engine.getValidationReport({ profile: 'live' });
+  const submit = engine.getValidationReport({ profile: 'on-submit' });
   const demand = engine.evaluateShape('demand_name_present');
 
   assert.ok(continuous.counts.warning >= 1);
@@ -152,7 +152,7 @@ test('kitchen-sink runtime: non-relevant behavior in submit response', () => {
   populateKitchenSinkMixedData(engine);
   engine.setValue('profileMode', 'basic');
 
-  const response = engine.getResponse({ mode: 'submit' });
+  const response = engine.getResponse({ profile: 'on-submit' });
   assert.equal(response.data.contactMethod, undefined);
   assert.ok(response.data.tags);
   assert.equal(response.data.hiddenMirror, null);
@@ -161,7 +161,7 @@ test('kitchen-sink runtime: non-relevant behavior in submit response', () => {
 test('kitchen-sink runtime: response and validation-report contract', () => {
   const engine = createKitchenSinkEngine();
   populateKitchenSinkMixedData(engine);
-  const response = engine.getResponse({ mode: 'submit' });
+  const response = engine.getResponse({ profile: 'on-submit' });
 
   assert.equal(response.definitionUrl, 'https://example.org/forms/kitchen-sink-holistic');
   assert.equal(response.definitionVersion, '1.0.0');
@@ -223,7 +223,7 @@ test('kitchen-sink runtime: deterministic canonicalized responses', () => {
   const engine = createKitchenSinkEngine();
   populateKitchenSinkMixedData(engine);
 
-  const responseA = engine.getResponse({ mode: 'submit' });
-  const responseB = engine.getResponse({ mode: 'submit' });
+  const responseA = engine.getResponse({ profile: 'on-submit' });
+  const responseB = engine.getResponse({ profile: 'on-submit' });
   assert.deepEqual(canonicalizeResponse(responseA), canonicalizeResponse(responseB));
 });

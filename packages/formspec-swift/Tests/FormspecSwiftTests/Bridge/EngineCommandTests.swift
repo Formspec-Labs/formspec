@@ -114,17 +114,17 @@ final class EngineCommandTests: XCTestCase {
     // MARK: - getValidationReport
 
     func testEncodeGetValidationReport() throws {
-        let cmd = EngineCommand.getValidationReport(mode: "submit")
+        let cmd = EngineCommand.getValidationReport(profile: "on-submit")
         let dict = try encodeToDict(cmd)
         XCTAssertEqual(dict["type"] as? String, "getValidationReport")
-        XCTAssertEqual(dict["mode"] as? String, "submit")
+        XCTAssertEqual(dict["profile"] as? String, "on-submit")
     }
 
-    func testEncodeGetValidationReportContinuous() throws {
-        let cmd = EngineCommand.getValidationReport(mode: "continuous")
+    func testEncodeGetValidationReportLive() throws {
+        let cmd = EngineCommand.getValidationReport(profile: "live")
         let dict = try encodeToDict(cmd)
         XCTAssertEqual(dict["type"] as? String, "getValidationReport")
-        XCTAssertEqual(dict["mode"] as? String, "continuous")
+        XCTAssertEqual(dict["profile"] as? String, "live")
     }
 
     // MARK: - setResponse
@@ -168,7 +168,7 @@ final class EngineCommandTests: XCTestCase {
             .addRepeatInstance(groupName: "g"),
             .removeRepeatInstance(groupName: "g", index: 0),
             .getResponse,
-            .getValidationReport(mode: "submit"),
+            .getValidationReport(profile: "on-submit"),
         ]
         for cmd in commands {
             let data = try encoder.encode(cmd)
@@ -185,7 +185,7 @@ final class EngineCommandTests: XCTestCase {
             .addRepeatInstance(groupName: "g"),
             .removeRepeatInstance(groupName: "g", index: 0),
             .getResponse,
-            .getValidationReport(mode: "submit"),
+            .getValidationReport(profile: "on-submit"),
         ]
         for cmd in commands {
             let dict = try encodeToDict(cmd)

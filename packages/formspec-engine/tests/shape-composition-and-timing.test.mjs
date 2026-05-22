@@ -169,8 +169,8 @@ test('should evaluate submit-timed shapes only when validation mode is submit', 
   });
 
   const continuousReport = engine.getValidationReport();
-  const submitReport = engine.getValidationReport({ mode: 'submit' });
-  const submitResponse = engine.getResponse({ mode: 'submit' });
+  const submitReport = engine.getValidationReport({ profile: 'on-submit' });
+  const submitResponse = engine.getResponse({ profile: 'on-submit' });
 
   assert.equal(continuousReport.valid, true);
   assert.equal(submitReport.valid, false);
@@ -305,7 +305,7 @@ test('should evaluate demand-timed shapes only when evaluateShape() is called', 
   });
 
   const continuousReport = engine.getValidationReport();
-  const submitReport = engine.getValidationReport({ mode: 'submit' });
+  const submitReport = engine.getValidationReport({ profile: 'on-submit' });
   const demandFailures = engine.evaluateShape('codeCheck');
 
   engine.setValue('code', 'ABC123');

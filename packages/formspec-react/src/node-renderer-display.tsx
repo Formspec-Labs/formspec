@@ -558,7 +558,7 @@ function ValidationSummaryDisplay() {
         return null;
     }
 
-    const report = engine.getValidationReport({ mode: 'continuous' });
+    const report = engine.getValidationReport({ profile: 'live' });
     const results = report.results.map((r) => ({
         path: r.path || '',
         message: r.message || 'Validation error',

@@ -34,7 +34,7 @@ test('shared microgrant fixture separates field-local bind failures from cross-f
   engine.setValue('contact.contactEmail', '');
   engine.setValue('contact.contactPhone', '');
 
-  const report = engine.getValidationReport({ mode: 'submit' });
+  const report = engine.getValidationReport({ profile: 'on-submit' });
 
   const bindError = report.results.find((result) => result.source === 'bind' && result.path === 'applicant.orgEin');
   const shapeIds = new Set(report.results.filter((result) => result.source === 'shape').map((result) => result.shapeId));
@@ -55,7 +55,7 @@ test('shared clinical fixture keeps field-local requiredness in binds and chrono
   engine.setValue('event.resolutionDate', '2026-02-28');
   engine.setValue('event.eventNarrative', '');
 
-  const report = engine.getValidationReport({ mode: 'submit' });
+  const report = engine.getValidationReport({ profile: 'on-submit' });
 
   const requiredError = report.results.find((result) => result.source === 'bind' && result.path === 'event.eventNarrative');
   const chronology = report.results.find((result) => result.source === 'shape' && result.shapeId === 'ae-chronology');
@@ -83,7 +83,7 @@ test('shared tax fixture keeps row-local numeric constraints in binds and totals
   engine.setValue('allocations.stateAllocations[1].allocationPercent', 30);
   engine.setValue('allocations.stateAllocations[1].allocationIncome', { amount: 50, currency: 'USD' });
 
-  const report = engine.getValidationReport({ mode: 'submit' });
+  const report = engine.getValidationReport({ profile: 'on-submit' });
 
   const bindError = report.results.find((result) => result.source === 'bind' && result.path === 'allocations.stateAllocations[1].allocationPercent');
   const percentShape = report.results.find((result) => result.source === 'shape' && result.shapeId === 'tax-allocation-percent-total');

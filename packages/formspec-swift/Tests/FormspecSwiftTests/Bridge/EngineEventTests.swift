@@ -289,18 +289,34 @@ final class EngineEventTests: XCTestCase {
                         "code": null
                     }
                 ],
-                "isValid": false
+                "valid": false
             }
         }
         """#
         let event = try decode(json)
         if case .validationReportResult(let report) = event {
+            let report = try XCTUnwrap(report)
             XCTAssertFalse(report.isValid)
             XCTAssertEqual(report.results.count, 1)
             XCTAssertEqual(report.results[0].path, "email")
             XCTAssertEqual(report.results[0].message, "Required field")
             XCTAssertEqual(report.results[0].severity, .error)
             XCTAssertEqual(report.results[0].constraintKind, "required")
+        } else {
+            XCTFail("Expected .validationReportResult, got \(event)")
+        }
+    }
+
+    func testDecodeNullValidationReportResult() throws {
+        let json = #"""
+        {
+            "type": "validationReportResult",
+            "report": null
+        }
+        """#
+        let event = try decode(json)
+        if case .validationReportResult(let report) = event {
+            XCTAssertNil(report)
         } else {
             XCTFail("Expected .validationReportResult, got \(event)")
         }

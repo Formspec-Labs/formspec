@@ -23,8 +23,8 @@ public enum EngineCommand: Encodable, Sendable {
     case removeRepeatInstance(groupName: String, index: Int)
     /// Request the current form response.
     case getResponse
-    /// Request a validation report in the given mode (`"submit"` or `"continuous"`).
-    case getValidationReport(mode: String)
+    /// Request a validation report for the given profile (`"live"`, `"on-submit"`, `"on-demand"`, or `"off"`).
+    case getValidationReport(profile: String)
 
     // MARK: - Encodable
 
@@ -73,9 +73,9 @@ public enum EngineCommand: Encodable, Sendable {
         case .getResponse:
             try container.encode("getResponse", forKey: .key("type"))
 
-        case .getValidationReport(let mode):
+        case .getValidationReport(let profile):
             try container.encode("getValidationReport", forKey: .key("type"))
-            try container.encode(mode, forKey: .key("mode"))
+            try container.encode(profile, forKey: .key("profile"))
         }
     }
 }

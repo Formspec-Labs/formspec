@@ -9,6 +9,7 @@ import type {
     OptionEntry,
     ValidationReport,
     ValidationResult,
+    ValidationProfile,
 } from '@formspec-org/types';
 import { diffEvalResults, type EvalResult, type EvalValidation } from '../diff.js';
 import { interpolateMessage } from '../interpolate-message.js';
@@ -60,7 +61,7 @@ import {
 import {
     buildFormspecResponseEnvelope,
     buildValidationReportEnvelope,
-    collectSubmitModeShapeValidationResults,
+    collectTimedShapeValidationResults,
     migrateResponseData,
     resolvePinnedDefinition,
 } from './response-assembly.js';
@@ -97,6 +98,12 @@ import {
     toBasePath,
     toValidationResult,
 } from './helpers.js';
+import {
+    DefaultValidationProfileResolver,
+    type EnabledValidationProfile,
+    type ValidationReportOptions,
+    type ValidationTrigger,
+} from '../validation/index.js';
 export class FormEngine implements IFormEngine {
     public static instanceSourceCache = new Map<string, JsonValue>();
 
@@ -135,6 +142,7 @@ export class FormEngine implements IFormEngine {
     private readonly _variableSignalKeys = new Map<string, string[]>();
     private readonly _externalValidation: ValidationResult[] = [];
     private readonly _issuerStore: IssuerStore;
+    private readonly _validationProfileResolver: DefaultValidationProfileResolver;
 
     private readonly _localeStore: LocaleStore;
     private readonly _fieldViewModels: Record<string, FieldViewModel> = {};
@@ -175,6 +183,7 @@ export class FormEngine implements IFormEngine {
         } = options;
         this._rx = reactiveRuntime;
         this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
+        this._validationProfileResolver = new DefaultValidationProfileResolver();
         this._issuerOverride = issuerOverride;
         this.instanceVersion = this._rx.signal(0);
         this.structureVersion = this._rx.signal(0);
@@ -467,23 +476,41 @@ export class FormEngine implements IFormEngine {
         this._evaluate();
     }
 
-    public getValidationReport(options?: { mode?: 'continuous' | 'submit' }): ValidationReport {
-        const mode = options?.mode ?? 'continuous';
+    public getValidationReport(): ValidationReport;
+    public getValidationReport(options: { profile?: EnabledValidationProfile }): ValidationReport;
+    public getValidationReport(options: { profile: 'off' }): null;
+    public getValidationReport(options?: ValidationReportOptions): ValidationReport | null;
+    public getValidationReport(options: ValidationReportOptions = { profile: 'live' }): ValidationReport | null {
+        this.assertValidationReportOptions(options, 'getValidationReport');
+        const profile = options.profile ?? 'live';
+        const trigger = this._validationProfileResolver.resolve(profile);
+        if (trigger === 'disabled') {
+            return null;
+        }
+        return this.produceValidationReport(trigger);
+    }
+
+    private produceValidationReport(trigger: Exclude<ValidationTrigger, 'disabled'>): ValidationReport {
         const results: ValidationResult[] = [];
 
-        for (const [path, signalRef] of Object.entries(this.validationResults)) {
-            if (this.isPathRelevant(path)) {
+        if (trigger === 'demand') {
+            const demandResult = this.evaluateResultForTrigger('demand');
+            results.push(...collectTimedShapeValidationResults(demandResult, this._shapeTiming, 'demand'));
+        } else {
+            for (const [path, signalRef] of Object.entries(this.validationResults)) {
+                if (this.isPathRelevant(path)) {
+                    results.push(...signalRef.value);
+                }
+            }
+
+            for (const signalRef of Object.values(this.shapeResults)) {
                 results.push(...signalRef.value);
             }
-        }
 
-        for (const signalRef of Object.values(this.shapeResults)) {
-            results.push(...signalRef.value);
-        }
-
-        if (mode === 'submit') {
-            const submitResult = this.evaluateResultForTrigger('submit');
-            results.push(...collectSubmitModeShapeValidationResults(submitResult, this._shapeTiming));
+            if (trigger === 'submit') {
+                const submitResult = this.evaluateResultForTrigger('submit');
+                results.push(...collectTimedShapeValidationResults(submitResult, this._shapeTiming, 'submit'));
+            }
         }
 
         return buildValidationReportEnvelope(
@@ -573,10 +600,12 @@ export class FormEngine implements IFormEngine {
         author?: { id: string; name?: string };
         subject?: { id: string; type?: string };
         authoredSignatures?: AuthoredSignatureInput[];
-        mode?: 'continuous' | 'submit';
+        profile?: ValidationProfile;
     }): FormResponse {
+        this.assertNoRemovedModeOption(meta, 'getResponse');
         const data: JsonRecord = {};
-        const mode = meta?.mode ?? 'continuous';
+        const profile = meta?.profile ?? 'live';
+        const trigger = this._validationProfileResolver.resolve(profile);
         const defaultBehavior = this.definition.nonRelevantBehavior ?? 'remove';
 
         for (const [path, signalRef] of Object.entries(this.signals)) {
@@ -604,18 +633,20 @@ export class FormEngine implements IFormEngine {
             setResponsePathValue(data, path, value);
         }
 
-        const report = this.getValidationReport({ mode });
+        const report = trigger === 'disabled' ? null : this.produceValidationReport(trigger);
         return buildFormspecResponseEnvelope({
             definition: this.definition,
             data,
             report,
+            completionEligible: trigger === 'submit',
             timestamp: this.nowISO(),
             displayedIssuer: this.getDisplayedIssuerPin(),
             meta,
         }) as unknown as FormResponse;
     }
 
-    public getDiagnosticsSnapshot(options?: { mode?: 'continuous' | 'submit' }): FormEngineDiagnosticsSnapshot {
+    public getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot {
+        this.assertValidationReportOptions(options, 'getDiagnosticsSnapshot');
         const values: JsonRecord = {};
         const mips: FormEngineDiagnosticsSnapshot['mips'] = {};
         const repeats: Record<string, number> = {};
@@ -670,9 +701,11 @@ export class FormEngine implements IFormEngine {
                 case 'evaluateShape':
                     return { ok: true, event, output: this.evaluateShape(event.shapeId) };
                 case 'getValidationReport':
-                    return { ok: true, event, output: this.getValidationReport({ mode: event.mode }) };
+                    this.assertNoRemovedModeOption(event, 'getValidationReport replay event');
+                    return { ok: true, event, output: this.getValidationReport({ profile: event.profile }) };
                 case 'getResponse':
-                    return { ok: true, event, output: this.getResponse({ mode: event.mode }) };
+                    this.assertNoRemovedModeOption(event, 'getResponse replay event');
+                    return { ok: true, event, output: this.getResponse({ profile: event.profile }) };
                 default: {
                     return assertNeverReplayEvent(event);
                 }
@@ -1242,6 +1275,24 @@ export class FormEngine implements IFormEngine {
         return Object.fromEntries(
             Object.entries(this.repeats).map(([path, repeatSignal]) => [path, repeatSignal.value]),
         );
+    }
+
+    private assertNoRemovedModeOption(options: unknown, method: string): void {
+        if (options && typeof options === 'object' && 'mode' in options) {
+            throw new Error(`${method}: { mode } removed; pass { profile } instead. See packages/formspec-engine/README.md.`);
+        }
+    }
+
+    private assertValidationReportOptions(options: unknown, method: string): void {
+        this.assertNoRemovedModeOption(options, method);
+        if (!options || typeof options !== 'object') {
+            return;
+        }
+        for (const key of Object.keys(options)) {
+            if (key !== 'profile') {
+                throw new Error(`${method}: unknown validation option '${key}'; pass { profile }.`);
+            }
+        }
     }
 
     private shapedEvalResult(base: EvalResult): EvalResult {

@@ -518,7 +518,7 @@ describe('Item 6: Wizard submit calls engine with mode submit', () => {
         };
     }
 
-    it('calls getResponse({ mode: "submit" }) when submit is clicked', () => {
+    it('calls getResponse({ profile: "on-submit" }) when submit is clicked', () => {
         const engine = createFormEngine(simpleDef);
         const spy = vi.spyOn(engine, 'getResponse');
         const submitted: any[] = [];
@@ -538,10 +538,10 @@ describe('Item 6: Wizard submit calls engine with mode submit', () => {
         expect(submitBtn).toBeTruthy();
         flushSync(() => { submitBtn.click(); });
 
-        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'submit' }));
+        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'on-submit' }));
     });
 
-    it('calls getValidationReport({ mode: "submit" }) when submit is clicked', () => {
+    it('calls getValidationReport({ profile: "on-submit" }) when submit is clicked', () => {
         const engine = createFormEngine(simpleDef);
         const spy = vi.spyOn(engine, 'getValidationReport');
         const submitted: any[] = [];
@@ -560,7 +560,7 @@ describe('Item 6: Wizard submit calls engine with mode submit', () => {
         const submitBtn = container.querySelector('.formspec-wizard-submit') as HTMLButtonElement;
         flushSync(() => { submitBtn.click(); });
 
-        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'submit' }));
+        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'on-submit' }));
     });
 });
 
@@ -767,4 +767,3 @@ describe('Item 31: FormspecForm does not render second submit when Wizard presen
         // require layoutPlan injection capability once FormspecFormInner is patched.
     });
 });
-

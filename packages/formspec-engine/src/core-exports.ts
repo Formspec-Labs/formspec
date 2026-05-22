@@ -45,6 +45,13 @@ export type {
     SchemaValidator,
     SchemaValidatorSchemas,
 } from './interfaces.js';
+export type { ValidationProfile } from '@formspec-org/types';
+export {
+    DefaultValidationProfileResolver,
+    type EnabledValidationProfile,
+    type ValidationReportOptions,
+    type ValidationTrigger,
+} from './validation/index.js';
 
 /** @deprecated Use `FormItem` from `@formspec-org/types`. Removed in v1. */
 export type FormspecItem = FormItem;

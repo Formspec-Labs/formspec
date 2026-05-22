@@ -40,12 +40,12 @@ function makeEngine(extName, dataType) {
 }
 
 function hasCode(engine, code) {
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   return report.results.some(r => r.code === code);
 }
 
 function assertNoPatternOrRange(engine, label) {
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const bad = report.results.find(r =>
     ['PATTERN_MISMATCH', 'RANGE_UNDERFLOW', 'RANGE_OVERFLOW', 'MAX_LENGTH_EXCEEDED'].includes(r.code)
   );
@@ -479,7 +479,7 @@ test('x-formspec-luhn: engine does not crash with luhn extension declared', () =
 
   // Should not throw — constraint entries have no pattern/range to enforce
   engine.setValue('card', '4111111111111111');
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   assert.ok(report, 'Validation report should be returned without error');
 });
 
@@ -503,7 +503,7 @@ test('x-formspec-age: engine does not crash with age extension declared', () => 
   }, undefined, [entry]);
 
   engine.setValue('dob', '1990-01-15');
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   assert.ok(report, 'Validation report should be returned without error');
 });
 
@@ -524,7 +524,7 @@ test('x-formspec-mask: engine does not crash with mask extension declared', () =
   }, undefined, [entry]);
 
   engine.setValue('acct', '123456789');
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   assert.ok(report, 'Validation report should be returned without error');
 });
 

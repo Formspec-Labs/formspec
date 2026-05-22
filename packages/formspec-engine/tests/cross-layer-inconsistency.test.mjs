@@ -22,7 +22,8 @@ function makeEngine(overrides) {
 }
 
 function getReport(engine, mode = 'continuous') {
-  return engine.getValidationReport({ mode });
+  const profile = mode === 'submit' ? 'on-submit' : mode === 'demand' ? 'on-demand' : 'live';
+  return engine.getValidationReport({ profile });
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

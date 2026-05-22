@@ -171,13 +171,13 @@ test('repeatable group bindings resolve per-instance paths across add/remove', (
   addRepeatInstance(engine, 'budget.lineItems');
   engine.setValue('budget.lineItems[1].category', 'Travel');
 
-  let response = engine.getResponse({ mode: 'continuous' });
+  let response = engine.getResponse({ profile: 'live' });
   assert.equal(response.data.budget.lineItems[0].category, 'Personnel');
   assert.equal(response.data.budget.lineItems[1].category, 'Travel');
 
   removeRepeatInstance(engine, 'budget.lineItems', 0);
 
-  response = engine.getResponse({ mode: 'continuous' });
+  response = engine.getResponse({ profile: 'live' });
   assert.equal(response.data.budget.lineItems.length, 1);
   assert.equal(response.data.budget.lineItems[0].category, 'Travel');
 });

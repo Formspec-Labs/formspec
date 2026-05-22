@@ -8,8 +8,13 @@ import type {
     MappingDocument,
     ValidationResult,
     ValidationReport,
+    ValidationProfile,
     OptionEntry,
 } from '@formspec-org/types';
+import type {
+    EnabledValidationProfile,
+    ValidationReportOptions,
+} from './validation/index.js';
 
 /** JSON-compatible scalar. */
 export type JsonPrimitive = string | number | boolean | null;
@@ -340,7 +345,7 @@ export interface FormEngineDiagnosticsSnapshot {
     repeats: Record<string, number>;
     values: JsonRecord;
     mips: Record<string, { relevant: boolean; required: boolean; readonly: boolean; error: string | null }>;
-    validation: ValidationReport;
+    validation: ValidationReport | null;
     runtimeContext: { now: string; locale?: string; timeZone?: string; seed?: string | number };
 }
 
@@ -349,8 +354,8 @@ export type EngineReplayEvent =
     | { type: 'addRepeatInstance'; path: string }
     | { type: 'removeRepeatInstance'; path: string; index: number }
     | { type: 'evaluateShape'; shapeId: string }
-    | { type: 'getValidationReport'; mode?: 'continuous' | 'submit' }
-    | { type: 'getResponse'; mode?: 'continuous' | 'submit' };
+    | { type: 'getValidationReport'; profile?: ValidationProfile }
+    | { type: 'getResponse'; profile?: ValidationProfile };
 
 export interface EngineReplayApplyResult {
     ok: boolean;
@@ -409,7 +414,10 @@ export interface IFormEngine {
 
     setValue(name: string, value: FormFieldValue): void;
 
-    getValidationReport(options?: { mode?: 'continuous' | 'submit' }): ValidationReport;
+    getValidationReport(): ValidationReport;
+    getValidationReport(options: { profile?: EnabledValidationProfile }): ValidationReport;
+    getValidationReport(options: { profile: 'off' }): null;
+    getValidationReport(options: ValidationReportOptions): ValidationReport | null;
     evaluateShape(shapeId: string): ValidationResult[];
     isPathRelevant(path: string): boolean;
     getFieldPaths(): string[];
@@ -419,10 +427,10 @@ export interface IFormEngine {
         author?: { id: string; name?: string };
         subject?: { id: string; type?: string };
         authoredSignatures?: AuthoredSignatureInput[];
-        mode?: 'continuous' | 'submit';
+        profile?: ValidationProfile;
     }): FormResponse;
 
-    getDiagnosticsSnapshot(options?: { mode?: 'continuous' | 'submit' }): FormEngineDiagnosticsSnapshot;
+    getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot;
     applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult;
     replay(events: EngineReplayEvent[], options?: { stopOnError?: boolean }): EngineReplayResult;
 

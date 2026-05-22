@@ -55,7 +55,7 @@ engine.setValue('age', 30);
 console.log(engine.signals['name'].value);   // 'Alice'
 
 // Check validation
-const report = engine.getValidationReport({ mode: 'submit' });
+const report = engine.getValidationReport({ profile: 'on-submit' });
 console.log(report.valid, report.counts);
 
 // Collect response
@@ -111,19 +111,33 @@ setValue(path: string, value: any): void
 **Response and validation**
 
 ```typescript
-getResponse(meta?: { id?, author?, subject?, mode? }): object
+getResponse(meta?: { id?, author?, subject?, profile? }): object
 // Returns { definitionUrl, definitionVersion, status, data, validationResults, authored }.
-// status: 'completed' if valid, 'in-progress' otherwise.
+// status: 'completed' only when profile is 'on-submit' and the report is valid.
 // Non-relevant fields handled per nonRelevantBehavior: remove (default) | empty | keep.
 
-getValidationReport(options?: { mode?: 'continuous' | 'submit' }): ValidationReport
-// Collects bind-level results (filtered by relevance), continuous shape results,
-// and — if mode='submit' — evaluates submit-timing shapes.
+getValidationReport(options?: { profile?: 'live' | 'on-submit' | 'on-demand' | 'off' }): ValidationReport | null
+// Collects validation results according to the Validation Mapping profile.
 // valid = true iff counts.error === 0.
 
 evaluateShape(shapeId: string): ValidationResult[]
 // Evaluates a single shape by ID (for demand-timing shapes).
 ```
+
+### Validation profile vocabulary
+
+`getValidationReport()`, `getResponse()`, and `getDiagnosticsSnapshot()` accept the Validation Mapping `{ profile }` option:
+
+| `profile` | Behavior |
+|---|---|
+| `live` | Continuous validation across non-demand-timing shapes. Default. |
+| `on-submit` | Validation pass scoped to continuous and submit-timing shapes. |
+| `on-demand` | Only demand-timing shape findings. |
+| `off` | Returns `null` from `getValidationReport()`; response snapshots omit `validationResults`. |
+
+Response snapshots only transition to `status: 'completed'` under `profile: 'on-submit'` with a valid report. `live`, `on-demand`, and `off` snapshots remain `in-progress`; they can expose validation state but are not completion gates.
+
+The earlier engine-level `{ mode: 'continuous' | 'submit' }` option is removed. Calls with `mode` throw a runtime error pointing at this section.
 
 **Repeat groups**
 
@@ -161,7 +175,7 @@ evaluateScreener(): { target: string; label?: string } | null
 **Diagnostics and replay**
 
 ```typescript
-getDiagnosticsSnapshot(options?: { mode? }): FormEngineDiagnosticsSnapshot
+getDiagnosticsSnapshot(options?: { profile? }): FormEngineDiagnosticsSnapshot
 // Full snapshot: all values, MIP states, dependencies, validation, runtime context.
 
 applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult

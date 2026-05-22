@@ -51,7 +51,7 @@ test('registry pattern constraint rejects invalid email', () => {
   const engine = createEmailEngine([emailRegistryEntry]);
   engine.setValue('email', 'not-an-email');
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'PATTERN_MISMATCH');
   assert.ok(err, 'Expected PATTERN_MISMATCH error for invalid email');
   assert.equal(err.path, 'email');
@@ -61,7 +61,7 @@ test('registry PATTERN_MISMATCH uses displayName in message', () => {
   const engine = createEmailEngine([emailRegistryEntry]);
   engine.setValue('email', 'bad');
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'PATTERN_MISMATCH');
   assert.ok(err, 'Expected PATTERN_MISMATCH error');
   assert.ok(err.message.includes('Email address'), `Message should include displayName, got: "${err.message}"`);
@@ -72,7 +72,7 @@ test('registry pattern constraint accepts valid email', () => {
   const engine = createEmailEngine([emailRegistryEntry]);
   engine.setValue('email', 'user@example.com');
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'PATTERN_MISMATCH');
   assert.equal(err, undefined, 'Should not have pattern error for valid email');
 });
@@ -81,7 +81,7 @@ test('registry pattern constraint is null-propagating (empty value = no error)',
   const engine = createEmailEngine([emailRegistryEntry]);
   // leave email empty (null)
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'PATTERN_MISMATCH');
   assert.equal(err, undefined, 'Empty optional field should not trigger pattern error');
 });
@@ -90,7 +90,7 @@ test('registry maxLength constraint rejects too-long value', () => {
   const engine = createEmailEngine([emailRegistryEntry]);
   engine.setValue('email', 'a'.repeat(255));
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'MAX_LENGTH_EXCEEDED');
   assert.ok(err, 'Expected MAX_LENGTH_EXCEEDED error');
   assert.equal(err.path, 'email');
@@ -105,7 +105,7 @@ test('registry maxLength constraint accepts value at limit', () => {
   // Just use a string that's exactly 254 chars for maxLength test
   engine.setValue('email', 'x'.repeat(254));
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'MAX_LENGTH_EXCEEDED');
   assert.equal(err, undefined, 'Value at maxLength limit should be accepted');
 });
@@ -128,7 +128,7 @@ test('disabled extension (false) does not enforce constraints', () => {
   }, undefined, [emailRegistryEntry]);
 
   engine.setValue('email', 'not-an-email');
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'PATTERN_MISMATCH');
   assert.equal(err, undefined, 'Disabled extension should not enforce constraints');
 });
@@ -137,7 +137,7 @@ test('no registry entries = UNRESOLVED_EXTENSION error', () => {
   const engine = createEmailEngine(undefined);
   engine.setValue('email', 'user@example.com');
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'UNRESOLVED_EXTENSION');
   assert.ok(err, 'Extension declared without matching registry entry should produce UNRESOLVED_EXTENSION');
   assert.equal(err.path, 'email');
@@ -159,7 +159,7 @@ test('UNRESOLVED_EXTENSION reports extension name in message', () => {
     }],
   });
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'UNRESOLVED_EXTENSION');
   assert.ok(err, 'Unknown extension should produce UNRESOLVED_EXTENSION');
   assert.ok(err.message.includes('x-acme-widget'), 'Message should name the unresolved extension');
@@ -180,7 +180,7 @@ test('disabled extension (false) does not produce UNRESOLVED_EXTENSION', () => {
     }],
   });
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'UNRESOLVED_EXTENSION');
   assert.equal(err, undefined, 'Disabled extension should not trigger UNRESOLVED_EXTENSION');
 });
@@ -228,7 +228,7 @@ test('registry minimum constraint rejects value below minimum', () => {
   const engine = createPercentageEngine([percentageRegistryEntry]);
   engine.setValue('rate', -5);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'RANGE_UNDERFLOW');
   assert.ok(err, 'Expected RANGE_UNDERFLOW error for value below minimum');
   assert.equal(err.path, 'rate');
@@ -238,7 +238,7 @@ test('registry maximum constraint rejects value above maximum', () => {
   const engine = createPercentageEngine([percentageRegistryEntry]);
   engine.setValue('rate', 150);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'RANGE_OVERFLOW');
   assert.ok(err, 'Expected RANGE_OVERFLOW error for value above maximum');
   assert.equal(err.path, 'rate');
@@ -248,7 +248,7 @@ test('registry range constraints accept value within range', () => {
   const engine = createPercentageEngine([percentageRegistryEntry]);
   engine.setValue('rate', 50);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const rangeErr = report.results.find(r => r.code === 'RANGE_UNDERFLOW' || r.code === 'RANGE_OVERFLOW');
   assert.equal(rangeErr, undefined, 'Value within range should not trigger range errors');
 });
@@ -257,12 +257,12 @@ test('registry range constraints accept boundary values', () => {
   const engine = createPercentageEngine([percentageRegistryEntry]);
   engine.setValue('rate', 0);
 
-  let report = engine.getValidationReport({ mode: 'continuous' });
+  let report = engine.getValidationReport({ profile: 'live' });
   let err = report.results.find(r => r.code === 'RANGE_UNDERFLOW' || r.code === 'RANGE_OVERFLOW');
   assert.equal(err, undefined, 'Value at minimum boundary should be accepted');
 
   engine.setValue('rate', 100);
-  report = engine.getValidationReport({ mode: 'continuous' });
+  report = engine.getValidationReport({ profile: 'live' });
   err = report.results.find(r => r.code === 'RANGE_UNDERFLOW' || r.code === 'RANGE_OVERFLOW');
   assert.equal(err, undefined, 'Value at maximum boundary should be accepted');
 });
@@ -271,7 +271,7 @@ test('registry range constraints are null-propagating', () => {
   const engine = createPercentageEngine([percentageRegistryEntry]);
   // leave null
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'RANGE_UNDERFLOW' || r.code === 'RANGE_OVERFLOW');
   assert.equal(err, undefined, 'Empty optional field should not trigger range errors');
 });
@@ -283,7 +283,7 @@ test('compatible extension produces no EXTENSION_COMPATIBILITY_MISMATCH', () => 
   // definition has $formspec: "1.0" — should be compatible
   const engine = createEmailEngine([emailRegistryEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_COMPATIBILITY_MISMATCH');
   assert.equal(err, undefined, 'Compatible extension should not trigger compatibility warning');
 });
@@ -295,7 +295,7 @@ test('incompatible extension produces EXTENSION_COMPATIBILITY_MISMATCH warning',
   };
   const engine = createEmailEngine([incompatibleEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_COMPATIBILITY_MISMATCH');
   assert.ok(err, 'Expected EXTENSION_COMPATIBILITY_MISMATCH for incompatible entry');
   assert.equal(err.severity, 'warning');
@@ -309,7 +309,7 @@ test('EXTENSION_COMPATIBILITY_MISMATCH message includes extension and version in
   };
   const engine = createEmailEngine([incompatibleEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_COMPATIBILITY_MISMATCH');
   assert.ok(err);
   assert.ok(err.message.includes('x-formspec-email'), 'Message should name the extension');
@@ -320,7 +320,7 @@ test('missing compatibility field does not produce warning', () => {
   const { compatibility, ...noCompatEntry } = emailRegistryEntry;
   const engine = createEmailEngine([noCompatEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_COMPATIBILITY_MISMATCH');
   assert.equal(err, undefined, 'Missing compatibility should not crash or warn');
 });
@@ -331,7 +331,7 @@ test('retired extension produces EXTENSION_RETIRED warning', () => {
   const retiredEntry = { ...emailRegistryEntry, status: 'retired' };
   const engine = createEmailEngine([retiredEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_RETIRED');
   assert.ok(err, 'Expected EXTENSION_RETIRED warning');
   assert.equal(err.severity, 'warning');
@@ -342,7 +342,7 @@ test('retired extension message includes extension name', () => {
   const retiredEntry = { ...emailRegistryEntry, status: 'retired' };
   const engine = createEmailEngine([retiredEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_RETIRED');
   assert.ok(err);
   assert.ok(err.message.includes('x-formspec-email'), 'Message should name the retired extension');
@@ -356,7 +356,7 @@ test('deprecated extension produces EXTENSION_DEPRECATED info', () => {
   };
   const engine = createEmailEngine([deprecatedEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_DEPRECATED');
   assert.ok(err, 'Expected EXTENSION_DEPRECATED info');
   assert.equal(err.severity, 'info');
@@ -371,7 +371,7 @@ test('deprecated extension message includes deprecationNotice', () => {
   };
   const engine = createEmailEngine([deprecatedEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'EXTENSION_DEPRECATED');
   assert.ok(err);
   assert.ok(err.message.includes('Use x-formspec-email-v2 instead'), 'Message should include deprecation notice');
@@ -379,7 +379,7 @@ test('deprecated extension message includes deprecationNotice', () => {
 
 test('stable extension produces no status warnings', () => {
   const engine = createEmailEngine([emailRegistryEntry]); // status: 'stable'
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const statusErr = report.results.find(r =>
     r.code === 'EXTENSION_RETIRED' || r.code === 'EXTENSION_DEPRECATED'
   );
@@ -390,7 +390,7 @@ test('draft extension produces no status warnings', () => {
   const draftEntry = { ...emailRegistryEntry, status: 'draft' };
   const engine = createEmailEngine([draftEntry]);
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const statusErr = report.results.find(r =>
     r.code === 'EXTENSION_RETIRED' || r.code === 'EXTENSION_DEPRECATED'
   );
@@ -416,7 +416,7 @@ test('UNRESOLVED_EXTENSION fires on groups, not just fields', () => {
     }],
   });
 
-  const report = engine.getValidationReport({ mode: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   const err = report.results.find(r => r.code === 'UNRESOLVED_EXTENSION' && r.path === 'myGroup');
   assert.ok(err, 'UNRESOLVED_EXTENSION should fire on group items');
   assert.ok(err.message.includes('x-acme-group-meta'));

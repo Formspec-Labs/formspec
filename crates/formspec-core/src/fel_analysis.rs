@@ -646,6 +646,7 @@ fn collect_info(
             name,
             arg: _,
             tail: _,
+            called: _,
         } => {
             if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) {
                 variables.insert(name.clone());
@@ -795,13 +796,19 @@ fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
             }
             expr.clone()
         }
-        Expr::ContextRef { name, arg, tail } => {
+        Expr::ContextRef {
+            name,
+            called,
+            arg,
+            tail,
+        } => {
             if name == "instance" {
                 if let (Some(rewrite), Some(orig_name)) = (&opts.rewrite_instance_name, arg)
                     && let Some(new_name) = rewrite(orig_name)
                 {
                     return Expr::ContextRef {
                         name: name.clone(),
+                        called: *called,
                         arg: Some(new_name),
                         tail: tail.clone(),
                     };
@@ -814,6 +821,7 @@ fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
                     if let Some(new_path) = rewrite(&current_path) {
                         return Expr::ContextRef {
                             name: name.clone(),
+                            called: *called,
                             arg: arg.clone(),
                             tail: if new_path.is_empty() {
                                 vec![]
@@ -833,6 +841,7 @@ fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
             {
                 return Expr::ContextRef {
                     name: new_name,
+                    called: *called,
                     arg: arg.clone(),
                     tail: tail.clone(),
                 };
@@ -1003,7 +1012,12 @@ fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {
                 .field_paths
                 .insert(segments.join(".").replace(".[", "["));
         }
-        Expr::ContextRef { name, arg, tail } => {
+        Expr::ContextRef {
+            name,
+            arg,
+            tail,
+            called: _,
+        } => {
             if name == "current" {
                 if !tail.is_empty() {
                     targets.current_paths.insert(tail.join("."));

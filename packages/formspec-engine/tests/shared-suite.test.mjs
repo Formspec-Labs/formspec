@@ -268,8 +268,9 @@ function runProcessingArtifacts(caseDoc) {
   applyPayloadWithDefinition(engine, definition.items || [], payload || {});
 
   const mode = caseDoc.mode || 'submit';
-  const report = engine.getValidationReport({ mode });
-  const response = engine.getResponse({ mode });
+  const profile = mode === 'continuous' ? 'live' : mode === 'demand' ? 'on-demand' : 'on-submit';
+  const report = engine.getValidationReport({ profile });
+  const response = engine.getResponse({ profile });
   return { report, response };
 }
 

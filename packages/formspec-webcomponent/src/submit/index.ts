@@ -81,24 +81,18 @@ export function submit(
 ): SubmitDetail | null {
     if (!host.engine) return null;
     const mode = options?.mode || 'submit';
+    const reportProfile = mode === 'continuous' ? 'live' : 'on-submit';
     const emitEvent = options?.emitEvent !== false;
 
     touchAllFields(host);
 
-    const response = host.engine.getResponse({ mode });
-    const results = Array.isArray(response?.validationResults) ? response.validationResults : [];
-    const counts = { error: 0, warning: 0, info: 0 };
-    for (const result of results) {
-        const severity = result?.severity as 'error' | 'warning' | 'info' | undefined;
-        if (severity === 'error' || severity === 'warning' || severity === 'info') {
-            counts[severity] += 1;
-        }
-    }
-    const validationReport: ValidationReport = {
+    const response = host.engine.getResponse({ profile: 'on-submit' });
+    const report = host.engine.getValidationReport({ profile: reportProfile });
+    const validationReport: ValidationReport = report ?? {
         $formspecValidationReport: '1.0',
-        valid: counts.error === 0,
-        results,
-        counts,
+        valid: true,
+        results: [],
+        counts: { error: 0, warning: 0, info: 0 },
         timestamp: response?.authored || new Date().toISOString(),
     };
     const detail = { response, validationReport };

@@ -38,7 +38,8 @@ export function engineVariable(engine, name) {
 }
 
 export function getValidationReport(engine, mode) {
-  return engine.getValidationReport({ mode });
+  const profile = mode === 'submit' ? 'on-submit' : mode === 'demand' ? 'on-demand' : 'live';
+  return engine.getValidationReport({ profile });
 }
 
 export function getResponse(engine) {

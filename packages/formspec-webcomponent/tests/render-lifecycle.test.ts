@@ -100,6 +100,36 @@ describe('render lifecycle', () => {
         expect(response.validationReport).toBeDefined();
     });
 
+    it('submit({ mode: continuous }) emits a live report but gates response completion with on-submit', () => {
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:submit-gate',
+            version: '1.0.0',
+            title: 'Submit Gate',
+            items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            shapes: [
+                {
+                    id: 'submitName',
+                    target: '#',
+                    timing: 'submit',
+                    constraint: 'name == "Bob"',
+                    message: 'Name must be Bob',
+                },
+            ],
+        };
+        el.render();
+        el.getEngine().setValue('name', 'Alice');
+
+        const detail = el.submit({ mode: 'continuous', emitEvent: false });
+
+        expect(detail.validationReport.valid).toBe(true);
+        expect(detail.validationReport.results).toHaveLength(0);
+        expect(detail.response.status).toBe('in-progress');
+        expect(detail.response.validationResults).toEqual(
+            expect.arrayContaining([expect.objectContaining({ shapeId: 'submitName' })]),
+        );
+    });
+
     it('setSubmitPending() toggles state and emits pending-change events', () => {
         const pendingValues: boolean[] = [];
         el.addEventListener('formspec-submit-pending-change', (event: Event) => {

@@ -236,7 +236,8 @@ function prepareAuthoredSignaturesSection(meta: {
 export function buildFormspecResponseEnvelope(options: {
     definition: FormDefinition;
     data: Record<string, unknown>;
-    report: ValidationReport;
+    report: ValidationReport | null;
+    completionEligible?: boolean;
     timestamp: string;
     displayedIssuer?: { url: string; version: string };
     meta?: {
@@ -256,11 +257,13 @@ export function buildFormspecResponseEnvelope(options: {
         $formspecResponse: '1.0',
         definitionUrl,
         definitionVersion,
-        status: options.report.valid ? 'completed' : 'in-progress',
+        status: options.completionEligible && options.report?.valid ? 'completed' : 'in-progress',
         data: options.data,
-        validationResults: options.report.results,
         authored: options.timestamp,
     };
+    if (options.report) {
+        response.validationResults = options.report.results;
+    }
 
     if (envelopeResponseId) {
         response.id = envelopeResponseId;
@@ -281,17 +284,18 @@ export function buildFormspecResponseEnvelope(options: {
     return response;
 }
 
-/** Shape validations that only run on submit, from a WASM eval with `trigger: 'submit'`. */
-export function collectSubmitModeShapeValidationResults(
-    submitEval: EvalResult,
+/** Shape validations for a specific timing, from a WASM eval with the matching trigger. */
+export function collectTimedShapeValidationResults(
+    evalResult: EvalResult,
     shapeTiming: Map<string, EvalShapeTiming>,
+    timing: EvalShapeTiming,
 ): ValidationResult[] {
     const results: ValidationResult[] = [];
-    for (const validation of submitEval.validations) {
+    for (const validation of evalResult.validations) {
         if (!validation.shapeId) {
             continue;
         }
-        if ((shapeTiming.get(validation.shapeId) ?? 'continuous') === 'submit') {
+        if ((shapeTiming.get(validation.shapeId) ?? 'continuous') === timing) {
             results.push(toValidationResult(validation));
         }
     }

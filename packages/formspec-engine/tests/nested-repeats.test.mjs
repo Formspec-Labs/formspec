@@ -86,7 +86,7 @@ test('should include nested phase data in continuous response', () => {
   engine.setValue('projectPhases[0].phaseTasks[0].hours', 8);
   engine.setValue('projectPhases[0].phaseTasks[0].hourlyRate', { amount: 75, currency: 'USD' });
 
-  const response = engine.getResponse({ mode: 'continuous' });
+  const response = engine.getResponse({ profile: 'live' });
 
   assert.equal(response.data?.projectPhases?.[0]?.phaseName, 'Design');
   assert.equal(response.data?.projectPhases?.[0]?.phaseTasks?.[0]?.taskName, 'Wireframes');

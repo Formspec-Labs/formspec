@@ -162,6 +162,17 @@ final class LayoutNodeTests: XCTestCase {
         XCTAssertEqual(decoded.results[0].severity, .error)
     }
 
+    func testValidationReportDecodesEngineValidKey() throws {
+        let json = #"""
+        {
+            "results": [],
+            "valid": false
+        }
+        """#.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(ValidationReport.self, from: json)
+        XCTAssertEqual(decoded.isValid, false)
+    }
+
     func testValidationResultEquatable() {
         let r1 = ResolvedValidationResult(path: "x", message: "err", severity: .error, constraintKind: nil, code: nil)
         let r2 = ResolvedValidationResult(path: "x", message: "err", severity: .error, constraintKind: nil, code: nil)

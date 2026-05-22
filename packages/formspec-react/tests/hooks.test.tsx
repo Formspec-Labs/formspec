@@ -1,5 +1,5 @@
 /** @filedesc Tests for formspec-react hooks: useSignal, useField, useFieldValue, useFieldError, useForm, useWhen, useRepeatCount. */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -292,7 +292,7 @@ describe('useFieldError', () => {
         // In continuous mode, required fields don't show error until submit
         // Trigger submit-mode validation to surface the required error
         flushSync(() => {
-            engine.getValidationReport({ mode: 'submit' });
+            engine.getValidationReport({ profile: 'on-submit' });
         });
 
         // After submit validation, the error signal should have updated
@@ -320,6 +320,36 @@ describe('useForm', () => {
         expect(detail).toHaveProperty('response');
         expect(detail).toHaveProperty('validationReport');
         expect(detail.validationReport).toHaveProperty('valid');
+    });
+
+    it('submit continuous uses a live report and an on-submit response gate', () => {
+        const engine = createFormEngine(testDefinition);
+        const getValidationReportSpy = vi.spyOn(engine, 'getValidationReport');
+        const getResponseSpy = vi.spyOn(engine, 'getResponse');
+        const result = { current: null as ReturnType<typeof useForm> | null };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        function TestComponent() {
+            result.current = useForm();
+            return null;
+        }
+
+        flushSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <TestComponent />
+                </FormspecProvider>,
+            );
+        });
+
+        result.current?.submit({ mode: 'continuous' });
+
+        expect(getValidationReportSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'live' }));
+        expect(getResponseSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'on-submit' }));
+        root.unmount();
+        container.remove();
     });
 });
 

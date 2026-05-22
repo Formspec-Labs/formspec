@@ -42,7 +42,7 @@ function engineWithCalc(calculate) {
 }
 
 function getConstraintError(engine, path) {
-  const report = engine.getValidationReport({ timing: 'continuous' });
+  const report = engine.getValidationReport({ profile: 'live' });
   return report.results.find(r => r.path === path && r.constraintKind === 'constraint');
 }
 

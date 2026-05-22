@@ -303,17 +303,17 @@ describe('Assist provider tools', () => {
     expect(error.code).toBe('INVALID_PATH');
   });
 
-  // T-13: formspec.form.validate with explicit modes
+  // T-13: formspec.form.validate with explicit profiles
 
-  it('formspec.form.validate supports continuous mode', async () => {
+  it('formspec.form.validate supports live profile', async () => {
     const provider = createAssistProvider({ engine: createEngine(), registerWebMCP: false });
-    const result = await parse(provider, 'formspec.form.validate', { mode: 'continuous' });
+    const result = await parse(provider, 'formspec.form.validate', { profile: 'live' });
     expect(result).toHaveProperty('valid');
   });
 
-  it('formspec.form.validate supports submit mode', async () => {
+  it('formspec.form.validate supports on-submit profile', async () => {
     const provider = createAssistProvider({ engine: createEngine(), registerWebMCP: false });
-    const result = await parse(provider, 'formspec.form.validate', { mode: 'submit' });
+    const result = await parse(provider, 'formspec.form.validate', { profile: 'on-submit' });
     expect(result).toHaveProperty('valid');
   });
 

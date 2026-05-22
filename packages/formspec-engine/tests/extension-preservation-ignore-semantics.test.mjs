@@ -41,14 +41,14 @@ test('unknown extensions do not change core engine behavior', () => {
   const plain = new FormEngine(baseDefinition());
   const extended = new FormEngine(definitionWithExtensions());
 
-  const plainMissing = plain.getValidationReport({ mode: 'submit' });
-  const extendedMissing = extended.getValidationReport({ mode: 'submit' });
+  const plainMissing = plain.getValidationReport({ profile: 'on-submit' });
+  const extendedMissing = extended.getValidationReport({ profile: 'on-submit' });
 
   plain.setValue('name', 'Al');
   extended.setValue('name', 'Al');
 
-  const plainPresent = plain.getValidationReport({ mode: 'submit' });
-  const extendedPresent = extended.getValidationReport({ mode: 'submit' });
+  const plainPresent = plain.getValidationReport({ profile: 'on-submit' });
+  const extendedPresent = extended.getValidationReport({ profile: 'on-submit' });
 
   // Filter out UNRESOLVED_EXTENSION errors — those are expected when no registry
   // is loaded. The point of this test is that core validation (required, constraint,

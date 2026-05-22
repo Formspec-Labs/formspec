@@ -24,7 +24,7 @@ test('response pinning resolves the exact definition version instead of substitu
   const engine = new FormEngine(v1);
 
   engine.setValue('legacyField', 'present');
-  const response = engine.getResponse({ mode: 'submit' });
+  const response = engine.getResponse({ profile: 'on-submit' });
 
   const resolved = FormEngine.resolvePinnedDefinition(response, [v2, v1]);
   assert.equal(resolved.version, '1.0.0');

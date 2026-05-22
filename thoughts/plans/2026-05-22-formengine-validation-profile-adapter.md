@@ -16,13 +16,13 @@ related:
 
 **Goal:** Replace `FormEngine.getValidationReport()`'s `{ mode: 'continuous' | 'submit' }` option with `{ profile: ValidationProfile }`. The engine's public API speaks VM vocabulary (`off | on-submit | on-demand | live`); internal triggers (`continuous | submit | demand | disabled`) stay internal. Closes Expert MAJOR 2 from the Response Actions plan reviews. **Refactor, not adapter** — greenfield, no production callers to preserve, the `mode` parameter is dead weight.
 
-**Architecture:** Strict DI port — `ValidationProfileResolver` is an interface, the default implementation is the obvious 4-row mapping, and the engine accepts an alternate resolver via constructor option for testing and for future `x-` extension profiles (publisher intents per VM §6.1). The adapter lives in `packages/formspec-engine/src/validation/`. `ValidationProfile` type re-exported from `formspec-types` (layer 0). Rust-side: `formspec-eval` already exposes the trigger universe; no Rust change required for this plan. The TypeScript surface is the only one that needs the refactor.
+**Architecture:** Closed mapping helper — `DefaultValidationProfileResolver` is the obvious 4-row mapping from VM profile names to engine triggers. It is not an extension-profile mechanism: VM §3 closes `ValidationProfile`, and `x-` intents must still choose one of the existing profiles. The adapter lives in `packages/formspec-engine/src/validation/`. `ValidationProfile` type re-exported from `formspec-types` (layer 0). Rust-side: `formspec-eval` already exposes the trigger universe; no Rust change required for this plan. The TypeScript surface is the only one that needs the refactor.
 
 **Breaking change.** Every caller of `getValidationReport({ mode: ... })` MUST migrate to `getValidationReport({ profile: ... })`. Mapping: `mode: 'continuous'` → `profile: 'live'`; `mode: 'submit'` → `profile: 'on-submit'`. Task 7 sweeps the entire repo and renames every call site. No deprecation period; no backwards-compat wrapper.
 
 **Tech Stack:** TypeScript, Vitest (`packages/formspec-engine/tests/`), Preact Signals, `npm run check:deps`.
 
-**Sequencing:** Type extension first → port interface + default resolver → engine method overload → tests at every layer → backwards-compat assertion. Per repo rule: Rust source-of-truth where applicable; this adapter is TS-only because the consumers (Response Actions, Experience, Mapping) call into the engine via the JS surface, not the Rust crate.
+**Sequencing:** Type extension first → closed resolver helper → engine method overload → tests at every layer → backwards-compat assertion. Per repo rule: Rust source-of-truth where applicable; this adapter is TS-only because the consumers (Response Actions, Experience, Mapping) call into the engine via the JS surface, not the Rust crate.
 
 **Citations:** "VM §" = `specs/core/validation-mapping.md`. "RA-plan" = `formspec/thoughts/plans/2026-05-22-response-actions-spec.md`.
 
@@ -34,7 +34,7 @@ related:
 
 | Path | Responsibility |
 |---|---|
-| `packages/formspec-engine/src/validation/profile-resolver.ts` | `ValidationProfileResolver` port + `DefaultValidationProfileResolver` impl mapping VM names to engine triggers. |
+| `packages/formspec-engine/src/validation/profile-resolver.ts` | `DefaultValidationProfileResolver` impl mapping closed VM names to engine triggers. |
 | `packages/formspec-engine/src/validation/index.ts` | Re-export the port and default impl. |
 | `packages/formspec-engine/tests/validation-profile-resolver.test.mts` | Unit tests for the resolver. |
 | `packages/formspec-engine/tests/form-engine-profile-option.test.mts` | Integration tests asserting `getValidationReport({ profile })` parity with `getValidationReport({ mode })` where applicable, and divergence for `off` / `on-demand` / `live`. |
@@ -44,8 +44,8 @@ related:
 | Path | Why |
 |---|---|
 | `packages/formspec-types/src/index.ts` (or whichever module exports the public types) | Export `ValidationProfile = 'off' \| 'on-submit' \| 'on-demand' \| 'live'`. If already present (from VM schema generation), no edit needed — verify by inspection. |
-| `packages/formspec-engine/src/engine/FormEngine.ts` | Extend `getValidationReport` signature to accept `profile?: ValidationProfile`. Internal: resolve profile via injected resolver, dispatch to existing trigger path. `getDiagnosticsSnapshot` and the `getValidationReport` event-bus message gain the same option. Constructor accepts an optional `validationProfileResolver`. |
-| `packages/formspec-engine/src/index.ts` | Re-export `ValidationProfileResolver`, `DefaultValidationProfileResolver`, `ValidationProfile`. |
+| `packages/formspec-engine/src/engine/FormEngine.ts` | Extend `getValidationReport` signature to accept `profile?: ValidationProfile`. Internal: resolve profile via the closed default resolver, dispatch to existing trigger path. `getDiagnosticsSnapshot` and the `getValidationReport` event-bus message gain the same option. |
+| `packages/formspec-engine/src/index.ts` | Re-export `DefaultValidationProfileResolver`, `ValidationProfile`, and related option/trigger types. |
 | `packages/formspec-engine/README.md` | Document the new option under "Validation profile vocabulary". |
 | `filemap.json` | Regenerated. **Generated — never hand-edit.** |
 
@@ -59,7 +59,7 @@ related:
 
 ## Self-Review Note
 
-- The port is **narrow by design**: one method (`resolve(profile) -> trigger`). The interface is not a kitchen-sink; future extension points (e.g., a publisher `x-` profile) implement the same interface, not a different one.
+- The resolver is **closed by design**: it maps only the four VM `ValidationProfile` values. Future `x-` intents must supply an existing-enum `(profile, blocking, persistence)` triple; they do not add profile values.
 - **Dependency direction respected**: layer 0 (`formspec-types`) owns the `ValidationProfile` string union; layer 1 (`formspec-engine`) consumes it. `npm run check:deps` enforces this.
 - **`off` profile semantics**: VM §3 / §9.1.2 require "no ValidationReport produced." `getValidationReport({ profile: 'off' })` returns `null` (or `undefined` — the engine's no-report sentinel; verify against existing surface for absent reports). Callers MUST handle the absence explicitly. The resolver returns `disabled`; the engine short-circuits and produces no report. Earlier draft text proposed an empty valid report — that contradicted VM and has been corrected.
 - **Cold-read test**: a future agent reading the resolver file alone understands the contract from the JSDoc + four mapping rows.
@@ -111,10 +111,10 @@ git commit -m "feat(types): export ValidationProfile string union (VM §3)"
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { DefaultValidationProfileResolver, type ValidationProfileResolver } from '../src/validation';
+import { DefaultValidationProfileResolver } from '../src/validation';
 
 describe('DefaultValidationProfileResolver', () => {
-  const resolver: ValidationProfileResolver = new DefaultValidationProfileResolver();
+  const resolver = new DefaultValidationProfileResolver();
 
   it.each([
     ['off', 'disabled'],
@@ -143,7 +143,7 @@ Expected: the test file fails to import (resolver doesn't exist). Good — that'
 
 ```bash
 cd formspec && git add packages/formspec-engine/tests/validation-profile-resolver.test.mts
-git commit -m "test(engine): red — ValidationProfileResolver mapping contract
+git commit -m "test(engine): red — ValidationProfile mapping contract
 
 Pins the four VM ValidationProfile -> engine trigger mappings and the
 unknown-profile rejection path."
@@ -169,14 +169,9 @@ export type ValidationTrigger = 'continuous' | 'submit' | 'demand' | 'disabled';
 
 /**
  * Bridges Validation Mapping ValidationProfile (`specs/core/validation-mapping.md §3`)
- * to the engine's internal trigger vocabulary. Implementations MAY extend
- * the contract to accept publisher `x-`-prefixed profile names from
- * Response Actions documents that use extension intents (VM §6.1).
+ * to the engine's internal trigger vocabulary. The mapping is closed over
+ * the VM §3 profile enum.
  */
-export interface ValidationProfileResolver {
-  resolve(profile: ValidationProfile): ValidationTrigger;
-}
-
 const PROFILE_TO_TRIGGER: Record<ValidationProfile, ValidationTrigger> = {
   off: 'disabled',
   'on-submit': 'submit',
@@ -184,7 +179,7 @@ const PROFILE_TO_TRIGGER: Record<ValidationProfile, ValidationTrigger> = {
   live: 'continuous',
 };
 
-export class DefaultValidationProfileResolver implements ValidationProfileResolver {
+export class DefaultValidationProfileResolver {
   resolve(profile: ValidationProfile): ValidationTrigger {
     const trigger = PROFILE_TO_TRIGGER[profile];
     if (trigger === undefined) {
@@ -198,7 +193,7 @@ export class DefaultValidationProfileResolver implements ValidationProfileResolv
 `packages/formspec-engine/src/validation/index.ts`:
 
 ```ts
-export type { ValidationProfileResolver, ValidationTrigger } from './profile-resolver';
+export type { ValidationTrigger } from './profile-resolver';
 export { DefaultValidationProfileResolver } from './profile-resolver';
 ```
 
@@ -214,11 +209,11 @@ Expected: all pass.
 
 ```bash
 cd formspec && git add packages/formspec-engine/src/validation/
-git commit -m "feat(engine): ValidationProfileResolver port + default impl
+git commit -m "feat(engine): add closed ValidationProfile resolver
 
 Maps VM ValidationProfile (off | on-submit | on-demand | live) to engine
-triggers (disabled | submit | demand | continuous). Narrow DI port;
-publishers MAY plug in alternate resolvers for x- extension profiles."
+triggers (disabled | submit | demand | continuous). Closed mapping helper;
+x- intents still select from VM's existing profile enum."
 ```
 
 ---
@@ -341,21 +336,9 @@ public getValidationReport(
 
 The return type becomes `ValidationReport | null`. The `{ profile: 'off' }` path returns null; the other three profiles return a non-null report. Update internal callers (`getDiagnosticsSnapshot`, internal `complete` checks, the event-bus handler) to handle null — typically by treating null as "no findings produced" for downstream UI purposes. **All internal callers MUST be updated in this task; the field-level migration is in Task 7.**
 
-- [ ] **Step 2: Constructor option**
+- [ ] **Step 2: Closed resolver wiring**
 
-Add to the constructor signature:
-
-```ts
-constructor(opts: {
-  /* existing fields */
-  validationProfileResolver?: ValidationProfileResolver;
-} = {}) {
-  /* existing */
-  this._validationProfileResolver = opts.validationProfileResolver ?? new DefaultValidationProfileResolver();
-}
-```
-
-Update the private field declaration accordingly.
+Instantiate `DefaultValidationProfileResolver` internally. Do not add a constructor override: VM profiles are closed and Response Actions `x-` intents must still choose from the existing profile enum.
 
 - [ ] **Step 3: Also refactor `getDiagnosticsSnapshot` and the event-bus message**
 
@@ -405,7 +388,6 @@ on-demand filters to demand-timing shapes."
 // packages/formspec-engine/src/index.ts
 export {
   DefaultValidationProfileResolver,
-  type ValidationProfileResolver,
   type ValidationTrigger,
 } from './validation';
 ```
@@ -417,7 +399,7 @@ Append under an existing "Validation" section (or create one if absent):
 ```markdown
 ### Validation profile vocabulary
 
-`getValidationReport()` accepts either the engine-internal `{ mode }` option or the Validation Mapping `{ profile }` option:
+`getValidationReport()` accepts the Validation Mapping `{ profile }` option:
 
 | `profile` | Behavior |
 |---|---|
@@ -426,9 +408,7 @@ Append under an existing "Validation" section (or create one if absent):
 | `on-demand` | Only demand-timing shape findings. |
 | `live` | Continuous validation across non-demand-timing shapes. Default. |
 
-The earlier `{ mode: 'continuous' | 'submit' }` option is **removed**. Calls with `mode` throw a runtime error pointing at this section.
-
-Pass either, not both. Override the mapping via the constructor's `validationProfileResolver` option for `x-` extension profiles.
+The earlier `{ mode: 'continuous' | 'submit' }` option is **removed**. Calls with `mode` throw a runtime error pointing at this section. The mapping is not user-extensible; `x-` intents still provide a triple using the closed `ValidationProfile` enum.
 ```
 
 - [ ] **Step 3: Layering check**
@@ -531,4 +511,4 @@ This plan MUST land before Response Actions `§5.3` claims "the Core engine MUST
 
 - **Do not preserve a `mode` shim.** Greenfield refactor; `mode` is removed, not deprecated. A call site still using `mode` is a bug, not a soft-warn case.
 - **Do not push `profile` into the Rust crate.** TS-side refactor is enough for the consumers; Python conformance does not go through `getValidationReport`.
-- **Do not introduce x-profile handling in the default resolver.** Default is closed; publishers register an alternate `ValidationProfileResolver` via the constructor.
+- **Do not introduce x-profile handling in the default resolver.** VM profiles are closed; publisher `x-` intents must reference one of the existing profile names.
