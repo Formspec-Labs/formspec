@@ -59,7 +59,7 @@ Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in belo
 |---|---|---|---|
 | Merge identity key | `x-generation.anchors` set, **with sibling tree-path tiebreaker** when two nodes share an anchor set | HIGH | `ComponentBase.id` is OPTIONAL; tree position alone is unstable; anchor-set alone collides when a `Section` and a `Label` inside it both carry `["unit:identity"]` (B1 fix). Anchor set is primary; when the input tree contains multiple nodes with identical anchor sets, the tiebreaker is the ordinal sibling index under each node's parent (parent identity itself recurses via the same rule). |
 | Merge model | Three-way (`old-generated` ⊕ `designer-edited` ⊕ `new-generated`) | HIGH | Concept §7.2 enumerates exactly these three inputs. |
-| Required input | `old-generated` snapshot MUST be persisted between generations | HIGH | Without the common ancestor, three-way merge collapses to two-way and silently loses the ability to detect designer intent. **No two-way fallback exists.** A host that cannot supply `old-generated` MUST treat the operation as fresh generation — designer edits are lost — and surface a host-level warning (M1 fix). |
+| Required input | `old-generated` snapshot MUST be persisted between generations | HIGH | Without the common ancestor, three-way merge collapses to two-way and silently loses the ability to detect designer intent. **No two-way fallback exists.** A host that cannot supply `old-generated` MUST treat the operation as fresh generation — designer edits are lost — and `report.conflicts[]` MUST contain `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error` severity (M1 fix). |
 | Finding code family | New `COMP-REGENERATION-*` for **merge-context-only findings**; **reference-resolution failures route through existing `COMP-REFERENTIAL-INTEGRITY`** (or Component-resolver bind findings) **plus a merge-context annotation** | HIGH | Reviewer's H4: the "static vs merge-time" framing was wrong because CRF resolvers can run at any time. The real boundary is "findings that only exist because a merge happened" vs "findings about reference integrity that exist independent of merge." Bind/actionRef/unitRef failures from an orphaned node MUST be emitted by the existing CRF/Component resolver, not duplicated in the regeneration family. |
 | MergeReport schema | New `regeneration-merge-report.schema.json` | HIGH | Cross-runtime conformance + concrete structural seed for Trace (concept §10.6). |
 | Coverage findings | **Delegated to Experience resolver** (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`, EXP §S8). MergeReport does NOT carry coverage gaps | HIGH | H2 fix: concept §10.6 lists four things Studio review needs; the fourth ("required items lack coverage") is already owned by EXP-COVERAGE. Studio composes the MergeReport AND the Experience resolver findings; duplicating coverage in MergeReport would re-create dual-ownership. |
@@ -158,7 +158,7 @@ The §1 prose MUST state the `old-generated` persistence requirement explicitly.
 
 ## Task 3: Spec prose — §2 Inputs and outputs
 
-- [ ] Draft §2 defining the three inputs (`old-generated`, `designer-edited`, `new-generated`) and two outputs (`merged`, `MergeReport`). Pin each input/output to the Component schema (`$formspecComponent` v1.1) and the MergeReport schema (Task 11).
+- [x] Draft §2 defining the three inputs (`old-generated`, `designer-edited`, `new-generated`) and two outputs (`merged`, `MergeReport`). Pin each input/output to the Component schema (`$formspecComponent` v1.1) and the MergeReport schema (Task 13).
 
 Inputs in pseudo-form:
 
@@ -167,19 +167,19 @@ merge(
   old_generated: Component v1.1,
   designer_edited: Component v1.1,
   new_generated: Component v1.1,
-  context: { definition?, experience?, response_actions?, registry?, ontology?, anchorMappings? }
+  context: { definition?, experience?, responseActions?, registry?, ontology?, hostPolicy?, anchorMappings? }
 ) -> { merged: Component v1.1, report: MergeReport }
 ```
 
-§2 MUST clarify that `context` is the same `ResolutionContext` as CRF §6 — the merge consumes the same cross-document context as the resolver.
+§2 MUST clarify that `context` reuses the peer-document fields from CRF §6's `ResolutionContext` (`definition`, `experience`, `responseActions`, `registry`, `ontology`, `hostPolicy`) and extends that context with optional `anchorMappings`. The three Component documents are merge inputs, not the CRF resolver's single `component` slot.
 
 §2 MUST also pin the **`old-generated` persistence requirement** as load-bearing (M1 fix):
 
 > Hosts that perform regeneration MUST persist the `old-generated` Component document produced by each generation cycle. The storage mechanism is host-defined (project file, cache, database column, etc.).
 >
-> A host that cannot supply `old-generated` MUST NOT attempt three-way merge. The operation degrades to fresh generation: the new-generated document REPLACES the designer-edited document, all designer edits are lost, and the host MUST surface a `COMP-REGENERATION-NO-COMMON-ANCESTOR` finding at `error` severity (added to §7) explaining that merge was skipped. No two-way fallback exists.
+> A host that cannot supply `old-generated` MUST NOT attempt conforming three-way merge. The operation degrades to fresh generation: `merged` equals `new-generated`, designer edits are not preserved, and `report.conflicts[]` MUST contain a `COMP-REGENERATION-NO-COMMON-ANCESTOR` entry at `error` severity explaining that merge was skipped. No two-way fallback exists.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 4: Spec prose — §3 Source anchor identity
 
@@ -930,3 +930,8 @@ Task 23:       promotion-gate + architecture review
   - Kept the semantic-layers note as normative intent only, not a conformance source.
   - Made `old-generated` a mandatory common ancestor for conforming three-way merge.
   - Preserved the CRF boundary, Trace exclusion, runtime/Studio out-of-scope limits, and narrowed anchor-mappings rename scope in §1.
+- 2026-05-22: Pre-Task-3 architecture review by `formspec-specs:spec-expert` (verdict GO with required fixes) steered §2 wording before commit:
+  - Pinned all Component inputs and `merged` to explicit `$formspecComponent: "1.1"` instead of mere validation against the backward-compatible v1.1 schema.
+  - Made absent `old-generated` degrade to `merged == new_generated` plus `report.conflicts[]` entry `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error`; removed the weaker host-warning language.
+  - Added no-mutation requirements for all three Component inputs and the peer-document context, and clarified the CRF context reuse plus optional `anchorMappings` extension.
+  - Post-draft review requested one fix before commit: §2 now treats `MergeReport` as a named output until the Task 13 schema lands, avoiding a false normative pointer to still-empty §7/§11 sections.

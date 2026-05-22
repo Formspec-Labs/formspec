@@ -165,6 +165,104 @@ conflict entries.
 
 ## 2. Inputs and Outputs
 
+### 2.1 Operation Shape
+
+The regeneration merge operation has three Component inputs, one optional peer
+context input, and two outputs:
+
+```text
+merge(
+  old_generated: Component v1.1,
+  designer_edited: Component v1.1,
+  new_generated: Component v1.1,
+  context: RegenerationMergeContext
+) -> { merged: Component v1.1, report: MergeReport v1.0 }
+```
+
+The `old_generated`, `designer_edited`, `new_generated`, and `merged` documents
+MUST declare `$formspecComponent: "1.1"` and MUST validate against the Component
+schema whose `$id` is `https://formspec.org/schemas/component/1.1`.
+
+Validating against the Component v1.1 schema is not sufficient by itself because
+that schema accepts earlier Component version markers for backward
+compatibility. A regeneration-merge processor MUST reject a Component document
+that does not declare `$formspecComponent: "1.1"` for any of the three inputs or
+for the merged output.
+
+`MergeReport` MUST validate against
+`schemas/regeneration-merge-report.schema.json` once that schema lands. Until
+that Task 13 schema lands, §2 references `MergeReport` only as the named report
+output and does not claim a complete report wire shape.
+
+### 2.2 Inputs
+
+`old_generated` is the Component document produced by the previous generation
+cycle before designer edits were applied. It is the common ancestor for the
+three-way merge.
+
+`designer_edited` is the author-visible Component document after a designer,
+authoring tool, or host workflow has changed the generated document. It may
+contain presentation edits, reordered children, new designer-authored nodes, or
+deleted generated nodes.
+
+`new_generated` is the Component document produced from the current source
+context after Definition, Experience, Response Actions, Registry, Ontology, or
+generator inputs changed.
+
+`RegenerationMergeContext` reuses the peer-document resolution context from
+Component Reference Fields §6 for source lookups: `definition`, `experience`,
+`responseActions`, `registry`, `ontology`, and `hostPolicy`. It extends that
+context with OPTIONAL `anchorMappings` for §9 rename handling. The three
+Component documents above are the merge inputs; they are not the single
+`component` input used by the Component Reference Fields resolver.
+
+### 2.3 Outputs
+
+`merged` is a new Component document that represents the processor's proposed
+authoring draft. It is not one of the input documents. It MUST declare
+`$formspecComponent: "1.1"` and MUST validate against the Component v1.1 schema.
+
+`report` is a new `MergeReport` document. It records which nodes survived,
+regenerated, orphaned, entered pending review, or produced conflicts. The report
+MUST NOT duplicate Component Reference Fields, Component bind/reference, or
+Experience coverage findings. Those findings compose into review surfaces
+through their own resolver outputs.
+
+### 2.4 Required Common Ancestor
+
+Hosts that perform regeneration MUST persist the `old_generated` Component
+document produced by each generation cycle. The storage mechanism is
+host-defined; examples include a project file, cache entry, database column, or
+revisioned artifact store.
+
+A host that cannot supply `old_generated` MUST NOT attempt conforming three-way
+merge. No two-way fallback exists.
+
+When `old_generated` is absent, the operation degrades to fresh generation:
+
+- `merged` MUST be structurally equal to `new_generated`;
+- designer edits from `designer_edited` are not preserved; and
+- `report.conflicts[]` MUST contain a `COMP-REGENERATION-NO-COMMON-ANCESTOR`
+  entry with severity `error`.
+
+The `COMP-REGENERATION-NO-COMMON-ANCESTOR` entry is the required diagnostic for
+this degradation. Hosts MAY surface additional product-specific warnings, but
+those warnings are not a substitute for the MergeReport conflict entry.
+
+### 2.5 Input Immutability
+
+The regeneration merge operation is no-mutation. A conforming processor MUST
+treat `old_generated`, `designer_edited`, `new_generated`, and
+`RegenerationMergeContext` as immutable inputs.
+
+The processor MUST return new `merged` and `report` documents. It MUST NOT write
+repairs, annotations, resolved references, coverage information, anchor
+mappings, or review metadata into any input Component document or peer artifact.
+It also MUST NOT synthesize missing Definition, Experience, Response Actions,
+Registry, Ontology, Trace, Response, ValidationReport, Mapping, Intake Handoff,
+Respondent Ledger, Locale, Theme, or Studio state while producing the merge
+outputs.
+
 ## 3. Source Anchor Identity
 
 ## 4. Generated-Node Markers
