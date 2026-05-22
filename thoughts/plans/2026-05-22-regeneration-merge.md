@@ -57,7 +57,7 @@ Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in belo
 
 | Decision | Choice | Confidence | Rationale |
 |---|---|---|---|
-| Merge identity key | `x-generation.anchors` set, with recursive parent match key plus ordinal sibling index when duplicate anchor sets appear under the same parent | HIGH | `ComponentBase.id` is OPTIONAL; tree position alone is unstable; anchor-set alone collides when a `Section` and a `Label` inside it both carry `["unit:identity"]` (B1 fix). Anchor set is primary; when the input tree contains multiple nodes with identical anchor sets, the tiebreaker is `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. If the parent chain reaches a missing/empty-anchor parent, the duplicate is ambiguous and must not match by path/id/type/position. |
+| Merge identity key | `x-generation.anchors` set, with recursive parent match key plus stable local discriminator for same-parent duplicate anchor sets | HIGH | `ComponentBase.id` is OPTIONAL; tree position alone is unstable; anchor-set alone collides when a `Section` and a `Label` inside it both carry `["unit:identity"]` (B1 fix). Anchor set is primary; when the input tree contains multiple nodes with identical anchor sets, the first tiebreaker is `(anchor_set, parent_match_key)`. Same-parent duplicates may use a stable local discriminator such as non-empty `id`, `bind`, or `ActionButton.actionRef`; component type, path, sibling position, and ordinal are not identity. If no stable discriminator resolves exactly one candidate, the duplicate is ambiguous. |
 | Merge model | Three-way (`old-generated` ⊕ `designer-edited` ⊕ `new-generated`) | HIGH | Concept §7.2 enumerates exactly these three inputs. |
 | Required input | `old-generated` snapshot MUST be persisted between generations | HIGH | Without the common ancestor, three-way merge collapses to two-way and silently loses the ability to detect designer intent. **No two-way fallback exists.** A host that cannot supply `old-generated` MUST treat the operation as fresh generation — designer edits are lost — and `report.conflicts[]` MUST contain `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error` severity (M1 fix). |
 | Finding code family | New `COMP-REGENERATION-*` for **merge-context-only findings**; **reference-resolution failures route through existing `COMP-REFERENTIAL-INTEGRITY`** (or Component-resolver bind findings) **plus a merge-context annotation** | HIGH | Reviewer's H4: the "static vs merge-time" framing was wrong because CRF resolvers can run at any time. The real boundary is "findings that only exist because a merge happened" vs "findings about reference integrity that exist independent of merge." Bind/actionRef/unitRef failures from an orphaned node MUST be emitted by the existing CRF/Component resolver, not duplicated in the regeneration family. |
@@ -196,7 +196,7 @@ freshGenerationWithoutCommonAncestor(
 
 **Primary rule:** the order-normalized set rule is the equality comparator. A node N_old in `old-generated` matches a node N_new in `new-generated` when their normalized anchor sets compare equal. Same rule applies to matching `designer-edited` nodes against `new-generated`. Task 10's anchor-mapping substitution may transform the old anchor set before this same equality comparator is applied; raw equality is the normal path, not the only possible pre-mapping path.
 
-**Tiebreaker for duplicated anchor sets (B1 fix):** anchor uniqueness is NOT enforced by CRF — a `Section` and a `Label` inside it can both carry `["unit:identity"]`. When multiple candidate nodes within the SAME tree share an identical anchor set, the matching key extends to `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. Parent identity recurses via the same rule; the ordinal sibling index counts only siblings that share the anchor set (so unrelated siblings don't shift the index). If the parent chain needed for disambiguation reaches a missing-anchor or empty-anchor parent, the duplicate candidate is ambiguous and MUST NOT be matched against `new-generated`; the later algorithm surfaces it through orphan/pending-review/conflict handling instead of choosing arbitrarily.
+**Tiebreaker for duplicated anchor sets (B1 fix).** Anchor uniqueness is NOT enforced by CRF — a `Section` and a `Label` inside it can both carry `["unit:identity"]`. When multiple candidate nodes within the SAME tree share an identical anchor set, the matching key first extends to `(anchor_set, parent_match_key)`. Parent identity recurses via the same rule. If same-parent duplicates remain, the processor MAY use a stable local discriminator present in both compared nodes and independent of sibling order, such as non-empty `id`, `bind`, or `ActionButton.actionRef`. Component type, tree path, sibling position, and ordinal are NOT identity. If no stable discriminator resolves exactly one candidate, the duplicate is ambiguous and MUST NOT be matched against `new-generated`; the later algorithm surfaces it through orphan/pending-review/conflict handling instead of choosing arbitrarily.
 
 **Nodes without `x-generation`:** treated as designer-authored from inception for merge-identity purposes. Matched across `old-generated` ↔ `designer-edited` by `id` if present, otherwise by RFC 6901 JSON Pointer node path (`/tree/children/2/children/0`). Never matched against `new-generated` (the generator did not produce them).
 
@@ -228,7 +228,7 @@ Any difference is a designer edit. Differences are categorized for §6/§7 consu
 |---|---|---|
 | Property override | designer changed `props.label` from "Name" to "Full Name" | Property delta. §6 preserves if N_new's same property equals N_old's; §6/§7 reports conflict if N_new also changed it differently. |
 | Children reorder | designer reordered two children | Child-order delta on the parent. §6 may preserve ordering while child content remains classified at each child node. |
-| Children add | designer inserted a child not present in old or new | Child-add delta. §6/§8 maps the child into existing orphaned/pending-review handling; no `designer-inserted` report bucket exists. |
+| Children add | designer inserted a child not present in old or new | Child-add delta. §6/§8 maps the child into existing orphaned handling; `pendingReview` is reserved for newly generated nodes. No `designer-inserted` report bucket exists. |
 | Children remove | designer deleted a child present in old; new still has it | Child-remove delta. §6/§7 decides whether this becomes `COMP-REGENERATION-DESIGNER-REMOVED`. |
 | Widget swap | designer changed `component: TextInput` → `TextArea` | Widget-swap delta. §6 preserves the designer widget for review when appropriate; §7 reports `COMP-REGENERATION-WIDGET-SWAP` as a warning conflict unless N_new independently made the same widget choice. |
 
@@ -250,64 +250,162 @@ Add newly generated fields and actions as pending review.
 Never silently delete designer-authored layout.
 ```
 
-§6 MUST present the algorithm as a deterministic node-by-node walk:
+The quoted baseline uses `itemRef` as concept shorthand. The normative expansion MUST use Component's actual Definition item surface: `bind` and `item:` generation anchors.
+
+§6 MUST present the algorithm as deterministic recursive assembly with explicit indexes:
 
 ```text
-match_key(N) = (N.anchors_set, parent_match_key(N), ordinal_sibling_index_among_anchor_set_peers(N))
+if old_generated is null:
+  merged = deep_copy(new_generated)
+  report.conflicts += {
+    code: "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+    severity: "error",
+    nodePath: "/tree",
+    anchors: []
+  }
+  return { merged, report }
 
-for each N_new in new_generated (depth-first, document order):
-  key      = match_key(N_new)
-  N_old      = match_in(old_generated,   key)
-  N_designer = match_in(designer_edited, key)
+match_key(N, anchorMappings=None):
+  if N does not have matchable anchors (§3/§4): return UNMATCHABLE
+  anchor_set = compute_anchor_set(N)
+  if anchorMappings is not None:
+    anchor_set = substitute(anchor_set, anchorMappings)
+  return disambiguate(anchor_set, parent_match_key, stable_local_discriminator)
 
-  if N_old is None and N_designer is None:
-    emit N_new to merged; report.pendingReview += N_new
+build_index(tree, anchorMappings=None):
+  index = {}
+  ambiguous = set()
+  for each node N in tree pre-order document order:
+    key = match_key(N, anchorMappings)
+    if key is UNMATCHABLE: continue
+    if key is AMBIGUOUS:
+      ambiguous.add(compute_anchor_set(N, anchorMappings)); continue
+    if index already has key:
+      remove key from index; ambiguous.add(key)
+    else:
+      index[key] = N
+  # ambiguous contains unresolved mapped anchor sets and duplicate resolved keys;
+  # lookup treats either state as no deterministic match.
+  return { index, ambiguous }
 
-  elif N_old is None and N_designer is not None:
-    # Designer authored independently; new-generation reaches into this anchor.
-    emit N_designer to merged; report.conflicts += { code: "COMP-REGENERATION-DESIGNER-PRECEDES", ... }
+new_index      = build_index(new_generated)
+old_index      = build_index(old_generated, anchorMappings)
+designer_index = build_index(designer_edited, anchorMappings)
+represented_designer_nodes = set()
 
-  elif N_old is not None and N_designer is None:
-    # Designer removed the generated node; treat as designer-removal conflict.
-    emit nothing to merged; report.conflicts += { code: "COMP-REGENERATION-DESIGNER-REMOVED", ... }
+merge_generated_node(N_new):
+  key = match_key(N_new)
+  N_old = None
+  N_designer = None
 
-  elif structurally_equal(N_old, N_designer):
-    # Designer untouched; regenerate from N_new.
-    emit N_new to merged; report.regenerated += N_new
+  if key is UNMATCHABLE:
+    # Unmatchable generated containers still recurse into children; only the
+    # unmatchable shell itself is copied from new-generation.
+    merged_node = shallow_copy_without_children(N_new)
+
+  elif key is AMBIGUOUS or key in new_index.ambiguous:
+    merged_node = shallow_copy_without_children(N_new)
+    report.pendingReview += entry(N_new, code: "COMP-REGENERATION-PENDING-REVIEW")
 
   else:
-    # Three-way diff.
-    merged_node = three_way_merge_node(N_old, N_designer, N_new)
-    emit merged_node to merged
-    if had_conflicts(merged_node):
-      report.conflicts += { ... }
-    else:
-      report.surviving += merged_node
+    N_old      = lookup(old_index, key)      # returns None for missing or ambiguous keys
+    N_designer = lookup(designer_index, key) # returns None for missing or ambiguous keys
+    if N_designer is not None:
+      represented_designer_nodes.add(N_designer)
 
-# Orphan pass — B2 fix: reattachment is explicit.
-for each N_designer in designer_edited with no matching N_new (in document order):
-  parent_in_merged = locate_merged_parent(N_designer)
+    if N_old is None and N_designer is None:
+      merged_node = shallow_copy_without_children(N_new)
+      report.pendingReview += entry(N_new, code: "COMP-REGENERATION-PENDING-REVIEW")
+
+    elif N_old is None and N_designer is not None:
+      merged_node = copy_designer_shell_without_children(N_designer)
+      report.conflicts += entry(merged_node, code: "COMP-REGENERATION-DESIGNER-PRECEDES")
+
+    elif N_old is not None and N_designer is None:
+      merged_node = None
+      report.conflicts += entry(N_new, code: "COMP-REGENERATION-DESIGNER-REMOVED")
+
+    elif structurally_equal(N_old, N_designer):
+      merged_node = shallow_copy_without_children(N_new)
+      report.regenerated += entry(merged_node)
+
+    else:
+      deltas = classify_designer_deltas(N_old, N_designer)
+      merged_node, node_conflicts, surviving_deltas = apply_three_way_node_merge(N_old, N_designer, N_new, deltas)
+      if node_conflicts:
+        report.conflicts += entry(merged_node, propertyDeltas: node_conflicts)
+      elif surviving_deltas:
+        report.surviving += entry(merged_node, propertyDeltas: surviving_deltas)
+      else:
+        report.regenerated += entry(merged_node)
+
+  # Children are assembled recursively in new_generated child order before this
+  # function returns merged_node to its parent. This is recursive assembly, not
+  # a separate child-before-parent traversal contract.
+  if merged_node is not None:
+    merged_node.children = merge_children(N_new, N_old, N_designer, merged_node)
+  return merged_node
+
+merge_children(N_new, N_old, N_designer, merged_node):
+  children = [merge_generated_node(C_new) for each C_new in N_new.children]
+  remove None entries from children
+
+  if N_old and N_designer have a designer childReorder delta:
+    old_order = matched child keys in N_old.children
+    new_order = matched child keys in N_new.children
+    designer_order = matched child keys in N_designer.children
+
+    if new_order == old_order:
+      reorder the matched entries in children to designer_order
+      leave newly generated children in their N_new relative positions
+      report.surviving += entry(merged_node, propertyDeltas: ["/children"])
+    elif new_order != designer_order:
+      keep N_new order for matched generated children
+      report.conflicts += entry(merged_node,
+        code: "COMP-REGENERATION-PROPERTY-CONFLICT",
+        propertyDeltas: ["/children"])
+
+  return children
+
+merged.tree = merge_generated_node(new_generated.tree)
+
+# Orphan pass — B2 fix: reattachment is explicit and roots are maximal.
+is_uncovered_orphan_candidate(N_designer):
+  key = match_key(N_designer, anchorMappings)
+  return N_designer not in represented_designer_nodes
+    and no descendant of N_designer is in represented_designer_nodes
+    and (
+      key is UNMATCHABLE
+      or key is AMBIGUOUS
+      or key in designer_index.ambiguous
+      or key in new_index.ambiguous
+      or key does not resolve in new_index.index
+    )
+
+orphan_roots = maximal designer_edited nodes satisfying
+  is_uncovered_orphan_candidate(N_designer)
+  and no ancestor already selected as an orphan root
+
+for each orphan_root in orphan_roots sorted by designer_edited pre-order document order:
+  parent_in_merged = locate_merged_parent(orphan_root)
   if parent_in_merged is not None:
-    # Designer-authored subtree whose parent regenerated cleanly.
-    append N_designer as a child of parent_in_merged (after the last regenerated child)
+    append orphan_root subtree once as a child of parent_in_merged
     report.orphaned += { ..., reattachedTo: parent_in_merged.nodePath }
   else:
-    # Parent itself was orphaned or removed; cascade attempts to grandparent, etc.
-    nearest = locate_nearest_ancestor_in_merged(N_designer)
+    nearest = locate_nearest_ancestor_in_merged(orphan_root)
     if nearest is not None:
-      append N_designer as a child of nearest with surviving-subtree marker
+      append orphan_root subtree once as a child of nearest
       report.orphaned += { ..., reattachedTo: nearest.nodePath, cascaded: true }
     else:
-      # No ancestor survives — designer subtree becomes a top-level orphan.
-      append N_designer to merged.tree at root (after last sibling)
+      append orphan_root subtree once under /tree after the last root child
       report.orphaned += { ..., reattachedTo: "/tree", detached: true }
 
 locate_merged_parent(N): walk N's parent chain in designer-edited; for each
-  ancestor A, compute match_key(A); if A's key resolves to a node in merged,
-  return that node; else continue up. Returns None if no ancestor matches.
+  ancestor A, compute mapped match_key(A); if A's key resolves to a node in
+  merged and is not ambiguous, return that node; else continue up.
 ```
 
-§6 MUST also pin: traversal order is depth-first document order (deterministic); a node's children are merged before the node itself is emitted (so subtree conflicts surface inline); orphan reattachment runs as a single pass after the main walk, in designer-edited document order, so reattachment ordering is deterministic.
+§6 MUST also pin: index construction and orphan-root selection use pre-order document order; recursive generated-node assembly starts from `new_generated` child order, then preserves designer-only child reorders when the generator did not also reorder that matched child set; child arrays are finalized before each merged node returns to its parent; orphan reattachment runs as a single pass after generated-node assembly, in designer-edited document order over maximal uncovered orphan roots, so reattachment ordering is deterministic and orphan descendants are not duplicated. Non-matchable old/designer nodes are never overlaid onto `new_generated` shells by path or `id`; they are only preserved through uncovered orphan subtree reattachment when doing so will not duplicate a descendant already represented by generated-node assembly.
 
 - [ ] Commit.
 
@@ -591,7 +689,7 @@ cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_r
 
 ## Task 16: Author per-case fixtures
 
-Each case is a directory with five files: `old-generated.json`, `designer-edited.json`, `new-generated.json`, `expected-merged.json`, `expected-report.json`. L1 fix: degenerate `unchanged` case removed; subtree add/reorder cases added.
+Each case is a directory with five required files: `old-generated.json`, `designer-edited.json`, `new-generated.json`, `expected-merged.json`, `expected-report.json`. A case MAY also include `context.json` for optional merge context such as `anchorMappings`. L1 fix: degenerate `unchanged` case removed; subtree add/reorder cases added.
 
 - [ ] **Case `designer-only-property`** — designer changed one `props.label`; new-generated equals old. Expected: surviving entry for the edited node; merged carries the designer's label.
 
@@ -619,11 +717,11 @@ Each case is a directory with five files: `old-generated.json`, `designer-edited
 
 - [ ] **Case `rename-no-migration`** — anchors changed without an anchor-mapping entry. Expected: NOT matched; N_old becomes `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
 
-- [ ] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; orphan/pending-review entry for the child.
+- [ ] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; `orphaned[]` entry for the child. `pendingReview[]` is reserved for newly generated nodes.
 
 - [ ] **Case `subtree-children-reorder`** — designer reordered two children under a regenerated `Section`; new-generation kept the original order. Expected: designer order preserved in merged; reorder surfaced as `surviving` entry on the Section (designer-only change).
 
-- [ ] **Case `duplicate-anchor-set`** — `Section` and `Label` inside it both carry `["unit:identity"]`. Designer edits the `Label`'s text. Expected: tiebreaker by sibling-ordinal correctly matches the `Label` (not the `Section`); `Label` survives with designer text; `Section` regenerates cleanly.
+- [ ] **Case `duplicate-anchor-set`** — `Section` and `Label` inside it both carry `["unit:identity"]`. Designer edits the `Label`'s text. Expected: recursive parent match key plus stable local discriminator correctly matches the `Label` (not the `Section`); `Label` survives with designer text; `Section` regenerates cleanly.
 
 - [ ] **Case `no-common-ancestor`** — `old-generated` is absent (caller passes `None` or empty). Expected: fresh generation; merged equals new-generated; `MergeReport.conflicts` contains `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error`.
 
@@ -649,6 +747,10 @@ FIXTURES = Path(__file__).resolve().parents[2] / "conformance" / "fixtures" / "r
 def _load(case_dir: Path, name: str) -> dict:
     return json.loads((case_dir / f"{name}.json").read_text())
 
+def _load_optional(case_dir: Path, name: str) -> dict:
+    path = case_dir / f"{name}.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
 def _merge(old: dict, designer: dict, new: dict, context: dict) -> tuple[dict, dict]:
     """Reference implementation of §6 algorithm. Lives here so the spec
     has an executable conformance oracle. Production engines re-implement
@@ -661,10 +763,11 @@ def test_merge_case(case_dir: Path) -> None:
     old      = _load(case_dir, "old-generated")
     designer = _load(case_dir, "designer-edited")
     new      = _load(case_dir, "new-generated")
+    context  = _load_optional(case_dir, "context")
     expected_merged = _load(case_dir, "expected-merged")
     expected_report = _load(case_dir, "expected-report")
 
-    merged, report = _merge(old, designer, new, context={})
+    merged, report = _merge(old, designer, new, context=context)
 
     assert merged == expected_merged, f"merged mismatch in {case_dir.name}"
     assert report == expected_report, f"report mismatch in {case_dir.name}"
@@ -694,26 +797,29 @@ from pathlib import Path
 
 import pytest
 
-from tests.conformance.spec.test_regeneration_merge_algorithm import _merge, FIXTURES, _load
+from tests.conformance.spec.test_regeneration_merge_algorithm import _merge, FIXTURES, _load, _load_optional
 
 CASES = sorted(p for p in FIXTURES.iterdir() if p.is_dir() and not p.name.startswith("_"))
 
 @pytest.mark.parametrize("case_dir", CASES)
 def test_determinism(case_dir):
     old, designer, new = _load(case_dir, "old-generated"), _load(case_dir, "designer-edited"), _load(case_dir, "new-generated")
-    a_merged, a_report = _merge(copy.deepcopy(old), copy.deepcopy(designer), copy.deepcopy(new), {})
-    b_merged, b_report = _merge(copy.deepcopy(old), copy.deepcopy(designer), copy.deepcopy(new), {})
+    context = _load_optional(case_dir, "context")
+    a_merged, a_report = _merge(copy.deepcopy(old), copy.deepcopy(designer), copy.deepcopy(new), copy.deepcopy(context))
+    b_merged, b_report = _merge(copy.deepcopy(old), copy.deepcopy(designer), copy.deepcopy(new), copy.deepcopy(context))
     assert a_merged == b_merged
     assert a_report == b_report
 
 @pytest.mark.parametrize("case_dir", CASES)
 def test_no_mutation(case_dir):
     old, designer, new = _load(case_dir, "old-generated"), _load(case_dir, "designer-edited"), _load(case_dir, "new-generated")
-    old_snap, designer_snap, new_snap = copy.deepcopy(old), copy.deepcopy(designer), copy.deepcopy(new)
-    _merge(old, designer, new, {})
+    context = _load_optional(case_dir, "context")
+    old_snap, designer_snap, new_snap, context_snap = copy.deepcopy(old), copy.deepcopy(designer), copy.deepcopy(new), copy.deepcopy(context)
+    _merge(old, designer, new, context)
     assert old == old_snap, "merge mutated old-generated"
     assert designer == designer_snap, "merge mutated designer-edited"
     assert new == new_snap, "merge mutated new-generated"
+    assert context == context_snap, "merge mutated context"
 
 @pytest.mark.parametrize("case_dir", CASES)
 def test_convergence(case_dir):
@@ -730,12 +836,13 @@ def test_convergence(case_dir):
     and merged' structurally equal to merged.
     """
     old, designer, new = _load(case_dir, "old-generated"), _load(case_dir, "designer-edited"), _load(case_dir, "new-generated")
-    merged, report = _merge(old, designer, new, {})
+    context = _load_optional(case_dir, "context")
+    merged, report = _merge(old, designer, new, context)
 
     if report["conflicts"] or report["pendingReview"]:
         pytest.skip(f"{case_dir.name}: cycle 1 has conflicts/pendingReview — convergence requires resolution first (F4 narrowing)")
 
-    merged2, report2 = _merge(copy.deepcopy(new), copy.deepcopy(merged), copy.deepcopy(new), {})
+    merged2, report2 = _merge(copy.deepcopy(new), copy.deepcopy(merged), copy.deepcopy(new), copy.deepcopy(context))
 
     assert merged2 == merged, "merge did not converge: merged drifted on re-run"
     assert report2["conflicts"] == [], "merge did not converge: conflicts persisted"
@@ -914,10 +1021,10 @@ Task 23:       promotion-gate + architecture review
 ## Deviations
 
 - 2026-05-22: Pre-execution architecture-review scout (verdict REVISE) surfaced 2 BLOCKER + 4 HIGH + 3 MEDIUM findings. Remediated inline before commit:
-  - **B1 (anchor-set duplicates):** §3/Task 4 — added sibling-ordinal tiebreaker when multiple nodes share an anchor set; algorithm pseudocode uses `match_key` recursively.
+  - **B1 (anchor-set duplicates):** §3/Task 4 — added recursive parent match key plus stable local discriminator handling when multiple nodes share an anchor set; ambiguous duplicates do not match by path/type/position/ordinal.
   - **B2 (orphan reattachment):** §6/Task 7 — explicit `locate_merged_parent` rule; orphans reattach to nearest surviving ancestor or cascade to root with `detached` flag.
   - **H1 (idempotency → convergence):** §11/Task 18 — replaced idempotency claim with convergence (re-running after no source change yields zero conflicts + zero pendingReview).
-  - **H2 (coverage findings):** §11/Task 12/13 — delegated coverage to Experience resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`); MergeReport schema description documents the join-by-`nodePath` composition rule.
+  - **H2 (coverage findings):** §11/Task 12/13 — delegated coverage to Experience resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`); MergeReport composition uses EXP `path` → anchor string `item:<path>` → MergeReport entry whose `anchors` includes that string → the entry's `nodePath`.
   - **H3 (rename algorithm):** §9/Task 10 — pinned anchor-mapping substitution rule (`substitute(N_old.anchors, M) == N_new.anchors`), removed heuristic and `RENAME-UNDOCUMENTED` code.
   - **H4 (finding family boundary):** §7/Task 8 — restated as merge-context-only; dropped `COMP-REGENERATION-ORPHAN-BINDING`; orphan severity composes with CRF/Component resolver findings.
   - **L3 (anchor-mappings document):** §9/Task 10 — defined minimum anchor-mappings shape inline since no `migration-spec.md` exists.
@@ -964,5 +1071,20 @@ Task 23:       promotion-gate + architecture review
 - 2026-05-22: Pre-Task-6 architecture review by `formspec-specs:spec-expert` (verdict NO-GO until plan correction) found §5 designer-edit detection was mixing classifier and merge/report outcomes. Remediated the plan before drafting §5:
   - Made §5 a structural-delta classifier; §6 consumes deltas for preserve/regenerate/conflict decisions and §7 owns finding codes.
   - Resolved widget-swap handling as a warning conflict entry (`conflicts[]`) requiring review, while the merge can preserve the designer widget when appropriate.
-  - Removed the undefined `designer-inserted` bucket; child additions map through existing orphaned/pending-review handling.
+  - Removed the undefined `designer-inserted` bucket; designer child additions map through existing orphaned handling while `pendingReview` stays reserved for newly generated nodes.
   - Defined JSON structural comparison, old/designer-only preservation for non-matchable nodes, and no-mutation/report-output-only wording.
+- 2026-05-22: Pre-Task-7 architecture review and cadence review (both verdict REQUEST-CHANGES/NO-GO) blocked §6 until the algorithm plan was rewritten:
+  - Split traversal/index construction from recursive output assembly to remove the pre-order vs child-before-parent contradiction.
+  - Added early no-common-ancestor exit matching §2: `merged == new_generated` plus `COMP-REGENERATION-NO-COMMON-ANCESTOR`.
+  - Gated match keys to nodes with matchable anchors, threaded `anchorMappings` into old/designer indexes, and made mapping collisions ambiguous.
+  - Replaced all-designer-node orphan pass with maximal orphan roots to prevent duplicate orphan descendants.
+  - Clarified report-array ownership for mixed deltas and made designer-added children orphaned, not pendingReview.
+  - Added optional `context.json` fixture loading so `rename-migrated` can supply `anchorMappings`.
+- 2026-05-22: Follow-up cadence re-review found one remaining Task 7 blocker and two warnings. Remediated before drafting §6:
+  - Unmatchable or ambiguous `new_generated` nodes now copy only their shell and still recurse into children, so anchored descendants are not skipped.
+  - `merge_children` now defines designer-only child reorder preservation and generator-vs-designer reorder conflict handling.
+  - Invariant tests now import `_load_optional`, pass per-case `context.json`, and assert merge does not mutate context.
+- 2026-05-22: Follow-up architecture re-review found that the unmatchable-container recursion fix could still duplicate anchored descendants in the orphan pass. Remediated before drafting §6:
+  - Added a represented-designer-node set during generated-node assembly.
+  - Constrained orphan roots to uncovered designer subtrees whose descendants are not already represented, so reattachment cannot append a designer ancestor containing already-merged descendants.
+  - Restated that non-matchable old/designer nodes are not overlaid onto `new_generated` shells by path or `id`; they survive only as uncovered orphan subtrees.

@@ -313,22 +313,26 @@ Anchor uniqueness is not guaranteed by Component Reference Fields. A `Section`
 and a nested `Label`, for example, may both carry `["unit:identity"]`.
 
 When multiple candidate nodes in the same input tree have the same computed
-anchor set, the match key extends to:
+anchor set, the match key first extends to:
 
 ```text
-(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)
+(anchor_set, parent_match_key)
 ```
 
-`parent_match_key` is computed recursively by the same rule. The
-`ordinal_sibling_index_among_anchor_set_peers` counts only siblings under the
-same parent that share the computed anchor set, so unrelated sibling insertions
-do not shift the tiebreaker.
+`parent_match_key` is computed recursively by the same rule. If the duplicate
+group is still ambiguous under the same parent, the processor MAY use a stable
+local discriminator that is present in both compared nodes and is independent of
+sibling order, such as a non-empty `id`, `bind`, or `ActionButton.actionRef`.
+The processor MUST NOT use component type as the discriminator because widget
+swaps are designer-edit deltas, not identity changes.
 
 If the parent chain required for duplicate disambiguation reaches a parent that
-has no matchable anchor set, the duplicate candidate is ambiguous. An ambiguous
-duplicate MUST NOT be matched against `new_generated` by path, `id`, component
-type, or sibling position. Later algorithm steps surface the node through
-orphan, pending-review, or conflict reporting instead of choosing arbitrarily.
+has no matchable anchor set, or if no stable local discriminator resolves the
+same-parent duplicate group exactly, the duplicate candidate is ambiguous. An
+ambiguous duplicate MUST NOT be matched against `new_generated` by path,
+component type, sibling position, or ordinal. Later algorithm steps surface the
+node through orphan, pending-review, or conflict reporting instead of choosing
+arbitrarily.
 
 ### 3.4 Nodes Without Matchable Anchors
 
@@ -462,7 +466,7 @@ MUST emit the following structural delta classes when applicable:
 |---|---|---|
 | `propertyOverride` | A non-`children`, non-`component` property differs between old and designer. | §6 decides whether the value survives, regenerates, or conflicts with `new_generated`. |
 | `childReorder` | Matched children remain present but their order differs. | The delta records the designer order by child identity. |
-| `childAdd` | Designer contains a child with no matching old child. | §6/§8 map the child through existing orphaned or pending-review handling; no separate `designer-inserted` report bucket exists. |
+| `childAdd` | Designer contains a child with no matching old child. | §6/§8 map the child through existing orphaned handling; `pendingReview` is reserved for newly generated nodes. No separate `designer-inserted` report bucket exists. |
 | `childRemove` | Old contains a child with no matching designer child. | §6/§7 decide whether this becomes `COMP-REGENERATION-DESIGNER-REMOVED`. |
 | `widgetSwap` | The `component` value differs between old and designer. | §6 decides whether the designer widget survives; §7 owns `COMP-REGENERATION-WIDGET-SWAP` when review is required. |
 
