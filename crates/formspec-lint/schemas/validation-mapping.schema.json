@@ -80,6 +80,7 @@
       },
       "allOf": [
         {
+          "description": "VM §6.3 clauses 1+2: if persistence is complete-response, profile MUST be on-submit AND blocking MUST be block-on-error. Encodes NOT(persistence=complete-response AND blocking!=block-on-error) and NOT(persistence=complete-response AND profile!=on-submit) as a single conditional because both share the same antecedent.",
           "if": {
             "properties": { "persistence": { "const": "complete-response" } },
             "required": ["persistence"]
@@ -92,6 +93,7 @@
           }
         },
         {
+          "description": "VM §6.3 clause 3: NOT(blocking=block-on-error AND persistence!=complete-response). Encoded as: if blocking is block-on-error, persistence MUST be complete-response.",
           "if": {
             "properties": { "blocking": { "const": "block-on-error" } },
             "required": ["blocking"]
@@ -103,6 +105,7 @@
           }
         },
         {
+          "description": "VM §6.3 clause 4: NOT(profile=off AND blocking=block-on-error). A disabled validation profile MUST NOT be paired with a blocking policy.",
           "not": {
             "properties": {
               "profile": { "const": "off" },
@@ -112,7 +115,7 @@
           }
         }
       ],
-      "description": "Reusable §6.3 validity predicate for any object carrying profile, blocking, and persistence. This $def is intentionally open so composing schemas such as MappingEntry can add intent while reusing the predicate. Consumers that need exactly the tuple MUST $ref ValidationTuple, not this predicate helper.",
+      "description": "Reusable §6.3 validity predicate for any object carrying profile, blocking, and persistence. The four prose clauses collapse into three allOf entries because clauses 1+2 share the antecedent persistence=complete-response and merge into a single if/then. This $def is intentionally open so composing schemas such as MappingEntry can add intent while reusing the predicate. Consumers that need exactly the tuple MUST $ref ValidationTuple, not this predicate helper.",
       "examples": [
         { "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
       ],
@@ -152,8 +155,8 @@
             { "$ref": "#/$defs/ActionIntent" },
             {
               "type": "string",
-              "pattern": "^x-",
-              "description": "Publisher-defined action intent extension. MUST carry an explicit mapping tuple and MUST NOT shadow a master-table intent."
+              "pattern": "^x-(?!(?:save-draft|autosave|review|submit|request-evidence)$)[A-Za-z0-9_-]+$",
+              "description": "Publisher-defined action intent extension. MUST carry an explicit mapping tuple and MUST NOT shadow a master-table intent (x-save-draft, x-autosave, x-review, x-submit, x-request-evidence are forbidden by the pattern)."
             }
           ]
         },

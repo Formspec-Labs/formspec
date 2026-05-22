@@ -92,7 +92,7 @@ rebuild-python: .venv/.deps-stamp
 test-rust:
 	cargo nextest run --workspace
 
-test: test-unit test-python test-rust test-scripts test-engine-isolation test-e2e
+test: sync-lint-schemas test-unit test-python test-rust test-scripts test-engine-isolation test-e2e
 
 test-engine-isolation: build-js
 	npm run --workspace=@formspec-org/engine test:init-entry-runtime-only
