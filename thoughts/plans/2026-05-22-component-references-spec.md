@@ -2,7 +2,7 @@
 title: SubmitButton Compatibility + Component Reference Additions Spec Implementation Plan
 date: 2026-05-22
 status: superseded
-superseded-by: thoughts/plans/2026-05-22-component-action-references.md
+superseded-by: thoughts/archive/plans/2026-05-22-component-action-references.md
 owner: spec-author
 related:
   - thoughts/specs/2026-05-20-formspec-semantic-layers.md
@@ -10,13 +10,13 @@ related:
   - specs/experience/experience-spec.md
   - specs/response-actions/response-actions-spec.md
   - specs/core/validation-mapping.md
-  - thoughts/plans/2026-05-22-response-actions-spec.md
-  - thoughts/plans/2026-05-22-component-action-references.md
+  - thoughts/archive/plans/2026-05-22-response-actions-spec.md
+  - thoughts/archive/plans/2026-05-22-component-action-references.md
 ---
 
-> **SUPERSEDED 2026-05-22.** This plan's load-bearing rule — the three-way SubmitButton precedence (`actionRef` > `defaultSubmitActionRef` > VM §7.1 unnamed default) — depended on `defaultSubmitActionRef`, which was dropped during the Response Actions reshape (split-brain risk across renderers). The replacement plan, **[Component Action References (Plan E)](2026-05-22-component-action-references.md)**, takes a more aggressive refactor: rename `SubmitButton` → `ActionButton`, make `actionRef` required, delete VM §7 entirely. No precedence resolution needed — every action-triggering widget has exactly one `actionRef`.
+> **SUPERSEDED 2026-05-22.** This plan's load-bearing rule — the three-way SubmitButton precedence (`actionRef` > `defaultSubmitActionRef` > VM §7.1 unnamed default) — depended on `defaultSubmitActionRef`, which was dropped during the Response Actions reshape (split-brain risk across renderers). The replacement plan, **[Component Action References (Plan E)](../archive/plans/2026-05-22-component-action-references.md)**, takes a more aggressive refactor: rename `SubmitButton` → `ActionButton`, make `actionRef` required, delete VM §7 entirely. No precedence resolution needed — every action-triggering widget has exactly one `actionRef`.
 >
-> What carries forward into [Plan E](2026-05-22-component-action-references.md):
+> What carries forward into [Plan E](../archive/plans/2026-05-22-component-action-references.md):
 > - The intent of closing §9 row-4 and concept §10.4.
 > - The cross-document resolution pattern (ActionRef → Action by id).
 > - The `COMP-REFERENTIAL-INTEGRITY` finding code (carried into Plan E §5.19.4.2).
@@ -57,7 +57,7 @@ related:
 
 **Citations** in this plan refer to the concept note (`thoughts/specs/2026-05-20-formspec-semantic-layers.md`) unless prefixed. `VM §` = `specs/core/validation-mapping.md`. `RA §` = `specs/response-actions/response-actions-spec.md`. `EXP §` = `specs/experience/experience-spec.md`. `COMP §` = `specs/component/component-spec.md`.
 
-**Hard precondition.** This plan REQUIRES the Response Actions companion spec to have landed (see [`thoughts/plans/2026-05-22-response-actions-spec.md`](2026-05-22-response-actions-spec.md)). Specifically:
+**Hard precondition.** This plan REQUIRES the Response Actions companion spec to have landed (see [`thoughts/archive/plans/2026-05-22-response-actions-spec.md`](../archive/plans/2026-05-22-response-actions-spec.md)). Specifically:
 
 - `schemas/response-actions.schema.json` MUST exist — the Component References fixtures validate `response-actions-base.json` against it.
 - `specs/response-actions/response-actions-spec.md` MUST be landed — this plan cites RA §3 (Action Identity), §7 (Invocation State Machine), §10.3 (Default Submit Action), §14.4 (Future actionRef on Component) and edits some of those sections.

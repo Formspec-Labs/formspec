@@ -2,11 +2,16 @@
 import { signal } from '@preact/signals-core';
 import {
     createFormEngine,
-    defaultActionRefForIntent,
     type FormEngine,
     type IFormEngine,
     type LocaleDocument,
 } from '@formspec-org/engine/render';
+// §10 + §13.6: defaultActionRefForIntent is intentionally NOT on the public
+// engine surface — it is a renderer-internal helper. Importing from the
+// internal path acknowledges renderer-internal coupling; callers MUST
+// guard against the empty-string return to avoid injecting an inert
+// ActionButton (WARNING 2 / §10 no free-string-fallback).
+import { defaultActionRefForIntent } from '@formspec-org/engine/internal/default-action-ref';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
 import type {
     ComponentDocument,
@@ -257,6 +262,13 @@ export class FormspecRender extends HTMLElement {
         return this as unknown as ActionHost;
     }
 
+    /**
+     * Returns the actionRef of a submit-intent Action if one is published,
+     * else "". §10 + §13.6 forbid synthesizing an implicit default, so the
+     * call sites MUST treat an empty return as "no submit Action available"
+     * and skip injection — never inject an ActionButton with an empty
+     * actionRef (would render an inert button forever).
+     */
     private injectedSubmitActionRef(): string {
         return defaultActionRefForIntent(this._responseActionsDocument, 'submit');
     }
@@ -792,11 +804,16 @@ export class FormspecRender extends HTMLElement {
                 planCtx,
             );
             const pageMode = pageModeFromPresentation(planCtx.formPresentation);
+            // §10/§13.6: only inject when a submit-intent Action actually
+            // exists. An empty actionRef would render an inert button.
             if (this._showSubmit) {
-                ensureActionButton(plan, planCtx.nextId, {
-                    pageMode,
-                    actionRef: this.injectedSubmitActionRef(),
-                });
+                const injectedRef = this.injectedSubmitActionRef();
+                if (injectedRef) {
+                    ensureActionButton(plan, planCtx.nextId, {
+                        pageMode,
+                        actionRef: injectedRef,
+                    });
+                }
             }
             emitNodeFn(this._renderHost, plan, container, '');
         } else {
@@ -814,11 +831,15 @@ export class FormspecRender extends HTMLElement {
                     ? pageMode
                     : undefined,
             };
+            // §10/§13.6: see comment above. Skip when no submit Action exists.
             if (this._showSubmit) {
-                ensureActionButton(wrapperNode, planCtx.nextId, {
-                    pageMode,
-                    actionRef: this.injectedSubmitActionRef(),
-                });
+                const injectedRef = this.injectedSubmitActionRef();
+                if (injectedRef) {
+                    ensureActionButton(wrapperNode, planCtx.nextId, {
+                        pageMode,
+                        actionRef: injectedRef,
+                    });
+                }
             }
             emitNodeFn(this._renderHost, wrapperNode, container, '');
         }

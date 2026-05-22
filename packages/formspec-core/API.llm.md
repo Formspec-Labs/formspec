@@ -2559,6 +2559,7 @@ Handlers read/write defaults, selectors, items, pages, etc.
 Mapping working state — content without required envelope metadata.
 Handlers read/write rules, targetSchema, adapters, etc.
 
+- **version?**: `string`
 - **rules?**: `FieldRule[]`
 - **targetSchema?**: `TargetSchema`
 - **definitionRef?**: `string`

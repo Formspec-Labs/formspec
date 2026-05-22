@@ -264,14 +264,6 @@ export function findResponseActionByIntent(
     return document.actions.find(action => action?.intent === intent) ?? null;
 }
 
-export function defaultActionRefForIntent(
-    document: ResponseActionsDocumentInput | null | undefined,
-    intent: StandardResponseActionIntent = 'submit',
-    fallback = '',
-): string {
-    return findResponseActionByIntent(document, intent)?.id ?? fallback;
-}
-
 export function resolveResponseActionValidationTuple(action: ResponseAction): ValidationOverride {
     const override = action.validation;
     if (override) {

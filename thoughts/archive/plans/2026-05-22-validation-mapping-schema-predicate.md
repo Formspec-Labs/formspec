@@ -66,7 +66,7 @@ related:
 **Files:**
 - Modify: `specs/core/validation-mapping.md`
 
-- [ ] **Step 1: Append §6.2 prohibition entry 5**
+- [x] **Step 1: Append §6.2 prohibition entry 5**
 
 After the existing §6.2 prohibitions (currently 1-4), append:
 
@@ -74,7 +74,7 @@ After the existing §6.2 prohibitions (currently 1-4), append:
 5. Pair `block-on-error` with any `PersistencePolicy` other than `complete-response` (the blocking gate halts all effects and prevents the persistence transition; allowing it for `draft-checkpoint` or `none` would create a semantic conflict between the blocked terminal and §5.2's guarantee that non-complete-response persistence is unaffected by blocking).
 ```
 
-- [ ] **Step 2: Update §6.3 validity predicate to four clauses**
+- [x] **Step 2: Update §6.3 validity predicate to four clauses**
 
 Replace the current three-clause predicate with:
 
@@ -90,7 +90,7 @@ Add a sentence after the predicate: "The fourth clause is symmetric with the fir
 
 The five master-table rows continue to satisfy the predicate (only `submit` uses `block-on-error`, and it pairs with `complete-response`).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add specs/core/validation-mapping.md
@@ -109,7 +109,7 @@ Master-table rows unchanged; override space shrinks but stays coherent."
 **Files:**
 - Create: `tests/conformance/schemas/test_validation_mapping_predicate.py`
 
-- [ ] **Step 1: Author the test**
+- [x] **Step 1: Author the test**
 
 ```python
 """Predicate refactor tests for validation-mapping.schema.json.
@@ -250,7 +250,7 @@ def test_master_table_const_still_intact():
     assert intents == {"save-draft", "autosave", "review", "submit", "request-evidence"}
 ```
 
-- [ ] **Step 2: Run — expect failure**
+- [x] **Step 2: Run — expect failure**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/schemas/test_validation_mapping_predicate.py -v
@@ -258,7 +258,7 @@ cd formspec && python3 -m pytest tests/conformance/schemas/test_validation_mappi
 
 Expected: `test_validation_tuple_def_exists` and `test_mapping_entry_composes_validation_tuple` fail (the $def doesn't exist yet); the permitted/prohibited, mapping-entry, and consumer-ref tests fail with errors about the validator targeting a non-existent $def. That's the red phase.
 
-- [ ] **Step 3: Commit red**
+- [x] **Step 3: Commit red**
 
 ```bash
 cd formspec && git add tests/conformance/schemas/test_validation_mapping_predicate.py
@@ -275,7 +275,7 @@ six prohibited rows, and downstream consumer \$ref inheritance."
 **Files:**
 - Modify: `schemas/validation-mapping.schema.json`
 
-- [ ] **Step 1: Extract `ValidationTuplePredicate` + closed `ValidationTuple`**
+- [x] **Step 1: Extract `ValidationTuplePredicate` + closed `ValidationTuple`**
 
 Insert two new $defs *before* `MappingEntry`: an open predicate helper for composition and a closed exact tuple for downstream consumers such as Response Actions.
 
@@ -315,7 +315,7 @@ Insert two new $defs *before* `MappingEntry`: an open predicate helper for compo
 }
 ```
 
-- [ ] **Step 2: Refactor `MappingEntry` to compose**
+- [x] **Step 2: Refactor `MappingEntry` to compose**
 
 Replace the existing `MappingEntry` $def with:
 
@@ -358,7 +358,7 @@ The duplicate `properties` for `profile`/`blocking`/`persistence` is intentional
 
 JSON Schema 2020-12 evaluates `additionalProperties` relative to each subschema's own `properties` — it does NOT propagate across `allOf` siblings. Splitting `ValidationTuplePredicate` (open, reusable constraints) from `ValidationTuple` (closed, exact tuple) keeps both consumers correct without relying on `unevaluatedProperties` propagation.
 
-- [ ] **Step 3: Schema well-formed**
+- [x] **Step 3: Schema well-formed**
 
 ```bash
 cd formspec && node -e "
@@ -374,7 +374,7 @@ console.log('OK');
 
 Expected: `OK`.
 
-- [ ] **Step 4: Run the red tests — expect green**
+- [x] **Step 4: Run the red tests — expect green**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/schemas/test_validation_mapping_predicate.py -v
@@ -382,7 +382,7 @@ cd formspec && python3 -m pytest tests/conformance/schemas/test_validation_mappi
 
 Expected: all pass.
 
-- [ ] **Step 5: Run the existing VM table test — expect no regression**
+- [x] **Step 5: Run the existing VM table test — expect no regression**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/spec/test_validation_mapping_table.py -v
@@ -390,7 +390,7 @@ cd formspec && python3 -m pytest tests/conformance/spec/test_validation_mapping_
 
 Expected: pass. The master table `const` is unchanged; fixture outcomes should not regress. Override tuple validation is intentionally tighter because of Task 0's fourth predicate clause.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd formspec && git add schemas/validation-mapping.schema.json
@@ -410,7 +410,7 @@ behavior unchanged via allOf composition."
 - Modify: `tests/contracts/surface-coverage.json`
 - Modify: `scripts/run-contract-surface-tests.mjs`
 
-- [ ] **Step 1: Add the predicate test to the ledger row**
+- [x] **Step 1: Add the predicate test to the ledger row**
 
 In `tests/contracts/surface-coverage.json`, update the `validation-mapping.conformance` array to include:
 
@@ -420,7 +420,7 @@ In `tests/contracts/surface-coverage.json`, update the `validation-mapping.confo
 
 The row is already `status: enforced`; this new path makes the predicate-reuse proof visible in the same inventory as the schema and table tests.
 
-- [ ] **Step 2: Run Validation Mapping conformance in the focused gate**
+- [x] **Step 2: Run Validation Mapping conformance in the focused gate**
 
 In `scripts/run-contract-surface-tests.mjs`, add these paths to the first `runPython([...])` block:
 
@@ -432,7 +432,7 @@ In `scripts/run-contract-surface-tests.mjs`, add these paths to the first `runPy
 
 These are Python/schema-only checks, so they belong in both `test:contract-surfaces` and `test:contract-surfaces:metadata`. This prevents the Validation Mapping row from becoming inventory-only again.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 ```bash
 cd formspec && npm run test:contract-surfaces:metadata
@@ -441,7 +441,7 @@ cd formspec && npm run test:contract-surfaces
 
 Expected: pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd formspec && git add tests/contracts/surface-coverage.json scripts/run-contract-surface-tests.mjs
@@ -452,7 +452,7 @@ git commit -m "test(contracts): run Validation Mapping predicate parity"
 
 ## Task 4: Regenerate docs + full sweep
 
-- [ ] **Step 1: Regenerate**
+- [x] **Step 1: Regenerate**
 
 ```bash
 cd formspec && npm run docs:generate && npm run docs:filemap && npm run docs:check
@@ -460,7 +460,7 @@ cd formspec && npm run docs:generate && npm run docs:filemap && npm run docs:che
 
 Expected: pass. If `docs:check` complains about the new $def missing `description` + `examples` (per the `x-lm.critical=true` rule), revisit Task 2 Step 1 — the `ValidationTuple` $def already includes both per the spec.
 
-- [ ] **Step 2: Full conformance sweep**
+- [x] **Step 2: Full conformance sweep**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/ -v
@@ -468,7 +468,7 @@ cd formspec && python3 -m pytest tests/conformance/ -v
 
 Expected: no regressions.
 
-- [ ] **Step 3: Commit generated**
+- [x] **Step 3: Commit generated**
 
 ```bash
 cd formspec && git add filemap.json specs/

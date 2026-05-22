@@ -19,7 +19,12 @@ import type {
     ResponseActionsDocumentInput,
 } from '@formspec-org/engine';
 import type { EffectRequest, FormResponse, Precondition, ValidationReport } from '@formspec-org/types';
-import { createFormEngine, defaultActionRefForIntent, resolveResponseAction } from '@formspec-org/engine';
+import { createFormEngine, resolveResponseAction } from '@formspec-org/engine';
+// §10 + §13.6: defaultActionRefForIntent is intentionally NOT on the public
+// engine surface — it is a renderer-internal helper. Auto-injection MUST
+// guard against the empty-string return so we never render an inert
+// ActionButton (WARNING 2 / §10 no free-string-fallback).
+import { defaultActionRefForIntent } from '@formspec-org/engine/internal/default-action-ref';
 import type { LayoutNode } from '@formspec-org/layout';
 import {
     planDefinitionFallback,
@@ -287,9 +292,15 @@ export function FormspecProvider(props: FormspecProviderProps) {
             };
         }
 
+        // §10/§13.6: only inject an ActionButton when a submit-intent
+        // Action actually exists in the loaded Response Actions document.
+        // Auto-injecting an empty actionRef would render an inert button
+        // forever, violating §10's no-free-string-fallback rule.
         if (onSubmit) {
             const actionRef = defaultActionRefForIntent(responseActionsDocument, 'submit');
-            ensureActionButton(root, planCtx.nextId, { pageMode, actionRef });
+            if (actionRef) {
+                ensureActionButton(root, planCtx.nextId, { pageMode, actionRef });
+            }
         }
         return root;
     }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);

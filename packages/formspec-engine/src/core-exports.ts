@@ -75,13 +75,16 @@ export {
 } from './validation/index.js';
 export {
     declaresHostEvent,
-    defaultActionRefForIntent,
     findResponseActionByIntent,
     invokeResponseAction,
     resolveResponseAction,
     resolveResponseActionValidationTuple,
     validationProfileForAction,
 } from './response-actions.js';
+// `defaultActionRefForIntent` is intentionally NOT re-exported here. §10 +
+// §13.6 prohibit implicit-default behavior on the contract surface; the
+// helper now lives at './internal/default-action-ref.js' and is private to
+// the reference renderers.
 export {
     RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS,
     RESPONSE_ACTIONS_PRECONDITION_BINDINGS,

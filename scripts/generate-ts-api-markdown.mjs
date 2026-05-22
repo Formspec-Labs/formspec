@@ -26,12 +26,15 @@ const ROOT = resolve(__dirname, '..');
 
 // No shared output dir needed — each package writes to its own folder.
 
-/** Recursively collect all .d.ts files under a directory. */
+/** Recursively collect all .d.ts files under a directory.
+ * Skips `internal/` subtrees: per §10 + §13.6, helpers under internal/ are
+ * renderer-private and MUST NOT appear on the published API surface. */
 function collectDtsFiles(dir) {
   const results = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = resolve(dir, entry.name);
     if (entry.isDirectory()) {
+      if (entry.name === 'internal') continue;
       results.push(...collectDtsFiles(full));
     } else if (entry.name.endsWith('.d.ts')) {
       results.push(full);

@@ -70,7 +70,7 @@ related:
 **Files:**
 - Modify: `schemas/respondent-ledger-event.schema.json`
 
-- [ ] **Step 1: Append to `$defs/EventType.enum`**
+- [x] **Step 1: Append to `$defs/EventType.enum`**
 
 Locate the existing enum (after `"field.edit-recorded"`). Append, preserving JSON array order (optional events go after required + currently-optional):
 
@@ -83,7 +83,7 @@ Locate the existing enum (after `"field.edit-recorded"`). Append, preserving JSO
 
 Update the `description` on `EventType` to: "Canonical event classifications defined by the Respondent Ledger add-on. The first thirteen values are required event types; the remaining values are optional but standardized extension points — including the optional `action.*` kinds in §8.5 which record Response Actions invocation lifecycle when a processor implements the Response Actions companion (`specs/response-actions/response-actions-spec.md §6`)."
 
-- [ ] **Step 2: Schema parses**
+- [x] **Step 2: Schema parses**
 
 ```bash
 cd formspec && node -e "JSON.parse(require('fs').readFileSync('schemas/respondent-ledger-event.schema.json'))"
@@ -91,7 +91,7 @@ cd formspec && node -e "JSON.parse(require('fs').readFileSync('schemas/responden
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add schemas/respondent-ledger-event.schema.json
@@ -109,7 +109,7 @@ adoption. Payload shape added in follow-up commit."
 **Files:**
 - Modify: `schemas/respondent-ledger-event.schema.json`
 
-- [ ] **Step 1: Add `$defs/ActionEventPayload`**
+- [x] **Step 1: Add `$defs/ActionEventPayload`**
 
 Insert after the `ValidationSnapshot` $def (alphabetical-ish but the existing file isn't strictly sorted — match neighborhood semantics: payload bindings live near each other):
 
@@ -176,7 +176,7 @@ Insert after the `ValidationSnapshot` $def (alphabetical-ish but the existing fi
 }
 ```
 
-- [ ] **Step 2: Add the top-level property and conditional clauses**
+- [x] **Step 2: Add the top-level property and conditional clauses**
 
 Add to the top-level `properties` block (alongside `validationSnapshot`):
 
@@ -233,7 +233,7 @@ Append four entries to the top-level `allOf` array (existing entries handle `att
 
 Rationale for forbidding `changes` on action events: action lifecycle is not a field-edit. Mirrors how `validation.snapshot-recorded` does not require `changes` (per existing schema convention).
 
-- [ ] **Step 3: Schema is well-formed 2020-12**
+- [x] **Step 3: Schema is well-formed 2020-12**
 
 ```bash
 cd formspec && node -e "
@@ -249,7 +249,7 @@ console.log('OK');
 
 Expected: `OK`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd formspec && git add schemas/respondent-ledger-event.schema.json
@@ -267,7 +267,7 @@ require actionEvent and forbid changes when eventType is action.*."
 **Files:**
 - Modify: `specs/audit/respondent-ledger-spec.md`
 
-- [ ] **Step 1: Insert §8.5 after §8.4**
+- [x] **Step 1: Insert §8.5 after §8.4**
 
 Locate the end of §8 (just before §9, or whichever section follows the existing kind catalog). Append:
 
@@ -312,7 +312,7 @@ The Ledger does NOT enforce this vocabulary. Processors MAY use other opaque val
 **Relationship to existing kinds.** A successful submit invocation produces a single `response.submit-attempted` (and, on success, `response.completed`) per existing §8 semantics. A processor MAY also emit `action.invoked` to capture the named invocation lineage. The two kinds carry different information; they are NOT substitutes.
 ```
 
-- [ ] **Step 2: Update §6.2 (Conditional fields) to mention `actionEvent`**
+- [x] **Step 2: Update §6.2 (Conditional fields) to mention `actionEvent`**
 
 Append to §6.2's table of conditional fields:
 
@@ -322,7 +322,7 @@ Append to §6.2's table of conditional fields:
 
 Place it adjacent to the existing `validationSnapshot` row.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add specs/audit/respondent-ledger-spec.md
@@ -343,13 +343,13 @@ priorInvocationRef; no spec-level ordering rules between paired events."
 - Create: `tests/conformance/fixtures/respondent-ledger/action-events/action-deferred.json`
 - Create: `tests/conformance/fixtures/respondent-ledger/action-events/action-replayed.json`
 
-- [ ] **Step 1: Create the fixture directory**
+- [x] **Step 1: Create the fixture directory**
 
 ```bash
 mkdir -p formspec/tests/conformance/fixtures/respondent-ledger/action-events
 ```
 
-- [ ] **Step 2: Author each fixture**
+- [x] **Step 2: Author each fixture**
 
 Each fixture is a complete RespondentLedgerEvent JSON document. Minimum shape (every required top-level Ledger field present per `$defs` requirements). The `eventHash`/`priorEventHash` pair is governed by the existing `dependentRequired` clause: either include both or omit both — fixtures that include only one will be rejected by the schema. Recommend omitting both for these minimal fixtures unless the test specifically exercises chaining.
 
@@ -365,7 +365,7 @@ Vary only what the kind demands:
 
 All four MUST omit `changes` (the schema forbids it via `allOf.not.required`). All `*Ref` field values MUST satisfy the ASCII-printable pattern enforced by the schema.
 
-- [ ] **Step 3: Schema-validate**
+- [x] **Step 3: Schema-validate**
 
 ```bash
 cd formspec && node -e "
@@ -384,7 +384,7 @@ for (const f of fs.readdirSync(dir)) {
 
 Expected: every fixture prints `OK`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd formspec && git add tests/conformance/fixtures/respondent-ledger/action-events/
@@ -398,7 +398,7 @@ git commit -m "test(conformance): add ledger action.* event fixtures"
 **Files:**
 - Modify: `tests/conformance/schemas/test_respondent_ledger_event_schema.py`
 
-- [ ] **Step 1: Append tests**
+- [x] **Step 1: Append tests**
 
 Add to the existing test file (or create if absent — match existing project layout):
 
@@ -436,7 +436,7 @@ def test_action_event_kinds_require_actionEvent_and_forbid_changes(kind):
     assert found, f"no allOf clause for {kind}"
 ```
 
-- [ ] **Step 2: Run**
+- [x] **Step 2: Run**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/schemas/test_respondent_ledger_event_schema.py -v
@@ -444,7 +444,7 @@ cd formspec && python3 -m pytest tests/conformance/schemas/test_respondent_ledge
 
 Expected: all pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add tests/conformance/schemas/test_respondent_ledger_event_schema.py
@@ -458,7 +458,7 @@ git commit -m "test(conformance): pin action.* event enum + payload + conditiona
 **Files:**
 - Create: `tests/conformance/spec/test_respondent_ledger_action_events.py`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```python
 """Fixture-driven validation for Ledger §8.5 action lifecycle events."""
@@ -494,7 +494,7 @@ def test_action_event_fixture_with_changes_is_rejected():
     assert errors, "schema MUST reject action.invoked + changes"
 ```
 
-- [ ] **Step 2: Run**
+- [x] **Step 2: Run**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/spec/test_respondent_ledger_action_events.py -v
@@ -502,7 +502,7 @@ cd formspec && python3 -m pytest tests/conformance/spec/test_respondent_ledger_a
 
 Expected: all pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add tests/conformance/spec/test_respondent_ledger_action_events.py
@@ -513,7 +513,7 @@ git commit -m "test(conformance): fixture-driven validation for ledger action.* 
 
 ## Task 7: Regenerate docs + run full conformance
 
-- [ ] **Step 1: Regenerate**
+- [x] **Step 1: Regenerate**
 
 ```bash
 cd formspec && npm run docs:generate && npm run docs:filemap && npm run docs:check
@@ -521,7 +521,7 @@ cd formspec && npm run docs:generate && npm run docs:filemap && npm run docs:che
 
 Expected: pass.
 
-- [ ] **Step 2: Full conformance sweep**
+- [x] **Step 2: Full conformance sweep**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/ -v
@@ -529,7 +529,7 @@ cd formspec && python3 -m pytest tests/conformance/ -v
 
 Expected: no regressions.
 
-- [ ] **Step 3: Commit generated artifacts**
+- [x] **Step 3: Commit generated artifacts**
 
 ```bash
 cd formspec && git add specs/audit/ filemap.json

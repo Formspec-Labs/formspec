@@ -78,7 +78,7 @@ This is **not** an additive plan. It is a deletion-and-rename. No `SubmitButton`
 **Files:**
 - Inspect: `specs/component/component-spec.md` front-matter / cross-spec table.
 
-- [ ] **Step 1: Confirm Component already references Response Actions schema in front-matter**
+- [x] **Step 1: Confirm Component already references Response Actions schema in front-matter**
 
 If absent, add `specs/response-actions/response-actions-spec.md` to the cross-spec table. Component now structurally depends on Response Actions for ActionButton resolution (Component MAY validate without loading the Response Actions document; the resolution happens at runtime).
 
@@ -89,13 +89,13 @@ If absent, add `specs/response-actions/response-actions-spec.md` to the cross-sp
 **Files:**
 - Modify: `schemas/component.schema.json`
 
-- [ ] **Step 1: Locate the SubmitButton $def and the component-type enum**
+- [x] **Step 1: Locate the SubmitButton $def and the component-type enum**
 
 ```bash
 cd formspec && grep -n "SubmitButton" schemas/component.schema.json | head -20
 ```
 
-- [ ] **Step 2: Rename + restructure**
+- [x] **Step 2: Rename + restructure**
 
 In the `$defs/ActionButton` (formerly `SubmitButton`) — drop `mode` and `emitEvent`; add required `actionRef`:
 
@@ -135,11 +135,11 @@ In the `$defs/ActionButton` (formerly `SubmitButton`) — drop `mode` and `emitE
 }
 ```
 
-- [ ] **Step 3: Update the component-type enum**
+- [x] **Step 3: Update the component-type enum**
 
 Replace `"SubmitButton"` with `"ActionButton"` in the closed enum of component type names (typically `$defs/ComponentType` or similar). NO alias; no backwards compat.
 
-- [ ] **Step 4: Schema parses**
+- [x] **Step 4: Schema parses**
 
 ```bash
 cd formspec && node -e "JSON.parse(require('fs').readFileSync('schemas/component.schema.json'))"
@@ -147,7 +147,7 @@ cd formspec && node -e "JSON.parse(require('fs').readFileSync('schemas/component
 
 Expected: no output.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd formspec && git add schemas/component.schema.json
@@ -165,7 +165,7 @@ effect declaration, not a widget flag). No backwards-compat alias."
 **Files:**
 - Modify: `specs/component/component-spec.md`
 
-- [ ] **Step 1: Rewrite §5.19**
+- [x] **Step 1: Rewrite §5.19**
 
 Replace the entire §5.19 SubmitButton section with:
 
@@ -263,11 +263,11 @@ The referenced Action lives in the Response Actions document:
 The legacy `formspec-submit` CustomEvent is still dispatched because the Action declares the `hostEvent` effect — the widget does not need to know.
 ```
 
-- [ ] **Step 2: Update the §5.21 (or similar) widget-summary table**
+- [x] **Step 2: Update the §5.21 (or similar) widget-summary table**
 
 If a roll-up table exists listing all widget names, replace `SubmitButton` with `ActionButton`. If the table cites prop sets, update.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add specs/component/component-spec.md
@@ -285,19 +285,19 @@ flow from the resolved Action."
 **Files:**
 - Modify: `specs/core/validation-mapping.md`
 
-- [ ] **Step 1: Delete the entire §7 "SubmitButton Compatibility" section**
+- [x] **Step 1: Delete the entire §7 "SubmitButton Compatibility" section**
 
 This includes §7.1 (Default Submit Action Rule), §7.2 (SubmitButton.mode Reconciliation), §7.3 (Future actionRef Compatibility), §7.4 (Migration). Renumber subsequent sections (§8 ValidationSummary becomes §7, etc.) or leave §8+ numbering as-is with a renumber-deferred note — whichever the spec's convention prefers.
 
-- [ ] **Step 2: Drop the §3.2 mention of SubmitButton.mode**
+- [x] **Step 2: Drop the §3.2 mention of SubmitButton.mode**
 
 If §3.2 "What Profile Does NOT Affect" or the Profile Resolution table references `SubmitButton.mode`, delete those references. ValidationProfile is no longer widget-specific.
 
-- [ ] **Step 3: Update §1.2 cross-spec table**
+- [x] **Step 3: Update §1.2 cross-spec table**
 
 Replace any "SubmitButton" mention with "ActionButton" (or generalize: "the action-trigger widget"). The Component spec now hosts the binding contract; VM hosts only the tuple.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd formspec && git add specs/core/validation-mapping.md
@@ -317,7 +317,7 @@ remains in VM."
 - Modify: `specs/component/component-spec.md` §6.13 (ValidationSummary)
 - Modify: `specs/core/validation-mapping.md` §8.1 (ValidationSummary `source` prop)
 
-- [ ] **Step 1: Update the §6.13 prose**
+- [x] **Step 1: Update the §6.13 prose**
 
 ValidationSummary's `source: "submit"` semantics ("reads the latest `formspec-submit` event detail") remain valid AS LONG AS an Action declares `{ type: hostEvent, eventName: "formspec-submit" }`. Authors who want a ValidationSummary to update on submit MUST declare the `hostEvent` effect on their submit Action. Update §6.13 to add a one-paragraph note:
 
@@ -327,7 +327,7 @@ ValidationSummary's `source: "submit"` semantics ("reads the latest `formspec-su
 
 This is a prose update, not a behavior change. No schema modification.
 
-- [ ] **Step 1.5: Update VM §8.1 prose**
+- [x] **Step 1.5: Update VM §8.1 prose**
 
 `specs/core/validation-mapping.md §8.1` (ValidationSummary's `source` prop description) also references the legacy SubmitButton emit-event behavior and is stale post-Plan-E. Add a single paragraph to the existing §8.1 prose — do NOT restructure §8.1:
 
@@ -337,7 +337,7 @@ This is a prose update, not a behavior change. No schema modification.
 
 This is a single-paragraph append to §8.1. No structural rewrite of §8.1.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd formspec && git add specs/component/component-spec.md specs/core/validation-mapping.md
@@ -355,7 +355,7 @@ dispatched by Action hostEvent effects; the widget does not dispatch."
 **Files:**
 - Modify: `specs/experience/experience-spec.md`
 
-- [ ] **Step 1: Simplify §6.3**
+- [x] **Step 1: Simplify §6.3**
 
 The "fallback to free string when no document is loaded" carve-out (added in the original Response Actions plan Task 19) goes away. With ActionButton requiring actionRef and Response Actions being the canonical resolution path, EXP §6.3 reads:
 
@@ -363,7 +363,7 @@ The "fallback to free string when no document is loaded" carve-out (added in the
 **ActionRef resolution.** Every `ActionRef.id` resolves against the loaded Response Actions document's `actions[*].id` set. Processors MUST load a Response Actions document when the Experience document contains any `ActionRef`. An unresolved `ActionRef.id` MUST be treated as an Experience document error — emit a finding and render the widget as inert. There is no free-string fallback.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd formspec && git add specs/experience/experience-spec.md
@@ -376,13 +376,13 @@ git commit -m "refactor(spec): EXP §6.3 — actionRef resolution is mandatory; 
 
 **Files (find-and-update everywhere `SubmitButton` appears):**
 
-- [ ] **Step 1: Search**
+- [x] **Step 1: Search**
 
 ```bash
 cd formspec && grep -rln "SubmitButton" packages/ tests/ specs/ schemas/ 2>/dev/null
 ```
 
-- [ ] **Step 2: Rename in each file**
+- [x] **Step 2: Rename in each file**
 
 For TypeScript / Vitest tests, JSON fixtures, JSON Schemas, spec markdown, and Playwright E2E specs:
 - `SubmitButton` → `ActionButton`
@@ -392,7 +392,7 @@ For TypeScript / Vitest tests, JSON fixtures, JSON Schemas, spec markdown, and P
 
 This is mechanical but voluminous. Use IDE multi-file rename. Do NOT preserve a `SubmitButton` type alias anywhere.
 
-- [ ] **Step 3: Run test sweeps per layer**
+- [x] **Step 3: Run test sweeps per layer**
 
 ```bash
 cd formspec && npm test
@@ -402,7 +402,7 @@ cd formspec && cargo nextest run --workspace
 
 Expected: pass after Tasks 8 and 9 also land (the new ActionButton-specific tests).
 
-- [ ] **Step 4: Commit per layer (TS, Python, Rust)**
+- [x] **Step 4: Commit per layer (TS, Python, Rust)**
 
 Three commits, one per language layer.
 
@@ -413,7 +413,7 @@ Three commits, one per language layer.
 **Files:**
 - Create: `tests/conformance/spec/test_actionbutton_binding.py`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```python
 """ActionButton binding contract (Component §5.19).
@@ -592,7 +592,7 @@ def test_resolver_does_not_mutate_inputs():
     assert ra == ra_before
 ```
 
-- [ ] **Step 2: Run + commit**
+- [x] **Step 2: Run + commit**
 
 ```bash
 cd formspec && python3 -m pytest tests/conformance/spec/test_actionbutton_binding.py -v
@@ -607,7 +607,7 @@ git commit -m "test(conformance): pin ActionButton actionRef requirement + rejec
 **Files:**
 - Create: `tests/e2e/playwright/actionbutton.spec.ts`
 
-- [ ] **Step 1: Author the spec**
+- [x] **Step 1: Author the spec**
 
 The test mounts a form with one ActionButton whose `actionRef` resolves to a submit Action with a `hostEvent` effect. Click. Assert:
 1. Validation runs per the Action's resolved profile.
@@ -617,7 +617,7 @@ The test mounts a form with one ActionButton whose `actionRef` resolves to a sub
 
 Reuse existing E2E helpers (`mount`, `engineSetValue`, etc.) per `formspec/tests/e2e/`.
 
-- [ ] **Step 2: Run + commit**
+- [x] **Step 2: Run + commit**
 
 ```bash
 cd formspec && npx playwright test tests/e2e/playwright/actionbutton.spec.ts
@@ -639,7 +639,7 @@ git commit -m "test(e2e): pin ActionButton click → Action invocation → hostE
 
 The Rust `formspec-lint` crate maintains its own `schemas/` directory mirroring the canonical `schemas/` (so lint passes don't reach across the workspace at build time). When `component.schema.json` changes (Task 2 here) AND when `response-actions.schema.json` lands (Response Actions plan), the lint crate's mirror MUST be re-synced. Currently the only documented sync is an ad-hoc script for `token-registry.json`; everything else is manual and drifts silently.
 
-- [ ] **Step 1: Identify the existing mirror set**
+- [x] **Step 1: Identify the existing mirror set**
 
 ```bash
 cd formspec && ls crates/formspec-lint/schemas/ | sort > /tmp/lint-mirror.txt
@@ -649,7 +649,7 @@ comm -3 /tmp/lint-mirror.txt /tmp/canonical.txt
 
 The diff shows what's missing from each side. Typically the lint crate mirrors a subset (only schemas the lint passes actually consume). For Plan E, the affected schemas are `component.schema.json` (modified by Task 2 + 3) and `response-actions.schema.json` (added by the Response Actions plan + cited by ActionButton resolution).
 
-- [ ] **Step 2: Add a generic sync script**
+- [x] **Step 2: Add a generic sync script**
 
 Create `scripts/sync-lint-schemas.mjs`:
 
@@ -682,7 +682,7 @@ sync-lint-schemas:
 	node scripts/sync-lint-schemas.mjs
 ```
 
-- [ ] **Step 3: Opt the relevant schemas into the mirror**
+- [x] **Step 3: Opt the relevant schemas into the mirror**
 
 ```bash
 cd formspec && cp schemas/component.schema.json crates/formspec-lint/schemas/
@@ -691,7 +691,7 @@ cp schemas/response-actions.schema.json crates/formspec-lint/schemas/  # if not 
 
 (Skipping any not consumed by a lint pass — verify against `crates/formspec-lint/src/pass_*/` before opting in. The component schema is consumed by `pass_component` family lints; the response-actions schema is needed for ActionButton resolution-time lint, which lands as a follow-up.)
 
-- [ ] **Step 4: Run the sync + cargo build**
+- [x] **Step 4: Run the sync + cargo build**
 
 ```bash
 cd formspec && make sync-lint-schemas
@@ -700,11 +700,11 @@ cd formspec && cargo build -p formspec-lint
 
 Expected: pass. If `cargo build` complains about a schema referenced by `include_str!` that's missing, the mirror is incomplete — add the missing file.
 
-- [ ] **Step 5: Hook the sync into the canonical build (suggested, not required)**
+- [x] **Step 5: Hook the sync into the canonical build (suggested, not required)**
 
 Add `sync-lint-schemas` as a prerequisite of `cargo build`'s upstream target (the per-crate Makefile or the workspace `build` target). The exact wiring depends on the repo's current build orchestration; document the suggestion and let the implementer choose.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd formspec && git add scripts/sync-lint-schemas.mjs Makefile crates/formspec-lint/schemas/
@@ -723,17 +723,17 @@ groundwork for the response-actions schema mirror."
 **Files:**
 - Modify: `thoughts/specs/2026-05-20-formspec-semantic-layers.md`
 
-- [ ] **Step 1: Mark §10.4 landed and §11.3 resolved**
+- [x] **Step 1: Mark §10.4 landed and §11.3 resolved**
 
 `§10.4 (Component reference additions)`: append `**Landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)).`
 
 `§11.3 (Component reference fields)`: append `**Resolved:** actionRef is required on ActionButton; no fallback path exists.`
 
-- [ ] **Step 2: Update surface-coverage**
+- [x] **Step 2: Update surface-coverage**
 
 `tests/contracts/surface-coverage.json` — update the `component` row's `checks` to reflect the new ActionButton contract.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add thoughts/specs/2026-05-20-formspec-semantic-layers.md tests/contracts/surface-coverage.json

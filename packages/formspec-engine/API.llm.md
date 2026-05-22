@@ -1569,6 +1569,63 @@ from `./interfaces.js` are not listed here; import those types directly when nee
         readonly preactReactiveRuntime: typeof import('./reactivity/preact-runtime.js').preactReactiveRuntime;
     }`): Default Preact-signals reactive runtime; swap for custom `EngineReactiveRuntime` implementations.
 
+## `RESPONSE_ACTIONS_PRECONDITION_BINDINGS: readonly PreconditionCatalogEntry[]`
+
+Closed §4.1 catalog for FEL precondition expressions. Names + shapes mirror
+specs/response-actions/response-actions-spec.md §4.1. Authors MUST NOT
+extend this set; processors MUST reject unregistered `@name` bindings.
+
+## `RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS: readonly PreconditionCatalogEntry[]`
+
+§6.4 effect-time catalog. Extends §4.1 with `@effects` and republishes
+`@invocation` with `attempt` available. Authors MUST NOT extend; evaluators
+MUST reject unregistered `@name` bindings in `payloadRef` / `detailRef`.
+
+#### interface `PreconditionCatalogEntry`
+
+Six fields every FEL §6.3.1 catalog entry must publish.
+
+- **name** (`string`): Binding name (the part after `@`).
+- **kind** (`'value' | 'object' | 'function'`): Binding kind per FEL §6.3.1 (`value`, `object`, `function`).
+- **type** (`string`): Human-readable type description.
+- **purity** (`'pure' | 'impure'`): Purity per FEL §6.3.1 — `pure` or `impure`.
+- **evaluationTiming** (`'eager' | 'lazy'`): Evaluation timing — `eager` or `lazy`.
+- **scope** (`'expression' | 'statement'`): Scope — typically `expression`.
+
+#### interface `CatalogValidationResult`
+
+Outcome of a catalog-validation check.
+
+- **ok** (`boolean`): True when every `@name` referenced in the expression is in the catalog.
+- **unbound** (`string[]`): Sorted unique list of unregistered `@name` references.
+
+#### class `ResponseActionsPreconditionCatalog`
+
+Catalog-aware FEL precondition validator. Host evaluators MUST honor this
+catalog when evaluating preconditions; the engine's default precondition
+path SHOULD consult this validator before delegating to FEL evaluation.
+
+The catalog object is the contract surface. Until the fel-wasm bridge
+exposes ContextBindingCatalog wiring, host-supplied
+`ports.evaluatePrecondition` is the fallback for actual FEL evaluation,
+but unregistered `@name` references MUST be rejected even before then.
+
+##### `constructor(entries?: readonly PreconditionCatalogEntry[])`
+
+- **entries** (`readonly PreconditionCatalogEntry[]`): Catalog entries, exposed for tooling/introspection.
+
+##### `isBindingPublished(name: string): boolean`
+
+Returns true when `name` (without `@`) is in the catalog.
+
+##### `validateExpression(expression: string): CatalogValidationResult`
+
+Extracts every `@name` reference in `expression` and asserts each is
+published. Returns `{ ok: false, unbound: […] }` when one or more
+names are not registered. The check is lexical, not semantic — a
+fully FEL-aware evaluator built on fel-core's `ContextBindingCatalog`
+remains the eventual authoritative implementation.
+
 ## `preactReactiveRuntime: EngineReactiveRuntime`
 
 #### interface `EngineSignal`
@@ -1596,15 +1653,13 @@ Pluggable batching + signal factory so FormEngine does not import `@preact/signa
 
 ## `findResponseActionByIntent(document: ResponseActionsDocumentInput | null | undefined, intent: string): ResponseAction | null`
 
-## `defaultActionRefForIntent(document: ResponseActionsDocumentInput | null | undefined, intent?: StandardResponseActionIntent, fallback?: string): string`
-
 ## `resolveResponseActionValidationTuple(action: ResponseAction): ValidationOverride`
 
 ## `validationProfileForAction(action: ResponseAction): ValidationProfile`
 
 ## `declaresHostEvent(action: ResponseAction, eventName: string): boolean`
 
-## `invokeResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, ports: ResponseActionInvocationPorts<TDetail>, nodeId?: string): ResponseActionInvocationResult<TDetail>`
+## `invokeResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, ports: ResponseActionInvocationPorts<TDetail>, nodeId?: string, invocationContext?: ResponseActionInvocationContext): ResponseActionInvocationResult<TDetail>`
 
 #### interface `ResponseActionsDocumentInput`
 
@@ -1650,14 +1705,45 @@ Pluggable batching + signal factory so FormEngine does not import `@preact/signa
 - **attempt**: `number`
 - **idempotencyKey?**: `string`
 
+#### interface `ResponseActionLifecyclePayload`
+
+Payload bound to the four action.* lifecycle kinds. Schema-pinned shape:
+respondent-ledger-event.schema.json#/$defs/ActionEventPayload owns the
+authoritative byte form for Ledger storage; this TS shape mirrors the
+fields the engine can deterministically supply from invocation state.
+Hosts that persist to the Ledger MUST round-trip the payload through the
+canonical schema before commit.
+
+- **actionId** (`string`): Action.id from the Response Actions document.
+- **invocationId** (`string`): Stable invocation identifier.
+- **attempt** (`number`): 1 on first attempt; 2 on retry-once.
+- **terminal** (`'failed' | 'deferred' | 'replayed'`): Present on action.failed and action.deferred.
+- **effectIndex** (`number`): Present on action.failed and action.deferred when an effect is the proximate cause.
+- **replayTokenRef** (`string`): Present on action.deferred.
+- **priorInvocationRef** (`string`): Present on action.replayed.
+- **causeRef** (`string`): Optional structured failure/deferral cause reference.
+
+#### interface `ResponseActionInvocationContext`
+
+Optional invocation-scope context the host supplies once per
+invokeResponseAction call. The engine uses `invocationId` and
+`priorInvocationRef` (when present) to fill the lifecycle payload —
+`priorInvocationRef` signals an action.replayed continuation.
+
+- **invocationId** (`string`): Stable invocation identifier; host-generated. Defaults to a synthesized id.
+- **priorInvocationRef** (`string`): When set, marks the invocation as a replay of a prior invocation.
+
 #### interface `ResponseActionInvocationPorts`
 
-- **submit**: `(options: ResponseActionSubmitOptions) => TDetail | null`
-- **dispatchHostEvent**: `(eventName: string, detail: TDetail, action: ResponseAction) => void`
-- **dispatchEffect?**: `(effect: EffectRequest, detail: TDetail, action: ResponseAction, context: ResponseActionEffectDispatchContext) => ResponseActionEffectOutcome | void`
-- **resolveIdempotencyKey?**: `(effect: EffectRequest, action: ResponseAction, context: ResponseActionIdempotencyKeyContext) => string`
-- **evaluatePrecondition?**: `(precondition: Precondition, action: ResponseAction) => ResponseActionPreconditionResult`
-- **validationReportValid?**: `(detail: TDetail) => boolean | null | undefined`
+- **recordActionLifecycle** (`(kind: ResponseActionLifecycleKind, payload: ResponseActionLifecyclePayload) => void`): Optional recorder for the four §11.3 / Ledger §8.5 action.* lifecycle
+kinds. Called at the invocation begin/terminal boundaries — never as a
+declared effect. Reference runtime emits in this order:
+  - action.invoked|action.replayed at invocation start (the latter when
+    `priorInvocationRef` is supplied via the invocation context)
+  - action.failed when terminal is `failed`
+  - action.deferred when terminal is `deferred`
+  - action.replayed (begin only — completion of a replayed happy path
+    emits no further action.* kind; response.completed covers that)
 
 #### interface `ResponseActionInvocationResult`
 
@@ -1695,6 +1781,16 @@ type ResponseActionPreconditionResult = boolean | {
 
 ```ts
 type ResponseActionEffectStatus = 'succeeded' | 'failed' | 'deferred' | 'replayed' | 'not-invoked';
+```
+
+#### type `ResponseActionLifecycleKind`
+
+§11.3 / Ledger §8.5 published lifecycle event kinds. Authors MUST NOT
+declare these as ledgerAppend effects; processors emit them outside the
+declared effect chain.
+
+```ts
+type ResponseActionLifecycleKind = 'action.invoked' | 'action.failed' | 'action.deferred' | 'action.replayed';
 ```
 
 #### type `ResponseActionInvocationStatus`
@@ -2192,3 +2288,4 @@ Validate enabled x-extension usage in an item tree against registry entries.
 ```ts
 type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');
 ```
+

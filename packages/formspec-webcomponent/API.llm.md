@@ -1386,3 +1386,4 @@ Classifies the screener route relative to the current definition URL.
 ```ts
 type ScreenerRouteType = 'none' | 'internal' | 'external';
 ```
+

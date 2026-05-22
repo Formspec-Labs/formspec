@@ -34,6 +34,10 @@
     "./fel-tools": {
       "types": "./dist/fel/fel-api-tools.d.ts",
       "default": "./dist/fel/fel-api-tools.js"
+    },
+    "./internal/default-action-ref": {
+      "types": "./dist/internal/default-action-ref.d.ts",
+      "default": "./dist/internal/default-action-ref.js"
     }
   },
   "sideEffects": [

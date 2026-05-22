@@ -71,7 +71,7 @@ related:
 **Files:**
 - Inspect: `packages/formspec-types/src/`
 
-- [ ] **Step 1: Locate the type**
+- [x] **Step 1: Locate the type**
 
 ```bash
 cd formspec && grep -rE "ValidationProfile" packages/formspec-types/src/ schemas/ | head -10
@@ -85,7 +85,7 @@ export type ValidationProfile = 'off' | 'on-submit' | 'on-demand' | 'live';
 
 Export from `packages/formspec-types/src/index.ts`.
 
-- [ ] **Step 2: Build the types package**
+- [x] **Step 2: Build the types package**
 
 ```bash
 cd formspec && npm run build --workspace packages/formspec-types
@@ -93,7 +93,7 @@ cd formspec && npm run build --workspace packages/formspec-types
 
 Expected: pass.
 
-- [ ] **Step 3: Commit (if a new export was added)**
+- [x] **Step 3: Commit (if a new export was added)**
 
 ```bash
 cd formspec && git add packages/formspec-types/src/
@@ -107,7 +107,7 @@ git commit -m "feat(types): export ValidationProfile string union (VM §3)"
 **Files:**
 - Create: `packages/formspec-engine/tests/validation-profile-resolver.test.mts`
 
-- [ ] **Step 1: Author the test**
+- [x] **Step 1: Author the test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -131,7 +131,7 @@ describe('DefaultValidationProfileResolver', () => {
 });
 ```
 
-- [ ] **Step 2: Run — expect failure (no implementation yet)**
+- [x] **Step 2: Run — expect failure (no implementation yet)**
 
 ```bash
 cd formspec && npm run test -- packages/formspec-engine/tests/validation-profile-resolver.test.mts
@@ -139,7 +139,7 @@ cd formspec && npm run test -- packages/formspec-engine/tests/validation-profile
 
 Expected: the test file fails to import (resolver doesn't exist). Good — that's the red phase.
 
-- [ ] **Step 3: Commit the red test**
+- [x] **Step 3: Commit the red test**
 
 ```bash
 cd formspec && git add packages/formspec-engine/tests/validation-profile-resolver.test.mts
@@ -157,7 +157,7 @@ unknown-profile rejection path."
 - Create: `packages/formspec-engine/src/validation/profile-resolver.ts`
 - Create: `packages/formspec-engine/src/validation/index.ts`
 
-- [ ] **Step 1: Author the resolver**
+- [x] **Step 1: Author the resolver**
 
 `packages/formspec-engine/src/validation/profile-resolver.ts`:
 
@@ -197,7 +197,7 @@ export type { ValidationTrigger } from './profile-resolver';
 export { DefaultValidationProfileResolver } from './profile-resolver';
 ```
 
-- [ ] **Step 2: Run the test — expect green**
+- [x] **Step 2: Run the test — expect green**
 
 ```bash
 cd formspec && npm run test -- packages/formspec-engine/tests/validation-profile-resolver.test.mts
@@ -205,7 +205,7 @@ cd formspec && npm run test -- packages/formspec-engine/tests/validation-profile
 
 Expected: all pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd formspec && git add packages/formspec-engine/src/validation/
@@ -223,7 +223,7 @@ x- intents still select from VM's existing profile enum."
 **Files:**
 - Create: `packages/formspec-engine/tests/form-engine-profile-option.test.mts`
 
-- [ ] **Step 1: Author the test**
+- [x] **Step 1: Author the test**
 
 ```ts
 import { describe, expect, it, beforeEach } from 'vitest';
@@ -285,7 +285,7 @@ async function buildEngineWithFixture(name: string): Promise<FormEngine> {
 
 The fixture helper line is intentionally a placeholder — the package likely already has a `buildEngineWithFixture` helper (inspect `packages/formspec-engine/tests/*.mts` for the prevailing pattern). Wire to it during implementation. If absent, inline a minimal Definition with one `required` shape and one `demand`-timing shape per the fixture demands above.
 
-- [ ] **Step 2: Run — expect failure**
+- [x] **Step 2: Run — expect failure**
 
 ```bash
 cd formspec && npm run test -- packages/formspec-engine/tests/form-engine-profile-option.test.mts
@@ -293,7 +293,7 @@ cd formspec && npm run test -- packages/formspec-engine/tests/form-engine-profil
 
 Expected: tests fail because `{ profile }` is not accepted by `getValidationReport` yet.
 
-- [ ] **Step 3: Commit red**
+- [x] **Step 3: Commit red**
 
 ```bash
 cd formspec && git add packages/formspec-engine/tests/form-engine-profile-option.test.mts
@@ -310,7 +310,7 @@ on-demand), and resolver error propagation."
 **Files:**
 - Modify: `packages/formspec-engine/src/engine/FormEngine.ts`
 
-- [ ] **Step 1: Extend signature**
+- [x] **Step 1: Extend signature**
 
 Change the signature at the existing line (`packages/formspec-engine/src/engine/FormEngine.ts:470` per snapshot — verify in current source):
 
@@ -336,17 +336,17 @@ public getValidationReport(
 
 The return type becomes `ValidationReport | null`. The `{ profile: 'off' }` path returns null; the other three profiles return a non-null report. Update internal callers (`getDiagnosticsSnapshot`, internal `complete` checks, the event-bus handler) to handle null — typically by treating null as "no findings produced" for downstream UI purposes. **All internal callers MUST be updated in this task; the field-level migration is in Task 7.**
 
-- [ ] **Step 2: Closed resolver wiring**
+- [x] **Step 2: Closed resolver wiring**
 
 Instantiate `DefaultValidationProfileResolver` internally. Do not add a constructor override: VM profiles are closed and Response Actions `x-` intents must still choose from the existing profile enum.
 
-- [ ] **Step 3: Also refactor `getDiagnosticsSnapshot` and the event-bus message**
+- [x] **Step 3: Also refactor `getDiagnosticsSnapshot` and the event-bus message**
 
 `getDiagnosticsSnapshot(options: { profile: ValidationProfile } = { profile: 'live' })` — same signature shape as `getValidationReport`. Drops `mode` entirely.
 
 The event-bus message handler at the existing `case 'getValidationReport':` branch (line ~672 per snapshot) accepts `{ profile }` only. Any inbound message carrying `mode` is rejected with the same error as Step 1.
 
-- [ ] **Step 4: Run integration tests — expect green**
+- [x] **Step 4: Run integration tests — expect green**
 
 ```bash
 cd formspec && npm run test -- packages/formspec-engine/tests/form-engine-profile-option.test.mts
@@ -354,7 +354,7 @@ cd formspec && npm run test -- packages/formspec-engine/tests/form-engine-profil
 
 Expected: all pass. If `on-demand` filtering wasn't supported in the existing trigger path, surface that as a follow-up — the resolver returns `demand`, the engine MUST honor it. The Rust trigger universe per `FormEngine.ts:1305` already names `demand`, so this should be a simple wiring exercise.
 
-- [ ] **Step 5: Run the full engine test suite**
+- [x] **Step 5: Run the full engine test suite**
 
 ```bash
 cd formspec && npm run test --workspace packages/formspec-engine
@@ -362,7 +362,7 @@ cd formspec && npm run test --workspace packages/formspec-engine
 
 Expected: no regressions.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd formspec && git add packages/formspec-engine/src/engine/FormEngine.ts
@@ -382,7 +382,7 @@ on-demand filters to demand-timing shapes."
 - Modify: `packages/formspec-engine/src/index.ts`
 - Modify: `packages/formspec-engine/README.md`
 
-- [ ] **Step 1: Re-exports**
+- [x] **Step 1: Re-exports**
 
 ```ts
 // packages/formspec-engine/src/index.ts
@@ -392,7 +392,7 @@ export {
 } from './validation';
 ```
 
-- [ ] **Step 2: README section**
+- [x] **Step 2: README section**
 
 Append under an existing "Validation" section (or create one if absent):
 
@@ -411,7 +411,7 @@ Append under an existing "Validation" section (or create one if absent):
 The earlier `{ mode: 'continuous' | 'submit' }` option is **removed**. Calls with `mode` throw a runtime error pointing at this section. The mapping is not user-extensible; `x-` intents still provide a triple using the closed `ValidationProfile` enum.
 ```
 
-- [ ] **Step 3: Layering check**
+- [x] **Step 3: Layering check**
 
 ```bash
 cd formspec && npm run check:deps
@@ -419,7 +419,7 @@ cd formspec && npm run check:deps
 
 Expected: pass. `formspec-engine` imports `ValidationProfile` from layer 0 `formspec-types`; no cross-layer leak.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd formspec && git add packages/formspec-engine/
@@ -432,13 +432,13 @@ git commit -m "docs(engine): document { profile } option + re-export resolver AP
 
 **Files:** every `.ts`, `.mts`, `.tsx`, `.js`, `.mjs` that calls `getValidationReport({ mode: ... })` or `getDiagnosticsSnapshot({ mode: ... })`.
 
-- [ ] **Step 1: Find every call site**
+- [x] **Step 1: Find every call site**
 
 ```bash
 cd formspec && grep -rln "getValidationReport(\s*{\s*mode\|getDiagnosticsSnapshot(\s*{\s*mode" packages/ src/ tests/ form-builder/ 2>/dev/null
 ```
 
-- [ ] **Step 2: Rename each**
+- [x] **Step 2: Rename each**
 
 Mechanical migration:
 - `{ mode: 'continuous' }` → `{ profile: 'live' }`
@@ -447,13 +447,13 @@ Mechanical migration:
 
 Use IDE multi-file rename. Read each diff to confirm the migration matches the call site's intent (sometimes a caller passed `mode: 'submit'` to mean "validate as if the user just clicked submit" — that becomes `profile: 'on-submit'`).
 
-- [ ] **Step 3: Handle the `null` return**
+- [x] **Step 3: Handle the `null` return**
 
 Callers that previously assumed a non-null report now need to handle null when `profile: 'off'` flows through. Inspect each site:
 - If the caller never passes `profile: 'off'`, no null handling needed — but TypeScript's narrower return type may flag the consumption. Use `!` or an early `if (report === null) return` guard.
 - If the caller MIGHT receive `'off'` (e.g., a generic helper that takes profile as a parameter), wrap consumption in an explicit null check.
 
-- [ ] **Step 4: Run + commit**
+- [x] **Step 4: Run + commit**
 
 ```bash
 cd formspec && npm test
@@ -469,7 +469,7 @@ caller is missed; the test suite catches the missing migrations."
 
 ## Task 8: Regenerate filemap + full sweep
 
-- [ ] **Step 1: Regenerate**
+- [x] **Step 1: Regenerate**
 
 ```bash
 cd formspec && npm run docs:filemap && npm run docs:check
@@ -477,7 +477,7 @@ cd formspec && npm run docs:filemap && npm run docs:check
 
 Expected: pass.
 
-- [ ] **Step 2: Full TS test sweep**
+- [x] **Step 2: Full TS test sweep**
 
 ```bash
 cd formspec && npm test
@@ -485,7 +485,7 @@ cd formspec && npm test
 
 Expected: no regressions. Every call site migrated; no `mode`-shaped invocations remain.
 
-- [ ] **Step 3: Commit generated**
+- [x] **Step 3: Commit generated**
 
 ```bash
 cd formspec && git add filemap.json
