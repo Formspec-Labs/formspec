@@ -148,6 +148,8 @@ export class FormEngine implements IFormEngine {
     private _issuerOverride: IssuerSource | undefined;
     private _resolvedIssuer: ResolvedIssuer | undefined;
     private _issuerResolutionPromise: Promise<ResolvedIssuer> | undefined;
+    private _issuerResolutionEpoch = 0;
+    private _resolvedIssuerEpoch = -1;
     private _runtimeContext: {
         nowProvider: () => Date;
         locale?: string;
@@ -266,20 +268,28 @@ export class FormEngine implements IFormEngine {
     }
 
     public setIssuerOverride(source: IssuerSource | undefined): void {
+        this._issuerResolutionEpoch += 1;
         this._issuerOverride = source;
         this._resolvedIssuer = undefined;
+        this._resolvedIssuerEpoch = -1;
         this._issuerResolutionPromise = undefined;
     }
 
     public async getResolvedIssuer(): Promise<ResolvedIssuer> {
         if (!this._issuerResolutionPromise) {
-            this._issuerResolutionPromise = this._issuerStore.resolve({
+            const epoch = this._issuerResolutionEpoch;
+            let promise: Promise<ResolvedIssuer>;
+            promise = this._issuerStore.resolve({
                 definitionIssuer: definitionIssuerSource(this.definition),
                 hostOverride: this._issuerOverride,
             }).then((resolved) => {
-                this._resolvedIssuer = resolved;
+                if (this._issuerResolutionEpoch === epoch && this._issuerResolutionPromise === promise) {
+                    this._resolvedIssuer = resolved;
+                    this._resolvedIssuerEpoch = epoch;
+                }
                 return resolved;
             });
+            this._issuerResolutionPromise = promise;
         }
         return this._issuerResolutionPromise;
     }
@@ -1430,7 +1440,11 @@ export class FormEngine implements IFormEngine {
     }
 
     private getDisplayedIssuerPin(): { url: string; version: string } | undefined {
-        if (this._resolvedIssuer && this._resolvedIssuer.source !== 'unbranded') {
+        if (
+            this._resolvedIssuer
+            && this._resolvedIssuerEpoch === this._issuerResolutionEpoch
+            && this._resolvedIssuer.source !== 'unbranded'
+        ) {
             return {
                 url: this._resolvedIssuer.primary.url,
                 version: this._resolvedIssuer.primary.version,
@@ -1443,6 +1457,11 @@ export class FormEngine implements IFormEngine {
                 url: immediateSource.issuer.url,
                 version: immediateSource.issuer.version,
             };
+        }
+        if (immediateSource?.kind === 'url') {
+            throw new Error(
+                'Issuer URL must be resolved with getResolvedIssuer() before getResponse() can emit displayedIssuer',
+            );
         }
 
         return undefined;

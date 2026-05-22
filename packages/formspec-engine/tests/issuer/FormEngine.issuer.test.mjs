@@ -76,6 +76,71 @@ test('FormEngine resolves URL Issuer through injected fetcher', async () => {
   });
 });
 
+test('FormEngine rejects getResponse for unresolved URL Issuer', () => {
+  const definition = {
+    ...DEFINITION,
+    issuer: { url: 'https://issuer.example/issuer.json' },
+  };
+  const fetched = { ...ISSUER, url: 'https://issuer.example/issuer.json', version: '2.0.0' };
+  const fetcher = {
+    async fetch() {
+      return { issuer: fetched, rawBytes: new TextEncoder().encode(JSON.stringify(fetched)) };
+    },
+  };
+  const engine = new FormEngine(definition, { issuerFetcher: fetcher });
+
+  assert.throws(
+    () => engine.getResponse(),
+    /Issuer URL must be resolved with getResolvedIssuer\(\)/,
+  );
+});
+
+test('FormEngine ignores stale async Issuer resolution after host override', async () => {
+  const definition = {
+    ...DEFINITION,
+    issuer: { url: 'https://definition.example/issuer.json' },
+  };
+  const definitionIssuer = {
+    ...ISSUER,
+    url: 'https://definition.example/issuer.json',
+    version: '1.0.0',
+    name: 'Definition',
+  };
+  const hostIssuer = {
+    ...ISSUER,
+    url: 'https://host.example/issuer.json',
+    version: '2.0.0',
+    name: 'Host',
+  };
+  let releaseFetch;
+  const fetcher = {
+    async fetch() {
+      await new Promise((resolve) => {
+        releaseFetch = resolve;
+      });
+      return {
+        issuer: definitionIssuer,
+        rawBytes: new TextEncoder().encode(JSON.stringify(definitionIssuer)),
+      };
+    },
+  };
+  const engine = new FormEngine(definition, { issuerFetcher: fetcher });
+
+  const staleResolution = engine.getResolvedIssuer();
+  engine.setIssuerOverride({ kind: 'inline', issuer: hostIssuer });
+  const currentResolution = await engine.getResolvedIssuer();
+  releaseFetch();
+  const staleResolved = await staleResolution;
+  const response = engine.getResponse();
+
+  assert.equal(currentResolution.primary.url, 'https://host.example/issuer.json');
+  assert.equal(staleResolved.primary.url, 'https://definition.example/issuer.json');
+  assert.deepEqual(response.displayedIssuer, {
+    url: 'https://host.example/issuer.json',
+    version: '2.0.0',
+  });
+});
+
 test('FormEngine omits displayedIssuer for unbranded fallback', async () => {
   const { issuer: _issuer, ...definition } = DEFINITION;
   const engine = new FormEngine(definition);
