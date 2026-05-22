@@ -284,6 +284,7 @@ Each event **MUST** contain at least:
 - `priorEventHash` and `eventHash` **SHOULD** be present when integrity chaining is enabled. When a Respondent Ledger event is wrapped by a Trellis envelope, `eventHash` and `priorEventHash` **MUST** be present; `priorEventHash` is `null` only for the first event in the wrapped chain.
 - `attachmentBinding` **MUST** be present for `attachment.added` and `attachment.replaced`.
 - `priorAttachmentBindingHash` **MUST** be present for `attachment.removed`; `attachment.removed` **MUST NOT** carry a new `attachmentBinding`.
+- `actionEvent` **MUST** be present for `action.invoked`, `action.failed`, `action.deferred`, and `action.replayed`; those events **MUST NOT** carry `changes` or `validationSnapshot`.
 - `sessionRef` **SHOULD** be present when the implementation distinguishes respondent sessions.
 - `amendmentRef` **SHOULD** be present when an event belongs to a particular reopening/amendment cycle.
 
@@ -303,6 +304,7 @@ Each event **MUST** contain at least:
 - `identityAttestation` — provider-neutral record of identity, proof-of-personhood, DID, or delegation evidence associated with the event.
 - `attachmentBinding` — chain-bound `EvidenceAttachmentBinding` record for an added or replaced attachment, defined in §6.9.
 - `priorAttachmentBindingHash` — prior attachment-binding event hash referenced by an attachment removal.
+- `actionEvent` — Response Actions invocation payload for optional `action.*` events, defined in §8.5. The Ledger stores this payload without interpreting the semantic content of opaque `*Ref` fields.
 - `recordKind` — correction-profile discriminator for `response.correction-recorded`; when present it **MUST** equal `responseCorrection`.
 - `data` — structured `ResponseCorrection` payload for `response.correction-recorded`, defined in §11.3.
 - `priorEventHash` — previous event hash in the respondent-ledger chain, or `null` for the first event in a Trellis-wrapped chain.
@@ -660,6 +662,10 @@ An implementation **MAY** support additional material event types, including:
 - `response.migrated`
 - `response.correction-recorded`
 - `field.edit-recorded`
+- `action.invoked`
+- `action.failed`
+- `action.deferred`
+- `action.replayed`
 
 ### 8.3 Event type guidance
 
@@ -682,6 +688,10 @@ An implementation **MAY** support additional material event types, including:
 - `response.migrated` — response was transformed to a new definition version.
 - `response.correction-recorded` — additive correction to a prior submitted response event. The event **MUST** carry `recordKind = "responseCorrection"` and a `data` payload with the prior submission event hash, the corrected field subset, original/corrected field values, correction reason, and neutral authorization reference.
 - `field.edit-recorded` — optional event type for deployments that emit one durable event per field edit batch instead of carrying field-level entries only inside `draft.saved`, `autosave.coalesced`, `response.submit-attempted`, `response.amended`, migration, or merge events.
+- `action.invoked` — optional Response Actions audit event for an invocation entering the invoking state after snapshot and before preconditions.
+- `action.failed` — optional Response Actions audit event for an invocation ending in failed or blocked posture. The proximate cause remains runtime-owned and is carried as an opaque `causeRef`.
+- `action.deferred` — optional Response Actions audit event for an invocation whose effect chain deferred and produced a replay token.
+- `action.replayed` — optional Response Actions audit event for a retry or replay observing prior invocation outcomes.
 
 ### 8.4 Explicit exclusions
 
@@ -692,6 +702,25 @@ This specification does **not** require event types for:
 - page navigation,
 - every calculation reevaluation,
 - or rendering lifecycle events.
+
+### 8.5 Action lifecycle events
+
+The Respondent Ledger optionally records Response Actions invocation lifecycle. The four `action.*` event kinds are optional standardized extension points. Processors that do not implement the Response Actions companion **MUST NOT** emit them. Processors that do implement Response Actions **MAY** choose which invocation moments to record.
+
+| Event type | Meaning | Required `actionEvent` fields |
+|---|---|---|
+| `action.invoked` | A Response Actions invocation enters invoking state after snapshot and before preconditions. | `actionId`, `invocationId` |
+| `action.failed` | A Response Actions invocation reaches a failed or blocked terminal posture. | `actionId`, `invocationId`, `terminal = "failed"`, `causeRef` |
+| `action.deferred` | A Response Actions invocation deferred before completing its effect chain. | `actionId`, `invocationId`, `terminal = "deferred"`, `replayTokenRef` |
+| `action.replayed` | A Response Actions invocation observes prior outcomes instead of duplicating side effects. | `actionId`, `invocationId`, `terminal = "replayed"`, `priorInvocationRef` |
+
+`actionEvent.actionId` is the `Action.id` from the Response Actions document. `actionEvent.invocationId` is stable across replays of the same invocation. `actionEvent.attempt` is `1` on the first attempt and increments for bounded retries.
+
+The Ledger treats `causeRef`, `replayTokenRef`, and `priorInvocationRef` as opaque strings. Their semantic content belongs to the Response Actions runtime, but their byte encoding is constrained by the schema so hash-chain construction is deterministic across deployments.
+
+The completed lifecycle moment is already represented by `response.completed`; draft persistence is already represented by `draft.saved`; submit attempts are already represented by `response.submit-attempted`. Response Actions consumers should reuse those event kinds rather than duplicating them under `action.*`.
+
+These events are response-scoped audit records. They do **not** create or imply governed case identity, workflow acceptance, or case lifecycle authority.
 
 ---
 

@@ -1,0 +1,27 @@
+{
+  "eventId": "evt-action-0004",
+  "sequence": 4,
+  "eventType": "action.replayed",
+  "occurredAt": "2026-05-22T14:00:06Z",
+  "recordedAt": "2026-05-22T14:00:07Z",
+  "responseId": "resp-8d0b1e85",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "system",
+    "id": "formspec-runtime"
+  },
+  "source": {
+    "kind": "system-job",
+    "channelId": "response-actions-replay"
+  },
+  "priorEventHash": "sha256:cc33333333333333333333333333333333333333333333333333333333333333",
+  "eventHash": "sha256:dd44444444444444444444444444444444444444444444444444444444444444",
+  "actionEvent": {
+    "actionId": "submitApplication",
+    "invocationId": "inv-2026-05-22T140000Z",
+    "attempt": 2,
+    "terminal": "replayed",
+    "priorInvocationRef": "inv-2026-05-22T140000Z"
+  }
+}

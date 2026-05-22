@@ -1,0 +1,28 @@
+{
+  "eventId": "evt-action-0002",
+  "sequence": 2,
+  "eventType": "action.failed",
+  "occurredAt": "2026-05-22T14:00:02Z",
+  "recordedAt": "2026-05-22T14:00:03Z",
+  "responseId": "resp-8d0b1e85",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-17"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-portal"
+  },
+  "priorEventHash": "sha256:aa11111111111111111111111111111111111111111111111111111111111111",
+  "eventHash": "sha256:bb22222222222222222222222222222222222222222222222222222222222222",
+  "actionEvent": {
+    "actionId": "submitApplication",
+    "invocationId": "inv-2026-05-22T140000Z",
+    "attempt": 1,
+    "terminal": "failed",
+    "effectIndex": 1,
+    "causeRef": "effect:handoffAssembly:recipient-unavailable"
+  }
+}

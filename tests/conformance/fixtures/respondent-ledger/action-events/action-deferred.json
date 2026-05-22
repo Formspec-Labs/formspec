@@ -1,0 +1,29 @@
+{
+  "eventId": "evt-action-0003",
+  "sequence": 3,
+  "eventType": "action.deferred",
+  "occurredAt": "2026-05-22T14:00:04Z",
+  "recordedAt": "2026-05-22T14:00:05Z",
+  "responseId": "resp-8d0b1e85",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-17"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-portal"
+  },
+  "priorEventHash": "sha256:bb22222222222222222222222222222222222222222222222222222222222222",
+  "eventHash": "sha256:cc33333333333333333333333333333333333333333333333333333333333333",
+  "actionEvent": {
+    "actionId": "requestEvidence",
+    "invocationId": "inv-2026-05-22T140004Z",
+    "attempt": 1,
+    "terminal": "deferred",
+    "effectIndex": 0,
+    "causeRef": "effect:evidenceRequest:provider-pending",
+    "replayTokenRef": "replay:inv-2026-05-22T140004Z"
+  }
+}

@@ -79,6 +79,9 @@
     "validationSnapshot": {
       "$ref": "#/$defs/ValidationSnapshot"
     },
+    "actionEvent": {
+      "$ref": "#/$defs/ActionEventPayload"
+    },
     "identityAttestation": {
       "$ref": "#/$defs/IdentityAttestation"
     },
@@ -197,6 +200,95 @@
         "properties": { "eventType": { "const": "response.correction-recorded" } },
         "required": ["eventType"]
       }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "action.invoked" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["actionEvent"],
+        "not": {
+          "anyOf": [
+            { "required": ["changes"] },
+            { "required": ["validationSnapshot"] }
+          ]
+        },
+        "properties": {
+          "actionEvent": {
+            "not": { "required": ["terminal"] }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "action.failed" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["actionEvent"],
+        "not": {
+          "anyOf": [
+            { "required": ["changes"] },
+            { "required": ["validationSnapshot"] }
+          ]
+        },
+        "properties": {
+          "actionEvent": {
+            "required": ["terminal", "causeRef"],
+            "properties": {
+              "terminal": { "const": "failed" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "action.deferred" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["actionEvent"],
+        "not": {
+          "anyOf": [
+            { "required": ["changes"] },
+            { "required": ["validationSnapshot"] }
+          ]
+        },
+        "properties": {
+          "actionEvent": {
+            "required": ["terminal", "replayTokenRef"],
+            "properties": {
+              "terminal": { "const": "deferred" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "action.replayed" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["actionEvent"],
+        "not": {
+          "anyOf": [
+            { "required": ["changes"] },
+            { "required": ["validationSnapshot"] }
+          ]
+        },
+        "properties": {
+          "actionEvent": {
+            "required": ["terminal", "priorInvocationRef"],
+            "properties": {
+              "terminal": { "const": "replayed" }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -225,9 +317,13 @@
         "response.submit-attempted",
         "response.migrated",
         "response.correction-recorded",
-        "field.edit-recorded"
+        "field.edit-recorded",
+        "action.invoked",
+        "action.failed",
+        "action.deferred",
+        "action.replayed"
       ],
-      "description": "Canonical event classifications defined by the Respondent Ledger add-on. The first thirteen values are required event types; the remaining values are optional but standardized extension points."
+      "description": "Canonical event classifications defined by the Respondent Ledger add-on. The first thirteen values are required event types; the remaining values are optional but standardized extension points — including the optional action.* kinds in §8.5 which record Response Actions invocation lifecycle when a processor implements the Response Actions companion (specs/response-actions/response-actions-spec.md §6)."
     },
     "Actor": {
       "type": "object",
@@ -591,6 +687,66 @@
           "$ref": "#/$defs/Extensions"
         }
       }
+    },
+    "ActionEventPayload": {
+      "type": "object",
+      "required": ["actionId", "invocationId"],
+      "additionalProperties": false,
+      "properties": {
+        "actionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "The Action.id from the Response Actions document this invocation references. Mirrors the Action.id pattern published in response-actions.schema.json."
+        },
+        "invocationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+          "description": "Unique invocation identifier. Stable across replays of the same invocation. ASCII-printable per the pattern; deterministic UTF-8 encoding for hash-chain inclusion."
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "1 on first attempt; 2 on retry-once. Identifies the attempt within an invocation."
+        },
+        "terminal": {
+          "type": "string",
+          "enum": ["failed", "deferred", "replayed"],
+          "description": "Terminal state of the invocation, restricted to the values the four published action.* event kinds emit. action.invoked carries no terminal. action.failed uses failed; action.deferred uses deferred; action.replayed uses replayed. The completed lifecycle moment is covered by response.completed; the blocked terminal manifests via action.failed with a causeRef discriminator."
+        },
+        "effectIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Zero-based index of the EffectRequest in the Action.effects array. Present on action.failed and action.deferred when an effect is the proximate cause."
+        },
+        "causeRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+          "description": "Reference to a structured failure or deferral cause owned by the runtime. ASCII-printable per the pattern; deterministic UTF-8 encoding for hash-chain inclusion. The Ledger does not interpret the semantic content."
+        },
+        "replayTokenRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+          "description": "Reference to the runtime's replay token. Present on action.deferred. Invocation-scoped: MUST NOT be used to express cross-case or cross-response continuation. ASCII-printable; deterministic UTF-8 encoding."
+        },
+        "priorInvocationRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+          "description": "Reference to the prior invocation this event continues. Present on action.replayed. Invocation-lineage scope only; this is not a case continuation handle, response continuation, or session reference."
+        }
+      },
+      "description": "Payload bound to action.invoked / action.failed / action.deferred / action.replayed. The Ledger stores this payload verbatim; it does not interpret the semantic content of opaque *Ref fields, but their byte encoding is constrained so canonical event hashing is deterministic across deployments."
     },
     "DidString": {
       "type": "string",
