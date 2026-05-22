@@ -109,6 +109,7 @@ export interface FELRewriteOptions {
 
 export type DocumentType =
     | 'definition'
+    | 'issuer'
     | 'theme'
     | 'component'
     | 'mapping'
@@ -135,6 +136,7 @@ export interface SchemaValidationResult {
 
 export interface SchemaValidatorSchemas {
     definition?: object;
+    issuer?: object;
     theme?: object;
     component?: object;
     mapping?: object;

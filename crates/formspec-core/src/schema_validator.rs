@@ -14,6 +14,7 @@ use serde_json::Value;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DocumentType {
     Definition,
+    Issuer,
     Theme,
     Mapping,
     Ontology,
@@ -36,6 +37,7 @@ impl DocumentType {
     pub fn schema_key(&self) -> &'static str {
         match self {
             DocumentType::Definition => "definition",
+            DocumentType::Issuer => "issuer",
             DocumentType::Theme => "theme",
             DocumentType::Mapping => "mapping",
             DocumentType::Ontology => "ontology",
@@ -58,6 +60,7 @@ impl DocumentType {
     pub fn from_schema_key(key: &str) -> Option<Self> {
         match key {
             "definition" => Some(DocumentType::Definition),
+            "issuer" => Some(DocumentType::Issuer),
             "theme" => Some(DocumentType::Theme),
             "mapping" => Some(DocumentType::Mapping),
             "ontology" => Some(DocumentType::Ontology),
@@ -138,6 +141,7 @@ pub struct SchemaValidationPlan {
 ///   - References:        `$formspecReferences`
 ///   - Mapping:           `$formspecMapping`
 ///   - Response:          `$formspecResponse`
+///   - Issuer:            `$formspecIssuer`
 ///   - IntakeHandoff:     `$formspecIntakeHandoff`
 ///   - ValidationReport:  `$formspecValidationReport`
 ///   - ValidationResult:  `$formspecValidationResult`
@@ -145,6 +149,7 @@ pub struct SchemaValidationPlan {
 ///   - FEL Functions:     `$formspecFelFunctions`
 const MARKER_FIELDS: &[(&str, DocumentType)] = &[
     ("$formspec", DocumentType::Definition),
+    ("$formspecIssuer", DocumentType::Issuer),
     ("$formspecTheme", DocumentType::Theme),
     ("$formspecComponent", DocumentType::Component),
     ("$formspecRegistry", DocumentType::Registry),
@@ -320,6 +325,18 @@ mod tests {
     fn test_detect_definition() {
         let doc = json!({ "$formspec": "1.0", "items": [], "title": "Test" });
         assert_eq!(detect_document_type(&doc), Some(DocumentType::Definition));
+    }
+
+    #[test]
+    fn test_detect_issuer() {
+        let doc = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.org/issuers/acme.json",
+            "version": "1.0.0",
+            "name": "Acme",
+            "kind": "organization"
+        });
+        assert_eq!(detect_document_type(&doc), Some(DocumentType::Issuer));
     }
 
     #[test]
@@ -560,6 +577,7 @@ mod tests {
     #[test]
     fn schema_key_values() {
         assert_eq!(DocumentType::Definition.schema_key(), "definition");
+        assert_eq!(DocumentType::Issuer.schema_key(), "issuer");
         assert_eq!(DocumentType::Theme.schema_key(), "theme");
         assert_eq!(DocumentType::Mapping.schema_key(), "mapping");
         assert_eq!(DocumentType::Ontology.schema_key(), "ontology");
@@ -583,6 +601,10 @@ mod tests {
 
     #[test]
     fn schema_key_parser_accepts_public_values() {
+        assert_eq!(
+            DocumentType::from_schema_key("issuer"),
+            Some(DocumentType::Issuer)
+        );
         assert_eq!(
             DocumentType::from_schema_key("validation_report"),
             Some(DocumentType::ValidationReport)

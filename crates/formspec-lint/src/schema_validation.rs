@@ -73,6 +73,7 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
 
 struct SchemaSet {
     definition: Validator,
+    issuer: Validator,
     envelope_component: Validator,
     theme: Validator,
     response: Validator,
@@ -93,6 +94,7 @@ fn schema_set() -> &'static SchemaSet {
     static SET: OnceLock<SchemaSet> = OnceLock::new();
     SET.get_or_init(|| SchemaSet {
         definition: build_validator(DEFINITION_SCHEMA),
+        issuer: build_validator(ISSUER_SCHEMA),
         envelope_component: build_validator(COMPONENT_SCHEMA),
         theme: build_validator(THEME_SCHEMA),
         response: build_validator(RESPONSE_SCHEMA),
@@ -233,6 +235,7 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
 
     let validator = match doc_type {
         DocumentType::Definition => &set.definition,
+        DocumentType::Issuer => &set.issuer,
         DocumentType::Component => unreachable!(),
         DocumentType::Theme => &set.theme,
         DocumentType::Response => &set.response,
@@ -422,6 +425,45 @@ mod tests {
             ISSUER_SCHEMA,
             CANONICAL_ISSUER_SCHEMA,
             "issuer.schema.json",
+        );
+    }
+
+    #[test]
+    fn valid_standalone_issuer_produces_no_e101() {
+        let issuer = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.com/issuers/acme.json",
+            "version": "1.0.0",
+            "name": "Acme",
+            "kind": "organization"
+        });
+        let diags = validate_schema(&issuer, DocumentType::Issuer);
+        assert!(
+            diags.is_empty(),
+            "Valid standalone issuer should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_standalone_issuer_routes_to_e101() {
+        let issuer = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.com/issuers/acme.json",
+            "version": "1.0.0",
+            "name": "Acme"
+        });
+        let diags = validate_schema(&issuer, DocumentType::Issuer);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid standalone issuer should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
         );
     }
 

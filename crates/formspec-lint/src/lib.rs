@@ -256,6 +256,60 @@ mod tests {
         assert_eq!(result.document_type, Some(DocumentType::Definition));
     }
 
+    /// Spec: issuer sidecar - "$formspecIssuer" identifies a valid Issuer document.
+    #[test]
+    fn valid_issuer_passes_schema_lint() {
+        let issuer = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.com/issuers/acme.json",
+            "version": "1.0.0",
+            "name": "Acme",
+            "kind": "organization"
+        });
+        let result = lint(&issuer);
+        assert!(
+            result.valid,
+            "got: {:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(result.document_type, Some(DocumentType::Issuer));
+    }
+
+    #[test]
+    fn invalid_issuer_emits_e101_not_e100() {
+        let issuer = json!({
+            "$formspecIssuer": "1.0",
+            "url": "https://example.com/issuers/acme.json",
+            "version": "1.0.0",
+            "name": "Acme"
+        });
+        let result = lint(&issuer);
+        assert_eq!(result.document_type, Some(DocumentType::Issuer));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E101),
+            "invalid issuer should emit schema E101, got: {:?}",
+            result
+                .diagnostics
+                .iter()
+                .map(|d| (&d.code, &d.message))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .all(|d| d.code != crate::LintCode::E100),
+            "issuer marker should not fall through to E100"
+        );
+    }
+
     /// Spec: spec.md §2.1 — unrecognized document types emit E100 and halt
     #[test]
     fn unknown_document_emits_e100_and_halts() {

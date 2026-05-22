@@ -859,6 +859,28 @@ class TestRegistrySchema:
         assert "contactPoint" in pub["properties"]
         assert pub["properties"]["contact"]["deprecated"] is True
 
+    def test_er2_1__registry_and_ontology_publishers_stay_in_parity(self):
+        registry_pub = _def(REG_S, "Publisher")
+        ontology_pub = _def(ONT_S, "Publisher")
+        expected_props = {
+            "name",
+            "identifier",
+            "homepage",
+            "contactPoint",
+            "url",
+            "contact",
+        }
+
+        assert set(registry_pub["required"]) == {"name"}
+        assert set(ontology_pub["required"]) == {"name"}
+        assert set(registry_pub["properties"]) == expected_props
+        assert set(ontology_pub["properties"]) == expected_props
+        assert registry_pub["allOf"] == ontology_pub["allOf"]
+        assert registry_pub["properties"]["url"]["deprecated"] is True
+        assert ontology_pub["properties"]["url"]["deprecated"] is True
+        assert registry_pub["properties"]["contact"]["deprecated"] is True
+        assert ontology_pub["properties"]["contact"]["deprecated"] is True
+
     def test_er3__entry_required_fields(self):
         entry = _def(REG_S, "RegistryEntry")
         assert set(entry["required"]) == {
