@@ -8,12 +8,16 @@
 export const COMPONENT_BASE_PROP_NAMES = [
   'accessibility',
   'component',
+  'conceptRefs',
   'cssClass',
   'id',
   'layout',
   'responsive',
   'style',
+  'taskRefs',
+  'unitRef',
   'when',
+  'x-generation',
 ] as const;
 
 export const COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]> = {

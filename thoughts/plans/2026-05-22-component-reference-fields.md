@@ -168,6 +168,8 @@ Three conformance levels:
 
 ## Task 10: Schema delta — ComponentBase additions
 
+- [x] Add ComponentBase reference-field schema properties and keep downstream schema refs/lint mirror coherent with the `/1.1` id bump.
+
 Add four properties to `$defs/ComponentBase.properties`. Bump `$id` to `/1.1`. Broaden `$formspecComponent` enum to `["1.0", "1.1"]`. Cross-schema `$ref` for `conceptRefs.items`. Schema syntax + well-formedness checks via Ajv 2020-12.
 
 ## Task 11: Author shared base fixtures
@@ -261,3 +263,4 @@ Task 21:       promotion-gate + architecture review
 - 2026-05-22: Before Task 1, external review found Response Actions validation-tuple hardening gaps in the dirty precondition slice. Remediated those HIGH/WARNING findings first so the Response Actions precondition remains audit-ready before component reference fields land; also fixed the related dist-backed warning-test isolation and archived thought-plan links needed by the gate.
 - 2026-05-22: Architecture review blocked scaffold-only `spec-artifacts.config.json` and `surface-coverage.json` edits. Repo gates require every configured spec/schema pair to have an enforced, path-backed contract row; adding either now would fail metadata checks or overclaim proof. Task 1 was split into Task 1A now, with Task 1B/1C deferred to the proof-surface slice.
 - 2026-05-22: Task 7 architecture review expanded the resolver context from the plan's original Component/Experience/ResponseActions/Registry tuple to include optional Definition and Ontology context, and required an explicit authored-tree/custom-template traversal surface so `item:` anchors and nodes without `id` have deterministic report keys.
+- 2026-05-22: Task 10 architecture review expanded the schema delta beyond `schemas/component.schema.json`. Bumping the Component schema `$id` to `/1.1` requires canonical TargetDefinition `$ref` consumers and the lint-crate schema registration/mirror to move with it, otherwise local schema registries and generated types lose the component resource.

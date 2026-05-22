@@ -31,6 +31,25 @@ const generatedComponent: ComponentDocument = {
   tree: { component: 'Text', text: 'Hello' },
   'x-acme': true,
 };
+const generatedComponentWithReferenceFields: ComponentDocument = {
+  $formspecComponent: '1.1',
+  version: '1.0.0',
+  targetDefinition: { url: 'urn:test:definition' },
+  tree: {
+    component: 'TextInput',
+    bind: 'name',
+    unitRef: 'identity',
+    taskRefs: ['identifyApplicant'],
+    conceptRefs: [{ id: 'personName', source: 'registry' }],
+    'x-generation': {
+      source: 'unit:identity',
+      strategy: 'unit-to-section',
+      generatedBy: 'formspec-types-test',
+      generatedAt: '2026-05-22T00:00:00Z',
+      anchors: ['unit:identity', 'task:identifyApplicant'],
+    },
+  },
+};
 const generatedTheme: ThemeDocument = {
   $formspecTheme: '1.0',
   version: '1.0.0',
@@ -88,6 +107,7 @@ void noThemeWidget;
 void customComponent;
 void generatedDefinition;
 void generatedComponent;
+void generatedComponentWithReferenceFields;
 void generatedTheme;
 void generatedThemeWithWidget;
 void generatedDefinitionExtensions;

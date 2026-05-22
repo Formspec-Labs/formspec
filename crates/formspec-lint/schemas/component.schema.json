@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/component/1.0",
+  "$id": "https://formspec.org/schemas/component/1.1",
   "title": "Formspec Component Document",
   "description": "A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.",
   "type": "object",
@@ -17,9 +17,9 @@
   "properties": {
     "$formspecComponent": {
       "type": "string",
-      "const": "1.0",
-      "description": "Component specification version. MUST be '1.0'.",
-      "examples": ["1.0"],
+      "enum": ["1.0", "1.1"],
+      "description": "Component specification version. MUST be '1.0' or '1.1'.",
+      "examples": ["1.0", "1.1"],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for component document compatibility."
@@ -201,6 +201,57 @@
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
           "description": "Optional unique identifier for this node within the component tree. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. When present, MUST be unique across the entire component tree document. Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id."
+        },
+        "unitRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Optional reference to an Experience Unit.id. Report-only metadata; does not affect rendering, binding, validation, or Response semantics."
+        },
+        "taskRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+          },
+          "description": "Optional references to Experience Task.id values. Report-only metadata; order is authoring/reporting order only."
+        },
+        "conceptRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "https://formspec.org/schemas/experience/1.0#/$defs/ConceptRef"
+          },
+          "description": "Optional concept references using the Experience ConceptRef shape. Host-policy metadata; does not execute validation or mapping logic."
+        },
+        "x-generation": {
+          "type": "object",
+          "description": "Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "Generator source label, such as an Experience Unit, prompt, template, or generator input bundle."
+            },
+            "strategy": {
+              "type": "string",
+              "description": "Generator strategy identifier, such as unit-to-section or a host-defined strategy name."
+            },
+            "generatedBy": {
+              "type": "string",
+              "description": "Generator name and version, service id, or other producer identifier."
+            },
+            "generatedAt": {
+              "type": "string",
+              "description": "Generation timestamp. Authors SHOULD use an RFC 3339 date-time string."
+            },
+            "anchors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(item|unit|task|action|concept):.+$"
+              },
+              "description": "Source anchors with a standard prefix and source-layer-owned suffix."
+            }
+          },
+          "additionalProperties": true
         },
         "component": {
           "type": "string",

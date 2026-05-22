@@ -14,7 +14,7 @@ COMPONENT = json.loads((ROOT / "schemas" / "component.schema.json").read_text())
 def _v():
     store = {
         "https://formspec.org/schemas/common/1.0": COMMON,
-        "https://formspec.org/schemas/component/1.0": COMPONENT,
+        "https://formspec.org/schemas/component/1.1": COMPONENT,
     }
     return Draft202012Validator(ONT, resolver=RefResolver.from_schema(ONT, store=store))
 

@@ -694,8 +694,8 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <td><code>$formspecComponent</code></td>
 <td><code>string</code></td>
 <td>yes</td>
-<td>const: <code>“1.0”</code>; critical</td>
-<td>Component specification version. MUST be ‘1.0’.</td>
+<td>enum: <code>“1.0”</code>, <code>“1.1”</code>; critical</td>
+<td>Component specification version. MUST be ‘1.0’ or ‘1.1’.</td>
 </tr>
 <tr>
 <td><code>#/properties/breakpoints</code></td>
@@ -947,6 +947,40 @@ category.</td>
 <td>FEL boolean expression for conditional rendering. See §8.</td>
 </tr>
 <tr>
+<td><code>unitRef</code></td>
+<td>string</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Reference metadata linking the node to an Experience Unit. See <a
+href="component-reference-fields-spec.md#2-unitref">Component Reference
+Fields §2</a>.</td>
+</tr>
+<tr>
+<td><code>taskRefs</code></td>
+<td>array of strings</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Advisory reference metadata linking the node to Experience Tasks.
+See <a href="component-reference-fields-spec.md#3-taskrefs">Component
+Reference Fields §3</a>.</td>
+</tr>
+<tr>
+<td><code>conceptRefs</code></td>
+<td>array of ConceptRef objects</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Host-policy concept metadata using the Experience
+<code>ConceptRef</code> shape. See <a
+href="component-reference-fields-spec.md#4-conceptrefs">Component
+Reference Fields §4</a>.</td>
+</tr>
+<tr>
+<td><code>x-generation</code></td>
+<td>object</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Generation provenance metadata. Renderers MUST ignore it for default
+runtime output. See <a
+href="component-reference-fields-spec.md#5-x-generation">Component
+Reference Fields §5</a>.</td>
+</tr>
+<tr>
 <td><code>responsive</code></td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
@@ -958,6 +992,13 @@ category.</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Flat style map. Values MAY contain <code>$token.path</code>
 references. See §10.2.</td>
+</tr>
+<tr>
+<td><code>layout</code></td>
+<td>ComponentLayout</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Typed structural placement hints, such as grid placement metadata
+for documented layout contexts.</td>
 </tr>
 <tr>
 <td><code>cssClass</code></td>

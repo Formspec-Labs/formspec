@@ -252,7 +252,7 @@ Component Document that omits a REQUIRED property.
 <!-- generated:schema-ref id=component-top-level -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
-| `#/properties/$formspecComponent` | `$formspecComponent` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Component specification version. MUST be '1.0'. |
+| `#/properties/$formspecComponent` | `$formspecComponent` | <code>string</code> | yes | enum: <code>"1.0"</code>, <code>"1.1"</code>; critical | Component specification version. MUST be '1.0' or '1.1'. |
 | `#/properties/breakpoints` | `breakpoints` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Breakpoints</code> | Named viewport breakpoints for responsive prop overrides. Keys are breakpoint names; values are minimum viewport widths in pixels. Mobile-first cascade: base props apply to all widths, then overrides merge in ascending order. |
 | `#/properties/components` | `components` | <code>object</code> | no | — | Registry of custom component templates. Keys are PascalCase names (MUST NOT collide with built-in names). Each template has params and a tree that is instantiated with {param} interpolation. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description. |
@@ -356,8 +356,13 @@ are recognized on all component objects:
 | `id` | string | **0..1** (OPTIONAL) | Unique identifier within the component tree document. See below. |
 | `bind` | string | **0..1** (varies) | Item key from the Definition. See §4 for rules per component category. |
 | `when` | string (FEL) | **0..1** (OPTIONAL) | FEL boolean expression for conditional rendering. See §8. |
+| `unitRef` | string | **0..1** (OPTIONAL) | Reference metadata linking the node to an Experience Unit. See [Component Reference Fields §2](component-reference-fields-spec.md#2-unitref). |
+| `taskRefs` | array of strings | **0..1** (OPTIONAL) | Advisory reference metadata linking the node to Experience Tasks. See [Component Reference Fields §3](component-reference-fields-spec.md#3-taskrefs). |
+| `conceptRefs` | array of ConceptRef objects | **0..1** (OPTIONAL) | Host-policy concept metadata using the Experience `ConceptRef` shape. See [Component Reference Fields §4](component-reference-fields-spec.md#4-conceptrefs). |
+| `x-generation` | object | **0..1** (OPTIONAL) | Generation provenance metadata. Renderers MUST ignore it for default runtime output. See [Component Reference Fields §5](component-reference-fields-spec.md#5-x-generation). |
 | `responsive` | object | **0..1** (OPTIONAL) | Breakpoint-keyed prop overrides. See §9. |
 | `style` | object | **0..1** (OPTIONAL) | Flat style map. Values MAY contain `$token.path` references. See §10.2. |
+| `layout` | ComponentLayout | **0..1** (OPTIONAL) | Typed structural placement hints, such as grid placement metadata for documented layout contexts. |
 | `cssClass` | string \| array of strings | **0..1** (OPTIONAL) | CSS class name(s) that web renderers SHOULD apply to the component's root element. Additive to renderer-generated classes. Non-web renderers MAY ignore. Values MAY contain `$token.` references. |
 | `accessibility` | AccessibilityBlock | **0..1** (OPTIONAL) | Accessibility overrides applied to the component's root element. See §3.5. |
 | `children` | array | **0..1** (varies) | Array of child component objects. Only components that accept children (§3.4) MAY include this property. |

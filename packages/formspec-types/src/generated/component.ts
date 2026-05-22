@@ -7,6 +7,7 @@
 
 /* eslint-disable */
 import type { TargetDefinition, Tokens, Breakpoints, StyleMap, AccessibilityBlock, Extensions, VisualSurfaceProps } from './common.js';
+import type { ConceptRef } from './experience.js';
 /**
  * Component subtree instantiated when this custom component is used.
  */
@@ -51,7 +52,7 @@ export type AnyComponent = {
 /**
  * Top-level page/section container. In a multi-step form, each Section is one step. Sections MAY also be used standalone within a Stack for sectioned single-page forms.
  */
-export type Section = VisualSurfaceProps & {
+export type Section = ComponentBase & VisualSurfaceProps & {
   component: 'Section';
   /**
    * Section heading displayed at the top of the section.
@@ -108,7 +109,7 @@ export type AnyComponent2 =
 /**
  * Flexbox stacking container arranging children vertically or horizontally. The most common layout primitive — typically used as the root component.
  */
-export type Stack = VisualSurfaceProps & {
+export type Stack = ComponentBase & VisualSurfaceProps & {
   component: 'Stack';
   /**
    * Stack axis.
@@ -135,7 +136,7 @@ export type Stack = VisualSurfaceProps & {
 /**
  * Multi-column grid layout distributing children across columns in source order, wrapping to new rows as needed.
  */
-export type Grid = VisualSurfaceProps & {
+export type Grid = ComponentBase & VisualSurfaceProps & {
   component: 'Grid';
   /**
    * Column count, explicit track array, or CSS grid-template-columns value. Numeric array entries normalize to fr weights.
@@ -161,7 +162,7 @@ export type GridTrack = string | number;
 /**
  * Bordered surface that visually groups related content with optional header.
  */
-export type Card = VisualSurfaceProps & {
+export type Card = ComponentBase & VisualSurfaceProps & {
   component: 'Card';
   /**
    * Card header title.
@@ -176,7 +177,7 @@ export type Card = VisualSurfaceProps & {
 /**
  * Side panel for supplementary content, help text, or contextual actions. Positioned alongside the main content.
  */
-export type Panel = VisualSurfaceProps & {
+export type Panel = ComponentBase & VisualSurfaceProps & {
   component: 'Panel';
   /**
    * Panel placement relative to main content.
@@ -245,9 +246,9 @@ export type AnyComponent3 = {
  */
 export interface ComponentDocument {
   /**
-   * Component specification version. MUST be '1.0'.
+   * Component specification version. MUST be '1.0' or '1.1'.
    */
-  $formspecComponent: '1.0';
+  $formspecComponent: '1.0' | '1.1';
   /**
    * Canonical URI identifier for this Component Document.
    */
@@ -304,7 +305,7 @@ export interface CustomComponentDef {
 /**
  * Single-line or multi-line text input. Default input for string-type fields. When maxLines > 1, renders as textarea.
  */
-export interface TextInput {
+export interface TextInput extends ComponentBase {
   component: 'TextInput';
   /**
    * Item key from the target Definition. Renderer inherits label, required, readonly, relevant, and validation.
@@ -338,7 +339,7 @@ export interface TextInput {
 /**
  * Numeric input with optional step controls. Suitable for integers, decimals, and monetary values (when paired with prefix/suffix).
  */
-export interface NumberInput {
+export interface NumberInput extends ComponentBase {
   component: 'NumberInput';
   /**
    * Item key from the target Definition.
@@ -372,7 +373,7 @@ export interface NumberInput {
 /**
  * Date, datetime, or time picker. Mode is automatically determined by the bound item's dataType (date → date picker, dateTime → date+time, time → time picker).
  */
-export interface DatePicker {
+export interface DatePicker extends ComponentBase {
   component: 'DatePicker';
   /**
    * Item key from the target Definition.
@@ -402,7 +403,7 @@ export interface DatePicker {
 /**
  * Dropdown selection control. Options are read from the bound item's options array or optionSet reference in the Definition.
  */
-export interface Select {
+export interface Select extends ComponentBase {
   component: 'Select';
   /**
    * Item key from the target Definition.
@@ -428,7 +429,7 @@ export interface Select {
 /**
  * Group of checkboxes for multi-select fields. Options are read from the bound item's options or optionSet.
  */
-export interface CheckboxGroup {
+export interface CheckboxGroup extends ComponentBase {
   component: 'CheckboxGroup';
   /**
    * Item key from the target Definition.
@@ -446,7 +447,7 @@ export interface CheckboxGroup {
 /**
  * Boolean switch/toggle control for yes/no, on/off, or true/false fields.
  */
-export interface Toggle {
+export interface Toggle extends ComponentBase {
   component: 'Toggle';
   /**
    * Item key from the target Definition.
@@ -464,7 +465,7 @@ export interface Toggle {
 /**
  * File upload control for attachment-type fields. Supports single or multiple file selection with optional type and size constraints.
  */
-export interface FileUpload {
+export interface FileUpload extends ComponentBase {
   component: 'FileUpload';
   /**
    * Item key from the target Definition.
@@ -490,7 +491,7 @@ export interface FileUpload {
 /**
  * Section heading element for visual hierarchy. Purely presentational — does not bind to data.
  */
-export interface Heading {
+export interface Heading extends ComponentBase {
   component: 'Heading';
   /**
    * Heading level 1–6. Corresponds to HTML <h1>–<h6> semantics.
@@ -504,7 +505,7 @@ export interface Heading {
 /**
  * Static or data-bound text block. When bind is present, displays the bound item's current value as read-only. When absent, displays the static text prop.
  */
-export interface Text {
+export interface Text extends ComponentBase {
   component: 'Text';
   /**
    * Item key. When present, displays the bound item's formatted value (read-only).
@@ -522,7 +523,7 @@ export interface Text {
 /**
  * Horizontal rule separating sections of the form.
  */
-export interface Divider {
+export interface Divider extends ComponentBase {
   component: 'Divider';
   /**
    * Optional label text centered on the divider line.
@@ -532,7 +533,7 @@ export interface Divider {
 /**
  * Expandable/collapsible section. User toggles child visibility via clickable header. Collapsed children stay in DOM — bound data is preserved.
  */
-export interface Collapsible {
+export interface Collapsible extends ComponentBase {
   component: 'Collapsible';
   /**
    * Collapsible section header. Visible regardless of open/closed state.
@@ -547,7 +548,7 @@ export interface Collapsible {
 /**
  * Container whose visibility is controlled by a REQUIRED when expression. Exists solely to conditionally show/hide a group of children. Data-bound children retain values when hidden (unlike Bind relevant).
  */
-export interface ConditionalGroup {
+export interface ConditionalGroup extends ComponentBase {
   component: 'ConditionalGroup';
   /**
    * Text displayed when the condition is false.
@@ -558,7 +559,7 @@ export interface ConditionalGroup {
 /**
  * Tabbed navigation container. Each child is one tab's content. Tab labels from child Section titles or tabLabels array. All children stay mounted — switching changes visibility, not lifecycle.
  */
-export interface Tabs {
+export interface Tabs extends ComponentBase {
   component: 'Tabs';
   /**
    * Tab bar placement.
@@ -577,7 +578,7 @@ export interface Tabs {
 /**
  * Button that invokes a named Action from the loaded Response Actions document. Validation and host event behavior come from the resolved Action, not from widget-local policy.
  */
-export interface ActionButton {
+export interface ActionButton extends ComponentBase {
   component: 'ActionButton';
   /**
    * Id of the Action in the loaded Response Actions document that this button invokes on click. MUST satisfy the Action.id pattern.
@@ -611,7 +612,7 @@ export interface ActionButton {
 /**
  * Vertical list of collapsible sections. By default only one expanded at a time. Children SHOULD have title props (Section, Card, Collapsible) for section headers.
  */
-export interface Accordion {
+export interface Accordion extends ComponentBase {
   component: 'Accordion';
   /**
    * Optional bind path to a repeating group. When provided, each instance becomes one accordion section.
@@ -634,7 +635,7 @@ export interface Accordion {
 /**
  * Radio buttons for single-select choice fields. All options visible simultaneously — suitable for short lists (typically ≤7 items).
  */
-export interface RadioGroup {
+export interface RadioGroup extends ComponentBase {
   component: 'RadioGroup';
   /**
    * Item key from the target Definition.
@@ -652,7 +653,7 @@ export interface RadioGroup {
 /**
  * Currency-aware numeric input displaying currency symbol and formatted number. Stores raw numeric value without formatting.
  */
-export interface MoneyInput {
+export interface MoneyInput extends ComponentBase {
   component: 'MoneyInput';
   /**
    * Item key from the target Definition.
@@ -694,7 +695,7 @@ export interface MoneyInput {
 /**
  * Range slider for selecting a numeric value within a continuous range.
  */
-export interface Slider {
+export interface Slider extends ComponentBase {
   component: 'Slider';
   /**
    * Item key from the target Definition.
@@ -724,7 +725,7 @@ export interface Slider {
 /**
  * Star (or icon) rating control for selecting an integer value within a small range (typically 1–5 or 1–10).
  */
-export interface Rating {
+export interface Rating extends ComponentBase {
   component: 'Rating';
   /**
    * Item key from the target Definition.
@@ -746,7 +747,7 @@ export interface Rating {
 /**
  * Signature capture pad recording a drawn signature as an image attachment.
  */
-export interface Signature {
+export interface Signature extends ComponentBase {
   component: 'Signature';
   /**
    * Item key from the target Definition.
@@ -772,7 +773,7 @@ export interface Signature {
 /**
  * Status message block for informational banners, warnings, error summaries, or success messages.
  */
-export interface Alert {
+export interface Alert extends ComponentBase {
   component: 'Alert';
   /**
    * Alert severity. Determines visual styling and ARIA role (alert for error/warning, status for info/success).
@@ -790,7 +791,7 @@ export interface Alert {
 /**
  * Small label badge for status indicators, counts, or tags.
  */
-export interface Badge {
+export interface Badge extends ComponentBase {
   component: 'Badge';
   /**
    * Badge label text.
@@ -804,7 +805,7 @@ export interface Badge {
 /**
  * Visual progress indicator. When bound, reads value from data. When unbound, uses static value prop.
  */
-export interface ProgressBar {
+export interface ProgressBar extends ComponentBase {
   component: 'ProgressBar';
   /**
    * Item key. When present, reads current value from data.
@@ -830,7 +831,7 @@ export interface ProgressBar {
 /**
  * Key-value summary display showing multiple field labels and current values. Useful for review pages.
  */
-export interface Summary {
+export interface Summary extends ComponentBase {
   component: 'Summary';
   /**
    * Array of summary entries. Each has a display label, a bind key for the value, and optional optionSet for resolving choice values to labels.
@@ -853,7 +854,7 @@ export interface Summary {
 /**
  * Validation message panel for live validation or the latest submit result. Can render jump links to focus affected fields.
  */
-export interface ValidationSummary {
+export interface ValidationSummary extends ComponentBase {
   component: 'ValidationSummary';
   /**
    * Validation source. 'live' reads continuous engine state; 'submit' reads the latest formspec-submit event detail.
@@ -879,7 +880,7 @@ export interface ValidationSummary {
 /**
  * Tabular display of repeatable group data. Each repeat instance becomes a row; each column displays a field within the repeat. One of the few components that MAY bind to a repeatable group.
  */
-export interface DataTable {
+export interface DataTable extends ComponentBase {
   component: 'DataTable';
   /**
    * Repeatable group item key. Each repeat instance becomes a table row.
@@ -926,7 +927,7 @@ export interface DataTable {
 /**
  * Dialog overlay displaying content above the main form. Requires explicit user action to open/close. Traps focus while open.
  */
-export interface Modal {
+export interface Modal extends ComponentBase {
   component: 'Modal';
   /**
    * Modal dialog title.
@@ -961,7 +962,7 @@ export interface Modal {
 /**
  * Lightweight anchored overlay showing contextual content when trigger is activated.
  */
-export interface Popover {
+export interface Popover extends ComponentBase {
   component: 'Popover';
   /**
    * Bind key whose live value is used as trigger text.
@@ -1008,7 +1009,7 @@ export type CustomComponentName =
   | `Y${string}`
   | `Z${string}`;
 
-export interface CustomComponentRef {
+export interface CustomComponentRef extends ComponentBase {
   /**
    * Custom component name. MUST be a key in the components registry. MUST be PascalCase. MUST NOT be a built-in component name or a reserved component identifier.
    */
@@ -1040,6 +1041,44 @@ export interface ComponentBase {
    * Optional unique identifier for this node within the component tree. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. When present, MUST be unique across the entire component tree document. Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id.
    */
   id?: string;
+  /**
+   * Optional reference to an Experience Unit.id. Report-only metadata; does not affect rendering, binding, validation, or Response semantics.
+   */
+  unitRef?: string;
+  /**
+   * Optional references to Experience Task.id values. Report-only metadata; order is authoring/reporting order only.
+   */
+  taskRefs?: string[];
+  /**
+   * Optional concept references using the Experience ConceptRef shape. Host-policy metadata; does not execute validation or mapping logic.
+   */
+  conceptRefs?: ConceptRef[];
+  /**
+   * Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.
+   */
+  'x-generation'?: {
+    /**
+     * Generator source label, such as an Experience Unit, prompt, template, or generator input bundle.
+     */
+    source?: string;
+    /**
+     * Generator strategy identifier, such as unit-to-section or a host-defined strategy name.
+     */
+    strategy?: string;
+    /**
+     * Generator name and version, service id, or other producer identifier.
+     */
+    generatedBy?: string;
+    /**
+     * Generation timestamp. Authors SHOULD use an RFC 3339 date-time string.
+     */
+    generatedAt?: string;
+    /**
+     * Source anchors with a standard prefix and source-layer-owned suffix.
+     */
+    anchors?: string[];
+    [k: string]: unknown;
+  };
   /**
    * Component type name. MUST be a built-in name or a key in the components registry.
    */

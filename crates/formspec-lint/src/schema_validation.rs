@@ -56,7 +56,7 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
     ),
     (
         COMPONENT_SCHEMA,
-        "https://formspec.org/schemas/component/1.0",
+        "https://formspec.org/schemas/component/1.1",
     ),
     (
         DEFINITION_SCHEMA,
@@ -77,6 +77,10 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
     (
         RESPONSE_ACTIONS_SCHEMA,
         "https://formspec.org/schemas/responseActions/1.0",
+    ),
+    (
+        EXPERIENCE_SCHEMA,
+        "https://formspec.org/schemas/experience/1.0",
     ),
 ];
 

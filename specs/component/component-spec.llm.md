@@ -16,7 +16,7 @@ Source schema: `schemas/component.schema.json`
 
 | Pointer | Required | Type | Guidance | Description |
 |---|---|---|---|---|
-| `#/properties/$formspecComponent` | yes | string | Version pin for component document compatibility. | Component specification version. MUST be '1.0'. |
+| `#/properties/$formspecComponent` | yes | string | Version pin for component document compatibility. | Component specification version. MUST be '1.0' or '1.1'. |
 | `#/properties/targetDefinition` | yes | $ref | Declares which definition this component tree is designed to render. | Binding to the target Formspec Definition and optional compatibility range. |
 | `#/properties/tree` | yes | $ref | Entry point for all component layout and binding declarations. | Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Section). |
 | `#/properties/version` | yes | string | Revision identifier for the component tree document. | Version of this Component Document. |

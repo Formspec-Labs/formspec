@@ -1256,15 +1256,14 @@ class TestBucket1SchemaStructure:
         spec_path = pathlib.Path(__file__).parents[3] / "specs" / "component" / "component-spec.md"
         spec_text = spec_path.read_text()
 
-        # Extract §3.1 table rows — backtick-quoted property names
-        table_props = set(re.findall(r"\| `(\w+)` \|", spec_text))
+        section = spec_text.split("### 3.1 Component Object Base Properties", 1)[1]
+        section = section.split("##### `id` (Optional)", 1)[0]
+        table_props = set(re.findall(r"\| `([^`]+)` \|", section))
 
-        # Base properties that every component has in the schema (shared $defs used by all)
-        # These are the properties present in the base component schema aside from 'component' itself.
-        schema_base = {"component", "bind", "when", "responsive", "style", "cssClass",
-                       "children", "accessibility"}
+        schema_base = set(COMP_S["$defs"]["ComponentBase"]["properties"].keys())
+        recognized_common_props = schema_base | {"bind", "children"}
 
-        missing = schema_base - table_props
+        missing = recognized_common_props - table_props
         assert not missing, (
             f"component-spec.md §3.1 table is missing base properties: {sorted(missing)}. "
             "Add them to the table in §3.1 to prevent schema/spec drift."

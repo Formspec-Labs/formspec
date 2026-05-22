@@ -95,6 +95,26 @@ function inlineResponseActionsCompileRefs(schema) {
   return walk(schema);
 }
 
+function withComponentBaseFields(source, schema) {
+  const componentRefs = schema?.$defs?.AnyComponent?.oneOf ?? [];
+  const componentNames = componentRefs
+    .map((entry) => entry?.$ref?.split('/').pop())
+    .filter((name) => name && name !== 'ComponentBase');
+
+  let next = source;
+  for (const name of componentNames) {
+    next = next.replace(
+      new RegExp(`export interface ${name} \\{`),
+      `export interface ${name} extends ComponentBase {`,
+    );
+    next = next.replace(
+      new RegExp(`export type ${name} = (?!ComponentBase & )`),
+      `export type ${name} = ComponentBase & `,
+    );
+  }
+  return next;
+}
+
 /** Schema files to generate types from. Order matters: earlier = canonical source. */
 const SCHEMA_SOURCES = [
   { file: 'common.schema.json', title: 'CommonSchema' },
@@ -623,9 +643,15 @@ async function main() {
       $refOptions,
     });
 
+    const moduleName = basename(file, '.schema.json');
+    let source = FILE_BANNER + postProcess(ts, moduleName);
+    if (file === 'component.schema.json') {
+      source = withComponentBaseFields(source, rawSchema);
+    }
+
     modules.push({
-      name: basename(file, '.schema.json'),
-      source: FILE_BANNER + postProcess(ts, basename(file, '.schema.json')),
+      name: moduleName,
+      source,
     });
   }
 
