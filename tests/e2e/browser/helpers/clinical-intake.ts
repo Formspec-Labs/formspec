@@ -28,11 +28,11 @@ const REGISTRIES_DIR = path.join(ROOT, 'registries');
 const CLINICAL_RESPONSE_ACTIONS = {
   $formspecResponseActions: '1.0',
   version: '1.0.0',
+  targetDefinition: { url: 'https://formspec.org/examples/clinical-intake' },
   actions: [
     {
       id: 'submit-intake',
       intent: 'submit',
-      validation: { profile: 'on-submit' },
       effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
     },
   ],

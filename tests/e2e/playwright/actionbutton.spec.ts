@@ -57,6 +57,10 @@ const RESPONSE_ACTIONS = {
     {
       id: 'submit-application',
       intent: 'submit',
+      // Non-blocking: this test asserts formspec-submit detail carries invalid
+      // validationReport; master-table submit uses block-on-error and suppresses
+      // hostEvent when validation fails.
+      validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
       effects: [
         { type: 'hostEvent', eventName: 'formspec-submit' },
       ],

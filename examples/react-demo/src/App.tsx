@@ -6,6 +6,22 @@ import definition from './definition.json';
 import theme from './theme.json';
 import registry from '../../../registries/formspec-common.registry.json';
 
+const responseActionsDocument = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: definition.url },
+    actions: [
+        {
+            id: 'submit-application',
+            intent: 'submit',
+            // Non-blocking so demo onSubmit receives validation errors (§10 master-table
+            // submit intent uses block-on-error, which suppresses hostEvent on failure).
+            validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
+            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        },
+    ],
+};
+
 const SOURCE_FILES = [
     { label: 'definition.json', data: definition },
     { label: 'theme.json', data: theme },
@@ -96,6 +112,7 @@ export function App() {
                     definition={definition}
                     themeDocument={theme}
                     registryEntries={registry.entries}
+                    responseActionsDocument={responseActionsDocument}
                     onSubmit={setResult}
                 />
 
