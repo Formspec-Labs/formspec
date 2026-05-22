@@ -2108,7 +2108,7 @@ Expected: `specs/core/validation-mapping.llm.md` is created. BLUF marker is fill
 Run all three test surfaces in parallel:
 
 ```bash
-cd formspec && python3 -m pytest tests/conformance/schemas/test_validation_mapping_schema.py tests/conformance/spec/test_validation_mapping_table.py -v
+cd formspec && .venv/bin/python -m pytest tests/conformance/schemas/test_validation_mapping_schema.py tests/conformance/spec/test_validation_mapping_table.py -v
 ```
 
 Expected: All tests PASS.
@@ -2121,12 +2121,41 @@ cd formspec && npm run docs:check 2>&1 | tail -30
 
 Expected: docs:check completes without errors related to `validation-mapping`.
 
-- [ ] **Step 5: Sanity check — full test suite for regressions**
+- [ ] **Step 5: Broader parity gates — lint fences, packages, crates**
 
-Run: `cd formspec && python3 -m pytest tests/conformance/ -q 2>&1 | tail -20`
+Run the repo-level gates that prove the spec/schema addition did not drift from generated artifacts, package contracts, or Rust crate contracts:
+
+```bash
+cd formspec && npm run check:deps
+cd formspec && npm run build
+cd formspec && npm run test:unit
+cd formspec && npm run test:scripts
+cd formspec && cargo nextest run --workspace
+```
+
+Expected: dependency fences PASS, all npm workspace packages build, package unit tests PASS, script tests PASS, and Rust workspace tests PASS. If any gate is already red because of unrelated working-tree changes, capture the exact failing command and failure boundary before proceeding; do not hide the failure under the Validation Mapping change.
+
+- [ ] **Step 6: Full conformance regression**
+
+Run:
+
+```bash
+cd formspec && .venv/bin/python -m pytest tests/conformance/ -q
+```
+
 Expected: existing conformance tests still PASS; no regressions caused by the new files. (The mapping adds files; it does not modify existing schemas or specs in behavior-affecting ways. Existing tests should be untouched.)
 
-- [ ] **Step 6: Commit generated artifacts**
+- [ ] **Step 7: Optional browser/E2E parity**
+
+Run if package build/unit/crate gates are green and the local environment has Playwright browsers installed:
+
+```bash
+cd formspec && npm run test:e2e
+```
+
+Expected: E2E tests PASS or any pre-existing environment/browser setup failure is documented separately from Validation Mapping.
+
+- [ ] **Step 8: Commit generated artifacts**
 
 ```bash
 cd formspec && git add scripts/spec-artifacts.config.json filemap.json specs/core/validation-mapping.llm.md
@@ -2198,11 +2227,13 @@ Verify the plan and spec do NOT:
 
 If all checks pass, the plan is complete. Final state: validation-mapping companion is landed (draft 1.0.0-draft.1), schema $defs available to be referenced by future Response Actions schema, fixtures and pytest pin the §6 master table, concept-note §10.3 marked landed and §11.2 resolved.
 
+Final verification MUST include: `npm run docs:check`, targeted Validation Mapping pytest, full `tests/conformance/`, `npm run check:deps`, `npm run build`, `npm run test:unit`, `npm run test:scripts`, and `cargo nextest run --workspace`. E2E (`npm run test:e2e`) is required when the local browser environment is available; otherwise record the environment blocker.
+
 ```bash
-cd formspec && git log --oneline -28 | head -28
+cd formspec && git log --oneline --decorate --max-count=20
 ```
 
-Expected: 28 commits (one per task) authored against this plan. Verify each commit message names what landed.
+Expected: grouped commits authored against coherent artifact slices (plan/spec, schema, fixtures/tests, cross-links/concept, generated artifacts). Verify each commit message names what landed and no unrelated lint/package/crate changes are staged with the validation-mapping slice.
 
 If any check failed, file a fix task and execute before considering the plan done.
 
