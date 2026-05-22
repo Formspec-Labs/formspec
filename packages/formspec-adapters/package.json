@@ -25,7 +25,8 @@
   "files": ["dist"],
   "scripts": {
     "build:css": "node scripts/build-css.mjs",
-    "prebuild": "npm run build:css",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean && npm run build:css",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
