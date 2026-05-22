@@ -185,7 +185,7 @@ Precondition expressions evaluate in this closed FEL host-binding catalog. The c
 | `definition` | object | Pinned Definition referenced by `targetDefinition`. | pure | eager | expression |
 | `action` | object | Current Action `{ id, intent, actor }`. | pure | eager | expression |
 | `now` | function | `() -> datetime` current processor time. | impure | lazy | expression |
-| `validation` | object | `{ lastReport: ValidationReport \| null }` from prior state. | pure | eager | expression |
+| `validation` | object | `{ lastReport: ValidationReport \| null }` where `lastReport` is the most recent ValidationReport produced by any earlier Action invocation against the same `responseId`, or `null` when no invocation has yet produced a report. Continuous-validation state is not exposed through `@validation`. | pure | eager | expression |
 | `invocation` | object | `{ id: string }`; stable across replays. | pure | eager | expression |
 
 `@invocation.attempt` is intentionally absent from the precondition catalog. Preconditions also MUST NOT access prior effect outcomes, Ledger contents, Handoff documents, mutable Definition state, or host-application state. FEL evaluators MUST reject unregistered `@name` bindings.
