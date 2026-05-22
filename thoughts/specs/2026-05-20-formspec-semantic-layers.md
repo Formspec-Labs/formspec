@@ -115,9 +115,9 @@ The companion specs must define enough processing behavior for independent imple
 
 Experience and Response Actions are authored source artifacts. Component documents may be hand-authored, generated, or generated and then edited. Trace is generated from source artifacts and projections. A materialized Trace is a cache, not a source of truth.
 
-### 5.5 Mark Future Shape Clearly
+### 5.5 Mark Promotion State Clearly
 
-This note names Component reference fields such as `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and `x-generation`. `actionRef` on `ActionButton` is current Component schema after the Component Action References plan; the remaining fields are still future-shape examples until their follow-up spec lands.
+This note names Component reference fields such as `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and `x-generation`. `actionRef` on `ActionButton` is current Component schema after the Component Action References plan. `unitRef`, `taskRefs`, `conceptRefs`, and `x-generation` are current additive Component metadata after the Component Reference Fields follow-up. Regeneration merge behavior remains separate.
 
 ### 5.6 Promote By Bundles
 
@@ -250,7 +250,7 @@ There is no default-submit fallback. A trigger without a resolvable Action is an
 An ActionButton actionRef must resolve to actions[*].id in the loaded Response Actions document.
 ```
 
-The Component schema permits `actionRef` only on `ActionButton`; other reference fields remain future shape.
+The Component schema permits `actionRef` only on `ActionButton`. Component Reference Fields add `unitRef`, `taskRefs`, `conceptRefs`, and `x-generation` as additive metadata on Component nodes.
 
 Validation summaries continue to read latest `formspec-submit` details when a resolved Action declares a `hostEvent` effect for that event.
 
@@ -258,12 +258,12 @@ Validation summaries continue to read latest `formspec-submit` details when a re
 
 Component owns the concrete UI tree, widget selection, layout, and item binding. Theme owns visual tokens, density, spacing, typography, color, and presentation defaults.
 
-Future Component reference additions may add:
+Component reference metadata now includes:
 
 ```text
 unitRef       -> Experience unit realized by a node
 taskRefs      -> Experience tasks supported by a node
-actionRef     -> Response Action invoked by a trigger
+actionRef     -> Response Action invoked by an ActionButton
 conceptRefs   -> Registry or Ontology concepts represented by a node
 x-generation  -> generation metadata, source anchors, and generated markers
 ```
@@ -401,13 +401,13 @@ Never silently delete designer-authored layout.
 
 If Definition renames `dateOfBirth` to `birthDate` through a proper migration or changelog, a generator may update the binding and preserve presentation choices. If no migration explains the rename, the generator should warn instead of guessing.
 
-### 7.3 Future-Shape Example
+### 7.3 Reference-Field Example
 
-The following shape illustrates the desired future reference model. The `ActionButton.actionRef` portion is current Component schema; `unitRef`, `taskRefs`, and `x-generation` remain future shape until the Component Reference Fields follow-up lands.
+The following shape illustrates the current reference model after the Component Reference Fields follow-up. `ActionButton.actionRef` remains owned by Component §5.19. `unitRef`, `taskRefs`, `conceptRefs`, and `x-generation` are additive Component metadata; they do not change rendering, validation, or Response semantics.
 
 ```json
 {
-  "$formspecComponent": "1.0",
+  "$formspecComponent": "1.1",
   "version": "1.0.0",
   "targetDefinition": {
     "url": "https://example.gov/forms/intake",
@@ -447,7 +447,7 @@ The following shape illustrates the desired future reference model. The `ActionB
 }
 ```
 
-Current-compatible Component examples should omit `unitRef` and `taskRefs`, or place experimental metadata only where the current schema permits extensions. Action triggers should use `ActionButton.actionRef`.
+Current Component examples may include reference fields when they target the Component Reference Fields contract. New examples that demonstrate those fields should use `$formspecComponent: "1.1"`. Action triggers should use `ActionButton.actionRef`.
 
 ---
 
@@ -508,7 +508,7 @@ Formalize in this order:
 1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle. **Landed:** [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md) (draft, 2026-05-21).
 2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior. **Landed:** [`specs/response-actions/response-actions-spec.md`](../../specs/response-actions/response-actions-spec.md) (draft, 2026-05-22).
 3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands. **Landed:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) (draft, 2026-05-22).
-4. **ActionButton binding and Component reference additions.** Require `ActionButton.actionRef`, remove widget-local validation/event policy, and leave `unitRef`, `taskRefs`, `conceptRefs`, and generation metadata to the follow-up Component Reference Fields plan. **Landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)).
+4. **ActionButton binding and Component reference additions.** Require `ActionButton.actionRef`, remove widget-local validation/event policy, and add `unitRef`, `taskRefs`, `conceptRefs`, and generation metadata as additive Component node metadata. **Fully landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)) and [`specs/component/component-reference-fields-spec.md`](../../specs/component/component-reference-fields-spec.md) (2026-05-22, via [Component Reference Fields plan](../plans/2026-05-22-component-reference-fields.md)).
 5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.
 6. **Trace query/cache spec.** Use Studio regeneration review as the first consumer unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics.
 
@@ -530,7 +530,7 @@ The formal specs need a stable way to name validation profiles without colliding
 
 ### 11.3 Component Reference Fields
 
-`unitRef`, `taskRefs`, `conceptRefs`, and generation metadata should land only after Experience identities and regeneration consumers are stable. **Resolved:** `actionRef` is required on `ActionButton`; no fallback path exists.
+`unitRef`, `taskRefs`, `conceptRefs`, and generation metadata should land only after Experience identities and regeneration consumers are stable. **Resolved:** `actionRef` is required on `ActionButton`; no fallback path exists. `unitRef`, `taskRefs`, `conceptRefs`, `x-generation`, the resolver invariants, the severity ladder, no-rewrite fixture coverage, and renderer-ignore evidence landed in the Component Reference Fields follow-up. Regeneration merge semantics remain separate.
 
 ### 11.4 Trace Predicate Set
 

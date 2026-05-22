@@ -48,6 +48,7 @@ Section references (§N) refer to this document unless prefixed with
 - This document defines Tier 3 Component Documents for explicit, tree-based Formspec rendering.
 - A valid component document requires `$formspecComponent`, `version`, `targetDefinition`, and `tree`.
 - Component trees control layout and widget selection but cannot override core behavioral semantics from the Definition.
+- Component nodes may carry additive reference metadata (`unitRef`, `taskRefs`, `conceptRefs`, and `x-generation`) defined by the Component Reference Fields companion; default renderers ignore it.
 - This BLUF is governed by `schemas/component.schema.json`; generated schema references are the canonical structural contract.
 <!-- bluf:end -->
 
@@ -106,6 +107,7 @@ Section references (§N) refer to this document unless prefixed with
   - [§11.2 Tier 2 Token Inheritance](#112-tier-2-token-inheritance)
   - [§11.3 Precedence: Tier 3 > Tier 2 > Tier 1](#113-precedence-tier-3--tier-2--tier-1)
   - [§11.4 Partial Component Trees](#114-partial-component-trees)
+  - [§11.5 Cross-References to Peer Artifacts](#115-cross-references-to-peer-artifacts)
 - [§12 Validation and Conformance](#12-validation-and-conformance)
   - [§12.1 Structural Validation (JSON Schema)](#121-structural-validation-json-schema)
   - [§12.2 Referential Integrity](#122-referential-integrity)
@@ -3149,6 +3151,19 @@ The renderer MUST:
 4. Render unbound visible items using the active page source and fallback rules.
 5. Ensure all required items are editable, regardless of whether
    they appear in the tree.
+
+### 11.5 Cross-References to Peer Artifacts
+
+Component nodes MAY carry `unitRef`, `taskRefs`, `conceptRefs`, and
+`x-generation` as additive reference metadata. The
+[Component Reference Fields](component-reference-fields-spec.md) companion owns
+their shapes, resolver algorithm, finding severities, and renderer-ignore
+conformance.
+
+These fields read peer artifacts only for authoring, diagnostics, provenance,
+and generation metadata. They MUST NOT change Tier 3 precedence, fallback,
+layout, widget selection, slot binding, validation, Mapping, Response status,
+or action invocation. Default renderers MUST ignore them for runtime output.
 
 ---
 

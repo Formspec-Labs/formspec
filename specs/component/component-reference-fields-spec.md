@@ -138,13 +138,13 @@ A conforming implementation MUST NOT:
 
 ## 1.5 Promotion Resolution
 
-The semantic-layers note marked the reference-field family as future shape. In
-§5.5 it names `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and
+The semantic-layers note originally marked the reference-field family as future
+shape. In §5.5 it names `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and
 `x-generation` as Component reference fields, while stating that only
-`ActionButton.actionRef` was current after Plan E. In §7.3 it shows the future
+`ActionButton.actionRef` was current after Plan E. In §7.3 it showed the future
 shape with `unitRef`, `taskRefs`, and `x-generation` still deferred. In §11.3 it
-sets the promotion gate: Component reference fields and generation metadata
-should land only after Experience identities and regeneration consumers are
+set the promotion gate: Component reference fields and generation metadata
+should land only after Experience identities and regeneration consumers were
 stable.
 
 Plan E resolved the action-trigger portion first: `SubmitButton` became

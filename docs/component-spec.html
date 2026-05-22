@@ -234,6 +234,9 @@ id="toc-precedence-tier-3-tier-2-tier-1">11.3 Precedence: Tier 3 &gt;
 Tier 2 &gt; Tier 1</a></li>
 <li><a href="#partial-component-trees"
 id="toc-partial-component-trees">11.4 Partial Component Trees</a></li>
+<li><a href="#cross-references-to-peer-artifacts"
+id="toc-cross-references-to-peer-artifacts">11.5 Cross-References to
+Peer Artifacts</a></li>
 </ul></li>
 <li><a href="#validation-and-conformance"
 id="toc-validation-and-conformance">12. Validation and Conformance</a>
@@ -312,6 +315,10 @@ tree-based Formspec rendering.</li>
 <code>tree</code>.</li>
 <li>Component trees control layout and widget selection but cannot
 override core behavioral semantics from the Definition.</li>
+<li>Component nodes may carry additive reference metadata
+(<code>unitRef</code>, <code>taskRefs</code>, <code>conceptRefs</code>,
+and <code>x-generation</code>) defined by the Component Reference Fields
+companion; default renderers ignore it.</li>
 <li>This BLUF is governed by <code>schemas/component.schema.json</code>;
 generated schema references are the canonical structural contract.
 <!-- bluf:end --></li>
@@ -421,6 +428,8 @@ Inheritance</a></li>
 Tier 3 &gt; Tier 2 &gt; Tier 1</a></li>
 <li><a href="#114-partial-component-trees">§11.4 Partial Component
 Trees</a></li>
+<li><a href="#115-cross-references-to-peer-artifacts">§11.5
+Cross-References to Peer Artifacts</a></li>
 </ul></li>
 <li><a href="#12-validation-and-conformance">§12 Validation and
 Conformance</a>
@@ -5266,6 +5275,19 @@ fallback rules.</li>
 <li>Ensure all required items are editable, regardless of whether they
 appear in the tree.</li>
 </ol>
+<h3 id="cross-references-to-peer-artifacts">11.5 Cross-References to
+Peer Artifacts</h3>
+<p>Component nodes MAY carry <code>unitRef</code>,
+<code>taskRefs</code>, <code>conceptRefs</code>, and
+<code>x-generation</code> as additive reference metadata. The <a
+href="component-reference-fields-spec.md">Component Reference Fields</a>
+companion owns their shapes, resolver algorithm, finding severities, and
+renderer-ignore conformance.</p>
+<p>These fields read peer artifacts only for authoring, diagnostics,
+provenance, and generation metadata. They MUST NOT change Tier 3
+precedence, fallback, layout, widget selection, slot binding,
+validation, Mapping, Response status, or action invocation. Default
+renderers MUST ignore them for runtime output.</p>
 <hr />
 <h2 id="validation-and-conformance">12. Validation and Conformance</h2>
 <p>This section defines the validation requirements for Component

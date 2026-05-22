@@ -194,7 +194,7 @@ A **Task** is a named unit of user-visible work that the form supports. Tasks ar
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `id` | string (camelCase, unique within `tasks[]`) | REQUIRED | Stable identifier. Referenced by `unit.taskRefs[]`. |
+| `id` | string (camelCase, unique within `tasks[]`) | REQUIRED | Stable identifier. Referenced by `unit.taskRefs[]` and Component node `taskRefs[]`. |
 | `title` | string | OPTIONAL | Human-readable label. |
 | `description` | string | OPTIONAL | Free-form description. |
 | `actorRefs` | array of string | OPTIONAL | Actors participating in this task. Each entry MUST resolve to an `actor.id`. |
@@ -214,7 +214,7 @@ A **Unit** is the substantive payload of an Experience Document. Each Unit group
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `id` | string (camelCase, unique within `units[]`) | REQUIRED | Stable identifier. Referenced by Component nodes via `unitRef` (forthcoming, concept §10.4). |
+| `id` | string (camelCase, unique within `units[]`) | REQUIRED | Stable identifier. Referenced by Component nodes via `unitRef`. |
 | `kind` | string (registry, S5.2) | REQUIRED | Abstract task-oriented classification. |
 | `title` | string | OPTIONAL | Human-readable label. |
 | `description` | string | OPTIONAL | Free-form description of what the user is doing in this unit. |
@@ -459,7 +459,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/$defs/Task/properties/actorRefs` | `actorRefs` | <code>array</code> | no | — | — |
 | `#/$defs/Task/properties/description` | `description` | <code>string</code> | no | — | — |
 | `#/$defs/Task/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
-| `#/$defs/Task/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Task. Unique within tasks[]. |
+| `#/$defs/Task/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Task. Unique within tasks[]. Referenced by Component nodes via taskRefs[]. |
 | `#/$defs/Task/properties/title` | `title` | <code>string</code> | no | — | — |
 | `#/$defs/Unit/properties/accessibility` | `accessibility` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Accessibility</code> | — |
 | `#/$defs/Unit/properties/actionRefs` | `actionRefs` | <code>array</code> | no | — | — |
@@ -468,7 +468,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/$defs/Unit/properties/conceptRefs` | `conceptRefs` | <code>array</code> | no | — | — |
 | `#/$defs/Unit/properties/description` | `description` | <code>string</code> | no | — | — |
 | `#/$defs/Unit/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
-| `#/$defs/Unit/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef (forthcoming). |
+| `#/$defs/Unit/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[a-zA-Z][a-zA-Z0-9_]*&#36;</code> | Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef. |
 | `#/$defs/Unit/properties/itemRefs` | `itemRefs` | <code>array</code> | no | — | — |
 | `#/$defs/Unit/properties/kind` | `kind` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/UnitKind</code> | — |
 | `#/$defs/Unit/properties/taskRefs` | `taskRefs` | <code>array</code> | no | — | Tasks this unit advances. Each MUST resolve to tasks[].id. |

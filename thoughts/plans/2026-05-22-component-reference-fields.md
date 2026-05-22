@@ -241,6 +241,8 @@ Two Component documents identical except for `x-generation`. Mount both via Play
 
 ## Task 19: Upstream back-references
 
+- [x] Update Component §11 cross-references and BLUF, Experience prop descriptions, semantic-layers landed status, TODO-STACK row, and lint crate schema sync.
+
 Component §11 Cross-References + BLUF bullet. Experience prop descriptions updated. Concept-note §10.4 / §11.3 marked fully landed. TODO-STACK row updated. Sync lint crate schemas via `make sync-lint-schemas` (target from Plan E).
 
 ## Task 20: Doc pipeline + filemap + full sweep
