@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/validationMapping/1.0",
+  "title": "Formspec Validation Mapping",
+  "description": "Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (SubmitButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. This schema's MasterTable const MUST equal the prose §6 row-for-row; conformance is pinned by tests/conformance/spec/test_validation_mapping_table.py.",
+  "type": "object",
+  "required": ["$formspecValidationMapping", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecValidationMapping": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Validation Mapping specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for validation-mapping document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Validation Mapping Document. SemVer RECOMMENDED.",
+      "examples": ["1.0.0"]
+    }
+  },
+  "$defs": {
+    "ActionIntent": {
+      "type": "string",
+      "enum": [
+        "save-draft",
+        "autosave",
+        "review",
+        "submit",
+        "request-evidence"
+      ],
+      "description": "Closed, abstract enum naming what a form caller is trying to do. save-draft: persist current Response as a draft, validation findings ignored. autosave: background or periodic save, identical mapping to save-draft. review: read-only validation pass; no persistence transition. submit: attempt transition to Response status 'completed'. request-evidence: invoke demand-timing shapes (Core §5.2.1) only. See specs/core/validation-mapping.md §2.",
+      "examples": ["save-draft", "submit", "request-evidence"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Closed action-intent vocabulary; x- prefix permitted for publisher extensions"
+      }
+    },
+    "ValidationProfile": {
+      "type": "string",
+      "enum": ["live", "on-submit", "on-demand", "off"],
+      "description": "Closed named profile pinning a (Core global mode, per-shape timing filter) pair under a single identifier. live: Core 'continuous' + continuous-timing shapes during normal revalidation. on-submit: Core 'continuous' + continuous and submit-timing shapes; demand shapes excluded. on-demand: Core 'deferred' + only demand-timing shapes fire. off: Core 'disabled' + no shapes fire (no ValidationReport produced). See specs/core/validation-mapping.md §3.",
+      "examples": ["live", "on-submit", "off"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Closed validation-profile vocabulary; resolves concept-note §11.2 open question"
+      }
+    },
+    "BlockingPolicy": {
+      "type": "string",
+      "enum": ["non-blocking", "block-on-error"],
+      "description": "Closed two-value enum naming whether error-severity findings stop the surrounding intent. non-blocking: findings never stop the intent. block-on-error: intent halts before higher-persistence transitions when ValidationReport.valid is false (counts.error > 0). Preserves Core §5.5 VE-05 by blocking the transition, not the underlying data persistence. See specs/core/validation-mapping.md §4.",
+      "examples": ["non-blocking", "block-on-error"]
+    },
+    "PersistencePolicy": {
+      "type": "string",
+      "enum": ["none", "draft-checkpoint", "complete-response"],
+      "description": "Closed three-value enum naming the Response lifecycle effect of the intent. none: no status change, no persistence. draft-checkpoint: persist current Response state, status remains 'in-progress' (permitted under any validation outcome, VE-05). complete-response: persist AND transition status to 'completed' (requires ValidationReport.valid === true, Core §5.4 invariant). See specs/core/validation-mapping.md §5.",
+      "examples": ["draft-checkpoint", "complete-response"]
+    },
+    "MappingEntry": {
+      "type": "object",
+      "required": ["intent", "profile", "blocking", "persistence"],
+      "additionalProperties": false,
+      "properties": {
+        "intent": {
+          "anyOf": [
+            { "$ref": "#/$defs/ActionIntent" },
+            {
+              "type": "string",
+              "pattern": "^x-",
+              "description": "Publisher-defined action intent extension. MUST carry an explicit mapping tuple and MUST NOT shadow a master-table intent."
+            }
+          ]
+        },
+        "profile": { "$ref": "#/$defs/ValidationProfile" },
+        "blocking": { "$ref": "#/$defs/BlockingPolicy" },
+        "persistence": { "$ref": "#/$defs/PersistencePolicy" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "persistence": { "const": "complete-response" } },
+            "required": ["persistence"]
+          },
+          "then": {
+            "properties": {
+              "profile": { "const": "on-submit" },
+              "blocking": { "const": "block-on-error" }
+            }
+          }
+        },
+        {
+          "not": {
+            "properties": {
+              "profile": { "const": "off" },
+              "blocking": { "const": "block-on-error" }
+            },
+            "required": ["profile", "blocking"]
+          }
+        }
+      ],
+      "description": "A single row of the master mapping table or a Response Actions override. Permitted (profile, blocking, persistence) tuples are governed by the §6.3 predicate; processors MUST reject overrides that violate it.",
+      "examples": [
+        { "intent": "submit", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" },
+        { "intent": "x-acme-bulk-import", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Single mapping row referenced by Response Actions schema (forthcoming, concept §10.2)"
+      }
+    },
+    "MasterTable": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/MappingEntry" },
+      "const": [
+        { "intent": "save-draft", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
+        { "intent": "autosave", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
+        { "intent": "review", "profile": "on-submit", "blocking": "non-blocking", "persistence": "none" },
+        { "intent": "submit", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" },
+        { "intent": "request-evidence", "profile": "on-demand", "blocking": "non-blocking", "persistence": "draft-checkpoint" }
+      ],
+      "description": "Frozen master mapping table. MUST equal specs/core/validation-mapping.md §6 row-for-row. The const constrains any document carrying this property to the canonical table; documents that override individual entries do so per Action, not by replacing the master table."
+    }
+  }
+}

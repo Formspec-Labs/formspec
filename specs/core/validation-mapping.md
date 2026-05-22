@@ -340,3 +340,92 @@ A Mapping-Aware processor MUST treat:
 ### 8.3 Future Reference Additions Out of Scope
 
 `ValidationSummary` is not a trigger. This document defines only its passive-reader reconciliation to existing Component §6.13 props. Future Component reference additions (concept §10.4), if any, own their own field shape and precedence rules.
+
+## 9. Conformance
+
+### 9.1 Conformance Levels
+
+This specification defines two conformance levels (§1.4):
+
+| Level | Requirements |
+|-------|--------------|
+| **Mapping-Aware Document** | Explicit intent identifier ∈ closed `ActionIntent` enum (§2) or `x-` extension intent (§10). Any override tuple satisfies the §6.3 permitted-tuple predicate. |
+| **Mapping-Aware Processor** | Applies §6 master-table tuple unless the document explicitly overrides. Rejects prohibited override combinations with `VMAP-INVALID-OVERRIDE`. Honors §7.1 default-submit-action rule for SubmitButton-without-actionRef. Preserves VE-05 under all blocked-completion scenarios. |
+
+#### 9.1.1 Mapping-Aware Document
+
+A conformant **Mapping-Aware Document** MUST:
+
+1. Use only `ActionIntent` values from §2 (or `x-`-prefixed extensions).
+2. If overriding the master-table defaults, supply a permitted (profile, blocking, persistence) tuple per §6.3.
+3. Not redefine the four enum members of any axis.
+
+#### 9.1.2 Mapping-Aware Processor
+
+A conformant **Mapping-Aware Processor** MUST:
+
+1. Resolve any master-table intent to its §6 default tuple in the absence of an explicit document override.
+2. Apply explicit overrides verbatim when present.
+3. Reject prohibited tuples (§6.3 predicate failures) with a `VMAP-INVALID-OVERRIDE` finding.
+4. Honor §7.1 default-submit-action rule for any `SubmitButton` without `actionRef`.
+5. Preserve Core §5.5 VE-05 under all blocked-completion scenarios (Response data MUST remain saveable in `status: in-progress`).
+6. Honor Core §5.5 disabled-mode under `ValidationProfile: off` (no ValidationReport produced).
+
+### 9.2 Schema
+
+<!-- schema-ref:start id=validation-mapping-top-level schema=schemas/validation-mapping.schema.json pointers=# -->
+<!-- schema-ref:end -->
+
+### 9.3 `$defs` Reference
+
+<!-- schema-ref:start id=validation-mapping-defs schema=schemas/validation-mapping.schema.json pointers=#/$defs/ActionIntent,#/$defs/ValidationProfile,#/$defs/BlockingPolicy,#/$defs/PersistencePolicy,#/$defs/MappingEntry,#/$defs/MasterTable -->
+<!-- schema-ref:end -->
+
+### 9.4 Conformance Prohibitions
+
+A conformant processor MUST NOT:
+
+1. Apply a master-table tuple that contradicts §6.
+2. Introduce standard `ActionIntent` values outside §2 unless the value is an `x-` extension intent, or introduce any `ValidationProfile`, `BlockingPolicy`, or `PersistencePolicy` value outside this spec's closed enums.
+3. Cause persistence to be blocked by validation findings under any policy other than `complete-response` (VE-05).
+4. Produce a `completed`-status Response when ValidationReport `valid` is `false` (Core §5.4 invariant).
+5. Discard Response data on a blocked submission.
+
+## 10. Extension Points
+
+Authors MAY introduce custom `ActionIntent` values under the `x-` prefix (e.g., `x-acme-bulk-import`). Each `x-` intent MUST carry a complete (profile, blocking, persistence) triple in the Response Actions document referencing it. Mapping-Aware processors that do not recognize the intent MUST honor the document-supplied triple verbatim.
+
+Extensions MUST NOT:
+
+1. Override or shadow a master-table intent name.
+2. Introduce parallel `ValidationProfile`, `BlockingPolicy`, or `PersistencePolicy` enum values. Profiles and policies are closed; richer behavior MUST be expressed by an `x-` intent paired with an existing-enum triple.
+3. Bypass the §6.3 permitted-tuple predicate.
+
+## 11. Security Considerations
+
+The Validation Mapping is metadata over existing Core and Component behavior. It introduces no new attack surface, no new credential handling, and no new persistence pathway. Security considerations are:
+
+- **Override misuse.** An override that pairs `complete-response` with `non-blocking` or any profile other than `on-submit` would allow invalid or incompletely validated Responses to reach `completed`. The §6.3 permitted-tuple predicate MUST be enforced; processors that skip the predicate check create a compliance regression.
+- **Profile substitution attacks.** A malicious or buggy document that substitutes `off`, `live`, or `on-demand` for `on-submit` in a completion action would silently bypass part or all of validation. The §6.3 predicate blocks this case; processors MUST reject it.
+- **Information disclosure.** ValidationReport content under `live` and `on-submit` profiles may include error messages with respondent values. Renderers that display the report MUST follow Core §5.7 sanitization guidance.
+- **VE-05 preservation under failure.** A blocked-submission scenario MUST preserve Response data. A processor that discards data on submission failure violates VE-05 and creates data-loss potential.
+
+There is no prompt-injection surface in this spec; the mapping does not interact with AI providers.
+
+---
+
+## Appendix A: References
+
+| Tag | Reference |
+|---|---|
+| [rfc2119] | Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997. |
+| [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |
+| [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
+| Concept | Formspec Semantic Layers (Experience / Response Actions / Trace), thoughts/specs/2026-05-20-formspec-semantic-layers.md. |
+| Core | Formspec v1.0 — A JSON-Native Declarative Form Standard, specs/core/spec.md. |
+| Component | Formspec Component Specification v1.0, specs/component/component-spec.md. |
+| Response | response.schema.json. |
+| ValidationReport | validation-report.schema.json. |
+| ValidationResult | validation-result.schema.json. |
+
+*End of Formspec Validation Mapping.*
