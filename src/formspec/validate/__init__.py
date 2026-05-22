@@ -28,8 +28,10 @@ from formspec.validate.models import (
     MappingArtifact,
     PassItemResult,
     PassResult,
+    ResponseActionsArtifact,
     ResponseArtifact,
     ThemeArtifact,
+    ValidationMappingArtifact,
     ValidationReport,
 )
 from formspec.validate.orchestrator import validate_all
@@ -47,8 +49,10 @@ __all__ = [
     "MappingArtifact",
     "PassItemResult",
     "PassResult",
+    "ResponseActionsArtifact",
     "ResponseArtifact",
     "ThemeArtifact",
+    "ValidationMappingArtifact",
     "ValidationReport",
     "discover_artifacts",
     "main",

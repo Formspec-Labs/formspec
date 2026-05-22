@@ -15,8 +15,10 @@ from formspec.validate.models import (
     DiscoveredArtifacts,
     IntakeHandoffArtifact,
     MappingArtifact,
+    ResponseActionsArtifact,
     ResponseArtifact,
     ThemeArtifact,
+    ValidationMappingArtifact,
 )
 
 
@@ -118,6 +120,17 @@ def discover_artifacts(
                     doc=doc,
                     definition_url=doc.get("definitionUrl", ""),
                 )
+            )
+        elif doc_type == "response_actions":
+            target = ""
+            if isinstance(doc.get("targetDefinition"), dict):
+                target = doc["targetDefinition"].get("url", "")
+            arts.response_actions.append(
+                ResponseActionsArtifact(path=path, doc=doc, target_def_url=target)
+            )
+        elif doc_type == "validation_mapping":
+            arts.validation_mappings.append(
+                ValidationMappingArtifact(path=path, doc=doc)
             )
         elif doc_type == "registry":
             arts.registries.append(ArtifactFile(path=path, doc=doc))

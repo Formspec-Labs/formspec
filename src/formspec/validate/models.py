@@ -63,6 +63,16 @@ class ChangelogArtifact(ArtifactFile):
 
 
 @dataclass
+class ResponseActionsArtifact(ArtifactFile):
+    target_def_url: str = ""
+
+
+@dataclass
+class ValidationMappingArtifact(ArtifactFile):
+    pass
+
+
+@dataclass
 class DiscoveredArtifacts:
     definitions: dict[str, DefinitionArtifact] = field(default_factory=dict)
     definition_versions: dict[tuple[str, str], DefinitionArtifact] = field(
@@ -75,6 +85,8 @@ class DiscoveredArtifacts:
     responses: list[ResponseArtifact] = field(default_factory=list)
     intake_handoffs: list[IntakeHandoffArtifact] = field(default_factory=list)
     changelogs: list[ChangelogArtifact] = field(default_factory=list)
+    response_actions: list[ResponseActionsArtifact] = field(default_factory=list)
+    validation_mappings: list[ValidationMappingArtifact] = field(default_factory=list)
     registries: list[ArtifactFile] = field(default_factory=list)
     changelog_pairs: list[tuple[DefinitionArtifact, DefinitionArtifact]] = field(
         default_factory=list

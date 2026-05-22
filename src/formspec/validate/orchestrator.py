@@ -10,6 +10,10 @@ from formspec.validate.passes.intake_handoff import pass_intake_handoff_schema
 from formspec.validate.passes.mapping import pass_mapping_forward
 from formspec.validate.passes.registry import pass_registry
 from formspec.validate.passes.response import pass_response_schema
+from formspec.validate.passes.response_actions import (
+    pass_response_actions_linting,
+    pass_validation_mapping_linting,
+)
 from formspec.validate.passes.runtime import pass_runtime_evaluation
 from formspec.validate.passes.sidecar import pass_sidecar_linting
 from formspec.validate.passes.signed_payload import pass_signed_payload_validation
@@ -24,6 +28,8 @@ def validate_all(artifacts: DiscoveredArtifacts) -> ValidationReport:
             pass_sidecar_linting(artifacts),
             pass_theme_linting(artifacts),
             pass_component_linting(artifacts),
+            pass_response_actions_linting(artifacts),
+            pass_validation_mapping_linting(artifacts),
             pass_response_schema(artifacts),
             pass_intake_handoff_schema(artifacts),
             pass_signed_payload_validation(artifacts),
