@@ -137,6 +137,16 @@ This specification does **not** require:
 - reviewer workflow history,
 - or a mandated user interface.
 
+### 3.3 Issuer pinning (v1 boundary)
+
+Response `displayedIssuer` (`schemas/response.schema.json#/properties/displayedIssuer`)
+is the canonical submit-time pin of the resolved Issuer after host-override
+resolution. Per-event Issuer-displayed-during-this-event is **not** recorded in
+the Respondent Ledger in v1. A long-running draft where the host-override Issuer
+changes mid-session records only the final Issuer at submit. See
+`specs/issuer/issuer-spec.md` Section 13, "Receipt Audit Pin", for the full v1
+boundary.
+
 ---
 
 ## 4. Core model
