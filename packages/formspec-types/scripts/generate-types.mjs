@@ -337,6 +337,31 @@ function postProcess(ts, moduleName) {
     );
   }
 
+  if (moduleName === 'response-actions') {
+    // Schema declares additionalProperties: false on Action and
+    // ValidationOverride. The codegen emits an intersection with
+    // `{ [k: string]: unknown }` for any object with patternProperties
+    // anywhere in its inheritance chain (here: VM ValidationTuple's
+    // composed-in ValidationTuplePredicate). Strip that intersection so
+    // the closedness contract the schema promises survives in TS.
+    result = result.replace(
+      /export type Action = \{\s*\[k: string\]: unknown;\s*\} & (\{[\s\S]*?\n\});/m,
+      'export type Action = $1;'
+    );
+    result = result.replace(
+      /export type ValidationOverride = \{\s*\[k: string\]: unknown;\s*\} & (\{[\s\S]*?\n\});/m,
+      'export type ValidationOverride = $1;'
+    );
+    // ActionIntent: schema declares it as the closed enum OR x-prefixed
+    // publisher extension. The codegen emits `(enum) | string` which
+    // collapses the closed-enum benefit. Replace `| string` with
+    // `| \`x-${string}\`` so the extension lane still types correctly.
+    result = result.replace(
+      /export type ActionIntent = (\([^)]+\)) \| string;/,
+      'export type ActionIntent = $1 | `x-${string}`;'
+    );
+  }
+
   return result;
 }
 

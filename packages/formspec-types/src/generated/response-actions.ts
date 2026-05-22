@@ -11,8 +11,6 @@
  * via the `definition` "Action".
  */
 export type Action = {
-  [k: string]: unknown;
-} & {
   /**
    * Unique within document. Starts with a letter; allows letters, digits, and hyphens.
    */
@@ -58,7 +56,7 @@ export type Action = {
  * This interface was referenced by `ResponseActionsDocument`'s JSON-Schema
  * via the `definition` "ActionIntent".
  */
-export type ActionIntent = ('save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence') | string;
+export type ActionIntent = ('save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence') | `x-${string}`;
 /**
  * The exact (profile, blocking, persistence) triple defined by VM §3-§5 with the §6.3 validity predicate enforced as schema-level constraints. Response Actions ValidationOverride and other consumers that carry only the tuple MUST $ref this closed $def.
  *
@@ -66,8 +64,6 @@ export type ActionIntent = ('save-draft' | 'autosave' | 'review' | 'submit' | 'r
  * via the `definition` "ValidationOverride".
  */
 export type ValidationOverride = {
-  [k: string]: unknown;
-} & {
   /**
    * Closed named profile pinning a (Core global mode, per-shape timing filter) pair under a single identifier. live: Core 'continuous' + continuous-timing shapes during normal revalidation. on-submit: Core 'continuous' + continuous and submit-timing shapes; demand shapes excluded. on-demand: Core 'deferred' + only demand-timing shapes fire. off: Core 'disabled' + no shapes fire (no ValidationReport produced). See specs/core/validation-mapping.md §3.
    */

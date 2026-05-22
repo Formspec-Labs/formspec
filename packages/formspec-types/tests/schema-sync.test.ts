@@ -90,3 +90,37 @@ describe('generated types smoke test', () => {
     expect(option).toBeDefined();
   });
 });
+
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+describe('generated types — tightness against permissive intersections', () => {
+  it('Action and ValidationOverride do NOT carry [k: string]: unknown intersections', () => {
+    // Schemas response-actions.schema.json declare additionalProperties: false
+    // on Action and ValidationOverride. The generated TS types must NOT
+    // intersect with `{ [k: string]: unknown }`; that widening accepts any
+    // key and defeats the closedness contract the schema promises.
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/response-actions.ts'),
+      'utf-8',
+    );
+    expect(src).not.toMatch(/export type Action = \{\s*\[k: string\]: unknown;\s*\} &/m);
+    expect(src).not.toMatch(/export type ValidationOverride = \{\s*\[k: string\]: unknown;\s*\} &/m);
+  });
+
+  it('ActionIntent is NOT widened to a plain `| string` union', () => {
+    // The schema declares ActionIntent as the closed enum OR an x-prefixed
+    // publisher extension. `| string` collapses both to plain string and
+    // swallows the closed-enum benefit. The generated type must keep the
+    // enum literal union (template-literal `x-${string}` is the acceptable
+    // form for the extension lane).
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/response-actions.ts'),
+      'utf-8',
+    );
+    expect(src).not.toMatch(/ActionIntent =[^;]*\) \| string;/);
+  });
+});
