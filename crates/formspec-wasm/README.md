@@ -7,7 +7,7 @@
 | Feature | Default | Effect |
 |---------|---------|--------|
 | **`full-wasm`** | **yes** | Meta-feature: enables every optional `wasm_bindgen` surface below (tools artifact). |
-| `lint` | **yes** (via `full-wasm`) | `formspec-lint` + `lintDocument` / `lintDocumentWithRegistries` (implies `document-api`). |
+| `lint` | **yes** (via `full-wasm`) | `formspec-lint` + `lintDocument` (implies `document-api`). |
 | `document-api` | **yes** | `detectDocumentType`, `jsonPointerToJsonPath`, `planSchemaValidation`. |
 | `definition-assembly` | **yes** | `assembleDefinition` (`$ref` / fragments). |
 | `mapping-api` | **yes** | `executeMappingRules`, `executeMappingDocument`. |

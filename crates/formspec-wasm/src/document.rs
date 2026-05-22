@@ -104,20 +104,6 @@ pub fn lint_document(doc_json: &str, options_json: Option<String>) -> Result<Str
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
-/// Lint with registry documents for extension resolution.
-#[cfg(feature = "lint")]
-#[deprecated(note = "use lintDocument(docJson, optionsJson) with registryDocuments")]
-#[wasm_bindgen(js_name = "lintDocumentWithRegistries")]
-pub fn lint_document_with_registries(
-    doc_json: &str,
-    registries_json: &str,
-) -> Result<String, JsError> {
-    lint_document(
-        doc_json,
-        Some(format!(r#"{{"registryDocuments":{registries_json}}}"#)),
-    )
-}
-
 #[cfg(all(test, feature = "lint"))]
 mod tests {
     use serde_json::json;
