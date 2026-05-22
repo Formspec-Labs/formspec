@@ -211,6 +211,16 @@ pub enum LintCode {
     W1500,
     /// Registry code `W1600`.
     W1600,
+    /// Registry code `E1700`.
+    E1700,
+    /// Registry code `W1700`.
+    W1700,
+    /// Registry code `W1701`.
+    W1701,
+    /// Registry code `W1702`.
+    W1702,
+    /// Registry code `W1703`.
+    W1703,
 }
 
 impl LintCode {
@@ -318,6 +328,11 @@ impl LintCode {
             LintCode::E1507 => "E1507",
             LintCode::W1500 => "W1500",
             LintCode::W1600 => "W1600",
+            LintCode::E1700 => "E1700",
+            LintCode::W1700 => "W1700",
+            LintCode::W1701 => "W1701",
+            LintCode::W1702 => "W1702",
+            LintCode::W1703 => "W1703",
         }
     }
 
@@ -425,6 +440,11 @@ impl LintCode {
             LintCode::E1507 => 9,
             LintCode::W1500 => 9,
             LintCode::W1600 => 9,
+            LintCode::E1700 => 9,
+            LintCode::W1700 => 9,
+            LintCode::W1701 => 9,
+            LintCode::W1702 => 9,
+            LintCode::W1703 => 9,
         }
     }
 
@@ -532,6 +552,11 @@ impl LintCode {
             "E1507" => Some(LintCode::E1507),
             "W1500" => Some(LintCode::W1500),
             "W1600" => Some(LintCode::W1600),
+            "E1700" => Some(LintCode::E1700),
+            "W1700" => Some(LintCode::W1700),
+            "W1701" => Some(LintCode::W1701),
+            "W1702" => Some(LintCode::W1702),
+            "W1703" => Some(LintCode::W1703),
             _ => None,
         }
     }
@@ -639,6 +664,11 @@ impl LintCode {
         LintCode::E1507,
         LintCode::W1500,
         LintCode::W1600,
+        LintCode::E1700,
+        LintCode::W1700,
+        LintCode::W1701,
+        LintCode::W1702,
+        LintCode::W1703,
     ];
 }
 
@@ -698,6 +728,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 101);
+        assert_eq!(LintCode::ALL.len(), 106);
     }
 }

@@ -67,6 +67,15 @@ export type { InterpolateResult, InterpolationWarning } from './interpolate-mess
 export { LocaleStore } from './locale.js';
 export type { LookupResult } from './locale.js';
 
+export {
+    analyzeExperience,
+    coverageFindings,
+    referentialIntegrityFindings,
+    targetDefinitionFindings,
+    unresolvedItemRefFindings,
+} from './experience.js';
+export type { ExperienceAnalysis, ExperienceFinding, ExperienceFindingCode } from './experience.js';
+
 export { createFieldViewModel } from './field-view-model.js';
 export type { FieldViewModel, FieldViewModelDeps, ResolvedValidationResult, ResolvedOption } from './field-view-model.js';
 

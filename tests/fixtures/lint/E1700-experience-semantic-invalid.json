@@ -1,0 +1,55 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.com/forms/experience-other",
+    "compatibleVersions": "^2.0.0"
+  },
+  "actors": [
+    { "id": "applicant" }
+  ],
+  "tasks": [
+    {
+      "id": "identify",
+      "actorRefs": ["missingTaskActor"]
+    }
+  ],
+  "applicability": {
+    "actorRefs": ["missingTopActor"]
+  },
+  "units": [
+    {
+      "id": "identity",
+      "kind": "data-entry",
+      "actorRef": "missingUnitActor",
+      "taskRefs": ["missingTask"],
+      "applicability": {
+        "actorRefs": ["missingUnitApplicabilityActor"]
+      },
+      "itemRefs": [
+        { "path": "nonexistentField" }
+      ]
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/experience",
+    "version": "1.0.0",
+    "status": "active",
+    "title": "Experience lint fixture",
+    "items": [
+      {
+        "key": "applicantName",
+        "type": "field",
+        "label": "Applicant name",
+        "dataType": "string"
+      }
+    ],
+    "binds": [
+      {
+        "path": "applicantName",
+        "required": "true"
+      }
+    ]
+  }
+}

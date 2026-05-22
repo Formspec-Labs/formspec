@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * @filedesc Run contract-surface pytest checks via repo venv when present.
+ * @filedesc Run contract-surface checks via repo-native test runners.
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const metadataOnly = process.argv.includes('--metadata-only');
 
 function findPython() {
   const win = process.platform === 'win32';
@@ -17,21 +18,42 @@ function findPython() {
   return win ? 'python' : 'python3';
 }
 
-const args = [
-  '-m',
-  'pytest',
+function run(command, args) {
+  const result = spawnSync(command, args, {
+    stdio: 'inherit',
+    cwd: root,
+    env: process.env,
+  });
+  if (result.status !== 0) {
+    process.exit(result.status === null ? 1 : result.status);
+  }
+}
+
+function runPython(args) {
+  run(findPython(), ['-m', 'pytest', ...args, '-q']);
+}
+
+runPython([
   'tests/unit/test_contract_surface_coverage.py',
   'tests/unit/test_lint_rule_registry.py',
   'tests/conformance/test_issuer_fixtures.py',
   'tests/conformance/test_definition_issuer_binding.py',
   'tests/conformance/test_response_displayed_issuer.py',
-  '-q',
-];
+]);
 
-const result = spawnSync(findPython(), args, {
-  stdio: 'inherit',
-  cwd: root,
-  env: process.env,
-});
+if (metadataOnly) {
+  process.exit(0);
+}
 
-process.exit(result.status === null ? 1 : result.status);
+run('npm', ['run', '--workspace', '@formspec-org/types', 'test', '--', 'tests/schema-sync.test.ts', 'tests/schema-fuzz.test.ts']);
+run('npm', ['run', '--workspace', '@formspec-org/react', 'test', '--', 'tests/locale-parity.test.tsx', 'tests/validation-report-parity.test.tsx']);
+run('npm', ['run', '--workspace', '@formspec-org/webcomponent', 'test', '--', 'tests/components/interactive-plugins.test.ts']);
+run('npm', ['run', '--workspace', '@formspec-org/engine', 'build']);
+run('node', [
+  '--experimental-specifier-resolution=node',
+  '--import',
+  './packages/formspec-engine/tests/setup.mjs',
+  '--test',
+  'packages/formspec-engine/tests/changelog-parity.test.mjs',
+  'packages/formspec-engine/tests/experience-parity.test.mjs',
+]);

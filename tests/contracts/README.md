@@ -82,11 +82,22 @@ implementation surface. For lint behavior, that usually means asserting the Rust
 
 ## Focused Check
 
-Run:
+Run the full local parity gate:
 
 ```sh
 npm run test:contract-surfaces
 ```
 
-The script uses the repo `.venv` Python when available and runs the contract
-surface meta-test, lint registry checks, and issuer conformance checks.
+The script uses the repo `.venv` Python when available, runs the contract
+surface meta-test, lint registry checks, issuer conformance checks, and the
+package parity tests named by the enforced Formspec rows.
+
+CI docs checks use the lighter metadata gate:
+
+```sh
+npm run test:contract-surfaces:metadata
+```
+
+That mode is intentionally limited to inventory shape, registry fixtures, and
+issuer conformance so documentation-only jobs do not need package build tools
+such as `wasm-pack`. Full CI still runs package and Rust workspaces separately.

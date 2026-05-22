@@ -10,7 +10,7 @@
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
 //! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
-//! Pass 9 (E1100-E1507/W1100-W1500): Companion document semantic lint
+//! Pass 9 (E1100-E1700/W1100-W1703): Companion document semantic lint
 //!
 //! ## Documentation
 //!
@@ -23,6 +23,7 @@
 mod generated;
 mod lint_json;
 mod metadata;
+mod pass_experience;
 mod pass_issuer;
 mod pass_locale;
 pub mod pass_mapping;
@@ -116,6 +117,12 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         }
         DocumentType::Locale => {
             diagnostics.extend(pass_locale::lint_locale(doc, options));
+        }
+        DocumentType::Experience => {
+            diagnostics.extend(pass_experience::lint_experience(
+                doc,
+                options.definition_document.as_ref(),
+            ));
         }
         DocumentType::Theme => lint_theme_doc(doc, options, &mut diagnostics),
         DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),

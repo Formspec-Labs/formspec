@@ -655,8 +655,17 @@ describe('SubmitButton plugin', () => {
 
         const detail = await received;
         expect(detail.response.data?.name).toBe('Alice');
-        expect(detail.validationReport).toBeDefined();
-        expect(typeof detail.validationReport.valid).toBe('boolean');
+        expect(detail.validationReport).toMatchObject({
+            $formspecValidationReport: '1.0',
+            valid: true,
+            counts: {
+                error: 0,
+                warning: 0,
+                info: 0,
+            },
+        });
+        expect(Array.isArray(detail.validationReport.results)).toBe(true);
+        expect(typeof detail.validationReport.timestamp).toBe('string');
     });
 
     it('emitEvent=false suppresses formspec-submit event', () => {

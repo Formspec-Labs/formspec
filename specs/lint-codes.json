@@ -1104,6 +1104,56 @@
       "suggestedFix": "add parentOrganization to department issuers, or remove parentOrganization from individual issuers",
       "fixtures": ["tests/fixtures/lint/W1600-issuer-kind-parent-warning.json"],
       "state": "tested"
+    },
+    {
+      "code": "E1700",
+      "pass": 9,
+      "severity": "error",
+      "title": "Experience targetDefinition URL mismatch",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1700",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience compatibleVersions mismatch",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1701",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience reference unresolved",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "make actorRef, actorRefs, and taskRefs values match ids declared in the Experience document",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1702",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience ItemRef path unresolved",
+      "specRef": "specs/experience/experience-spec.md#10-processing-model",
+      "suggestedFix": "point unit.itemRefs[].path at an item path in the paired Definition",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1703",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Experience required item uncovered",
+      "specRef": "specs/experience/experience-spec.md#8-coverage",
+      "suggestedFix": "add a unit.itemRefs entry for every required visible Definition field",
+      "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
+      "state": "tested"
     }
   ]
 }

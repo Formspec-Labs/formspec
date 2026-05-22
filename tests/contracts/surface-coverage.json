@@ -390,10 +390,14 @@
       ],
       "crates": [
         "crates/formspec-core/src/schema_validator.rs",
+        "crates/formspec-lint/src/pass_experience.rs",
         "crates/formspec-lint/src/schema_validation.rs",
         "crates/formspec-lint/schemas/experience.schema.json"
       ],
       "packages": {
+        "engine": [
+          "packages/formspec-engine/tests/experience-parity.test.mjs"
+        ],
         "types": [
           "packages/formspec-types/tests/schema-sync.test.ts",
           "packages/formspec-types/tests/schema-fuzz.test.ts"
@@ -401,8 +405,8 @@
       },
       "checks": [
         "experience schema and static coverage predicates are pinned by conformance tests",
-        "Rust document detection and lint schema validation cover the Experience marker and schema",
-        "the generated TypeScript types package exports and fuzz-validates the Experience contract"
+        "Rust document detection, lint schema validation, and semantic Experience lint cover target, reference, item-ref, and coverage findings",
+        "engine and generated TypeScript types tests cover Experience package processor and type surfaces"
       ]
     },
     "references": {
