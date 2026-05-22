@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [],
+  "orphaned": [],
+  "pendingReview": [],
+  "conflicts": [
+    {
+      "anchors": [
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-DESIGNER-PRECEDES",
+      "severity": "warning",
+      "reason": "Designer-authored node precedes a newly generated node at the same anchor."
+    }
+  ]
+}

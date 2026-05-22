@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    }
+  ],
+  "orphaned": [
+    {
+      "anchors": [
+        "item:legacyField",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/1",
+      "code": "COMP-REGENERATION-ORPHAN-NODE",
+      "severity": "warning",
+      "reason": "Designer node was preserved as an orphan; binding failures are resolver-owned.",
+      "reattachedTo": "/tree",
+      "cascaded": false,
+      "detached": false
+    }
+  ],
+  "pendingReview": [],
+  "conflicts": []
+}

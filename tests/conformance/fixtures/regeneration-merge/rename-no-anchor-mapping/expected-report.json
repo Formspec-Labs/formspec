@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated root matched old and designer."
+    }
+  ],
+  "orphaned": [
+    {
+      "anchors": [
+        "item:dateOfBirth",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/1",
+      "code": "COMP-REGENERATION-ORPHAN-NODE",
+      "severity": "warning",
+      "reason": "Old designer node had no anchor mapping and was preserved as an orphan.",
+      "reattachedTo": "/tree",
+      "cascaded": false,
+      "detached": false
+    }
+  ],
+  "pendingReview": [
+    {
+      "anchors": [
+        "item:birthDate",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-PENDING-REVIEW",
+      "severity": "info",
+      "reason": "New generated renamed node has no deterministic old or designer match."
+    }
+  ],
+  "conflicts": []
+}

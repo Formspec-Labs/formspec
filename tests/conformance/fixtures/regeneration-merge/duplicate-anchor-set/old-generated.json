@@ -1,0 +1,50 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/regeneration-merge-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "identitySection",
+    "title": "Applicant identity",
+    "x-generation": {
+      "source": "task:identifyApplicant",
+      "strategy": "regeneration-merge-fixture",
+      "generatedBy": "regeneration-merge-fixture/1.0.0",
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ]
+    },
+    "children": [
+      {
+        "component": "Text",
+        "id": "identitySummary",
+        "text": "Identity summary",
+        "x-generation": {
+          "source": "unit:identity",
+          "strategy": "regeneration-merge-fixture",
+          "generatedBy": "regeneration-merge-fixture/1.0.0",
+          "anchors": [
+            "unit:identity"
+          ]
+        }
+      },
+      {
+        "component": "Text",
+        "id": "identityLabel",
+        "text": "Identity label",
+        "x-generation": {
+          "source": "unit:identity",
+          "strategy": "regeneration-merge-fixture",
+          "generatedBy": "regeneration-merge-fixture/1.0.0",
+          "anchors": [
+            "unit:identity"
+          ]
+        }
+      }
+    ]
+  }
+}

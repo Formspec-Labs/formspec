@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "surviving": [
+    {
+      "anchors": [
+        "item:birthDate",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-RENAME-MIGRATED",
+      "severity": "info",
+      "reason": "Anchor mapping preserved continuity from item:dateOfBirth to item:birthDate.",
+      "propertyDeltas": [
+        "/x-generation/anchors"
+      ]
+    }
+  ],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated root matched old and designer."
+    },
+    {
+      "anchors": [
+        "item:birthDate",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Generated rename target fields updated outside the anchor-set substitution.",
+      "propertyDeltas": [
+        "/bind",
+        "/id",
+        "/x-generation/source"
+      ]
+    }
+  ],
+  "orphaned": [],
+  "pendingReview": [],
+  "conflicts": []
+}

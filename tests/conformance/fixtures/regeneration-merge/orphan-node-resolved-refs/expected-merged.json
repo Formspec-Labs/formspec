@@ -1,0 +1,57 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/regeneration-merge-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "identitySection",
+    "title": "Applicant identity",
+    "x-generation": {
+      "source": "task:identifyApplicant",
+      "strategy": "regeneration-merge-fixture",
+      "generatedBy": "regeneration-merge-fixture/1.0.0",
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ]
+    },
+    "children": [
+      {
+        "component": "TextInput",
+        "id": "applicantNameInput",
+        "bind": "applicantName",
+        "x-generation": {
+          "source": "item:applicantName",
+          "strategy": "regeneration-merge-fixture",
+          "generatedBy": "regeneration-merge-fixture/1.0.0",
+          "anchors": [
+            "item:applicantName",
+            "task:identifyApplicant",
+            "unit:identity"
+          ]
+        },
+        "placeholder": "Full name"
+      },
+      {
+        "component": "TextInput",
+        "id": "designerNoteInput",
+        "bind": "applicantName",
+        "x-generation": {
+          "source": "concept:x-designer-note",
+          "strategy": "regeneration-merge-fixture",
+          "generatedBy": "regeneration-merge-fixture/1.0.0",
+          "anchors": [
+            "concept:x-designer-note",
+            "item:applicantName",
+            "task:identifyApplicant",
+            "unit:identity"
+          ]
+        },
+        "placeholder": "Designer note"
+      }
+    ]
+  }
+}

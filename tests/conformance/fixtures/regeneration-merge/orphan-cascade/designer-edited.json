@@ -1,0 +1,72 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/regeneration-merge-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "identitySection",
+    "title": "Applicant identity",
+    "x-generation": {
+      "source": "task:identifyApplicant",
+      "strategy": "regeneration-merge-fixture",
+      "generatedBy": "regeneration-merge-fixture/1.0.0",
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ]
+    },
+    "children": [
+      {
+        "component": "Section",
+        "id": "designerWrapper",
+        "title": "Designer wrapper",
+        "x-generation": {
+          "source": "concept:x-designer-wrapper",
+          "strategy": "regeneration-merge-fixture",
+          "generatedBy": "regeneration-merge-fixture/1.0.0",
+          "anchors": [
+            "concept:x-designer-wrapper"
+          ]
+        },
+        "children": [
+          {
+            "component": "TextInput",
+            "id": "applicantNameInput",
+            "bind": "applicantName",
+            "x-generation": {
+              "source": "item:applicantName",
+              "strategy": "regeneration-merge-fixture",
+              "generatedBy": "regeneration-merge-fixture/1.0.0",
+              "anchors": [
+                "item:applicantName",
+                "task:identifyApplicant",
+                "unit:identity"
+              ]
+            },
+            "placeholder": "Full name"
+          },
+          {
+            "component": "TextInput",
+            "id": "designerNestedNoteInput",
+            "bind": "applicantName",
+            "x-generation": {
+              "source": "concept:x-designer-note",
+              "strategy": "regeneration-merge-fixture",
+              "generatedBy": "regeneration-merge-fixture/1.0.0",
+              "anchors": [
+                "concept:x-designer-note",
+                "item:applicantName",
+                "task:identifyApplicant",
+                "unit:identity"
+              ]
+            },
+            "placeholder": "Nested designer note"
+          }
+        ]
+      }
+    ]
+  }
+}

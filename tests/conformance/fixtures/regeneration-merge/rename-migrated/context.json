@@ -1,0 +1,9 @@
+{
+  "$formspecAnchorMappings": "1.0",
+  "anchorMappings": [
+    {
+      "from": "item:dateOfBirth",
+      "to": "item:birthDate"
+    }
+  ]
+}

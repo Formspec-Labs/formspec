@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [],
+  "orphaned": [
+    {
+      "anchors": [
+        "concept:x-detached-root"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-ORPHAN-NODE",
+      "severity": "warning",
+      "reason": "Designer root had no surviving ancestor and was preserved under /tree.",
+      "reattachedTo": "/tree",
+      "cascaded": false,
+      "detached": true
+    },
+    {
+      "anchors": [
+        "concept:x-detached-root"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-ORPHAN-DETACHED",
+      "severity": "warning",
+      "reason": "No surviving ancestor resolved; orphan reattached under /tree.",
+      "reattachedTo": "/tree",
+      "cascaded": false,
+      "detached": true
+    }
+  ],
+  "pendingReview": [],
+  "conflicts": []
+}

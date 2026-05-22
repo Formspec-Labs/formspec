@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "surviving": [
+    {
+      "anchors": [
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/1",
+      "code": "COMP-REGENERATION-DESIGNER-SURVIVED",
+      "severity": "info",
+      "reason": "Same-parent duplicate anchor set resolved to identityLabel via stable id.",
+      "propertyDeltas": [
+        "/text"
+      ]
+    }
+  ],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    }
+  ],
+  "orphaned": [],
+  "pendingReview": [],
+  "conflicts": []
+}

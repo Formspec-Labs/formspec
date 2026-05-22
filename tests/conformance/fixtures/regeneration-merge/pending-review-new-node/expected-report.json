@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    }
+  ],
+  "orphaned": [],
+  "pendingReview": [
+    {
+      "anchors": [
+        "item:applicantAlias",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-PENDING-REVIEW",
+      "severity": "info",
+      "reason": "New generated node has no old or designer match."
+    }
+  ],
+  "conflicts": []
+}

@@ -1053,41 +1053,41 @@ cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_r
 
 Each case is a directory with five required files: `old-generated.json`, `designer-edited.json`, `new-generated.json`, `expected-merged.json`, `expected-report.json`. A case MAY also include `context.json` for optional merge context such as `anchorMappings`. L1 fix: degenerate `unchanged` case removed; subtree add/reorder cases added.
 
-- [ ] **Case `designer-only-property`** — designer changed one `props.label`; new-generated equals old. Expected: surviving entry for the edited node; merged carries the designer's label.
+- [x] **Case `designer-only-property`** — designer changed one schema-valid presentation property (`placeholder`); new-generated equals old. Expected: surviving entry for the edited node; merged carries the designer's placeholder.
 
-- [ ] **Case `regenerator-only-property`** — designer-edited equals old; new-generated added a new prop. Expected: regenerated entry; merged carries new prop.
+- [x] **Case `regenerator-only-property`** — designer-edited equals old; new-generated added a new schema-valid presentation property (`placeholder`). Expected: regenerated entry; merged carries new property.
 
-- [ ] **Case `property-conflict`** — both designer and new-generated changed the same `props.label`. Expected: `COMP-REGENERATION-PROPERTY-CONFLICT` finding, severity `warning`.
+- [x] **Case `property-conflict`** — both designer and new-generated changed the same schema-valid presentation property (`placeholder`). Expected: `COMP-REGENERATION-PROPERTY-CONFLICT` finding, severity `warning`.
 
-- [ ] **Case `widget-swap`** — designer changed `TextInput` → `TextArea`; new-generated kept `TextInput`. Expected: merged preserves `TextArea`, `conflicts[]` contains `COMP-REGENERATION-WIDGET-SWAP` at `warning` for review.
+- [x] **Case `widget-swap`** — designer changed `TextInput` → custom `TextArea`; new-generated kept `TextInput`. Expected: merged preserves `TextArea`, `conflicts[]` contains `COMP-REGENERATION-WIDGET-SWAP` at `warning` for review.
 
-- [ ] **Case `pending-review-new-node`** — new-generated added a node not in old or designer. Expected: `pendingReview` entry, `COMP-REGENERATION-PENDING-REVIEW` at `info`.
+- [x] **Case `pending-review-new-node`** — new-generated added a node not in old or designer. Expected: `pendingReview` entry, `COMP-REGENERATION-PENDING-REVIEW` at `info`.
 
-- [ ] **Case `orphan-node-resolved-refs`** — designer-edited has a node with anchors not in new-generated; the node's `bind` still resolves. Expected: `orphaned` entry, `COMP-REGENERATION-ORPHAN-NODE` at `warning`; reattached at original parent.
+- [x] **Case `orphan-node-resolved-refs`** — designer-edited has a node with anchors not in new-generated; the node's `bind` still resolves. Expected: `orphaned` entry, `COMP-REGENERATION-ORPHAN-NODE` at `warning`; reattached at original parent.
 
-- [ ] **Case `orphan-broken-binding`** — same as above but `bind` no longer resolves. Expected: `COMP-REGENERATION-ORPHAN-NODE` at `warning` in MergeReport PLUS a separate Component-resolver bind-failure finding at `error` (composed in the review surface, NOT duplicated in MergeReport per H4).
+- [x] **Case `orphan-broken-binding`** — same as above but `bind` no longer resolves. Expected: `COMP-REGENERATION-ORPHAN-NODE` at `warning` in MergeReport PLUS a separate Component-resolver bind-failure finding at `error` (composed in the review surface, NOT duplicated in MergeReport per H4).
 
-- [ ] **Case `orphan-cascade`** — designer subtree's parent is itself orphaned; reattaches to grandparent. Expected: base `COMP-REGENERATION-ORPHAN-NODE` at `warning` plus `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info`; both entries carry `cascaded: true` and `detached: false`.
+- [x] **Case `orphan-cascade`** — designer subtree's parent is itself orphaned; reattaches to grandparent. Expected: base `COMP-REGENERATION-ORPHAN-NODE` at `warning` plus `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info`; both entries carry `cascaded: true` and `detached: false`.
 
-- [ ] **Case `orphan-detached`** — designer subtree has no surviving ancestor in merged; reattaches at root. Expected: base `COMP-REGENERATION-ORPHAN-NODE` at `warning` plus `COMP-REGENERATION-ORPHAN-DETACHED` at `warning`; both entries carry `cascaded: false` and `detached: true`.
+- [x] **Case `orphan-detached`** — designer subtree has no surviving ancestor in merged; reattaches at root. Expected: base `COMP-REGENERATION-ORPHAN-NODE` at `warning` plus `COMP-REGENERATION-ORPHAN-DETACHED` at `warning`; both entries carry `cascaded: false` and `detached: true`.
 
-- [ ] **Case `designer-removed`** — old has a generated node; designer deleted it; new-generated still produces it. Expected: `COMP-REGENERATION-DESIGNER-REMOVED` at `warning`.
+- [x] **Case `designer-removed`** — old has a generated node; designer deleted it; new-generated still produces it. Expected: `COMP-REGENERATION-DESIGNER-REMOVED` at `warning`.
 
-- [ ] **Case `designer-precedes`** — designer authored a node at an anchor that new-generation now also produces (old does not have it). Expected: `COMP-REGENERATION-DESIGNER-PRECEDES` at `warning`.
+- [x] **Case `designer-precedes`** — designer authored a node at an anchor that new-generation now also produces (old does not have it). Expected: `COMP-REGENERATION-DESIGNER-PRECEDES` at `warning`.
 
-- [ ] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; an anchor-mapping document maps the substitution. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`.
+- [x] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; an anchor-mapping document maps the substitution. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`, plus a separate `COMP-REGENERATION-REGENERATED` entry for generated-only non-anchor field updates.
 
-- [ ] **Case `rename-no-anchor-mapping`** — anchors changed without an anchor-mapping entry. Expected: NOT matched; any corresponding designer subtree becomes `ORPHAN-NODE` only if it remains uncovered; N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
+- [x] **Case `rename-no-anchor-mapping`** — anchors changed without an anchor-mapping entry. Expected: NOT matched; any corresponding designer subtree becomes `ORPHAN-NODE` only if it remains uncovered; N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
 
-- [ ] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; `orphaned[]` entry for the child. `pendingReview[]` is reserved for newly generated nodes.
+- [x] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; `orphaned[]` entry for the child. `pendingReview[]` is reserved for newly generated nodes.
 
-- [ ] **Case `subtree-children-reorder`** — designer reordered two children under a regenerated `Section`; new-generation kept the original order. Expected: designer order preserved in merged; reorder surfaced as `surviving` entry on the Section (designer-only change).
+- [x] **Case `subtree-children-reorder`** — designer reordered two children under a regenerated `Section`; new-generation kept the original order. Expected: designer order preserved in merged; reorder surfaced as `surviving` entry on the Section (designer-only change).
 
-- [ ] **Case `duplicate-anchor-set`** — `Section` and `Label` inside it both carry `["unit:identity"]`. Designer edits the `Label`'s text. Expected: recursive parent match key plus stable local discriminator correctly matches the `Label` (not the `Section`); `Label` survives with designer text; `Section` regenerates cleanly.
+- [x] **Case `duplicate-anchor-set`** — two sibling `Text` nodes both carry `["unit:identity"]`. Designer edits the second `Text` node's copy. Expected: same-parent duplicate handling uses stable local discriminator (`id`) to match the edited node; the second text survives with designer copy while the first clean sibling regenerates.
 
-- [ ] **Case `no-common-ancestor`** — `old-generated` is absent (caller passes `None` or empty). Expected: fresh generation; merged equals new-generated; `MergeReport.conflicts` contains `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error`.
+- [x] **Case `no-common-ancestor`** — `old-generated` is absent (caller passes `None` or empty). Expected: fresh generation; merged equals new-generated; `MergeReport.conflicts` contains `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error`.
 
-- [ ] Commit fixtures.
+- [x] Commit fixtures.
 
 ## Task 17: Algorithm pytest
 
@@ -1362,7 +1362,7 @@ Tasks 2-12:    spec prose §1-§11
 Task 13:       MergeReport schema
 Task 14:       schema-shape pytest
 Task 15:       shared base fixtures
-Task 16:       12 per-case fixtures
+Task 16:       17 per-case fixtures
 Task 17:       algorithm pytest (TDD: red → green)
 Task 18:       invariant pytest (determinism, no-mutation, convergence)
 Task 19:       Studio E2E (gated; deferred to TODO if Studio not ready)
@@ -1494,3 +1494,10 @@ Task 23:       promotion-gate + architecture review
 - 2026-05-22: Post-Task-15 architecture review found two pre-Task-16 orphan-fixture risks:
   - Tightened the MergeReport schema and Task 14 tests so `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` requires `cascaded: true` / `detached: false`, and `COMP-REGENERATION-ORPHAN-DETACHED` requires `cascaded: false` / `detached: true`.
   - Updated Task 16 orphan-cascade and orphan-detached fixture expectations so both include the required base `COMP-REGENERATION-ORPHAN-NODE` entry plus the code-scoped cascade/detached entry.
+- 2026-05-22: Task 16 fixture authoring kept all Component documents schema-valid:
+  - Replaced earlier generic `props.label` shorthand with concrete Component properties such as `placeholder`, and used `Text` instead of a nonexistent built-in `Label`.
+  - Modeled `TextArea` as a schema-valid custom component registry entry for the widget-swap case because the Component schema represents multi-line text with `TextInput.maxLines` rather than a built-in `TextArea`.
+- 2026-05-22: Task 16 review remediation tightened fixture expected reports before commit:
+  - Added clean `COMP-REGENERATION-REGENERATED` entries for matched generated nodes that the fixture reports previously left implicit.
+  - Normalized report anchor arrays to §3.1 bytewise order, changed `rename-migrated/context.json` to the full `$formspecAnchorMappings` shape, moved the `designer-removed` report `nodePath` to an existing merged-tree path, and changed `duplicate-anchor-set` to same-parent duplicate anchors so the stable local discriminator path is exercised.
+  - Added the required `COMP-REGENERATION-REGENERATED` entry for `rename-migrated` generated-only non-anchor field updates (`/id`, `/bind`, `/x-generation/source`) while keeping the anchor-set update represented only by `COMP-REGENERATION-RENAME-MIGRATED`.

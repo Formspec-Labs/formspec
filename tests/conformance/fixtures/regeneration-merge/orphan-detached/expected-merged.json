@@ -1,0 +1,56 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/regeneration-merge-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "identitySection",
+    "title": "Applicant identity",
+    "x-generation": {
+      "source": "task:identifyApplicant",
+      "strategy": "regeneration-merge-fixture",
+      "generatedBy": "regeneration-merge-fixture/1.0.0",
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ]
+    },
+    "children": [
+      {
+        "component": "Section",
+        "id": "designerRoot",
+        "title": "Designer root",
+        "x-generation": {
+          "source": "concept:x-detached-root",
+          "strategy": "regeneration-merge-fixture",
+          "generatedBy": "regeneration-merge-fixture/1.0.0",
+          "anchors": [
+            "concept:x-detached-root"
+          ]
+        },
+        "children": [
+          {
+            "component": "TextInput",
+            "id": "detachedDesignerInput",
+            "bind": "applicantName",
+            "x-generation": {
+              "source": "concept:x-designer-note",
+              "strategy": "regeneration-merge-fixture",
+              "generatedBy": "regeneration-merge-fixture/1.0.0",
+              "anchors": [
+                "concept:x-designer-note",
+                "item:applicantName",
+                "task:identifyApplicant",
+                "unit:identity"
+              ]
+            },
+            "placeholder": "Detached designer field"
+          }
+        ]
+      }
+    ]
+  }
+}

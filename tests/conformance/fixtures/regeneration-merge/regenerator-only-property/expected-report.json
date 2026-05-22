@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Generated placeholder updated.",
+      "propertyDeltas": [
+        "/placeholder"
+      ]
+    }
+  ],
+  "orphaned": [],
+  "pendingReview": [],
+  "conflicts": []
+}

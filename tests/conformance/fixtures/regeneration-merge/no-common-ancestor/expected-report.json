@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [],
+  "orphaned": [],
+  "pendingReview": [],
+  "conflicts": [
+    {
+      "anchors": [],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+      "severity": "error",
+      "reason": "No old-generated common ancestor was supplied."
+    }
+  ]
+}

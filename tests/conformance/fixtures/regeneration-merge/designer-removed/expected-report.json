@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [],
+  "orphaned": [],
+  "pendingReview": [],
+  "conflicts": [
+    {
+      "anchors": [
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-DESIGNER-REMOVED",
+      "severity": "warning",
+      "reason": "Designer removed a node that the generator still produces."
+    }
+  ]
+}

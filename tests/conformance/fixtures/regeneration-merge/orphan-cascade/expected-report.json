@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "surviving": [],
+  "regenerated": [
+    {
+      "anchors": [
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    },
+    {
+      "anchors": [
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/0",
+      "code": "COMP-REGENERATION-REGENERATED",
+      "severity": "info",
+      "reason": "Clean generated node matched old and designer."
+    }
+  ],
+  "orphaned": [
+    {
+      "anchors": [
+        "concept:x-designer-note",
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/1",
+      "code": "COMP-REGENERATION-ORPHAN-NODE",
+      "severity": "warning",
+      "reason": "Designer orphan reattached above its original parent.",
+      "reattachedTo": "/tree",
+      "cascaded": true,
+      "detached": false
+    },
+    {
+      "anchors": [
+        "concept:x-designer-note",
+        "item:applicantName",
+        "task:identifyApplicant",
+        "unit:identity"
+      ],
+      "nodePath": "/tree/children/1",
+      "code": "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+      "severity": "info",
+      "reason": "Original parent did not survive; orphan reattached to nearest surviving ancestor.",
+      "reattachedTo": "/tree",
+      "cascaded": true,
+      "detached": false
+    }
+  ],
+  "pendingReview": [],
+  "conflicts": []
+}
