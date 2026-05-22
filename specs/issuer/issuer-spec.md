@@ -588,18 +588,20 @@ The following are out of scope for v1:
 
 ## 21. Open Questions
 
-1. Should the canonical Issuer context be published at
-   `https://formspec.org/contexts/issuer-v1.jsonld`, or should Issuer Documents
-   embed the context inline?
-2. Should Formspec ship a normative Issuer-to-schema.org projection tool, or is
+The canonical Issuer JSON-LD context document is `specs/issuer/context.jsonld`
+and is published at `https://formspec.org/contexts/issuer-v1.jsonld`.
+Issuer Documents SHOULD reference that URL instead of embedding the context
+inline.
+
+1. Should Formspec ship a normative Issuer-to-schema.org projection tool, or is
    a crosswalk plus fixture corpus sufficient for v1?
-3. Should `identifier` URI schemes be narrowed when cryptographic attestation
+2. Should `identifier` URI schemes be narrowed when cryptographic attestation
    arrives?
-4. Should `contactPoint.contactType` stay open or converge to a controlled
+3. Should `contactPoint.contactType` stay open or converge to a controlled
    vocabulary?
-5. Should authoring tools discover Issuer Documents through
+4. Should authoring tools discover Issuer Documents through
    `/.well-known/formspec-issuer`?
-6. Should future versions pin `parentOrganization` by `{ url, version }`?
+5. Should future versions pin `parentOrganization` by `{ url, version }`?
 
 ## 22. Cross-References
 
