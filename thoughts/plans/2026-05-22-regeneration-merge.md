@@ -57,7 +57,7 @@ Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in belo
 
 | Decision | Choice | Confidence | Rationale |
 |---|---|---|---|
-| Merge identity key | `x-generation.anchors` set, **with sibling tree-path tiebreaker** when two nodes share an anchor set | HIGH | `ComponentBase.id` is OPTIONAL; tree position alone is unstable; anchor-set alone collides when a `Section` and a `Label` inside it both carry `["unit:identity"]` (B1 fix). Anchor set is primary; when the input tree contains multiple nodes with identical anchor sets, the tiebreaker is the ordinal sibling index under each node's parent (parent identity itself recurses via the same rule). |
+| Merge identity key | `x-generation.anchors` set, with recursive parent match key plus ordinal sibling index when duplicate anchor sets appear under the same parent | HIGH | `ComponentBase.id` is OPTIONAL; tree position alone is unstable; anchor-set alone collides when a `Section` and a `Label` inside it both carry `["unit:identity"]` (B1 fix). Anchor set is primary; when the input tree contains multiple nodes with identical anchor sets, the tiebreaker is `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. If the parent chain reaches a missing/empty-anchor parent, the duplicate is ambiguous and must not match by path/id/type/position. |
 | Merge model | Three-way (`old-generated` ⊕ `designer-edited` ⊕ `new-generated`) | HIGH | Concept §7.2 enumerates exactly these three inputs. |
 | Required input | `old-generated` snapshot MUST be persisted between generations | HIGH | Without the common ancestor, three-way merge collapses to two-way and silently loses the ability to detect designer intent. **No two-way fallback exists.** A host that cannot supply `old-generated` MUST treat the operation as fresh generation — designer edits are lost — and `report.conflicts[]` MUST contain `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error` severity (M1 fix). |
 | Finding code family | New `COMP-REGENERATION-*` for **merge-context-only findings**; **reference-resolution failures route through existing `COMP-REFERENTIAL-INTEGRITY`** (or Component-resolver bind findings) **plus a merge-context annotation** | HIGH | Reviewer's H4: the "static vs merge-time" framing was wrong because CRF resolvers can run at any time. The real boundary is "findings that only exist because a merge happened" vs "findings about reference integrity that exist independent of merge." Bind/actionRef/unitRef failures from an orphaned node MUST be emitted by the existing CRF/Component resolver, not duplicated in the regeneration family. |
@@ -190,21 +190,21 @@ freshGenerationWithoutCommonAncestor(
 
 ## Task 4: Spec prose — §3 Source anchor identity
 
-- [ ] Draft §3 defining how nodes are matched across the three input trees.
+- [x] Draft §3 defining how nodes are matched across the three input trees.
 
 **Normative set-equality (F1 fix).** CRF §5.1 declares `x-generation.anchors` as "array of string" without ordering semantics. This spec defines a stronger normative rule applicable only to regeneration merge: for merge-identity purposes, anchor arrays are compared as **order-normalized, duplicate-stripped sets**. Two anchor arrays match iff their string-sorted, deduplicated forms are byte-identical. This rule lives in regeneration-merge-spec §3 and is NOT a CRF claim.
 
-**Primary rule:** a node N_old in `old-generated` matches a node N_new in `new-generated` iff `N_old.x-generation.anchors` and `N_new.x-generation.anchors` compare equal under the order-normalized set rule above. Same rule applies to matching `designer-edited` nodes against `new-generated`.
+**Primary rule:** the order-normalized set rule is the equality comparator. A node N_old in `old-generated` matches a node N_new in `new-generated` when their normalized anchor sets compare equal. Same rule applies to matching `designer-edited` nodes against `new-generated`. Task 10's anchor-mapping substitution may transform the old anchor set before this same equality comparator is applied; raw equality is the normal path, not the only possible pre-mapping path.
 
-**Tiebreaker for duplicated anchor sets (B1 fix):** anchor uniqueness is NOT enforced by CRF — a `Section` and a `Label` inside it can both carry `["unit:identity"]`. When multiple candidate nodes within the SAME tree share an identical anchor set, the matching key extends to `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. Parent identity recurses via the same rule; the ordinal sibling index counts only siblings that share the anchor set (so unrelated siblings don't shift the index).
+**Tiebreaker for duplicated anchor sets (B1 fix):** anchor uniqueness is NOT enforced by CRF — a `Section` and a `Label` inside it can both carry `["unit:identity"]`. When multiple candidate nodes within the SAME tree share an identical anchor set, the matching key extends to `(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)`. Parent identity recurses via the same rule; the ordinal sibling index counts only siblings that share the anchor set (so unrelated siblings don't shift the index). If the parent chain needed for disambiguation reaches a missing-anchor or empty-anchor parent, the duplicate candidate is ambiguous and MUST NOT be matched against `new-generated`; the later algorithm surfaces it through orphan/pending-review/conflict handling instead of choosing arbitrarily.
 
-**Nodes without `x-generation`:** treated as designer-authored from inception. Matched across `old-generated` ↔ `designer-edited` by `id` if present, otherwise by full tree-path (`/tree/children[2]/children[0]`). Never matched against `new-generated` (the generator did not produce them).
+**Nodes without `x-generation`:** treated as designer-authored from inception for merge-identity purposes. Matched across `old-generated` ↔ `designer-edited` by `id` if present, otherwise by RFC 6901 JSON Pointer node path (`/tree/children/2/children/0`). Never matched against `new-generated` (the generator did not produce them).
 
-**Nodes with empty `anchors`:** treated identically to nodes without `x-generation`.
+**Nodes with missing or empty `x-generation.anchors`:** treated identically to nodes without `x-generation` for merge identity, even if other provenance members (`source`, `strategy`, `generatedBy`, `generatedAt`) are present. Task 5 may classify those nodes as generated for preservation/reporting purposes, but §3 anchor identity cannot match them against `new-generated` without a non-empty anchor set.
 
-**Anchor taxonomy:** reuses CRF §5 prefixes (`item:`, `unit:`, `task:`, `action:`, `concept:`). This spec does not introduce new prefixes.
+**Anchor taxonomy:** reuses CRF §5 prefixes (`item:`, `unit:`, `task:`, `action:`, `concept:`). This spec does not introduce new prefixes, rewrite suffixes, or claim CRF-level ordering, uniqueness, or global anchor identity.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 5: Spec prose — §4 Generated-node markers
 
@@ -947,3 +947,9 @@ Task 23:       promotion-gate + architecture review
   - Reworded the BLUF proof posture from already-proven to future fixture-driven proof before promotion.
   - Corrected Task 17's final commit-message text from "all 12 cases pass" to "all 17 cases pass."
   - Updated the spec status paragraph to acknowledge that §2 has landed.
+- 2026-05-22: Pre-Task-4 architecture review by `formspec-specs:spec-expert` (verdict NO-GO until plan tightening) found §3 source-anchor instructions conflicted with later rename/marker rules. Remediated the plan before drafting §3:
+  - Rephrased raw anchor equality as the equality comparator so Task 10 anchor-mapping substitution can transform anchors before comparison.
+  - Made missing/empty `x-generation.anchors` non-matchable against `new-generated` for merge identity, even if other provenance members exist.
+  - Added deterministic duplicate-anchor ambiguity handling when recursive parent identity reaches a missing/empty-anchor parent.
+  - Replaced bracket fallback paths with RFC 6901 JSON Pointer paths and restated that prefix/suffix semantics remain CRF-owned.
+- 2026-05-22: Post-Task-4 review by `formspec-specs:spec-expert` (verdict APPROVE) found one nit: the load-bearing design table still used stale "sibling tree-path tiebreaker" shorthand. Cleaned before commit.

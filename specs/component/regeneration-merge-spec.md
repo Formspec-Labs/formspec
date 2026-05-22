@@ -279,6 +279,95 @@ outputs.
 
 ## 3. Source Anchor Identity
 
+### 3.1 Regeneration-Only Anchor Set Equality
+
+Component Reference Fields defines `x-generation.anchors[]` as an array of
+strings and defines the standard anchor prefixes. It does not define ordering,
+uniqueness, global identity, or merge matching semantics for that array.
+
+For regeneration merge only, anchor arrays are compared as order-normalized,
+duplicate-stripped sets. A processor computes an anchor set by:
+
+1. selecting only string entries from `x-generation.anchors[]`;
+2. removing duplicate strings; and
+3. sorting the remaining strings bytewise.
+
+Two anchor arrays compare equal when their computed anchor sets are
+byte-identical. This rule is scoped to this regeneration merge specification and
+MUST NOT be treated as a Component Reference Fields rule.
+
+### 3.2 Primary Match Rule
+
+A generated node in `old_generated` matches a generated node in `new_generated`
+when their computed anchor sets compare equal under §3.1. A generated node in
+`designer_edited` matches a generated node in `new_generated` by the same rule.
+
+Raw equality is the normal path. §9 anchor-mapping substitution may transform an
+old anchor set before the same §3.1 equality comparator is applied. No other
+rename, edit-distance, prefix-family, or tree-position heuristic may create an
+old-to-new generated-node match.
+
+### 3.3 Duplicate Anchor Sets
+
+Anchor uniqueness is not guaranteed by Component Reference Fields. A `Section`
+and a nested `Label`, for example, may both carry `["unit:identity"]`.
+
+When multiple candidate nodes in the same input tree have the same computed
+anchor set, the match key extends to:
+
+```text
+(anchor_set, parent_match_key, ordinal_sibling_index_among_anchor_set_peers)
+```
+
+`parent_match_key` is computed recursively by the same rule. The
+`ordinal_sibling_index_among_anchor_set_peers` counts only siblings under the
+same parent that share the computed anchor set, so unrelated sibling insertions
+do not shift the tiebreaker.
+
+If the parent chain required for duplicate disambiguation reaches a parent that
+has no matchable anchor set, the duplicate candidate is ambiguous. An ambiguous
+duplicate MUST NOT be matched against `new_generated` by path, `id`, component
+type, or sibling position. Later algorithm steps surface the node through
+orphan, pending-review, or conflict reporting instead of choosing arbitrarily.
+
+### 3.4 Nodes Without Matchable Anchors
+
+A node has no matchable anchors when it has no `x-generation` object, when
+`x-generation.anchors` is absent, or when `x-generation.anchors` is empty after
+non-string entries are ignored and duplicates are stripped.
+
+Nodes without matchable anchors are treated as designer-authored for merge
+identity. They are never matched against `new_generated`, even if other
+`x-generation` provenance members such as `source`, `strategy`, `generatedBy`,
+or `generatedAt` are present.
+
+For old-to-designer preservation only, a node without matchable anchors may
+match between `old_generated` and `designer_edited` by `id` when both nodes have
+the same non-empty `id`. If no usable `id` exists, the fallback is the node's RFC
+6901 JSON Pointer path within the Component document, such as
+`/tree/children/2/children/0` or `/components/address/tree/children/0`.
+
+The fallback in this subsection is only for preserving designer-authored nodes
+between the old and designer-edited documents. It MUST NOT be used to match an
+old or designer node against `new_generated`.
+
+### 3.5 Anchor Taxonomy
+
+Regeneration merge reuses the standard Component Reference Fields anchor
+prefixes:
+
+- `item:`
+- `unit:`
+- `task:`
+- `action:`
+- `concept:`
+
+This specification does not introduce new prefixes. Anchor suffix syntax remains
+owned by the referenced source layer. A regeneration-merge processor MUST NOT
+rewrite suffixes, normalize suffixes into another source format, invent missing
+anchors, or treat unresolved anchors as proof that a generated node should match
+by a non-anchor heuristic.
+
 ## 4. Generated-Node Markers
 
 ## 5. Designer-Edit Detection
