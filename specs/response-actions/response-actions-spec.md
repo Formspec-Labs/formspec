@@ -281,10 +281,12 @@ For non-idempotency expressions (`payloadRef`, `detailRef`), the effect-time cat
 
 | name | kind | type | purity | evaluationTiming | scope |
 |---|---|---|---|---|---|
-| `effects` | object | One-based array of prior effect outcomes `{ type, status, outcomeRef }`. | pure | lazy | expression |
+| `effects` | object | Array of prior effect outcomes `{ type, status, outcomeRef }`. FEL path subscripts on `@name` bindings are **1-based** per [FEL §6.2.2](../../../fel-core/specs/fel/fel-grammar.md), so `@effects[1]` is the first prior effect. | pure | lazy | expression |
 | `invocation` | object | `{ id: string, attempt: integer }`; `attempt` is a property of `@invocation`, not a separate binding. | pure | eager | expression |
 
 `@effects[i]` MUST only reference prior effects. Referencing the current or a future effect is an evaluation error.
+
+The FEL surface index (`@effects[i]`, 1-based) and the trace artifact index (`effectIndex` in §8 failure outcomes and Ledger records, 0-based per host idiom) refer to the same effect offset by one. Authors who need to correlate a FEL reference with a trace record subtract one: `@effects[1].outcomeRef` corresponds to `effectIndex: 0`. The dual-base convention is intentional — FEL grammar owns the path-subscript base; the trace artifact uses the language-of-host base.
 
 ### 6.5 Effect Outcomes
 

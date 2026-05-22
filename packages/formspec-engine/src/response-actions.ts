@@ -8,6 +8,7 @@ import type {
     ValidationOverride,
     ValidationProfile,
 } from '@formspec-org/types';
+import { VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 
 export type {
     ResponseAction,
@@ -105,13 +106,25 @@ export interface ResponseActionInvocationResult<TDetail> {
     replayToken?: string;
 }
 
-const MASTER_TABLE: Record<StandardResponseActionIntent, ValidationOverride> = {
-    'save-draft': { profile: 'off', blocking: 'non-blocking', persistence: 'draft-checkpoint' },
-    autosave: { profile: 'off', blocking: 'non-blocking', persistence: 'draft-checkpoint' },
-    review: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
-    submit: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
-    'request-evidence': { profile: 'on-demand', blocking: 'non-blocking', persistence: 'draft-checkpoint' },
-};
+/**
+ * Validation tuple lookup keyed by StandardResponseActionIntent.
+ * Built from the generated VM master-table const so the engine's intent
+ * resolution is a projection of the schema, not a parallel literal. The
+ * schema's MasterTable const is the single source of truth for this map
+ * (schemas/validation-mapping.schema.json#/$defs/MasterTable/const).
+ */
+const MASTER_TABLE: Record<StandardResponseActionIntent, ValidationOverride> =
+    (() => {
+        const map: Partial<Record<StandardResponseActionIntent, ValidationOverride>> = {};
+        for (const row of VALIDATION_MAPPING_MASTER_TABLE) {
+            map[row.intent as StandardResponseActionIntent] = {
+                profile: row.profile,
+                blocking: row.blocking,
+                persistence: row.persistence,
+            };
+        }
+        return map as Record<StandardResponseActionIntent, ValidationOverride>;
+    })();
 
 function isStandardActionIntent(intent: string): intent is StandardResponseActionIntent {
     return Object.prototype.hasOwnProperty.call(MASTER_TABLE, intent);

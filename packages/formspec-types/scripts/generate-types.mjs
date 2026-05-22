@@ -625,6 +625,29 @@ async function main() {
     writeFileSync(resolve(OUT_DIR, `${mod.name}.ts`), mod.source);
   }
 
+  // Phase 5a: emit schema-pinned runtime constants.
+  // VM master table is load-bearing for response-actions runtime intent
+  // resolution — must equal schemas/validation-mapping.schema.json
+  // #/$defs/MasterTable/const row-for-row. Generating it here removes the
+  // hand-authored duplicate in packages/formspec-engine/src/response-actions.ts.
+  const vmSchemaPath = URI_TO_LOCAL['https://formspec.org/schemas/validationMapping/1.0'];
+  const vmSchema = JSON.parse(readFileSync(vmSchemaPath, 'utf-8'));
+  const vmMasterTable = vmSchema?.$defs?.MasterTable?.const;
+  if (!Array.isArray(vmMasterTable) || vmMasterTable.length === 0) {
+    throw new Error('VM schema MasterTable const missing or empty — cannot emit runtime const');
+  }
+  const masterTableSource = `${FILE_BANNER}import type { MappingEntry } from './validation-mapping.js';
+
+/**
+ * Frozen mirror of schemas/validation-mapping.schema.json#/$defs/MasterTable/const.
+ * Runtime consumers (Response Actions intent->validation-tuple resolution)
+ * MUST consult this generated const, never a hand-authored copy.
+ */
+export const VALIDATION_MAPPING_MASTER_TABLE: readonly MappingEntry[] =
+  ${JSON.stringify(vmMasterTable, null, 2).replace(/\n/g, '\n  ')} as const;
+`;
+  writeFileSync(resolve(OUT_DIR, 'validation-mapping-master-table.ts'), masterTableSource);
+
   // Phase 6: generate collision-free barrel (exclude numbered codegen artifacts)
   const claimed = new Set();
   const barrelLines = [FILE_BANNER];
@@ -638,6 +661,10 @@ async function main() {
       `export type { ${unique.join(', ')} } from './${name}.js';`
     );
   }
+  // Generated runtime const — not a type, exported as value.
+  barrelLines.push(
+    `export { VALIDATION_MAPPING_MASTER_TABLE } from './validation-mapping-master-table.js';`
+  );
 
   barrelLines.push('');
   writeFileSync(resolve(OUT_DIR, 'index.ts'), barrelLines.join('\n'));
