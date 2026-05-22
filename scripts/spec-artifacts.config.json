@@ -219,7 +219,24 @@
         "LangMap-valued Issuer fields use inline BCP 47 language maps; Locale Documents are not used for Issuer translations.",
         "Renderers must detect parentOrganization cycles, cap chain depth, and fail soft when parent fetches fail.",
         "Query-parameter Issuer overrides must be origin-allowlisted and visibly indicated when applied."
-      ]
+      ],
+      "contractSurfaces": {
+        "ledger": "tests/contracts/surface-coverage.json",
+        "crates": [
+          "crates/formspec-core",
+          "crates/formspec-lint"
+        ],
+        "packages": [
+          "packages/formspec-engine",
+          "packages/formspec-webcomponent",
+          "packages/formspec-react"
+        ],
+        "conformance": [
+          "tests/conformance/test_issuer_fixtures.py",
+          "tests/conformance/test_definition_issuer_binding.py",
+          "tests/conformance/test_response_displayed_issuer.py"
+        ]
+      }
     },
     {
       "spec": "specs/experience/experience-spec.md",

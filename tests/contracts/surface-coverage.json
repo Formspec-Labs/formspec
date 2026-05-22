@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "description": "Contract surface coverage ledger. Each enforced contract must point to conformance, crate, and package tests that prove the spec obligation is not stranded in one layer.",
+  "contracts": {
+    "issuer": {
+      "status": "enforced",
+      "spec": "specs/issuer/issuer-spec.md",
+      "conformance": [
+        "tests/conformance/test_issuer_fixtures.py",
+        "tests/conformance/test_definition_issuer_binding.py",
+        "tests/conformance/test_response_displayed_issuer.py"
+      ],
+      "crates": [
+        "crates/formspec-core/src/schema_validator.rs",
+        "crates/formspec-lint/src/pass_issuer.rs",
+        "crates/formspec-lint/src/lib.rs"
+      ],
+      "packages": {
+        "engine": [
+          "packages/formspec-engine/tests/issuer/IssuerStore.test.mjs",
+          "packages/formspec-engine/tests/issuer/types.test.ts"
+        ],
+        "webcomponent": [
+          "packages/formspec-webcomponent/tests/issuer/element.issuer.test.ts",
+          "packages/formspec-webcomponent/tests/issuer/IssuerChrome.test.ts",
+          "packages/formspec-webcomponent/tests/issuer/queryOverride.test.ts"
+        ],
+        "react": [
+          "packages/formspec-react/tests/issuer-parity.test.tsx"
+        ]
+      },
+      "checks": [
+        "issuer schema and definition/response bindings are covered by conformance tests",
+        "issuer standalone semantic warnings are emitted by formspec-lint",
+        "engine resolves issuer cascade and pins displayedIssuer",
+        "webcomponent and React render Definition issuer chrome, host embed override, and allowlisted query override"
+      ]
+    }
+  }
+}
