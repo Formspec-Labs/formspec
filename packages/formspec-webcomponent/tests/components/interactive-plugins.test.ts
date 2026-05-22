@@ -705,6 +705,101 @@ describe('ActionButton plugin', () => {
         await expect(received).resolves.toBeDefined();
     });
 
+    it('dispatches durable-effect adapter events and action terminal results', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:form',
+            version: '1.0.0',
+            title: 'Test',
+            items: [],
+        };
+        el.responseActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            actions: [{
+                id: 'complete',
+                intent: 'submit',
+                effects: [{
+                    type: 'ledgerAppend',
+                    eventKind: 'response.completed',
+                    idempotencyKey: '@invocation.id + "/complete"',
+                }],
+            }],
+        };
+        el.componentDocument = minimalComponentDoc({
+            component: 'ActionButton',
+            actionRef: 'complete',
+        });
+        el.addEventListener('formspec-action-idempotency-key', (event: CustomEvent) => {
+            event.detail.idempotencyKey = 'response-1/complete';
+        });
+        el.addEventListener('formspec-action-effect', (event: CustomEvent) => {
+            expect(event.detail.effect.idempotencyKey).toBe('response-1/complete');
+            event.detail.outcome = {
+                type: event.detail.effect.type,
+                status: 'succeeded',
+                outcomeRef: `sha256:${'1'.repeat(64)}`,
+            };
+        });
+        const resultReceived = new Promise<any>((resolve) => {
+            el.addEventListener('formspec-action-result', (event: CustomEvent) => resolve(event.detail.result), { once: true });
+        });
+        el.render();
+
+        (el.querySelector('.formspec-submit') as HTMLButtonElement).click();
+
+        await expect(resultReceived).resolves.toMatchObject({
+            status: 'completed',
+            effectTrace: [{ type: 'ledgerAppend', status: 'succeeded' }],
+        });
+    });
+
+    it('reports failed action terminal when a durable-effect adapter supplies no outcome', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:form',
+            version: '1.0.0',
+            title: 'Test',
+            items: [],
+        };
+        el.responseActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            actions: [{
+                id: 'complete',
+                intent: 'submit',
+                effects: [{
+                    type: 'ledgerAppend',
+                    eventKind: 'response.completed',
+                    idempotencyKey: '@invocation.id + "/complete"',
+                }],
+            }],
+        };
+        el.componentDocument = minimalComponentDoc({
+            component: 'ActionButton',
+            actionRef: 'complete',
+        });
+        el.addEventListener('formspec-action-idempotency-key', (event: CustomEvent) => {
+            event.detail.idempotencyKey = 'response-1/complete';
+        });
+        const resultReceived = new Promise<any>((resolve) => {
+            el.addEventListener('formspec-action-result', (event: CustomEvent) => resolve(event.detail.result), { once: true });
+        });
+        el.render();
+
+        (el.querySelector('.formspec-submit') as HTMLButtonElement).click();
+
+        await expect(resultReceived).resolves.toMatchObject({
+            status: 'failed',
+            failedEffectIndex: 0,
+            effectTrace: [{ type: 'ledgerAppend', status: 'failed' }],
+        });
+    });
+
     it('reacts to shared submit pending state', () => {
         const el = document.createElement('formspec-render') as any;
         document.body.appendChild(el);

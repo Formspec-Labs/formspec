@@ -1,8 +1,8 @@
-/* @filedesc Default styles for core Formspec plugins when using the Tailwind adapter — Card, SubmitButton, ValidationSummary. */
+/* @filedesc Default styles for core Formspec plugins when using the Tailwind adapter — Card, ActionButton, ValidationSummary. */
 
 /*
  * Rules live in @layer components so host Tailwind utilities (utilities layer) can override
- * the same element — e.g. SubmitButton cssClass="bg-violet-600 …" on .formspec-submit.
+ * the same element — e.g. ActionButton cssClass="bg-violet-600 …" on .formspec-submit.
  * Unlayered CSS always beats layered utilities; do not remove this layer when using Tailwind.
  */
 

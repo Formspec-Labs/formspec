@@ -1,0 +1,27 @@
+{
+  "fixture": "intent-save-draft",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "save-draft",
+        "intent": "save-draft",
+        "effects": [
+          { "type": "ledgerAppend", "eventKind": "draft.saved", "payloadRef": "{ responseId: @response.id }", "idempotencyKey": "@invocation.id & '/draft-saved'" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "save-draft", "id": "inv-save-draft-1" },
+  "responseBefore": { "id": "rsp-save-draft-1", "status": "in-progress", "data": { "applicantName": "" } },
+  "expected": {
+    "terminal": "completed",
+    "persistence": "draft-checkpoint",
+    "statusAfter": "in-progress",
+    "validationReportProduced": false,
+    "effectStatuses": ["succeeded"],
+    "ledgerEventKinds": ["draft.saved"]
+  }
+}

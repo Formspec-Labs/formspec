@@ -966,44 +966,44 @@ fn custom_component_empty_params_no_e806() {
     );
 }
 
-// ── SubmitButton component ──────────────────────────────────
+// ── ActionButton component ──────────────────────────────────
 
-/// Spec: component-spec.md §7.33 — SubmitButton is a built-in component
+/// Spec: component-spec.md §7.33 — ActionButton is a built-in component.
 #[test]
-fn submit_button_is_recognized_builtin() {
+fn action_button_is_recognized_builtin() {
     let comp = json!({
         "tree": {
             "component": "Stack",
             "children": [
-                { "component": "SubmitButton" }
+                { "component": "ActionButton" }
             ]
         }
     });
     let diags = lint_component(&comp, None);
     assert!(
         with_code(&diags, "E801").is_empty(),
-        "SubmitButton should be recognized as a built-in component"
+        "ActionButton should be recognized as a built-in component"
     );
 }
 
-/// Spec: component-spec.md §7.33 — SubmitButton should not declare a bind (it's not an input)
+/// Spec: component-spec.md §7.33 — ActionButton should not declare a bind (it's not an input).
 #[test]
-fn submit_button_with_bind_not_input_component() {
+fn action_button_with_bind_not_input_component() {
     let comp = json!({
         "tree": {
             "component": "Stack",
             "children": [
-                { "component": "SubmitButton", "bind": "field1" }
+                { "component": "ActionButton", "bind": "field1" }
             ]
         }
     });
     let diags = lint_component(&comp, None);
-    // SubmitButton is not in LAYOUT_NO_BIND or CONTAINER_NO_BIND, and it's not an input component.
+    // ActionButton is not in LAYOUT_NO_BIND or CONTAINER_NO_BIND, and it's not an input component.
     // So W801 should NOT fire (it's not a layout/container), and W803 should NOT fire (it's not input).
     // But W804 duplicate bind tracking still applies.
     assert!(
         with_code(&diags, "W801").is_empty(),
-        "SubmitButton is not layout/container, so no W801"
+        "ActionButton is not layout/container, so no W801"
     );
 }
 

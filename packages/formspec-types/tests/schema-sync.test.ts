@@ -18,6 +18,7 @@ import type {
   RegistryDocument,
   ThemeDocument,
   MappingDocument,
+  ResponseActionsDocument,
   ValidationMappingDocument,
   ValidationReport,
 } from '../src/index.js';
@@ -52,6 +53,9 @@ describe('generated types smoke test', () => {
 
     const validationMapping = {} as ValidationMappingDocument;
     expect(validationMapping).toBeDefined();
+
+    const responseActions = {} as ResponseActionsDocument;
+    expect(responseActions).toBeDefined();
 
     const experience = {} as ExperienceDocument;
     expect(experience).toBeDefined();

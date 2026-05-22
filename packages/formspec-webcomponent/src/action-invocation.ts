@@ -1,61 +1,28 @@
-/** @filedesc Minimal Response Actions resolver/invoker for ActionButton triggers. */
+/** @filedesc Response Actions host adapter for ActionButton triggers. */
+import {
+    invokeResponseAction,
+    resolveResponseAction,
+    type ActionRefFinding,
+    type ActionResolution,
+    type ResponseAction,
+    type ResponseActionEffectDispatchContext,
+    type ResponseActionEffectOutcome,
+    type ResponseActionInvocationResult,
+    type ResponseActionIdempotencyKeyContext,
+    type ResponseActionPreconditionResult,
+    type ResponseActionsDocumentInput,
+} from '@formspec-org/engine/render';
+import type { EffectRequest, Precondition } from '@formspec-org/types';
 import { submit, type SubmitHost } from './submit/index.js';
 import type { SubmitDetail } from './hub-types.js';
 
-export interface ResponseActionEffect {
-    type?: string;
-    eventName?: string;
-    [key: string]: unknown;
-}
-
-export interface ResponseAction {
-    id: string;
-    intent?: string;
-    validation?: {
-        profile?: 'live' | 'on-submit' | 'on-demand' | 'off';
-    };
-    effects?: ResponseActionEffect[];
-    [key: string]: unknown;
-}
-
-export interface ResponseActionsDocument {
-    actions?: ResponseAction[];
-    [key: string]: unknown;
-}
-
-export interface ActionRefFinding {
-    code: 'COMP-REFERENTIAL-INTEGRITY';
-    severity: 'error';
-    kind: 'actionRef';
-    nodeId?: string;
-    target: string;
-    reason?: 'missing-actionRef' | 'no-response-actions-document';
-}
-
-export interface ActionResolution {
-    resolved: boolean;
-    action: ResponseAction | null;
-    finding?: ActionRefFinding;
-}
+export type ResponseActionEffect = NonNullable<ResponseAction['effects']>[number];
+export type ResponseActionsDocument = ResponseActionsDocumentInput;
+export type { ActionRefFinding, ActionResolution, ResponseAction };
 
 export interface ActionHost extends SubmitHost {
     _responseActionsDocument: ResponseActionsDocument | null;
     dispatchEvent(event: Event): boolean;
-}
-
-function actionRefFinding(
-    actionRef: string,
-    nodeId: string | undefined,
-    reason?: ActionRefFinding['reason'],
-): ActionRefFinding {
-    return {
-        code: 'COMP-REFERENTIAL-INTEGRITY',
-        severity: 'error',
-        kind: 'actionRef',
-        ...(nodeId ? { nodeId } : {}),
-        target: actionRef,
-        ...(reason ? { reason } : {}),
-    };
 }
 
 export function resolveActionRef(
@@ -63,33 +30,7 @@ export function resolveActionRef(
     actionRef: string,
     nodeId?: string,
 ): ActionResolution {
-    if (!actionRef) {
-        return {
-            resolved: false,
-            action: null,
-            finding: actionRefFinding(actionRef, nodeId, 'missing-actionRef'),
-        };
-    }
-
-    const doc = host._responseActionsDocument;
-    if (!doc || !Array.isArray(doc.actions)) {
-        return {
-            resolved: false,
-            action: null,
-            finding: actionRefFinding(actionRef, nodeId, 'no-response-actions-document'),
-        };
-    }
-
-    const action = doc.actions.find(candidate => candidate?.id === actionRef) ?? null;
-    if (!action) {
-        return {
-            resolved: false,
-            action: null,
-            finding: actionRefFinding(actionRef, nodeId),
-        };
-    }
-
-    return { resolved: true, action };
+    return resolveResponseAction(host._responseActionsDocument, actionRef, nodeId);
 }
 
 export function emitActionFinding(host: Pick<ActionHost, 'dispatchEvent'>, finding: ActionRefFinding): void {
@@ -100,36 +41,105 @@ export function emitActionFinding(host: Pick<ActionHost, 'dispatchEvent'>, findi
     }));
 }
 
-function submitModeForAction(action: ResponseAction): 'continuous' | 'submit' {
-    const profile = action.validation?.profile;
-    return profile === 'live' ? 'continuous' : 'submit';
+function evaluatePrecondition(host: ActionHost, precondition: Precondition, action: ResponseAction): ResponseActionPreconditionResult {
+    const detail: {
+        precondition: Precondition;
+        action: ResponseAction;
+        result?: ResponseActionPreconditionResult;
+    } = { precondition, action };
+    host.dispatchEvent(new CustomEvent('formspec-action-precondition', {
+        detail,
+        bubbles: true,
+        composed: true,
+    }));
+    if (typeof detail.result === 'undefined') {
+        throw new Error(`No precondition result supplied for Response Action precondition '${precondition.id}'`);
+    }
+    return detail.result;
+}
+
+function dispatchDurableEffect(
+    host: ActionHost,
+    effect: EffectRequest,
+    detail: SubmitDetail,
+    action: ResponseAction,
+    context: ResponseActionEffectDispatchContext,
+): ResponseActionEffectOutcome {
+    const eventDetail: {
+        effect: EffectRequest;
+        submitDetail: SubmitDetail;
+        action: ResponseAction;
+        context: ResponseActionEffectDispatchContext;
+        outcome?: ResponseActionEffectOutcome;
+    } = { effect, submitDetail: detail, action, context };
+    host.dispatchEvent(new CustomEvent('formspec-action-effect', {
+        detail: eventDetail,
+        bubbles: true,
+        composed: true,
+    }));
+    return eventDetail.outcome ?? {
+        type: effect.type,
+        status: 'failed',
+        reason: `No effect outcome supplied for Response Action effect '${effect.type}'`,
+    };
+}
+
+function resolveIdempotencyKey(
+    host: ActionHost,
+    effect: EffectRequest,
+    action: ResponseAction,
+    context: ResponseActionIdempotencyKeyContext,
+): string {
+    const detail: {
+        effect: EffectRequest;
+        action: ResponseAction;
+        context: ResponseActionIdempotencyKeyContext;
+        idempotencyKey?: string;
+    } = { effect, action, context };
+    host.dispatchEvent(new CustomEvent('formspec-action-idempotency-key', {
+        detail,
+        bubbles: true,
+        composed: true,
+    }));
+    if (!detail.idempotencyKey) {
+        throw new Error(`No idempotency key supplied for Response Action effect '${effect.type}'`);
+    }
+    return detail.idempotencyKey;
+}
+
+function emitActionResult(
+    host: Pick<ActionHost, 'dispatchEvent'>,
+    result: ResponseActionInvocationResult<SubmitDetail>,
+): void {
+    host.dispatchEvent(new CustomEvent('formspec-action-result', {
+        detail: { result },
+        bubbles: true,
+        composed: true,
+    }));
 }
 
 export function invokeAction(host: ActionHost, actionRef: string, nodeId?: string): SubmitDetail | null {
-    const resolution = resolveActionRef(host, actionRef, nodeId);
-    if (!resolution.resolved || !resolution.action) {
-        if (resolution.finding) {
-            emitActionFinding(host, resolution.finding);
-        }
-        return null;
+    const result = invokeResponseAction(
+        host._responseActionsDocument,
+        actionRef,
+        {
+            submit: ({ profile, validationTuple }) => submit(host, { profile, validationTuple, emitEvent: false }),
+            dispatchHostEvent: (eventName, detail) => {
+                host.dispatchEvent(new CustomEvent(eventName, {
+                    detail,
+                    bubbles: true,
+                    composed: true,
+                }));
+            },
+            evaluatePrecondition: (precondition, action) => evaluatePrecondition(host, precondition, action),
+            dispatchEffect: (effect, detail, action, context) => dispatchDurableEffect(host, effect, detail, action, context),
+            resolveIdempotencyKey: (effect, action, context) => resolveIdempotencyKey(host, effect, action, context),
+        },
+        nodeId,
+    );
+    emitActionResult(host, result);
+    if (result.finding) {
+        emitActionFinding(host, result.finding);
     }
-
-    const detail = submit(host, {
-        mode: submitModeForAction(resolution.action),
-        emitEvent: false,
-    });
-    if (!detail) return null;
-
-    for (const effect of resolution.action.effects ?? []) {
-        if (effect?.type !== 'hostEvent' || typeof effect.eventName !== 'string') {
-            continue;
-        }
-        host.dispatchEvent(new CustomEvent(effect.eventName, {
-            detail,
-            bubbles: true,
-            composed: true,
-        }));
-    }
-
-    return detail;
+    return result.detail;
 }

@@ -1,0 +1,37 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/intake",
+    "compatibleVersions": "<2.0.0"
+  },
+  "actions": [
+    {
+      "id": "send-application",
+      "intent": "submit",
+      "effects": [
+        { "type": "hostEvent", "eventName": "formspec-submit" }
+      ]
+    }
+  ],
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.gov/forms/other",
+    "version": "2.0.0",
+    "title": "Other",
+    "items": []
+  },
+  "_componentDocuments": [
+    {
+      "$formspecComponent": "1.0",
+      "version": "1.0.0",
+      "targetDefinition": { "url": "https://example.gov/forms/intake" },
+      "tree": {
+        "component": "Stack",
+        "children": [
+          { "component": "ActionButton", "actionRef": "missing-action" }
+        ]
+      }
+    }
+  ]
+}

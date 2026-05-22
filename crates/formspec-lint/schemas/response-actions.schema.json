@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/responseActions/1.0",
+  "title": "Formspec Response Actions",
+  "description": "Sidecar document declaring named response actions, FEL preconditions, validation tuple overrides, ordered effect requests, and invocation terminal controls. See specs/response-actions/response-actions-spec.md for normative prose.",
+  "type": "object",
+  "required": ["$formspecResponseActions", "version", "targetDefinition", "actions"],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecResponseActions": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Response Actions document version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for Response Actions document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Response Actions document. SemVer RECOMMENDED.",
+      "examples": ["1.0.0"]
+    },
+    "targetDefinition": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URL of the Definition this Response Actions document binds to."
+        },
+        "compatibleVersions": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version range or exact version expression accepted for the target Definition."
+        }
+      },
+      "description": "The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition.",
+      "examples": [{ "url": "https://example.gov/forms/intake", "compatibleVersions": ">=1.0.0 <2.0.0" }]
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Action" },
+      "description": "Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document."
+    }
+  },
+  "$defs": {
+    "ActionIntent": {
+      "oneOf": [
+        { "$ref": "https://formspec.org/schemas/validationMapping/1.0#/$defs/ActionIntent" },
+        {
+          "type": "string",
+          "pattern": "^x-",
+          "description": "Publisher-defined action intent extension per VM §6.1. MUST be paired with an explicit validation block on the Action; processors MUST NOT consult the master table for x- intents."
+        }
+      ],
+      "description": "Closed VM ActionIntent enum OR an x-prefixed publisher extension intent."
+    },
+    "Action": {
+      "type": "object",
+      "required": ["id", "intent", "effects"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "intent": { "type": "string", "pattern": "^x-" }
+            },
+            "required": ["intent"]
+          },
+          "then": {
+            "required": ["validation"]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Unique within document. Starts with a letter; allows letters, digits, and hyphens."
+        },
+        "intent": { "$ref": "#/$defs/ActionIntent" },
+        "actor": {
+          "type": "string",
+          "description": "Optional free string naming the caller. Metadata only; MUST NOT be used for authorization."
+        },
+        "label": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["ref"],
+              "additionalProperties": false,
+              "properties": {
+                "ref": { "type": "string", "minLength": 1 }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["literal"],
+              "additionalProperties": false,
+              "properties": {
+                "literal": { "type": "string", "minLength": 1 }
+              }
+            }
+          ],
+          "description": "Optional locale reference or literal label. Presentational only."
+        },
+        "preconditions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Precondition" },
+          "description": "Optional ordered list of FEL preconditions."
+        },
+        "validation": { "$ref": "#/$defs/ValidationOverride" },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/EffectRequest" },
+          "description": "Ordered effect chain. Executes in declared order."
+        },
+        "onFailure": {
+          "type": "string",
+          "enum": ["stop", "retry-once"],
+          "default": "stop",
+          "description": "Terminal behavior after a failing effect."
+        },
+        "onDeferred": {
+          "type": "string",
+          "enum": ["stop", "await"],
+          "default": "stop",
+          "description": "Terminal behavior after a deferred effect."
+        }
+      }
+    },
+    "Precondition": {
+      "type": "object",
+      "required": ["id", "expression", "severity"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for this precondition."
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FEL expression evaluated in the Response Actions host-binding catalog. MUST evaluate to a boolean."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["block", "defer"],
+          "description": "block terminates as blocked with cause=precondition; defer terminates as deferred."
+        }
+      },
+      "description": "A FEL-guarded precondition."
+    },
+    "ValidationOverride": {
+      "$ref": "https://formspec.org/schemas/validationMapping/1.0#/$defs/ValidationTuple",
+      "description": "Per-action full tuple replacement of the master-table triple. Predicate inherited via VM ValidationTuple."
+    },
+    "EffectRequest": {
+      "oneOf": [
+        { "$ref": "#/$defs/MappingExecutionEffect" },
+        { "$ref": "#/$defs/LedgerAppendEffect" },
+        { "$ref": "#/$defs/HandoffAssemblyEffect" },
+        { "$ref": "#/$defs/EvidenceRequestEffect" },
+        { "$ref": "#/$defs/HostEventEffect" }
+      ],
+      "description": "Closed effect request taxonomy."
+    },
+    "IdempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "FEL expression evaluated once before a durable effect first executes and frozen across retries/replays."
+    },
+    "MappingExecutionEffect": {
+      "type": "object",
+      "required": ["type", "mappingRef", "idempotencyKey"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "mappingExecution" },
+        "mappingRef": { "type": "string", "minLength": 1 },
+        "idempotencyKey": { "$ref": "#/$defs/IdempotencyKey" },
+        "onError": { "type": "string", "enum": ["fail", "defer"], "default": "fail" }
+      },
+      "description": "Durable effect requesting Mapping execution."
+    },
+    "LedgerAppendEffect": {
+      "type": "object",
+      "required": ["type", "eventKind", "idempotencyKey"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "ledgerAppend" },
+        "eventKind": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "anyOf": [
+              { "const": "case.created" },
+              { "pattern": "^case\\." },
+              { "pattern": "^action\\." }
+            ]
+          },
+          "description": "Published Respondent Ledger domain event kind. case.* and action.* lifecycle kinds MUST NOT be author-declared effects."
+        },
+        "payloadRef": {
+          "type": "string",
+          "description": "Optional FEL expression producing the event payload. Evaluated in the effect-time catalog."
+        },
+        "idempotencyKey": { "$ref": "#/$defs/IdempotencyKey" },
+        "onError": { "type": "string", "enum": ["fail", "defer"], "default": "fail" }
+      },
+      "description": "Durable effect requesting a Respondent Ledger append."
+    },
+    "HandoffAssemblyEffect": {
+      "type": "object",
+      "required": ["type", "handoffProfileRef", "recipientRef", "idempotencyKey"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "handoffAssembly" },
+        "handoffProfileRef": { "type": "string", "minLength": 1 },
+        "recipientRef": { "type": "string", "minLength": 1 },
+        "idempotencyKey": { "$ref": "#/$defs/IdempotencyKey" },
+        "onError": { "type": "string", "enum": ["fail", "defer"], "default": "fail" }
+      },
+      "description": "Durable effect requesting Intake Handoff assembly."
+    },
+    "EvidenceRequestEffect": {
+      "type": "object",
+      "required": ["type", "requestRef", "idempotencyKey"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "evidenceRequest" },
+        "requestRef": { "type": "string", "minLength": 1 },
+        "idempotencyKey": { "$ref": "#/$defs/IdempotencyKey" },
+        "onError": { "type": "string", "enum": ["fail", "defer"], "default": "defer" }
+      },
+      "description": "Durable effect requesting demand-timing evidence collection."
+    },
+    "HostEventEffect": {
+      "type": "object",
+      "required": ["type", "eventName"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "hostEvent" },
+        "eventName": { "type": "string", "minLength": 1 },
+        "detailRef": {
+          "type": "string",
+          "description": "Optional FEL expression producing transient event detail."
+        }
+      },
+      "description": "Transient host-local event. MUST NOT carry idempotencyKey."
+    }
+  }
+}

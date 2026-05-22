@@ -4,6 +4,8 @@ import { ThemeDocument, PresentationBlock, ItemDescriptor, LayoutNode } from '@f
 import {
     ComponentDocument,
     FormResponse,
+    ValidationOverride,
+    ValidationProfile,
     ValidationResult,
     ValidationReport,
     FormItem,
@@ -60,9 +62,13 @@ export interface RenderContext {
     prefix: string;
 
     /** Build submit payload + validation report and optionally dispatch `formspec-submit`. */
-    submit: (options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }) => {
+    submit: (options?: {
+        profile?: ValidationProfile;
+        validationTuple?: ValidationOverride;
+        emitEvent?: boolean;
+    }) => {
         response: FormResponse;
-        validationReport: ValidationReport;
+        validationReport: ValidationReport | null;
     } | null;
 
     /** Resolve an ActionButton actionRef against the loaded Response Actions document. */

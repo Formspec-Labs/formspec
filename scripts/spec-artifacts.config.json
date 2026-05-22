@@ -115,6 +115,25 @@
       ]
     },
     {
+      "spec": "specs/response-actions/response-actions-spec.md",
+      "schema": "schemas/response-actions.schema.json",
+      "bluf": "specs/response-actions/response-actions-spec.bluf.md",
+      "llm": "specs/response-actions/response-actions-spec.llm.md",
+      "behaviorEssentials": [
+        "Invocation follows the fixed state machine: preconditions, validation by resolved VM tuple, blocking gate, ordered effect execution, and terminal completed, failed, deferred, or blocked.",
+        "Standard ActionIntent values inherit the VM master-table tuple unless a full ValidationOverride tuple is supplied; x-prefixed intents must supply the full tuple and must not consult the master table.",
+        "Durable effects require frozen idempotency keys and replay by prior outcome; hostEvent is transient and must not carry an idempotency key.",
+        "Failures halt remaining effects without rollback; the UI must not report success when any declared effect failed.",
+        "Formspec may request domain Ledger events and assemble Intake Handoffs, but it must not author case.created or case lifecycle events."
+      ],
+      "conformanceEssentials": [
+        "A conforming Response Actions document must include $formspecResponseActions=1.0, version, targetDefinition, and at least one action.",
+        "Action.intent values are drawn from the closed VM ActionIntent enum or an x-prefixed publisher extension; every x-prefixed intent must carry a full validation tuple.",
+        "Action.effects[*].type must be drawn from the closed EffectRequest taxonomy; durable effects must carry idempotencyKey and hostEvent must not.",
+        "Processors must reject Response Actions documents that author action.* lifecycle events as declared effects or include case.created/case lifecycle events."
+      ]
+    },
+    {
       "spec": "specs/core/spec.md",
       "schema": "schemas/definition.schema.json",
       "bluf": "specs/core/definition-spec.bluf.md",

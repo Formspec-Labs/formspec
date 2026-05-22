@@ -63,7 +63,7 @@ export {
     createNodeIdGenerator,
     preparePlanContext,
 } from './planner.js';
-export type { NodeIdGenerator } from './types.js';
+export type { EnsureActionButtonOptions, NodeIdGenerator } from './planner.js';
 export { resolvePageSequence } from './page-sequence.js';
 export type { PageSequenceEntry } from './page-sequence.js';
 

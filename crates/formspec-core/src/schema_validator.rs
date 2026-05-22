@@ -18,6 +18,7 @@ pub enum DocumentType {
     Theme,
     Mapping,
     ValidationMapping,
+    ResponseActions,
     Ontology,
     References,
     Locale,
@@ -43,6 +44,7 @@ impl DocumentType {
             DocumentType::Theme => "theme",
             DocumentType::Mapping => "mapping",
             DocumentType::ValidationMapping => "validation_mapping",
+            DocumentType::ResponseActions => "response_actions",
             DocumentType::Ontology => "ontology",
             DocumentType::References => "references",
             DocumentType::Locale => "locale",
@@ -69,6 +71,9 @@ impl DocumentType {
             "mapping" => Some(DocumentType::Mapping),
             "validation_mapping" | "validationMapping" | "validation-mapping" => {
                 Some(DocumentType::ValidationMapping)
+            }
+            "response_actions" | "responseActions" | "response-actions" => {
+                Some(DocumentType::ResponseActions)
             }
             "ontology" => Some(DocumentType::Ontology),
             "references" => Some(DocumentType::References),
@@ -150,6 +155,7 @@ pub struct SchemaValidationPlan {
 ///   - Experience:        `$formspecExperience`
 ///   - Mapping:           `$formspecMapping`
 ///   - ValidationMapping: `$formspecValidationMapping`
+///   - ResponseActions:   `$formspecResponseActions`
 ///   - Response:          `$formspecResponse`
 ///   - Issuer:            `$formspecIssuer`
 ///   - IntakeHandoff:     `$formspecIntakeHandoff`
@@ -171,6 +177,7 @@ const MARKER_FIELDS: &[(&str, DocumentType)] = &[
         "$formspecValidationMapping",
         DocumentType::ValidationMapping,
     ),
+    ("$formspecResponseActions", DocumentType::ResponseActions),
     ("$formspecExperience", DocumentType::Experience),
     ("$formspecResponse", DocumentType::Response),
     ("$formspecIntakeHandoff", DocumentType::IntakeHandoff),
@@ -375,6 +382,18 @@ mod tests {
         assert_eq!(
             detect_document_type(&doc),
             Some(DocumentType::ValidationMapping)
+        );
+    }
+
+    #[test]
+    fn test_detect_response_actions() {
+        let doc = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0"
+        });
+        assert_eq!(
+            detect_document_type(&doc),
+            Some(DocumentType::ResponseActions)
         );
     }
 
@@ -621,6 +640,10 @@ mod tests {
             DocumentType::ValidationMapping.schema_key(),
             "validation_mapping"
         );
+        assert_eq!(
+            DocumentType::ResponseActions.schema_key(),
+            "response_actions"
+        );
         assert_eq!(DocumentType::Ontology.schema_key(), "ontology");
         assert_eq!(DocumentType::References.schema_key(), "references");
         assert_eq!(DocumentType::Locale.schema_key(), "locale");
@@ -678,6 +701,18 @@ mod tests {
         assert_eq!(
             DocumentType::from_schema_key("validationMapping"),
             Some(DocumentType::ValidationMapping)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("response_actions"),
+            Some(DocumentType::ResponseActions)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("response-actions"),
+            Some(DocumentType::ResponseActions)
+        );
+        assert_eq!(
+            DocumentType::from_schema_key("responseActions"),
+            Some(DocumentType::ResponseActions)
         );
         assert_eq!(
             DocumentType::from_schema_key("fel_functions"),

@@ -699,14 +699,14 @@ describe('Item 31: FormspecForm does not render second submit when Wizard presen
         ],
     };
 
-    it('baseline: FormspecForm renders .formspec-submit when no Wizard in plan', () => {
+    it('baseline: FormspecForm does not invent .formspec-submit without a Response Actions document', () => {
         const container = document.createElement('div');
         document.body.appendChild(container);
         const root = createRoot(container);
         flushSync(() => {
             root.render(<FormspecForm definition={minimalFormDefinition} onSubmit={() => {}} />);
         });
-        expect(container.querySelector('.formspec-submit')).toBeTruthy();
+        expect(container.querySelector('.formspec-submit')).toBeNull();
     });
 
     it('planContains detects Wizard in tree', () => {

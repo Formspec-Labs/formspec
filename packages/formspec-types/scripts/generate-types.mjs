@@ -27,7 +27,7 @@ const OUT_DIR = resolve(__dirname, '../src/generated');
 const URI_TO_LOCAL = {};
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
   'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
-  'response', 'intake-handoff', 'validation-report', 'validation-result',
+  'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'verification-receipt',
   'token-registry']) {
   const filePath = resolve(SCHEMAS_DIR, `${f}.schema.json`);
@@ -56,6 +56,45 @@ const $refOptions = {
   },
 };
 
+function resolveLocalDefsRefs(value, defs) {
+  if (!value || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((item) => resolveLocalDefsRefs(item, defs));
+  if (typeof value.$ref === 'string' && value.$ref.startsWith('#/$defs/')) {
+    const defName = value.$ref.split('/').pop();
+    return resolveLocalDefsRefs(defs[defName], defs);
+  }
+
+  const next = {};
+  for (const [key, child] of Object.entries(value)) {
+    next[key] = resolveLocalDefsRefs(child, defs);
+  }
+  return next;
+}
+
+function inlineResponseActionsCompileRefs(schema) {
+  const vmPath = URI_TO_LOCAL['https://formspec.org/schemas/validationMapping/1.0'];
+  const vmSchema = JSON.parse(readFileSync(vmPath, 'utf-8'));
+  const vmDefs = vmSchema.$defs || {};
+
+  function walk(value) {
+    if (!value || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map(walk);
+
+    if (typeof value.$ref === 'string' && value.$ref.startsWith('https://formspec.org/schemas/validationMapping/1.0#/$defs/')) {
+      const defName = value.$ref.split('/').pop();
+      return resolveLocalDefsRefs(vmDefs[defName], vmDefs);
+    }
+
+    const next = {};
+    for (const [key, child] of Object.entries(value)) {
+      next[key] = walk(child);
+    }
+    return next;
+  }
+
+  return walk(schema);
+}
+
 /** Schema files to generate types from. Order matters: earlier = canonical source. */
 const SCHEMA_SOURCES = [
   { file: 'common.schema.json', title: 'CommonSchema' },
@@ -68,6 +107,7 @@ const SCHEMA_SOURCES = [
   { file: 'ontology.schema.json', title: 'OntologyDocument' },
   { file: 'references.schema.json', title: 'ReferencesDocument' },
   { file: 'validation-mapping.schema.json', title: 'ValidationMappingDocument' },
+  { file: 'response-actions.schema.json', title: 'ResponseActionsDocument' },
   { file: 'experience.schema.json', title: 'ExperienceDocument' },
   { file: 'changelog.schema.json', title: 'ChangelogDocument' },
   { file: 'validation-result.schema.json', title: 'ValidationResult' },
@@ -445,6 +485,9 @@ function crossFileDedup(modules, refGraph, schemaSources) {
 
       if (defName) {
         // $defs ref: type name matches defName directly
+        if (mod.name === 'response-actions' && defName === 'ActionIntent') {
+          continue;
+        }
         if (mod.exports.includes(defName) && sourceMod.exports.includes(defName)) {
           toRemove.push(defName);
           imports.push({ canonicalName: defName, canonicalModule: sourceSchema, localName: defName });
@@ -526,7 +569,13 @@ async function main() {
 
   for (const { file, title } of SCHEMA_SOURCES) {
     const schemaPath = resolve(SCHEMAS_DIR, file);
-    const schema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
+    const rawSchema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
+    const schema = file === 'response-actions.schema.json'
+      ? inlineResponseActionsCompileRefs(rawSchema)
+      : rawSchema;
+    if (file === 'response-actions.schema.json') {
+      delete schema.$id;
+    }
     schema.title = title;
 
     const ts = await compile(schema, title, {

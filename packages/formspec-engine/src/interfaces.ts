@@ -120,15 +120,21 @@ export type DocumentType =
     | 'theme'
     | 'component'
     | 'mapping'
+    | 'validation_mapping'
+    | 'response_actions'
     | 'ontology'
     | 'references'
+    | 'experience'
     | 'response'
+    | 'intake_handoff'
     | 'validation_report'
     | 'validation_result'
     | 'registry'
     | 'changelog'
     | 'fel_functions'
-    | 'locale';
+    | 'locale'
+    | 'screener'
+    | 'determination';
 
 export interface SchemaValidationError {
     path: string;
@@ -147,15 +153,21 @@ export interface SchemaValidatorSchemas {
     theme?: object;
     component?: object;
     mapping?: object;
+    validation_mapping?: object;
+    response_actions?: object;
     ontology?: object;
     references?: object;
+    experience?: object;
     response?: object;
+    intake_handoff?: object;
     validation_report?: object;
     validation_result?: object;
     registry?: object;
     changelog?: object;
     fel_functions?: object;
     locale?: object;
+    screener?: object;
+    determination?: object;
 }
 
 export interface SchemaValidator {

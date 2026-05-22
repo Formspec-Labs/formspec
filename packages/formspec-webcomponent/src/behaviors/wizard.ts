@@ -186,7 +186,7 @@ export function useWizard(ctx: BehaviorContext, comp: any): WizardBehavior {
                 refs.nextButton.addEventListener('click', () => {
                     const isLastStep = currentStep.value === children.length - 1;
                     if (isLastStep) {
-                        ctx.submit({ mode: 'submit', emitEvent: true });
+                        ctx.submit({ profile: 'on-submit', emitEvent: true });
                         return;
                     }
                     // Soft validation then advance

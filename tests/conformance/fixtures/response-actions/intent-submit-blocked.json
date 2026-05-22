@@ -1,0 +1,33 @@
+{
+  "fixture": "intent-submit-blocked",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit",
+        "intent": "submit",
+        "effects": [
+          { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "@invocation.id & '/mapping'" },
+          { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" },
+          { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "payloadRef": "{ reportRef: @validation.lastReport }", "idempotencyKey": "@invocation.id & '/attempted'" },
+          { "type": "hostEvent", "eventName": "formspec-submit" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "submit", "id": "inv-submit-blocked-1" },
+  "responseBefore": { "id": "rsp-submit-blocked-1", "status": "in-progress", "data": { "applicantName": "A" } },
+  "simulated": {
+    "validation": { "valid": false, "counts": { "error": 2, "warning": 1, "info": 0 } }
+  },
+  "expected": {
+    "terminal": "blocked",
+    "blockedCause": "validation",
+    "persistence": "none",
+    "statusAfter": "in-progress",
+    "validationReportProduced": true,
+    "effectStatuses": ["not-invoked", "not-invoked", "not-invoked", "not-invoked"]
+  }
+}

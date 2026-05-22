@@ -46,12 +46,39 @@ export type {
     SchemaValidatorSchemas,
 } from './interfaces.js';
 export type { ValidationProfile } from '@formspec-org/types';
+export type {
+    ActionRefFinding,
+    ActionResolution,
+    ResponseAction,
+    ResponseActionEffectOutcome,
+    ResponseActionEffectStatus,
+    ResponseActionEffectDispatchContext,
+    ResponseActionIdempotencyKeyContext,
+    ResponseActionInvocationPorts,
+    ResponseActionInvocationResult,
+    ResponseActionInvocationStatus,
+    ResponseActionPreconditionResult,
+    ResponseActionSubmitOptions,
+    ResponseActionValidationTuple,
+    ResponseActionsDocument,
+    ResponseActionsDocumentInput,
+    StandardResponseActionIntent,
+} from './response-actions.js';
 export {
     DefaultValidationProfileResolver,
     type EnabledValidationProfile,
     type ValidationReportOptions,
     type ValidationTrigger,
 } from './validation/index.js';
+export {
+    declaresHostEvent,
+    defaultActionRefForIntent,
+    findResponseActionByIntent,
+    invokeResponseAction,
+    resolveResponseAction,
+    resolveResponseActionValidationTuple,
+    validationProfileForAction,
+} from './response-actions.js';
 
 /** @deprecated Use `FormItem` from `@formspec-org/types`. Removed in v1. */
 export type FormspecItem = FormItem;

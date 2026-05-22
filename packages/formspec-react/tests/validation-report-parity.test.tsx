@@ -34,7 +34,7 @@ const responseActionsDocument = {
         {
             id: 'submit',
             intent: 'submit',
-            validation: { profile: 'on-submit' },
+            validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
             effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
         },
     ],

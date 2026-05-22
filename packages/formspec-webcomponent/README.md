@@ -52,7 +52,7 @@ Setting any property schedules a coalesced re-render via microtask.
 getEngine(): FormEngine | null
 
 // Diagnostics
-getDiagnosticsSnapshot(options?: { mode?: 'continuous' | 'submit' }): object | null
+getDiagnosticsSnapshot(options?: { profile?: 'live' | 'on-submit' | 'on-demand' | 'off' }): object | null
 
 // Replay
 applyReplayEvent(event: object): { ok: boolean; event: object; error?: string }
@@ -63,9 +63,9 @@ setRuntimeContext(context: object): void
 
 // Validation and submission
 touchAllFields(): void
-submit(options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }): { response: object; validationReport: object } | null
+submit(options?: { profile?: 'live' | 'on-submit' | 'on-demand' | 'off'; emitEvent?: boolean }): { response: object; validationReport: object | null } | null
 resolveActionRef(actionRef: string, nodeId?: string): ActionResolution
-invokeAction(actionRef: string, nodeId?: string): { response: object; validationReport: object } | null
+invokeAction(actionRef: string, nodeId?: string): { response: object; validationReport: object | null } | null
 resolveValidationTarget(resultOrPath: any): ValidationTargetMetadata
 
 // Field focus
@@ -87,6 +87,10 @@ restartScreener(): void
 // Force synchronous re-render
 render(): void
 ```
+
+`ActionButton` invocation emits host adapter events for non-renderer work:
+`formspec-action-precondition`, `formspec-action-idempotency-key`,
+`formspec-action-effect`, and `formspec-action-result`.
 
 ## Events
 

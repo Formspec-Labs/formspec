@@ -28,6 +28,7 @@ const RESPONSE_SCHEMA: &str = include_str!("../schemas/response.schema.json");
 const INTAKE_HANDOFF_SCHEMA: &str = include_str!("../schemas/intake-handoff.schema.json");
 const MAPPING_SCHEMA: &str = include_str!("../schemas/mapping.schema.json");
 const VALIDATION_MAPPING_SCHEMA: &str = include_str!("../schemas/validation-mapping.schema.json");
+const RESPONSE_ACTIONS_SCHEMA: &str = include_str!("../schemas/response-actions.schema.json");
 const ONTOLOGY_SCHEMA: &str = include_str!("../schemas/ontology.schema.json");
 const REFERENCES_SCHEMA: &str = include_str!("../schemas/references.schema.json");
 const LOCALE_SCHEMA: &str = include_str!("../schemas/locale.schema.json");
@@ -69,6 +70,14 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
         VERIFICATION_RECEIPT_SCHEMA,
         "https://formspec.org/schemas/verification-receipt/1.0",
     ),
+    (
+        VALIDATION_MAPPING_SCHEMA,
+        "https://formspec.org/schemas/validationMapping/1.0",
+    ),
+    (
+        RESPONSE_ACTIONS_SCHEMA,
+        "https://formspec.org/schemas/responseActions/1.0",
+    ),
 ];
 
 // ── Compiled validators (lazily initialized) ─────────────────────
@@ -82,6 +91,7 @@ struct SchemaSet {
     intake_handoff: Validator,
     mapping: Validator,
     validation_mapping: Validator,
+    response_actions: Validator,
     ontology: Validator,
     references: Validator,
     locale: Validator,
@@ -105,6 +115,7 @@ fn schema_set() -> &'static SchemaSet {
         intake_handoff: build_validator(INTAKE_HANDOFF_SCHEMA),
         mapping: build_validator(MAPPING_SCHEMA),
         validation_mapping: build_validator(VALIDATION_MAPPING_SCHEMA),
+        response_actions: build_validator(RESPONSE_ACTIONS_SCHEMA),
         ontology: build_validator(ONTOLOGY_SCHEMA),
         references: build_validator(REFERENCES_SCHEMA),
         locale: build_validator(LOCALE_SCHEMA),
@@ -248,6 +259,7 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         DocumentType::IntakeHandoff => &set.intake_handoff,
         DocumentType::Mapping => &set.mapping,
         DocumentType::ValidationMapping => &set.validation_mapping,
+        DocumentType::ResponseActions => &set.response_actions,
         DocumentType::Ontology => &set.ontology,
         DocumentType::References => &set.references,
         DocumentType::Locale => &set.locale,
@@ -388,6 +400,8 @@ mod tests {
     const CANONICAL_RESPONSE_SCHEMA: &str = include_str!("../../../schemas/response.schema.json");
     const CANONICAL_VALIDATION_MAPPING_SCHEMA: &str =
         include_str!("../../../schemas/validation-mapping.schema.json");
+    const CANONICAL_RESPONSE_ACTIONS_SCHEMA: &str =
+        include_str!("../../../schemas/response-actions.schema.json");
 
     fn assert_embedded_schema_matches_canonical(
         embedded_text: &str,
@@ -521,6 +535,15 @@ mod tests {
             VALIDATION_MAPPING_SCHEMA,
             CANONICAL_VALIDATION_MAPPING_SCHEMA,
             "validation-mapping.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_response_actions_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            RESPONSE_ACTIONS_SCHEMA,
+            CANONICAL_RESPONSE_ACTIONS_SCHEMA,
+            "response-actions.schema.json",
         );
     }
 
@@ -966,6 +989,58 @@ mod tests {
         assert!(
             diags.iter().any(|d| d.code == crate::LintCode::E101),
             "Invalid validation mapping should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_response_actions_produces_no_e101() {
+        let actions = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "actions": [{
+                "id": "submit",
+                "intent": "submit",
+                "effects": [{
+                    "type": "hostEvent",
+                    "eventName": "formspec-submit"
+                }]
+            }]
+        });
+        let diags = validate_schema(&actions, DocumentType::ResponseActions);
+        assert!(
+            diags.is_empty(),
+            "Valid response actions should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_response_actions_routes_to_e101() {
+        let actions = json!({
+            "$formspecResponseActions": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "actions": [{
+                "id": "custom",
+                "intent": "x-custom",
+                "effects": [{
+                    "type": "hostEvent",
+                    "eventName": "formspec-custom"
+                }]
+            }]
+        });
+        let diags = validate_schema(&actions, DocumentType::ResponseActions);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid response actions should produce E101, got: {:?}",
             diags
                 .iter()
                 .map(|d| (&d.code, &d.path, &d.message))

@@ -1,0 +1,21 @@
+{
+  "$formspec": "1.0",
+  "version": "1.0.0",
+  "url": "https://example.gov/forms/response-actions-base",
+  "status": "active",
+  "title": "Response Actions Base",
+  "items": [
+    {
+      "key": "applicantName",
+      "type": "field",
+      "dataType": "string",
+      "label": "Applicant name"
+    },
+    {
+      "key": "phone",
+      "type": "field",
+      "dataType": "string",
+      "label": "Phone"
+    }
+  ]
+}

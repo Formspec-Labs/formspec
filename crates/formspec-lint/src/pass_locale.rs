@@ -500,7 +500,7 @@ fn component_property_is_localizable(component: &str, parts: &[String]) -> bool 
         "ConditionalGroup" => is_one_part(parts, &["fallback"]),
         "Tabs" => is_indexed_part(parts, "tabLabels"),
         "Accordion" => is_indexed_part(parts, "labels"),
-        "SubmitButton" => is_one_part(parts, &["label", "pendingLabel"]),
+        "ActionButton" => is_one_part(parts, &["label", "pendingLabel"]),
         "DataTable" => is_indexed_child_part(parts, "columns", "header"),
         "Modal" => is_one_part(parts, &["title", "triggerLabel"]),
         "Popover" => is_one_part(parts, &["triggerLabel"]),

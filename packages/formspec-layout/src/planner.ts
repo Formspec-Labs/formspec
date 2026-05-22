@@ -40,5 +40,6 @@ export {
     resolveStyleTokens,
     resolveTokenInContext,
 } from './node-utils.js';
+export type { EnsureActionButtonOptions } from './node-utils.js';
 
 export type { NodeIdGenerator } from './types.js';

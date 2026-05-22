@@ -1,0 +1,24 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/intake",
+    "compatibleVersions": ">=1.0.0"
+  },
+  "actions": [
+    {
+      "id": "send-application",
+      "intent": "submit",
+      "effects": [
+        { "type": "hostEvent", "eventName": "formspec-submit" }
+      ]
+    },
+    {
+      "id": "send-application",
+      "intent": "save-draft",
+      "effects": [
+        { "type": "hostEvent", "eventName": "formspec-save" }
+      ]
+    }
+  ]
+}

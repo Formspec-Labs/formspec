@@ -1432,11 +1432,17 @@ function makeNode(component: string, children: LayoutNode[] = []): LayoutNode {
 }
 
 describe('ensureActionButton', () => {
-    it('adds an ActionButton to a plain Stack with no action button', () => {
+    it('does not invent an ActionButton actionRef when none is configured', () => {
         const root = makeNode('Stack', [makeNode('TextInput')]);
         ensureActionButton(root);
+        expect(root.children.some(c => c.component === 'ActionButton')).toBe(false);
+    });
+
+    it('uses the caller-provided actionRef when injecting an ActionButton', () => {
+        const root = makeNode('Stack', [makeNode('TextInput')]);
+        ensureActionButton(root, createNodeIdGenerator(), { actionRef: 'send-application' });
         expect(root.children.at(-1)?.component).toBe('ActionButton');
-        expect(root.children.at(-1)?.props?.actionRef).toBe('submit');
+        expect(root.children.at(-1)?.props?.actionRef).toBe('send-application');
     });
 
     it('does not add an ActionButton when one already exists', () => {
@@ -1456,7 +1462,7 @@ describe('ensureActionButton', () => {
             makeNode('Section', [makeNode('TextInput')]),
             makeNode('Section', [makeNode('Select')]),
         ]);
-        ensureActionButton(root);
+        ensureActionButton(root, createNodeIdGenerator(), { actionRef: 'send-application' });
         expect(root.children.at(-1)?.component).toBe('ActionButton');
     });
 
@@ -1474,13 +1480,13 @@ describe('ensureActionButton', () => {
             makeNode('Section', [makeNode('TextInput')]),
             makeNode('Section', [makeNode('Select')]),
         ]);
-        ensureActionButton(root, createNodeIdGenerator(), { pageMode: 'tabs' });
+        ensureActionButton(root, createNodeIdGenerator(), { pageMode: 'tabs', actionRef: 'send-application' });
         expect(root.children.map(c => c.component)).toEqual(['Section', 'Section', 'ActionButton']);
     });
 
     it('wraps a root Accordion in Stack so ActionButton is not an accordion section', () => {
         const root = makeNode('Accordion', [makeNode('Text'), makeNode('Text'), makeNode('Text')]);
-        ensureActionButton(root);
+        ensureActionButton(root, createNodeIdGenerator(), { actionRef: 'send-application' });
         expect(root.component).toBe('Stack');
         expect(root.children).toHaveLength(2);
         expect(root.children[0].component).toBe('Accordion');

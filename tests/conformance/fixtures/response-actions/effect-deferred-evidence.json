@@ -1,0 +1,29 @@
+{
+  "fixture": "effect-deferred-evidence",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit-deferred",
+        "intent": "submit",
+        "effects": [
+          { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "@invocation.id & '/mapping'" },
+          { "type": "evidenceRequest", "requestRef": "externalEvidence", "idempotencyKey": "@invocation.id & '/evidence'" },
+          { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "submit-deferred", "id": "inv-deferred-1" },
+  "responseBefore": { "id": "rsp-deferred-1", "status": "in-progress", "data": { "applicantName": "Alex" } },
+  "simulated": { "effects": { "1": "deferred" } },
+  "expected": {
+    "terminal": "deferred",
+    "persistence": "none",
+    "statusAfter": "in-progress",
+    "effectStatuses": ["succeeded", "deferred", "not-invoked"],
+    "replayTokenIssued": true
+  }
+}

@@ -16,11 +16,11 @@ status: draft
 
 ## Status of This Document
 
-This document is a **draft normative companion** to [Formspec v1.0 core specification](spec.md). It reconciles validation-related vocabulary across Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle so that future Response Actions documents have a single mapping to cite.
+This document is a **draft normative companion** to [Formspec v1.0 core specification](spec.md). It reconciles validation-related vocabulary across Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle so that [Response Actions](../response-actions/response-actions-spec.md) documents have a single mapping to cite.
 
 This spec was promoted from the concept architecture note [`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md). It addresses the **§9 row 3** promotion gate (one reconciliation table over action intent, Core global modes, per-shape timing, `ValidationSummary.source`, severity, and Response status transitions) and the **§11.2** open question (validation profile names).
 
-This document **MUST land before any Response Actions schema** (concept §10 order).
+This document landed before the Response Actions schema (concept §10 order) and remains the normative source for Response Actions validation tuples.
 
 ## Conventions and Terminology
 
@@ -61,13 +61,13 @@ Additional terms:
 
 This specification names abstract action intents and the validation, blocking, and persistence behavior they imply. It exists so that:
 
-1. Authors of Response Actions documents (forthcoming, concept §10.2) have a single reconciliation table to cite instead of inventing a parallel validation vocabulary.
+1. Authors of Response Actions documents have a single reconciliation table to cite instead of inventing a parallel validation vocabulary.
 2. Component `ActionButton` (Component §5.19) invokes a named Response Action by `actionRef`; this document defines the validation, blocking, and persistence tuple that the resolved Action inherits or explicitly overrides.
 3. Processors that encounter intents other than `submit` (e.g., autosave, request-evidence) have a single normative source for how to translate the intent into Core validation behavior and Response lifecycle effects.
 
 This specification does NOT define:
 
-- Action identity, FEL preconditions, effect ordering, idempotency, retry, failure, or deferred outcomes — those belong to **Response Actions** (forthcoming).
+- Action identity, FEL preconditions, effect ordering, idempotency, retry, failure, or deferred outcomes — those belong to **Response Actions**.
 - New runtime APIs, engine behavior, or Component widgets. Existing Core processors that implement §5.5 already satisfy the four-axis semantics named here.
 - The shape of a Response Action document or its schema.
 - Workflow host events, governed case lifecycle, or Intake Handoff acceptance — those belong to **WOS** and **Intake Handoff**.
@@ -236,9 +236,9 @@ This section is the **load-bearing reconciliation** required by concept §9 row 
 
 ### 6.1 Overriding the Defaults
 
-A Response Actions document MAY override one, two, or three of (profile, blocking, persistence) per action while retaining a master-table intent. Overrides are explicit and MUST appear in the Response Actions document; processors MUST NOT silently substitute non-default tuples.
+A Response Actions document MAY override the master-table tuple per action, but the override MUST replace the full `(profile, blocking, persistence)` tuple using `ValidationTuple`. Partial-axis overrides are forbidden. Processors MUST NOT silently substitute non-default tuples.
 
-A Response Actions document that overrides all three axes is equivalent to using an `x-`-extension intent — the processor MUST treat it as a publisher-defined intent and MUST NOT consult the master table for that action.
+For standard intents, a full-tuple override retains the declared standard `ActionIntent`; processors still use the action's declared intent for reporting and policy classification. For `x-` extension intents, processors MUST NOT consult the master table and MUST use the document-supplied full tuple verbatim.
 
 ### 6.2 What Overrides Cannot Do
 

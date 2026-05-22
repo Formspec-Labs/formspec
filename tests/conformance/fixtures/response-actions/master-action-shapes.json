@@ -1,0 +1,45 @@
+{
+  "fixture": "master-action-shapes",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "save-draft",
+        "intent": "save-draft",
+        "effects": [
+          { "type": "ledgerAppend", "eventKind": "draft.saved", "idempotencyKey": "@invocation.id & '/draft-saved'" }
+        ]
+      },
+      {
+        "id": "autosave",
+        "intent": "autosave",
+        "effects": [
+          { "type": "hostEvent", "eventName": "formspec-autosave-visible" }
+        ]
+      },
+      {
+        "id": "review",
+        "intent": "review",
+        "effects": [
+          { "type": "mappingExecution", "mappingRef": "reviewPayload", "idempotencyKey": "@invocation.id & '/review-mapping'" }
+        ]
+      },
+      {
+        "id": "submit",
+        "intent": "submit",
+        "effects": [
+          { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" }
+        ]
+      },
+      {
+        "id": "request-evidence",
+        "intent": "request-evidence",
+        "effects": [
+          { "type": "evidenceRequest", "requestRef": "duplicateApplicantCheck", "idempotencyKey": "@invocation.id & '/evidence'" }
+        ]
+      }
+    ]
+  }
+}

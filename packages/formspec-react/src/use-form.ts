@@ -2,13 +2,13 @@
 
 /** @filedesc useForm — form-level reactive state (title, validity, submit). */
 import { useMemo, useCallback } from 'react';
+import type { ValidationOverride, ValidationProfile } from '@formspec-org/types';
 import { useFormspecContext } from './context';
 import { useSignal } from './use-signal';
 
-type SubmitMode = 'continuous' | 'submit';
-
 export interface SubmitOptions {
-    mode?: SubmitMode;
+    profile?: ValidationProfile;
+    validationTuple?: ValidationOverride;
     id?: string;
     author?: { id: string; name?: string };
     subject?: { id: string; type?: string };
@@ -23,8 +23,8 @@ export interface UseFormResult {
     getResponse(meta?: Record<string, any>): any;
 }
 
-function validationProfileForMode(mode: SubmitMode | undefined) {
-    return mode === 'submit' ? 'on-submit' : 'live';
+function responseProfileForTuple(validationTuple: ValidationOverride | undefined): ValidationProfile {
+    return validationTuple?.persistence === 'complete-response' ? 'on-submit' : 'off';
 }
 
 /**
@@ -43,10 +43,10 @@ export function useForm(): UseFormResult {
 
     const submit = useCallback((options?: SubmitOptions) => {
         touchAllFields();
-        const reportProfile = validationProfileForMode(options?.mode);
-        const report = engine.getValidationReport({ profile: reportProfile });
+        const profile = options?.profile ?? options?.validationTuple?.profile ?? 'on-submit';
+        const report = engine.getValidationReport({ profile });
         const response = engine.getResponse({
-            profile: 'on-submit',
+            profile: responseProfileForTuple(options?.validationTuple),
             id: options?.id,
             author: options?.author,
             subject: options?.subject,

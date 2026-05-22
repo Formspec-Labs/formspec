@@ -28,7 +28,7 @@ export async function submitAndGetResponse<T = any>(page: Page): Promise<T> {
     if (!renderer || typeof renderer.submit !== 'function') {
       throw new Error('formspec-render.submit() is unavailable');
     }
-    const detail = renderer.submit({ emitEvent: false, mode: 'submit' });
+    const detail = renderer.submit({ emitEvent: false, profile: 'on-submit' });
     if (!detail) {
       throw new Error('submit() returned null');
     }

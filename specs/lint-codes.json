@@ -1154,6 +1154,46 @@
       "suggestedFix": "add a unit.itemRefs entry for every required visible Definition field",
       "fixtures": ["tests/fixtures/lint/E1700-experience-semantic-invalid.json"],
       "state": "tested"
+    },
+    {
+      "code": "E1800",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions targetDefinition URL mismatch",
+      "specRef": "specs/response-actions/response-actions-spec.md#2-document-shape",
+      "suggestedFix": "set targetDefinition.url to the paired Definition url",
+      "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1800",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Response Actions compatibleVersions mismatch",
+      "specRef": "specs/response-actions/response-actions-spec.md#2-document-shape",
+      "suggestedFix": "adjust targetDefinition.compatibleVersions so it includes the paired Definition version",
+      "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
+      "state": "tested"
+    },
+    {
+      "code": "E1801",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions duplicate action id",
+      "specRef": "specs/response-actions/response-actions-spec.md#3-action-identity-and-resolution",
+      "suggestedFix": "make every actions[].id unique within the Response Actions document",
+      "fixtures": ["tests/fixtures/lint/E1801-response-actions-duplicate-id.json"],
+      "state": "tested"
+    },
+    {
+      "code": "W1801",
+      "pass": 9,
+      "severity": "warning",
+      "title": "Component ActionButton actionRef unresolved",
+      "specRef": "specs/response-actions/response-actions-spec.md#3-action-identity-and-resolution",
+      "suggestedFix": "declare a matching Response Actions actions[].id or update the ActionButton actionRef",
+      "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
+      "state": "tested"
     }
   ]
 }

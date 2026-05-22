@@ -75,4 +75,7 @@ See [`src/`](src/) for the full hook surface. Each hook is a thin React adapter 
 matches the button's `actionRef`. When an action cannot be resolved, the button is
 rendered inert and `onActionFinding` receives a `COMP-REFERENTIAL-INTEGRITY`
 finding. A resolved action calls `onSubmit` only when it declares a
-`hostEvent` effect for `formspec-submit`.
+`hostEvent` effect for `formspec-submit`; all host events flow through
+`onHostEvent`, durable effects use `dispatchActionEffect` plus
+`resolveActionIdempotencyKey`, and final action terminals flow through
+`onActionResult`.

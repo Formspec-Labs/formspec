@@ -3,9 +3,9 @@
 /** @filedesc Recursive LayoutNode renderer — dispatches to field or layout components. */
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { signal as createSignal } from '@preact/signals-core';
+import { invokeResponseAction } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import { useFormspecContext } from './context';
-import type { ResponseAction } from './context';
 import { useSignal } from './use-signal';
 import { useField } from './use-field';
 import { useForm } from './use-form';
@@ -88,18 +88,18 @@ function actionRefFor(node: LayoutNode): string {
     return typeof value === 'string' ? value : '';
 }
 
-function submitModeForAction(action: ResponseAction): 'continuous' | 'submit' {
-    return action.validation?.profile === 'live' ? 'continuous' : 'submit';
-}
-
-function declaresHostSubmit(action: ResponseAction): boolean {
-    return (action.effects ?? []).some(effect =>
-        effect?.type === 'hostEvent' && effect.eventName === 'formspec-submit',
-    );
-}
-
 function ActionButtonNode({ node }: { node: LayoutNode }) {
-    const { onSubmit, onActionFinding, resolveActionRef } = useFormspecContext();
+    const {
+        onSubmit,
+        onHostEvent,
+        onActionFinding,
+        onActionResult,
+        evaluateActionPrecondition,
+        dispatchActionEffect,
+        resolveActionIdempotencyKey,
+        responseActionsDocument,
+        resolveActionRef,
+    } = useFormspecContext();
     const form = useForm();
     const actionRef = actionRefFor(node);
     const resolution = resolveActionRef(actionRef, node.id);
@@ -116,18 +116,41 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     }, [findingKey, onActionFinding]);
 
     const handleClick = useCallback(() => {
-        const nextResolution = resolveActionRef(actionRef, node.id);
-        if (!nextResolution.resolved || !nextResolution.action) {
-            if (nextResolution.finding) {
-                onActionFinding?.(nextResolution.finding);
-            }
+        const result = invokeResponseAction(
+            responseActionsDocument,
+            actionRef,
+            {
+                submit: ({ profile, validationTuple }) => form.submit({ profile, validationTuple }),
+                dispatchHostEvent: (eventName, detail, action) => {
+                    onHostEvent?.(eventName, detail, action);
+                    if (eventName === 'formspec-submit') {
+                        onSubmit?.(detail);
+                    }
+                },
+                ...(evaluateActionPrecondition ? { evaluatePrecondition: evaluateActionPrecondition } : {}),
+                ...(dispatchActionEffect ? { dispatchEffect: dispatchActionEffect } : {}),
+                ...(resolveActionIdempotencyKey ? { resolveIdempotencyKey: resolveActionIdempotencyKey } : {}),
+            },
+            node.id,
+        );
+        onActionResult?.(result);
+        if (result.finding) {
+            onActionFinding?.(result.finding);
             return;
         }
-        const result = form.submit({ mode: submitModeForAction(nextResolution.action) });
-        if (declaresHostSubmit(nextResolution.action)) {
-            onSubmit?.(result);
-        }
-    }, [actionRef, form, node.id, onActionFinding, onSubmit, resolveActionRef]);
+    }, [
+        actionRef,
+        dispatchActionEffect,
+        evaluateActionPrecondition,
+        form,
+        node.id,
+        onActionFinding,
+        onActionResult,
+        onHostEvent,
+        onSubmit,
+        resolveActionIdempotencyKey,
+        responseActionsDocument,
+    ]);
 
     return (
         <button

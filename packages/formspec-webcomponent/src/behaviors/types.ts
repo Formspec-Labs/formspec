@@ -3,7 +3,13 @@ import type { Signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import type { FieldViewModel } from '@formspec-org/engine';
 import type { PresentationBlock, ItemDescriptor, LayoutNode } from '@formspec-org/layout';
-import type { FormDefinition, FormItem, RegistryEntry } from '@formspec-org/types';
+import type {
+    FormDefinition,
+    FormItem,
+    RegistryEntry,
+    ValidationOverride,
+    ValidationProfile,
+} from '@formspec-org/types';
 import type {
     ComponentDescriptor,
     ComponentPresentationOverrides,
@@ -288,7 +294,11 @@ export interface BehaviorContext {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- planner snapshots vs schema FormItem
     findItemByKey: (key: string) => any;
     renderComponent: (comp: LayoutNode | ComponentDescriptor, parent: HTMLElement, prefix?: string) => void;
-    submit: (options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }) => SubmitDetail | null;
+    submit: (options?: {
+        profile?: ValidationProfile;
+        validationTuple?: ValidationOverride;
+        emitEvent?: boolean;
+    }) => SubmitDetail | null;
     registryEntries: Map<string, RegistryEntry>;
     rerender: () => void;
     /** Resolve the FieldViewModel for a component's bound field. Returns undefined if no VM exists. */

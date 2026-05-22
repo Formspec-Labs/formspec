@@ -1,0 +1,30 @@
+{
+  "fixture": "intent-request-evidence-demand",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "request-evidence",
+        "intent": "request-evidence",
+        "effects": [
+          { "type": "evidenceRequest", "requestRef": "duplicateApplicantCheck", "idempotencyKey": "@invocation.id & '/evidence'" },
+          { "type": "ledgerAppend", "eventKind": "draft.saved", "payloadRef": "{ responseId: @response.id }", "idempotencyKey": "@invocation.id & '/draft-saved'" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "request-evidence", "id": "inv-evidence-1" },
+  "responseBefore": { "id": "rsp-evidence-1", "status": "in-progress", "data": { "applicantName": "Alex" } },
+  "simulated": {
+    "validation": { "valid": false, "counts": { "error": 1, "warning": 0, "info": 0 } }
+  },
+  "expected": {
+    "terminal": "completed",
+    "persistence": "draft-checkpoint",
+    "statusAfter": "in-progress",
+    "validationReportProduced": true,
+    "effectStatuses": ["succeeded", "succeeded"]
+  }
+}

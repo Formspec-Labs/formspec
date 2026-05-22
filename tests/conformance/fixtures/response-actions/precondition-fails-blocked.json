@@ -1,0 +1,30 @@
+{
+  "fixture": "precondition-fails-blocked",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit-precondition-blocked",
+        "intent": "submit",
+        "preconditions": [
+          { "id": "applicantNamePresent", "expression": "not isEmpty(@response.applicantName)", "severity": "block" }
+        ],
+        "effects": [
+          { "type": "hostEvent", "eventName": "formspec-submit" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "submit-precondition-blocked", "id": "inv-precondition-block-1" },
+  "responseBefore": { "id": "rsp-precondition-block-1", "status": "in-progress", "data": { "applicantName": "" } },
+  "simulated": { "preconditions": { "applicantNamePresent": false } },
+  "expected": {
+    "terminal": "blocked",
+    "blockedCause": "precondition",
+    "blockedPreconditionId": "applicantNamePresent",
+    "validationReportProduced": false,
+    "effectStatuses": ["not-invoked"]
+  }
+}

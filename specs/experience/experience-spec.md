@@ -75,7 +75,7 @@ This specification does NOT define:
 - Concrete layout, widget choice, page composition, or visual presentation. Those belong to **Component** and **Theme**.
 - Validation rules, calculation rules, requiredness, or relevance. Those belong to **Definition** (core S4).
 - Submission payloads or transformation rules. Those belong to **Mapping**.
-- Form-scoped action orchestration. That belongs to **Response Actions** (forthcoming companion spec).
+- Form-scoped action orchestration. That belongs to **Response Actions**.
 - Durable workflow events or governed case lifecycle. Those belong to **WOS** and **Respondent Ledger**.
 
 ### 1.2 Relationship to Formspec Core
@@ -222,7 +222,7 @@ A **Unit** is the substantive payload of an Experience Document. Each Unit group
 | `taskRefs` | array of string | OPTIONAL | Tasks this unit advances. Each entry MUST resolve to a `task.id`. |
 | `itemRefs` | array of `ItemRef` (S6.1) | OPTIONAL | Definition items collected, displayed, or attested in this unit. |
 | `conceptRefs` | array of `ConceptRef` (S6.2) | OPTIONAL | Registry / Ontology concepts represented in this unit. |
-| `actionRefs` | array of `ActionRef` (S6.3) | OPTIONAL | Response Actions invoked from this unit (forthcoming companion spec). |
+| `actionRefs` | array of `ActionRef` (S6.3) | OPTIONAL | Response Actions invoked from this unit. |
 | `applicability` | object | OPTIONAL | Per-Unit applicability override (S7). |
 | `accessibility` | object | OPTIONAL | Accessibility intent (S5.3). |
 | `extensions` | object | OPTIONAL | `x-`-prefixed extension data. |
@@ -545,7 +545,7 @@ The following Experience targets a hypothetical SF-425 Federal Financial Report 
 - A `data-entry` -> `review` -> `attestation` task flow expressed as four units in the full fixture against related Definition items.
 - `purpose` overrides on `ItemRef` (`collect` default -> `display` / `attest`).
 - A `conceptRef` to a Registry concept (UEI).
-- An `actionRef` forward-referencing the Response Actions companion spec (`submitReport`).
+- An `actionRef` resolving against the Response Actions companion spec (`submitReport`).
 - Accessibility intent (`complexity: high`, `requiresLiteracy: true`) on the certification unit.
 
 A schema-validated copy lives at `tests/conformance/fixtures/experience/valid-grant-application.json`.

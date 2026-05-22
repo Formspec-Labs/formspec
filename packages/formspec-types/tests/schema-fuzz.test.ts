@@ -13,7 +13,7 @@ const SCHEMAS_DIR = resolve(__dirname, '../../../schemas');
 
 const SCHEMA_FILES = [
   'issuer', 'definition', 'component', 'theme', 'mapping', 'registry', 'ontology',
-  'references', 'validation-mapping', 'experience', 'changelog',
+  'references', 'validation-mapping', 'response-actions', 'experience', 'changelog',
   'response', 'intake-handoff', 'locale', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
   'token-registry',
 ];
@@ -138,16 +138,87 @@ const HARD_SCHEMAS = new Set(['mapping', 'theme']);
 // subject to the normal validity threshold.
 const EXAMPLE_BACKED_SCHEMAS = new Set(['verification-receipt']);
 
+const CUSTOM_VALID_INSTANCES: Record<string, any[]> = {
+  'response-actions': [
+    {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: 'https://example.gov/forms/intake' },
+      actions: [
+        {
+          id: 'submit',
+          intent: 'submit',
+          effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        },
+      ],
+    },
+    {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: {
+        url: 'https://example.gov/forms/intake',
+        compatibleVersions: '>=1.0.0',
+      },
+      actions: [
+        {
+          id: 'customSave',
+          intent: 'x-custom-save',
+          preconditions: [{ id: 'ready', expression: '@response.id != null', severity: 'block' }],
+          validation: { profile: 'off', blocking: 'non-blocking', persistence: 'draft-checkpoint' },
+          effects: [
+            { type: 'ledgerAppend', eventKind: 'draft.saved', idempotencyKey: '@invocation.id' },
+          ],
+        },
+      ],
+    },
+    {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: 'https://example.gov/forms/intake' },
+      actions: [
+        {
+          id: 'handoff',
+          intent: 'submit',
+          effects: [
+            { type: 'mappingExecution', mappingRef: 'payload', idempotencyKey: '@invocation.id & "/mapping"' },
+            {
+              type: 'handoffAssembly',
+              handoffProfileRef: 'standard',
+              recipientRef: 'workflowHost',
+              idempotencyKey: '@invocation.id & "/handoff"',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 describe('schema fuzz: random instances validate against resolved schema', () => {
   for (const name of SCHEMA_FILES) {
     test(`${name}`, async () => {
       const resolved = loadResolved(name);
+      const customInstances = CUSTOM_VALID_INSTANCES[name];
       const isHard = HARD_SCHEMAS.has(name);
       const needsExamples = EXAMPLE_BACKED_SCHEMAS.has(name);
 
       const ajv = new Ajv2020({ allErrors: true, strict: false });
       addFormats(ajv);
       const validate = ajv.compile(resolved);
+
+      if (customInstances) {
+        const failures = customInstances
+          .map((instance, index) => ({ index, valid: validate(instance), errors: validate.errors }))
+          .filter(result => !result.valid)
+          .map(result => {
+            const errs = (result.errors || []).slice(0, 3)
+              .map(e => `${e.instancePath || '/'}: ${e.message}`);
+            return `  instance ${result.index}: ${errs.join('; ')}`;
+          });
+
+        expect(failures, failures.join('\n')).toHaveLength(0);
+        return;
+      }
 
       const gen = createGenerator({
         fillProperties: true,

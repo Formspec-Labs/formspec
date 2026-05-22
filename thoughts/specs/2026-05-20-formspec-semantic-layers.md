@@ -238,7 +238,7 @@ The formal spec must separate these axes:
 | Blocking policy | non-blocking, block on error-level findings | Core severity and Response status semantics |
 | Persistence policy | no persistence, draft checkpoint, completed Response | Response lifecycle semantics |
 
-The Response Actions companion spec must include a mapping table before any schema lands. At minimum, fixtures should cover invalid draft save, submit blocked by error-level findings, warning-only submit allowed, demand-shape invocation, and disabled/no-validation behavior.
+The Response Actions companion spec includes a mapping table before its schema lands through the Validation Mapping companion. Its fixtures cover invalid draft save, submit blocked by error-level findings, warning-only submit allowed, demand-shape invocation, and disabled/no-validation behavior.
 
 ### 6.6 ActionButton Binding
 
@@ -506,7 +506,7 @@ Treat these as gates for formalization. They are not implementation details to d
 Formalize in this order:
 
 1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle. **Landed:** [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md) (draft, 2026-05-21).
-2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior.
+2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior. **Landed:** [`specs/response-actions/response-actions-spec.md`](../../specs/response-actions/response-actions-spec.md) (draft, 2026-05-22).
 3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands. **Landed:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) (draft, 2026-05-22).
 4. **ActionButton binding and Component reference additions.** Require `ActionButton.actionRef`, remove widget-local validation/event policy, and leave `unitRef`, `taskRefs`, `conceptRefs`, and generation metadata to the follow-up Component Reference Fields plan. **Landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)).
 5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.

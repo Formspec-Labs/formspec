@@ -1,0 +1,29 @@
+{
+  "fixture": "effect-idempotent-replay",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit-replay",
+        "intent": "submit",
+        "effects": [
+          { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "rsp-replay-1/v1/mapping" },
+          { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "payloadRef": "{ mappingOutcomeRef: @effects[1].outcomeRef }", "idempotencyKey": "rsp-replay-1/v1/attempted" },
+          { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "rsp-replay-1/v1/handoff" }
+        ]
+      }
+    ]
+  },
+  "scenario": {
+    "first": { "invocation": { "actionId": "submit-replay", "id": "inv-replay-1" } },
+    "replay": { "invocation": { "actionId": "submit-replay", "id": "inv-replay-1" } }
+  },
+  "responseBefore": { "id": "rsp-replay-1", "status": "in-progress", "data": { "applicantName": "Alex" } },
+  "expected": {
+    "firstEffectStatuses": ["succeeded", "succeeded", "succeeded"],
+    "replayEffectStatuses": ["replayed", "replayed", "replayed"],
+    "duplicateDurableEffects": false
+  }
+}

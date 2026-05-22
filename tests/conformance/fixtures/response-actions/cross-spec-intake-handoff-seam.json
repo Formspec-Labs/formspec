@@ -1,0 +1,33 @@
+{
+  "fixture": "cross-spec-intake-handoff-seam",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit-to-intake",
+        "intent": "submit",
+        "effects": [
+          { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "@invocation.id & '/mapping'" },
+          { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "payloadRef": "{ mappingOutcomeRef: @effects[1].outcomeRef }", "idempotencyKey": "@invocation.id & '/attempted'" },
+          { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" },
+          { "type": "ledgerAppend", "eventKind": "response.completed", "payloadRef": "{ handoffOutcomeRef: @effects[3].outcomeRef }", "idempotencyKey": "@invocation.id & '/completed'" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "submit-to-intake", "id": "inv-cross-spec-1" },
+  "responseBefore": { "id": "rsp-cross-spec-1", "status": "in-progress", "data": { "applicantName": "Alex" } },
+  "expected": {
+    "terminal": "completed",
+    "statusAfter": "completed",
+    "responseSnapshotRef": "sha256:response",
+    "validationReportRef": "sha256:validation",
+    "ledgerHeadRef": "sha256:ledger",
+    "handoffDocumentRef": "sha256:handoff",
+    "workflowHostOutcome": "accepted",
+    "caseCreatedEventEmitted": false,
+    "caseLifecycleEventsEmitted": []
+  }
+}

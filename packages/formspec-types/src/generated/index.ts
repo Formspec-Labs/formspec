@@ -17,6 +17,7 @@ export type { Publisher, RegistryEntry, RegistryDocument, ConceptEquivalent, Voc
 export type { OntologyDocument, ConceptBinding, VocabularyBinding, Alignment } from './ontology.js';
 export type { Reference, BoundReference, ReferenceOrRef, ReferencesDocument, ReferenceDefs } from './references.js';
 export type { ActionIntent, ValidationProfile, BlockingPolicy, PersistencePolicy, ValidationTuplePredicate, ValidationTuple, MappingEntry, MasterTable, ValidationMappingDocument } from './validation-mapping.js';
+export type { Action, ValidationOverride, EffectRequest, IdempotencyKey, ResponseActionsDocument, Precondition, MappingExecutionEffect, LedgerAppendEffect, HandoffAssemblyEffect, EvidenceRequestEffect, HostEventEffect } from './response-actions.js';
 export type { UnitKind, ExperienceDocument, Applicability, Actor, Task, Unit, ItemRef, ConceptRef, ActionRef, Accessibility } from './experience.js';
 export type { ChangelogDocument, Change } from './changelog.js';
 export type { ValidationResult } from './validation-result.js';

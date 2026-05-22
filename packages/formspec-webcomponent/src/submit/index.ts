@@ -5,8 +5,9 @@ import {
     FormDefinition,
     FormItem,
     FormResponse,
+    ValidationOverride,
+    ValidationProfile,
     ValidationResult,
-    ValidationReport,
 } from '@formspec-org/types';
 import { normalizeFieldPath, externalPathToInternal, findFieldElement } from '../navigation/index.js';
 import type { NavigationHost } from '../navigation/index.js';
@@ -22,6 +23,16 @@ export interface SubmitHost extends NavigationHost {
     dispatchEvent(event: Event): boolean;
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
     focusField?(path: string): void;
+}
+
+export interface SubmitOptions {
+    profile?: ValidationProfile;
+    validationTuple?: ValidationOverride;
+    emitEvent?: boolean;
+}
+
+function responseProfileForTuple(validationTuple: ValidationOverride | undefined): ValidationProfile {
+    return validationTuple?.persistence === 'complete-response' ? 'on-submit' : 'off';
 }
 
 /**
@@ -77,24 +88,16 @@ export function touchAllFields(host: SubmitHost): void {
  */
 export function submit(
     host: SubmitHost,
-    options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean },
+    options?: SubmitOptions,
 ): SubmitDetail | null {
     if (!host.engine) return null;
-    const mode = options?.mode || 'submit';
-    const reportProfile = mode === 'continuous' ? 'live' : 'on-submit';
+    const profile = options?.profile ?? options?.validationTuple?.profile ?? 'on-submit';
     const emitEvent = options?.emitEvent !== false;
 
     touchAllFields(host);
 
-    const response = host.engine.getResponse({ profile: 'on-submit' });
-    const report = host.engine.getValidationReport({ profile: reportProfile });
-    const validationReport: ValidationReport = report ?? {
-        $formspecValidationReport: '1.0',
-        valid: true,
-        results: [],
-        counts: { error: 0, warning: 0, info: 0 },
-        timestamp: response?.authored || new Date().toISOString(),
-    };
+    const response = host.engine.getResponse({ profile: responseProfileForTuple(options?.validationTuple) });
+    const validationReport = host.engine.getValidationReport({ profile });
     const detail = { response, validationReport };
     host._latestSubmitDetailSignal.value = detail;
 
@@ -107,7 +110,7 @@ export function submit(
     }
 
     // Scroll to first error if invalid
-    if (!validationReport.valid && host.focusField) {
+    if (validationReport && !validationReport.valid && host.focusField) {
         const firstError = validationReport.results.find((r: ValidationResult) => r.severity === 'error');
         if (firstError) {
             host.focusField(firstError.path);

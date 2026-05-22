@@ -120,14 +120,12 @@ describe('render lifecycle', () => {
         el.render();
         el.getEngine().setValue('name', 'Alice');
 
-        const detail = el.submit({ mode: 'continuous', emitEvent: false });
+        const detail = el.submit({ profile: 'live', emitEvent: false });
 
-        expect(detail.validationReport.valid).toBe(true);
-        expect(detail.validationReport.results).toHaveLength(0);
-        expect(detail.response.status).toBe('in-progress');
-        expect(detail.response.validationResults).toEqual(
-            expect.arrayContaining([expect.objectContaining({ shapeId: 'submitName' })]),
-        );
+        expect(detail?.validationReport?.valid).toBe(true);
+        expect(detail?.validationReport?.results).toHaveLength(0);
+        expect(detail?.response.status).toBe('in-progress');
+        expect(detail?.response).not.toHaveProperty('validationResults');
     });
 
     it('setSubmitPending() toggles state and emits pending-change events', () => {

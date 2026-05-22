@@ -1,0 +1,33 @@
+{
+  "fixture": "intent-warning-only-submit",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit",
+        "intent": "submit",
+        "effects": [
+          { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "@invocation.id & '/mapping'" },
+          { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" },
+          { "type": "ledgerAppend", "eventKind": "response.completed", "payloadRef": "{ handoffOutcomeRef: @effects[2].outcomeRef }", "idempotencyKey": "@invocation.id & '/completed'" },
+          { "type": "hostEvent", "eventName": "formspec-submit" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "submit", "id": "inv-warning-submit-1" },
+  "responseBefore": { "id": "rsp-warning-submit-1", "status": "in-progress", "data": { "applicantName": "Alex" } },
+  "simulated": {
+    "validation": { "valid": true, "counts": { "error": 0, "warning": 1, "info": 0 } }
+  },
+  "expected": {
+    "terminal": "completed",
+    "persistence": "complete-response",
+    "statusAfter": "completed",
+    "validationReportProduced": true,
+    "effectStatuses": ["succeeded", "succeeded", "succeeded", "succeeded"],
+    "ledgerEventKinds": ["response.completed"]
+  }
+}

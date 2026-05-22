@@ -10,7 +10,7 @@
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
 //! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
-//! Pass 9 (E1100-E1700/W1100-W1703): Companion document semantic lint
+//! Pass 9 (E1100-E1801/W1100-W1801): Companion document semantic lint
 //!
 //! ## Documentation
 //!
@@ -29,6 +29,7 @@ mod pass_locale;
 pub mod pass_mapping;
 pub mod pass_ontology;
 mod pass_references_doc;
+mod pass_response_actions;
 mod pass_screener;
 mod schema_validation;
 mod semantic_helpers;
@@ -128,6 +129,13 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),
         DocumentType::Response => {
             diagnostics.extend(pass_response::lint_response(doc));
+        }
+        DocumentType::ResponseActions => {
+            diagnostics.extend(pass_response_actions::lint_response_actions(
+                doc,
+                options.definition_document.as_ref(),
+                &options.component_documents,
+            ));
         }
         DocumentType::Issuer => {
             diagnostics.extend(pass_issuer::lint_issuer(doc));

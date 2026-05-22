@@ -55,11 +55,11 @@ const ALL_BUILTINS: &[&str] = &[
     "ProgressBar",
     "Summary",
     "ValidationSummary",
+    "ActionButton",
     "DataTable",
     "Panel",
     "Modal",
     "Popover",
-    "SubmitButton",
 ];
 
 pub(crate) fn is_builtin(name: &str) -> bool {

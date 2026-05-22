@@ -70,7 +70,7 @@ const responseActionsDocument = {
         {
             id: 'submit',
             intent: 'submit',
-            validation: { profile: 'on-submit' },
+            validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
             effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
         },
     ],
@@ -1002,7 +1002,7 @@ describe('ActionButton', () => {
         expect(nameInput.getAttribute('aria-invalid')).toBe('true');
     });
 
-    it('renders an inert action button and reports a finding when no Response Actions document is loaded', async () => {
+    it('does not auto-inject an action button when no Response Actions document is loaded', async () => {
         const onSubmit = vi.fn();
         const onActionFinding = vi.fn();
         const container = renderInto(
@@ -1014,19 +1014,117 @@ describe('ActionButton', () => {
         );
 
         const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
-        expect(button).toBeTruthy();
-        expect(button.disabled).toBe(true);
+        expect(button).toBeNull();
         await new Promise(resolve => setTimeout(resolve, 0));
-        expect(onActionFinding).toHaveBeenCalledWith(expect.objectContaining({
-            code: 'COMP-REFERENTIAL-INTEGRITY',
-            severity: 'error',
-            kind: 'actionRef',
-            target: 'submit',
-            reason: 'no-response-actions-document',
-        }));
-
-        flushSync(() => { button.click(); });
+        expect(onActionFinding).not.toHaveBeenCalled();
         expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('passes non-submit host events and invocation terminals to host callbacks', () => {
+        const onHostEvent = vi.fn();
+        const onActionResult = vi.fn();
+        const saveActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            actions: [{
+                id: 'save',
+                intent: 'save-draft',
+                effects: [{ type: 'hostEvent', eventName: 'formspec-save' }],
+            }],
+        };
+        const componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
+            tree: { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save' } },
+        };
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                responseActionsDocument={saveActionsDocument}
+                onHostEvent={onHostEvent}
+                onActionResult={onActionResult}
+            />
+        );
+
+        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        flushSync(() => { button.click(); });
+
+        expect(onHostEvent).toHaveBeenCalledWith(
+            'formspec-save',
+            expect.objectContaining({ response: expect.any(Object), validationReport: null }),
+            expect.objectContaining({ id: 'save' }),
+        );
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'completed',
+            effectTrace: [expect.objectContaining({ type: 'hostEvent', status: 'succeeded' })],
+        }));
+    });
+
+    it('uses host durable-effect adapters and exposes failed/deferred status through onActionResult', () => {
+        const dispatchActionEffect = vi.fn(() => ({
+            type: 'ledgerAppend',
+            status: 'succeeded',
+            outcomeRef: `sha256:${'1'.repeat(64)}`,
+        }));
+        const resolveActionIdempotencyKey = vi.fn(() => 'response-1/complete');
+        const onActionResult = vi.fn();
+        const durableActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            actions: [{
+                id: 'complete',
+                intent: 'submit',
+                validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
+                effects: [{
+                    type: 'ledgerAppend',
+                    eventKind: 'response.completed',
+                    idempotencyKey: '@invocation.id + "/complete"',
+                }],
+            }],
+        };
+        const componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
+            tree: { component: 'ActionButton', actionRef: 'complete', label: { literal: 'Complete' } },
+        };
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                responseActionsDocument={durableActionsDocument}
+                dispatchActionEffect={dispatchActionEffect}
+                resolveActionIdempotencyKey={resolveActionIdempotencyKey}
+                onActionResult={onActionResult}
+            />
+        );
+
+        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        flushSync(() => { button.click(); });
+
+        expect(dispatchActionEffect).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'ledgerAppend',
+                eventKind: 'response.completed',
+                idempotencyKey: 'response-1/complete',
+            }),
+            expect.objectContaining({ response: expect.any(Object), validationReport: expect.any(Object) }),
+            expect.objectContaining({ id: 'complete' }),
+            expect.objectContaining({ effectIndex: 0, attempt: 0, idempotencyKey: 'response-1/complete' }),
+        );
+        expect(resolveActionIdempotencyKey).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'ledgerAppend' }),
+            expect.objectContaining({ id: 'complete' }),
+            expect.objectContaining({ effectIndex: 0 }),
+        );
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'completed',
+            effectTrace: [expect.objectContaining({ type: 'ledgerAppend', status: 'succeeded' })],
+        }));
     });
 });
 

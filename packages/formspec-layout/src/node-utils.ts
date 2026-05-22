@@ -63,18 +63,24 @@ export function planContains(node: LayoutNode, component: string): boolean {
 
 const ACTION_MUST_BE_SIBLING_ROOTS = new Set(['Accordion', 'Tabs']);
 
+export interface EnsureActionButtonOptions {
+    pageMode?: string;
+    actionRef?: string;
+}
+
 export function ensureActionButton(
     root: LayoutNode,
     nextId: NodeIdGenerator = createNodeIdGenerator(),
-    options: { pageMode?: string } = {},
+    options: EnsureActionButtonOptions = {},
 ): void {
+    if (!options.actionRef) return;
     if (planContains(root, 'Wizard') || planContains(root, 'ActionButton')) return;
 
     const actionNode: LayoutNode = {
         id: nextId('submit'),
         component: 'ActionButton',
         category: 'interactive',
-        props: { actionRef: 'submit' },
+        props: { actionRef: options.actionRef },
         cssClasses: [],
         children: [],
     };

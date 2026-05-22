@@ -14,11 +14,6 @@ functions are pure (no DOM, no signals, no side effects beyond warnings).
     dataType?: string;
 }): string`
 
-Map a definition item to its default component type based on `dataType`.
-
-Used as a fallback when no component document is provided or when the
-theme's widget cascade doesn't resolve to an available component.
-
 ## `mergeFormPresentationForPlanning(fromDefinition?: unknown, fromComponentDocument?: unknown): Record<string, unknown> | undefined`
 
 Merges tier-1 `formPresentation` from the core definition with the optional
@@ -36,9 +31,7 @@ Attach a per-plan ID generator when callers omit `nextId`.
 
 ## `planContains(node: LayoutNode, component: string): boolean`
 
-## `ensureActionButton(root: LayoutNode, nextId?: NodeIdGenerator, options?: {
-    pageMode?: string;
-}): void`
+## `ensureActionButton(root: LayoutNode, nextId?: NodeIdGenerator, options?: EnsureActionButtonOptions): void`
 
 ## `resolveTokenInContext(val: unknown, ctx: PlanContext): unknown`
 
@@ -55,6 +48,11 @@ Attach a per-plan ID generator when callers omit `nextId`.
 }, ctx: PlanContext): string[]`
 
 ## `extractProps(comp: Record<string, unknown>): Record<string, unknown>`
+
+#### interface `EnsureActionButtonOptions`
+
+- **pageMode?**: `string`
+- **actionRef?**: `string`
 
 ## `resolvePageSequence(definition: FormDefinition, options?: {
     component?: ComponentDocument;

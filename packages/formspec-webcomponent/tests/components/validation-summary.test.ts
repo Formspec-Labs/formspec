@@ -21,7 +21,7 @@ function renderWithValidationSummary(summaryProps: Record<string, any> = {}) {
             {
                 id: 'submit',
                 intent: 'submit',
-                validation: { profile: 'on-submit' },
+                validation: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
                 effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
             },
         ],
@@ -81,7 +81,7 @@ describe('ValidationSummary — source: live', () => {
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(false);
 
         // Trigger submit — name is required but empty, so errors should appear
-        el.submit({ mode: 'submit', emitEvent: false });
+        el.submit({ profile: 'on-submit', emitEvent: false });
 
         // Banner should now be visible
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
@@ -129,19 +129,19 @@ describe('ValidationSummary — source: live', () => {
     it('hides after submit when form becomes valid', () => {
         const el = renderWithValidationSummary({ source: 'live', mode: 'submit', showFieldErrors: true });
         // Submit with empty required field to make banner appear
-        el.submit({ mode: 'submit', emitEvent: false });
+        el.submit({ profile: 'on-submit', emitEvent: false });
         const summary = el.querySelector('.formspec-validation-summary') as HTMLElement;
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
 
         // Fill the required field, then submit again
         el.getEngine().setValue('name', 'Alice');
-        el.submit({ mode: 'submit', emitEvent: false });
+        el.submit({ profile: 'on-submit', emitEvent: false });
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(false);
     });
 
     it('keeps the latest submit-profile summary static until another submit', () => {
         const el = renderWithValidationSummary({ source: 'live', mode: 'submit', showFieldErrors: true });
-        el.submit({ mode: 'submit', emitEvent: false });
+        el.submit({ profile: 'on-submit', emitEvent: false });
         const summary = el.querySelector('.formspec-validation-summary') as HTMLElement;
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
 
@@ -242,7 +242,7 @@ describe('ValidationSummary — source: submit', () => {
 
     it('shows after submit with errors', () => {
         const el = renderWithValidationSummary({ source: 'submit', showFieldErrors: true });
-        el.submit({ mode: 'submit', emitEvent: false });
+        el.submit({ profile: 'on-submit', emitEvent: false });
         const summary = el.querySelector('.formspec-validation-summary') as HTMLElement;
         expect(summary.classList.contains('formspec-validation-summary--visible')).toBe(true);
     });

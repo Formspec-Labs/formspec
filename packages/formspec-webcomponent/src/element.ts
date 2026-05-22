@@ -1,6 +1,12 @@
 /** @filedesc The <formspec-render> custom element that orchestrates form rendering. */
 import { signal } from '@preact/signals-core';
-import { createFormEngine, type FormEngine, type IFormEngine, type LocaleDocument } from '@formspec-org/engine/render';
+import {
+    createFormEngine,
+    defaultActionRefForIntent,
+    type FormEngine,
+    type IFormEngine,
+    type LocaleDocument,
+} from '@formspec-org/engine/render';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
 import type {
     ComponentDocument,
@@ -24,7 +30,7 @@ import {
     ScreenerStateSnapshot,
 } from './types';
 import type { ComponentDescriptor, ComponentPresentationSource, FormDataRecord, SubmitDetail } from './hub-types';
-import type { SubmitHost } from './submit';
+import type { SubmitHost, SubmitOptions } from './submit';
 import {
     ThemeDocument,
     PresentationBlock,
@@ -249,6 +255,10 @@ export class FormspecRender extends HTMLElement {
 
     private get _actionHost(): ActionHost {
         return this as unknown as ActionHost;
+    }
+
+    private injectedSubmitActionRef(): string {
+        return defaultActionRefForIntent(this._responseActionsDocument, 'submit');
     }
 
     /** @internal */ resolveToken = (val: unknown): unknown => resolveTokenFn(this._stylingHost, val);
@@ -655,7 +665,7 @@ export class FormspecRender extends HTMLElement {
      * Build a submit payload and validation report from the current form state.
      * Optionally dispatches `formspec-submit` with `{ response, validationReport }`.
      */
-    submit(options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }) {
+    submit(options?: SubmitOptions) {
         return submitFn(this._submitHost, options);
     }
 
@@ -783,7 +793,10 @@ export class FormspecRender extends HTMLElement {
             );
             const pageMode = pageModeFromPresentation(planCtx.formPresentation);
             if (this._showSubmit) {
-                ensureActionButton(plan, planCtx.nextId, { pageMode });
+                ensureActionButton(plan, planCtx.nextId, {
+                    pageMode,
+                    actionRef: this.injectedSubmitActionRef(),
+                });
             }
             emitNodeFn(this._renderHost, plan, container, '');
         } else {
@@ -802,7 +815,10 @@ export class FormspecRender extends HTMLElement {
                     : undefined,
             };
             if (this._showSubmit) {
-                ensureActionButton(wrapperNode, planCtx.nextId, { pageMode });
+                ensureActionButton(wrapperNode, planCtx.nextId, {
+                    pageMode,
+                    actionRef: this.injectedSubmitActionRef(),
+                });
             }
             emitNodeFn(this._renderHost, wrapperNode, container, '');
         }

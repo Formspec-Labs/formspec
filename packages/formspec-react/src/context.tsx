@@ -3,9 +3,23 @@
 /** @filedesc FormspecProvider — React context wrapping a FormEngine + optional layout plan. */
 import React, { createContext, useContext, useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { signal } from '@preact/signals-core';
-import type { IFormEngine, IssuerFetcher, IssuerSource, ReadonlyEngineSignal } from '@formspec-org/engine';
-import type { FormResponse, ValidationReport } from '@formspec-org/types';
-import { createFormEngine } from '@formspec-org/engine';
+import type {
+    ActionRefFinding,
+    ActionResolution,
+    IFormEngine,
+    IssuerFetcher,
+    IssuerSource,
+    ReadonlyEngineSignal,
+    ResponseAction,
+    ResponseActionEffectDispatchContext,
+    ResponseActionEffectOutcome,
+    ResponseActionIdempotencyKeyContext,
+    ResponseActionInvocationResult,
+    ResponseActionPreconditionResult,
+    ResponseActionsDocumentInput,
+} from '@formspec-org/engine';
+import type { EffectRequest, FormResponse, Precondition, ValidationReport } from '@formspec-org/types';
+import { createFormEngine, defaultActionRefForIntent, resolveResponseAction } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import {
     planDefinitionFallback,
@@ -16,43 +30,12 @@ import {
 } from '@formspec-org/layout';
 import type { ComponentMap } from './component-map';
 
+export type ResponseActionsDocument = ResponseActionsDocumentInput;
+export type { ActionRefFinding, ActionResolution, ResponseAction };
+
 export interface SubmitResult {
     response: FormResponse;
-    validationReport: ValidationReport;
-}
-
-export interface ResponseAction {
-    id: string;
-    intent?: string;
-    validation?: {
-        profile?: 'live' | 'on-submit' | 'on-demand' | 'off';
-    };
-    effects?: Array<{
-        type?: string;
-        eventName?: string;
-        [key: string]: unknown;
-    }>;
-    [key: string]: unknown;
-}
-
-export interface ResponseActionsDocument {
-    actions?: ResponseAction[];
-    [key: string]: unknown;
-}
-
-export interface ActionResolution {
-    resolved: boolean;
-    action: ResponseAction | null;
-    finding?: ActionRefFinding;
-}
-
-export interface ActionRefFinding {
-    code: 'COMP-REFERENTIAL-INTEGRITY';
-    severity: 'error';
-    kind: 'actionRef';
-    nodeId?: string;
-    target: string;
-    reason?: 'missing-actionRef' | 'no-response-actions-document';
+    validationReport: ValidationReport | null;
 }
 
 export interface FormspecContextValue {
@@ -67,8 +50,30 @@ export interface FormspecContextValue {
     responseActionsDocument?: ResponseActionsDocument | null;
     /** Callback invoked on form submission. Absent means no built-in submit button. */
     onSubmit?: (result: SubmitResult) => void;
+    /** Callback invoked for every declared hostEvent effect. */
+    onHostEvent?: (eventName: string, result: SubmitResult, action: ResponseAction) => void;
     /** Callback invoked when ActionButton actionRef resolution produces a finding. */
     onActionFinding?: (finding: ActionRefFinding) => void;
+    /** Callback invoked after every ActionButton invocation terminal. */
+    onActionResult?: (result: ResponseActionInvocationResult<SubmitResult>) => void;
+    /** Host precondition evaluator for Response Actions that declare FEL preconditions. */
+    evaluateActionPrecondition?: (
+        precondition: Precondition,
+        action: ResponseAction,
+    ) => ResponseActionPreconditionResult;
+    /** Host durable-effect adapter for non-hostEvent Response Action effects. */
+    dispatchActionEffect?: (
+        effect: EffectRequest,
+        result: SubmitResult,
+        action: ResponseAction,
+        context: ResponseActionEffectDispatchContext,
+    ) => ResponseActionEffectOutcome | void;
+    /** Host idempotency-key resolver for durable Response Action effects. */
+    resolveActionIdempotencyKey?: (
+        effect: EffectRequest,
+        action: ResponseAction,
+        context: ResponseActionIdempotencyKeyContext,
+    ) => string;
     /** Resolve an ActionButton actionRef against the loaded Response Actions document. */
     resolveActionRef: (actionRef: string, nodeId?: string) => ActionResolution;
     /** Mark a field as touched (e.g., on blur). */
@@ -118,8 +123,30 @@ export interface FormspecProviderProps {
     components?: ComponentMap;
     /** Callback for form submission. If provided, a submit button is rendered. */
     onSubmit?: (result: SubmitResult) => void;
+    /** Callback invoked for every declared hostEvent effect. */
+    onHostEvent?: (eventName: string, result: SubmitResult, action: ResponseAction) => void;
     /** Callback for ActionButton actionRef resolution findings. */
     onActionFinding?: (finding: ActionRefFinding) => void;
+    /** Callback invoked after every ActionButton invocation terminal. */
+    onActionResult?: (result: ResponseActionInvocationResult<SubmitResult>) => void;
+    /** Host precondition evaluator for Response Actions that declare FEL preconditions. */
+    evaluateActionPrecondition?: (
+        precondition: Precondition,
+        action: ResponseAction,
+    ) => ResponseActionPreconditionResult;
+    /** Host durable-effect adapter for non-hostEvent Response Action effects. */
+    dispatchActionEffect?: (
+        effect: EffectRequest,
+        result: SubmitResult,
+        action: ResponseAction,
+        context: ResponseActionEffectDispatchContext,
+    ) => ResponseActionEffectOutcome | void;
+    /** Host idempotency-key resolver for durable Response Action effects. */
+    resolveActionIdempotencyKey?: (
+        effect: EffectRequest,
+        action: ResponseAction,
+        context: ResponseActionIdempotencyKeyContext,
+    ) => string;
     children: React.ReactNode;
 }
 
@@ -142,7 +169,12 @@ export function FormspecProvider(props: FormspecProviderProps) {
         issuerOverride,
         components = {},
         onSubmit,
+        onHostEvent,
         onActionFinding,
+        onActionResult,
+        evaluateActionPrecondition,
+        dispatchActionEffect,
+        resolveActionIdempotencyKey,
         children,
     } = props;
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
@@ -256,10 +288,11 @@ export function FormspecProvider(props: FormspecProviderProps) {
         }
 
         if (onSubmit) {
-            ensureActionButton(root, planCtx.nextId, { pageMode });
+            const actionRef = defaultActionRefForIntent(responseActionsDocument, 'submit');
+            ensureActionButton(root, planCtx.nextId, { pageMode, actionRef });
         }
         return root;
-    }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, mergedFormPresentation]);
+    }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
 
     // Touched tracking — stable across re-renders
     const touchedFieldsRef = useRef(new Set<string>());
@@ -288,52 +321,9 @@ export function FormspecProvider(props: FormspecProviderProps) {
         return touchedFieldsRef.current.has(path);
     }, []);
 
-    const resolveActionRef = useCallback((actionRef: string, nodeId?: string): ActionResolution => {
-        const node = nodeId ? { nodeId } : {};
-        if (!actionRef) {
-            return {
-                resolved: false,
-                action: null,
-                finding: {
-                    code: 'COMP-REFERENTIAL-INTEGRITY',
-                    severity: 'error',
-                    kind: 'actionRef',
-                    ...node,
-                    target: actionRef,
-                    reason: 'missing-actionRef',
-                },
-            };
-        }
-        if (!responseActionsDocument || !Array.isArray(responseActionsDocument.actions)) {
-            return {
-                resolved: false,
-                action: null,
-                finding: {
-                    code: 'COMP-REFERENTIAL-INTEGRITY',
-                    severity: 'error',
-                    kind: 'actionRef',
-                    ...node,
-                    target: actionRef,
-                    reason: 'no-response-actions-document',
-                },
-            };
-        }
-        const action = responseActionsDocument.actions.find(candidate => candidate?.id === actionRef) ?? null;
-        if (!action) {
-            return {
-                resolved: false,
-                action: null,
-                finding: {
-                    code: 'COMP-REFERENTIAL-INTEGRITY',
-                    severity: 'error',
-                    kind: 'actionRef',
-                    ...node,
-                    target: actionRef,
-                },
-            };
-        }
-        return { resolved: true, action };
-    }, [responseActionsDocument]);
+    const resolveActionRef = useCallback((actionRef: string, nodeId?: string): ActionResolution =>
+        resolveResponseAction(responseActionsDocument, actionRef, nodeId),
+    [responseActionsDocument]);
 
     // Auto-emit theme tokens as CSS custom properties when themeDocument has tokens
     useEffect(() => {
@@ -357,7 +347,12 @@ export function FormspecProvider(props: FormspecProviderProps) {
             componentDocument,
             responseActionsDocument,
             onSubmit,
+            onHostEvent,
             onActionFinding,
+            onActionResult,
+            evaluateActionPrecondition,
+            dispatchActionEffect,
+            resolveActionIdempotencyKey,
             resolveActionRef,
             touchField,
             touchAllFields,
@@ -366,7 +361,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registryEntries: registryMap,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, themeDocument, componentDocument, responseActionsDocument, onSubmit, onActionFinding, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, themeDocument, componentDocument, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
     );
 
     return (

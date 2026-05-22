@@ -134,6 +134,10 @@ type ValidationReport = FormspecValidationReport;
 
 ##### `setRuntimeContext(context?: FormEngineRuntimeContext): void`
 
+##### `setIssuerOverride(source: IssuerSource | undefined): void`
+
+##### `getResolvedIssuer(): Promise<ResolvedIssuer>`
+
 ##### `getOptions(path: string): OptionEntry[]`
 
 ##### `getOptionsSignal(path: string): EngineSignal<OptionEntry[]> | undefined`
@@ -162,9 +166,17 @@ type ValidationReport = FormspecValidationReport;
 
 ##### `setValue(name: string, value: FormFieldValue): void`
 
-##### `getValidationReport(options?: {
-        mode?: 'continuous' | 'submit';
+##### `getValidationReport(): ValidationReport`
+
+##### `getValidationReport(options: {
+        profile?: EnabledValidationProfile;
     }): ValidationReport`
+
+##### `getValidationReport(options: {
+        profile: 'off';
+    }): null`
+
+##### `getValidationReport(options?: ValidationReportOptions): ValidationReport | null`
 
 ##### `evaluateShape(shapeId: string): ValidationResult[]`
 
@@ -185,12 +197,10 @@ type ValidationReport = FormspecValidationReport;
             type?: string;
         };
         authoredSignatures?: AuthoredSignatureInput[];
-        mode?: 'continuous' | 'submit';
+        profile?: ValidationProfile;
     }): FormResponse`
 
-##### `getDiagnosticsSnapshot(options?: {
-        mode?: 'continuous' | 'submit';
-    }): FormEngineDiagnosticsSnapshot`
+##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
 ##### `applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult`
 
@@ -431,8 +441,13 @@ Restore nested field values after repeat rows were reindexed.
 ## `buildFormspecResponseEnvelope(options: {
     definition: FormDefinition;
     data: Record<string, unknown>;
-    report: ValidationReport;
+    report: ValidationReport | null;
+    completionEligible?: boolean;
     timestamp: string;
+    displayedIssuer?: {
+        url: string;
+        version: string;
+    };
     meta?: {
         id?: string;
         author?: {
@@ -447,9 +462,9 @@ Restore nested field values after repeat rows were reindexed.
     };
 }): Record<string, unknown>`
 
-## `collectSubmitModeShapeValidationResults(submitEval: EvalResult, shapeTiming: Map<string, EvalShapeTiming>): ValidationResult[]`
+## `collectTimedShapeValidationResults(evalResult: EvalResult, shapeTiming: Map<string, EvalShapeTiming>, timing: EvalShapeTiming): ValidationResult[]`
 
-Shape validations that only run on submit, from a WASM eval with `trigger: 'submit'`.
+Shape validations for a specific timing, from a WASM eval with the matching trigger.
 
 ## `buildValidationReportEnvelope(results: ValidationResult[], timestamp: string, definitionUrl?: string, definitionVersion?: string): ValidationReport`
 
@@ -551,6 +566,49 @@ type WasmPreviousValidation = Array<{
 
 ```ts
 type EvalShapeTiming = 'continuous' | 'submit' | 'demand';
+```
+
+## `analyzeExperience(definition: JsonObject, experience: JsonObject): ExperienceAnalysis`
+
+## `targetDefinitionFindings(definition: JsonObject, experience: JsonObject): ExperienceFinding[]`
+
+## `coverageFindings(definition: JsonObject, experience: JsonObject): ExperienceFinding[]`
+
+## `unresolvedItemRefFindings(definition: JsonObject, experience: JsonObject): ExperienceFinding[]`
+
+## `referentialIntegrityFindings(experience: JsonObject): ExperienceFinding[]`
+
+#### interface `ExperienceFinding`
+
+- **code**: `ExperienceFindingCode`
+- **severity**: `'warning'`
+- **path**: `string`
+- **message**: `string`
+- **ref?**: `string`
+- **target?**: `'actors' | 'tasks'`
+- **unitId?**: `string`
+- **experienceId?**: `string`
+
+#### interface `ExperienceAnalysis`
+
+- **findings**: `ExperienceFinding[]`
+- **targetDefinition**: `ExperienceFinding[]`
+- **referentialIntegrity**: `ExperienceFinding[]`
+- **unresolvedItemRefs**: `ExperienceFinding[]`
+- **coverage**: `ExperienceFinding[]`
+
+#### type `JsonObject`
+
+@filedesc Experience processor predicates for sidecar coverage and references.
+
+```ts
+type JsonObject = Record<string, unknown>;
+```
+
+#### type `ExperienceFindingCode`
+
+```ts
+type ExperienceFindingCode = 'EXP-TARGET-DEFINITION-MISMATCH' | 'EXP-TARGET-DEFINITION-VERSION-MISMATCH' | 'EXP-REFERENTIAL-INTEGRITY' | 'EXP-ITEM-REF-UNRESOLVED' | 'EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM';
 ```
 
 ## `analyzeFEL(expression: string): FELAnalysis`
@@ -830,18 +888,25 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 #### interface `SchemaValidatorSchemas`
 
 - **definition?**: `object`
+- **issuer?**: `object`
 - **theme?**: `object`
 - **component?**: `object`
 - **mapping?**: `object`
+- **validation_mapping?**: `object`
+- **response_actions?**: `object`
 - **ontology?**: `object`
 - **references?**: `object`
+- **experience?**: `object`
 - **response?**: `object`
+- **intake_handoff?**: `object`
 - **validation_report?**: `object`
 - **validation_result?**: `object`
 - **registry?**: `object`
 - **changelog?**: `object`
 - **fel_functions?**: `object`
 - **locale?**: `object`
+- **screener?**: `object`
+- **determination?**: `object`
 
 #### interface `SchemaValidator`
 
@@ -898,6 +963,8 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
 - **runtimeContext?**: `FormEngineRuntimeContext`
 - **registryEntries?**: `RegistryEntry[]`
 - **reactiveRuntime?**: `import('./reactivity/types.js').EngineReactiveRuntime`
+- **issuerFetcher?**: `IssuerFetcher`
+- **issuerOverride?**: `IssuerSource`
 
 #### interface `RegistryEntry`
 
@@ -1022,7 +1089,7 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
         readonly: boolean;
         error: string | null;
     }>`
-- **validation**: `ValidationReport`
+- **validation**: `ValidationReport | null`
 - **runtimeContext**: `{
         now: string;
         locale?: string;
@@ -1061,6 +1128,10 @@ cascade so single-signal subscription is sufficient.
 
 ##### `setRuntimeContext(context: FormEngineRuntimeContext): void`
 
+##### `setIssuerOverride(source: IssuerSource | undefined): void`
+
+##### `getResolvedIssuer(): Promise<ResolvedIssuer>`
+
 ##### `getOptions(path: string): OptionEntry[]`
 
 ##### `getOptionsSignal(path: string): EngineSignal<OptionEntry[]> | undefined`
@@ -1089,9 +1160,17 @@ cascade so single-signal subscription is sufficient.
 
 ##### `setValue(name: string, value: FormFieldValue): void`
 
-##### `getValidationReport(options?: {
-        mode?: 'continuous' | 'submit';
+##### `getValidationReport(): ValidationReport`
+
+##### `getValidationReport(options: {
+        profile?: EnabledValidationProfile;
     }): ValidationReport`
+
+##### `getValidationReport(options: {
+        profile: 'off';
+    }): null`
+
+##### `getValidationReport(options: ValidationReportOptions): ValidationReport | null`
 
 ##### `evaluateShape(shapeId: string): ValidationResult[]`
 
@@ -1112,12 +1191,10 @@ cascade so single-signal subscription is sufficient.
             type?: string;
         };
         authoredSignatures?: AuthoredSignatureInput[];
-        mode?: 'continuous' | 'submit';
+        profile?: ValidationProfile;
     }): FormResponse`
 
-##### `getDiagnosticsSnapshot(options?: {
-        mode?: 'continuous' | 'submit';
-    }): FormEngineDiagnosticsSnapshot`
+##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
 ##### `applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult`
 
@@ -1232,10 +1309,6 @@ type FELConditionGroupLiftResult = FELConditionGroupLifted | FELConditionGroupUn
 
 #### type `DocumentType`
 
-```ts
-type DocumentType = 'definition' | 'theme' | 'component' | 'mapping' | 'ontology' | 'references' | 'response' | 'validation_report' | 'validation_result' | 'registry' | 'changelog' | 'fel_functions' | 'locale';
-```
-
 #### type `DefinitionResolver`
 
 ```ts
@@ -1278,6 +1351,156 @@ Rules (§3.3.1):
 
 - **text**: `string`
 - **warnings**: `InterpolationWarning[]`
+
+#### interface `IssuerFetchOptions`
+
+- **ifNoneMatch?**: `string`
+
+#### interface `IssuerFetchedResult`
+
+- **issuer**: `Issuer`
+- **rawBytes**: `Uint8Array`
+- **etag?**: `string`
+- **cacheControl?**: `string`
+- **notModified?**: `false`
+
+#### interface `IssuerNotModifiedResult`
+
+- **notModified**: `true`
+- **etag?**: `string`
+- **cacheControl?**: `string`
+
+#### interface `IssuerFetcher`
+
+##### `fetch(url: string, options?: IssuerFetchOptions): Promise<IssuerFetchResult>`
+
+#### interface `FetchIssuerFetcherOptions`
+
+- **fetch?**: `typeof globalThis.fetch`
+
+#### type `IssuerFetchResult`
+
+```ts
+type IssuerFetchResult = IssuerFetchedResult | IssuerNotModifiedResult;
+```
+
+#### class `FetchIssuerFetcher`
+
+##### `constructor(options?: FetchIssuerFetcherOptions)`
+
+##### `fetch(url: string, options?: IssuerFetchOptions): Promise<IssuerFetchResult>`
+
+## `MAX_CHAIN_DEPTH`
+
+#### interface `IssuerResolveInput`
+
+- **definitionIssuer?**: `IssuerSource`
+- **hostOverride?**: `IssuerSource`
+
+#### interface `IssuerStoreOptions`
+
+- **now?**: `() => number`
+- **defaultMaxAgeMs?**: `number`
+
+#### class `IssuerStore`
+
+##### `constructor(_fetcher: IssuerFetcher, options?: IssuerStoreOptions)`
+
+##### `invalidate(url: string): void`
+
+##### `resolve(input: IssuerResolveInput): Promise<ResolvedIssuer>`
+
+## `resolveLangValue(value: StringOrLangMap | undefined, requested: string, defaultLanguage: string): string | undefined`
+
+#### interface `ContactPoint`
+
+- **contactType?**: `string`
+- **email?**: `string`
+- **telephone?**: `string`
+- **url?**: `string`
+- **availableLanguage?**: `string[]`
+
+#### interface `Jurisdiction`
+
+- **level**: `'federal' | 'state' | 'county' | 'municipal' | 'tribal' | 'international' | 'private' | 'individual'`
+- **name**: `string`
+- **code?**: `string`
+
+#### interface `LogoVariant`
+
+- **url**: `string`
+- **altText?**: `StringOrLangMap`
+- **aspectRatio?**: `string`
+- **preferredBackground?**: `'light' | 'dark' | 'any'`
+
+#### interface `Issuer`
+
+- **$formspecIssuer**: `'1.0'`
+- **url**: `string`
+- **version**: `string`
+- **name**: `StringOrLangMap`
+- **kind**: `'organization' | 'department' | 'program' | 'individual'`
+- **displayName?**: `StringOrLangMap`
+- **shortName?**: `StringOrLangMap`
+- **identifier?**: `string`
+- **homepage?**: `string`
+- **parentOrganization?**: `string`
+- **organizationName?**: `StringOrLangMap`
+- **departmentName?**: `StringOrLangMap`
+- **jurisdiction?**: `Jurisdiction`
+- **defaultLanguage?**: `string`
+- **logo?**: `{
+        primary?: LogoVariant;
+        wordmark?: LogoVariant;
+        monochrome?: LogoVariant;
+    }`
+- **contactPoint?**: `ContactPoint | ContactPoint[]`
+- **extensions?**: `Record<string, unknown>`
+
+#### interface `ResolvedIssuer`
+
+- **primary** (`Issuer`): Primary Issuer after cascade resolution.
+- **chain** (`Issuer[]`): Ordered as [primary, parent, grandparent, ...]; may be truncated at depth 8.
+
+#### type `LangMap`
+
+@filedesc Issuer / Party / LangMap / IssuerSource type declarations mirrored from the Issuer schema.
+
+```ts
+type LangMap = Record<string, string>;
+```
+
+#### type `StringOrLangMap`
+
+```ts
+type StringOrLangMap = string | LangMap;
+```
+
+#### type `IssuerResolutionSource`
+
+```ts
+type IssuerResolutionSource = 'host-embed' | 'host-query' | 'definition' | 'unbranded';
+```
+
+#### type `IssuerOverrideResolutionSource`
+
+```ts
+type IssuerOverrideResolutionSource = Extract<IssuerResolutionSource, 'host-embed' | 'host-query'>;
+```
+
+#### type `IssuerSource`
+
+```ts
+type IssuerSource = {
+    kind: 'inline';
+    issuer: Issuer;
+    source?: IssuerOverrideResolutionSource;
+} | {
+    kind: 'url';
+    url: string;
+    source?: IssuerOverrideResolutionSource;
+};
+```
 
 ## `normalizeBcp47(code: string): string`
 
@@ -1369,6 +1592,117 @@ Pluggable batching + signal factory so FormEngine does not import `@preact/signa
 
 ##### `batch(fn: () => T): T`
 
+## `resolveResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, nodeId?: string): ActionResolution`
+
+## `findResponseActionByIntent(document: ResponseActionsDocumentInput | null | undefined, intent: string): ResponseAction | null`
+
+## `defaultActionRefForIntent(document: ResponseActionsDocumentInput | null | undefined, intent?: StandardResponseActionIntent, fallback?: string): string`
+
+## `resolveResponseActionValidationTuple(action: ResponseAction): ValidationOverride`
+
+## `validationProfileForAction(action: ResponseAction): ValidationProfile`
+
+## `declaresHostEvent(action: ResponseAction, eventName: string): boolean`
+
+## `invokeResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, ports: ResponseActionInvocationPorts<TDetail>, nodeId?: string): ResponseActionInvocationResult<TDetail>`
+
+#### interface `ResponseActionsDocumentInput`
+
+- **actions?**: `ResponseAction[]`
+
+#### interface `ActionRefFinding`
+
+- **code**: `'COMP-REFERENTIAL-INTEGRITY'`
+- **severity**: `'error'`
+- **kind**: `'actionRef'`
+- **nodeId?**: `string`
+- **target**: `string`
+- **reason?**: `'missing-actionRef' | 'no-response-actions-document'`
+
+#### interface `ActionResolution`
+
+- **resolved**: `boolean`
+- **action**: `ResponseAction | null`
+- **finding?**: `ActionRefFinding`
+
+#### interface `ResponseActionSubmitOptions`
+
+- **profile**: `ValidationProfile`
+- **validationTuple**: `ValidationOverride`
+- **emitEvent?**: `boolean`
+
+#### interface `ResponseActionEffectOutcome`
+
+- **type**: `EffectRequest['type']`
+- **status**: `ResponseActionEffectStatus`
+- **idempotencyKey?**: `string`
+- **outcomeRef?**: `string`
+- **reason?**: `string`
+- **replayToken?**: `string`
+
+#### interface `ResponseActionIdempotencyKeyContext`
+
+- **effectIndex**: `number`
+
+#### interface `ResponseActionEffectDispatchContext`
+
+- **effectIndex**: `number`
+- **attempt**: `number`
+- **idempotencyKey?**: `string`
+
+#### interface `ResponseActionInvocationPorts`
+
+- **submit**: `(options: ResponseActionSubmitOptions) => TDetail | null`
+- **dispatchHostEvent**: `(eventName: string, detail: TDetail, action: ResponseAction) => void`
+- **dispatchEffect?**: `(effect: EffectRequest, detail: TDetail, action: ResponseAction, context: ResponseActionEffectDispatchContext) => ResponseActionEffectOutcome | void`
+- **resolveIdempotencyKey?**: `(effect: EffectRequest, action: ResponseAction, context: ResponseActionIdempotencyKeyContext) => string`
+- **evaluatePrecondition?**: `(precondition: Precondition, action: ResponseAction) => ResponseActionPreconditionResult`
+- **validationReportValid?**: `(detail: TDetail) => boolean | null | undefined`
+
+#### interface `ResponseActionInvocationResult`
+
+- **status**: `ResponseActionInvocationStatus`
+- **resolution**: `ActionResolution`
+- **validationTuple**: `ValidationOverride | null`
+- **detail**: `TDetail | null`
+- **effectTrace**: `ResponseActionEffectOutcome[]`
+- **finding?**: `ActionRefFinding`
+- **blockedCause?**: `'validation' | 'precondition'`
+- **blockedPreconditionId?**: `string`
+- **deferredPreconditionId?**: `string`
+- **failedPreconditionId?**: `string`
+- **failedEffectIndex?**: `number`
+- **deferredEffectIndex?**: `number`
+- **failureReason?**: `string`
+- **replayToken?**: `string`
+
+#### type `StandardResponseActionIntent`
+
+```ts
+type StandardResponseActionIntent = 'save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence';
+```
+
+#### type `ResponseActionPreconditionResult`
+
+```ts
+type ResponseActionPreconditionResult = boolean | {
+    passed: boolean;
+    reason?: string;
+};
+```
+
+#### type `ResponseActionEffectStatus`
+
+```ts
+type ResponseActionEffectStatus = 'succeeded' | 'failed' | 'deferred' | 'replayed' | 'not-invoked';
+```
+
+#### type `ResponseActionInvocationStatus`
+
+```ts
+type ResponseActionInvocationStatus = 'unresolved' | 'blocked' | 'failed' | 'deferred' | 'completed';
+```
+
 ## `isNumericType(dataType: string): boolean`
 
 True if `dataType` is a numeric type (integer, decimal).
@@ -1400,6 +1734,34 @@ True if `dataType` is money ({amount, currency} object).
 ## `isUriType(dataType: string): boolean`
 
 True if `dataType` is uri.
+
+#### type `ValidationTrigger`
+
+Engine-internal validation trigger vocabulary.
+
+```ts
+type ValidationTrigger = 'continuous' | 'submit' | 'demand' | 'disabled';
+```
+
+#### type `ValidationReportOptions`
+
+```ts
+type ValidationReportOptions = {
+    profile?: ValidationProfile;
+};
+```
+
+#### type `EnabledValidationProfile`
+
+```ts
+type EnabledValidationProfile = Exclude<ValidationProfile, 'off'>;
+```
+
+#### class `DefaultValidationProfileResolver`
+
+Bridges the closed Validation Mapping profile enum to the engine's internal trigger vocabulary.
+
+##### `resolve(profile: ValidationProfile): ValidationTrigger`
 
 ## `isWasmReady(): boolean`
 
@@ -1763,13 +2125,27 @@ Return the builtin FEL function catalog exported by the Rust runtime.
 
 ## `wasmParseRegistry(registry: unknown): {
     publisher: {
-        name?: string;
-        url?: string;
-        contact?: string;
+        name?: string | Record<string, string>;
+        identifier?: string | null;
+        homepage?: string | null;
+        url?: string | null;
+        contactPoint?: Array<{
+            contactType?: string | null;
+            email?: string | null;
+            telephone?: string | null;
+            url?: string | null;
+            availableLanguage?: string[];
+        }>;
+        contact?: string | null;
     };
     published?: string;
     entryCount: number;
     validationIssues: any[];
+    warnings: Array<{
+        kind: 'deprecatedField';
+        field: string;
+        replacement: string;
+    }>;
 }`
 
 Parse and validate a registry document, returning summary metadata.

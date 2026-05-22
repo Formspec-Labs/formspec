@@ -7,6 +7,8 @@ import type {
     FormItem,
     FormResponse,
     RegistryEntry,
+    ValidationOverride,
+    ValidationProfile,
     ValidationReport,
     ValidationResult,
 } from '@formspec-org/types';
@@ -63,7 +65,7 @@ export type TokenResolvable = unknown;
 
 export interface SubmitDetail {
     response: FormResponse;
-    validationReport: ValidationReport;
+    validationReport: ValidationReport | null;
 }
 
 /** Component-level style/class/accessibility overrides on behavior objects. */
@@ -111,7 +113,11 @@ export interface RenderHost {
     applyAccessibility(el: HTMLElement, comp: ComponentPresentationSource): void;
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
     _registryEntries: Map<string, RegistryEntry>;
-    submit(options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }): SubmitDetail | null;
+    submit(options?: {
+        profile?: ValidationProfile;
+        validationTuple?: ValidationOverride;
+        emitEvent?: boolean;
+    }): SubmitDetail | null;
     resolveActionRef(actionRef: string, nodeId?: string): ActionResolution;
     invokeAction(actionRef: string, nodeId?: string): SubmitDetail | null;
     resolveValidationTarget(resultOrPath: string | ValidationResult): ValidationTargetMetadata;

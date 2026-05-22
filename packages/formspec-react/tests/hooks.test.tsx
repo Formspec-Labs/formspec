@@ -316,13 +316,13 @@ describe('useForm', () => {
 
     it('submit returns response and validation report', () => {
         const { result } = renderHookWithProvider(testDefinition, () => useForm());
-        const detail = result.current.submit({ mode: 'submit' });
+        const detail = result.current.submit({ profile: 'on-submit' });
         expect(detail).toHaveProperty('response');
         expect(detail).toHaveProperty('validationReport');
         expect(detail.validationReport).toHaveProperty('valid');
     });
 
-    it('submit continuous uses a live report and an on-submit response gate', () => {
+    it('submit uses the requested profile and keeps non-action snapshots in-progress', () => {
         const engine = createFormEngine(testDefinition);
         const getValidationReportSpy = vi.spyOn(engine, 'getValidationReport');
         const getResponseSpy = vi.spyOn(engine, 'getResponse');
@@ -344,10 +344,10 @@ describe('useForm', () => {
             );
         });
 
-        result.current?.submit({ mode: 'continuous' });
+        result.current?.submit({ profile: 'live' });
 
         expect(getValidationReportSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'live' }));
-        expect(getResponseSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'on-submit' }));
+        expect(getResponseSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'off' }));
         root.unmount();
         container.remove();
     });
@@ -942,7 +942,7 @@ describe('useForm full metadata', () => {
     it('submit accepts full metadata options', () => {
         const { result } = renderHookWithProvider(testDefinition, () => useForm());
         const detail = result.current.submit({
-            mode: 'submit',
+            profile: 'on-submit',
             id: 'resp-123',
             author: { id: 'user-1', name: 'Alice' },
             subject: { id: 'sub-1', type: 'application' },
@@ -1086,7 +1086,7 @@ describe('useForm.submit auto-touches all fields', () => {
 
         expect(nameResult.current.touched).toBe(false);
 
-        flushSync(() => { formResult.current.submit({ mode: 'submit' }); });
+        flushSync(() => { formResult.current.submit({ profile: 'on-submit' }); });
 
         expect(nameResult.current.touched).toBe(true);
     });

@@ -6,6 +6,28 @@
 
 ## `defaultTheme: import("@formspec-org/layout").ThemeDocument`
 
+## `resolveActionRef(host: Pick<ActionHost, '_responseActionsDocument'>, actionRef: string, nodeId?: string): ActionResolution`
+
+## `emitActionFinding(host: Pick<ActionHost, 'dispatchEvent'>, finding: ActionRefFinding): void`
+
+## `invokeAction(host: ActionHost, actionRef: string, nodeId?: string): SubmitDetail | null`
+
+#### interface `ActionHost`
+
+##### `dispatchEvent(event: Event): boolean`
+
+#### type `ResponseActionEffect`
+
+```ts
+type ResponseActionEffect = NonNullable<ResponseAction['effects']>[number];
+```
+
+#### type `ResponseActionsDocument`
+
+```ts
+type ResponseActionsDocument = ResponseActionsDocumentInput;
+```
+
 ## `renderCheckboxGroup: AdapterRenderFn<CheckboxGroupBehavior>`
 
 ## `renderDatePicker: AdapterRenderFn<DatePickerBehavior>`
@@ -671,8 +693,7 @@ Renders a tabbed interface via the behavior-adapter pipeline.
 
 ## `ActionButtonPlugin: ComponentPlugin`
 
-Renders an action button by resolving `actionRef` through the host Action registry.
-Unresolved actions are inert; host events are dispatched only by resolved Action `hostEvent` effects.
+Renders an action button by resolving actionRef through the host Action registry.
 
 ## `buildSectionBehavior(comp: any, ctx: RenderContext): SectionLayoutBehavior`
 
@@ -748,6 +769,7 @@ Orchestrates the full rendering pipeline:
 - **_definition** (`FormDefinition | null`): @internal
 - **_componentDocument** (`ComponentDocument | null`): @internal
 - **_themeDocument** (`ThemeDocument | null`): @internal
+- **_responseActionsDocument** (`ResponseActionsDocument | null`): @internal
 - **_registryEntries** (`Map<string, RegistryEntry>`): @internal
 - **engine** (`IFormEngine | null`): @internal
 - **cleanupFns** (`Array<() => void>`): @internal
@@ -830,7 +852,7 @@ definition has been set yet. Useful for direct engine access in tests
 or advanced integrations.
 
 ##### `getDiagnosticsSnapshot(options?: {
-        mode?: 'continuous' | 'submit';
+        profile?: 'live' | 'on-submit' | 'on-demand' | 'off';
     }): import("@formspec-org/engine").FormEngineDiagnosticsSnapshot | null`
 
 Capture a diagnostics snapshot from the engine, including current signal
@@ -862,13 +884,18 @@ Inject a runtime context (e.g. `now`, user metadata) into the engine.
 
 Mark all registered fields as touched so validation errors become visible.
 
-##### `submit(options?: {
-        mode?: 'continuous' | 'submit';
-        emitEvent?: boolean;
-    }): SubmitDetail | null`
+##### `submit(options?: SubmitOptions): SubmitDetail | null`
 
 Build a submit payload and validation report from the current form state.
 Optionally dispatches `formspec-submit` with `{ response, validationReport }`.
+
+##### `resolveActionRef(actionRef: string, nodeId?: string): import("@formspec-org/engine").ActionResolution`
+
+Resolve an ActionButton actionRef against the loaded Response Actions document.
+
+##### `invokeAction(actionRef: string, nodeId?: string): SubmitDetail | null`
+
+Invoke a resolved Action and dispatch declared hostEvent effects.
 
 ##### `resolveValidationTarget(resultOrPath: string | ValidationResult): import("./hub-types").ValidationTargetMetadata`
 
@@ -949,7 +976,7 @@ Presentation fields read by styling helpers (component doc or synthesized planne
 #### interface `SubmitDetail`
 
 - **response**: `FormResponse`
-- **validationReport**: `ValidationReport`
+- **validationReport**: `ValidationReport | null`
 
 #### interface `ComponentPresentationOverrides`
 
@@ -996,9 +1023,14 @@ Interface for what emitNode/renderActualComponent need from {@link FormspecRende
 ##### `findItemByKey(key: string, items?: FormItem[]): FormItem | null`
 
 ##### `submit(options?: {
-        mode?: 'continuous' | 'submit';
+        profile?: ValidationProfile;
+        validationTuple?: ValidationOverride;
         emitEvent?: boolean;
     }): SubmitDetail | null`
+
+##### `resolveActionRef(actionRef: string, nodeId?: string): ActionResolution`
+
+##### `invokeAction(actionRef: string, nodeId?: string): SubmitDetail | null`
 
 ##### `resolveValidationTarget(resultOrPath: string | ValidationResult): ValidationTargetMetadata`
 
@@ -1034,6 +1066,26 @@ type TokenResolvable = unknown;
 
 Apply a response `data` object to the engine after `definition` is loaded. Skips paths with no
 writable signal (e.g. top-level screener keys) and recurses into repeat groups and object groups.
+
+## `IssuerChrome({ resolved, locale, hostOrigin, mode, headerWidth, document: ownerDocument, }: IssuerChromeProps): HTMLElement | null`
+
+#### interface `IssuerChromeProps`
+
+- **resolved**: `ResolvedIssuer`
+- **locale?**: `string`
+- **hostOrigin?**: `string`
+- **mode?**: `LogoRenderContext['mode']`
+- **headerWidth?**: `LogoRenderContext['headerWidth']`
+- **document?**: `Document`
+
+## `selectLogoVariant(issuer: Issuer, ctx: LogoRenderContext): LogoVariant | undefined`
+
+#### interface `LogoRenderContext`
+
+- **mode**: `'light' | 'dark' | 'high-contrast'`
+- **headerWidth**: `'wide' | 'narrow'`
+
+## `parseQueryIssuerOverride(pageUrl: URL, allowedOrigins: readonly string[]): IssuerSource | undefined`
 
 ## `findFieldElement(host: NavigationHost, path: string): HTMLElement | null`
 
@@ -1220,10 +1272,7 @@ Used for soft per-page wizard validation: errors become visible without blocking
 
 Mark all registered fields as touched so validation errors become visible.
 
-## `submit(host: SubmitHost, options?: {
-    mode?: 'continuous' | 'submit';
-    emitEvent?: boolean;
-}): SubmitDetail | null`
+## `submit(host: SubmitHost, options?: SubmitOptions): SubmitDetail | null`
 
 Build a submit payload and validation report from the current form state.
 Optionally dispatches `formspec-submit` with `{ response, validationReport }`.
@@ -1248,6 +1297,12 @@ Resolve a validation result/path to a navigation target with metadata.
 ##### `findItemByKey(key: string, items?: FormItem[]): FormItem | null`
 
 ##### `focusField(path: string): void`
+
+#### interface `SubmitOptions`
+
+- **profile?**: `ValidationProfile`
+- **validationTuple?**: `ValidationOverride`
+- **emitEvent?**: `boolean`
 
 #### interface `ScreenerRoute`
 
@@ -1280,14 +1335,15 @@ depending on the `FormspecRender` element directly.
 - **themeDocument** (`ThemeDocument | null`): The loaded theme document, or `null` when no theme is provided.
 - **prefix** (`string`): Dotted path prefix for the current render scope (e.g. `"group[0]"`).
 - **submit** (`(options?: {
-        mode?: 'continuous' | 'submit';
+        profile?: ValidationProfile;
+        validationTuple?: ValidationOverride;
         emitEvent?: boolean;
     }) => {
         response: FormResponse;
-        validationReport: ValidationReport;
+        validationReport: ValidationReport | null;
     } | null`): Build submit payload + validation report and optionally dispatch `formspec-submit`.
 - **resolveActionRef** (`(actionRef: string, nodeId?: string) => ActionResolution`): Resolve an ActionButton actionRef against the loaded Response Actions document.
-- **invokeAction** (`(actionRef: string, nodeId?: string) => SubmitDetail | null`): Invoke a resolved Action, including declared hostEvent effects.
+- **invokeAction** (`(actionRef: string, nodeId?: string) => SubmitDetail | null`): Invoke a resolved Action, including hostEvent effects.
 - **resolveValidationTarget** (`(resultOrPath: string | ValidationResult) => ValidationTargetMetadata`): Resolve a validation result/path to a target path + label + jump metadata.
 - **focusField** (`(path: string) => boolean`): Reveal and focus a field by path; returns false when no target field is found.
 - **submitPendingSignal** (`Signal<boolean>`): Reactive shared submit pending signal used by submit-oriented plugins.

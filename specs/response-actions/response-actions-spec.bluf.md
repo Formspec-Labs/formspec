@@ -1,0 +1,6 @@
+- Response Actions is a sidecar artifact: it binds `ActionButton.actionRef` or host invocations to named Actions without changing Definition, Response, Mapping, Intake Handoff, or Ledger schemas.
+- Each Action resolves exactly one validation tuple: standard intents inherit the Validation Mapping master row unless a full `validation` tuple is supplied; `x-` intents MUST supply the full tuple and never consult the master table.
+- Invocation order is fixed: snapshot Response, evaluate FEL preconditions, run validation for the resolved profile, apply the blocking gate, then invoke effects in declared order.
+- Durable effects require frozen idempotency keys and replay by prior outcome; `hostEvent` is transient and MUST NOT carry an idempotency key.
+- Runtime processors own action resolution, tuple resolution, and invocation sequencing; lint owns static compatibility/reference checks; layout may place configured triggers but must not execute or infer actions.
+- Formspec may request domain Ledger events and assemble Intake Handoffs, but it MUST NOT author `case.created` or case lifecycle events; optional `action.*` lifecycle records are processor audit observations outside the declared effect chain.
