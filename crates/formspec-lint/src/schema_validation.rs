@@ -23,6 +23,7 @@ const DEFINITION_SCHEMA: &str = include_str!("../schemas/definition.schema.json"
 const COMPONENT_SCHEMA: &str = include_str!("../schemas/component.schema.json");
 const THEME_SCHEMA: &str = include_str!("../schemas/theme.schema.json");
 const COMMON_SCHEMA: &str = include_str!("../schemas/common.schema.json");
+const ISSUER_SCHEMA: &str = include_str!("../schemas/issuer.schema.json");
 const RESPONSE_SCHEMA: &str = include_str!("../schemas/response.schema.json");
 const INTAKE_HANDOFF_SCHEMA: &str = include_str!("../schemas/intake-handoff.schema.json");
 const MAPPING_SCHEMA: &str = include_str!("../schemas/mapping.schema.json");
@@ -45,6 +46,7 @@ const TOKEN_REGISTRY_SCHEMA: &str = include_str!("../schemas/token-registry.sche
 /// Each entry: (schema JSON text, $id URI from the schema).
 const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
     (COMMON_SCHEMA, "https://formspec.org/schemas/common/1.0"),
+    (ISSUER_SCHEMA, "https://formspec.org/schemas/issuer/1.0"),
     (
         VALIDATION_RESULT_SCHEMA,
         "https://formspec.org/schemas/validationResult/1.0",
@@ -365,30 +367,88 @@ mod tests {
 
     const CANONICAL_COMPONENT_SCHEMA: &str = include_str!("../../../schemas/component.schema.json");
     const CANONICAL_COMMON_SCHEMA: &str = include_str!("../../../schemas/common.schema.json");
+    const CANONICAL_DEFINITION_SCHEMA: &str =
+        include_str!("../../../schemas/definition.schema.json");
+    const CANONICAL_ISSUER_SCHEMA: &str = include_str!("../../../schemas/issuer.schema.json");
+    const CANONICAL_ONTOLOGY_SCHEMA: &str = include_str!("../../../schemas/ontology.schema.json");
+    const CANONICAL_REGISTRY_SCHEMA: &str = include_str!("../../../schemas/registry.schema.json");
+    const CANONICAL_RESPONSE_SCHEMA: &str = include_str!("../../../schemas/response.schema.json");
 
-    #[test]
-    fn embedded_component_schema_matches_canonical_schema() {
-        let embedded: Value =
-            serde_json::from_str(COMPONENT_SCHEMA).expect("embedded component schema parses");
-        let canonical: Value = serde_json::from_str(CANONICAL_COMPONENT_SCHEMA)
-            .expect("canonical component schema parses");
+    fn assert_embedded_schema_matches_canonical(
+        embedded_text: &str,
+        canonical_text: &str,
+        schema_name: &str,
+    ) {
+        let embedded: Value = serde_json::from_str(embedded_text).expect("embedded schema parses");
+        let canonical: Value =
+            serde_json::from_str(canonical_text).expect("canonical schema parses");
 
         assert_eq!(
             embedded, canonical,
-            "formspec-lint embeds schemas/component.schema.json; update both together"
+            "formspec-lint embeds schemas/{schema_name}; update both together"
+        );
+    }
+
+    #[test]
+    fn embedded_component_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            COMPONENT_SCHEMA,
+            CANONICAL_COMPONENT_SCHEMA,
+            "component.schema.json",
         );
     }
 
     #[test]
     fn embedded_common_schema_matches_canonical_schema() {
-        let embedded: Value =
-            serde_json::from_str(COMMON_SCHEMA).expect("embedded common schema parses");
-        let canonical: Value =
-            serde_json::from_str(CANONICAL_COMMON_SCHEMA).expect("canonical common schema parses");
+        assert_embedded_schema_matches_canonical(
+            COMMON_SCHEMA,
+            CANONICAL_COMMON_SCHEMA,
+            "common.schema.json",
+        );
+    }
 
-        assert_eq!(
-            embedded, canonical,
-            "formspec-lint embeds schemas/common.schema.json; update both together"
+    #[test]
+    fn embedded_definition_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            DEFINITION_SCHEMA,
+            CANONICAL_DEFINITION_SCHEMA,
+            "definition.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_issuer_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            ISSUER_SCHEMA,
+            CANONICAL_ISSUER_SCHEMA,
+            "issuer.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_ontology_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            ONTOLOGY_SCHEMA,
+            CANONICAL_ONTOLOGY_SCHEMA,
+            "ontology.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_registry_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            REGISTRY_SCHEMA,
+            CANONICAL_REGISTRY_SCHEMA,
+            "registry.schema.json",
+        );
+    }
+
+    #[test]
+    fn embedded_response_schema_matches_canonical_schema() {
+        assert_embedded_schema_matches_canonical(
+            RESPONSE_SCHEMA,
+            CANONICAL_RESPONSE_SCHEMA,
+            "response.schema.json",
         );
     }
 
@@ -427,6 +487,34 @@ mod tests {
         assert!(
             diags.is_empty(),
             "Valid definition should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_definition_with_inline_issuer_produces_no_e101() {
+        let def = json!({
+            "$formspec": "1.0",
+            "url": "https://example.com/forms/x",
+            "version": "1.0.0",
+            "status": "draft",
+            "title": "X",
+            "issuer": {
+                "$formspecIssuer": "1.0",
+                "url": "https://example.com/issuers/acme.json",
+                "version": "1.0.0",
+                "name": "Acme",
+                "kind": "organization"
+            },
+            "items": [{"key": "f1", "type": "field", "label": "F1", "dataType": "string"}]
+        });
+        let diags = validate_schema(&def, DocumentType::Definition);
+        assert!(
+            diags.is_empty(),
+            "Definition with inline issuer should produce no E101, got: {:?}",
             diags
                 .iter()
                 .map(|d| (&d.code, &d.path, &d.message))
@@ -545,6 +633,85 @@ mod tests {
         assert!(
             diags.is_empty(),
             "Valid ontology should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_ontology_party_publisher_produces_no_e101() {
+        let ontology = json!({
+            "$formspecOntology": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": "https://example.com/forms/x" },
+            "publisher": {
+                "name": { "en": "Acme" },
+                "homepage": "https://example.com",
+                "contactPoint": {
+                    "contactType": "support",
+                    "email": "support@example.com"
+                }
+            }
+        });
+        let diags = validate_schema(&ontology, DocumentType::Ontology);
+        assert!(
+            diags.is_empty(),
+            "Ontology Publisher with Party fields should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_registry_party_publisher_produces_no_e101() {
+        let registry = json!({
+            "$formspecRegistry": "1.0",
+            "publisher": {
+                "name": { "en": "Acme" },
+                "homepage": "https://example.com",
+                "contactPoint": [
+                    {
+                        "contactType": "support",
+                        "email": "support@example.com"
+                    }
+                ]
+            },
+            "published": "2026-05-22T00:00:00Z",
+            "entries": []
+        });
+        let diags = validate_schema(&registry, DocumentType::Registry);
+        assert!(
+            diags.is_empty(),
+            "Registry Publisher with Party fields should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_response_with_displayed_issuer_produces_no_e101() {
+        let response = json!({
+            "$formspecResponse": "1.0",
+            "definitionUrl": "https://example.com/forms/x",
+            "definitionVersion": "1.0.0",
+            "status": "in-progress",
+            "data": {},
+            "authored": "2026-05-22T00:00:00Z",
+            "displayedIssuer": {
+                "url": "https://example.com/issuers/acme.json",
+                "version": "1.0.0"
+            }
+        });
+        let diags = validate_schema(&response, DocumentType::Response);
+        assert!(
+            diags.is_empty(),
+            "Response with displayedIssuer should produce no E101, got: {:?}",
             diags
                 .iter()
                 .map(|d| (&d.code, &d.path, &d.message))

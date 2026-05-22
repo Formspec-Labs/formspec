@@ -377,6 +377,31 @@
         "intent": "Last-modified timestamp for conflict detection and audit."
       }
     },
+    "displayedIssuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "version"],
+      "description": "Submit-time pin of the resolved Issuer (post-cascade). Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "examples": [
+        {
+          "url": "https://example.gov/issuer.json",
+          "version": "1.0.0"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Audit pin of the Issuer that actually rendered. Inside signed-payload digest by JCS canonicalization (no profile change)."
+      }
+    },
     "id": {
       "type": "string",
       "description": "A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.",

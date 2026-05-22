@@ -161,30 +161,58 @@
   "$defs": {
     "Publisher": {
       "type": "object",
-      "description": "Identity and contact information for the organization publishing extensions.",
-      "required": [
-        "name",
-        "url"
+      "description": "Organization publishing this registry document. Extends $defs/Party from common.schema.json. Legacy fields preserved: `url` aliases Party.homepage (deprecated, removed in v1.2); `contact: string` deprecated in favor of contactPoint (removed in v1.2).",
+      "required": ["name"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Party"
+        }
       ],
       "properties": {
         "name": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "https://formspec.org/schemas/common/1.0#/$defs/LangMap"
+            }
+          ]
+        },
+        "identifier": {
           "type": "string",
-          "description": "Human-readable organization name.",
-          "examples": ["Federal Grants Commission", "Acme Healthcare Systems"]
+          "format": "uri"
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri"
+        },
+        "contactPoint": {
+          "oneOf": [
+            {
+              "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ContactPoint"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ContactPoint"
+              }
+            }
+          ]
         },
         "url": {
           "type": "string",
           "format": "uri",
-          "description": "Organization home page URI.",
-          "examples": ["https://grants.gov", "https://acme-health.example.com"]
+          "deprecated": true,
+          "description": "DEPRECATED: alias for `homepage`. Removed in v1.2."
         },
         "contact": {
           "type": "string",
-          "description": "Contact email address or URI for extension-related inquiries.",
-          "examples": ["formspec@grants.gov", "https://acme-health.example.com/contact"]
+          "deprecated": true,
+          "description": "DEPRECATED: prefer structured `contactPoint`. Removed in v1.2."
         }
-      },
-      "additionalProperties": false
+      }
     },
     "RegistryEntry": {
       "type": "object",
