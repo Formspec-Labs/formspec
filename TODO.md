@@ -1165,16 +1165,8 @@ Hand-edited monitoring entries — non-actionable items kept for visibility. Not
 
 ### 20. Benchmark references — broader schema drift
 
-- **Source**: 2026-05-22 Response Actions remediation (BLOCKER 1)
-- **Files**: `benchmarks/tasks/{clinical-intake,grant-application,grant-report,invoice}/reference/`
-- **Symptom**: After `SubmitButton`→`ActionButton` migration, references still score below 1.0 against the validator. Errors: `Spacer` missing schema branch (`Unknown component type`), `Page` body shape mismatch (`children`/`title` unevaluated on the Stack-coded `Page` variant), `grant-application` definition uses `presentation.layout.page` / `colSpan` keys removed from the definition schema. Independent of Response Actions; pre-existing schema-vs-references drift accumulated across other spec migrations.
-- **Action**: Defer. Conformance gate at `tests/conformance/test_benchmark_references.py` pins the Response-Actions-specific invariants (no SubmitButton; every ActionButton actionRef resolves) so this remediation does not regress. A follow-up should either (a) migrate each reference to the current schema and lift the gate to assert `run_benchmark.py score == 1.0`, or (b) ratify a schema rollback for the specific drift surfaces named above. Either way, future schema edits must include reference updates in the same change.
-- **Port path**: `tests/conformance/test_benchmark_references.py` is the seam — extend it once references reach 1.0.
+Migrated to stack-root tk ticket `fs-45e3` (see `tk show fs-45e3`). Conformance gate at `tests/conformance/test_benchmark_references.py` pins Response-Actions invariants only; full score==1.0 lift tracked in tk.
 
 ### 21. Response Actions runtime — Python harness re-implements TS state machine
 
-- **Source**: 2026-05-22 Response Actions remediation (NIT 2)
-- **File**: `tests/conformance/spec/test_response_actions_runtime.py:39-133`
-- **Symptom**: The conformance harness re-implements the invocation state machine in Python (precondition gating, effect ordering, terminal classification) so it can run against the JSON fixtures without booting the TS engine. Two implementations of one normative state machine drift the moment the TS runtime evolves; the Python copy then either silently agrees with stale spec or silently fails to assert what the TS engine actually does.
-- **Action**: Port the response-actions runtime through the wasm bridge so the Python harness calls into the same `formspec-engine` code path as the browser. Today's blocker: the wasm bridge does not expose `invokeResponseAction` (or equivalent) to PyO3 — only FEL eval, parse, and lint. A follow-up should add the bridge entry, swap `test_response_actions_runtime.py`'s in-Python state machine for direct calls, and delete the duplicate logic.
-- **Port path**: `crates/formspec-wasm/src/` → expose action invocation; `crates/formspec-py/src/` → bridge it; `tests/conformance/spec/test_response_actions_runtime.py` → consume.
+Migrated to stack-root tk ticket `fs-joq5` (see `tk show fs-joq5`). Linked to `fs-nw0g` (§6.4 effect-time catalog runtime gate) — both blocked on the same wasm bridge expansion.
