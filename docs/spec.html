@@ -7138,6 +7138,21 @@ regardless of <code>timing</code>.</li>
 <li>When the global mode is <code>"continuous"</code> (default), shapes
 fire per their individual <code>timing</code>.</li>
 </ul>
+<h4 id="action-intent-mapping-informative-pointer">5.5.1 Action Intent
+Mapping (informative pointer)</h4>
+<p>Per-shape <code>timing</code> and global mode together compose four
+named <strong>Validation Profiles</strong> (<code>live</code>,
+<code>on-submit</code>, <code>on-demand</code>, <code>off</code>)
+defined in the companion <a href="validation-mapping.md">Validation
+Mapping specification</a>. The mapping document is the normative
+reconciliation between this section, Component
+<code>SubmitButton.mode</code> (Component §5.19), Component
+<code>ValidationSummary.source</code> (Component §6.13),
+ValidationReport severity, and Response status transitions.
+Mapping-Aware processors consult that document for the master table of
+action intents; non-Mapping-Aware processors implement Core §5.5 as
+written, which already produces equivalent observable behavior for the
+default submit case.</p>
 <h3 id="non-relevant-field-handling">5.6 Non-Relevant Field
 Handling</h3>
 <p>When a node’s <code>relevant</code> Bind expression evaluates to

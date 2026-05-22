@@ -1625,6 +1625,10 @@ as a whole, not with any individual item.
 { "component": "SubmitButton", "label": "Submit Application", "mode": "submit", "emitEvent": true, "pendingLabel": "Submitting…" }
 ```
 
+#### Cross-Reference
+
+A `SubmitButton` without an `actionRef` MUST be treated as invoking the implementation's default submit action, per [Validation Mapping §7.1](../core/validation-mapping.md#71-the-default-submit-action-rule). `mode: "continuous"` maps to Validation Mapping profile `live` for report production; `mode: "submit"` maps to profile `on-submit`. Response status `completed` still requires the `on-submit` completion gate. Future Component reference additions (concept §10.4) MAY add `actionRef`; until then, the default-submit-action rule applies.
+
 ---
 
 ## 6. Built-In Components — Progressive (16)
@@ -2262,6 +2266,10 @@ finding's severity as the Alert `variant`.
 ```json
 { "component": "ValidationSummary", "source": "submit", "jumpLinks": true, "showFieldErrors": true }
 ```
+
+#### Cross-Reference
+
+`ValidationSummary.source` and `mode` map to [Validation Mapping §3 profiles](../core/validation-mapping.md#3-validation-profile): `source: "live"` + `mode: "continuous"` corresponds to profile `live`; `source: "live"` + `mode: "submit"` corresponds to profile `on-submit`; `source: "submit"` is a passive reader of the latest `formspec-submit` event detail. ValidationSummary is a Display component and MUST NOT trigger Action Intents.
 
 ---
 

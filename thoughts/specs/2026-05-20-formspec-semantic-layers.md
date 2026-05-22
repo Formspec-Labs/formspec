@@ -507,7 +507,7 @@ Formalize in this order:
 
 1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle. **Landed:** [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md) (draft, 2026-05-21).
 2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior.
-3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands.
+3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands. **Landed:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) (draft, 2026-05-22).
 4. **SubmitButton compatibility and Component reference additions.** Preserve current `SubmitButton` behavior, define the default submit action rule, then add `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and generation metadata.
 5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.
 6. **Trace query/cache spec.** Use Studio regeneration review as the first consumer unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics.
@@ -526,7 +526,7 @@ Response Actions remains a peer artifact while it orchestrates actions. If it re
 
 ### 11.2 Validation Profile Names
 
-The formal specs need a stable way to name validation profiles without colliding with Core global modes, per-shape timing, or Component `SubmitButton.mode`.
+The formal specs need a stable way to name validation profiles without colliding with Core global modes, per-shape timing, or Component `SubmitButton.mode`. **Resolved:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) §3 defines the closed enum `live` / `on-submit` / `on-demand` / `off`.
 
 ### 11.3 Component Reference Fields
 

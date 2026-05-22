@@ -3089,6 +3089,17 @@ the button as disabled/inert.</li>
 <h4 id="example-16">Example</h4>
 <div class="sourceCode" id="cb27"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;SubmitButton&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Submit Application&quot;</span><span class="fu">,</span> <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;submit&quot;</span><span class="fu">,</span> <span class="dt">&quot;emitEvent&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;pendingLabel&quot;</span><span class="fu">:</span> <span class="st">&quot;Submitting…&quot;</span> <span class="fu">}</span></span></code></pre></div>
+<h4 id="cross-reference">Cross-Reference</h4>
+<p>A <code>SubmitButton</code> without an <code>actionRef</code> MUST be
+treated as invoking the implementation’s default submit action, per <a
+href="../core/validation-mapping.md#71-the-default-submit-action-rule">Validation
+Mapping §7.1</a>. <code>mode: "continuous"</code> maps to Validation
+Mapping profile <code>live</code> for report production;
+<code>mode: "submit"</code> maps to profile <code>on-submit</code>.
+Response status <code>completed</code> still requires the
+<code>on-submit</code> completion gate. Future Component reference
+additions (concept §10.4) MAY add <code>actionRef</code>; until then,
+the default-submit-action rule applies.</p>
 <hr />
 <h2 id="built-in-components-progressive-16">6. Built-In Components —
 Progressive (16)</h2>
@@ -4088,6 +4099,17 @@ the finding’s severity as the Alert <code>variant</code>.</p>
 <h4 id="example-28">Example</h4>
 <div class="sourceCode" id="cb39"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;component&quot;</span><span class="fu">:</span> <span class="st">&quot;ValidationSummary&quot;</span><span class="fu">,</span> <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;submit&quot;</span><span class="fu">,</span> <span class="dt">&quot;jumpLinks&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;showFieldErrors&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span></span></code></pre></div>
+<h4 id="cross-reference-1">Cross-Reference</h4>
+<p><code>ValidationSummary.source</code> and <code>mode</code> map to <a
+href="../core/validation-mapping.md#3-validation-profile">Validation
+Mapping §3 profiles</a>: <code>source: "live"</code> +
+<code>mode: "continuous"</code> corresponds to profile
+<code>live</code>; <code>source: "live"</code> +
+<code>mode: "submit"</code> corresponds to profile
+<code>on-submit</code>; <code>source: "submit"</code> is a passive
+reader of the latest <code>formspec-submit</code> event detail.
+ValidationSummary is a Display component and MUST NOT trigger Action
+Intents.</p>
 <hr />
 <h3 id="datatable">6.14 DataTable</h3>
 <p><strong>Category:</strong> Display <strong>Level:</strong>
