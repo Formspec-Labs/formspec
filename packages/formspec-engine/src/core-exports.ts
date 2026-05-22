@@ -79,6 +79,15 @@ export {
     resolveResponseActionValidationTuple,
     validationProfileForAction,
 } from './response-actions.js';
+export {
+    RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS,
+    RESPONSE_ACTIONS_PRECONDITION_BINDINGS,
+    ResponseActionsPreconditionCatalog,
+} from './precondition-catalog.js';
+export type {
+    CatalogValidationResult,
+    PreconditionCatalogEntry,
+} from './precondition-catalog.js';
 
 /** @deprecated Use `FormItem` from `@formspec-org/types`. Removed in v1. */
 export type FormspecItem = FormItem;

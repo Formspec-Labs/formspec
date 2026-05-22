@@ -1,0 +1,31 @@
+{
+  "fixture": "precondition-bogus-binding-rejected",
+  "description": "Spec §4.1 publishes a CLOSED FEL catalog of six bindings. A precondition that references an unregistered @name (here @bogus) MUST be rejected — FEL evaluators MUST emit an unbound-context-reference diagnostic. fel-core's ContextBindingCatalog trait + the EmptyCatalog fallback enforce this in the Rust evaluator; the formspec engine ships ResponseActionsPreconditionCatalog as the contract surface until the WASM bridge plumbs Rust catalogs end-to-end.",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.gov/forms/response-actions-base", "compatibleVersions": ">=1.0.0" },
+    "actions": [
+      {
+        "id": "submit-bogus-binding",
+        "intent": "submit",
+        "preconditions": [
+          { "id": "bogusGuard", "expression": "@bogus.x > 0", "severity": "block" }
+        ],
+        "effects": [
+          { "type": "hostEvent", "eventName": "formspec-submit" }
+        ]
+      }
+    ]
+  },
+  "invocation": { "actionId": "submit-bogus-binding", "id": "inv-bogus-1" },
+  "responseBefore": { "id": "rsp-bogus-1", "status": "in-progress", "data": {} },
+  "expected": {
+    "terminal": "failed",
+    "failedPreconditionId": "bogusGuard",
+    "failureReasonContains": "unbound context reference",
+    "unboundBindings": ["bogus"],
+    "validationReportProduced": false,
+    "effectStatuses": ["not-invoked"]
+  }
+}

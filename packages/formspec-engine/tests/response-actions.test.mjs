@@ -9,6 +9,9 @@ import {
   invokeResponseAction,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
+  ResponseActionsPreconditionCatalog,
+  RESPONSE_ACTIONS_PRECONDITION_BINDINGS,
+  RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS,
 } from '../dist/index.js';
 import { VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 
@@ -286,6 +289,34 @@ test('retry-once reuses frozen idempotency keys and retries only the failed effe
   assert.deepEqual(result.effectTrace.map(effect => effect.status), ['succeeded', 'failed', 'succeeded']);
 });
 
+test('invokeResponseAction rejects precondition with unregistered @name (catalog gate before host evaluator)', () => {
+  // Spec §4.1: FEL evaluators MUST reject unregistered @name bindings. The
+  // engine consults the catalog BEFORE delegating to ports.evaluatePrecondition,
+  // so a permissive host evaluator cannot wave through @bogus.
+  const document = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: 'https://example.gov/forms/intake' },
+    actions: [{
+      id: 'guarded',
+      intent: 'submit',
+      preconditions: [{ id: 'bogusGuard', expression: '@bogus.x > 0', severity: 'block' }],
+      effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+    }],
+  };
+
+  const permissiveHost = {
+    submit: () => ({ response: {}, validationReport: { valid: true } }),
+    dispatchHostEvent: () => {},
+    evaluatePrecondition: () => true, // would wave through if catalog gate were absent
+  };
+
+  const result = invokeResponseAction(document, 'guarded', permissiveHost);
+  assert.equal(result.status, 'failed');
+  assert.equal(result.failedPreconditionId, 'bogusGuard');
+  assert.match(result.failureReason, /unbound context reference.*@bogus/);
+});
+
 test('engine MASTER_TABLE matches generated VM schema const row-for-row', () => {
   // VALIDATION_MAPPING_MASTER_TABLE is generated from
   // schemas/validation-mapping.schema.json#/$defs/MasterTable/const.
@@ -301,6 +332,58 @@ test('engine MASTER_TABLE matches generated VM schema const row-for-row', () => 
       blocking: row.blocking,
       persistence: row.persistence,
     }, `intent ${row.intent} should resolve to VM schema row`);
+  }
+});
+
+test('ResponseActionsPreconditionCatalog publishes §4.1 six bindings', () => {
+  // Spec §4.1 defines a closed catalog of six bindings. Names are
+  // load-bearing — runtime evaluators MUST reject unregistered @names.
+  const expected = ['response', 'definition', 'action', 'now', 'validation', 'invocation'];
+  assert.deepEqual(
+    RESPONSE_ACTIONS_PRECONDITION_BINDINGS.map(b => b.name).sort(),
+    expected.slice().sort(),
+  );
+  // Every entry MUST carry the FEL §6.3.1 six fields.
+  for (const entry of RESPONSE_ACTIONS_PRECONDITION_BINDINGS) {
+    assert.ok(entry.name, `binding has name`);
+    assert.ok(entry.kind, `binding ${entry.name} has kind`);
+    assert.ok(entry.type, `binding ${entry.name} has type`);
+    assert.ok(entry.purity, `binding ${entry.name} has purity`);
+    assert.ok(entry.evaluationTiming, `binding ${entry.name} has evaluationTiming`);
+    assert.ok(entry.scope, `binding ${entry.name} has scope`);
+  }
+});
+
+test('ResponseActionsPreconditionCatalog isBindingPublished accepts §4.1 names and rejects @bogus', () => {
+  const catalog = new ResponseActionsPreconditionCatalog();
+  for (const name of ['response', 'definition', 'action', 'now', 'validation', 'invocation']) {
+    assert.equal(catalog.isBindingPublished(name), true, `@${name} should be published`);
+  }
+  assert.equal(catalog.isBindingPublished('bogus'), false, '@bogus should not be published');
+  assert.equal(catalog.isBindingPublished('effects'), false, '@effects is effect-time only');
+});
+
+test('ResponseActionsPreconditionCatalog validates expressions against the catalog', () => {
+  const catalog = new ResponseActionsPreconditionCatalog();
+  // Empty expression — no bindings referenced — passes trivially.
+  assert.deepEqual(catalog.validateExpression('true'), { ok: true, unbound: [] });
+  // Single registered binding — passes.
+  assert.deepEqual(catalog.validateExpression('@response.id != null'), { ok: true, unbound: [] });
+  // Unregistered binding — rejected with the offending name.
+  assert.deepEqual(catalog.validateExpression('@bogus.x > 0'), { ok: false, unbound: ['bogus'] });
+  // Mixed — collects every unbound name.
+  const result = catalog.validateExpression('@response.x and @bogus and @also_bogus');
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.unbound.sort(), ['also_bogus', 'bogus']);
+});
+
+test('RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS adds @effects and keeps §4.1 set', () => {
+  // Effect-time catalog (§6.4) extends the precondition catalog with @effects.
+  const effectNames = RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS.map(b => b.name).sort();
+  assert.ok(effectNames.includes('effects'), '@effects must be in effect-time catalog');
+  // Every precondition binding remains present.
+  for (const pre of ['response', 'definition', 'action', 'now', 'validation', 'invocation']) {
+    assert.ok(effectNames.includes(pre), `@${pre} from §4.1 must remain in §6.4`);
   }
 });
 

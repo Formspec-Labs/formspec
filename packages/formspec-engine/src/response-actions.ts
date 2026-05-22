@@ -9,6 +9,16 @@ import type {
     ValidationProfile,
 } from '@formspec-org/types';
 import { VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
+import { ResponseActionsPreconditionCatalog } from './precondition-catalog.js';
+
+/**
+ * Singleton precondition catalog. Spec §4.1 publishes a closed catalog of
+ * six bindings; the engine consults this catalog as the default validator
+ * for every precondition expression — `ports.evaluatePrecondition` becomes
+ * the fallback for actual FEL evaluation, not the gate that decides whether
+ * unregistered `@name` references are permitted.
+ */
+const DEFAULT_PRECONDITION_CATALOG = new ResponseActionsPreconditionCatalog();
 
 export type {
     ResponseAction,
@@ -306,6 +316,25 @@ export function invokeResponseAction<TDetail>(
 
     const validationTuple = resolveResponseActionValidationTuple(resolution.action);
     for (const precondition of resolution.action.preconditions ?? []) {
+        // §4.1 catalog gate: unregistered @name references are rejected
+        // before host evaluation. Host evaluators MUST honor this catalog
+        // (fel-core/src/evaluator/core.rs ContextBindingCatalog trait); the
+        // lexical check here ensures the contract is enforced even when the
+        // host installs a permissive evaluator.
+        const catalogCheck = DEFAULT_PRECONDITION_CATALOG.validateExpression(
+            precondition.expression ?? '',
+        );
+        if (!catalogCheck.ok) {
+            return {
+                status: 'failed',
+                resolution,
+                validationTuple,
+                detail: null,
+                effectTrace: [],
+                failedPreconditionId: precondition.id,
+                failureReason: `unbound context reference: @${catalogCheck.unbound.join(', @')}`,
+            };
+        }
         if (!ports.evaluatePrecondition) {
             return {
                 status: 'failed',
