@@ -235,6 +235,8 @@ Inline reference resolver implementing §6. Fixture-driven assertions on finding
 
 ## Task 18: Renderer-ignore invariant E2E
 
+- [x] Add Playwright renderer-ignore E2E comparing rendered DOM snapshots for identical Component documents that differ only by `x-generation`.
+
 Two Component documents identical except for `x-generation`. Mount both via Playwright. DOM snapshot diff MUST be empty. Pins the §5 runtime-ignore claim in the new reference-fields spec.
 
 ## Task 19: Upstream back-references
