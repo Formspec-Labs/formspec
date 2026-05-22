@@ -418,9 +418,9 @@ locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
 
 ## Task 8: Spec prose — §7 Conflict severities + finding codes
 
-- [ ] Draft §7 introducing the `COMP-REGENERATION-*` finding family for **merge-context-only findings**.
+- [x] Draft §7 introducing the `COMP-REGENERATION-*` finding family for **merge-context-only findings**.
 
-**Family scope (H4 fix).** `COMP-REGENERATION-*` covers findings that exist BECAUSE a merge happened — merge-decision conflicts, orphan reattachment, rename detection, missing-common-ancestor. Reference-resolution failures (bind no longer resolves, actionRef unresolvable, unitRef points at a removed unit) are NOT in this family — they route through the existing `COMP-REFERENTIAL-INTEGRITY` (CRF §7) or Component-resolver findings, with the MergeReport surfacing them by composition (see §11). The merge MUST run the cross-document resolver against the merged document and forward those findings into the review surface alongside `COMP-REGENERATION-*` entries.
+**Family scope (H4 fix).** `COMP-REGENERATION-*` covers findings that exist BECAUSE a merge happened — merge-decision conflicts, orphan reattachment, rename detection, missing-common-ancestor. Reference-resolution failures (bind no longer resolves, actionRef unresolvable, unitRef points at a removed unit) are NOT in this family — they route through the existing `COMP-REFERENTIAL-INTEGRITY` (CRF §7) or Component-resolver findings, with the review surface composing them alongside the MergeReport (see §11). The merge MUST run the cross-document resolver against the merged document and forward those findings into the review surface alongside `COMP-REGENERATION-*` entries.
 
 | Code | Condition | Severity |
 |---|---|---|
@@ -429,7 +429,9 @@ locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
 | `COMP-REGENERATION-DESIGNER-REMOVED` | Designer deleted a generated node; new-generation still produces it | `warning` |
 | `COMP-REGENERATION-PROPERTY-CONFLICT` | Both designer and new-generation changed the same property to different values | `warning` |
 | `COMP-REGENERATION-WIDGET-SWAP` | Designer changed a node's `component` type from old-generated and the change requires human review; emitted as a conflict unless new-generation independently made the same widget choice | `warning` |
-| `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Default `warning`. Escalates to `error` ONLY if accompanied by an unresolved CRF/bind finding emitted by the resolver for the same node. | `warning` (→ `error` via composition) |
+| `COMP-REGENERATION-DESIGNER-SURVIVED` | One or more non-conflicting designer deltas survived in the merged node | `info` |
+| `COMP-REGENERATION-REGENERATED` | Node regenerated from `new-generated` with no surviving designer delta and no conflict | `info` |
+| `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Remains `warning` in `MergeReport`; review surfaces MAY show an error-level effective severity when a separate resolver error composes against the same node. | `warning` |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | Designer subtree reattached above its original parent because the parent chain orphaned | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | Designer subtree reattached at root because no ancestor matches in merged | `warning` |
 | `COMP-REGENERATION-RENAME-MIGRATED` | Anchor sets differ between old and new but anchor-mapping substitution makes them equal | `info` |
@@ -438,10 +440,10 @@ locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
 §7 MUST state:
 
 - Hosts MUST NOT downgrade `error`. Hosts MAY upgrade lower severities under a host-defined strict mode.
-- The merge MUST NOT emit `COMP-REGENERATION-ORPHAN-BINDING` or any other reference-resolution finding under the regeneration family. Bind/reference failures are emitted by the resolver and composed into the review surface as separate findings against the same node.
+- The merge MUST NOT emit `COMP-REGENERATION-ORPHAN-BINDING` or any other reference-resolution finding under the regeneration family. Bind/reference failures are emitted by the resolver and composed into the review surface as separate findings against the same node; they are not duplicated in `MergeReport`.
 - **No heuristic rename detection** (H3 fix). A `COMP-REGENERATION-RENAME-UNDOCUMENTED` finding does not exist; if anchor sets differ and no anchor-mapping substitution makes them equal, the nodes simply do not match (the N_old becomes an `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW`). Authors who want rename support author an anchor-mapping entry.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 9: Spec prose — §8 Orphan handling
 
@@ -604,7 +606,7 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` 
     },
     "ConflictEntry": {
       "$ref": "#/$defs/Entry",
-      "description": "Same shape as Entry. Conflicts are distinguished by array placement (conflicts[]), not by extra fields. Conflict-specific finding codes (DESIGNER-PRECEDES, DESIGNER-REMOVED, PROPERTY-CONFLICT, WIDGET-SWAP, NO-COMMON-ANCESTOR) appear here; non-conflict codes (ORPHAN-NODE, PENDING-REVIEW, RENAME-MIGRATED, etc.) appear in their own arrays."
+      "description": "Same shape as Entry. Conflicts are distinguished by array placement (conflicts[]), not by extra fields. Conflict-specific finding codes (DESIGNER-PRECEDES, DESIGNER-REMOVED, PROPERTY-CONFLICT, WIDGET-SWAP, NO-COMMON-ANCESTOR) appear here; non-conflict codes (DESIGNER-SURVIVED, REGENERATED, ORPHAN-NODE, PENDING-REVIEW, RENAME-MIGRATED, etc.) appear in their own arrays."
     }
   }
 }

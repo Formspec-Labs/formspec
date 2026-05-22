@@ -21,7 +21,7 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1-§6 normative prose has landed. Later normative sections, schema,
+The §1-§7 normative prose has landed. Later normative sections, schema,
 fixtures, algorithm tests, invariant tests, registration, and generated
 artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
@@ -711,6 +711,93 @@ The processor MUST return new `merged` and `report` documents and MUST NOT mutat
 `RegenerationMergeContext`.
 
 ## 7. Conflict Severities and Finding Codes
+
+### 7.1 Finding Family Scope
+
+`COMP-REGENERATION-*` findings describe decisions or review states that exist
+because a regeneration merge occurred. The family covers merge-context outcomes
+such as missing common ancestors, designer/regenerator conflicts, orphan
+reattachment, pending review for newly generated nodes, and anchor-mapped rename
+preservation.
+
+Reference-resolution failures are not part of this family. Unresolved `bind`,
+`actionRef`, `unitRef`, `x-generation.anchors`, or other cross-document
+references remain owned by Component, Component Reference Fields, Response
+Actions, Experience, or other source-layer resolvers. A regeneration merge
+processor MUST NOT emit reference-resolution failures as
+`COMP-REGENERATION-*` codes.
+
+After producing `merged`, a conforming merge runtime MUST invoke the Component
+and Component Reference Fields resolver over the merged Component document when
+the required peer context is available, and MUST forward those resolver findings
+to the review surface alongside the `MergeReport`. §11 defines broader resolver
+composition, including Experience coverage.
+
+### 7.2 Code Table
+
+The following codes are the complete `COMP-REGENERATION-*` code set for this
+version of the specification:
+
+| Code | Report array | Condition | Severity |
+|---|---|---|---|
+| `COMP-REGENERATION-NO-COMMON-ANCESTOR` | `conflicts[]` | The host invoked regeneration without supplying `old_generated`; the operation degraded to fresh generation. | `error` |
+| `COMP-REGENERATION-DESIGNER-PRECEDES` | `conflicts[]` | `designer_edited` contains a deterministic node at an anchor that `new_generated` now also produces, but `old_generated` did not contain that node. | `warning` |
+| `COMP-REGENERATION-DESIGNER-REMOVED` | `conflicts[]` | `old_generated` contained a deterministic generated node, `designer_edited` removed it, and `new_generated` still produces it. | `warning` |
+| `COMP-REGENERATION-PROPERTY-CONFLICT` | `conflicts[]` | Designer and generator changed the same node-local property, including `/children` ordering, to different values. | `warning` |
+| `COMP-REGENERATION-WIDGET-SWAP` | `conflicts[]` | The designer changed a node's `component` value and the change requires review, or designer and generator chose different component values. | `warning` |
+| `COMP-REGENERATION-DESIGNER-SURVIVED` | `surviving[]` | One or more non-conflicting designer deltas survived in the merged node. | `info` |
+| `COMP-REGENERATION-REGENERATED` | `regenerated[]` | The node regenerated from `new_generated` with no surviving designer delta and no conflict. | `info` |
+| `COMP-REGENERATION-ORPHAN-NODE` | `orphaned[]` | A designer subtree has no deterministic match in `new_generated` and is preserved by uncovered orphan reattachment. | `warning` |
+| `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | `orphaned[]` | An orphan subtree reattached above its immediate parent because the immediate parent did not survive in `merged`. | `info` |
+| `COMP-REGENERATION-ORPHAN-DETACHED` | `orphaned[]` | An orphan subtree reattached under `/tree` because no surviving ancestor resolved in `merged`. | `warning` |
+| `COMP-REGENERATION-RENAME-MIGRATED` | `surviving[]` | Anchor sets differed, but §9 anchor-mapping substitution produced a deterministic old/new match and preserved presentation. | `info` |
+| `COMP-REGENERATION-PENDING-REVIEW` | `pendingReview[]` | `new_generated` produced a node with no deterministic old or designer match, or produced an ambiguous generated node that requires human review. | `info` |
+
+Report array placement is part of the code contract. A processor MUST NOT emit a
+code in a different array unless a later version of this specification explicitly
+changes the table.
+
+### 7.3 Severity Rules
+
+`error` severity means the merge could not perform the expected preservation
+operation. Hosts MUST NOT downgrade `error` findings.
+
+`warning` severity means the merged output remains a Component draft, but a human
+or host workflow should review the decision before accepting it as resolved.
+
+`info` severity means the processor performed a deterministic, non-conflicting
+merge action that may still be useful for review, audit, or UI annotation.
+
+Hosts MAY upgrade `warning` or `info` findings under a host-defined strict mode.
+Hosts MUST NOT rewrite the underlying `code` or `severity` values in
+`MergeReport`; any host-specific effective severity must be represented outside
+the canonical report entry.
+
+### 7.4 Resolver Composition
+
+`COMP-REGENERATION-ORPHAN-NODE` remains `warning` in `MergeReport` even when the
+orphaned node also has an unresolved `bind`, `actionRef`, `unitRef`, or
+generation-anchor reference. The resolver-owned finding is emitted separately
+under its own code family.
+
+Review surfaces MAY compute an effective contextual severity for display. For
+example, an orphan with `COMP-REGENERATION-ORPHAN-NODE` and a separate
+error-severity bind-resolution finding may be displayed as an error in context.
+That display decision MUST NOT duplicate the resolver finding inside
+`MergeReport`.
+
+### 7.5 Reserved Non-Codes
+
+The regeneration family deliberately does not include:
+
+- `COMP-REGENERATION-ORPHAN-BINDING` or any other reference-resolution code;
+- `COMP-REGENERATION-RENAME-UNDOCUMENTED`; or
+- a separate `COMP-REGENERATION-DESIGNER-INSERTED` code.
+
+If anchor sets differ and no §9 anchor-mapping substitution makes them equal, the
+nodes do not match. The old/designer node is handled as an orphan when it remains
+uncovered, and the new node is handled as pending review when it has no
+deterministic old or designer match.
 
 ## 8. Orphan Handling
 
