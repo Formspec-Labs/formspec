@@ -66,7 +66,7 @@ Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in belo
 | Rename handling | **Anchor-mappings document is the primary signal — no heuristic detection.** A rename is detected ONLY when an anchor-mapping entry maps `old_anchor → new_anchor` such that substituting the mapping in N_old's anchor set yields exactly N_new's anchor set | HIGH | H3 fix: "pattern consistent with a rename" cannot be defined without picking arbitrary set-distance thresholds. Anchor-mapping substitution gives a deterministic, two-implementation-agreement rule. |
 | Anchor-mappings document format | **Defined inline by this spec** as a minimum shape: `{ "$formspecAnchorMappings": "1.0", "anchorMappings": [{ "from": "<anchor>", "to": "<anchor>" }] }`. Anchor-pair only; named `anchorMappings` to avoid collision with Core §6.7 `migrations` (which transforms Response data, a different domain) | MEDIUM | L3 + F6 fix: no `migration-spec.md` exists in `formspec/specs/`; the term "migration" is already taken by Core §6.7. Defining a minimum here unblocks rename handling under a non-colliding name. If a richer anchor-mappings spec lands later, this minimum is a forward-compatible subset. |
 | Convergence (not idempotency) | Re-running merge after no source change yields zero conflicts and zero pendingReview | HIGH | H1 fix: original "idempotency" definition (`merge(new, merged1, new) == merged1`) requires undefined `x-generation` carry-forward semantics for pendingReview nodes and would fail/pass for wrong reasons. Pure determinism is covered by `test_determinism`; the meaningful steady-state invariant is convergence. |
-| Studio DOM contract | `data-merge-status` AND `data-merge-anchors` on every report-affected node | MEDIUM | M2 fix: `data-merge-status` alone could pass with a single root marker; pairing with `data-merge-anchors` (sorted, comma-joined) ties the DOM assertion to a specific MergeReport entry. |
+| Studio DOM contract | `data-merge-status` AND `data-merge-anchors` on every spec-mandated pending-review/orphan preview marker | MEDIUM | M2 fix: `data-merge-status` alone could pass with a single root marker; pairing with `data-merge-anchors` (sorted, comma-joined) ties the DOM assertion to a specific MergeReport entry. |
 
 Decisions marked HIGH should not change without owner pushback. MEDIUM decisions remain open.
 
@@ -103,7 +103,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 
 - **Trace query/cache spec.** The MergeReport is the structural seed for Trace's first consumer (concept §10.6), but the Trace query surface, predicate set, and cache discipline are concept §10.6 — separate plan.
 - **Runtime merger implementation.** This is a spec + conformance plan. Engine implementations (Rust crate, TypeScript engine, Python tooling) land in their own plans that consume this spec.
-- **Studio review screen design.** Visual design and full Studio UX are product surface; only the DOM-level pending-review-marker conformance contract lives here.
+- **Studio review screen design.** Visual design and full Studio UX are product surface; only the DOM-level pending-review/orphan marker conformance contract lives here.
 - **Host-defined merge policy hooks.** Concept §7.2 baseline rules only; host overrides are a v1.1 extension.
 - **Broad migration/changelog spec.** Rename handling consumes only the minimum `$formspecAnchorMappings.anchorMappings[]` shape defined in Task 10. Response-data migrations, semantic changelogs, versioning policy, and richer migration document formats remain outside this plan.
 
@@ -524,7 +524,7 @@ substitute(N_old.anchors, M) == N_new.anchors
 
 ## Task 11: Spec prose — §10 Studio review UX expectations
 
-- [ ] Draft §10 defining the minimum review-surface contract. M2 fix: DOM contract pairs status with anchors so assertions identify a specific report entry.
+- [x] Draft §10 defining the minimum review-surface contract. M2 fix: DOM contract pairs status with anchors so assertions identify a specific report entry.
 
 A Studio-grade review surface MUST:
 
@@ -533,12 +533,12 @@ A Studio-grade review surface MUST:
 3. Render every entry in `MergeReport.pendingReview[]` with a `pending-review` marker on the affected node in the rendered Component preview. **DOM-level:** the rendered node MUST carry BOTH:
    - `data-merge-status="pending-review"`
    - `data-merge-anchors="<sorted-comma-joined anchor set>"` (e.g., `"item:applicantName,unit:identity"`)
-4. Render every entry in `MergeReport.orphaned[]` with an `orphan` marker; DOM-level: `data-merge-status="orphan"` AND `data-merge-anchors="..."`. Cascade-reattached and detached orphans use the same `data-merge-status="orphan"`; the `cascaded` / `detached` flags from `MergeReport.orphaned[]` are surfaced via host-defined visual treatment, NOT additional DOM attributes (spec-minimum stays narrow).
+4. Render every base `COMP-REGENERATION-ORPHAN-NODE` entry in `MergeReport.orphaned[]` with an `orphan` marker; DOM-level: `data-merge-status="orphan"` AND `data-merge-anchors="..."`. Cascade-reattached and detached orphan entries use the same base `data-merge-status="orphan"` marker for that orphan root; the `cascaded` / `detached` flags from `MergeReport.orphaned[]` are surfaced via host-defined visual treatment or report rows, NOT additional DOM attributes (spec-minimum stays narrow).
 5. Render coverage findings — `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` from the Experience resolver (H2 delegation) — alongside the MergeReport entries. The composition rule lives in §11.
 
 §10 MUST clarify: these are minimum conformance levers. Full Studio review UX (visual design, interaction model, keyboard flows, undo/redo) is product surface, not spec.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 12: Spec prose — §11 Conformance
 
@@ -926,7 +926,7 @@ cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_i
 ls /Users/mikewolfd/Work/formspec-stack/formspec/packages/formspec-studio/tests/e2e/playwright/ 2>&1 | grep -i regen
 ```
 
-- [ ] **If Studio review surface exists:** create `packages/formspec-studio/tests/e2e/playwright/regeneration-merge.spec.ts`. Mount Studio with a `pending-review` MergeReport entry; assert `[data-merge-status="pending-review"]` exists on the affected node. Mount with an `orphan` entry; assert `[data-merge-status="orphan"]`. Commit.
+- [ ] **If Studio review surface exists:** create `packages/formspec-studio/tests/e2e/playwright/regeneration-merge.spec.ts`. Mount Studio with a `pending-review` MergeReport entry; assert `[data-merge-status="pending-review"][data-merge-anchors="..."]` exists on the affected node. Mount with an `orphan` entry; assert `[data-merge-status="orphan"][data-merge-anchors="..."]`. Commit.
 
 - [ ] **If Studio review surface does NOT exist:** add a TODO row in `formspec/TODO.md` pointing at this E2E gap and at the spec's §10 DOM-level conformance lever. Do NOT block this plan on Studio readiness; the algorithm pytest is the load-bearing conformance gate.
 
@@ -1168,3 +1168,7 @@ Task 23:       promotion-gate + architecture review
   - Narrowed §6.5/§7 wording so `COMP-REGENERATION-REGENERATED` is excluded only for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED`, while real regenerated-only property deltas may still produce their own code-scoped entries.
 - 2026-05-22: Focused Task 10 re-review pass #2 found the §6.5 wording still grammatically ambiguous for rename plus real generated delta:
   - Rephrased §6.5 to require a generated-only non-anchor property delta after excluding the rename anchor-set update, matching the intended §7/§9 behavior.
+- 2026-05-22: Task 11 §10 drafting tightened the DOM-marker scope:
+  - Aligned the design-decision row with the planned §10/Task 19 minimum: mandatory DOM attributes apply to pending-review and orphan preview markers, while conflict/surviving/regenerated/resolver/coverage markers may be host-defined unless a later spec version standardizes them.
+  - Updated the planned orphan DOM marker rule to key on the base `COMP-REGENERATION-ORPHAN-NODE` entry so cascade/detached code-scoped entries do not require duplicate DOM markers.
+  - Updated the future Studio E2E task to assert both `data-merge-status` and `data-merge-anchors`, matching the M2 specificity requirement.

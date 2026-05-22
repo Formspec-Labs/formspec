@@ -21,7 +21,7 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1-§9 normative prose has landed. Later normative sections, schema,
+The §1-§10 normative prose has landed. Later normative sections, schema,
 fixtures, algorithm tests, invariant tests, registration, and generated
 artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
@@ -1024,5 +1024,96 @@ pending-review pair is the review signal when authors changed anchors without
 supplying an anchor-mapping entry.
 
 ## 10. Studio Review UX Expectations
+
+### 10.1 Scope
+
+This section defines minimum review-surface obligations for tools that present a
+`MergeReport` to authors. It does not define Studio product design, visual
+treatment, routing, keyboard behavior, undo/redo, or conflict-resolution data
+models.
+
+Runtime Component renderers are not required to render review UI. The obligations
+below apply only to authoring or review tooling that exposes regeneration merge
+review.
+
+### 10.2 Conflict Review
+
+A review surface MUST render every `MergeReport.conflicts[]` entry with enough
+information for an author to identify and resolve the issue:
+
+- `code`;
+- `severity`;
+- `reason`;
+- `nodePath`;
+- `anchors`; and
+- `propertyDeltas[]`, when present.
+
+For each conflict entry, the review surface MUST provide a resolution affordance.
+The affordance choices and resulting edit model are host-defined. Common choices
+include accepting the designer value, accepting the regenerated value, or making
+a manual edit, but this specification does not require those exact labels or
+workflows.
+
+### 10.3 Pending-Review Markers
+
+A review surface MUST render every `MergeReport.pendingReview[]` entry with a
+`pending-review` marker associated with the affected Component node in the
+rendered preview.
+
+The rendered node for that marker MUST carry both of these attributes:
+
+```html
+data-merge-status="pending-review"
+data-merge-anchors="<anchor-list>"
+```
+
+`<anchor-list>` is the entry's `anchors` array after §3.1 normalization, joined
+with commas and no spaces, for example `item:applicantName,unit:identity`. When
+the entry has no anchors, the attribute value MUST be the empty string.
+
+### 10.4 Orphan Markers
+
+A review surface MUST render every `MergeReport.orphaned[]` base orphan entry
+with an `orphan` marker associated with the affected Component node in the
+rendered preview.
+
+The rendered node for that marker MUST carry both of these attributes:
+
+```html
+data-merge-status="orphan"
+data-merge-anchors="<anchor-list>"
+```
+
+The `<anchor-list>` encoding is the same as §10.3. Cascade-reattached and
+detached orphans use the same `data-merge-status="orphan"` value. The
+`cascaded` and `detached` flags remain report metadata; this specification does
+not require separate DOM attributes for them.
+
+When the same orphan root has additional code-scoped `orphaned[]` entries under
+§8.3, the review surface MAY display those entries as additional report rows or
+annotations. They do not require additional DOM markers beyond the base orphan
+marker.
+
+### 10.5 Resolver and Coverage Findings
+
+A review surface MUST render Component, Component Reference Fields, Response
+Actions, Experience, Registry, Ontology, or other resolver findings alongside
+the `MergeReport` when those findings are available from the conforming runtime.
+Those findings remain separate resolver findings and are not copied into
+`MergeReport`.
+
+Experience coverage findings such as
+`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` MUST be displayed alongside
+regeneration-merge findings when the Experience resolver is available. §11
+defines the required composition rule for linking those findings to
+`MergeReport` entries and rendered nodes.
+
+### 10.6 Minimum DOM Contract
+
+The minimum DOM contract defined by this version is limited to
+`pending-review` and `orphan` markers. A host MAY add additional DOM attributes
+or markers for conflicts, surviving deltas, regenerated deltas, resolver
+findings, or coverage findings, but those additions are host-defined unless a
+later version of this specification standardizes them.
 
 ## 11. Conformance
