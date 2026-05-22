@@ -126,3 +126,35 @@ def test_terminal_action_events_pin_the_matching_terminal(
     event["actionEvent"]["terminal"] = "failed" if terminal != "failed" else "deferred"
     with pytest.raises(ValidationError):
         _VALIDATOR.validate(event)
+
+
+def test_action_replayed_supports_both_self_and_distinct_lineage():
+    """`action-replayed.json` reuses `invocationId` as `priorInvocationRef`
+    (the same invocation re-emitted after a host-side retry handshake), which
+    is a permitted but limited lineage pattern. The sibling
+    `action-replayed-distinct-lineage.json` exercises the more general case:
+    a NEW invocationId whose `priorInvocationRef` points back at the original
+    invocation. Both shapes MUST be schema-valid.
+    """
+    self_lineage = _load_fixture("action-replayed.json")
+    distinct_lineage = _load_fixture("action-replayed-distinct-lineage.json")
+
+    _VALIDATOR.validate(self_lineage)
+    _VALIDATOR.validate(distinct_lineage)
+
+    # Self-lineage: invocationId == priorInvocationRef.
+    assert (
+        self_lineage["actionEvent"]["invocationId"]
+        == self_lineage["actionEvent"]["priorInvocationRef"]
+    )
+    # Distinct-lineage: invocationId != priorInvocationRef, and the prior
+    # ref points back at the self-lineage fixture's invocationId so the
+    # replay chain is traceable across both fixtures.
+    assert (
+        distinct_lineage["actionEvent"]["invocationId"]
+        != distinct_lineage["actionEvent"]["priorInvocationRef"]
+    )
+    assert (
+        distinct_lineage["actionEvent"]["priorInvocationRef"]
+        == self_lineage["actionEvent"]["invocationId"]
+    )
