@@ -19,9 +19,9 @@ export const groupedFormDef = {
             type: "group",
             label: "Preferences",
             children: [
-                { key: "newsletter", type: "field", dataType: "boolean", label: "Subscribe to newsletter", presentation: { widgetHint: "checkbox" } },
-                { key: "debug", type: "field", dataType: "boolean", label: "Enable debug mode", presentation: { widgetHint: "checkbox" } },
-                { key: "timeout", type: "field", dataType: "integer", label: "Timeout (seconds)", presentation: { widgetHint: "numberInput", min: 1, max: 300 } },
+                { key: "newsletter", type: "field", dataType: "boolean", label: "Subscribe to newsletter", presentation: { widgetHint: "Toggle" } },
+                { key: "debug", type: "field", dataType: "boolean", label: "Enable debug mode", presentation: { widgetHint: "Toggle" } },
+                { key: "timeout", type: "field", dataType: "integer", label: "Timeout (seconds)", presentation: { widgetHint: "NumberInput", min: 1, max: 300 } },
             ],
         },
     ],
@@ -200,7 +200,7 @@ export const panelComponentDoc = {
             {
                 component: "Panel",
                 title: "Help",
-                position: "left",
+                placement: "left",
                 width: "200px",
                 children: [
                     { component: "Text", text: "Fill in your contact details. All fields are optional unless marked required." },
@@ -267,7 +267,7 @@ export const popoverComponentDoc = {
     },
 };
 
-/** Wizard component document — multi-step form via pageMode on Stack > Page. */
+/** Wizard component document — multi-step form via pageMode on Stack > Section. */
 export const wizardComponentDoc = {
     "$formspecComponent": "1.0",
     name: "wizard-demo",
@@ -277,7 +277,7 @@ export const wizardComponentDoc = {
         component: "Stack",
         children: [
             {
-                component: "Page",
+                component: "Section",
                 title: "Personal Info",
                 children: [
                     { component: "TextInput", bind: "firstName" },
@@ -285,7 +285,7 @@ export const wizardComponentDoc = {
                 ],
             },
             {
-                component: "Page",
+                component: "Section",
                 title: "Contact",
                 children: [
                     { component: "TextInput", bind: "email" },

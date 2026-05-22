@@ -16,7 +16,7 @@ div  |  1200×127
                 div  .formspec-field.formspec-file-upload  data-name="resume"  |  584×79
                   label  .formspec-label  for="field-resume"  |  103×18
                     "Upload Resume"
-                  div  .formspec-file-drop-zone.formspec-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  584×24
+                  div  .formspec-file-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  584×24
                     div  .formspec-file-drop-content  |  584×24
                       span  .formspec-file-drop-icon  aria-hidden  |  16×18
                         "⇵"
@@ -45,7 +45,7 @@ div  |  1200×127
                       div  .formspec-field.formspec-file-upload.formspec-themed-field  aria-live="off"  data-name="resume"  data-bind="resume"  |  584×63
                         label  .formspec-label  for="field-resume"  |  103×18
                           "Upload Resume"
-                        div  .formspec-file-drop-zone.formspec-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  584×24
+                        div  .formspec-file-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  584×24
                           div  .formspec-file-drop-content  |  584×24
                             span  .formspec-file-drop-icon  aria-hidden  |  16×18
                               "⇵"

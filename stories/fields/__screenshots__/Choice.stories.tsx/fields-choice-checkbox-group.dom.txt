@@ -49,7 +49,7 @@ div  |  1200×120
                       fieldset  .formspec-fieldset.formspec-themed-field  aria-live="off"  data-name="interests"  data-bind="interests"  |  580×72  m:0,2  p:6,12,10,12  |  border:2px groove rgb(239, 239, 239)
                         legend  #field-interests-label  .formspec-legend  |  111×18  p:0,2
                           "Areas of Interest"
-                        div  .formspec-checkbox-group  role="group"  aria-labelledby="field-interests-label"  aria-describedby="field-interests-hint"  |  552×20
+                        div  .formspec-checkbox-group  role="group"  aria-labelledby="field-interests-label"  |  552×20
                           label  |  99×18
                             "Technology"
                             input  type="checkbox"  name="interests"  value="tech"  aria-required="false"  aria-invalid="false"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px

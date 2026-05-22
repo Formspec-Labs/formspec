@@ -5,10 +5,10 @@ export const allDisplayDef = {
     "$formspec": "1.0",
     title: "All Display Components",
     items: [
-        { key: "h1", type: "display", label: "Primary Heading", presentation: { widgetHint: "heading" } },
-        { key: "text1", type: "display", label: "This is a paragraph of informational text with plain formatting. Markdown requires the Text component with format: markdown.", presentation: { widgetHint: "paragraph" } },
-        { key: "divider1", type: "display", label: "", presentation: { widgetHint: "divider" } },
-        { key: "infoAlert", type: "display", label: "This is an informational message.", presentation: { widgetHint: "banner" } },
+        { key: "h1", type: "display", label: "Primary Heading", presentation: { widgetHint: "Heading" } },
+        { key: "text1", type: "display", label: "This is a paragraph of informational text with plain formatting. Markdown requires the Text component with format: markdown.", presentation: { widgetHint: "Text" } },
+        { key: "divider1", type: "display", label: "", presentation: { widgetHint: "Divider" } },
+        { key: "infoAlert", type: "display", label: "This is an informational message.", presentation: { widgetHint: "Alert" } },
         { key: "name", type: "field", dataType: "string", label: "Your Name" },
     ],
 };
@@ -50,22 +50,27 @@ export const headingHierarchyComponentDoc = {
     },
 };
 
-/** Badge + Spacer showcase with fields. */
-export const badgeSpacerComponentDoc = {
+/** Badge and spacing showcase with fields. */
+export const badgeSpacingComponentDoc = {
     "$formspecComponent": "1.0",
-    name: "badge-spacer-demo",
-    title: "Badge & Spacer Demo",
+    name: "badge-spacing-demo",
+    title: "Badge & Spacing Demo",
     tree: {
         component: "Stack",
-        gap: "8px",
+        gap: "1.5rem",
         children: [
             { component: "Heading", text: "Application Status" },
-            { component: "Badge", text: "In Progress", variant: "primary" },
-            { component: "Spacer", size: "1.5rem" },
+            {
+                component: "Stack",
+                direction: "horizontal",
+                gap: "8px",
+                children: [
+                    { component: "Badge", text: "In Progress", variant: "primary" },
+                    { component: "Badge", text: "Required", variant: "error" },
+                ],
+            },
             { component: "TextInput", bind: "firstName" },
             { component: "TextInput", bind: "lastName" },
-            { component: "Spacer", size: "2rem" },
-            { component: "Badge", text: "Required", variant: "error" },
             { component: "TextInput", bind: "email" },
         ],
     },

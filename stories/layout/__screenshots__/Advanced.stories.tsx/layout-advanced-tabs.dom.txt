@@ -14,28 +14,28 @@ div  |  1200×285
             div  .formspec-container.formspec-appearance-light  |  584×258  d:flex  dir:column  gap:16px  |  color:rgb(32, 36, 31)  font:15.36px
               div  .formspec-tabs  |  584×258
                 div  .formspec-tab-bar  role="tablist"  aria-label="Tabs"  |  584×51  d:flex  gap:2px  m:0,0,16,0  p:4  |  bg:color(srgb 0.961255 0.943373 0.913569)  border:1px solid color(srgb 0.923081 0.908031 0.884621)  radius:999px
-                  button  #tab-tabs-113-0  .formspec-tab.formspec-tab--active  type="button"  role="tab"  aria-selected  aria-controls="panel-tabs-113-0"  tabindex="0"  |  86×42  p:10,15  |  bg:rgb(39, 89, 79)  color:rgb(255, 255, 255)  radius:999px  shadow:color(srgb 0.138375 0.31578 0.280299 / 0.84) 0px 0px 0px ...  font:14px/600
+                  button  #tab-tabs-1-0  .formspec-tab.formspec-tab--active  type="button"  role="tab"  aria-selected  aria-controls="panel-tabs-1-0"  tabindex="0"  |  86×42  p:10,15  |  bg:rgb(239, 239, 239)  color:rgb(0, 0, 0)  radius:999px  shadow:oklab(0 0 0 / 0) 0px 0px 0px 0px inset  font:14px/600
                     "Personal"
-                  button  #tab-tabs-113-1  .formspec-tab  type="button"  role="tab"  aria-selected="false"  aria-controls="panel-tabs-113-1"  tabindex="-1"  |  81×42  p:10,15  |  color:rgb(115, 108, 98)  radius:999px  font:14px/500
+                  button  #tab-tabs-1-1  .formspec-tab  type="button"  role="tab"  aria-selected="false"  aria-controls="panel-tabs-1-1"  tabindex="-1"  |  81×42  p:10,15  |  bg:rgb(239, 239, 239)  color:rgb(0, 0, 0)  radius:999px  font:14px/500
                     "Contact"
                 div  .formspec-tab-panels  |  584×191  p:14,0,0,0
-                  div  #panel-tabs-113-0  .formspec-tab-panel  role="tabpanel"  aria-labelledby="tab-tabs-113-0"  tabindex="0"  |  584×177
+                  div  #panel-tabs-1-0  .formspec-tab-panel  role="tabpanel"  aria-labelledby="tab-tabs-1-0"  tabindex="0"  |  584×177
                     div  .formspec-stack  |  584×177  d:flex  dir:column  gap:12px
                       div  .formspec-field  data-name="firstName"  |  584×82  d:flex  dir:column  gap:4px
                         label  .formspec-label  for="field-firstName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
                           "First Name"
                           abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
                             "*"
-                        input  #field-firstName  type="text"  required  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
+                        input  #field-firstName  type="text"  required  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:oklab(0.999994 0.0000455678 0.0000200868)  color:rgb(0, 0, 0)  border:1px solid oklab(0.565833 0.0000256598 0.0000113547)  radius:14.4px  font:15.2px
                         p #field-firstName-error .formspec-error [hidden]
                       div  .formspec-field  data-name="lastName"  |  584×82  d:flex  dir:column  gap:4px
                         label  .formspec-label  for="field-lastName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
                           "Last Name"
                           abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
                             "*"
-                        input  #field-lastName  type="text"  required  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
+                        input  #field-lastName  type="text"  required  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:oklab(0.999994 0.0000455678 0.0000200868)  color:rgb(0, 0, 0)  border:1px solid oklab(0.565833 0.0000256598 0.0000113547)  radius:14.4px  font:15.2px
                         p #field-lastName-error .formspec-error [hidden]
-                  div #panel-tabs-113-1 .formspec-tab-panel [hidden]
+                  div #panel-tabs-1-1 .formspec-tab-panel [hidden]
     div  |  584×285
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Web Component"
@@ -51,9 +51,9 @@ div  |  1200×285
                   div  .formspec-container.formspec-appearance-light  |  584×258  d:flex  dir:column  gap:16px  |  color:rgb(32, 36, 31)  font:15.36px
                     div  .formspec-tabs  |  584×258
                       div  .formspec-tab-bar  role="tablist"  |  584×51  d:flex  gap:2px  m:0,0,16,0  p:4  |  bg:color(srgb 0.961255 0.943373 0.913569)  border:1px solid color(srgb 0.923081 0.908031 0.884621)  radius:999px
-                        button  #tabs-tab-0  .formspec-tab.formspec-focus-ring.formspec-tab--active  type="button"  role="tab"  aria-selected  aria-controls="tabs-panel-0"  tabindex="0"  |  86×42  p:10,15  |  bg:rgb(39, 89, 79)  color:rgb(255, 255, 255)  radius:999px  shadow:color(srgb 0.138375 0.31578 0.280299 / 0.84) 0px 0px 0px ...  font:14px/600
+                        button  #tabs-tab-0  .formspec-tab.formspec-focus-ring.formspec-tab--active  type="button"  role="tab"  aria-selected  aria-controls="tabs-panel-0"  tabindex="0"  |  86×42  p:10,15  |  bg:rgb(239, 239, 239)  color:rgb(0, 0, 0)  radius:999px  shadow:oklab(0 0 0 / 0) 0px 0px 0px 0px inset  font:14px/600
                           "Personal"
-                        button  #tabs-tab-1  .formspec-tab.formspec-focus-ring  type="button"  role="tab"  aria-selected="false"  aria-controls="tabs-panel-1"  tabindex="-1"  |  81×42  p:10,15  |  color:rgb(115, 108, 98)  radius:999px  font:14px/500
+                        button  #tabs-tab-1  .formspec-tab.formspec-focus-ring  type="button"  role="tab"  aria-selected="false"  aria-controls="tabs-panel-1"  tabindex="-1"  |  81×42  p:10,15  |  bg:rgb(239, 239, 239)  color:rgb(0, 0, 0)  radius:999px  font:14px/500
                           "Contact"
                       div  .formspec-tab-panels  |  584×191  p:14,0,0,0
                         div  #tabs-panel-0  .formspec-tab-panel  role="tabpanel"  aria-labelledby="tabs-tab-0"  tabindex="0"  |  584×177
@@ -63,13 +63,13 @@ div  |  1200×285
                                 "First Name"
                                 abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
                                   "*"
-                              input  #field-firstName  .formspec-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
+                              input  #field-firstName  .formspec-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:oklab(0.999994 0.0000455678 0.0000200868)  color:rgb(0, 0, 0)  border:1px solid oklab(0.565833 0.0000256598 0.0000113547)  radius:14.4px  font:15.2px
                               p #field-firstName-error .formspec-error [hidden]
                             div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="lastName"  data-bind="lastName"  |  584×82  d:flex  dir:column  gap:4px
                               label  .formspec-label  for="field-lastName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
                                 "Last Name"
                                 abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
                                   "*"
-                              input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
+                              input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:oklab(0.999994 0.0000455678 0.0000200868)  color:rgb(0, 0, 0)  border:1px solid oklab(0.565833 0.0000256598 0.0000113547)  radius:14.4px  font:15.2px
                               p #field-lastName-error .formspec-error [hidden]
                         div #tabs-panel-1 .formspec-tab-panel.formspec-hidden [hidden]

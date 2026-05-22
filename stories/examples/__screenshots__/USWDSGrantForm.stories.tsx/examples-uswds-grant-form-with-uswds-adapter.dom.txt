@@ -2,25 +2,26 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×4332
-  div  |  1200×4332
-    div  |  800×4332  m:0,200
-      div  |  800×4332
+div  |  1200×958
+  div  |  1200×958
+    div  |  800×958  m:0,200
+      div  |  800×958
         #shadow-root
           link [hidden]
           link [hidden]
-          div  |  800×4332
-            div  .isolated-story-root  |  800×4332
-              form  .usa-form  |  800×4332
-                h2  .usa-sr-only  |  457×28  pos:absolute  m:20,0  |  font:24px/bold
+          link [hidden]
+          div  |  800×958
+            div  .isolated-story-root  |  800×958
+              form  .usa-form  |  800×958  |  font:16.96px
+                h2  .usa-sr-only  |  526×33  pos:absolute  m:21,0  |  font:25.44px/bold
                   "Community Development Grant Application"
-                div  |  800×4332
-                  formspec-render  data-formspecAppearance="light"  |  800×4332
+                div  |  800×958
+                  formspec-render  data-formspecAppearance="light"  |  800×958
                     #shadow-root
-                    div  .formspec-container.formspec-appearance-light  |  800×4332
-                      div  .formspec-wizard  |  800×4332
-                        div  .formspec-uswds-wizard__content  |  800×4332  d:flex  dir:column  gap:16px
-                          nav  .usa-step-indicator  aria-label="Form progress"  |  800×117  m:0,0,32,0  |  bg:rgb(255, 255, 255)  font:16.96px
+                    div  .formspec-container.formspec-appearance-light  |  800×958  d:flex  dir:column  gap:16px
+                      div  .formspec-wizard  |  800×958
+                        div  .formspec-uswds-wizard__content  |  800×958  d:flex  dir:column  gap:16px
+                          nav  .usa-step-indicator  aria-label="Form progress"  |  800×117  m:0,0,32,0  |  bg:rgb(255, 255, 255)
                             ol  .usa-step-indicator__segments  |  800×53  d:flex
                               li  .usa-step-indicator__segment.usa-step-indicator__segment--current  |  198×53  pos:relative  d:list-item  m:0,1
                                 span  .usa-step-indicator__segment-label  |  198×37  m:16,0,0,0  p:0,32,0,0  |  color:rgb(0, 94, 162)  font-weight:bold
@@ -45,44 +46,44 @@ div  |  1200×4332
                                     "of 4"
                                 span  .usa-step-indicator__heading-text  |  165×19
                                   "Applicant Information"
-                          div  .formspec-wizard-panel  role="region"  aria-labelledby="formspec-wizard-step-1-label"  tabindex="-1"  |  546×783  p:16  |  border:1px solid rgb(223, 225, 226)  radius:4px
-                            h2  #formspec-wizard-step-1-label  .usa-step-indicator__heading.formspec-uswds-wizard__panel-heading  |  512×19  m:0,0,16,0  |  color:rgb(27, 27, 27)  font-weight:bold
+                          div  .formspec-wizard-panel  role="region"  aria-labelledby="formspec-wizard-step-1-label"  tabindex="-1"  |  512×713  p:16  |  border:1px solid rgb(223, 225, 226)  radius:4px
+                            h2  #formspec-wizard-step-1-label  .usa-step-indicator__heading.formspec-uswds-wizard__panel-heading  |  478×21  m:0,0,16,0  |  color:rgb(27, 27, 27)  font:16px/bold
                               "Applicant Information"
-                            div  .grid-row.grid-gap  |  544×714  d:flex  wrap:wrap  m:0,-16
-                              div  .grid-col-12.tablet:grid-col-8  |  363×230  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  363×164  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  363×164  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.org_name"  |  331×140  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-org_name"  |  331×22  |  font:16.96px
+                            div  .grid-row.grid-gap  |  510×642  d:flex  wrap:wrap  m:0,-16
+                              div  .grid-col-12.tablet:grid-col-8  |  340×212  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  340×146  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  340×146  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.org_name"  |  308×122  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-org_name"  |  308×22
                                         "Organization Legal Name"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      div  #field-applicant_section-org_name-desc  .usa-hint  |  331×44  |  color:rgb(113, 118, 122)  font:16.96px
+                                      div  #field-applicant_section-org_name-desc  .usa-hint.formspec-description  |  308×44  |  color:rgb(113, 118, 122)
                                         "Full legal name as it appears on your IRS determination letter."
-                                      span  #field-applicant_section-org_name-error  .usa-error-message  |  331×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-org_name  .usa-input  type="text"  name="applicant_section.org_name"  aria-required  aria-invalid="false"  |  349×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×230  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×230  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×230  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.ein"  |  149×206  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-ein"  |  149×66  |  font:16.96px
+                                      span  #field-applicant_section-org_name-error  .usa-error-message  |  308×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-org_name  .usa-input  type="text"  name="applicant_section.org_name"  aria-describedby="field-applicant_section-org_name-desc"  aria-required  aria-invalid="false"  |  308×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-4  |  170×212  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  170×212  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  170×212  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.ein"  |  138×188  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-ein"  |  138×66
                                         "Employer Identification Number (EIN)"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      div  #field-applicant_section-ein-desc  .usa-hint  |  149×66  |  color:rgb(113, 118, 122)  font:16.96px
+                                      div  #field-applicant_section-ein-desc  .usa-hint.formspec-description  |  138×66  |  color:rgb(113, 118, 122)
                                         "9-digit federal tax ID (XX-XXXXXXX format)."
-                                      span  #field-applicant_section-ein-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-ein  .usa-input  type="text"  name="applicant_section.ein"  aria-required  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-6  |  272×102  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  272×102  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  272×102  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.org_type"  |  240×78  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-org_type"  |  240×22  |  font:16.96px
+                                      span  #field-applicant_section-ein-error  .usa-error-message  |  138×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-ein  .usa-input  type="text"  name="applicant_section.ein"  aria-describedby="field-applicant_section-ein-desc"  aria-required  aria-invalid="false"  |  138×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-6  |  255×102  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  255×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  255×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.org_type"  |  223×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-org_type"  |  223×22
                                         "Organization Type"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-org_type-error  .usa-error-message  |  240×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      select  #field-applicant_section-org_type  .usa-select  name="applicant_section.org_type"  aria-required  aria-invalid="false"  |  240×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
+                                      span  #field-applicant_section-org_type-error  .usa-error-message  |  223×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      select  #field-applicant_section-org_type  .usa-select  name="applicant_section.org_type"  aria-required  aria-invalid="false"  |  223×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
                                         option  disabled  |  0×0  p:0,2,1,2  overflow:hidden
                                           "- Select -"
                                         option  value="nonprofit"  |  0×0  p:0,2,1,2  overflow:hidden
@@ -95,36 +96,36 @@ div  |  1200×4332
                                           "Educational Institution"
                                         option  value="faith_based"  |  0×0  p:0,2,1,2  overflow:hidden
                                           "Faith-Based Organization"
-                              div  .grid-col-12.tablet:grid-col-12  |  544×120  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×120  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×120  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.address.street"  |  480×96  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-address-street"  |  480×22  |  font:16.96px
+                              div  .grid-col-12.tablet:grid-col-12  |  510×102  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  510×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  510×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.address.street"  |  478×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-address-street"  |  478×22
                                         "Street Address"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-address-street-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-address-street  .usa-input  type="text"  name="applicant_section.address.street"  aria-required  aria-invalid="false"  |  498×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-5  |  227×120  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  227×120  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  227×120  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.address.city"  |  195×96  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-address-city"  |  195×22  |  font:16.96px
+                                      span  #field-applicant_section-address-street-error  .usa-error-message  |  478×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-address-street  .usa-input  type="text"  name="applicant_section.address.street"  aria-required  aria-invalid="false"  |  478×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-5  |  213×102  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  213×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  213×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.address.city"  |  181×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-address-city"  |  181×22
                                         "City"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-address-city-error  .usa-error-message  |  195×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-address-city  .usa-input  type="text"  name="applicant_section.address.city"  aria-required  aria-invalid="false"  |  213×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×120  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×102  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×102  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.address.state"  |  149×78  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-address-state"  |  149×22  |  font:16.96px
+                                      span  #field-applicant_section-address-city-error  .usa-error-message  |  181×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-address-city  .usa-input  type="text"  name="applicant_section.address.city"  aria-required  aria-invalid="false"  |  181×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-4  |  170×102  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  170×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  170×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.address.state"  |  138×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-address-state"  |  138×22
                                         "State"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-address-state-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      select  #field-applicant_section-address-state  .usa-select  name="applicant_section.address.state"  aria-required  aria-invalid="false"  |  149×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
+                                      span  #field-applicant_section-address-state-error  .usa-error-message  |  138×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      select  #field-applicant_section-address-state  .usa-select  name="applicant_section.address.state"  aria-required  aria-invalid="false"  |  138×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
                                         option  disabled  |  0×0  p:0,2,1,2  overflow:hidden
                                           "- Select -"
                                         option  value="AL"  |  0×0  p:0,2,1,2  overflow:hidden
@@ -229,376 +230,51 @@ div  |  1200×4332
                                           "Wisconsin"
                                         option  value="WY"  |  0×0  p:0,2,1,2  overflow:hidden
                                           "Wyoming"
-                              div  .grid-col-12.tablet:grid-col-3  |  136×120  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  136×120  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  136×120  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.address.zip"  |  104×96  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-address-zip"  |  104×22  |  font:16.96px
+                              div  .grid-col-12.tablet:grid-col-3  |  128×102  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  128×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  128×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.address.zip"  |  96×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-address-zip"  |  96×22
                                         "ZIP Code"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-address-zip-error  .usa-error-message  |  104×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-address-zip  .usa-input  type="text"  name="applicant_section.address.zip"  aria-required  aria-invalid="false"  |  122×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×142  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×142  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.contact_name"  |  149×118  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-contact_name"  |  149×44  |  font:16.96px
+                                      span  #field-applicant_section-address-zip-error  .usa-error-message  |  96×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-address-zip  .usa-input  type="text"  name="applicant_section.address.zip"  aria-required  aria-invalid="false"  |  96×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-4  |  170×124  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  170×124  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  170×124  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.contact_name"  |  138×100  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-contact_name"  |  138×44
                                         "Primary Contact Name"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-contact_name-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-contact_name  .usa-input  type="text"  name="applicant_section.contact_name"  aria-required  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×120  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×120  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.contact_email"  |  149×96  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-contact_email"  |  149×22  |  font:16.96px
+                                      span  #field-applicant_section-contact_name-error  .usa-error-message  |  138×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-contact_name  .usa-input  type="text"  name="applicant_section.contact_name"  aria-required  aria-invalid="false"  |  138×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-4  |  170×124  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  170×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  170×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.contact_email"  |  138×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-contact_email"  |  138×22
                                         "Contact Email"
                                         abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                           "*"
-                                      span  #field-applicant_section-contact_email-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-contact_email  .usa-input  type="text"  name="applicant_section.contact_email"  aria-required  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×120  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×120  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="applicant_section.contact_phone"  |  149×96  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-applicant_section-contact_phone"  |  149×22  |  font:16.96px
+                                      span  #field-applicant_section-contact_email-error  .usa-error-message  |  138×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-contact_email  .usa-input  type="text"  name="applicant_section.contact_email"  aria-required  aria-invalid="false"  |  138×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              div  .grid-col-12.tablet:grid-col-4  |  170×124  pos:relative  p:0,16
+                                div  .formspec-stack.grid-row.grid-gap  |  170×102  d:flex  wrap:wrap  m:0,-16
+                                  div  .grid-col-12  |  170×102  pos:relative  p:0,16
+                                    div  .usa-form-group  data-name="applicant_section.contact_phone"  |  138×78  d:flex  dir:column  m:24,0,0,0
+                                      label  .usa-label  for="field-applicant_section-contact_phone"  |  138×22
                                         "Contact Phone"
-                                      span  #field-applicant_section-contact_phone-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-applicant_section-contact_phone  .usa-input  type="text"  name="applicant_section.contact_phone"  aria-required="false"  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                          div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-labelledby="formspec-wizard-step-2-label"  tabindex="-1"  |  546×1614  p:16  |  border:1px solid rgb(223, 225, 226)  radius:4px
-                            h2  #formspec-wizard-step-2-label  .usa-step-indicator__heading.formspec-uswds-wizard__panel-heading  |  512×19  m:0,0,16,0  |  color:rgb(27, 27, 27)  font-weight:bold
-                              "Project Details"
-                            div  .grid-row.grid-gap  |  544×1545  d:flex  wrap:wrap  m:0,-16
-                              div  .grid-col-12.tablet:grid-col-12  |  544×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×142  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×142  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="project_section.project_title"  |  480×118  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-project_section-project_title"  |  480×22  |  font:16.96px
-                                        "Project Title"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      div  #field-project_section-project_title-desc  .usa-hint  |  480×22  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "A concise title describing the proposed project."
-                                      span  #field-project_section-project_title-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-project_section-project_title  .usa-input  type="text"  name="project_section.project_title"  aria-required  aria-invalid="false"  |  498×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-12  |  544×306  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×306  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×306  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="project_section.project_abstract"  |  480×282  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-project_section-project_abstract"  |  480×22  |  font:16.96px
-                                        "Project Abstract"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      div  #field-project_section-project_abstract-desc  .usa-hint  |  480×66  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "Provide a brief summary of the proposed project, including objectives, target population, and expected outcomes (500 ..."
-                                      span  #field-project_section-project_abstract-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      textarea  #field-project_section-project_abstract  .usa-textarea  name="project_section.project_abstract"  aria-required  aria-invalid="false"  |  498×178  m:8,0,0,0  p:8  overflow:auto  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-6  |  272×164  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  272×102  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  272×102  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="project_section.grant_type"  |  240×78  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-project_section-grant_type"  |  240×22  |  font:16.96px
-                                        "Application Type"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      span  #field-project_section-grant_type-error  .usa-error-message  |  240×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      select  #field-project_section-grant_type  .usa-select  name="project_section.grant_type"  aria-required  aria-invalid="false"  |  240×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                        option  disabled  |  0×0  p:0,2,1,2  overflow:hidden
-                                          "- Select -"
-                                        option  value="new"  |  0×0  p:0,2,1,2  overflow:hidden
-                                          "New Application"
-                                        option  value="continuation"  |  0×0  p:0,2,1,2  overflow:hidden
-                                          "Continuation"
-                                        option  value="supplement"  |  0×0  p:0,2,1,2  overflow:hidden
-                                          "Supplemental Funding"
-                                        option  value="renewal"  |  0×0  p:0,2,1,2  overflow:hidden
-                                          "Renewal"
-                              div  .grid-col-12.tablet:grid-col-3  |  136×164  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  136×164  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  136×164  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="project_section.start_date"  |  104×140  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-project_section-start_date"  |  104×44  |  font:16.96px
-                                        "Proposed Start Date"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      span  #field-project_section-start_date-error  .usa-error-message  |  104×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      span  #field-project_section-start_date-hint  .usa-hint  |  104×22  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "MM/DD/YYYY"
-                                      div  .usa-date-picker  |  104×66
-                                        input  #field-project_section-start_date  .usa-input  type="text"  name="project_section.start_date"  aria-describedby="field-project_section-start_date-hint"  aria-required  aria-invalid="false"  |  122×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-3  |  136×164  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  136×164  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  136×164  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="project_section.end_date"  |  104×140  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-project_section-end_date"  |  104×44  |  font:16.96px
-                                        "Proposed End Date"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      span  #field-project_section-end_date-error  .usa-error-message  |  104×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      span  #field-project_section-end_date-hint  .usa-hint  |  104×22  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "MM/DD/YYYY"
-                                      div  .usa-date-picker  |  104×66
-                                        input  #field-project_section-end_date  .usa-input  type="text"  name="project_section.end_date"  aria-describedby="field-project_section-end_date-hint"  aria-required  aria-invalid="false"  |  122×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-12  |  544×324  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×324  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×324  pos:relative  p:0,16
-                                    fieldset  .usa-fieldset  data-name="project_section.target_population"  |  480×324  |  font:16.96px
-                                      legend  #field-project_section-target_population-label  .usa-legend  |  164×22  m:24,0,0,0  p:0,2
-                                        "Target Population(s)"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      div  #field-project_section-target_population-desc  .usa-hint  |  480×22  |  color:rgb(113, 118, 122)
-                                        "Select all populations this project will serve."
-                                      span  #field-project_section-target_population-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-0  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="low_income"  aria-required  aria-invalid="false"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-0"  |  222×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Low-Income Households"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-1  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="elderly"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-1"  |  126×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Elderly (62+)"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-2  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="youth"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-2"  |  159×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Youth (Under 18)"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-3  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="disabled"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-3"  |  216×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Persons with Disabilities"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-4  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="homeless"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-4"  |  193×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Homeless Individuals"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-5  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="veterans"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-5"  |  98×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Veterans"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-6  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="rural"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-6"  |  176×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Rural Communities"
-                                      div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-target_population-7  .usa-checkbox__input  type="checkbox"  name="project_section.target_population"  value="tribal"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-target_population-7"  |  177×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
-                                          "Tribal Communities"
-                              div  .grid-col-12.tablet:grid-col-12  |  544×66  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×66  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×66  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="project_section.has_subcontractors"  |  480×42  d:flex  dir:column  m:24,0,0,0
-                                      span  #field-project_section-has_subcontractors-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                                        input  #field-project_section-has_subcontractors  .usa-checkbox__input  type="checkbox"  name="project_section.has_subcontractors"  aria-required="false"  aria-invalid="false"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-project_section-has_subcontractors"  |  334×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)  font:16.96px
-                                          "Will this project involve subcontractors?"
-                              div  .grid-col-12.tablet:grid-col-12  |  544×543  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×543  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×543  pos:relative  p:0,16
-                                    div  .formspec-group.formspec-hidden  |  512×524
-                                      h3  .formspec-group-title  |  512×22  m:19,0  |  font:18.72px/bold
-                                        "Subcontractor Details"
-                                      div  .usa-form-group.formspec-hidden  aria-hidden  data-name="project_section.subcontractor_info.sub_org_name"  |  512×96  m:24,0,0,0
-                                        label  .usa-label  for="field-project_section-subcontractor_info-sub_org_name"  |  512×22  |  font:16.96px
-                                          "Subcontractor Organization"
-                                        span  #field-project_section-subcontractor_info-sub_org_name-error  .usa-error-message  |  512×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                        input  #field-project_section-subcontractor_info-sub_org_name  .usa-input  type="text"  name="project_section.subcontractor_info.sub_org_name"  aria-required="false"  aria-invalid="false"  |  530×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                      div  .usa-form-group.formspec-hidden  aria-hidden  data-name="project_section.subcontractor_info.sub_scope"  |  512×216  m:24,0,0,0
-                                        label  .usa-label  for="field-project_section-subcontractor_info-sub_scope"  |  512×22  |  font:16.96px
-                                          "Scope of Work"
-                                        span  #field-project_section-subcontractor_info-sub_scope-error  .usa-error-message  |  512×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                        textarea  #field-project_section-subcontractor_info-sub_scope  .usa-textarea  name="project_section.subcontractor_info.sub_scope"  aria-required="false"  aria-invalid="false"  |  530×178  m:8,0,0,0  p:8  overflow:auto  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                      div  .usa-form-group.formspec-hidden  aria-hidden  data-name="project_section.subcontractor_info.sub_amount"  |  512×118  m:24,0,0,0
-                                        label  .usa-label  for="field-project_section-subcontractor_info-sub_amount"  |  512×22  |  font:16.96px
-                                          "Subcontract Amount"
-                                        div  #field-project_section-subcontractor_info-sub_amount-desc  .usa-hint  |  512×22  |  color:rgb(113, 118, 122)  font:16.96px
-                                          "Total dollar amount of the subcontract."
-                                        span  #field-project_section-subcontractor_info-sub_amount-error  .usa-error-message  |  512×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                        input  #field-project_section-subcontractor_info-sub_amount  .usa-input  type="number"  name="project_section.subcontractor_info.sub_amount"  aria-required="false"  aria-invalid="false"  |  530×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                          div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-labelledby="formspec-wizard-step-3-label"  tabindex="-1"  |  546×1017  p:16  |  border:1px solid rgb(223, 225, 226)  radius:4px
-                            h2  #formspec-wizard-step-3-label  .usa-step-indicator__heading.formspec-uswds-wizard__panel-heading  |  512×19  m:0,0,16,0  |  color:rgb(27, 27, 27)  font-weight:bold
-                              "Budget"
-                            div  .grid-row.grid-gap  |  544×948  d:flex  wrap:wrap  m:0,-16
-                              div  .grid-col-12.tablet:grid-col-12  |  544×110  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×110  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×110  pos:relative  p:0,16
-                                    div  .usa-prose.formspec-uswds-text-wrap  |  512×76  |  font:16.96px
-                                      p  .formspec-text.margin-top-0  |  512×76  m:17,0
-                                        "Itemize all projected costs by category. Each line item should include a brief description and dollar amount. The sys..."
-                              div  .grid-col-12.tablet:grid-col-12  |  544×465  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×465  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×465  pos:relative  p:0,16
-                                    div  .formspec-repeat  data-bind="budget_section.line_items"  |  512×449
-                                      div  .formspec-repeat-list  |  512×394
-                                        div  .formspec-repeat-instance  role="group"  aria-label="Budget Line Items 1 of 1"  |  512×394
-                                          div  .formspec-repeat-instance-header  |  512×52
-                                            p  .formspec-repeat-instance-label  |  512×18  m:16,0
-                                              "Budget Line Items 1"
-                                            button  .formspec-repeat-remove.formspec-button-danger.formspec-focus-ring  type="button"  aria-label="Remove Budget Line Items 1"  |  205×15  d:inline-flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)  font:16.96px
-                                              "Remove Budget Line Items"
-                                          div  .usa-form-group  data-name="budget_section.line_items[0].category"  |  512×78  m:24,0,0,0
-                                            label  .usa-label  for="field-budget_section-line_items-0--category"  |  512×22  |  font:16.96px
-                                              "Category"
-                                            span  #field-budget_section-line_items-0--category-error  .usa-error-message  |  512×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                            select  #field-budget_section-line_items-0--category  .usa-select  name="budget_section.line_items[0].category"  aria-required="false"  aria-invalid="false"  |  512×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                              option  disabled  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "- Select -"
-                                              option  value="personnel"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Personnel / Salaries"
-                                              option  value="fringe"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Fringe Benefits"
-                                              option  value="travel"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Travel"
-                                              option  value="equipment"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Equipment"
-                                              option  value="supplies"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Supplies"
-                                              option  value="contractual"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Contractual Services"
-                                              option  value="construction"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Construction"
-                                              option  value="other"  |  0×0  p:0,2,1,2  overflow:hidden
-                                                "Other Direct Costs"
-                                          div  .usa-form-group  data-name="budget_section.line_items[0].description"  |  512×96  m:24,0,0,0
-                                            label  .usa-label  for="field-budget_section-line_items-0--description"  |  512×22  |  font:16.96px
-                                              "Description"
-                                            span  #field-budget_section-line_items-0--description-error  .usa-error-message  |  512×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                            input  #field-budget_section-line_items-0--description  .usa-input  type="text"  name="budget_section.line_items[0].description"  aria-required="false"  aria-invalid="false"  |  530×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                          div  .usa-form-group  data-name="budget_section.line_items[0].amount"  |  512×96  m:24,0,0,0
-                                            label  .usa-label  for="field-budget_section-line_items-0--amount"  |  512×22  |  font:16.96px
-                                              "Amount ($)"
-                                            span  #field-budget_section-line_items-0--amount-error  .usa-error-message  |  512×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                            input  #field-budget_section-line_items-0--amount  .usa-input  type="number"  name="budget_section.line_items[0].amount"  aria-required="false"  aria-invalid="false"  |  530×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                      button  .formspec-repeat-add.formspec-focus-ring  type="button"  |  224×39  d:inline-flex  gap:normal 8px  jc:center  ai:center  m:16,8,0,0  p:12,20  |  color:rgb(0, 94, 162)  radius:4px  shadow:rgb(0, 94, 162) 0px 0px 0px 2px inset  font:16.96px/bold
-                                        "Add Budget Line Items"
-                                      div  .formspec-sr-only  aria-live="polite"  |  512×0
-                              div  .grid-col-12.tablet:grid-col-4  |  181×230  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×186  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×186  pos:relative  p:0,16
-                                    div  .usa-form-group.formspec-field--readonly  data-name="budget_section.total_direct"  |  149×162  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-budget_section-total_direct"  |  149×22  |  font:16.96px
-                                        "Total Direct Costs"
-                                      div  #field-budget_section-total_direct-desc  .usa-hint  |  149×66  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "Calculated sum of all line item amounts."
-                                      span  #field-budget_section-total_direct-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-budget_section-total_direct  .usa-input  type="number"  readonly  name="budget_section.total_direct"  aria-required="false"  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×230  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×230  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×230  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="budget_section.indirect_rate"  |  149×206  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-budget_section-indirect_rate"  |  149×44  |  font:16.96px
-                                        "Indirect Cost Rate (%)"
-                                      div  #field-budget_section-indirect_rate-desc  .usa-hint  |  149×88  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "Enter your federally negotiated indirect cost rate. Enter 0 if not applicable."
-                                      span  #field-budget_section-indirect_rate-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-budget_section-indirect_rate  .usa-input  type="number"  name="budget_section.indirect_rate"  aria-required="false"  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-4  |  181×230  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  181×186  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  181×186  pos:relative  p:0,16
-                                    div  .usa-form-group.formspec-field--readonly  data-name="budget_section.indirect_costs"  |  149×162  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-budget_section-indirect_costs"  |  149×22  |  font:16.96px
-                                        "Indirect Costs"
-                                      div  #field-budget_section-indirect_costs-desc  .usa-hint  |  149×66  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "Calculated from direct costs and indirect rate."
-                                      span  #field-budget_section-indirect_costs-error  .usa-error-message  |  149×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-budget_section-indirect_costs  .usa-input  type="number"  readonly  name="budget_section.indirect_costs"  aria-required="false"  aria-invalid="false"  |  167×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-12  |  544×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×142  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×142  pos:relative  p:0,16
-                                    div  .usa-form-group.formspec-field--readonly  data-name="budget_section.total_requested"  |  480×118  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-budget_section-total_requested"  |  480×22  |  font:16.96px
-                                        "Total Amount Requested"
-                                      div  #field-budget_section-total_requested-desc  .usa-hint  |  480×22  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "Total direct costs plus indirect costs."
-                                      span  #field-budget_section-total_requested-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-budget_section-total_requested  .usa-input  type="number"  readonly  name="budget_section.total_requested"  aria-required="false"  aria-invalid="false"  |  498×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                          div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-labelledby="formspec-wizard-step-4-label"  tabindex="-1"  |  546×649  p:16  |  border:1px solid rgb(223, 225, 226)  radius:4px
-                            h2  #formspec-wizard-step-4-label  .usa-step-indicator__heading.formspec-uswds-wizard__panel-heading  |  512×19  m:0,0,16,0  |  color:rgb(27, 27, 27)  font-weight:bold
-                              "Attachments & Certification"
-                            div  .grid-row.grid-gap  |  544×580  d:flex  wrap:wrap  m:0,-16
-                              div  .grid-col-12.tablet:grid-col-12  |  544×85  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×85  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×85  pos:relative  p:0,16
-                                    div  .usa-prose.formspec-uswds-text-wrap  |  512×51  |  font:16.96px
-                                      p  .formspec-text.margin-top-0  |  512×51  m:17,0
-                                        "Upload the required supporting documents. Accepted formats: PDF, DOC, DOCX, XLS, XLSX (max 10 MB each)."
-                              div  .grid-col-12.tablet:grid-col-6  |  272×206  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  272×206  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  272×206  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="review_section.budget_narrative"  |  240×182  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-review_section-budget_narrative"  |  240×22  |  font:16.96px
-                                        "Budget Narrative"
-                                      div  #field-review_section-budget_narrative-desc  .usa-hint  |  240×44  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "A detailed justification for each budget line item."
-                                      span  #field-review_section-budget_narrative-error  .usa-error-message  |  240×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      div  .usa-file-input  |  240×108
-                                        div  .usa-file-input__target  role="button"  aria-label="Drop files here or press Enter to browse"  tabindex="0"  |  242×100  pos:relative  m:8,0,0,0  |  border:1px dashed rgb(169, 174, 177)  font:14.88px
-                                          div  .usa-file-input__instructions  |  240×98  pos:relative  p:32,16
-                                            "Drag file here or"
-                                            span  .usa-file-input__choose  |  106×34  |  color:rgb(0, 94, 162)
-                                              "choose from folder"
-                                          div  .usa-file-input__box  |  240×98  pos:absolute  |  bg:rgb(255, 255, 255)
-                                          input  #field-review_section-budget_narrative  .usa-file-input__input  type="file"  name="review_section.budget_narrative"  aria-required="false"  aria-invalid="false"  |  256×114  pos:absolute  p:8  overflow:clip  |  font:13.3333px
-                              div  .grid-col-12.tablet:grid-col-6  |  272×206  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  272×206  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  272×206  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="review_section.org_chart"  |  240×182  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-review_section-org_chart"  |  240×22  |  font:16.96px
-                                        "Organizational Chart"
-                                      div  #field-review_section-org_chart-desc  .usa-hint  |  240×44  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "Current organizational chart showing project staff positions."
-                                      span  #field-review_section-org_chart-error  .usa-error-message  |  240×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      div  .usa-file-input  |  240×108
-                                        div  .usa-file-input__target  role="button"  aria-label="Drop files here or press Enter to browse"  tabindex="0"  |  242×100  pos:relative  m:8,0,0,0  |  border:1px dashed rgb(169, 174, 177)  font:14.88px
-                                          div  .usa-file-input__instructions  |  240×98  pos:relative  p:32,16
-                                            "Drag file here or"
-                                            span  .usa-file-input__choose  |  106×34  |  color:rgb(0, 94, 162)
-                                              "choose from folder"
-                                          div  .usa-file-input__box  |  240×98  pos:absolute  |  bg:rgb(255, 255, 255)
-                                          input  #field-review_section-org_chart  .usa-file-input__input  type="file"  name="review_section.org_chart"  aria-required="false"  aria-invalid="false"  |  256×114  pos:absolute  p:8  overflow:clip  |  font:13.3333px
-                              div  .grid-col-12.tablet:grid-col-12  |  544×59  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×59  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×59  pos:relative  p:0,16
-                                    div  .usa-prose.formspec-uswds-text-wrap  |  512×25  |  font:16.96px
-                                      p  .formspec-text.margin-top-0  |  512×25  m:17,0
-                                        "Certification"
-                              div  .grid-col-12.tablet:grid-col-12  |  544×88  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  544×88  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  544×88  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="review_section.certify"  |  480×64  d:flex  dir:column  m:24,0,0,0
-                                      span  #field-review_section-certify-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      div  .usa-checkbox  |  480×56  |  bg:rgb(255, 255, 255)
-                                        input  #field-review_section-certify  .usa-checkbox__input  type="checkbox"  name="review_section.certify"  aria-required  aria-invalid="false"  |  13×13  pos:absolute  m:3,3,3,4  |  font:13.3333px
-                                        label  .usa-checkbox__label  for="field-review_section-certify"  |  480×44  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)  font:16.96px
-                                          "I certify that the information provided in this application is true and correct to the best of my knowledge."
-                                          abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                            "*"
-                              div  .grid-col-12.tablet:grid-col-6  |  272×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  272×142  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  272×142  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="review_section.certifier_name"  |  240×118  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-review_section-certifier_name"  |  240×44  |  font:16.96px
-                                        "Authorized Representative Name"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      span  #field-review_section-certifier_name-error  .usa-error-message  |  240×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      input  #field-review_section-certifier_name  .usa-input  type="text"  name="review_section.certifier_name"  aria-required  aria-invalid="false"  |  258×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                              div  .grid-col-12.tablet:grid-col-6  |  272×142  pos:relative  p:0,16
-                                div  .formspec-stack.grid-row.grid-gap  |  272×142  d:flex  wrap:wrap  m:0,-16
-                                  div  .grid-col-12  |  272×142  pos:relative  p:0,16
-                                    div  .usa-form-group  data-name="review_section.certification_date"  |  240×118  d:flex  dir:column  m:24,0,0,0
-                                      label  .usa-label  for="field-review_section-certification_date"  |  240×22  |  font:16.96px
-                                        "Date Signed"
-                                        abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
-                                          "*"
-                                      span  #field-review_section-certification_date-error  .usa-error-message  |  240×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                      span  #field-review_section-certification_date-hint  .usa-hint  |  240×22  |  color:rgb(113, 118, 122)  font:16.96px
-                                        "MM/DD/YYYY"
-                                      div  .usa-date-picker  |  240×66
-                                        input  #field-review_section-certification_date  .usa-input  type="text"  name="review_section.certification_date"  aria-describedby="field-review_section-certification_date-hint"  aria-required  aria-invalid="false"  |  258×58  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                          div  .formspec-wizard-nav.usa-button-group  |  808×39  d:flex  wrap:wrap  jc:space-between  ai:center  m:0,-4
-                            button  .formspec-wizard-prev.usa-button.usa-button--outline  type="button"  disabled  aria-disabled  |  110×39  d:flex  gap:normal 8px  jc:center  ai:center  m:0,8,0,0  p:12,20  |  color:rgb(117, 117, 117)  radius:4px  shadow:rgb(201, 201, 201) 0px 0px 0px 2px inset  font:16.96px/bold
+                                      span  #field-applicant_section-contact_phone-error  .usa-error-message  |  138×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                                      input  #field-applicant_section-contact_phone  .usa-input  type="text"  name="applicant_section.contact_phone"  aria-required="false"  aria-invalid="false"  |  138×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                          div .formspec-wizard-panel.formspec-hidden [hidden]
+                          div .formspec-wizard-panel.formspec-hidden [hidden]
+                          div .formspec-wizard-panel.formspec-hidden [hidden]
+                          div  .formspec-wizard-nav.usa-button-group  |  808×63  d:flex  wrap:wrap  gap:8px  jc:space-between  ai:center  m:0,-4
+                            button  .formspec-wizard-prev.usa-button.usa-button--outline  type="button"  disabled  aria-disabled  |  110×39  d:flex  gap:normal 8px  jc:center  ai:center  m:24,8,0,0  p:12,20  |  color:rgb(117, 117, 117)  radius:4px  shadow:rgb(201, 201, 201) 0px 0px 0px 2px inset  font-weight:bold
                               "Previous"
-                            button  .formspec-wizard-next.usa-button  type="button"  aria-label="Next step"  |  77×39  d:flex  gap:normal 8px  jc:center  ai:center  m:0,8,0,0  p:12,20  |  bg:rgb(0, 94, 162)  color:rgb(255, 255, 255)  radius:4px  font:16.96px/bold
+                            button  .formspec-wizard-next.usa-button  type="button"  aria-label="Next step"  |  77×39  d:flex  gap:normal 8px  jc:center  ai:center  m:24,8,0,0  p:12,20  |  bg:rgb(0, 94, 162)  color:rgb(255, 255, 255)  radius:4px  font-weight:bold
                               "Next"
+                          div  .usa-sr-only  role="status"  aria-live="polite"  |  260×22  pos:absolute
+                            "Applicant Information. Step 1 of 4."

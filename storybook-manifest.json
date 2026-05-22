@@ -1,13 +1,679 @@
 {
-  "generatedAt": "2026-04-08T13:57:54.640Z",
-  "count": 1,
+  "generatedAt": "2026-05-21T22:34:02.477Z",
+  "count": 75,
   "stories": [
+    {
+      "id": "adapters-uswds--checkbox",
+      "title": "USWDSSideBySideStory",
+      "name": "Checkbox",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-checkbox-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-checkbox.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--checkbox-group",
+      "title": "USWDSSideBySideStory",
+      "name": "Checkbox Group",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-checkbox-group-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-checkbox-group.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--conditional",
+      "title": "USWDSSideBySideStory",
+      "name": "Conditional",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-conditional-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-conditional.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--contact-form",
+      "title": "USWDSSideBySideStory",
+      "name": "Contact Form",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-contact-form-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-contact-form.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--date-picker",
+      "title": "USWDSSideBySideStory",
+      "name": "Date Picker",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-date-picker-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-date-picker.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--display",
+      "title": "USWDSSideBySideStory",
+      "name": "Display",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-display-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-display.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--file-upload",
+      "title": "USWDSSideBySideStory",
+      "name": "File Upload",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-file-upload-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-file-upload.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--money-input",
+      "title": "USWDSSideBySideStory",
+      "name": "Money Input",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-money-input-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-money-input.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--number-input",
+      "title": "USWDSSideBySideStory",
+      "name": "Number Input",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-number-input-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-number-input.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--number-stepper",
+      "title": "USWDSSideBySideStory",
+      "name": "Number Stepper",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-number-stepper-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-number-stepper.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--radio-group",
+      "title": "USWDSSideBySideStory",
+      "name": "Radio Group",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-radio-group-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-radio-group.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--repeat-group",
+      "title": "USWDSSideBySideStory",
+      "name": "Repeat Group",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-repeat-group-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-repeat-group.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--select",
+      "title": "USWDSSideBySideStory",
+      "name": "Select",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-select-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-select.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--slider",
+      "title": "USWDSSideBySideStory",
+      "name": "Slider",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-slider-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-slider.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--text-input",
+      "title": "USWDSSideBySideStory",
+      "name": "Text Input",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-text-input-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-text-input.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--text-input-detailed",
+      "title": "USWDSSideBySideStory",
+      "name": "Text Input Detailed",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-text-input-detailed-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-text-input-detailed.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--textarea",
+      "title": "USWDSSideBySideStory",
+      "name": "Textarea",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-textarea-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-textarea.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--toggle",
+      "title": "USWDSSideBySideStory",
+      "name": "Toggle",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-toggle-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-toggle.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds--validation",
+      "title": "USWDSSideBySideStory",
+      "name": "Validation",
+      "png": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-validation-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDS.stories.tsx/adapters-uswds-validation.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--accordion",
+      "title": "USWDSSideBySideStory",
+      "name": "Accordion",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-accordion-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-accordion.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--accordion-multi-open",
+      "title": "USWDSSideBySideStory",
+      "name": "Accordion (Multi-open)",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-accordion-multi-open-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-accordion-multi-open.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
     {
       "id": "adapters-uswds-layout--collapsible",
       "title": "USWDSSideBySideStory",
       "name": "Collapsible",
       "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-collapsible-chromium-darwin.png",
       "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-collapsible.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--contact-form-grid",
+      "title": "USWDSSideBySideStory",
+      "name": "Contact Form (Grid + Card)",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-contact-form-grid-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-contact-form-grid.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--grouped-form-cards",
+      "title": "USWDSSideBySideStory",
+      "name": "Grouped Form (Card layout)",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-grouped-form-cards-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-grouped-form-cards.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--modal",
+      "title": "USWDSSideBySideStory",
+      "name": "Modal",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-modal-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-modal.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--panel",
+      "title": "USWDSSideBySideStory",
+      "name": "Panel (Sidebar)",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-panel-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-panel.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--popover",
+      "title": "USWDSSideBySideStory",
+      "name": "Popover",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-popover-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-popover.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--tabs",
+      "title": "USWDSSideBySideStory",
+      "name": "Tabs",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-tabs-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-tabs.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "adapters-uswds-layout--wizard",
+      "title": "USWDSSideBySideStory",
+      "name": "Wizard (Multi-step)",
+      "png": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-wizard-chromium-darwin.png",
+      "dom": "stories/adapters/uswds/__screenshots__/USWDSLayout.stories.tsx/adapters-uswds-layout-wizard.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "behavior--conditional-visibility",
+      "title": "SideBySideStory",
+      "name": "Conditional Visibility",
+      "png": "stories/behavior/__screenshots__/Behavior.stories.tsx/behavior-conditional-visibility-chromium-darwin.png",
+      "dom": "stories/behavior/__screenshots__/Behavior.stories.tsx/behavior-conditional-visibility.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "behavior--repeatable-group",
+      "title": "SideBySideStory",
+      "name": "Repeatable Group",
+      "png": "stories/behavior/__screenshots__/Behavior.stories.tsx/behavior-repeatable-group-chromium-darwin.png",
+      "dom": "stories/behavior/__screenshots__/Behavior.stories.tsx/behavior-repeatable-group.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "behavior--validation-rules",
+      "title": "SideBySideStory",
+      "name": "Validation Rules",
+      "png": "stories/behavior/__screenshots__/Behavior.stories.tsx/behavior-validation-rules-chromium-darwin.png",
+      "dom": "stories/behavior/__screenshots__/Behavior.stories.tsx/behavior-validation-rules.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--alert-variants",
+      "title": "SideBySideStory",
+      "name": "Alert Variants",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-alert-variants-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-alert-variants.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--all-display-types",
+      "title": "SideBySideStory",
+      "name": "Heading / Text / Divider / Alert",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-all-display-types-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-all-display-types.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--badge-and-spacing",
+      "title": "SideBySideStory",
+      "name": "Badge & Spacing",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-badge-and-spacing-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-badge-and-spacing.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--data-table",
+      "title": "SideBySideStory",
+      "name": "DataTable",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-data-table-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-data-table.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--heading-hierarchy",
+      "title": "SideBySideStory",
+      "name": "Heading Hierarchy (h1–h6)",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-heading-hierarchy-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-heading-hierarchy.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--progress-bar",
+      "title": "SideBySideStory",
+      "name": "ProgressBar",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-progress-bar-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-progress-bar.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--summary",
+      "title": "SideBySideStory",
+      "name": "Summary",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-summary-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-summary.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "display-components--validation-summary",
+      "title": "SideBySideStory",
+      "name": "ValidationSummary",
+      "png": "stories/display/__screenshots__/Display.stories.tsx/display-components-validation-summary-chromium-darwin.png",
+      "dom": "stories/display/__screenshots__/Display.stories.tsx/display-components-validation-summary.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "examples-grant-application--default",
+      "title": "SideBySideStory",
+      "name": "Community Impact Grant",
+      "png": "stories/examples/__screenshots__/GrantApplication.stories.tsx/examples-grant-application-default-chromium-darwin.png",
+      "dom": "stories/examples/__screenshots__/GrantApplication.stories.tsx/examples-grant-application-default.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "examples-uswds-grant-form--with-default-renderer",
+      "title": "IsolatedWebComponentStory",
+      "name": "Default Renderer",
+      "png": "stories/examples/__screenshots__/USWDSGrantForm.stories.tsx/examples-uswds-grant-form-with-default-renderer-chromium-darwin.png",
+      "dom": "stories/examples/__screenshots__/USWDSGrantForm.stories.tsx/examples-uswds-grant-form-with-default-renderer.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "examples-uswds-grant-form--with-uswds-adapter",
+      "title": "IsolatedWebComponentStory",
+      "name": "USWDS Adapter",
+      "png": "stories/examples/__screenshots__/USWDSGrantForm.stories.tsx/examples-uswds-grant-form-with-uswds-adapter-chromium-darwin.png",
+      "dom": "stories/examples/__screenshots__/USWDSGrantForm.stories.tsx/examples-uswds-grant-form-with-uswds-adapter.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-choice--checkbox",
+      "title": "SideBySideStory",
+      "name": "Checkbox",
+      "png": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-checkbox-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-checkbox.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-choice--checkbox-group",
+      "title": "SideBySideStory",
+      "name": "Checkbox Group",
+      "png": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-checkbox-group-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-checkbox-group.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-choice--radio-group",
+      "title": "SideBySideStory",
+      "name": "Radio Group",
+      "png": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-radio-group-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-radio-group.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-choice--searchable-select",
+      "title": "SideBySideStory",
+      "name": "Searchable Select",
+      "png": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-searchable-select-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-searchable-select.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-choice--select",
+      "title": "SideBySideStory",
+      "name": "Select",
+      "png": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-select-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Choice.stories.tsx/fields-choice-select.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-date-time--date-picker",
+      "title": "SideBySideStory",
+      "name": "Date Picker",
+      "png": "stories/fields/__screenshots__/DateTime.stories.tsx/fields-date-time-date-picker-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/DateTime.stories.tsx/fields-date-time-date-picker.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-date-time--date-time-picker",
+      "title": "SideBySideStory",
+      "name": "DateTime Picker",
+      "png": "stories/fields/__screenshots__/DateTime.stories.tsx/fields-date-time-date-time-picker-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/DateTime.stories.tsx/fields-date-time-date-time-picker.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-date-time--time-picker",
+      "title": "SideBySideStory",
+      "name": "Time Picker",
+      "png": "stories/fields/__screenshots__/DateTime.stories.tsx/fields-date-time-time-picker-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/DateTime.stories.tsx/fields-date-time-time-picker.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-numeric--money-input",
+      "title": "SideBySideStory",
+      "name": "Money Input",
+      "png": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-money-input-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-money-input.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-numeric--number-input",
+      "title": "SideBySideStory",
+      "name": "Number Input",
+      "png": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-number-input-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-number-input.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-numeric--number-stepper",
+      "title": "SideBySideStory",
+      "name": "Number Stepper",
+      "png": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-number-stepper-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-number-stepper.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-numeric--rating",
+      "title": "SideBySideStory",
+      "name": "Rating",
+      "png": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-rating-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-rating.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-numeric--slider",
+      "title": "SideBySideStory",
+      "name": "Slider",
+      "png": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-slider-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Numeric.stories.tsx/fields-numeric-slider.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-special--file-upload",
+      "title": "SideBySideStory",
+      "name": "File Upload",
+      "png": "stories/fields/__screenshots__/Special.stories.tsx/fields-special-file-upload-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Special.stories.tsx/fields-special-file-upload.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-special--signature",
+      "title": "SideBySideStory",
+      "name": "Signature",
+      "png": "stories/fields/__screenshots__/Special.stories.tsx/fields-special-signature-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Special.stories.tsx/fields-special-signature.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-special--toggle",
+      "title": "SideBySideStory",
+      "name": "Toggle",
+      "png": "stories/fields/__screenshots__/Special.stories.tsx/fields-special-toggle-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/Special.stories.tsx/fields-special-toggle.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-text--basic",
+      "title": "SideBySideStory",
+      "name": "Basic",
+      "png": "stories/fields/__screenshots__/TextInput.stories.tsx/fields-text-basic-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/TextInput.stories.tsx/fields-text-basic.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-text--textarea",
+      "title": "SideBySideStory",
+      "name": "Textarea",
+      "png": "stories/fields/__screenshots__/TextInput.stories.tsx/fields-text-textarea-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/TextInput.stories.tsx/fields-text-textarea.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "fields-text--with-validation",
+      "title": "SideBySideStory",
+      "name": "With Validation",
+      "png": "stories/fields/__screenshots__/TextInput.stories.tsx/fields-text-with-validation-chromium-darwin.png",
+      "dom": "stories/fields/__screenshots__/TextInput.stories.tsx/fields-text-with-validation.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--accordion",
+      "title": "SideBySideStory",
+      "name": "Accordion",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-accordion-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-accordion.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--accordion-multi-open",
+      "title": "SideBySideStory",
+      "name": "Accordion (Multi-open)",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-accordion-multi-open-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-accordion-multi-open.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--collapsible",
+      "title": "SideBySideStory",
+      "name": "Collapsible",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-collapsible-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-collapsible.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--modal",
+      "title": "SideBySideStory",
+      "name": "Modal",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-modal-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-modal.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--panel",
+      "title": "SideBySideStory",
+      "name": "Panel (Sidebar)",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-panel-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-panel.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--popover",
+      "title": "SideBySideStory",
+      "name": "Popover",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-popover-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-popover.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--tabs",
+      "title": "SideBySideStory",
+      "name": "Tabs",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-tabs-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-tabs.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--wizard",
+      "title": "SideBySideStory",
+      "name": "Wizard (Multi-step)",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-wizard-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-wizard.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-advanced--wizard-with-sidenav",
+      "title": "SideBySideStory",
+      "name": "Wizard (side navigation)",
+      "png": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-wizard-with-sidenav-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Advanced.stories.tsx/layout-advanced-wizard-with-sidenav.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-containers--card-layout",
+      "title": "SideBySideStory",
+      "name": "Grouped Form (Card layout)",
+      "png": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-card-layout-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-card-layout.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-containers--contact-form",
+      "title": "SideBySideStory",
+      "name": "Contact Form (flat)",
+      "png": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-contact-form-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-contact-form.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-containers--contact-form-grid",
+      "title": "SideBySideStory",
+      "name": "Contact Form (Grid + Card)",
+      "png": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-contact-form-grid-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-contact-form-grid.dom.txt",
+      "consoleErrors": [],
+      "ok": true
+    },
+    {
+      "id": "layout-containers--grouped-form",
+      "title": "SideBySideStory",
+      "name": "Grouped Form (default)",
+      "png": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-grouped-form-chromium-darwin.png",
+      "dom": "stories/layout/__screenshots__/Containers.stories.tsx/layout-containers-grouped-form.dom.txt",
       "consoleErrors": [],
       "ok": true
     }

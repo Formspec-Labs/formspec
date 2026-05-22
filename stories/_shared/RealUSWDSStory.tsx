@@ -83,6 +83,8 @@ function normalizeWidgetHint(item: FormspecItem) {
     if (raw === 'radio') return 'radiogroup';
     if (raw === 'multiselect') return 'checkboxgroup';
     if (raw === 'textarea') return 'textinput';
+    if (raw === 'text') return 'paragraph';
+    if (raw === 'alert') return 'banner';
     return raw;
 }
 

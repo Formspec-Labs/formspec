@@ -2,64 +2,64 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×268
-  div  |  1200×268  d:grid  cols:584px 584px 0px  rows:267.922px  gap:32px
-    div  |  584×268
+div  |  1200×154
+  div  |  1200×154  d:grid  cols:584px 584px 0px  rows:154px  gap:32px
+    div  |  584×154
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "React"
-      div  |  584×241
+      div  |  584×127
         #shadow-root
           link [hidden]
-          div  |  584×241
-            div  .formspec-container.formspec-appearance-light  |  584×241  d:flex  dir:column  gap:16px  |  color:rgb(32, 36, 31)  font:15.36px
-              div  .formspec-stack  |  584×241  d:flex  dir:column  gap:16px
-                div  .formspec-field  data-name="firstName"  |  584×82  d:flex  dir:column  gap:4px
-                  label  .formspec-label  for="field-firstName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+          div  |  584×127
+            div  .formspec-container.formspec-appearance-light  |  584×127
+              div  .formspec-stack  |  584×127  d:flex  dir:column  gap:16px
+                div  .formspec-field  data-name="firstName"  |  584×37
+                  label  .formspec-label  for="field-firstName"  |  84×18
                     "First Name"
-                    abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                    abbr  .formspec-required.usa-label--required  |  12×18
                       "*"
-                  input  #field-firstName  type="text"  required  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                  p #field-firstName-error .formspec-error [hidden]
-                div  .formspec-field  data-name="lastName"  |  584×82  d:flex  dir:column  gap:4px
-                  label  .formspec-label  for="field-lastName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                  input  #field-firstName  type="text"  required  name="firstName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                  p  #field-firstName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                div  .formspec-field  data-name="lastName"  |  584×37
+                  label  .formspec-label  for="field-lastName"  |  82×18
                     "Last Name"
-                    abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                    abbr  .formspec-required.usa-label--required  |  12×18
                       "*"
-                  input  #field-lastName  type="text"  required  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                  p #field-lastName-error .formspec-error [hidden]
-                div  .formspec-popover  |  584×44  d:flex  dir:column  gap:8px  ai:flex-start
-                  button  .formspec-popover-trigger  type="button"  aria-expanded="false"  aria-haspopup="dialog"  |  109×44  d:flex  gap:4.9px  ai:center  p:10,16  |  bg:color(srgb 0.949176 0.960941 0.958588)  color:rgb(39, 89, 79)  border:1px solid rgb(39, 89, 79)  radius:14.4px  font:14px/600
+                  input  #field-lastName  type="text"  required  name="lastName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                  p  #field-lastName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                div  .formspec-popover  |  584×21
+                  button  .formspec-popover-trigger  type="button"  aria-expanded="false"  aria-haspopup="dialog"  |  84×21  d:inline-block  p:1,6  |  bg:rgb(239, 239, 239)  border:2px outset rgb(0, 0, 0)  font:13.3333px
                     "Need help?"
                   div .formspec-popover-content [hidden]
-    div  |  584×268
+    div  |  584×122
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Web Component"
-      div  |  584×241
-        div  |  584×241
+      div  |  584×95
+        div  |  584×95
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×241
-              div  .isolated-story-root  |  584×241
-                formspec-render  data-formspecAppearance="light"  |  584×241
+            div  |  584×95
+              div  .isolated-story-root  |  584×95
+                formspec-render  data-formspecAppearance="light"  |  584×95
                   #shadow-root
-                  div  .formspec-container.formspec-appearance-light  |  584×241  d:flex  dir:column  gap:16px  |  color:rgb(32, 36, 31)  font:15.36px
-                    div  .formspec-stack  |  584×241  d:flex  dir:column  gap:16px
-                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="firstName"  data-bind="firstName"  |  584×82  d:flex  dir:column  gap:4px
-                        label  .formspec-label  for="field-firstName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                  div  .formspec-container.formspec-appearance-light  |  584×95
+                    div  .formspec-stack  |  584×95
+                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="firstName"  data-bind="firstName"  |  584×21
+                        label  .formspec-label  for="field-firstName"  |  84×18
                           "First Name"
-                          abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                          abbr  .formspec-required.usa-label--required  |  12×18
                             "*"
-                        input  #field-firstName  .formspec-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                        p #field-firstName-error .formspec-error [hidden]
-                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="lastName"  data-bind="lastName"  |  584×82  d:flex  dir:column  gap:4px
-                        label  .formspec-label  for="field-lastName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                        input  #field-firstName  .formspec-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                        p  #field-firstName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="lastName"  data-bind="lastName"  |  584×21
+                        label  .formspec-label  for="field-lastName"  |  82×18
                           "Last Name"
-                          abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                          abbr  .formspec-required.usa-label--required  |  12×18
                             "*"
-                        input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                        p #field-lastName-error .formspec-error [hidden]
-                      div  .formspec-popover  |  584×44  d:flex  dir:column  gap:8px  ai:flex-start
-                        button  .formspec-popover-trigger.formspec-focus-ring  type="button"  aria-expanded="false"  aria-haspopup="dialog"  |  109×44  d:flex  gap:4.9px  ai:center  p:10,16  |  bg:color(srgb 0.949176 0.960941 0.958588)  color:rgb(39, 89, 79)  border:1px solid rgb(39, 89, 79)  radius:14.4px  font:14px/600
+                        input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                        p  #field-lastName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                      div  .formspec-popover  |  584×21
+                        button  .formspec-popover-trigger.formspec-focus-ring  type="button"  aria-expanded="false"  aria-haspopup="dialog"  |  84×21  d:inline-block  p:1,6  |  bg:rgb(239, 239, 239)  border:2px outset rgb(0, 0, 0)  font:13.3333px
                           "Need help?"
                         div .formspec-popover-content [hidden]

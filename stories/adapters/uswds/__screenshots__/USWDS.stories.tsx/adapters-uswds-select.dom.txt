@@ -2,34 +2,35 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×105
-  div  |  1200×105  d:grid  cols:584px 584px 0px  rows:105.031px  gap:32px
-    div  |  584×105
+div  |  1200×129
+  div  |  1200×129  d:grid  cols:584px 584px 0px  rows:129.031px  gap:32px
+    div  |  584×129
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×78
-        div  |  584×78
+      div  |  584×102
+        div  |  584×102
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×78
-              div  .isolated-story-root  |  584×78
-                form  .usa-form  |  584×78  |  font:16.96px
-                  h2  .usa-sr-only  |  69×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            link [hidden]
+            div  |  584×102
+              div  .isolated-story-root  |  584×102
+                form  .usa-form  |  584×102  |  font:16.96px
+                  h2  .usa-sr-only  |  76×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Select"
-                  div  |  584×78
-                    formspec-render  data-formspecAppearance="light"  |  584×78
+                  div  |  584×102
+                    formspec-render  data-formspecAppearance="light"  |  584×102
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×78  d:flex  dir:column  gap:16px
-                        div  .formspec-stack.grid-row.grid-gap  |  616×78  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×78  pos:relative  p:0,16
-                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="color"  |  480×78  d:flex  dir:column
-                              label  .usa-label  for="field-color"  |  480×22
+                      div  .formspec-container.formspec-appearance-light  |  584×102  d:flex  dir:column  gap:16px
+                        div  .formspec-stack.grid-row.grid-gap  |  616×102  d:flex  wrap:wrap  m:0,-16
+                          div  .grid-col-12  |  616×102  pos:relative  p:0,16
+                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="color"  |  584×78  d:flex  dir:column  m:24,0,0,0
+                              label  .usa-label  for="field-color"  |  584×22
                                 "Favorite Color"
-                                abbr  .formspec-required.usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                                abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                   "*"
-                              span  #field-color-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              select  #field-color  .usa-select  name="color"  aria-required  aria-invalid="false"  |  480×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                              span  #field-color-error  .usa-error-message  |  584×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                              select  #field-color  .usa-select  name="color"  aria-required  aria-invalid="false"  |  584×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
                                 option  disabled  |  0×0  p:0,2,1,2  overflow:hidden
                                   "- Select -"
                                 option  value="red"  |  0×0  p:0,2,1,2  overflow:hidden
@@ -50,14 +51,14 @@ div  |  1200×105
             div  .story-root  |  584×78  |  color:rgb(27, 27, 27)
               div  |  584×78
                 form  .usa-form.usa-form--large  |  480×78  |  font:16.96px
-                  h2  .usa-sr-only  |  69×33  pos:absolute  m:21,0  |  font:25.44px/bold
+                  h2  .usa-sr-only  |  76×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Select"
                   div  .grid-row.grid-gap.real-uswds-stack  |  512×78  d:flex  wrap:wrap  m:0,-16
                     div  .grid-col-12  |  512×78  pos:relative  p:0,16
                       div  .usa-form-group  |  480×78  d:flex  dir:column
                         label  .usa-label  for="real-uswds-color"  |  480×22
                           "Favorite Color"
-                          abbr  .usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                          abbr  .usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                             "*"
                         span  #real-uswds-color-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                         select  #real-uswds-color  .usa-select  required  name="color"  aria-describedby="real-uswds-color-error"  aria-invalid="false"  data-realUswdsPath="color"  |  480×40  m:8,0,0,0  p:8,32,8,8  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)

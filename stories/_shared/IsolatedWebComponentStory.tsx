@@ -6,7 +6,7 @@ import type { RenderAdapter } from '@formspec-org/webcomponent';
 import formspecDefaultCssUrl from '../../packages/formspec-webcomponent/src/formspec-default.css?url';
 import formspecLayoutCssUrl from '../../packages/formspec-webcomponent/src/formspec-layout.css?url';
 import uswdsCssUrl from '@uswds/uswds/css/uswds.css?url';
-import uswdsIntegrationCssUrl from '@formspec-org/adapters/uswds-integration.css?url';
+import uswdsIntegrationCssUrl from '../../packages/formspec-adapters/dist/uswds-integration.css?url';
 import type { StoryAppearance } from './storyAppearance';
 
 if (!customElements.get('formspec-render')) {

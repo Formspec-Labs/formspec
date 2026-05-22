@@ -5,7 +5,7 @@ import {
     allDisplayDef,
     alertVariantsComponentDoc,
     headingHierarchyComponentDoc,
-    badgeSpacerComponentDoc,
+    badgeSpacingComponentDoc,
     progressBarComponentDoc,
     summaryComponentDoc,
     validationSummaryDef,
@@ -41,10 +41,10 @@ export const HeadingHierarchy: Story = {
     args: { definition: contactFormDef, componentDocument: headingHierarchyComponentDoc },
 };
 
-/** Badge and Spacer — placed via component document. */
-export const BadgeAndSpacer: Story = {
-    name: 'Badge & Spacer',
-    args: { definition: contactFormDef, componentDocument: badgeSpacerComponentDoc },
+/** Badge spacing — placed via component document. */
+export const BadgeAndSpacing: Story = {
+    name: 'Badge & Spacing',
+    args: { definition: contactFormDef, componentDocument: badgeSpacingComponentDoc },
 };
 
 /** ProgressBar — static value with percentage display. */

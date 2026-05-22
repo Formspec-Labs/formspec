@@ -2,88 +2,88 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×464
-  div  |  1200×464  d:grid  cols:584px 584px 0px  rows:463.828px  gap:32px
-    div  |  584×464
+div  |  1200×306
+  div  |  1200×306  d:grid  cols:584px 584px 0px  rows:306px  gap:32px
+    div  |  584×306
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "React"
-      div  |  584×437
+      div  |  584×279
         #shadow-root
           link [hidden]
-          div  |  584×437
-            div  .formspec-container.formspec-appearance-light  |  584×437  d:flex  dir:column  gap:16px  |  color:rgb(32, 36, 31)  font:15.36px
-              div  .formspec-stack  |  584×437  d:flex  dir:column  gap:16px
-                div  .formspec-field  data-name="firstName"  |  584×82  d:flex  dir:column  gap:4px
-                  label  .formspec-label  for="field-firstName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+          div  |  584×279
+            div  .formspec-container.formspec-appearance-light  |  584×279
+              div  .formspec-stack  |  584×279  d:flex  dir:column  gap:16px
+                div  .formspec-field  data-name="firstName"  |  584×37
+                  label  .formspec-label  for="field-firstName"  |  84×18
                     "First Name"
-                    abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                    abbr  .formspec-required.usa-label--required  |  12×18
                       "*"
-                  input  #field-firstName  type="text"  required  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                  p #field-firstName-error .formspec-error [hidden]
-                div  .formspec-field  data-name="lastName"  |  584×82  d:flex  dir:column  gap:4px
-                  label  .formspec-label  for="field-lastName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                  input  #field-firstName  type="text"  required  name="firstName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                  p  #field-firstName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                div  .formspec-field  data-name="lastName"  |  584×37
+                  label  .formspec-label  for="field-lastName"  |  82×18
                     "Last Name"
-                    abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                    abbr  .formspec-required.usa-label--required  |  12×18
                       "*"
-                  input  #field-lastName  type="text"  required  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                  p #field-lastName-error .formspec-error [hidden]
-                div  .formspec-field  data-name="email"  |  584×82  d:flex  dir:column  gap:4px
-                  label  .formspec-label  for="field-email"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                  input  #field-lastName  type="text"  required  name="lastName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                  p  #field-lastName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                div  .formspec-field  data-name="email"  |  584×37
+                  label  .formspec-label  for="field-email"  |  38×18
                     "Email"
-                  input  #field-email  type="text"  name="email"  aria-required="false"  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                  p #field-email-error .formspec-error [hidden]
-                hr  .formspec-divider  |  584×1  m:8,0  overflow:hidden  |  color:color(srgb 0.762968 0.728634 0.674692)  border:1px 0px 0px solid none none color(srgb 0.762968 0.728634 0.674692)
-                dl  .formspec-summary  |  584×78  d:grid  cols:80.8906px 487.109px  rows:19.4375px 19.4375px 19.4375px  gap:10px 16px  m:15,0
-                  dt  |  81×19  |  color:rgb(115, 108, 98)  font:12.16px/600
+                  input  #field-email  type="text"  name="email"  aria-required="false"  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                  p  #field-email-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                hr  .formspec-divider  |  2×2  m:8,291  overflow:hidden  |  color:rgb(128, 128, 128)  border:1px inset rgb(128, 128, 128)
+                dl  .formspec-summary  |  584×54  m:16,0
+                  dt  |  584×18
                     "First Name"
-                  dd  |  487×0  |  color:rgb(23, 27, 23)
-                  dt  |  81×19  |  color:rgb(115, 108, 98)  font:12.16px/600
+                  dd  |  544×0  m:0,0,0,40
+                  dt  |  584×18
                     "Last Name"
-                  dd  |  487×0  |  color:rgb(23, 27, 23)
-                  dt  |  81×19  |  color:rgb(115, 108, 98)  font:12.16px/600
+                  dd  |  544×0  m:0,0,0,40
+                  dt  |  584×18
                     "Email"
-                  dd  |  487×0  |  color:rgb(23, 27, 23)
-    div  |  584×464
+                  dd  |  544×0  m:0,0,0,40
+    div  |  584×226
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Web Component"
-      div  |  584×437
-        div  |  584×437
+      div  |  584×183
+        div  |  584×183
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×437
-              div  .isolated-story-root  |  584×437
-                formspec-render  data-formspecAppearance="light"  |  584×437
+            div  |  584×183
+              div  .isolated-story-root  |  584×183
+                formspec-render  data-formspecAppearance="light"  |  584×183
                   #shadow-root
-                  div  .formspec-container.formspec-appearance-light  |  584×437  d:flex  dir:column  gap:16px  |  color:rgb(32, 36, 31)  font:15.36px
-                    div  .formspec-stack  |  584×437  d:flex  dir:column  gap:16px
-                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="firstName"  data-bind="firstName"  |  584×82  d:flex  dir:column  gap:4px
-                        label  .formspec-label  for="field-firstName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                  div  .formspec-container.formspec-appearance-light  |  584×183
+                    div  .formspec-stack  |  584×183
+                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="firstName"  data-bind="firstName"  |  584×21
+                        label  .formspec-label  for="field-firstName"  |  84×18
                           "First Name"
-                          abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                          abbr  .formspec-required.usa-label--required  |  12×18
                             "*"
-                        input  #field-firstName  .formspec-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                        p #field-firstName-error .formspec-error [hidden]
-                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="lastName"  data-bind="lastName"  |  584×82  d:flex  dir:column  gap:4px
-                        label  .formspec-label  for="field-lastName"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                        input  #field-firstName  .formspec-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                        p  #field-firstName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="lastName"  data-bind="lastName"  |  584×21
+                        label  .formspec-label  for="field-lastName"  |  82×18
                           "Last Name"
-                          abbr  .formspec-required.usa-label--required  |  10×18  m:0,0,0,2  |  color:rgb(193, 40, 31)
+                          abbr  .formspec-required.usa-label--required  |  12×18
                             "*"
-                        input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                        p #field-lastName-error .formspec-error [hidden]
-                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="email"  data-bind="email"  |  584×82  d:flex  dir:column  gap:4px
-                        label  .formspec-label  for="field-email"  |  584×22  m:0,0,6,0  |  font:13.44px/560
+                        input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                        p  #field-lastName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                      div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="email"  data-bind="email"  |  584×21
+                        label  .formspec-label  for="field-email"  |  38×18
                           "Email"
-                        input  #field-email  .formspec-input  type="text"  name="email"  aria-required="false"  aria-invalid="false"  |  584×50  p:13,15  overflow:clip  |  bg:color(srgb 0.992784 0.981961 0.960314)  border:1px solid color(srgb 0.797412 0.765255 0.720235)  radius:14.4px  font:15.2px
-                        p #field-email-error .formspec-error [hidden]
-                      hr  .formspec-divider  |  584×1  m:8,0  overflow:hidden  |  color:color(srgb 0.762968 0.728634 0.674692)  border:1px 0px 0px solid none none color(srgb 0.762968 0.728634 0.674692)
-                      dl  .formspec-summary  |  584×78  d:grid  cols:80.8906px 487.109px  rows:19.4375px 19.4375px 19.4375px  gap:10px 16px  m:15,0
-                        dt  |  81×19  |  color:rgb(115, 108, 98)  font:12.16px/600
+                        input  #field-email  .formspec-input  type="text"  name="email"  aria-required="false"  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                        p  #field-email-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
+                      hr  .formspec-divider  |  584×2  m:8,0  overflow:hidden  |  color:rgb(128, 128, 128)  border:1px inset rgb(128, 128, 128)
+                      dl  .formspec-summary  |  584×54  m:16,0
+                        dt  |  584×18
                           "First Name"
-                        dd  |  487×0  |  color:rgb(23, 27, 23)
-                        dt  |  81×19  |  color:rgb(115, 108, 98)  font:12.16px/600
+                        dd  |  544×0  m:0,0,0,40
+                        dt  |  584×18
                           "Last Name"
-                        dd  |  487×0  |  color:rgb(23, 27, 23)
-                        dt  |  81×19  |  color:rgb(115, 108, 98)  font:12.16px/600
+                        dd  |  544×0  m:0,0,0,40
+                        dt  |  584×18
                           "Email"
-                        dd  |  487×0  |  color:rgb(23, 27, 23)
+                        dd  |  544×0  m:0,0,0,40

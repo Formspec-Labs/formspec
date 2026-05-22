@@ -2,32 +2,33 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×105
-  div  |  1200×105  d:grid  cols:584px 584px 0px  rows:105.031px  gap:32px
-    div  |  584×105
+div  |  1200×129
+  div  |  1200×129  d:grid  cols:584px 584px 0px  rows:129.031px  gap:32px
+    div  |  584×129
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×78
-        div  |  584×78
+      div  |  584×102
+        div  |  584×102
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×78
-              div  .isolated-story-root  |  584×78
-                form  .usa-form  |  584×78  |  font:16.96px
-                  h2  .usa-sr-only  |  66×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            link [hidden]
+            div  |  584×102
+              div  .isolated-story-root  |  584×102
+                form  .usa-form  |  584×102  |  font:16.96px
+                  h2  .usa-sr-only  |  70×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Slider"
-                  div  |  584×78
-                    formspec-render  data-formspecAppearance="light"  |  584×78
+                  div  |  584×102
+                    formspec-render  data-formspecAppearance="light"  |  584×102
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×78  d:flex  dir:column  gap:16px
-                        div  .formspec-stack.grid-row.grid-gap  |  616×78  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×78  pos:relative  p:0,16
-                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="satisfaction"  |  480×78  d:flex  dir:column
-                              label  .usa-label  for="field-satisfaction"  |  480×22
+                      div  .formspec-container.formspec-appearance-light  |  584×102  d:flex  dir:column  gap:16px
+                        div  .formspec-stack.grid-row.grid-gap  |  616×102  d:flex  wrap:wrap  m:0,-16
+                          div  .grid-col-12  |  616×102  pos:relative  p:0,16
+                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="satisfaction"  |  584×78  d:flex  dir:column  m:24,0,0,0
+                              label  .usa-label  for="field-satisfaction"  |  584×22
                                 "Satisfaction"
-                              span  #field-satisfaction-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              input  #field-satisfaction  .usa-range  type="range"  min="0"  max="10"  step="1"  name="satisfaction"  aria-required="false"  aria-invalid="false"  |  480×40  m:8,0,0,0  p:8,1  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)
+                              span  #field-satisfaction-error  .usa-error-message  |  584×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                              input  #field-satisfaction  .usa-range  type="range"  min="0"  max="10"  step="1"  name="satisfaction"  aria-required="false"  aria-invalid="false"  |  584×40  m:8,0,0,0  p:8,1  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)
     div  |  584×105
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"
@@ -38,7 +39,7 @@ div  |  1200×105
             div  .story-root  |  584×78  |  color:rgb(27, 27, 27)
               div  |  584×78
                 form  .usa-form.usa-form--large  |  480×78  |  font:16.96px
-                  h2  .usa-sr-only  |  66×33  pos:absolute  m:21,0  |  font:25.44px/bold
+                  h2  .usa-sr-only  |  70×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Slider"
                   div  .grid-row.grid-gap.real-uswds-stack  |  512×78  d:flex  wrap:wrap  m:0,-16
                     div  .grid-col-12  |  512×78  pos:relative  p:0,16

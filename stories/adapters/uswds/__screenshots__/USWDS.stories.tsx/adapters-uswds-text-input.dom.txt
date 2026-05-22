@@ -4,32 +4,33 @@ div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
 div  |  1200×122
   div  |  1200×122  d:grid  cols:584px 584px 0px  rows:121.812px  gap:32px
-    div  |  584×105
+    div  |  584×104
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×78
-        div  |  584×78
+      div  |  584×69
+        div  |  584×69
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×78
-              div  .isolated-story-root  |  584×78
-                form  .usa-form  |  584×78
-                  h2  .usa-sr-only  |  108×28  pos:absolute  m:20,0  |  font:24px/bold
+            link [hidden]
+            div  |  584×69
+              div  .isolated-story-root  |  584×69
+                form  .usa-form  |  584×69
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Text Input"
-                  div  |  584×78
-                    formspec-render  data-formspecAppearance="light"  |  584×78
+                  div  |  584×21
+                    formspec-render  data-formspecAppearance="light"  |  584×21
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×78
-                        div  .formspec-stack.grid-row.grid-gap  |  616×78  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×78  pos:relative  p:0,16
-                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="name"  |  480×78  d:flex  dir:column
-                              label  .usa-label  for="field-name"  |  480×22  |  font:16.96px
+                      div  .formspec-container.formspec-appearance-light  |  584×21
+                        div  .formspec-stack.grid-row.grid-gap  |  584×21
+                          div  .grid-col-12  |  584×21
+                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="name"  |  584×21
+                              label  .usa-label  for="field-name"  |  80×18
                                 "Full Name"
-                                abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
+                                abbr  .formspec-required.usa-label--required  |  12×18
                                   "*"
-                              span  #field-name-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              input  #field-name  .usa-input  type="text"  name="name"  aria-required  aria-invalid="false"  |  480×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
+                              span  #field-name-error  .usa-error-message  |  0×18
+                              input  #field-name  .usa-input  type="text"  name="name"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
     div  |  584×122
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"

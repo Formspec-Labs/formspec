@@ -2,66 +2,67 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×629
-  div  |  1200×629  d:grid  cols:584px 584px 0px  rows:628.625px  gap:32px
-    div  |  584×629
+div  |  1200×725
+  div  |  1200×725  d:grid  cols:584px 584px 0px  rows:724.625px  gap:32px
+    div  |  584×725
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×602
-        div  |  584×602
+      div  |  584×698
+        div  |  584×698
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×602
-              div  .isolated-story-root  |  584×602
-                form  .usa-form  |  584×602  |  font:16.96px
-                  h2  .usa-sr-only  |  153×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            link [hidden]
+            div  |  584×698
+              div  .isolated-story-root  |  584×698
+                form  .usa-form  |  584×698  |  font:16.96px
+                  h2  .usa-sr-only  |  169×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Repeat Group"
-                  div  |  584×602
-                    formspec-render  data-formspecAppearance="light"  |  584×602
+                  div  |  584×698
+                    formspec-render  data-formspecAppearance="light"  |  584×698
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×602  d:flex  dir:column  gap:16px
-                        div  .formspec-stack.grid-row.grid-gap  |  616×602  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×602  pos:relative  p:0,16
-                            div  .formspec-repeat  data-bind="members"  |  584×602  d:flex  dir:column
-                              div  .formspec-repeat-list  |  584×546  d:flex  dir:column  gap:12px
-                                div  .formspec-repeat-instance  role="group"  aria-label="Team Members 1 of 2"  |  584×267  d:flex  dir:column  gap:12px  p:15,16,16,16
+                      div  .formspec-container.formspec-appearance-light  |  584×698  d:flex  dir:column  gap:16px
+                        div  .formspec-stack.grid-row.grid-gap  |  616×698  d:flex  wrap:wrap  m:0,-16
+                          div  .grid-col-12  |  616×698  pos:relative  p:0,16
+                            div  .formspec-repeat  data-bind="members"  |  584×698  d:flex  dir:column
+                              div  .formspec-repeat-list  |  584×642  d:flex  dir:column  gap:12px
+                                div  .formspec-repeat-instance  role="group"  aria-label="Team Members 1 of 2"  |  584×315  d:flex  dir:column  gap:12px  p:15,16,16,16
                                   div  .formspec-repeat-instance-header  |  552×56  d:flex  gap:12px  jc:space-between  ai:flex-start
-                                    p  .formspec-repeat-instance-label  |  119×22  m:17,0
+                                    p  .formspec-repeat-instance-label  |  131×22  m:17,0
                                       "Team Members 1"
-                                    button  .formspec-repeat-remove.formspec-button-danger.formspec-focus-ring  type="button"  aria-label="Remove Team Members 1"  |  168×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
+                                    button  .formspec-repeat-remove.formspec-button-danger.formspec-focus-ring  type="button"  aria-label="Remove Team Members 1"  |  184×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
                                       "Remove Team Members"
-                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[0].memberName"  |  552×78
+                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[0].memberName"  |  552×78  m:24,0,0,0
                                     label  .usa-label  for="field-members-0--memberName"  |  552×22
                                       "Name"
-                                      abbr  .formspec-required.usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                                      abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                         "*"
                                     span  #field-members-0--memberName-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                     input  #field-members-0--memberName  .usa-input  type="text"  name="members[0].memberName"  aria-required  aria-invalid="false"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
-                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[0].memberRole"  |  552×78
+                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[0].memberRole"  |  552×78  m:24,0,0,0
                                     label  .usa-label  for="field-members-0--memberRole"  |  552×22
                                       "Role"
                                     span  #field-members-0--memberRole-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                     input  #field-members-0--memberRole  .usa-input  type="text"  name="members[0].memberRole"  aria-required="false"  aria-invalid="false"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
-                                div  .formspec-repeat-instance  role="group"  aria-label="Team Members 2 of 2"  |  584×267  d:flex  dir:column  gap:12px  p:15,16,16,16
+                                div  .formspec-repeat-instance  role="group"  aria-label="Team Members 2 of 2"  |  584×315  d:flex  dir:column  gap:12px  p:15,16,16,16
                                   div  .formspec-repeat-instance-header  |  552×56  d:flex  gap:12px  jc:space-between  ai:flex-start
-                                    p  .formspec-repeat-instance-label  |  119×22  m:17,0
+                                    p  .formspec-repeat-instance-label  |  131×22  m:17,0
                                       "Team Members 2"
-                                    button  .formspec-repeat-remove.formspec-button-danger.formspec-focus-ring  type="button"  aria-label="Remove Team Members 2"  |  168×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
+                                    button  .formspec-repeat-remove.formspec-button-danger.formspec-focus-ring  type="button"  aria-label="Remove Team Members 2"  |  184×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
                                       "Remove Team Members"
-                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[1].memberName"  |  552×78
+                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[1].memberName"  |  552×78  m:24,0,0,0
                                     label  .usa-label  for="field-members-1--memberName"  |  552×22
                                       "Name"
-                                      abbr  .formspec-required.usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                                      abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                         "*"
                                     span  #field-members-1--memberName-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                     input  #field-members-1--memberName  .usa-input  type="text"  name="members[1].memberName"  aria-required  aria-invalid="false"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
-                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[1].memberRole"  |  552×78
+                                  div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="members[1].memberRole"  |  552×78  m:24,0,0,0
                                     label  .usa-label  for="field-members-1--memberRole"  |  552×22
                                       "Role"
                                     span  #field-members-1--memberRole-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                     input  #field-members-1--memberRole  .usa-input  type="text"  name="members[1].memberRole"  aria-required="false"  aria-invalid="false"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
-                              button  .formspec-repeat-add.formspec-focus-ring  type="button"  |  185×39  d:flex  gap:normal 8px  jc:center  ai:center  m:16,8,0,0  p:12,20  |  color:rgb(0, 94, 162)  radius:4px  shadow:rgb(0, 94, 162) 0px 0px 0px 2px inset  font-weight:bold
+                              button  .formspec-repeat-add.formspec-focus-ring  type="button"  |  201×39  d:flex  gap:normal 8px  jc:center  ai:center  m:16,8,0,0  p:12,20  |  color:rgb(0, 94, 162)  radius:4px  shadow:rgb(0, 94, 162) 0px 0px 0px 2px inset  font-weight:bold
                                 "Add Team Members"
                               div  .formspec-sr-only  aria-live="polite"  |  1×1  pos:absolute  m:-1  overflow:hidden
     div  |  584×568
@@ -74,7 +75,7 @@ div  |  1200×629
             div  .story-root  |  584×541  |  color:rgb(27, 27, 27)
               div  |  584×541
                 form  .usa-form.usa-form--large.maxw-none  |  584×541  |  font:16.96px
-                  h2  .usa-sr-only  |  153×33  pos:absolute  m:21,0  |  font:25.44px/bold
+                  h2  .usa-sr-only  |  169×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Repeat Group"
                   div  .grid-row.grid-gap.real-uswds-stack  |  616×541  d:flex  wrap:wrap  m:0,-16
                     div  .grid-col-12  |  616×541  pos:relative  p:0,16
@@ -82,15 +83,15 @@ div  |  1200×629
                         div  .real-uswds-repeat__list  |  584×478  d:flex  dir:column  gap:12px
                           div  .real-uswds-repeat__instance  role="group"  aria-label="Team Members 1 of 2"  |  584×233  d:flex  dir:column  gap:12px  p:15,16,16,16
                             div  .real-uswds-repeat__header  |  552×22  d:flex  gap:12px  jc:space-between  ai:flex-start
-                              p  .real-uswds-repeat__label  |  119×22
+                              p  .real-uswds-repeat__label  |  131×22
                                 "Team Members 1"
-                              button  .usa-button.usa-button--unstyled  type="button"  |  168×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
+                              button  .usa-button.usa-button--unstyled  type="button"  |  184×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
                                 "Remove Team Members"
                             div  .real-uswds-repeat__fields  |  552×168  d:flex  dir:column  gap:12px
                               div  .usa-form-group  |  552×78
                                 label  .usa-label  for="real-uswds-members-0-memberName"  |  480×22
                                   "Name"
-                                  abbr  .usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                                  abbr  .usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                     "*"
                                 span  #real-uswds-members-0-memberName-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                 input  #real-uswds-members-0-memberName  .usa-input  type="text"  required  name="memberName"  value="Avery Chen"  aria-describedby="real-uswds-members-0-memberName-error"  aria-invalid="false"  data-realUswdsPath="members[0].memberName"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)
@@ -101,15 +102,15 @@ div  |  1200×629
                                 input  #real-uswds-members-0-memberRole  .usa-input  type="text"  name="memberRole"  value="Project Lead"  aria-describedby="real-uswds-members-0-memberRole-error"  aria-invalid="false"  data-realUswdsPath="members[0].memberRole"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)
                           div  .real-uswds-repeat__instance  role="group"  aria-label="Team Members 2 of 2"  |  584×233  d:flex  dir:column  gap:12px  p:15,16,16,16
                             div  .real-uswds-repeat__header  |  552×22  d:flex  gap:12px  jc:space-between  ai:flex-start
-                              p  .real-uswds-repeat__label  |  119×22
+                              p  .real-uswds-repeat__label  |  131×22
                                 "Team Members 2"
-                              button  .usa-button.usa-button--unstyled  type="button"  |  168×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
+                              button  .usa-button.usa-button--unstyled  type="button"  |  184×15  d:flex  gap:normal 8px  ai:center  |  color:rgb(0, 94, 162)
                                 "Remove Team Members"
                             div  .real-uswds-repeat__fields  |  552×168  d:flex  dir:column  gap:12px
                               div  .usa-form-group  |  552×78
                                 label  .usa-label  for="real-uswds-members-1-memberName"  |  480×22
                                   "Name"
-                                  abbr  .usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                                  abbr  .usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                                     "*"
                                 span  #real-uswds-members-1-memberName-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                 input  #real-uswds-members-1-memberName  .usa-input  type="text"  required  name="memberName"  value="Jordan Patel"  aria-describedby="real-uswds-members-1-memberName-error"  aria-invalid="false"  data-realUswdsPath="members[1].memberName"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)
@@ -118,5 +119,5 @@ div  |  1200×629
                                   "Role"
                                 span  #real-uswds-members-1-memberRole-error  .usa-error-message  |  552×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
                                 input  #real-uswds-members-1-memberRole  .usa-input  type="text"  name="memberRole"  value="Technical Writer"  aria-describedby="real-uswds-members-1-memberRole-error"  aria-invalid="false"  data-realUswdsPath="members[1].memberRole"  |  552×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)
-                        button  .usa-button.usa-button--outline.real-uswds-repeat__add  type="button"  |  185×39  d:flex  gap:normal 8px  jc:center  ai:center  m:24,8,0,0  p:12,20  |  color:rgb(0, 94, 162)  radius:4px  shadow:rgb(0, 94, 162) 0px 0px 0px 2px inset  font-weight:bold
+                        button  .usa-button.usa-button--outline.real-uswds-repeat__add  type="button"  |  201×39  d:flex  gap:normal 8px  jc:center  ai:center  m:24,8,0,0  p:12,20  |  color:rgb(0, 94, 162)  radius:4px  shadow:rgb(0, 94, 162) 0px 0px 0px 2px inset  font-weight:bold
                           "Add Team Members"

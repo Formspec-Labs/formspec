@@ -33,6 +33,9 @@ afterEach(async (context) => {
     const name = storyScreenshotBaseId(storyId);
     const rootEl = document.getElementById('storybook-root') ?? document.body;
 
+    await document.fonts?.ready;
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
     // Capture DOM snapshot before screenshot (screenshot may clear/modify state)
     meta.domSnapshot = serializeDOM(rootEl);
 

@@ -20,7 +20,7 @@ export const textInputDetailedDef = {
             dataType: "string",
             label: "Email Address",
             hint: "We'll never share your email.",
-            presentation: { widgetHint: "textInput", placeholder: "you@example.com" },
+            presentation: { widgetHint: "TextInput", placeholder: "you@example.com" },
             required: true,
             constraint: "matches($email, '^[^@]+@[^@]+[.][^@]+$')",
             constraintMessage: "Must be a valid email",
@@ -39,7 +39,7 @@ export const textareaDef = {
             dataType: "text",
             label: "Biography",
             hint: "Tell us about yourself",
-            presentation: { widgetHint: "textInput", maxLines: 5 },
+            presentation: { widgetHint: "TextInput", maxLines: 5 },
         },
     ],
 };
@@ -60,7 +60,7 @@ export const selectDef = {
                 { value: "blue", label: "Blue" },
                 { value: "yellow", label: "Yellow" },
             ],
-            presentation: { widgetHint: "dropdown" },
+            presentation: { widgetHint: "Select" },
             required: true,
         },
     ],
@@ -76,7 +76,7 @@ export const checkboxDef = {
             type: "field",
             dataType: "boolean",
             label: "I agree to the terms and conditions",
-            presentation: { widgetHint: "checkbox" },
+            presentation: { widgetHint: "Toggle" },
             required: true,
         },
     ],
@@ -98,7 +98,7 @@ export const radioGroupDef = {
                 { value: "high", label: "High" },
                 { value: "critical", label: "Critical" },
             ],
-            presentation: { widgetHint: "radio" },
+            presentation: { widgetHint: "RadioGroup" },
         },
     ],
 };
@@ -119,7 +119,7 @@ export const checkboxGroupDef = {
                 { value: "arts", label: "Arts" },
                 { value: "sports", label: "Sports" },
             ],
-            presentation: { widgetHint: "checkboxGroup" },
+            presentation: { widgetHint: "CheckboxGroup" },
         },
     ],
 };
@@ -134,7 +134,7 @@ export const numberInputDef = {
             type: "field",
             dataType: "integer",
             label: "Age",
-            presentation: { widgetHint: "numberInput", min: 0, max: 150 },
+            presentation: { widgetHint: "NumberInput", min: 0, max: 150 },
         },
     ],
 };
@@ -149,7 +149,7 @@ export const numberStepperDef = {
             type: "field",
             dataType: "integer",
             label: "Quantity",
-            presentation: { widgetHint: "numberInput", min: 1, max: 99, step: 1, showStepper: true },
+            presentation: { widgetHint: "NumberInput", min: 1, max: 99, step: 1, showStepper: true },
         },
     ],
 };
@@ -164,7 +164,7 @@ export const datePickerDef = {
             type: "field",
             dataType: "date",
             label: "Date of Birth",
-            presentation: { widgetHint: "datePicker" },
+            presentation: { widgetHint: "DatePicker" },
         },
     ],
 };
@@ -179,7 +179,7 @@ export const dateTimePickerDef = {
             type: "field",
             dataType: "dateTime",
             label: "Appointment Date & Time",
-            presentation: { widgetHint: "dateTimePicker" },
+            presentation: { widgetHint: "DatePicker" },
         },
     ],
 };
@@ -194,7 +194,7 @@ export const timePickerDef = {
             type: "field",
             dataType: "time",
             label: "Start Time",
-            presentation: { widgetHint: "timePicker" },
+            presentation: { widgetHint: "DatePicker" },
         },
     ],
 };
@@ -209,7 +209,7 @@ export const moneyInputDef = {
             type: "field",
             dataType: "decimal",
             label: "Grant Amount",
-            presentation: { widgetHint: "moneyInput", currency: "USD" },
+            presentation: { widgetHint: "MoneyInput", currency: "USD" },
             required: true,
         },
     ],
@@ -225,7 +225,7 @@ export const sliderDef = {
             type: "field",
             dataType: "integer",
             label: "Satisfaction",
-            presentation: { widgetHint: "slider", min: 0, max: 10, step: 1, showValue: false },
+            presentation: { widgetHint: "Slider", min: 0, max: 10, step: 1, showValue: false },
         },
     ],
 };
@@ -240,7 +240,7 @@ export const ratingDef = {
             type: "field",
             dataType: "integer",
             label: "Rate your experience",
-            presentation: { widgetHint: "rating", maxRating: 5 },
+            presentation: { widgetHint: "Rating", max: 5 },
         },
     ],
 };
@@ -255,7 +255,7 @@ export const fileUploadDef = {
             type: "field",
             dataType: "attachment",
             label: "Upload Resume",
-            presentation: { widgetHint: "fileUpload", accept: ".pdf,.doc,.docx", maxSize: 5242880 },
+            presentation: { widgetHint: "FileUpload", accept: ".pdf,.doc,.docx", maxSize: 5242880 },
         },
     ],
 };
@@ -270,7 +270,7 @@ export const toggleDef = {
             type: "field",
             dataType: "boolean",
             label: "Enable notifications",
-            presentation: { widgetHint: "toggle", onLabel: "On", offLabel: "Off" },
+            presentation: { widgetHint: "Toggle", onLabel: "On", offLabel: "Off" },
         },
     ],
 };
@@ -285,7 +285,7 @@ export const signatureDef = {
             type: "field",
             dataType: "attachment",
             label: "Signature",
-            presentation: { widgetHint: "signature" },
+            presentation: { widgetHint: "Signature" },
         },
     ],
 };
@@ -313,7 +313,7 @@ export const searchableSelectDef = {
                 { value: "br", label: "Brazil", keywords: ["BR", "BRA"] },
                 { value: "in", label: "India", keywords: ["IN", "IND"] },
             ],
-            presentation: { widgetHint: "dropdown" },
+            presentation: { widgetHint: "Select" },
         },
     ],
 };

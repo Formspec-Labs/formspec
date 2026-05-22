@@ -2,78 +2,77 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×193
-  div  |  1200×193  d:grid  cols:584px 584px 0px  rows:193.156px  gap:32px
-    div  |  584×193
+div  |  1200×198
+  div  |  1200×198  d:grid  cols:584px 584px 0px  rows:198.406px  gap:32px
+    div  |  584×198
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×166
-        div  |  584×166
+      div  |  584×164
+        div  |  584×164
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×166
-              div  .isolated-story-root  |  584×166
-                form  .usa-form  |  584×166  |  font:16.96px
-                  h2  .usa-sr-only  |  184×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            link [hidden]
+            div  |  584×164
+              div  .isolated-story-root  |  584×164
+                form  .usa-form  |  584×164
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Checkbox Group"
-                  div  |  584×166
-                    formspec-render  data-formspecAppearance="light"  |  584×166
+                  div  |  584×116
+                    formspec-render  data-formspecAppearance="light"  |  584×116
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×166  d:flex  dir:column  gap:16px
-                        div  .formspec-stack.grid-row.grid-gap  |  616×166  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×166  pos:relative  p:0,16
-                            fieldset  .usa-fieldset.formspec-themed-field  aria-live="off"  data-name="interests"  |  480×166
-                              legend  #field-interests-label  .usa-legend  |  114×22  m:24,0,0,0
+                      div  .formspec-container.formspec-appearance-light  |  584×116
+                        div  .formspec-stack.grid-row.grid-gap  |  584×116
+                          div  .grid-col-12  |  584×116
+                            fieldset  .usa-fieldset.formspec-themed-field  aria-live="off"  data-name="interests"  |  580×116  m:0,2  p:6,12,10,12  |  border:2px groove rgb(239, 239, 239)
+                              legend  #field-interests-label  .usa-legend  |  111×18  p:0,2
                                 "Areas of Interest"
-                              span  #field-interests-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-interests-0  .usa-checkbox__input  type="checkbox"  name="interests"  value="tech"  aria-required="false"  aria-invalid="false"  |  13×13  pos:absolute
-                                label  .usa-checkbox__label  for="field-interests-0"  |  114×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-checkbox  data-optionWrapper=""  |  552×20
+                                input  #field-interests-0  .usa-checkbox__input  type="checkbox"  name="interests"  value="tech"  aria-required="false"  aria-invalid="false"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px
+                                label  .usa-checkbox__label  for="field-interests-0"  |  75×18
                                   "Technology"
-                              div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-interests-1  .usa-checkbox__input  type="checkbox"  name="interests"  value="science"  |  13×13  pos:absolute
-                                label  .usa-checkbox__label  for="field-interests-1"  |  86×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-checkbox  data-optionWrapper=""  |  552×20
+                                input  #field-interests-1  .usa-checkbox__input  type="checkbox"  name="interests"  value="science"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px
+                                label  .usa-checkbox__label  for="field-interests-1"  |  50×18
                                   "Science"
-                              div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-interests-2  .usa-checkbox__input  type="checkbox"  name="interests"  value="arts"  |  13×13  pos:absolute
-                                label  .usa-checkbox__label  for="field-interests-2"  |  60×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-checkbox  data-optionWrapper=""  |  552×20
+                                input  #field-interests-2  .usa-checkbox__input  type="checkbox"  name="interests"  value="arts"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px
+                                label  .usa-checkbox__label  for="field-interests-2"  |  28×18
                                   "Arts"
-                              div  .usa-checkbox  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-interests-3  .usa-checkbox__input  type="checkbox"  name="interests"  value="sports"  |  13×13  pos:absolute
-                                label  .usa-checkbox__label  for="field-interests-3"  |  78×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-checkbox  data-optionWrapper=""  |  552×20
+                                input  #field-interests-3  .usa-checkbox__input  type="checkbox"  name="interests"  value="sports"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px
+                                label  .usa-checkbox__label  for="field-interests-3"  |  41×18
                                   "Sports"
-    div  |  584×193
+    div  |  584×198
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"
-      div  |  584×166
-        div  |  584×166
+      div  |  584×164
+        div  |  584×164
           #shadow-root
             link [hidden]
-            div  .story-root  |  584×166  |  color:rgb(27, 27, 27)
-              div  |  584×166
-                form  .usa-form.usa-form--large  |  480×166  |  font:16.96px
-                  h2  .usa-sr-only  |  184×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            div  .story-root  |  584×164  |  color:rgb(27, 27, 27)
+              div  |  584×164
+                form  .usa-form.usa-form--large  |  584×164
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Checkbox Group"
-                  div  .grid-row.grid-gap.real-uswds-stack  |  512×166  d:flex  wrap:wrap  m:0,-16
-                    div  .grid-col-12  |  512×166  pos:relative  p:0,16
-                      fieldset  .usa-fieldset  |  480×166
-                        legend  .usa-legend  |  114×22  m:24,0,0,0
+                  div  .grid-row.grid-gap.real-uswds-stack  |  584×116
+                    div  .grid-col-12  |  584×116
+                      fieldset  .usa-fieldset  |  580×116  m:0,2  p:6,12,10,12  |  border:2px groove rgb(239, 239, 239)
+                        legend  .usa-legend  |  111×18  p:0,2
                           "Areas of Interest"
-                        span  #real-uswds-interests-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                        div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-interests-tech  .usa-checkbox__input  type="checkbox"  name="interests"  value="tech"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-checkbox__label  for="real-uswds-interests-tech"  |  114×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-checkbox  |  552×20
+                          input  #real-uswds-interests-tech  .usa-checkbox__input  type="checkbox"  name="interests"  value="tech"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  d:inline-block  m:3,3,3,4  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-checkbox__label  for="real-uswds-interests-tech"  |  75×18
                             "Technology"
-                        div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-interests-science  .usa-checkbox__input  type="checkbox"  name="interests"  value="science"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-checkbox__label  for="real-uswds-interests-science"  |  86×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-checkbox  |  552×20
+                          input  #real-uswds-interests-science  .usa-checkbox__input  type="checkbox"  name="interests"  value="science"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  d:inline-block  m:3,3,3,4  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-checkbox__label  for="real-uswds-interests-science"  |  50×18
                             "Science"
-                        div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-interests-arts  .usa-checkbox__input  type="checkbox"  name="interests"  value="arts"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-checkbox__label  for="real-uswds-interests-arts"  |  60×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-checkbox  |  552×20
+                          input  #real-uswds-interests-arts  .usa-checkbox__input  type="checkbox"  name="interests"  value="arts"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  d:inline-block  m:3,3,3,4  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-checkbox__label  for="real-uswds-interests-arts"  |  28×18
                             "Arts"
-                        div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-interests-sports  .usa-checkbox__input  type="checkbox"  name="interests"  value="sports"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-checkbox__label  for="real-uswds-interests-sports"  |  78×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-checkbox  |  552×20
+                          input  #real-uswds-interests-sports  .usa-checkbox__input  type="checkbox"  name="interests"  value="sports"  aria-describedby="real-uswds-interests-error"  aria-invalid="false"  data-realUswdsPath="interests"  |  13×13  d:inline-block  m:3,3,3,4  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-checkbox__label  for="real-uswds-interests-sports"  |  41×18
                             "Sports"

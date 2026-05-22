@@ -49,7 +49,7 @@ div  |  1200×120
                       fieldset  .formspec-fieldset.formspec-themed-field  aria-live="off"  data-name="priority"  data-bind="priority"  |  580×72  m:0,2  p:6,12,10,12  |  border:2px groove rgb(239, 239, 239)
                         legend  #field-priority-label  .formspec-legend  |  93×18  p:0,2
                           "Priority Level"
-                        div  .formspec-radio-group  role="radiogroup"  aria-labelledby="field-priority-label"  aria-describedby="field-priority-hint"  |  552×20
+                        div  .formspec-radio-group  role="radiogroup"  aria-labelledby="field-priority-label"  |  552×20
                           label  |  54×18
                             "Low"
                             input  type="radio"  name="priority"  value="low"  aria-required="false"  aria-invalid="false"  |  13×13  d:inline-block  m:3,3,0,5  |  font:13.3333px

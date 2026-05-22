@@ -2,54 +2,54 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×69
-  div  |  1200×69  d:grid  cols:584px 584px 0px  rows:69.0312px  gap:32px
-    div  |  584×69
+div  |  1200×103
+  div  |  1200×103  d:grid  cols:584px 584px 0px  rows:102.812px  gap:32px
+    div  |  584×103
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×42
-        div  |  584×42
+      div  |  584×68
+        div  |  584×68
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×42
-              div  .isolated-story-root  |  584×42
-                form  .usa-form  |  584×42  |  font:16.96px
-                  h2  .usa-sr-only  |  109×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            link [hidden]
+            div  |  584×68
+              div  .isolated-story-root  |  584×68
+                form  .usa-form  |  584×68
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Checkbox"
-                  div  |  584×42
-                    formspec-render  data-formspecAppearance="light"  |  584×42
+                  div  |  584×20
+                    formspec-render  data-formspecAppearance="light"  |  584×20
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×42  d:flex  dir:column  gap:16px
-                        div  .formspec-stack.grid-row.grid-gap  |  616×42  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×42  pos:relative  p:0,16
-                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="agree"  |  480×42  d:flex  dir:column
-                              span  #field-agree-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-agree  .usa-checkbox__input  type="checkbox"  name="agree"  aria-required  aria-invalid="false"  |  13×13  pos:absolute
-                                label  .usa-checkbox__label  for="field-agree"  |  288×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                      div  .formspec-container.formspec-appearance-light  |  584×20
+                        div  .formspec-stack.grid-row.grid-gap  |  584×20
+                          div  .grid-col-12  |  584×20
+                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="agree"  |  584×20
+                              div  .usa-checkbox  |  584×20
+                                input  #field-agree  .usa-checkbox__input  type="checkbox"  name="agree"  aria-required  aria-invalid="false"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px
+                                label  .usa-checkbox__label  for="field-agree"  |  233×18
                                   "I agree to the terms and conditions"
-                                  abbr  .formspec-required.usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                                  abbr  .formspec-required.usa-label--required  |  12×18
                                     "*"
-    div  |  584×69
+    div  |  584×103
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"
-      div  |  584×42
-        div  |  584×42
+      div  |  584×68
+        div  |  584×68
           #shadow-root
             link [hidden]
-            div  .story-root  |  584×42  |  color:rgb(27, 27, 27)
-              div  |  584×42
-                form  .usa-form.usa-form--large  |  480×42  |  font:16.96px
-                  h2  .usa-sr-only  |  109×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            div  .story-root  |  584×68  |  color:rgb(27, 27, 27)
+              div  |  584×68
+                form  .usa-form.usa-form--large  |  584×68
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Checkbox"
-                  div  .grid-row.grid-gap.real-uswds-stack  |  512×42  d:flex  wrap:wrap  m:0,-16
-                    div  .grid-col-12  |  512×42  pos:relative  p:0,16
-                      div  .usa-form-group  |  480×42  d:flex  dir:column
-                        span  #real-uswds-agree-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                        div  .usa-checkbox  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-agree  .usa-checkbox__input  type="checkbox"  name="agree"  value="true"  aria-describedby="real-uswds-agree-error"  aria-invalid="false"  data-realUswdsPath="agree"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-checkbox__label  for="real-uswds-agree"  |  288×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                  div  .grid-row.grid-gap.real-uswds-stack  |  584×20
+                    div  .grid-col-12  |  584×20
+                      div  .usa-form-group  |  584×20  d:flex  dir:column
+                        span  #real-uswds-agree-error  .usa-error-message  |  584×0
+                        div  .usa-checkbox  |  584×20
+                          input  #real-uswds-agree  .usa-checkbox__input  type="checkbox"  name="agree"  value="true"  aria-describedby="real-uswds-agree-error"  aria-invalid="false"  data-realUswdsPath="agree"  |  13×13  d:inline-block  m:3,3,3,4  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-checkbox__label  for="real-uswds-agree"  |  233×18
                             "I agree to the terms and conditions"
-                            abbr  .usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
+                            abbr  .usa-label--required  |  12×18
                               "*"

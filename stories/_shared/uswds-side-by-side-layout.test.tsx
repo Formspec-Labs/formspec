@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeAll, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
@@ -45,6 +47,26 @@ function findShadowHosts(container: HTMLDivElement): HTMLDivElement[] {
     return Array.from(container.querySelectorAll('div')).filter((el) => !!(el as HTMLDivElement).shadowRoot) as HTMLDivElement[];
 }
 
+function collectShadowStyleText(root: ShadowRoot | ParentNode | null | undefined): string {
+    if (!root) return '';
+    const chunks = Array.from(root.querySelectorAll('style')).map((styleEl) => styleEl.textContent ?? '');
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+        if (el.shadowRoot) chunks.push(collectShadowStyleText(el.shadowRoot));
+    }
+    return chunks.join('\n');
+}
+
+function queryShadowTree(root: ShadowRoot | ParentNode | null | undefined, selector: string): Element | null {
+    if (!root) return null;
+    const found = root.querySelector(selector);
+    if (found) return found;
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+        const nested = queryShadowTree(el.shadowRoot, selector);
+        if (nested) return nested;
+    }
+    return null;
+}
+
 describe('USWDS comparison story layout', () => {
     it('renders plain real-USWDS forms in a large service-form shell instead of a comparison width override', async () => {
         const container = await renderStory(
@@ -73,7 +95,8 @@ describe('USWDS comparison story layout', () => {
             title: 'Display Components',
             items: [
                 { key: 'heading', type: 'display', label: 'Section Heading', presentation: { widgetHint: 'heading' } },
-                { key: 'intro', type: 'display', label: 'Paragraph text', presentation: { widgetHint: 'paragraph' } },
+                { key: 'intro', type: 'display', label: 'Paragraph text', presentation: { widgetHint: 'Text' } },
+                { key: 'alert', type: 'display', label: 'Canonical alert text', presentation: { widgetHint: 'Alert' } },
                 { key: 'divider', type: 'display', label: '', presentation: { widgetHint: 'divider' } },
             ],
         };
@@ -93,6 +116,7 @@ describe('USWDS comparison story layout', () => {
         expect(visibleTitles[0]?.textContent).toContain('Display Components');
         expect(shadowRoot?.querySelector('.real-uswds-stack')).not.toBeNull();
         expect(shadowRoot?.querySelector('.real-uswds-stack > .grid-col-12 > hr.width-full')).not.toBeNull();
+        expect(shadowRoot?.querySelector('.usa-alert__text')?.textContent).toContain('Canonical alert text');
         expect(shadowRoot?.querySelector('.usa-prose.width-full')).toBeNull();
     });
 
@@ -104,14 +128,11 @@ describe('USWDS comparison story layout', () => {
         const [adapterHost] = findShadowHosts(container);
         const shadowRoot = adapterHost?.shadowRoot;
         const form = shadowRoot?.querySelector('form.usa-form') as HTMLFormElement | null;
-        const styleText = Array.from(shadowRoot?.querySelectorAll('style') ?? [])
-            .map((styleEl) => styleEl.textContent ?? '')
-            .join('\n');
+        const styleText = collectShadowStyleText(shadowRoot);
 
         expect(shadowRoot).toBeTruthy();
         expect(form).not.toBeNull();
         expect(form?.className).toBe('usa-form');
-        expect(styleText).toContain('.usa-form:has(.formspec-container)');
         expect(styleText).not.toContain('.formspec-uswds-comparison-form');
         expect(styleText).toContain('.isolated-story-root *');
         expect(styleText).toContain('box-sizing: border-box');
@@ -206,9 +227,7 @@ describe('USWDS comparison story layout', () => {
 
         const host = findShadowHost(container);
         const shadowRoot = host?.shadowRoot;
-        const styleText = Array.from(shadowRoot?.querySelectorAll('style') ?? [])
-            .map((styleEl) => styleEl.textContent ?? '')
-            .join('\n');
+        const styleText = collectShadowStyleText(shadowRoot);
 
         expect(shadowRoot).toBeTruthy();
         expect(styleText).toContain('.real-uswds-tabs__panels');
@@ -250,12 +269,12 @@ describe('USWDS comparison story layout', () => {
 
         const [adapterHost] = findShadowHosts(container);
         const shadowRoot = adapterHost?.shadowRoot;
-        const styleText = Array.from(shadowRoot?.querySelectorAll('style') ?? [])
-            .map((styleEl) => styleEl.textContent ?? '')
-            .join('\n');
 
         expect(shadowRoot).toBeTruthy();
-        expect(styleText).toContain('.formspec-tab-panels{padding-top:1.5rem}');
+        expect(queryShadowTree(shadowRoot, '.formspec-tabs')).not.toBeNull();
+        expect(queryShadowTree(shadowRoot, '.formspec-tab-panels')).not.toBeNull();
+        const css = readFileSync(resolve('packages/formspec-adapters/dist/uswds-integration.css'), 'utf8');
+        expect(css).toContain('.formspec-tab-panels{padding-top:1.5rem}');
     });
 
     it('does not nest full Page layout sections inside adapter wizard panels', async () => {

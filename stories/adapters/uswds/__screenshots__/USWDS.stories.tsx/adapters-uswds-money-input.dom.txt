@@ -2,58 +2,59 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×140
-  div  |  1200×140  d:grid  cols:584px 584px 0px  rows:139.812px  gap:32px
-    div  |  584×105
+div  |  1200×129
+  div  |  1200×129  d:grid  cols:584px 584px 0px  rows:129.031px  gap:32px
+    div  |  584×129
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
+      div  |  584×102
+        div  |  584×102
+          #shadow-root
+            link [hidden]
+            link [hidden]
+            link [hidden]
+            div  |  584×102
+              div  .isolated-story-root  |  584×102
+                form  .usa-form  |  584×102  |  font:16.96px
+                  h2  .usa-sr-only  |  151×33  pos:absolute  m:21,0  |  font:25.44px/bold
+                    "Money Input"
+                  div  |  584×102
+                    formspec-render  data-formspecAppearance="light"  |  584×102
+                      #shadow-root
+                      div  .formspec-container.formspec-appearance-light  |  584×102  d:flex  dir:column  gap:16px
+                        div  .formspec-stack.grid-row.grid-gap  |  616×102  d:flex  wrap:wrap  m:0,-16
+                          div  .grid-col-12  |  616×102  pos:relative  p:0,16
+                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="amount"  |  584×78  d:flex  dir:column  m:24,0,0,0
+                              label  .usa-label  for="field-amount"  |  584×22
+                                "Grant Amount"
+                                abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
+                                  "*"
+                              span  #field-amount-error  .usa-error-message  |  584×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                              div  .usa-input-group  |  584×40  pos:relative  d:flex  ai:center  m:8,0,0,0  |  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)
+                                div  .usa-input-prefix  |  25×0  pos:absolute  p:0,8  |  color:rgb(113, 118, 122)
+                                  "$"
+                                input  #field-amount  .usa-input.formspec-money-amount  type="number"  name="amount__amount"  aria-required  aria-invalid="false"  |  582×38  p:8,8,8,40  overflow:clip  |  bg:rgb(255, 255, 255)
+    div  |  584×105
+      div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
+        "Real USWDS"
       div  |  584×78
         div  |  584×78
           #shadow-root
             link [hidden]
-            link [hidden]
-            div  |  584×78
-              div  .isolated-story-root  |  584×78
-                form  .usa-form  |  584×78
-                  h2  .usa-sr-only  |  134×28  pos:absolute  m:20,0  |  font:24px/bold
+            div  .story-root  |  584×78  |  color:rgb(27, 27, 27)
+              div  |  584×78
+                form  .usa-form.usa-form--large  |  480×78  |  font:16.96px
+                  h2  .usa-sr-only  |  151×33  pos:absolute  m:21,0  |  font:25.44px/bold
                     "Money Input"
-                  div  |  584×78
-                    formspec-render  data-formspecAppearance="light"  |  584×78
-                      #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×78
-                        div  .formspec-stack.grid-row.grid-gap  |  616×78  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×78  pos:relative  p:0,16
-                            div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="amount"  |  480×78  d:flex  dir:column
-                              label  .usa-label  for="field-amount"  |  480×22  |  font:16.96px
-                                "Grant Amount"
-                                abbr  .formspec-required.usa-label--required  |  10×22  |  color:rgb(181, 9, 9)
-                                  "*"
-                              span  #field-amount-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              div  .usa-input-group  |  480×40  pos:relative  d:flex  ai:center  m:8,0,0,0  |  color:rgb(27, 27, 27)  border:1px solid rgb(86, 92, 101)  font:16.96px
-                                div  .usa-input-prefix  |  24×0  pos:absolute  p:0,8  |  color:rgb(113, 118, 122)
-                                  "$"
-                                input  #field-amount  .usa-input.formspec-money-amount  type="number"  name="amount__amount"  aria-required  aria-invalid="false"  |  478×38  p:8,8,8,40  overflow:clip  |  bg:rgb(255, 255, 255)
-    div  |  584×140
-      div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
-        "Real USWDS"
-      div  |  584×105
-        div  |  584×105
-          #shadow-root
-            link [hidden]
-            div  .story-root  |  584×105  |  color:rgb(27, 27, 27)
-              div  |  584×105
-                form  .usa-form.usa-form--large  |  584×105
-                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
-                    "Money Input"
-                  div  .grid-row.grid-gap.real-uswds-stack  |  584×57
-                    div  .grid-col-12  |  584×57
-                      div  .usa-form-group  |  584×57  d:flex  dir:column
-                        label  .usa-label  for="real-uswds-amount"  |  584×18
+                  div  .grid-row.grid-gap.real-uswds-stack  |  512×78  d:flex  wrap:wrap  m:0,-16
+                    div  .grid-col-12  |  512×78  pos:relative  p:0,16
+                      div  .usa-form-group  |  480×78  d:flex  dir:column
+                        label  .usa-label  for="real-uswds-amount"  |  480×22
                           "Grant Amount"
-                          abbr  .usa-label--required  |  12×18
+                          abbr  .usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
                             "*"
-                        span  #real-uswds-amount-error  .usa-error-message  |  584×0
-                        div  .usa-input-group  |  584×39
-                          div  .usa-input-prefix  aria-hidden  |  584×18
+                        span  #real-uswds-amount-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
+                        div  .usa-input-group  |  480×40  pos:relative  d:flex  ai:center  m:8,0,0,0  |  border:1px solid rgb(86, 92, 101)
+                          div  .usa-input-prefix  aria-hidden  |  25×0  pos:absolute  p:0,8  |  color:rgb(113, 118, 122)
                             "$"
-                          input  #real-uswds-amount  .usa-input.formspec-money-amount  type="number"  required  step="0.01"  name="amount"  aria-describedby="real-uswds-amount-error"  aria-invalid="false"  data-realUswdsPath="amount"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  color:rgb(0, 0, 0)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                          input  #real-uswds-amount  .usa-input.formspec-money-amount  type="number"  required  step="0.01"  name="amount"  aria-describedby="real-uswds-amount-error"  aria-invalid="false"  data-realUswdsPath="amount"  |  478×38  p:8,8,8,40  overflow:clip  |  bg:rgb(255, 255, 255)

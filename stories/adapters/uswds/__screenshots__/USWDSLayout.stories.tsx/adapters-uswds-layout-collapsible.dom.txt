@@ -2,52 +2,53 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×321
-  div  |  1200×321  d:grid  cols:584px 584px 0px  rows:321.062px  gap:32px
-    div  |  584×321
+div  |  1200×280
+  div  |  1200×280  d:grid  cols:584px 584px 0px  rows:279.969px  gap:32px
+    div  |  584×232
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×294
-        div  |  584×294
+      div  |  584×176
+        div  |  584×176
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×294
-              div  .isolated-story-root  |  584×294
-                form  .usa-form  |  584×294
-                  h2  .usa-sr-only  |  145×28  pos:absolute  m:20,0  |  font:24px/bold
+            link [hidden]
+            div  |  584×176
+              div  .isolated-story-root  |  584×176
+                form  .usa-form  |  584×176
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Contact Form"
-                  div  |  584×294
-                    formspec-render  data-formspecAppearance="light"  |  584×294
+                  div  |  584×127
+                    formspec-render  data-formspecAppearance="light"  |  584×127
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×294
-                        div  .formspec-stack.grid-row.grid-gap  |  616×294  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×231  pos:relative  p:0,16
-                            div  .usa-accordion.formspec-collapsible  |  584×231  |  color:rgb(27, 27, 27)  font:16.96px
-                              h4  .usa-accordion__heading  |  584×47  |  font-weight:bold
-                                button  .usa-accordion__button.formspec-focus-ring  type="button"  aria-expanded  aria-controls="collapsible-luv6qxv-content"  |  584×47  d:inline-block  p:16,56,16,20  |  bg:rgb(240, 240, 240)  font:13.3333px/bold
+                      div  .formspec-container.formspec-appearance-light  |  584×127
+                        div  .formspec-stack.grid-row.grid-gap  |  584×127
+                          div  .grid-col-12  |  584×84
+                            div  .usa-accordion.formspec-collapsible  |  584×84
+                              h4  .usa-accordion__heading  |  584×21  m:21,0  |  font-weight:bold
+                                button  .usa-accordion__button.formspec-focus-ring  type="button"  aria-expanded  aria-controls="collapsible-zm91ly8-content"  |  113×21  d:inline-block  p:1,6  |  bg:rgb(239, 239, 239)  border:2px outset rgb(0, 0, 0)  font:13.3333px
                                   "Personal Details"
-                              div  #collapsible-luv6qxv-content  .usa-accordion__content.usa-prose.formspec-collapsible-content  |  584×184  p:16,20,12,20  overflow:auto  |  bg:rgb(255, 255, 255)
-                                div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="firstName"  |  544×78
-                                  label  .usa-label  for="field-firstName"  |  544×22
+                              div  #collapsible-zm91ly8-content  .usa-accordion__content.usa-prose.formspec-collapsible-content  |  584×42
+                                div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="firstName"  |  584×21
+                                  label  .usa-label  for="field-firstName"  |  84×18
                                     "First Name"
-                                    abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
+                                    abbr  .formspec-required.usa-label--required  |  12×18
                                       "*"
-                                  span  #field-firstName-error  .usa-error-message  |  544×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                  input  #field-firstName  .usa-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  544×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)
-                                div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="lastName"  |  544×78
-                                  label  .usa-label  for="field-lastName"  |  544×22
+                                  span  #field-firstName-error  .usa-error-message  |  0×18
+                                  input  #field-firstName  .usa-input  type="text"  name="firstName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                                div  .usa-form-group.formspec-themed-field  aria-live="off"  data-name="lastName"  |  584×21
+                                  label  .usa-label  for="field-lastName"  |  82×18
                                     "Last Name"
-                                    abbr  .formspec-required.usa-label--required  |  11×20  |  color:rgb(181, 9, 9)
+                                    abbr  .formspec-required.usa-label--required  |  12×18
                                       "*"
-                                  span  #field-lastName-error  .usa-error-message  |  544×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                                  input  #field-lastName  .usa-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  544×40  m:8,0,0,0  p:8  overflow:clip  |  bg:rgb(255, 255, 255)  border:1px solid rgb(86, 92, 101)
-                          div  .grid-col-12  |  616×47  pos:relative  m:16,0,0,0  p:0,16
-                            div  .usa-accordion.formspec-collapsible  |  584×47  |  color:rgb(27, 27, 27)  font:16.96px
-                              h4  .usa-accordion__heading  |  584×47  |  font-weight:bold
-                                button  .usa-accordion__button.formspec-focus-ring  type="button"  aria-expanded="false"  aria-controls="collapsible-e8aur2l-content"  |  584×47  d:inline-block  p:16,56,16,20  |  bg:rgb(240, 240, 240)  font:13.3333px/bold
+                                  span  #field-lastName-error  .usa-error-message  |  0×18
+                                  input  #field-lastName  .usa-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
+                          div  .grid-col-12  |  584×21
+                            div  .usa-accordion.formspec-collapsible  |  584×21
+                              h4  .usa-accordion__heading  |  584×21  m:21,0  |  font-weight:bold
+                                button  .usa-accordion__button.formspec-focus-ring  type="button"  aria-expanded="false"  aria-controls="collapsible-4j7um1j-content"  |  132×21  d:inline-block  p:1,6  |  bg:rgb(239, 239, 239)  border:2px outset rgb(0, 0, 0)  font:13.3333px
                                   "Contact Information"
-                              div #collapsible-e8aur2l-content .usa-accordion__content.usa-prose.formspec-collapsible-content [hidden]
+                              div #collapsible-4j7um1j-content .usa-accordion__content.usa-prose.formspec-collapsible-content [hidden]
     div  |  584×280
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"

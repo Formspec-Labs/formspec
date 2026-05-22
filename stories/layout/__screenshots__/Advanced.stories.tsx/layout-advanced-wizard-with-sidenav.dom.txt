@@ -45,7 +45,7 @@ div  |  1200×485
                   div  .formspec-wizard-step-indicator  |  584×18
                     "Step 1 of 2: Personal Info"
                   div  .formspec-wizard-panel  role="region"  aria-label="Personal Info"  |  584×106
-                    section  .formspec-page  |  584×106
+                    section  .formspec-section  |  584×106
                       h2  |  584×28  m:20,0  |  font:24px/bold
                         "Personal Info"
                       div  .formspec-field  data-name="firstName"  |  584×21
@@ -113,7 +113,7 @@ div  |  1200×485
                         div  .formspec-wizard-step-indicator  |  584×18
                           "Step 1 of 2: Personal Info"
                         div  .formspec-wizard-panel  role="region"  aria-label="Personal Info"  |  584×106
-                          section  .formspec-page  |  584×106
+                          section  .formspec-section  |  584×106
                             h2  |  584×28  m:20,0  |  font:24px/bold
                               "Personal Info"
                             div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="firstName"  data-bind="firstName"  |  584×21
@@ -131,7 +131,7 @@ div  |  1200×485
                               input  #field-lastName  .formspec-input  type="text"  name="lastName"  aria-required  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
                               p  #field-lastName-error  .formspec-error  aria-live="polite"  |  584×0  m:16,0
                         div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-label="Contact"  |  584×106
-                          section  .formspec-page  |  584×106
+                          section  .formspec-section  |  584×106
                             h2  |  584×28  m:20,0  |  font:24px/bold
                               "Contact"
                             div  .formspec-field.formspec-themed-field  aria-live="off"  data-name="email"  data-bind="email"  |  584×21

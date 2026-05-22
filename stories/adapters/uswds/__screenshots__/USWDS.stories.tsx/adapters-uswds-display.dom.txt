@@ -2,68 +2,69 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×374
-  div  |  1200×374  d:grid  cols:584px 584px 0px  rows:374px  gap:32px
-    div  |  584×374
+div  |  1200×413
+  div  |  1200×413  d:grid  cols:584px 584px 0px  rows:412.516px  gap:32px
+    div  |  584×341
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×339
-        div  |  584×339
+      div  |  584×304
+        div  |  584×304
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×339
-              div  .isolated-story-root  |  584×339
-                form  .usa-form  |  584×339
-                  h2  |  584×28  m:20,0  |  font:24px/bold
+            link [hidden]
+            div  |  584×304
+              div  .isolated-story-root  |  584×304
+                form  .usa-form  |  584×304  |  font:16.96px
+                  h2  |  584×33  m:21,0  |  font:25.44px/bold
                     "Display Components"
-                  div  |  584×291
-                    formspec-render  data-formspecAppearance="light"  |  584×291
+                  div  |  584×250
+                    formspec-render  data-formspecAppearance="light"  |  584×250
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×291
-                        div  .formspec-stack.grid-row.grid-gap  |  616×291  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×37  pos:relative  p:0,16
-                            div  .usa-prose.formspec-uswds-heading-wrap.margin-bottom-2.formspec-themed-display  |  584×37  |  font:16.96px
+                      div  .formspec-container.formspec-appearance-light  |  584×250  d:flex  dir:column  gap:16px
+                        div  .formspec-stack.grid-row.grid-gap  |  616×250  d:flex  wrap:wrap  m:0,-16
+                          div  .grid-col-12  |  616×53  pos:relative  p:0,16
+                            div  .usa-prose.formspec-uswds-heading-wrap.margin-bottom-2.formspec-themed-display  |  584×37  m:0,0,16,0
                               h2  .formspec-heading.margin-top-0  |  584×37  |  font:31.2px/bold
                                 "Section Heading"
-                          div  .grid-col-12  |  616×59  pos:relative  m:24,0,0,0  p:0,16
-                            div  .usa-prose.formspec-uswds-text-wrap.formspec-themed-display  |  584×25  |  font:16.96px
-                              p  .formspec-text.margin-top-0  |  584×25  m:17,0
+                          div  .grid-col-12  |  616×42  pos:relative  p:0,16
+                            div  .usa-prose.formspec-uswds-text-wrap.formspec-themed-display  |  584×25
+                              p  .formspec-text.margin-top-0  |  584×25  m:0,0,17,0
                                 "This is a paragraph of informational text explaining the form section."
-                          div  .grid-col-12  |  616×57  pos:relative  m:24,0,0,0  p:0,16
-                            div  .formspec-uswds-alert-wrap.margin-y-2  |  584×57
+                          div  .grid-col-12  |  616×89  pos:relative  p:0,16
+                            div  .formspec-uswds-alert-wrap.margin-y-2  |  584×57  m:16,0
                               div  .usa-alert.usa-alert--info.formspec-themed-display  role="status"  |  584×57  |  bg:rgb(231, 246, 248)  color:rgb(27, 27, 27)  border:0px 0px 0px 8px none none none solid rgb(27, 27, 27) rgb(27, 27, 27) rgb(27, 27, 27) rgb(0, 189, 227)
-                                div  .usa-alert__body  |  576×57  pos:relative  d:flex  dir:column  jc:center  p:16,20  |  bg:rgb(231, 246, 248)  font:16.96px
+                                div  .usa-alert__body  |  576×57  pos:relative  d:flex  dir:column  jc:center  p:16,20  |  bg:rgb(231, 246, 248)
                                   p  .usa-alert__text  |  496×25  m:0,0,0,40
                                     "Please complete all required fields before submitting."
-                          div  .grid-col-12  |  616×65  pos:relative  m:24,0,0,0  p:0,16
-                            hr  .formspec-uswds-divider.formspec-themed-display  |  584×1  m:32,0  overflow:hidden  |  color:rgb(128, 128, 128)  border:1px 0px 0px solid none none rgb(223, 225, 226) rgb(128, 128, 128) rgb(128, 128, 128)
-    div  |  584×228
+                          div  .grid-col-12  |  616×65  pos:relative  p:0,16
+                            hr  .formspec-uswds-divider.formspec-themed-display  |  584×1  m:32,0  overflow:hidden  |  border:1px 0px 0px solid none none rgb(223, 225, 226) rgb(0, 0, 0) rgb(0, 0, 0)
+    div  |  584×413
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"
-      div  |  584×185
-        div  |  584×185
+      div  |  584×376
+        div  |  584×376
           #shadow-root
             link [hidden]
-            div  .story-root  |  584×185  |  color:rgb(27, 27, 27)
-              div  |  584×185
-                form  .usa-form.usa-form--large.maxw-none  |  584×185
-                  h2  |  584×28  m:20,0  |  font:24px/bold
+            div  .story-root  |  584×376  |  color:rgb(27, 27, 27)
+              div  |  584×376
+                form  .usa-form.usa-form--large.maxw-none  |  584×376  |  font:16.96px
+                  h2  |  584×33  m:21,0  |  font:25.44px/bold
                     "Display Components"
-                  div  .grid-row.grid-gap.real-uswds-stack  |  584×137
-                    div  .grid-col-12  |  584×28
-                      div  .usa-prose.margin-bottom-2  |  584×28
-                        h2  .margin-top-0  |  584×28  m:20,0  |  font:24px/bold
+                  div  .grid-row.grid-gap.real-uswds-stack  |  616×322  d:flex  wrap:wrap  m:0,-16
+                    div  .grid-col-12  |  616×53  pos:relative  p:0,16
+                      div  .usa-prose.margin-bottom-2  |  584×37  m:0,0,16,0
+                        h2  .margin-top-0  |  584×37  |  font:31.2px/bold
                           "Section Heading"
-                    div  .grid-col-12  |  584×18  m:24,0,0,0
-                      div  .usa-prose  |  584×18
-                        p  .margin-top-0  |  584×18  m:16,0
+                    div  .grid-col-12  |  616×42  pos:relative  m:24,0,0,0  p:0,16
+                      div  .usa-prose  |  584×25
+                        p  .margin-top-0  |  584×25  m:0,0,17,0
                           "This is a paragraph of informational text explaining the form section."
-                    div  .grid-col-12  |  584×18  m:24,0,0,0
-                      div  .margin-y-2  |  584×18
-                        div  .usa-alert.usa-alert--info  |  584×18
-                          div  .usa-alert__body  |  584×18
-                            p  .usa-alert__text  |  584×18  m:16,0
+                    div  .grid-col-12  |  616×89  pos:relative  m:24,0,0,0  p:0,16
+                      div  .margin-y-2  |  584×57  m:16,0
+                        div  .usa-alert.usa-alert--info  |  584×57  |  bg:rgb(231, 246, 248)  border:0px 0px 0px 8px none none none solid rgb(27, 27, 27) rgb(27, 27, 27) rgb(27, 27, 27) rgb(0, 189, 227)
+                          div  .usa-alert__body  |  576×57  pos:relative  d:flex  dir:column  jc:center  p:16,20  |  bg:rgb(231, 246, 248)
+                            p  .usa-alert__text  |  496×25  m:0,0,0,40
                               "Please complete all required fields before submitting."
-                    div  .grid-col-12  |  584×1  m:24,0,0,0
-                      hr  .margin-y-4.width-full  |  584×1  m:8,0  overflow:hidden  |  color:rgb(128, 128, 128)  border:1px 0px 0px solid none none rgb(223, 225, 226) rgb(128, 128, 128) rgb(128, 128, 128)
+                    div  .grid-col-12  |  616×65  pos:relative  m:24,0,0,0  p:0,16
+                      hr  .margin-y-4.width-full  |  584×1  m:32,0  overflow:hidden  |  border:1px 0px 0px solid none none rgb(223, 225, 226) rgb(27, 27, 27) rgb(27, 27, 27)

@@ -39,7 +39,7 @@ div  |  1200×2467
                     div  .formspec-wizard-step-indicator  |  800×18
                       "Step 1 of 4: Applicant Information"
                     div  .formspec-wizard-panel  role="region"  aria-label="Applicant Information"  |  800×507
-                      section  #applicant-info  .formspec-page  |  800×507
+                      section  #applicant-info  .formspec-section  |  800×507
                         h2  |  800×27  m:20,0  |  font:24px/bold
                           "Applicant Information"
                         div  .formspec-grid  data-columns="12"  |  800×460
@@ -242,7 +242,7 @@ div  |  1200×2467
                               input  #field-applicant_section-contact_phone  .formspec-input  type="text"  name="applicant_section.contact_phone"  aria-required="false"  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
                               p  #field-applicant_section-contact_phone-error  .formspec-error  aria-live="polite"  |  800×0  m:16,0
                     div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-label="Project Details"  |  800×741
-                      section  #project-details  .formspec-page  |  800×741
+                      section  #project-details  .formspec-section  |  800×741
                         h2  |  800×27  m:20,0  |  font:24px/bold
                           "Project Details"
                         div  .formspec-grid  data-columns="12"  |  800×694
@@ -308,7 +308,7 @@ div  |  1200×2467
                                   "*"
                               div  #field-project_section-target_population-desc  .formspec-description  |  768×18
                                 "Select all populations this project will serve."
-                              div  .formspec-checkbox-group  role="group"  aria-labelledby="field-project_section-target_population-label"  aria-describedby="field-project_section-target_population-desc field-project_section-target_population-hint"  |  768×38
+                              div  .formspec-checkbox-group  role="group"  aria-labelledby="field-project_section-target_population-label"  aria-describedby="field-project_section-target_population-desc"  |  768×38
                                 label  |  204×18
                                   "Low-Income Households"
                                   input  type="checkbox"  name="project_section.target_population"  value="low_income"  aria-required  aria-invalid="false"  |  13×13  d:inline-block  m:3,3,3,4  |  font:13.3333px
@@ -363,7 +363,7 @@ div  |  1200×2467
                                 input  #field-project_section-subcontractor_info-sub_amount  .formspec-input  type="number"  name="project_section.subcontractor_info.sub_amount"  aria-describedby="field-project_section-subcontractor_info-sub_amount-desc"  aria-required="false"  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
                                 p  #field-project_section-subcontractor_info-sub_amount-error  .formspec-error  aria-live="polite"  |  800×0  m:16,0
                     div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-label="Budget"  |  800×579
-                      section  #budget  .formspec-page  |  800×579
+                      section  #budget  .formspec-section  |  800×579
                         h2  |  800×27  m:20,0  |  font:24px/bold
                           "Budget"
                         div  .formspec-grid  data-columns="12"  |  800×532
@@ -448,7 +448,7 @@ div  |  1200×2467
                               input  #field-budget_section-total_requested  .formspec-input  type="number"  readonly  name="budget_section.total_requested"  aria-describedby="field-budget_section-total_requested-desc"  aria-required="false"  aria-invalid="false"  |  153×21  d:inline-block  p:1,2  overflow:clip  |  bg:rgb(255, 255, 255)  border:2px inset rgb(118, 118, 118)  font:13.3333px
                               p  #field-budget_section-total_requested-error  .formspec-error  aria-live="polite"  |  800×0  m:16,0
                     div  .formspec-wizard-panel.formspec-hidden  role="region"  aria-label="Attachments & Certification"  |  800×416
-                      section  #review  .formspec-page  |  800×416
+                      section  #review  .formspec-section  |  800×416
                         h2  |  800×27  m:20,0  |  font:24px/bold
                           "Attachments & Certification"
                         div  .formspec-grid  data-columns="12"  |  800×369
@@ -461,7 +461,7 @@ div  |  1200×2467
                                 "Budget Narrative"
                               div  #field-review_section-budget_narrative-desc  .formspec-description  |  800×18
                                 "A detailed justification for each budget line item."
-                              div  .formspec-file-drop-zone.formspec-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  800×22
+                              div  .formspec-file-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  800×22
                                 div  .formspec-file-drop-content  |  800×22
                                   span  .formspec-file-drop-icon  aria-hidden  |  15×18
                                     "⇵"
@@ -478,7 +478,7 @@ div  |  1200×2467
                                 "Organizational Chart"
                               div  #field-review_section-org_chart-desc  .formspec-description  |  800×18
                                 "Current organizational chart showing project staff positions."
-                              div  .formspec-file-drop-zone.formspec-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  800×22
+                              div  .formspec-file-drop-zone.formspec-focus-ring  role="button"  aria-label="Drop files here or click to browse"  tabindex="0"  |  800×22
                                 div  .formspec-file-drop-content  |  800×22
                                   span  .formspec-file-drop-icon  aria-hidden  |  15×18
                                     "⇵"

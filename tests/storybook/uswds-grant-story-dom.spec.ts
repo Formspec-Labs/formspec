@@ -149,11 +149,11 @@ test.describe('USWDS Grant story DOM', () => {
         ).toBe('row');
 
         const themeGridCellClasses = await previewFrame.locator('formspec-render').first().evaluate((fr) => {
-            const row = fr.querySelector('.usa-prose .grid-row.grid-gap');
+            const row = fr.querySelector('.formspec-wizard-panel > .grid-row.grid-gap');
             if (!row) return null;
             return [...row.children].map((c) => (c as HTMLElement).className);
         });
-        expect(themeGridCellClasses, 'theme page grid row should exist under .usa-prose').not.toBeNull();
+        expect(themeGridCellClasses, 'theme page grid row should exist inside the wizard panel').not.toBeNull();
         expect(themeGridCellClasses![0], 'first applicant region is span 8 → tablet:grid-col-8 on cell').toContain(
             'tablet:grid-col-8',
         );

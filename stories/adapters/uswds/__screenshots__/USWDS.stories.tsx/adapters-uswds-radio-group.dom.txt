@@ -2,78 +2,77 @@ div .sb-preparing-story.sb-wrapper [hidden]
 div .sb-preparing-docs.sb-wrapper [hidden]
 div .sb-nopreview.sb-wrapper [hidden]
 div .sb-errordisplay.sb-wrapper [hidden]
-div  |  1200×193
-  div  |  1200×193  d:grid  cols:584px 584px 0px  rows:193.156px  gap:32px
-    div  |  584×193
+div  |  1200×198
+  div  |  1200×198  d:grid  cols:584px 584px 0px  rows:198.406px  gap:32px
+    div  |  584×198
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "USWDS Adapter"
-      div  |  584×166
-        div  |  584×166
+      div  |  584×164
+        div  |  584×164
           #shadow-root
             link [hidden]
             link [hidden]
-            div  |  584×166
-              div  .isolated-story-root  |  584×166
-                form  .usa-form  |  584×166  |  font:16.96px
-                  h2  .usa-sr-only  |  139×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            link [hidden]
+            div  |  584×164
+              div  .isolated-story-root  |  584×164
+                form  .usa-form  |  584×164
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Radio Group"
-                  div  |  584×166
-                    formspec-render  data-formspecAppearance="light"  |  584×166
+                  div  |  584×116
+                    formspec-render  data-formspecAppearance="light"  |  584×116
                       #shadow-root
-                      div  .formspec-container.formspec-appearance-light  |  584×166  d:flex  dir:column  gap:16px
-                        div  .formspec-stack.grid-row.grid-gap  |  616×166  d:flex  wrap:wrap  m:0,-16
-                          div  .grid-col-12  |  616×166  pos:relative  p:0,16
-                            fieldset  .usa-fieldset.formspec-themed-field  aria-live="off"  data-name="priority"  |  480×166
-                              legend  #field-priority-label  .usa-legend  |  93×22  m:24,0,0,0
+                      div  .formspec-container.formspec-appearance-light  |  584×116
+                        div  .formspec-stack.grid-row.grid-gap  |  584×116
+                          div  .grid-col-12  |  584×116
+                            fieldset  .usa-fieldset.formspec-themed-field  aria-live="off"  data-name="priority"  |  580×116  m:0,2  p:6,12,10,12  |  border:2px groove rgb(239, 239, 239)
+                              legend  #field-priority-label  .usa-legend  |  93×18  p:0,2
                                 "Priority Level"
-                              span  #field-priority-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                              div  .usa-radio  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-priority-0  .usa-radio__input  type="radio"  name="priority"  value="low"  aria-required="false"  aria-invalid="false"  |  13×13  pos:absolute
-                                label  .usa-radio__label  for="field-priority-0"  |  61×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-radio  data-optionWrapper=""  |  552×20
+                                input  #field-priority-0  .usa-radio__input  type="radio"  name="priority"  value="low"  aria-required="false"  aria-invalid="false"  |  13×13  d:inline-block  m:3,3,0,5  |  font:13.3333px
+                                label  .usa-radio__label  for="field-priority-0"  |  29×18
                                   "Low"
-                              div  .usa-radio  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-priority-1  .usa-radio__input  type="radio"  name="priority"  value="medium"  |  13×13  pos:absolute
-                                label  .usa-radio__label  for="field-priority-1"  |  90×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-radio  data-optionWrapper=""  |  552×20
+                                input  #field-priority-1  .usa-radio__input  type="radio"  name="priority"  value="medium"  |  13×13  d:inline-block  m:3,3,0,5  |  font:13.3333px
+                                label  .usa-radio__label  for="field-priority-1"  |  54×18
                                   "Medium"
-                              div  .usa-radio  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-priority-2  .usa-radio__input  type="radio"  name="priority"  value="high"  |  13×13  pos:absolute
-                                label  .usa-radio__label  for="field-priority-2"  |  65×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-radio  data-optionWrapper=""  |  552×20
+                                input  #field-priority-2  .usa-radio__input  type="radio"  name="priority"  value="high"  |  13×13  d:inline-block  m:3,3,0,5  |  font:13.3333px
+                                label  .usa-radio__label  for="field-priority-2"  |  32×18
                                   "High"
-                              div  .usa-radio  data-optionWrapper=""  |  480×34  |  bg:rgb(255, 255, 255)
-                                input  #field-priority-3  .usa-radio__input  type="radio"  name="priority"  value="critical"  |  13×13  pos:absolute
-                                label  .usa-radio__label  for="field-priority-3"  |  82×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32  |  color:rgb(27, 27, 27)
+                              div  .usa-radio  data-optionWrapper=""  |  552×20
+                                input  #field-priority-3  .usa-radio__input  type="radio"  name="priority"  value="critical"  |  13×13  d:inline-block  m:3,3,0,5  |  font:13.3333px
+                                label  .usa-radio__label  for="field-priority-3"  |  48×18
                                   "Critical"
-    div  |  584×193
+    div  |  584×198
       div  |  584×15  m:0,0,12,0  |  color:rgb(136, 136, 136)  font:13px/600
         "Real USWDS"
-      div  |  584×166
-        div  |  584×166
+      div  |  584×164
+        div  |  584×164
           #shadow-root
             link [hidden]
-            div  .story-root  |  584×166  |  color:rgb(27, 27, 27)
-              div  |  584×166
-                form  .usa-form.usa-form--large  |  480×166  |  font:16.96px
-                  h2  .usa-sr-only  |  139×33  pos:absolute  m:21,0  |  font:25.44px/bold
+            div  .story-root  |  584×164  |  color:rgb(27, 27, 27)
+              div  |  584×164
+                form  .usa-form.usa-form--large  |  584×164
+                  h2  .usa-sr-only  |  584×28  m:20,0  |  font:24px/bold
                     "Radio Group"
-                  div  .grid-row.grid-gap.real-uswds-stack  |  512×166  d:flex  wrap:wrap  m:0,-16
-                    div  .grid-col-12  |  512×166  pos:relative  p:0,16
-                      fieldset  .usa-fieldset  |  480×166
-                        legend  .usa-legend  |  93×22  m:24,0,0,0
+                  div  .grid-row.grid-gap.real-uswds-stack  |  584×116
+                    div  .grid-col-12  |  584×116
+                      fieldset  .usa-fieldset  |  580×116  m:0,2  p:6,12,10,12  |  border:2px groove rgb(239, 239, 239)
+                        legend  .usa-legend  |  93×18  p:0,2
                           "Priority Level"
-                        span  #real-uswds-priority-error  .usa-error-message  |  480×8  p:4,0  |  color:rgb(181, 9, 9)  font-weight:bold
-                        div  .usa-radio  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-priority-low  .usa-radio__input  type="radio"  name="priority"  value="low"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-radio__label  for="real-uswds-priority-low"  |  61×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-radio  |  552×20
+                          input  #real-uswds-priority-low  .usa-radio__input  type="radio"  name="priority"  value="low"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  d:inline-block  m:3,3,0,5  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-radio__label  for="real-uswds-priority-low"  |  29×18
                             "Low"
-                        div  .usa-radio  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-priority-medium  .usa-radio__input  type="radio"  name="priority"  value="medium"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-radio__label  for="real-uswds-priority-medium"  |  90×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-radio  |  552×20
+                          input  #real-uswds-priority-medium  .usa-radio__input  type="radio"  name="priority"  value="medium"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  d:inline-block  m:3,3,0,5  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-radio__label  for="real-uswds-priority-medium"  |  54×18
                             "Medium"
-                        div  .usa-radio  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-priority-high  .usa-radio__input  type="radio"  name="priority"  value="high"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-radio__label  for="real-uswds-priority-high"  |  65×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-radio  |  552×20
+                          input  #real-uswds-priority-high  .usa-radio__input  type="radio"  name="priority"  value="high"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  d:inline-block  m:3,3,0,5  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-radio__label  for="real-uswds-priority-high"  |  32×18
                             "High"
-                        div  .usa-radio  |  480×34  |  bg:rgb(255, 255, 255)
-                          input  #real-uswds-priority-critical  .usa-radio__input  type="radio"  name="priority"  value="critical"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  pos:absolute  |  color:rgb(0, 0, 0)
-                          label  .usa-radio__label  for="real-uswds-priority-critical"  |  82×22  pos:relative  d:inline-block  m:12,0,0,0  p:0,0,0,32
+                        div  .usa-radio  |  552×20
+                          input  #real-uswds-priority-critical  .usa-radio__input  type="radio"  name="priority"  value="critical"  aria-describedby="real-uswds-priority-error"  aria-invalid="false"  data-realUswdsPath="priority"  |  13×13  d:inline-block  m:3,3,0,5  |  color:rgb(0, 0, 0)  font:13.3333px
+                          label  .usa-radio__label  for="real-uswds-priority-critical"  |  48×18
                             "Critical"
