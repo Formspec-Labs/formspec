@@ -253,6 +253,14 @@ Component §11 Cross-References + BLUF bullet. Experience prop descriptions upda
 
 ## Task 21: Promotion-gate verification + architecture review dispatch
 
+- [x] Walk concept §9 gates touching Component references:
+  - Experience shape: `unitRef` and `taskRefs` read stable Experience IDs only; they do not make Units layout containers.
+  - ActionButton binding: `actionRef` remains owned by Component §5.19 with no fallback and unchanged `error` severity.
+  - Regeneration merge: `x-generation` defines anchor shape only; designer-edit preservation, conflict severities, orphan status, and merge UX remain out of scope for the regeneration merge follow-up.
+  - Trace consumer: reference-field annotations and anchors are diagnostic/provenance inputs only; Trace remains a separate consumer-owned follow-up.
+  - Authoring bundle: existing Component documents validate unchanged, and default renderers ignore reference metadata.
+- [x] Dispatch final architecture/scout review on the additive change set.
+
 Walk concept §9 promotion gates touching Component references. Dispatch a background scout review on the additive change set.
 
 ---
