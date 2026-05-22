@@ -1,0 +1,16 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/responsive-prop" },
+  "tree": {
+    "component": "Grid",
+    "columns": 4,
+    "responsive": {
+      "md": {
+        "columns": 2,
+        "madeUpProp": true
+      }
+    },
+    "children": []
+  }
+}

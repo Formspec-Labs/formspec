@@ -2484,41 +2484,22 @@ property is discarded.
 
 ### 6.18 Fallback Requirements
 
-The following table defines the complete set of Progressive → Core
-fallback substitutions. A Core Conformant processor MUST apply these
-fallbacks when it encounters a Progressive component.
+The normative fallback policy lives in [`specs/ui-policy.json`](../ui-policy.json).
+That policy defines each Progressive component's Core fallback plus
+component-specific `carry`, `drop`, and `translate` behavior. A Core Conformant
+processor MUST apply that policy when it encounters a Progressive component.
 
-| Progressive Component | Core Fallback | Notes |
-|---|---|---|
-| Tabs | Stack + Heading | Each child preceded by a Heading (level 3) with the tab label. |
-| Accordion | Stack + Collapsible | Each child wrapped in Collapsible; first defaults open. |
-| RadioGroup | Select | `columns` discarded. |
-| MoneyInput | NumberInput | Currency symbol rendered as prefix if available. |
-| Slider | NumberInput | `min`, `max`, `step` preserved. |
-| Rating | NumberInput | `min: 1`, `max` preserved, `step: 1`. |
-| Signature | FileUpload | `accept` set to `"image/*"`. |
-| Alert | Text | Text prefixed with severity in brackets. |
-| Badge | Text | Same `text` prop. |
-| ProgressBar | Text | Text shows `"<value> / <max> (<percent>%)"`. |
-| Summary | Stack of Text | One Text per item: `"<label>: <value>"`. |
-| ValidationSummary | Alert | One Alert per finding; severity preserved as `variant`. |
-| DataTable | Stack of Card | One Card per repeat instance with child inputs. |
-| Panel | Card | `title` preserved; placement/width discarded. |
-| Modal | Collapsible | `title` preserved; `defaultOpen: false`. |
-| Popover | Collapsible | `triggerLabel` mapped to `title`; placement discarded. |
+Fallback substitution MUST preserve the policy's default preservation set and
+MUST apply each component-specific policy entry from the shared artifact.
+Those entries define the fallback component, carried props, dropped props, and
+translated props. Child components are preserved separately when the fallback
+component accepts children, and are recursively processed through the same
+fallback policy.
 
-Fallback substitution MUST preserve:
-
-1. All child components (recursively processed).
-2. The `when` property (transferred to the fallback component).
-3. The `responsive` property (transferred if applicable props exist
-   on the fallback).
-4. The `style` property.
-5. The `bind` property (when the fallback supports it).
-
-Fallback substitution MUST discard props that have no equivalent on
-the Core fallback component. Processors SHOULD emit a warning
-listing discarded props.
+Fallback substitution MUST discard props that have no equivalent on the Core
+fallback component. Processors SHOULD emit a warning listing discarded props.
+This section intentionally does not restate the per-component table; the shared
+policy artifact is the single source of truth.
 
 ---
 
@@ -2802,8 +2783,10 @@ non-negative integers. The same breakpoint format is used in the
 Theme Specification (theme-spec §6.4).
 
 When a Component Document and a Theme Document both declare
-`breakpoints` for the same Definition, the Component Document's
-breakpoints take precedence.
+`breakpoints` for the same Definition, they share a single breakpoint
+namespace. Theme breakpoints define the canonical values for shared
+names; Component breakpoints MAY add names. Same-name Component and
+Theme breakpoints MUST use the same value.
 
 ### 9.2 The responsive Property
 
@@ -2823,9 +2806,10 @@ objects**:
 }
 ```
 
-Override objects contain **component-specific props only** (not base
-props). The following properties MUST NOT appear in responsive
-overrides:
+Override objects contain shallow props allowed by the shared responsive policy
+in [`specs/ui-policy.json`](../ui-policy.json). The policy defines shared
+allowed props, component-specific allowed props, and universal forbidden keys.
+The following structural properties MUST NOT appear in responsive overrides:
 
 - `component` — type switching is forbidden (§9.4).
 - `bind` — data binding is viewport-independent.
@@ -2833,7 +2817,9 @@ overrides:
 - `children` — tree structure is viewport-independent.
 - `responsive` — recursive responsive is forbidden.
 
-The `style` property MAY appear in responsive overrides.
+Allowed responsive props include shared presentation props such as `style`,
+`cssClass`, `accessibility`, `layout`, and `hidden`, plus component-specific
+props listed in the policy artifact.
 
 ### 9.3 Merge Semantics (mobile-first)
 
@@ -3048,7 +3034,7 @@ The general precedence rule for all presentation decisions:
 | Priority | Tier | Effect |
 |----------|------|--------|
 | 1 (highest) | **Tier 3 — Component Document** | Component tree layout, component selection, style, and tokens override everything below. |
-| 2 | **Tier 2 — Theme Document** | Widget configuration, selector cascade, tokens, and page layout apply to items NOT controlled by Tier 3. Tier 2 tokens are inherited by Tier 3 (§10.3). |
+| 2 | **Tier 2 — Theme Document** | Widget configuration, selector cascade, tokens, and page layout apply when not shadowed by Tier 3. Tier 2 tokens are inherited by Tier 3 (§10.3). |
 | 3 (lowest) | **Tier 1 — Definition hints** | Inline `presentation` and `formPresentation` hints serve as baseline defaults. |
 
 Specific interactions:
@@ -3057,8 +3043,10 @@ Specific interactions:
   assignment, which overrides Tier 1 `widgetHint`.
 - **Label display:** Tier 1 item `label` is the source of truth.
   Context-specific labels use the `labels` map on the Definition item.
-- **Layout:** Tier 3 component tree completely replaces Tier 2 page
-  layout for bound items.
+- **Layout:** Tier 3 component tree controls the explicit structure it defines.
+  Active page source is resolved separately: direct-root Component `Section`
+  page units win; otherwise Theme `pages` may provide page layout; otherwise
+  renderers generate a Definition-order fallback page.
 - **Tokens:** Tier 3 tokens override Tier 2 tokens of the same key;
   unoverridden tokens cascade from Tier 2.
 - **Behavioral rules:** `required`, `readOnly`, `relevant`,
@@ -3069,8 +3057,8 @@ Specific interactions:
 
 A Component Document is NOT required to bind every item in the
 Definition. A **partial tree** binds only a subset of items. The
-remaining items are rendered via Tier 2/Tier 1 fallback (§11.1,
-§4.5).
+remaining items are rendered via the active page source and Tier 2/Tier 1
+fallback (§11.1, §4.5).
 
 This enables incremental adoption: an author can create a Component
 Document that controls the layout of key sections while allowing
@@ -3080,9 +3068,10 @@ The renderer MUST:
 
 1. Render the component tree's output first.
 2. Identify all Definition items not bound in the tree.
-3. Render unbound visible items using fallback rules, appended after
-   the tree output.
-4. Ensure all required items are editable, regardless of whether
+3. Resolve active page source as direct-root Component `Section` page units,
+   then Theme `pages`, then generated Definition-order fallback.
+4. Render unbound visible items using the active page source and fallback rules.
+5. Ensure all required items are editable, regardless of whether
    they appear in the tree.
 
 ---

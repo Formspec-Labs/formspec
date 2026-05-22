@@ -4462,123 +4462,23 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href=
 <span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h3 id="fallback-requirements">6.18 Fallback Requirements</h3>
-<p>The following table defines the complete set of Progressive → Core
-fallback substitutions. A Core Conformant processor MUST apply these
-fallbacks when it encounters a Progressive component.</p>
-<table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
-<thead>
-<tr>
-<th>Progressive Component</th>
-<th>Core Fallback</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Tabs</td>
-<td>Stack + Heading</td>
-<td>Each child preceded by a Heading (level 3) with the tab label.</td>
-</tr>
-<tr>
-<td>Accordion</td>
-<td>Stack + Collapsible</td>
-<td>Each child wrapped in Collapsible; first defaults open.</td>
-</tr>
-<tr>
-<td>RadioGroup</td>
-<td>Select</td>
-<td><code>columns</code> discarded.</td>
-</tr>
-<tr>
-<td>MoneyInput</td>
-<td>NumberInput</td>
-<td>Currency symbol rendered as prefix if available.</td>
-</tr>
-<tr>
-<td>Slider</td>
-<td>NumberInput</td>
-<td><code>min</code>, <code>max</code>, <code>step</code>
-preserved.</td>
-</tr>
-<tr>
-<td>Rating</td>
-<td>NumberInput</td>
-<td><code>min: 1</code>, <code>max</code> preserved,
-<code>step: 1</code>.</td>
-</tr>
-<tr>
-<td>Signature</td>
-<td>FileUpload</td>
-<td><code>accept</code> set to <code>"image/*"</code>.</td>
-</tr>
-<tr>
-<td>Alert</td>
-<td>Text</td>
-<td>Text prefixed with severity in brackets.</td>
-</tr>
-<tr>
-<td>Badge</td>
-<td>Text</td>
-<td>Same <code>text</code> prop.</td>
-</tr>
-<tr>
-<td>ProgressBar</td>
-<td>Text</td>
-<td>Text shows
-<code>"&lt;value&gt; / &lt;max&gt; (&lt;percent&gt;%)"</code>.</td>
-</tr>
-<tr>
-<td>Summary</td>
-<td>Stack of Text</td>
-<td>One Text per item: <code>"&lt;label&gt;: &lt;value&gt;"</code>.</td>
-</tr>
-<tr>
-<td>ValidationSummary</td>
-<td>Alert</td>
-<td>One Alert per finding; severity preserved as
-<code>variant</code>.</td>
-</tr>
-<tr>
-<td>DataTable</td>
-<td>Stack of Card</td>
-<td>One Card per repeat instance with child inputs.</td>
-</tr>
-<tr>
-<td>Panel</td>
-<td>Card</td>
-<td><code>title</code> preserved; placement/width discarded.</td>
-</tr>
-<tr>
-<td>Modal</td>
-<td>Collapsible</td>
-<td><code>title</code> preserved; <code>defaultOpen: false</code>.</td>
-</tr>
-<tr>
-<td>Popover</td>
-<td>Collapsible</td>
-<td><code>triggerLabel</code> mapped to <code>title</code>; placement
-discarded.</td>
-</tr>
-</tbody>
-</table>
-<p>Fallback substitution MUST preserve:</p>
-<ol type="1">
-<li>All child components (recursively processed).</li>
-<li>The <code>when</code> property (transferred to the fallback
-component).</li>
-<li>The <code>responsive</code> property (transferred if applicable
-props exist on the fallback).</li>
-<li>The <code>style</code> property.</li>
-<li>The <code>bind</code> property (when the fallback supports it).</li>
-</ol>
+<p>The normative fallback policy lives in <a
+href="../ui-policy.json"><code>specs/ui-policy.json</code></a>. That
+policy defines each Progressive component’s Core fallback plus
+component-specific <code>carry</code>, <code>drop</code>, and
+<code>translate</code> behavior. A Core Conformant processor MUST apply
+that policy when it encounters a Progressive component.</p>
+<p>Fallback substitution MUST preserve the policy’s default preservation
+set and MUST apply each component-specific policy entry from the shared
+artifact. Those entries define the fallback component, carried props,
+dropped props, and translated props. Child components are preserved
+separately when the fallback component accepts children, and are
+recursively processed through the same fallback policy.</p>
 <p>Fallback substitution MUST discard props that have no equivalent on
 the Core fallback component. Processors SHOULD emit a warning listing
-discarded props.</p>
+discarded props. This section intentionally does not restate the
+per-component table; the shared policy artifact is the single source of
+truth.</p>
 <hr />
 <h2 id="custom-components">7. Custom Components</h2>
 <p>The custom component mechanism allows authors to define reusable
@@ -4949,8 +4849,10 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb48-1"><a href=
 non-negative integers. The same breakpoint format is used in the Theme
 Specification (theme-spec §6.4).</p>
 <p>When a Component Document and a Theme Document both declare
-<code>breakpoints</code> for the same Definition, the Component
-Document’s breakpoints take precedence.</p>
+<code>breakpoints</code> for the same Definition, they share a single
+breakpoint namespace. Theme breakpoints define the canonical values for
+shared names; Component breakpoints MAY add names. Same-name Component
+and Theme breakpoints MUST use the same value.</p>
 <h3 id="the-responsive-property">9.2 The responsive Property</h3>
 <p>The <code>responsive</code> property on a component object is a JSON
 object whose keys are breakpoint names and whose values are <strong>prop
@@ -4965,9 +4867,12 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb49-1"><a href=
 <span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;md&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;columns&quot;</span><span class="fu">:</span> <span class="dv">2</span> <span class="fu">}</span></span>
 <span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
 <span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p>Override objects contain <strong>component-specific props
-only</strong> (not base props). The following properties MUST NOT appear
-in responsive overrides:</p>
+<p>Override objects contain shallow props allowed by the shared
+responsive policy in <a
+href="../ui-policy.json"><code>specs/ui-policy.json</code></a>. The
+policy defines shared allowed props, component-specific allowed props,
+and universal forbidden keys. The following structural properties MUST
+NOT appear in responsive overrides:</p>
 <ul>
 <li><code>component</code> — type switching is forbidden (§9.4).</li>
 <li><code>bind</code> — data binding is viewport-independent.</li>
@@ -4975,8 +4880,10 @@ in responsive overrides:</p>
 <li><code>children</code> — tree structure is viewport-independent.</li>
 <li><code>responsive</code> — recursive responsive is forbidden.</li>
 </ul>
-<p>The <code>style</code> property MAY appear in responsive
-overrides.</p>
+<p>Allowed responsive props include shared presentation props such as
+<code>style</code>, <code>cssClass</code>, <code>accessibility</code>,
+<code>layout</code>, and <code>hidden</code>, plus component-specific
+props listed in the policy artifact.</p>
 <h3 id="merge-semantics-mobile-first">9.3 Merge Semantics
 (mobile-first)</h3>
 <p>Responsive overrides follow a <strong>mobile-first
@@ -5198,8 +5105,8 @@ override everything below.</td>
 <td>2</td>
 <td><strong>Tier 2 — Theme Document</strong></td>
 <td>Widget configuration, selector cascade, tokens, and page layout
-apply to items NOT controlled by Tier 3. Tier 2 tokens are inherited by
-Tier 3 (§10.3).</td>
+apply when not shadowed by Tier 3. Tier 2 tokens are inherited by Tier 3
+(§10.3).</td>
 </tr>
 <tr>
 <td>3 (lowest)</td>
@@ -5217,8 +5124,11 @@ Tier 2 widget assignment, which overrides Tier 1
 <li><strong>Label display:</strong> Tier 1 item <code>label</code> is
 the source of truth. Context-specific labels use the <code>labels</code>
 map on the Definition item.</li>
-<li><strong>Layout:</strong> Tier 3 component tree completely replaces
-Tier 2 page layout for bound items.</li>
+<li><strong>Layout:</strong> Tier 3 component tree controls the explicit
+structure it defines. Active page source is resolved separately:
+direct-root Component <code>Section</code> page units win; otherwise
+Theme <code>pages</code> may provide page layout; otherwise renderers
+generate a Definition-order fallback page.</li>
 <li><strong>Tokens:</strong> Tier 3 tokens override Tier 2 tokens of the
 same key; unoverridden tokens cascade from Tier 2.</li>
 <li><strong>Behavioral rules:</strong> <code>required</code>,
@@ -5230,8 +5140,8 @@ apply.</li>
 <h3 id="partial-component-trees">11.4 Partial Component Trees</h3>
 <p>A Component Document is NOT required to bind every item in the
 Definition. A <strong>partial tree</strong> binds only a subset of
-items. The remaining items are rendered via Tier 2/Tier 1 fallback
-(§11.1, §4.5).</p>
+items. The remaining items are rendered via the active page source and
+Tier 2/Tier 1 fallback (§11.1, §4.5).</p>
 <p>This enables incremental adoption: an author can create a Component
 Document that controls the layout of key sections while allowing simpler
 fields to render automatically.</p>
@@ -5239,8 +5149,11 @@ fields to render automatically.</p>
 <ol type="1">
 <li>Render the component tree’s output first.</li>
 <li>Identify all Definition items not bound in the tree.</li>
-<li>Render unbound visible items using fallback rules, appended after
-the tree output.</li>
+<li>Resolve active page source as direct-root Component
+<code>Section</code> page units, then Theme <code>pages</code>, then
+generated Definition-order fallback.</li>
+<li>Render unbound visible items using the active page source and
+fallback rules.</li>
 <li>Ensure all required items are editable, regardless of whether they
 appear in the tree.</li>
 </ol>

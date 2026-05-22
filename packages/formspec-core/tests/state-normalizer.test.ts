@@ -31,22 +31,24 @@ describe('normalizeState', () => {
     expect(keys).toEqual(['sm', 'md', 'lg']);
   });
 
-  it('inherits component breakpoints from theme when not set', () => {
+  it('does not inherit theme breakpoints into component state', () => {
     const state = makeState({
       theme: { targetDefinition: { url: '' }, breakpoints: { sm: 640 } },
       component: { targetDefinition: { url: '' } },
     });
     normalizeState(state);
-    expect(state.component.breakpoints).toEqual({ sm: 640 });
+    expect(state.theme.breakpoints).toEqual({ sm: 640 });
+    expect(state.component.breakpoints).toBeUndefined();
   });
 
-  it('does not overwrite existing component breakpoints', () => {
+  it('sorts component breakpoints without merging theme breakpoints into them', () => {
     const state = makeState({
       theme: { targetDefinition: { url: '' }, breakpoints: { sm: 640 } },
-      component: { targetDefinition: { url: '' }, breakpoints: { md: 768 } },
+      component: { targetDefinition: { url: '' }, breakpoints: { lg: 1024, md: 768 } },
     });
     normalizeState(state);
-    expect(state.component.breakpoints).toEqual({ md: 768 });
+    expect(state.component.breakpoints).toEqual({ md: 768, lg: 1024 });
+    expect(state.theme.breakpoints).toEqual({ sm: 640 });
   });
 
   it('handles missing targetDefinition gracefully', () => {

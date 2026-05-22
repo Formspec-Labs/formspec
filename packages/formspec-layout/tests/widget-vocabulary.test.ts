@@ -67,8 +67,8 @@ describe('COMPATIBILITY_MATRIX — dataType to compatible components', () => {
     expect(COMPATIBILITY_MATRIX['boolean']).toEqual(['Toggle']);
   });
 
-  it('choice supports Select, RadioGroup, TextInput', () => {
-    expect(COMPATIBILITY_MATRIX['choice']).toEqual(['Select', 'RadioGroup', 'TextInput']);
+  it('choice supports Select and RadioGroup', () => {
+    expect(COMPATIBILITY_MATRIX['choice']).toEqual(['Select', 'RadioGroup']);
   });
 
   it('every component in the matrix is a known component type', () => {
@@ -88,5 +88,6 @@ describe('COMPATIBILITY_MATRIX — dataType to compatible components', () => {
     expect(COMPATIBILITY_MATRIX['string'][0]).toBe('TextInput');
     expect(COMPATIBILITY_MATRIX['integer'][0]).toBe('NumberInput');
     expect(COMPATIBILITY_MATRIX['choice'][0]).toBe('Select');
+    expect(COMPATIBILITY_MATRIX['money'][0]).toBe('MoneyInput');
   });
 });

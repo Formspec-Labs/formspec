@@ -10,7 +10,7 @@ use crate::types::LintDiagnostic;
 use super::field_lookup::FieldInfo;
 use super::{
     check_duplicate_bind, check_input_compat, check_layout_bind, check_options_source,
-    check_params, check_textinput_variant, check_unknown,
+    check_params, check_responsive, check_textinput_variant, check_unknown,
 };
 
 pub(crate) struct WalkState<'a> {
@@ -38,6 +38,7 @@ impl<'a> WalkState<'a> {
 
         check_unknown::check(self, path, comp_type);
         check_params::check(self, node, path, comp_type);
+        check_responsive::check(self, node, path, comp_type);
 
         let Some(bind) = node.get("bind").and_then(|v| v.as_str()) else {
             return;

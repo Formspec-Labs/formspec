@@ -26,7 +26,7 @@ Generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md)
 
 # formspec_lint
 
-Formspec Linter — 8-pass static analysis and validation pipeline.
+Formspec Linter — 9-pass static analysis and validation pipeline.
 
 Pass 1 (E100): Document type detection
 Pass 1b (E101): JSON Schema validation against embedded schemas
@@ -35,9 +35,10 @@ Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets
 Pass 3b (E600/E601/E602): Extension resolution against registry documents
 Pass 4 (E400): FEL expression compilation
 Pass 5 (E500): Dependency cycle detection
-Pass 6 (W700-W711/E710): Theme — token validation, reference integrity, page semantics
-Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility, bind resolution
+Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
+Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
 Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
+Pass 9 (E1100-E1507/W1100-W1500): Companion document semantic lint
 
 ## Documentation
 
@@ -53,7 +54,7 @@ Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 
 ### [`component_matrix`](component_matrix.md)
 
-*1 constant, 1 enum, 3 functions*
+*1 enum, 4 functions*
 
 ### [`dependencies`](dependencies.md)
 
@@ -107,13 +108,13 @@ Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 
 **Modules**
 
-- [`component_matrix`](#component_matrix) - Component/dataType compatibility matrix for the 12 built-in input components.
+- [`component_matrix`](#component_matrix) - Component/dataType compatibility accessors generated from the shared UI policy.
 - [`dependencies`](#dependencies) - Pass 5: Dependency analysis — builds a dependency graph from compiled expressions and detects cycles via DFS.
 - [`expressions`](#expressions) - Pass 4: Expression compilation — parses all FEL expression slots in a definition,
 - [`extensions`](#extensions) - Pass 3b: Extension validation (E600/E601/E602).
-- [`pass_component`](#pass_component) - Pass 7: Component document semantic checks (E800-E807, W800-W804).
+- [`pass_component`](#pass_component) - Pass 7: Component document semantic checks (E800-E807, W800-W807).
 - [`pass_response`](#pass_response) - Pass 8 — Response cross-field invariants.
-- [`pass_theme`](#pass_theme) - Pass 6: Theme document semantic checks (W700-W711, E710).
+- [`pass_theme`](#pass_theme) - Pass 6: Theme document semantic checks (W700-W712, E710).
 - [`references`](#references) - Pass 3: Reference validation — checks bind paths and shape targets resolve against the item tree.
 - [`tree`](#tree) - Pass 2: Tree indexing — flattens the item tree into a lookup index.
 
@@ -126,11 +127,13 @@ Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 
 ## Module: component_matrix
 
-Component/dataType compatibility matrix for the 12 built-in input components.
+Component/dataType compatibility accessors for built-in input components.
 
-Pure data module — no tree walking, no diagnostics. Consumed by `pass_component.rs`.
+Pure data module — no tree walking, no diagnostics. Consumed by
+`pass_component.rs` and `pass_theme.rs`.
 
-Static `COMPAT_RULES` and `CompatRule` rows back the public classifiers; keep matrix tables maintainable.
+The matrix is loaded from `specs/ui-policy.json` so TypeScript helpers and
+Rust lint consume the same policy artifact.
 
 
 
@@ -227,7 +230,7 @@ fn lint_with_options(doc: &serde_json::Value, options: &LintOptions) -> LintResu
 
 ## Module: pass_component
 
-Pass 7: Component document semantic checks (E800-E807, W800-W804).
+Pass 7: Component document semantic checks (E800-E807, W800-W807).
 
 Validates root layout, component references, type compatibility, bind resolution,
 custom component cycles, and duplicate binds.
@@ -259,7 +262,7 @@ fixtures with the same root cause.
 
 ## Module: pass_theme
 
-Pass 6: Theme document semantic checks (W700-W711, E710).
+Pass 6: Theme document semantic checks (W700-W712, E710).
 
 Validates token values against the embedded Token Registry, checks token
 reference integrity, cross-artifact consistency (when a definition is
@@ -310,12 +313,9 @@ and E201 (duplicate full path) diagnostics during indexing.
 **Functions**
 
 - [`classify_compatibility`](#classify_compatibility) - Classify how compatible a component is with a given dataType.
+- [`input_components`](#input_components) - The built-in input components declared by the shared UI policy.
 - [`is_input_component`](#is_input_component) - Whether this component is one of the 12 built-in input components.
 - [`requires_options_source`](#requires_options_source) - Whether this component requires an optionSet or inline options.
-
-**Constants**
-
-- [`INPUT_COMPONENTS`](#input_components) - The 12 built-in input components.
 
 ---
 
@@ -344,14 +344,6 @@ Result of checking a component against a dataType.
 
 
 
-## formspec_lint::component_matrix::INPUT_COMPONENTS
-
-*Constant*: `&[&str]`
-
-The 12 built-in input components.
-
-
-
 ## formspec_lint::component_matrix::classify_compatibility
 
 *Function*
@@ -362,6 +354,18 @@ Returns `NotApplicable` if the component is not one of the 12 input components.
 
 ```rust
 fn classify_compatibility(component: &str, data_type: &str) -> Compatibility
+```
+
+
+
+## formspec_lint::component_matrix::input_components
+
+*Function*
+
+The built-in input components declared by the shared UI policy.
+
+```rust
+fn input_components() -> Vec<&'static str>
 ```
 
 
@@ -926,4 +930,3 @@ fn sort_diagnostics(diags: & mut [LintDiagnostic])
 ```
 
 ---
-

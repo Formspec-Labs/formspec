@@ -1,7 +1,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use super::classification::{CONTAINER_NO_BIND, LAYOUT_NO_BIND, LAYOUT_ROOTS};
-use super::{PASS, lint_component};
+use super::{PASS, lint_component, lint_component_with_context};
 use crate::types::LintDiagnostic;
 use serde_json::json;
 
@@ -698,6 +698,242 @@ fn deeply_nested_bind_tracked() {
     });
     let diags = lint_component(&comp, None);
     assert_eq!(with_code(&diags, "W804").len(), 1);
+}
+
+#[test]
+fn responsive_hidden_override_no_w806() {
+    let comp = json!({
+        "tree": {
+            "component": "Stack",
+            "responsive": {
+                "sm": { "hidden": true }
+            },
+            "children": []
+        }
+    });
+    let diags = lint_component(&comp, None);
+    assert!(
+        with_code(&diags, "W806").is_empty(),
+        "hidden is a shared responsive prop and should not emit W806"
+    );
+}
+
+#[test]
+fn responsive_datepicker_show_time_no_w806() {
+    let comp = json!({
+        "tree": {
+            "component": "DatePicker",
+            "bind": "startsAt",
+            "responsive": {
+                "md": { "showTime": true }
+            }
+        }
+    });
+    let diags = lint_component(&comp, None);
+    assert!(
+        with_code(&diags, "W806").is_empty(),
+        "DatePicker.showTime is schema-valid and should not emit W806"
+    );
+}
+
+#[test]
+fn responsive_text_input_schema_props_no_w806() {
+    let comp = json!({
+        "tree": {
+            "component": "TextInput",
+            "bind": "email",
+            "responsive": {
+                "md": {
+                    "inputMode": "email",
+                    "prefix": "mailto:",
+                    "suffix": ".org"
+                }
+            }
+        }
+    });
+    let diags = lint_component(&comp, None);
+    assert!(
+        with_code(&diags, "W806").is_empty(),
+        "TextInput schema props should be allowed in responsive overrides"
+    );
+}
+
+#[test]
+fn responsive_text_input_unknown_prop_emits_w806() {
+    let comp = json!({
+        "tree": {
+            "component": "TextInput",
+            "bind": "email",
+            "responsive": {
+                "md": { "autocomplete": "email" }
+            }
+        }
+    });
+    assert_eq!(with_code(&lint_component(&comp, None), "W806").len(), 1);
+}
+
+#[test]
+fn responsive_file_upload_uses_max_size_not_max_size_mb() {
+    let valid = json!({
+        "tree": {
+            "component": "FileUpload",
+            "bind": "resume",
+            "responsive": {
+                "md": { "maxSize": 5242880 }
+            }
+        }
+    });
+    assert!(
+        with_code(&lint_component(&valid, None), "W806").is_empty(),
+        "FileUpload.maxSize is the schema/runtime prop and should not emit W806"
+    );
+
+    let invalid = json!({
+        "tree": {
+            "component": "FileUpload",
+            "bind": "resume",
+            "responsive": {
+                "md": { "maxSizeMb": 5 }
+            }
+        }
+    });
+    assert_eq!(with_code(&lint_component(&invalid, None), "W806").len(), 1);
+}
+
+#[test]
+fn responsive_semantic_override_emits_w806() {
+    let comp = json!({
+        "tree": {
+            "component": "Select",
+            "bind": "tags",
+            "multiple": true,
+            "responsive": {
+                "md": { "multiple": false }
+            }
+        }
+    });
+    assert_eq!(
+        with_code(&lint_component(&comp, None), "W806").len(),
+        1,
+        "Select.multiple changes value cardinality and must not be breakpoint-local"
+    );
+}
+
+#[test]
+fn page_conflict_expands_repeat_group_assignments() {
+    let comp = json!({
+        "tree": {
+            "component": "Stack",
+            "children": [{
+                "component": "Section",
+                "id": "component-lines",
+                "children": [{
+                    "component": "DataTable",
+                    "bind": "lineItems",
+                    "columns": [{ "header": "Amount", "bind": "amount" }]
+                }]
+            }]
+        }
+    });
+    let def = json!({
+        "items": [{
+            "key": "lineItems",
+            "type": "group",
+            "repeatable": true,
+            "children": [{
+                "key": "amount",
+                "type": "field",
+                "dataType": "money"
+            }]
+        }]
+    });
+    let theme = json!({
+        "pages": [{
+            "id": "theme-lines",
+            "regions": [{ "key": "lineItems[0].amount" }]
+        }]
+    });
+    let diags = lint_component_with_context(&comp, Some(&def), Some(&theme));
+    assert_eq!(with_code(&diags, "E805").len(), 1);
+}
+
+#[test]
+fn page_conflict_expands_theme_group_assignments() {
+    let comp = json!({
+        "tree": {
+            "component": "Stack",
+            "children": [{
+                "component": "Section",
+                "id": "component-lines",
+                "children": [{
+                    "component": "DataTable",
+                    "bind": "lineItems",
+                    "columns": [{ "header": "Amount", "bind": "amount" }]
+                }]
+            }]
+        }
+    });
+    let def = json!({
+        "items": [{
+            "key": "lineItems",
+            "type": "group",
+            "repeatable": true,
+            "children": [{
+                "key": "amount",
+                "type": "field",
+                "dataType": "money"
+            }]
+        }]
+    });
+    let theme = json!({
+        "pages": [{
+            "id": "theme-lines",
+            "regions": [{ "key": "lineItems" }]
+        }]
+    });
+    let diags = lint_component_with_context(&comp, Some(&def), Some(&theme));
+    assert_eq!(with_code(&diags, "E805").len(), 1);
+}
+
+#[test]
+fn page_conflict_expands_bound_accordion_children() {
+    let comp = json!({
+        "tree": {
+            "component": "Stack",
+            "children": [{
+                "component": "Section",
+                "id": "component-lines",
+                "children": [{
+                    "component": "Accordion",
+                    "bind": "lineItems",
+                    "children": [{
+                        "component": "TextInput",
+                        "bind": "amount"
+                    }]
+                }]
+            }]
+        }
+    });
+    let def = json!({
+        "items": [{
+            "key": "lineItems",
+            "type": "group",
+            "repeatable": true,
+            "children": [{
+                "key": "amount",
+                "type": "field",
+                "dataType": "money"
+            }]
+        }]
+    });
+    let theme = json!({
+        "pages": [{
+            "id": "theme-lines",
+            "regions": [{ "key": "lineItems[0].amount" }]
+        }]
+    });
+    let diags = lint_component_with_context(&comp, Some(&def), Some(&theme));
+    assert_eq!(with_code(&diags, "E805").len(), 1);
 }
 
 // ── Custom component with empty params array ──────────────

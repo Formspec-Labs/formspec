@@ -1,5 +1,6 @@
 /** @filedesc Component-document tree planner: slots, repeats, custom components, theme pages. */
 
+import { mergeBreakpointNamespace } from '@formspec-org/types';
 import type { ItemDescriptor, Tier1Hints } from './theme-resolver.js';
 import { resolvePresentation, resolveWidget } from './theme-resolver.js';
 import { resolveResponsiveProps } from './responsive.js';
@@ -49,7 +50,7 @@ export function planComponentTree(
     const comp = resolveResponsiveProps(
         tree,
         planCtx.activeBreakpoint ?? null,
-        planCtx.componentDocument?.breakpoints,
+        mergeBreakpointNamespace(planCtx.theme?.breakpoints, planCtx.componentDocument?.breakpoints),
     ) as ComponentTreeNode;
     const componentType = comp.component;
 

@@ -23,8 +23,10 @@
   "sideEffects": false,
   "files": ["dist"],
   "scripts": {
+    "policy:generate": "node scripts/generate-ui-policy.mjs",
+    "policy:check": "node scripts/generate-ui-policy.mjs --check",
     "types:generate": "node scripts/generate-types.mjs",
-    "build": "npm run types:generate && tsc",
+    "build": "npm run types:generate && npm run policy:generate && tsc",
     "test": "vitest run",
     "test:watch": "vitest"
   },

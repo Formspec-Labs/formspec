@@ -146,6 +146,25 @@ describe('planComponentTree', () => {
         expect(node.props.columns).toEqual(['1fr']);
     });
 
+    it('resolves component responsive overrides against theme breakpoint names', () => {
+        const tree = {
+            component: 'Grid',
+            columns: ['3fr', '1fr'],
+            gap: '8px',
+            responsive: {
+                compact: { gap: '12px' },
+                tablet: { columns: ['1fr'] },
+            },
+        };
+        const ctx = makeCtx({
+            activeBreakpoint: 'tablet',
+            theme: { breakpoints: { compact: 480, tablet: 768 } },
+        });
+        const node = planComponentTree(tree, ctx);
+        expect(node.props.columns).toEqual(['1fr']);
+        expect(node.props.gap).toBe('12px');
+    });
+
     it('preserves when condition as marker', () => {
         const tree = {
             component: 'Text',
@@ -770,7 +789,7 @@ describe('planDefinitionFallback', () => {
             ['choice', 'Select'],
             ['multiChoice', 'CheckboxGroup'],
             ['attachment', 'FileUpload'],
-            ['money', 'NumberInput'],
+            ['money', 'MoneyInput'],
         ];
 
         for (const [dataType, expected] of cases) {
@@ -1093,7 +1112,7 @@ describe('grant-application integration', () => {
         expect(nodes.length).toBeGreaterThan(0);
 
         // When formPresentation.pageMode is 'wizard', groups become Section children.
-        // Find applicantInfo either at top level or inside a Page's children.
+        // Find applicantInfo either at top level or inside a Section's children.
         function findNode(list: LayoutNode[], bindPath: string): LayoutNode | undefined {
             for (const n of list) {
                 if (n.bindPath === bindPath) return n;
@@ -1290,7 +1309,7 @@ describe('grant-application integration', () => {
         expect(groupNode.children).toHaveLength(2);
     });
 
-    it('finds component nodes by bind in nested layouts (Columns→Stack→Input)', () => {
+    it('finds component nodes by bind in nested layouts (Grid→Stack→Input)', () => {
         const items = [
             {
                 key: 'applicantInfo',
@@ -1303,7 +1322,7 @@ describe('grant-application integration', () => {
             },
         ];
 
-        // Nested layout: Columns wrapping Stacks wrapping inputs —
+        // Nested layout: Grid wrapping Stacks wrapping inputs —
         // positional parallel walk would fail here
         const tree = {
             component: 'Stack',

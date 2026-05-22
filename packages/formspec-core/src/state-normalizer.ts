@@ -1,4 +1,5 @@
 /** @filedesc Enforces cross-artifact invariants after every state mutation. */
+import { sortBreakpoints } from '@formspec-org/types';
 import type { ProjectState } from './types.js';
 
 /**
@@ -25,17 +26,13 @@ export function normalizeState(state: ProjectState): void {
     }
   }
 
-  // Sort theme breakpoints by minWidth ascending
-  const themeBp = state.theme.breakpoints;
-  if (themeBp) {
-    const sorted = Object.entries(themeBp).sort((a, b) => a[1] - b[1]);
-    const fresh: Record<string, number> = {};
-    for (const [name, minWidth] of sorted) fresh[name] = minWidth;
-    state.theme.breakpoints = fresh;
+  const themeBreakpoints = sortBreakpoints(state.theme.breakpoints);
+  if (themeBreakpoints) {
+    state.theme.breakpoints = themeBreakpoints;
   }
 
-  // Sync component breakpoints from theme when not independently set
-  if (!state.component.breakpoints && themeBp) {
-    state.component.breakpoints = { ...state.theme.breakpoints };
+  const componentBreakpoints = sortBreakpoints(state.component.breakpoints);
+  if (componentBreakpoints) {
+    state.component.breakpoints = componentBreakpoints;
   }
 }

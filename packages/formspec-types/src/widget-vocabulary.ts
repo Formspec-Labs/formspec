@@ -6,42 +6,14 @@
  * or re-exported through formspec-layout).
  */
 
+import { UI_POLICY } from './ui-policy.js';
+
 /** Tier 1/2 widget tokens and canonical PascalCase hint per component. */
-const WIDGET_HINT_ENTRIES = [
-    { component: 'Section', primaryHint: 'Section', widgets: ['Section'] },
-    { component: 'Stack', primaryHint: 'Stack', widgets: ['Stack'] },
-    { component: 'Grid', primaryHint: 'Grid', widgets: ['Grid'] },
-    { component: 'TextInput', primaryHint: 'TextInput', widgets: ['TextInput'] },
-    { component: 'NumberInput', primaryHint: 'NumberInput', widgets: ['NumberInput'] },
-    { component: 'DatePicker', primaryHint: 'DatePicker', widgets: ['DatePicker'] },
-    { component: 'Select', primaryHint: 'Select', widgets: ['Select'] },
-    { component: 'CheckboxGroup', primaryHint: 'CheckboxGroup', widgets: ['CheckboxGroup'] },
-    { component: 'Toggle', primaryHint: 'Toggle', widgets: ['Toggle'] },
-    { component: 'FileUpload', primaryHint: 'FileUpload', widgets: ['FileUpload'] },
-    { component: 'Heading', primaryHint: 'Heading', widgets: ['Heading'] },
-    { component: 'Text', primaryHint: 'Text', widgets: ['Text'] },
-    { component: 'Divider', primaryHint: 'Divider', widgets: ['Divider'] },
-    { component: 'Card', primaryHint: 'Card', widgets: ['Card'] },
-    { component: 'Collapsible', primaryHint: 'Collapsible', widgets: ['Collapsible'] },
-    { component: 'ConditionalGroup', primaryHint: 'ConditionalGroup', widgets: ['ConditionalGroup'] },
-    { component: 'Tabs', primaryHint: 'Tabs', widgets: ['Tabs'] },
-    { component: 'SubmitButton', primaryHint: 'SubmitButton', widgets: ['SubmitButton'] },
-    { component: 'Accordion', primaryHint: 'Accordion', widgets: ['Accordion'] },
-    { component: 'RadioGroup', primaryHint: 'RadioGroup', widgets: ['RadioGroup'] },
-    { component: 'MoneyInput', primaryHint: 'MoneyInput', widgets: ['MoneyInput'] },
-    { component: 'Slider', primaryHint: 'Slider', widgets: ['Slider'] },
-    { component: 'Rating', primaryHint: 'Rating', widgets: ['Rating'] },
-    { component: 'Signature', primaryHint: 'Signature', widgets: ['Signature'] },
-    { component: 'Alert', primaryHint: 'Alert', widgets: ['Alert'] },
-    { component: 'Badge', primaryHint: 'Badge', widgets: ['Badge'] },
-    { component: 'ProgressBar', primaryHint: 'ProgressBar', widgets: ['ProgressBar'] },
-    { component: 'Summary', primaryHint: 'Summary', widgets: ['Summary'] },
-    { component: 'ValidationSummary', primaryHint: 'ValidationSummary', widgets: ['ValidationSummary'] },
-    { component: 'DataTable', primaryHint: 'DataTable', widgets: ['DataTable'] },
-    { component: 'Panel', primaryHint: 'Panel', widgets: ['Panel'] },
-    { component: 'Modal', primaryHint: 'Modal', widgets: ['Modal'] },
-    { component: 'Popover', primaryHint: 'Popover', widgets: ['Popover'] },
-] as const;
+const WIDGET_HINT_ENTRIES = UI_POLICY.components.map((entry) => ({
+    component: entry.name,
+    primaryHint: entry.primaryHint,
+    widgets: [...entry.widgets],
+}));
 
 function buildSpecWidgetToComponent(): Record<string, string> {
     const map: Record<string, string> = {};
@@ -81,21 +53,12 @@ export const KNOWN_COMPONENT_TYPES = new Set<string>([
  * Widget compatibility matrix: dataType → ordered list of compatible components.
  * First entry is the default widget for that dataType.
  */
-export const COMPATIBILITY_MATRIX: Record<string, string[]> = {
-    string: ['TextInput', 'Select', 'RadioGroup'],
-    text: ['TextInput'],
-    decimal: ['NumberInput', 'Slider', 'Rating', 'TextInput'],
-    integer: ['NumberInput', 'Slider', 'Rating', 'TextInput'],
-    boolean: ['Toggle'],
-    date: ['DatePicker', 'TextInput'],
-    dateTime: ['DatePicker', 'TextInput'],
-    time: ['DatePicker', 'TextInput'],
-    uri: ['TextInput'],
-    choice: ['Select', 'RadioGroup', 'TextInput'],
-    multiChoice: ['CheckboxGroup', 'Select'],
-    attachment: ['FileUpload', 'Signature'],
-    money: ['MoneyInput', 'NumberInput', 'TextInput'],
-};
+export const COMPATIBILITY_MATRIX: Record<string, string[]> = Object.fromEntries(
+    Object.entries(UI_POLICY.compatibilityByDataType).map(([dataType, components]) => [
+        dataType,
+        [...components],
+    ]),
+);
 
 /**
  * Convert a Tier 1 / theme widget token into a concrete component type.

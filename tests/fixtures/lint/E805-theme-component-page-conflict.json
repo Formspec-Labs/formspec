@@ -1,0 +1,59 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/page-conflict" },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/page-conflict",
+    "version": "1.0.0",
+    "items": [
+      {
+        "key": "lineItems",
+        "type": "group",
+        "label": "Line Items",
+        "repeatable": true,
+        "children": [
+          {
+            "key": "amount",
+            "type": "field",
+            "label": "Amount",
+            "dataType": "money"
+          }
+        ]
+      }
+    ]
+  },
+  "tree": {
+    "component": "Stack",
+    "children": [
+      {
+        "component": "Section",
+        "id": "component-lines",
+        "title": "Component Lines",
+        "children": [
+          {
+            "component": "DataTable",
+            "bind": "lineItems",
+            "columns": [
+              { "header": "Amount", "bind": "amount" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "_themeDocument": {
+    "$formspecTheme": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/page-conflict" },
+    "pages": [
+      {
+        "id": "theme-contact",
+        "title": "Theme Contact",
+        "regions": [
+          { "key": "lineItems[0].amount" }
+        ]
+      }
+    ]
+  }
+}

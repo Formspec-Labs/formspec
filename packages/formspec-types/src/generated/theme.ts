@@ -18,7 +18,7 @@ export type PresentationBlock = {
    */
   widget?: ThemeWidgetName;
   /**
-   * Widget-specific configuration. Properties depend on the widget. Renderers MUST ignore unrecognized keys. Fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Well-known configs by widget: TextInput (maxLength, inputMode, placeholder), Text (rows, maxRows, autoResize, placeholder), NumberInput (showStepper, locale, placeholder), DatePicker (format, minDate, maxDate, placeholder), Select (searchable, placeholder), CheckboxGroup (columns, maxVisible), FileUpload (accept, maxSizeMb, preview), MoneyInput (showCurrencySymbol, locale, placeholder), Slider (min, max, step, showTicks, showValue), Toggle (onLabel, offLabel), RadioGroup (direction, columns), Signature (strokeColor, height).
+   * Widget-specific configuration. Properties depend on the widget. Renderers MUST ignore unrecognized keys. Theme fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Component fallback carry/drop/translate policy is defined structurally in specs/ui-policy.json. Well-known configs by widget: TextInput (maxLength, inputMode, placeholder), Text (rows, maxRows, autoResize, placeholder), NumberInput (showStepper, locale, placeholder), DatePicker (format, minDate, maxDate, placeholder), Select (searchable, placeholder), CheckboxGroup (columns, maxVisible), FileUpload (accept, maxSizeMb, preview), MoneyInput (showCurrencySymbol, locale, placeholder), Slider (min, max, step, showTicks, showValue), Toggle (onLabel, offLabel), RadioGroup (direction, columns), Signature (strokeColor, height).
    */
   widgetConfig?: {
     [k: string]: unknown;
@@ -35,7 +35,7 @@ export type PresentationBlock = {
   };
   accessibility?: AccessibilityBlock;
   /**
-   * Ordered list of fallback widget identifiers. When a renderer does not support the primary widget, it MUST try each fallback in order and use the first it supports. If no widget in the chain is supported, the renderer MUST use its default widget for the item's dataType. Fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Custom widgets (x- prefixed) MUST always include a fallback chain ending with a standard widget.
+   * Ordered list of fallback widget identifiers. When a renderer does not support the primary widget, it MUST try each fallback in order and use the first it supports. If no widget in the chain is supported, the renderer MUST use its default widget for the item's dataType. Theme fallback resolution does NOT carry widgetConfig forward — each fallback widget uses its own default configuration. Component fallback carry/drop/translate policy is defined structurally in specs/ui-policy.json. Custom widgets (x- prefixed) MUST always include a fallback chain ending with a standard widget.
    */
   fallback?: (
     | 'Section'

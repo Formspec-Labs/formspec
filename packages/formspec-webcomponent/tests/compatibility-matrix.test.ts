@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { COMPATIBILITY_MATRIX } from '@formspec-org/types';
 
 let FormspecRender: any;
 
@@ -43,21 +44,12 @@ describe('core input compatibility matrix', () => {
             'money',
         ];
 
-        const compatibility: Record<string, string[]> = {
-            string: ['TextInput', 'Select'],
-            text: ['TextInput'],
-            decimal: ['NumberInput', 'TextInput'],
-            integer: ['NumberInput', 'TextInput'],
-            boolean: ['Toggle'],
-            date: ['DatePicker', 'TextInput'],
-            dateTime: ['DatePicker', 'TextInput'],
-            time: ['DatePicker', 'TextInput'],
-            uri: ['TextInput'],
-            choice: ['Select', 'TextInput'],
-            multiChoice: ['CheckboxGroup', 'Select'],
-            attachment: ['FileUpload'],
-            money: ['NumberInput', 'TextInput'],
-        };
+        const compatibility: Record<string, readonly string[]> = Object.fromEntries(
+            Object.entries(COMPATIBILITY_MATRIX).map(([dataType, components]) => [
+                dataType,
+                components.filter((component) => coreInputComponents.includes(component)),
+            ]),
+        );
 
         for (const dataType of dataTypes) {
             for (const component of coreInputComponents) {

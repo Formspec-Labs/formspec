@@ -1,5 +1,6 @@
 import json
 import re
+from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
@@ -8,6 +9,8 @@ from tests.unit.support.schema_fixtures import build_schema_registry, load_schem
 COMMON_SCHEMA = load_schema("common.schema.json")
 SCHEMA = load_schema("component.schema.json")
 VALIDATOR = Draft202012Validator(SCHEMA, registry=build_schema_registry(COMMON_SCHEMA, SCHEMA))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+UI_POLICY = json.loads((REPO_ROOT / "specs" / "ui-policy.json").read_text(encoding="utf-8"))
 
 def validate(*, instance, schema):
     assert schema is SCHEMA
@@ -263,12 +266,25 @@ def test_container_visual_surface_props_valid(component_name):
     }
     validate(instance=doc, schema=SCHEMA)
 
-def test_component_compatibility_metadata_uses_definition_datatypes():
+def test_component_compatibility_metadata_points_to_ui_policy():
     defs = SCHEMA["$defs"]
-    assert defs["NumberInput"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal"]
-    assert defs["MoneyInput"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal", "money"]
-    assert defs["Slider"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal"]
-    assert defs["Rating"]["x-lm"]["compatibleDataTypes"] == ["integer", "decimal"]
+    for component_name in UI_POLICY["inputComponents"]:
+        metadata = defs[component_name]["x-lm"]
+        assert "compatibleDataTypes" not in metadata
+        assert (
+            metadata["compatibilityPolicyRef"]
+            == f"specs/ui-policy.json#/inputComponents/{component_name}"
+        )
+
+def test_custom_component_ref_reserved_names_match_ui_policy():
+    reserved = (
+        {component["name"] for component in UI_POLICY["components"]}
+        | set(UI_POLICY["retiredComponentNames"])
+    )
+    actual = set(
+        SCHEMA["$defs"]["CustomComponentRef"]["properties"]["component"]["not"]["enum"]
+    )
+    assert actual == reserved
 
 def test_token_references():
     doc = {
@@ -661,10 +677,10 @@ def test_summary_item_without_option_set_still_valid():
 
 
 def test_all_progressive_fallbacks_present_in_spec():
-    # Meta-test to ensure all progressive components have fallbacks defined in the spec
-    with open("specs/component/component-spec.md", "r") as f:
-        content = f.read()
-    
+    # Meta-test to ensure all progressive components have fallbacks defined in the
+    # prose spec and in the machine-readable UI policy consumed by tooling.
+    content = (REPO_ROOT / "specs" / "component" / "component-spec.md").read_text(encoding="utf-8")
+
     progressive = [
         "Tabs", "Accordion",
         "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
@@ -680,6 +696,12 @@ def test_all_progressive_fallbacks_present_in_spec():
         assert section, f"{comp} section missing from component spec"
         assert re.search(r"\b[Ff]allback\b", section.group("body")), \
             f"{comp} section must document fallback behavior"
+        policy = UI_POLICY["fallbackPolicy"]["components"].get(comp)
+        assert policy, f"{comp} must declare structured fallback policy in specs/ui-policy.json"
+        assert policy["fallback"], f"{comp} fallback policy must name fallback component"
+        assert isinstance(policy.get("carry"), list), f"{comp} fallback policy must declare carry list"
+        assert isinstance(policy.get("drop"), list), f"{comp} fallback policy must declare drop list"
+        assert isinstance(policy.get("translate"), dict), f"{comp} fallback policy must declare translate map"
 
 def test_schema_is_forward_compatible_via_style():
     # Any component can have 'style' and 'responsive'

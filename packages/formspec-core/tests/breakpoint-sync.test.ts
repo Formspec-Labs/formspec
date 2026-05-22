@@ -16,18 +16,18 @@ describe('breakpoint normalization', () => {
     expect(values).toEqual([320, 768, 1024]);
   });
 
-  it('syncs component breakpoints from theme when not independently set', () => {
+  it('does not copy theme breakpoints into component state', () => {
     const project = createRawProject();
     project.dispatch({
       type: 'theme.setBreakpoint',
       payload: { name: 'tablet', minWidth: 768 },
     });
 
-    expect(project.component.breakpoints).toBeDefined();
-    expect(project.component.breakpoints!.tablet).toBe(768);
+    expect(project.theme.breakpoints).toEqual({ tablet: 768 });
+    expect(project.component.breakpoints).toBeUndefined();
   });
 
-  it('preserves independently set component breakpoints', () => {
+  it('keeps component additions separate from theme breakpoints', () => {
     const project = createRawProject();
     project.dispatch({
       type: 'component.setBreakpoint',
@@ -38,7 +38,24 @@ describe('breakpoint normalization', () => {
       payload: { name: 'tablet', minWidth: 768 },
     });
 
-    // Component keeps its own breakpoint
-    expect(project.component.breakpoints!.custom).toBe(500);
+    expect(project.component.breakpoints).toEqual({
+      custom: 500,
+    });
+    expect(project.theme.breakpoints).toEqual({ tablet: 768 });
+  });
+
+  it('preserves same-name component values so lint can report divergent definitions', () => {
+    const project = createRawProject();
+    project.dispatch({
+      type: 'component.setBreakpoint',
+      payload: { name: 'tablet', minWidth: 900 },
+    });
+    project.dispatch({
+      type: 'theme.setBreakpoint',
+      payload: { name: 'tablet', minWidth: 768 },
+    });
+
+    expect(project.component.breakpoints).toEqual({ tablet: 900 });
+    expect(project.theme.breakpoints).toEqual({ tablet: 768 });
   });
 });

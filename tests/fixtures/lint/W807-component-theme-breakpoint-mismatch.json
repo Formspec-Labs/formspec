@@ -1,0 +1,22 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/breakpoint-mismatch" },
+  "breakpoints": {
+    "md": 900
+  },
+  "tree": {
+    "component": "Stack",
+    "children": [
+      { "component": "TextInput", "bind": "name" }
+    ]
+  },
+  "_themeDocument": {
+    "$formspecTheme": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/breakpoint-mismatch" },
+    "breakpoints": {
+      "md": 768
+    }
+  }
+}

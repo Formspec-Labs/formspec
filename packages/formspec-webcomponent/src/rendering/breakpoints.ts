@@ -1,10 +1,12 @@
 /** @filedesc Responsive breakpoint matching via matchMedia listeners. */
 import { signal } from '@preact/signals-core';
 
-import type { ComponentDocument } from '@formspec-org/types';
+import { mergeBreakpointNamespace } from '@formspec-org/types';
+import type { BreakpointMap } from '@formspec-org/types';
 
 export interface BreakpointHost {
-    _componentDocument: ComponentDocument | null;
+    _componentDocument: { breakpoints?: BreakpointMap } | null;
+    _themeDocument: { breakpoints?: BreakpointMap } | null;
     scheduleRender(): void;
 }
 
@@ -25,14 +27,16 @@ export function setupBreakpoints(host: BreakpointHost, state: BreakpointState): 
     state.cleanups = [];
     state.activeBreakpointSignal.value = null;
 
-    if (!host._componentDocument?.breakpoints) return;
-    const breakpoints: Record<string, number | string> = host._componentDocument.breakpoints;
+    const breakpoints = mergeBreakpointNamespace(
+        host._themeDocument?.breakpoints,
+        host._componentDocument?.breakpoints,
+    );
+    if (!breakpoints) return;
 
     const entries = Object.entries(breakpoints)
         .map(([name, val]) => {
-            const query = typeof val === 'number' ? `(min-width: ${val}px)` : String(val);
-            const width = typeof val === 'number' ? val : (parseInt(String(val).replace(/[^0-9]/g, '')) || 0);
-            return { name, query, width };
+            const query = `(min-width: ${val}px)`;
+            return { name, query, width: val };
         })
         .sort((a, b) => a.width - b.width);
 

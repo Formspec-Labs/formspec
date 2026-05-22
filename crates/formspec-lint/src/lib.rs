@@ -8,7 +8,7 @@
 //! Pass 4 (E400): FEL expression compilation
 //! Pass 5 (E500): Dependency cycle detection
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
-//! Pass 7 (E800-E807/W800-W804): Components — tree validation, type compatibility, bind resolution
+//! Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
 //! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
 //! Pass 9 (E1100-E1507/W1100-W1500): Companion document semantic lint
 //!
@@ -31,6 +31,7 @@ mod pass_screener;
 mod schema_validation;
 mod semantic_helpers;
 mod types;
+mod ui_policy;
 
 pub mod component_matrix;
 pub mod dependencies;
@@ -177,9 +178,10 @@ fn lint_theme_doc(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<Lint
 }
 
 fn lint_component_doc(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintDiagnostic>) {
-    diagnostics.extend(pass_component::lint_component(
+    diagnostics.extend(pass_component::lint_component_with_context(
         doc,
         options.definition_document.as_ref(),
+        options.theme_document.as_ref(),
     ));
 }
 

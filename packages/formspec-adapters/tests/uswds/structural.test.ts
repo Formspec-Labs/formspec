@@ -375,6 +375,12 @@ describe('Integration CSS', () => {
         expect(css).toContain('.usa-form:has(.formspec-container)');
         expect(css).toMatch(/\.usa-form:has\(\.formspec-container\)\{[^}]*max-width:100%/);
     });
+
+    it('uses compact top spacing for tabs panels', async () => {
+        const { readUswdsIntegrationCss } = await import('../helpers.js');
+        const css = readUswdsIntegrationCss();
+        expect(css).toContain('.formspec-tab-panels{padding-top:1.5rem}');
+    });
 });
 
 // ── Cascade obligations ────────────────────────────────────────────

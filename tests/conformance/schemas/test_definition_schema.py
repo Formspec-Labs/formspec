@@ -54,6 +54,17 @@ class TestMinimalValid:
     def test_minimal_definition(self, schema):
         _validate(_base_doc(), schema)
 
+    def test_root_x_annotation_is_allowed(self, schema):
+        doc = _base_doc()
+        doc["x-local-note"] = {"owner": "platform"}
+        _validate(doc, schema)
+
+    def test_unknown_non_x_root_key_is_rejected(self, schema):
+        doc = _base_doc()
+        doc["localNote"] = {"owner": "platform"}
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
     def test_minimal_group_item(self, schema):
         doc = _base_doc(items=[_minimal_group()])
         _validate(doc, schema)

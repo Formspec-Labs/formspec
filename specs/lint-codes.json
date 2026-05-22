@@ -378,6 +378,18 @@
       ]
     },
     {
+      "code": "E805",
+      "pass": 7,
+      "severity": "error",
+      "title": "Component and Theme assign a field to incompatible pages",
+      "specRef": "specs/component/component-spec.md#32-component-tree-semantics-single-root",
+      "suggestedFix": "align the Theme page region with the Component direct-root Section, or remove the shadowed Theme page layout",
+      "fixtures": [
+        "tests/fixtures/lint/E805-theme-component-page-conflict.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E806",
       "pass": 7,
       "severity": "error",
@@ -398,6 +410,42 @@
       "suggestedFix": "break the custom-component cycle \u2014 a component must not transitively reference itself",
       "fixtures": [
         "tests/fixtures/lint/E807-custom-component-cycle.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W805",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Theme pages shadowed by Component page structure",
+      "specRef": "specs/component/component-spec.md#32-component-tree-semantics-single-root",
+      "suggestedFix": "remove Theme pages when the Component tree owns page Sections, or keep them only as inactive authoring hints",
+      "fixtures": [
+        "tests/fixtures/lint/W805-theme-pages-shadowed-by-component-sections.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W806",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Unsupported Component responsive override property",
+      "specRef": "specs/component/component-spec.md#8-responsive-model",
+      "suggestedFix": "move structural changes out of responsive overrides, or use a prop allowed for that component in specs/ui-policy.json",
+      "fixtures": [
+        "tests/fixtures/lint/W806-component-responsive-prop-unsupported.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W807",
+      "pass": 7,
+      "severity": "warning",
+      "title": "Component and Theme breakpoint values differ",
+      "specRef": "specs/component/component-spec.md#8-responsive-model",
+      "suggestedFix": "make same-name Theme and Component breakpoints use the same pixel value, or rename one breakpoint",
+      "fixtures": [
+        "tests/fixtures/lint/W807-component-theme-breakpoint-mismatch.json"
       ],
       "state": "tested"
     },

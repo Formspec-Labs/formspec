@@ -73,16 +73,17 @@ test.describe('Components: Accessibility and Responsive Overrides', () => {
             el.componentDocument = {
                 "$formspecComponent": "1.0",
                 "breakpoints": {
-                    "mobile": "(max-width: 600px)",
-                    "tablet": "(max-width: 900px)",
-                    "desktop": "(min-width: 901px)"
+                    "mobile": 0,
+                    "tablet": 600,
+                    "desktop": 901
                 },
                 "tree": {
                     "component": "Grid",
                     "columns": 4,
                     "responsive": {
                         "mobile": { "columns": 1 },
-                        "tablet": { "columns": 2 }
+                        "tablet": { "columns": 2 },
+                        "desktop": { "columns": 4 }
                     },
                     "children": [
                         { "component": "Text", "text": "A" },
@@ -94,7 +95,7 @@ test.describe('Components: Accessibility and Responsive Overrides', () => {
             };
         });
 
-        // At 1200px width, desktop breakpoint -> should use base columns=4
+        // At 1200px width, desktop breakpoint resets the mobile-first cascade to 4 columns.
         const grid = page.locator('.formspec-grid').first();
         let colCount = await grid.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length);
         expect(colCount).toBe(4);

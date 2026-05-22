@@ -447,7 +447,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["string"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/TextInput"
       },
       "properties": {
         "component": { "const": "TextInput" },
@@ -501,7 +501,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer", "decimal"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/NumberInput"
       },
       "properties": {
         "component": { "const": "NumberInput" },
@@ -528,7 +528,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["date", "dateTime", "time"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/DatePicker"
       },
       "properties": {
         "component": { "const": "DatePicker" },
@@ -554,7 +554,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["choice", "multiChoice"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/Select"
       },
       "properties": {
         "component": { "const": "Select" },
@@ -580,7 +580,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["multiChoice"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/CheckboxGroup"
       },
       "properties": {
         "component": { "const": "CheckboxGroup" },
@@ -603,7 +603,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["boolean"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/Toggle"
       },
       "properties": {
         "component": { "const": "Toggle" },
@@ -626,7 +626,7 @@
         "level": "core",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["attachment"]
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/FileUpload"
       },
       "properties": {
         "component": { "const": "FileUpload" },
@@ -808,7 +808,7 @@
         "children": true,
         "bind": "forbidden",
         "fallback": "Stack",
-        "fallbackNotes": "Each child preceded by a Heading (level 3) with tab label. All children rendered visibly."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Tabs"
       },
       "properties": {
         "component": { "const": "Tabs" },
@@ -891,7 +891,7 @@
         "children": true,
         "bind": "optional",
         "fallback": "Stack",
-        "fallbackNotes": "Each child wrapped in Collapsible. First defaults open; rest closed."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Accordion"
       },
       "properties": {
         "component": { "const": "Accordion" },
@@ -936,9 +936,9 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["choice"],
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/RadioGroup",
         "fallback": "Select",
-        "fallbackNotes": "columns discarded."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/RadioGroup"
       },
       "properties": {
         "component": { "const": "RadioGroup" },
@@ -965,9 +965,9 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer", "decimal", "money"],
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/MoneyInput",
         "fallback": "NumberInput",
-        "fallbackNotes": "Currency symbol rendered as prefix if bound item has prefix hint."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/MoneyInput"
       },
       "properties": {
         "component": { "const": "MoneyInput" },
@@ -996,9 +996,9 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer", "decimal"],
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/Slider",
         "fallback": "NumberInput",
-        "fallbackNotes": "min, max, step preserved."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Slider"
       },
       "properties": {
         "component": { "const": "Slider" },
@@ -1024,9 +1024,9 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["integer", "decimal"],
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/Rating",
         "fallback": "NumberInput",
-        "fallbackNotes": "min: 1, max preserved, step: 1."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Rating"
       },
       "properties": {
         "component": { "const": "Rating" },
@@ -1054,9 +1054,9 @@
         "level": "progressive",
         "children": false,
         "bind": "required",
-        "compatibleDataTypes": ["attachment"],
+        "compatibilityPolicyRef": "specs/ui-policy.json#/inputComponents/Signature",
         "fallback": "FileUpload",
-        "fallbackNotes": "accept set to 'image/*'."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Signature"
       },
       "properties": {
         "component": { "const": "Signature" },
@@ -1085,7 +1085,7 @@
         "children": false,
         "bind": "forbidden",
         "fallback": "Text",
-        "fallbackNotes": "Text prefixed with severity in brackets (e.g. '[Warning] ...')."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Alert"
       },
       "properties": {
         "component": { "const": "Alert" },
@@ -1113,7 +1113,7 @@
         "children": false,
         "bind": "forbidden",
         "fallback": "Text",
-        "fallbackNotes": "Same text prop."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Badge"
       },
       "properties": {
         "component": { "const": "Badge" },
@@ -1139,7 +1139,7 @@
         "children": false,
         "bind": "optional",
         "fallback": "Text",
-        "fallbackNotes": "Shows '<value> / <max> (<percent>%)'."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/ProgressBar"
       },
       "properties": {
         "component": { "const": "ProgressBar" },
@@ -1164,7 +1164,7 @@
         "children": false,
         "bind": "forbidden",
         "fallback": "Stack",
-        "fallbackNotes": "One Text per item showing '<label>: <value>'."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Summary"
       },
       "properties": {
         "component": { "const": "Summary" },
@@ -1207,7 +1207,7 @@
         "children": false,
         "bind": "forbidden",
         "fallback": "Alert",
-        "fallbackNotes": "severity + message rows shown as warning/error alerts."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/ValidationSummary"
       },
       "properties": {
         "component": { "const": "ValidationSummary" },
@@ -1255,7 +1255,7 @@
         "bind": "optional",
         "bindNote": "Binds to a repeatable group key, not a field key.",
         "fallback": "Stack",
-        "fallbackNotes": "One Card per repeat instance with child inputs."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/DataTable"
       },
       "properties": {
         "component": { "const": "DataTable" },
@@ -1302,7 +1302,7 @@
         "children": true,
         "bind": "forbidden",
         "fallback": "Card",
-        "fallbackNotes": "title preserved; placement and width discarded."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Panel"
       },
       "properties": {
         "component": { "const": "Panel" },
@@ -1338,7 +1338,7 @@
         "children": true,
         "bind": "forbidden",
         "fallback": "Collapsible",
-        "fallbackNotes": "title preserved; defaultOpen: false."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Modal"
       },
       "properties": {
         "component": { "const": "Modal" },
@@ -1386,7 +1386,7 @@
         "children": true,
         "bind": "forbidden",
         "fallback": "Collapsible",
-        "fallbackNotes": "triggerLabel mapped to title; placement discarded."
+        "fallbackPolicyRef": "specs/ui-policy.json#/fallbackPolicy/components/Popover"
       },
       "properties": {
         "component": { "const": "Popover" },

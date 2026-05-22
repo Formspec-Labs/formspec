@@ -7,7 +7,9 @@ from tests.unit.support.schema_fixtures import build_schema_registry, load_schem
 import json
 import pytest
 
-GRANT_APP_DIR = Path(__file__).resolve().parents[3] / "examples" / "grant-application"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+GRANT_APP_DIR = REPO_ROOT / "examples" / "grant-application"
+UI_POLICY_PATH = REPO_ROOT / "specs" / "ui-policy.json"
 
 MAPPING_PATH = GRANT_APP_DIR / "mapping.json"
 MAPPING_XML_PATH = GRANT_APP_DIR / "mapping-xml.json"
@@ -279,6 +281,10 @@ EXPECTED_PAGE_NAMES = {
 def _load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
+def _retired_component_names() -> set[str]:
+    policy = _load_json(UI_POLICY_PATH)
+    return set(policy["retiredComponentNames"])
+
 def _iter_items(items: list[dict]) -> list[dict]:
     flattened: list[dict] = []
     for item in items:
@@ -340,8 +346,11 @@ def test_grant_definition_and_component_page_migration() -> None:
     # 2. Verify component.json uses Section components as pages
     component = _load_json(GRANT_APP_DIR / "component.json")
     sections = []
+    component_names = []
     def traverse(node):
         if isinstance(node, dict):
+            if isinstance(node.get("component"), str):
+                component_names.append(node["component"])
             if node.get("component") == "Section":
                 sections.append(node)
             for val in node.values():
@@ -354,6 +363,15 @@ def test_grant_definition_and_component_page_migration() -> None:
     traverse(component.get("tree", {}))
     page_names = {sec["title"] for sec in sections if isinstance(sec.get("title"), str)}
     assert EXPECTED_PAGE_NAMES.issubset(page_names)
+    direct_root_sections = [
+        node for node in component["tree"].get("children", [])
+        if node.get("component") == "Section"
+    ]
+    direct_root_page_names = {
+        sec["title"] for sec in direct_root_sections if isinstance(sec.get("title"), str)
+    }
+    assert EXPECTED_PAGE_NAMES.issubset(direct_root_page_names)
+    assert _retired_component_names().isdisjoint(component_names)
 
 def test_grant_definition_includes_shape_id_composition() -> None:
     definition = _load_json(DEFINITION_PATH)
@@ -416,6 +434,9 @@ EXPECTED_BREAKPOINTS = {
 def _load_theme(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
+def _load_ui_policy() -> dict:
+    return json.loads(UI_POLICY_PATH.read_text(encoding="utf-8"))
+
 def test_grant_pdf_theme_is_schema_valid() -> None:
     diagnostics = lint(_load_theme(THEME_PDF_PATH))
     errors = [d for d in diagnostics if d.severity == "error"]
@@ -446,7 +467,7 @@ def test_grant_pdf_theme_exercises_platform_specific_tokens_and_selectors() -> N
         for selector in selectors
         if isinstance(selector.get("apply"), dict)
     }
-    interactive_widgets = {
+    interactive_widgets = set(_load_ui_policy()["inputComponents"]) | {
         "textInput",
         "textarea",
         "numberInput",

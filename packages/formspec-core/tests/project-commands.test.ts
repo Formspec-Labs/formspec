@@ -155,7 +155,7 @@ describe('project.import', () => {
     expect(pages[0].title).toBe('Valid');
   });
 
-  it('does not strip legacy theme pages during import', () => {
+  it('does not strip theme pages during import', () => {
     const project = createRawProject();
     project.dispatch({
       type: 'project.import',

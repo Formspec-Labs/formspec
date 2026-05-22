@@ -1,0 +1,32 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/page-shadow" },
+  "tree": {
+    "component": "Stack",
+    "children": [
+      {
+        "component": "Section",
+        "id": "info",
+        "title": "Info",
+        "children": [
+          { "component": "TextInput", "bind": "firstName" }
+        ]
+      }
+    ]
+  },
+  "_themeDocument": {
+    "$formspecTheme": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/page-shadow" },
+    "pages": [
+      {
+        "id": "info",
+        "title": "Info",
+        "regions": [
+          { "key": "firstName" }
+        ]
+      }
+    ]
+  }
+}

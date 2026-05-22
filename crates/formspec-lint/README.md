@@ -60,7 +60,7 @@ Companion authoring documents run pass 9 after schema validation. Mapping expose
 | `pass_references_doc.rs` | References document semantic lint. |
 | `pass_locale.rs` | Locale document semantic lint. |
 | `pass_screener.rs` | Screener semantic hardening and Determination Record consistency. |
-| `component_matrix.rs` | `classify_compatibility`, `INPUT_COMPONENTS`. |
+| `component_matrix.rs` | `classify_compatibility`, `input_components` backed by `specs/ui-policy.json`. |
 | `lint_json.rs` | `lint_result_to_json_value`. |
 
 ### Monorepo consumers

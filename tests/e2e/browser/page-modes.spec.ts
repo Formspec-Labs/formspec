@@ -15,7 +15,7 @@ const BASE_DEFINITION = {
     ],
 };
 
-/** Stack > Page* component tree reused across modes. */
+/** Stack > Section* component tree reused across modes. */
 const THREE_PAGE_TREE = {
     $formspecComponent: '1.0',
     version: '1.0.0',

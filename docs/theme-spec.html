@@ -1156,7 +1156,9 @@ default widget for the item’s <code>dataType</code> as defined in core
 <p>Fallback resolution does NOT carry <code>widgetConfig</code> forward
 — each fallback widget uses its own default configuration unless the
 theme provides separate configuration for the fallback widget via the
-cascade.</p>
+cascade. Component fallback carry/drop/translate behavior is the
+separate structured policy in <code>specs/ui-policy.json</code>; Theme
+fallback arrays only select the fallback widget chain.</p>
 <h3 id="widget-rendering-requirements">4.4 Widget Rendering
 Requirements</h3>
 <ul>

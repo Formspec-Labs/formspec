@@ -1,4 +1,4 @@
-//! Pass 7: Component document semantic checks (E800-E807, W800-W804).
+//! Pass 7: Component document semantic checks (E800-E807, W800-W807).
 #![allow(clippy::missing_docs_in_private_items)]
 
 mod check_duplicate_bind;
@@ -6,7 +6,9 @@ mod check_input_compat;
 mod check_layout_bind;
 mod check_options_source;
 mod check_params;
+mod check_responsive;
 mod check_textinput_variant;
+mod check_theme_alignment;
 mod check_unknown;
 mod classification;
 mod custom_cycles;
@@ -25,6 +27,14 @@ pub(crate) const PASS: u8 = 7;
 /// Validate a component document and return all diagnostics.
 /// When `definition` is provided, cross-artifact checks (W800, E802-E803) are enabled.
 pub fn lint_component(component: &Value, definition: Option<&Value>) -> Vec<LintDiagnostic> {
+    lint_component_with_context(component, definition, None)
+}
+
+pub(crate) fn lint_component_with_context(
+    component: &Value,
+    definition: Option<&Value>,
+    theme: Option<&Value>,
+) -> Vec<LintDiagnostic> {
     let tree = match component.get("tree") {
         Some(t) => t,
         None => return Vec::new(),
@@ -66,6 +76,9 @@ pub fn lint_component(component: &Value, definition: Option<&Value>) -> Vec<Lint
     };
 
     state.walk_node(tree, "$.tree");
+    if let Some(theme) = theme {
+        check_theme_alignment::check(component, theme, definition, &mut state.diags);
+    }
     state.diags
 }
 

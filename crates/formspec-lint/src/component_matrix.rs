@@ -1,9 +1,13 @@
-//! Component/dataType compatibility matrix for the 12 built-in input components.
+//! Component/dataType compatibility accessors for built-in input components.
 //!
-//! Pure data module — no tree walking, no diagnostics. Consumed by `pass_component.rs`.
+//! Pure data module — no tree walking, no diagnostics. Consumed by
+//! `pass_component.rs` and `pass_theme.rs`.
 //!
-//! Static `COMPAT_RULES` and `CompatRule` rows back the public classifiers; keep matrix tables maintainable.
+//! The matrix is loaded from `specs/ui-policy.json` so TypeScript helpers and
+//! Rust lint consume the same policy artifact.
 #![allow(clippy::missing_docs_in_private_items)]
+
+use crate::ui_policy::input_component_policy;
 
 /// Result of checking a component against a dataType.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,129 +22,25 @@ pub enum Compatibility {
     NotApplicable,
 }
 
-struct CompatRule {
-    component: &'static str,
-    strict_allowed: &'static [&'static str],
-    authoring_allowed: &'static [&'static str],
-    requires_options: bool,
-}
-
-/// The 12 built-in input components.
-pub const INPUT_COMPONENTS: &[&str] = &[
-    "TextInput",
-    "NumberInput",
-    "DatePicker",
-    "Select",
-    "CheckboxGroup",
-    "Toggle",
-    "FileUpload",
-    "RadioGroup",
-    "MoneyInput",
-    "Slider",
-    "Rating",
-    "Signature",
-];
-
-static COMPAT_RULES: &[CompatRule] = &[
-    CompatRule {
-        component: "TextInput",
-        strict_allowed: &["string", "text", "uri"],
-        authoring_allowed: &[
-            "integer",
-            "decimal",
-            "boolean",
-            "date",
-            "dateTime",
-            "time",
-            "attachment",
-            "choice",
-            "multiChoice",
-            "money",
-        ],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "NumberInput",
-        strict_allowed: &["integer", "decimal"],
-        authoring_allowed: &["money"],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "DatePicker",
-        strict_allowed: &["date", "dateTime", "time"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "Select",
-        strict_allowed: &["choice"],
-        authoring_allowed: &[],
-        requires_options: true,
-    },
-    CompatRule {
-        component: "CheckboxGroup",
-        strict_allowed: &["multiChoice"],
-        authoring_allowed: &[],
-        requires_options: true,
-    },
-    CompatRule {
-        component: "Toggle",
-        strict_allowed: &["boolean"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "FileUpload",
-        strict_allowed: &["attachment"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "RadioGroup",
-        strict_allowed: &["choice"],
-        authoring_allowed: &[],
-        requires_options: true,
-    },
-    CompatRule {
-        component: "MoneyInput",
-        strict_allowed: &["integer", "decimal", "money"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "Slider",
-        strict_allowed: &["integer", "decimal"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "Rating",
-        strict_allowed: &["integer", "decimal"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-    CompatRule {
-        component: "Signature",
-        strict_allowed: &["attachment"],
-        authoring_allowed: &[],
-        requires_options: false,
-    },
-];
-
-fn find_rule(component: &str) -> Option<&'static CompatRule> {
-    COMPAT_RULES.iter().find(|r| r.component == component)
+/// The built-in input components declared by the shared UI policy.
+pub fn input_components() -> Vec<&'static str> {
+    crate::ui_policy::ui_policy()
+        .input_components
+        .keys()
+        .map(String::as_str)
+        .collect()
 }
 
 /// Classify how compatible a component is with a given dataType.
 ///
 /// Returns `NotApplicable` if the component is not one of the 12 input components.
 pub fn classify_compatibility(component: &str, data_type: &str) -> Compatibility {
-    match find_rule(component) {
+    match input_component_policy(component) {
         None => Compatibility::NotApplicable,
-        Some(rule) => {
-            if rule.strict_allowed.contains(&data_type) {
+        Some(policy) => {
+            if policy.strict_data_types.contains(data_type) {
                 Compatibility::Compatible
-            } else if rule.authoring_allowed.contains(&data_type) {
+            } else if policy.authoring_data_types.contains(data_type) {
                 Compatibility::CompatibleWithWarning
             } else {
                 Compatibility::Incompatible
@@ -153,12 +53,12 @@ pub fn classify_compatibility(component: &str, data_type: &str) -> Compatibility
 ///
 /// Returns `false` for non-input components.
 pub fn requires_options_source(component: &str) -> bool {
-    find_rule(component).is_some_and(|r| r.requires_options)
+    input_component_policy(component).is_some_and(|policy| policy.requires_options)
 }
 
 /// Whether this component is one of the 12 built-in input components.
 pub fn is_input_component(component: &str) -> bool {
-    find_rule(component).is_some()
+    input_component_policy(component).is_some()
 }
 
 #[cfg(test)]
@@ -248,29 +148,23 @@ mod tests {
 
     #[test]
     fn all_twelve_components_in_input_components() {
-        assert_eq!(INPUT_COMPONENTS.len(), 12);
-        for &comp in INPUT_COMPONENTS {
+        let components = input_components();
+        assert_eq!(components.len(), 12);
+        for comp in components {
             assert!(
                 is_input_component(comp),
-                "{comp} is in INPUT_COMPONENTS but not in COMPAT_RULES"
+                "{comp} is in ui-policy inputComponents but not classified as input"
             );
         }
     }
 
     #[test]
-    fn compat_rules_and_constant_are_in_sync() {
-        // Every rule in the table should appear in INPUT_COMPONENTS and vice versa.
-        for rule in COMPAT_RULES {
+    fn input_components_are_declared_components() {
+        let known_components = crate::ui_policy::known_component_names();
+        for comp in input_components() {
             assert!(
-                INPUT_COMPONENTS.contains(&rule.component),
-                "{} is in COMPAT_RULES but not INPUT_COMPONENTS",
-                rule.component
-            );
-        }
-        for &comp in INPUT_COMPONENTS {
-            assert!(
-                COMPAT_RULES.iter().any(|r| r.component == comp),
-                "{comp} is in INPUT_COMPONENTS but has no CompatRule"
+                known_components.contains(comp),
+                "{comp} is an input component but not a declared UI policy component"
             );
         }
     }
@@ -281,41 +175,26 @@ mod tests {
         assert!(!requires_options_source("Card"));
     }
 
-    // ── Parameterized compatibility matrix ───────────────────────
-    //
-    // This test iterates ALL rules in COMPAT_RULES and verifies that:
-    //   - Every entry in `strict_allowed` returns Compatible
-    //   - Every entry in `authoring_allowed` returns CompatibleWithWarning
-    // This catches drift when components or data types are added to the rules
-    // but the matrix was not updated consistently.
-
     /// Spec: component-spec.md §6.1 — exhaustive compatibility matrix
     #[test]
-    fn parameterized_compat_matrix_covers_all_rules() {
-        for rule in COMPAT_RULES {
-            // Verify every strict_allowed type returns Compatible
-            for &dt in rule.strict_allowed {
-                let result = classify_compatibility(rule.component, dt);
+    fn parameterized_compat_matrix_covers_all_policy_rows() {
+        for comp in input_components() {
+            let policy = input_component_policy(comp).expect("input component policy exists");
+            for dt in &policy.strict_data_types {
+                let result = classify_compatibility(comp, dt);
                 assert_eq!(
                     result,
                     Compatibility::Compatible,
-                    "Component '{}' with dataType '{}' should be Compatible (strict_allowed), got {:?}",
-                    rule.component,
-                    dt,
-                    result,
+                    "Component '{comp}' with dataType '{dt}' should be Compatible, got {result:?}",
                 );
             }
 
-            // Verify every authoring_allowed type returns CompatibleWithWarning
-            for &dt in rule.authoring_allowed {
-                let result = classify_compatibility(rule.component, dt);
+            for dt in &policy.authoring_data_types {
+                let result = classify_compatibility(comp, dt);
                 assert_eq!(
                     result,
                     Compatibility::CompatibleWithWarning,
-                    "Component '{}' with dataType '{}' should be CompatibleWithWarning (authoring_allowed), got {:?}",
-                    rule.component,
-                    dt,
-                    result,
+                    "Component '{comp}' with dataType '{dt}' should be CompatibleWithWarning, got {result:?}",
                 );
             }
         }
@@ -324,15 +203,12 @@ mod tests {
     /// Spec: component-spec.md §6.1 — types not in either list should be Incompatible
     #[test]
     fn unlisted_data_type_is_incompatible() {
-        // Pick a data type that's definitely not in any rule's allowed lists
-        for rule in COMPAT_RULES {
-            // "unknown_type_xyz" is not a real data type, so it should be Incompatible
-            let result = classify_compatibility(rule.component, "unknown_type_xyz");
+        for comp in input_components() {
+            let result = classify_compatibility(comp, "unknown_type_xyz");
             assert_eq!(
                 result,
                 Compatibility::Incompatible,
-                "Component '{}' with unknown dataType should be Incompatible",
-                rule.component,
+                "Component '{comp}' with unknown dataType should be Incompatible",
             );
         }
     }

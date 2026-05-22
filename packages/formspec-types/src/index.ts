@@ -20,6 +20,8 @@ export {
   COMPATIBILITY_MATRIX,
   widgetTokenToComponent,
 } from './widget-vocabulary.js';
+export { UI_POLICY } from './ui-policy.js';
+export type { UiPolicy } from './ui-policy.js';
 
 // Path utilities — shared dotted path parsing and normalization
 export { Path, PathSegmentKind } from './path-utils.js';
@@ -27,6 +29,8 @@ export type { PathSegment } from './path-utils.js';
 
 export { CORE_FIELD_DATA_TYPES } from './field-data-types.js';
 export type { CoreFieldDataType } from './field-data-types.js';
+export { mergeBreakpointNamespace, sortBreakpoints } from './breakpoints.js';
+export type { BreakpointMap } from './breakpoints.js';
 
 // Canonical Form-prefixed names (generated schemas use short $def names)
 export type { Shape as FormShape } from './generated/definition.js';
