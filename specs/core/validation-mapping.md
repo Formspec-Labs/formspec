@@ -57,6 +57,24 @@ A conformant processor MUST NOT:
 2. Apply a Master Mapping Table tuple that contradicts §6.
 3. Cause persistence to be blocked by validation findings under any `PersistencePolicy` other than `complete-response`, in violation of Core §5.5 VE-05.
 4. Treat `block-on-error` as blocking persistence below the `complete-response` policy.
+
+## 2. Action Intent
+
+`ActionIntent` is a **closed, abstract enum** naming what a form caller is trying to do. Authors and processors MUST use these identifiers verbatim; they MUST NOT introduce parallel intent names (e.g., `quickSave`, `validateOnly`) outside the `x-` extension mechanism (§10).
+
+| Value | Meaning |
+|-------|---------|
+| `save-draft` | The caller is persisting the current Response as a draft. Validation findings, if any, do not affect the outcome. Maps to Response `status: in-progress`. |
+| `autosave` | A background or periodic save. Identical to `save-draft` in mapping; named separately so callers, telemetry, and audit logs can distinguish user-initiated from system-initiated drafts. |
+| `review` | The caller is invoking a read-only validation pass for review (e.g., a pre-flight before submission). Validation runs; no persistence transition occurs. |
+| `submit` | The caller is attempting to transition the Response to `completed`. Validation runs; error-severity findings block the transition. |
+| `request-evidence` | The caller is invoking a demand-timing shape (Core §5.2.1) — typically a server-side or external check requested by the user before final submission. Validation runs in `on-demand` profile (only demand-timing shapes fire). Non-blocking. |
+
+These five values are the closed initial set. Future revisions of this spec MAY add additional intents; processors MUST reject documents using intent values outside the current spec's enum unless prefixed `x-`.
+
+**`x-` extensions.** An author MAY introduce custom intents under the `x-` prefix (e.g., `x-acme-bulk-import`). Such intents MUST carry an explicit `(profile, blocking, persistence)` triple in the Response Actions document; Mapping-Aware processors that do not recognize an `x-` intent MUST use the document-supplied triple verbatim. Mapping-Aware processors that *do* recognize an `x-` intent MAY honor a publisher-supplied default.
+
+Intent names are descriptive of caller goal, not implementation: `save-draft` does not specify whether the persistence target is local storage, server, or any other medium — that belongs to Response Actions effect requests (concept §6.3). Likewise `submit` does not specify whether the host accepts, defers, or rejects — that belongs to Intake Handoff (concept §6.9).
 title: Formspec Validation Mapping
 version: 1.0.0-draft.1
 date: 2026-05-22
