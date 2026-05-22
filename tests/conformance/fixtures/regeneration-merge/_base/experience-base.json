@@ -1,0 +1,44 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/regeneration-merge-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "name": "regenerationMergeBase",
+  "title": "Regeneration Merge Base Experience",
+  "actors": [
+    {
+      "id": "applicant",
+      "title": "Applicant"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "identifyApplicant",
+      "title": "Identify the applicant",
+      "actorRefs": ["applicant"]
+    }
+  ],
+  "units": [
+    {
+      "id": "identity",
+      "kind": "data-entry",
+      "title": "Applicant identity",
+      "actorRef": "applicant",
+      "taskRefs": ["identifyApplicant"],
+      "itemRefs": [
+        {
+          "path": "applicantName",
+          "purpose": "collect"
+        }
+      ],
+      "actionRefs": [
+        {
+          "id": "submitApplication",
+          "role": "primary"
+        }
+      ]
+    }
+  ]
+}

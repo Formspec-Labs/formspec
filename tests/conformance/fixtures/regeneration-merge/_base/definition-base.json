@@ -1,0 +1,21 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/regeneration-merge-base",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Regeneration Merge Base Definition",
+  "items": [
+    {
+      "key": "applicantName",
+      "type": "field",
+      "dataType": "string",
+      "label": "Applicant name"
+    }
+  ],
+  "binds": [
+    {
+      "path": "applicantName",
+      "required": "true"
+    }
+  ]
+}

@@ -992,9 +992,9 @@ cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_r
 
 ## Task 15: Author shared base fixtures
 
-- [ ] Create `tests/conformance/fixtures/regeneration-merge/_base/` with: minimal Definition, minimal Experience (one unit `identity`, one task `identifyApplicant`), minimal Response Actions (one action `submitApplication`). Same shape family as the Component Reference Fields fixtures.
+- [x] Create `tests/conformance/fixtures/regeneration-merge/_base/` with: minimal Definition, minimal Experience (one unit `identity`, one task `identifyApplicant`), minimal Response Actions (one action `submitApplication`). Same shape family as the Component Reference Fields fixtures.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 16: Author per-case fixtures
 
