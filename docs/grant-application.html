@@ -429,11 +429,11 @@ reference any field in the form, compare values across groups, or
 evaluate aggregate expressions. The four shapes in this example exercise
 the full range of shape properties.</p>
 <p><strong>Three severity levels.</strong> <code>"error"</code> blocks
-submission — <code>getValidationReport({ mode: "submit" })</code> sets
-<code>valid: false</code> when any error fires. <code>"warning"</code>
-is advisory; a consuming application may choose to require
-acknowledgment but the spec does not mandate it. <code>"info"</code>
-provides real-time guidance:</p>
+submission — <code>getValidationReport({ profile: "on-submit" })</code>
+sets <code>valid: false</code> when any error fires.
+<code>"warning"</code> is advisory; a consuming application may choose
+to require acknowledgment but the spec does not mandate it.
+<code>"info"</code> provides real-time guidance:</p>
 <table>
 <thead>
 <tr>

@@ -384,7 +384,7 @@ against its own value, while a shape rule can reference any field in the form, c
 across groups, or evaluate aggregate expressions. The four shapes in this example exercise the
 full range of shape properties.
 
-**Three severity levels.** `"error"` blocks submission — `getValidationReport({ mode: "submit" })`
+**Three severity levels.** `"error"` blocks submission — `getValidationReport({ profile: "on-submit" })`
 sets `valid: false` when any error fires. `"warning"` is advisory; a consuming application may
 choose to require acknowledgment but the spec does not mandate it. `"info"` provides real-time
 guidance:
