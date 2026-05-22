@@ -21,10 +21,9 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1-§10 normative prose has landed. Later normative sections, schema,
-fixtures, algorithm tests, invariant tests, registration, and generated
-artifacts land in the follow-on tasks of
-`thoughts/plans/2026-05-22-regeneration-merge.md`.
+The §1-§11 normative prose has landed. Schema, fixtures, algorithm tests,
+invariant tests, registration, and generated artifacts land in the follow-on
+tasks of `thoughts/plans/2026-05-22-regeneration-merge.md`.
 
 ## Bottom Line Up Front
 
@@ -578,7 +577,7 @@ selects one of the following outcomes:
 | No deterministic `N_old` and no deterministic `N_designer` | Shallow copy of `N_new` without children. | `pendingReview[]` with `COMP-REGENERATION-PENDING-REVIEW`. |
 | No deterministic `N_old`, deterministic `N_designer` | Designer shell copied without children; children are merged from `N_new`. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-PRECEDES`. |
 | Deterministic `N_old`, no deterministic `N_designer` | No merged node. | `conflicts[]` with `COMP-REGENERATION-DESIGNER-REMOVED`. |
-| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]` with `COMP-REGENERATION-REGENERATED`, unless the match depended on §9 anchor-mapping substitution; in that case `surviving[]` with `COMP-REGENERATION-RENAME-MIGRATED`. |
+| `N_old` and `N_designer` are structurally equal under §5 | Shallow copy of `N_new` without children. | `regenerated[]` with `COMP-REGENERATION-REGENERATED` for a clean regenerated node or for generated-only non-anchor property deltas. If the match depended on §9 anchor-mapping substitution, also `surviving[]` with `COMP-REGENERATION-RENAME-MIGRATED`; do not emit `COMP-REGENERATION-REGENERATED` solely for that anchor-set update. |
 | `N_old` and `N_designer` differ | Apply §6.5 three-way node merge. | `conflicts[]`, `surviving[]`, or `regenerated[]` as defined by §6.5. |
 
 When the selected outcome returns a merged node, the processor MUST set that
@@ -599,9 +598,10 @@ the designer deltas that survive the rules below:
 - If a non-`children`, non-`component` property changed only in
   `designer_edited`, the designer value survives and the report entry belongs in
   `surviving[]` with that JSON Pointer in `propertyDeltas[]`.
-- If a property changed only in `new_generated`, the generated value from
-  `N_new` remains in the merged node and the report entry belongs in
-  `regenerated[]`.
+- If a node-local property changed only in `new_generated`, the generated value
+  from `N_new` remains in the merged node and the report entry belongs in
+  `regenerated[]`. The anchor-set update represented by §9
+  `COMP-REGENERATION-RENAME-MIGRATED` is not itself a regenerated property delta.
 - If designer and generator changed the same property to the same value, the
   `N_new` value remains in the merged node and the processor MUST NOT report a
   conflict for that property.
@@ -629,13 +629,15 @@ For a node with three-way deltas:
   `COMP-REGENERATION-PROPERTY-CONFLICT`;
 - a widget swap is reported in a separate `conflicts[]` entry with
   `COMP-REGENERATION-WIDGET-SWAP` and `/component` in `propertyDeltas[]`;
+- generated-only non-anchor property deltas are reported in one `regenerated[]`
+  entry with `COMP-REGENERATION-REGENERATED`, even when the same node also has
+  surviving designer deltas or conflict entries for other deltas;
 - non-conflicting designer deltas that survive are reported in one
   `surviving[]` entry with `COMP-REGENERATION-DESIGNER-SURVIVED`, even when the
   same node also has conflict entries for other deltas; and
-- if no designer delta survives, no conflict applies, and at least one
-  generated-only non-anchor property delta remains after excluding any anchor-set
-  update already represented by §9 `COMP-REGENERATION-RENAME-MIGRATED`, the node
-  is reported in `regenerated[]` with `COMP-REGENERATION-REGENERATED`.
+- if the only generated change is the anchor-set update already represented by
+  §9 `COMP-REGENERATION-RENAME-MIGRATED`, the processor MUST NOT emit a
+  separate `COMP-REGENERATION-REGENERATED` entry for that update.
 
 `propertyDeltas[]` entries are JSON Pointer strings for the node-local
 properties that changed, such as `/props/label`, `/component`, or `/children`.
@@ -760,7 +762,7 @@ version of the specification:
 | `COMP-REGENERATION-PROPERTY-CONFLICT` | `conflicts[]` | Designer and generator changed the same node-local property, including `/children` ordering, to different values. | `warning` |
 | `COMP-REGENERATION-WIDGET-SWAP` | `conflicts[]` | The designer changed a node's `component` value and the change requires review, or designer and generator chose different component values. | `warning` |
 | `COMP-REGENERATION-DESIGNER-SURVIVED` | `surviving[]` | One or more non-conflicting designer deltas survived in the merged node. | `info` |
-| `COMP-REGENERATION-REGENERATED` | `regenerated[]` | The node regenerated from `new_generated` with no surviving designer delta and no conflict. This code is not emitted solely for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED`. | `info` |
+| `COMP-REGENERATION-REGENERATED` | `regenerated[]` | The node regenerated from `new_generated` with no surviving designer delta and no conflict, or one or more generated-only non-anchor property deltas from `new_generated` remained on a mixed-outcome node. This code is not emitted solely for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED`. | `info` |
 | `COMP-REGENERATION-ORPHAN-NODE` | `orphaned[]` | A designer subtree has no deterministic match in `new_generated` and is preserved by uncovered orphan reattachment. | `warning` |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | `orphaned[]` | An orphan subtree reattached above its immediate parent because the immediate parent did not survive in `merged`. | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | `orphaned[]` | An orphan subtree reattached under `/tree` because no surviving ancestor resolved in `merged`. | `warning` |
@@ -1001,9 +1003,9 @@ anchor-mapping substitution. The processor MUST NOT also emit
 the rename entry.
 
 The rename entry is code-scoped: if the same node also has surviving designer
-deltas, regenerated-only deltas, or conflicts under §6.5, those conditions
-produce their own report entries under §7.2 rather than being combined with the
-rename entry.
+deltas, generated-only non-anchor property deltas, or conflicts under §6.5, those
+conditions produce their own report entries under §7.2 rather than being
+combined with the rename entry.
 
 ### 9.5 No Heuristic Rename Detection
 
@@ -1117,3 +1119,114 @@ findings, or coverage findings, but those additions are host-defined unless a
 later version of this specification standardizes them.
 
 ## 11. Conformance
+
+### 11.1 Conformance Levels
+
+This specification defines four cumulative conformance levels. A processor or
+runtime that fails any requirement at a claimed level does not conform at that
+level or any higher level.
+
+| Level | Name | Requirements |
+|---|---|---|
+| 1 | Algorithm | Implements §6, emits findings per §7, preserves orphans per §8, and applies §9 anchor mappings. |
+| 2 | Report Shape | Satisfies Level 1 and emits a `MergeReport` that validates against `regeneration-merge-report.schema.json`. |
+| 3 | Invariants | Satisfies Level 2 and proves determinism, no-mutation, and convergence under the narrowed conditions in §11.4. |
+| 4 | Resolver Composition | Satisfies Level 3 and composes Component, Component Reference Fields, Experience coverage, and other resolver findings with the `MergeReport` as defined in §11.5. |
+
+The `merged` output is a Component v1.1 document as defined in §2.3. Schema
+validity of `merged` is therefore a baseline requirement for all levels, not a
+separate optional profile.
+
+### 11.2 Level 1: Algorithm
+
+A Level 1 processor MUST implement the deterministic merge algorithm in §6 for
+the normal three-way path and the absent-common-ancestor degradation path. It
+MUST emit only the `COMP-REGENERATION-*` findings defined in §7, with one code
+per report entry. It MUST preserve designer-authored orphan subtrees according
+to §8 and MUST apply anchor mappings according to §9 when
+`RegenerationMergeContext.anchorMappings` is present.
+
+Level 1 does not require the JSON Schema artifact from §11.3 to exist in the
+implementation environment, but its report semantics MUST be equivalent to the
+prose in §7 through §9.
+
+### 11.3 Level 2: Report Shape
+
+A Level 2 processor MUST satisfy Level 1 and MUST emit a `MergeReport` that
+validates against `schemas/regeneration-merge-report.schema.json` version `1.0`.
+
+The schema requires every report entry to carry `anchors`, `nodePath`, `code`,
+`severity`, and `reason`. `OrphanEntry` records MUST additionally carry
+`reattachedTo`, `cascaded`, and `detached`. `propertyDeltas[]` is optional and,
+when present, contains node-local JSON Pointer strings for the affected
+properties.
+
+The schema does not contain resolver or coverage findings. Component Reference
+Fields, Component, Response Actions, Experience, Registry, Ontology, or other
+resolver findings remain separate reports composed by a review surface.
+
+### 11.4 Level 3: Invariants
+
+A Level 3 processor MUST satisfy Level 2 and prove these invariants across the
+conformance fixture corpus:
+
+- **Determinism.** The same inputs produce byte-equivalent `merged` and
+  `MergeReport` outputs.
+- **No mutation.** The processor does not mutate `old_generated`,
+  `designer_edited`, `new_generated`, `RegenerationMergeContext`, or any peer
+  documents supplied through that context.
+- **Convergence after clean review.** Given
+  `(merged, report) = merge(old_generated, designer_edited, new_generated, ctx)`,
+  if `report.conflicts[]` and `report.pendingReview[]` are both empty, then
+  `merge(new_generated, merged, new_generated, ctx)` MUST produce a `report'`
+  whose `conflicts[]` and `pendingReview[]` are both empty and a `merged'`
+  structurally equal to `merged`.
+
+The convergence guarantee does not apply when the first cycle reports conflicts
+or pending-review entries. Resolution semantics for accepting regenerated
+content, accepting designer content, recording tombstones, or manually editing
+the merged document are host-defined. Without such resolution, a later merge MAY
+legitimately report the same conflict or pending-review condition again.
+
+### 11.5 Level 4: Resolver Composition
+
+A Level 4 runtime MUST satisfy Level 3 and MUST invoke applicable resolver
+pipelines after producing `merged` for every resolver input supplied to the
+merge context.
+
+For Component and Component Reference Fields resolution, the runtime invokes the
+Component Reference Fields §6 resolver with `component = merged` and the same
+available peer context used by the merge. This invocation is grounded in
+Component Reference Fields §6.1, which accepts a Component document as resolver
+input, and §6.4, which makes the resolver deterministic, no-mutation,
+one-directional, and report-only. The merged document is a Component document; it
+is not an implementation-specific rendered DOM, host widget tree, or expanded
+custom-component tree.
+
+Component and Component Reference Fields findings are not copied into
+`MergeReport`. When those findings identify an affected Component node by stable
+node key, `nodeId`, or JSON Pointer node path, the review surface MAY compose
+them with `MergeReport` entries for that same merged node. This composition MUST
+NOT mutate the canonical `severity` of any `COMP-REGENERATION-*` entry. A review
+surface MAY compute and display an effective severity outside `MergeReport`.
+
+For Experience coverage, when Definition and Experience documents are loaded or
+supplied in the merge context, the runtime invokes the Experience coverage
+predicate over that `(Definition, Experience)` pair, not over the merged
+Component document. Experience coverage findings carry Definition `path` values.
+The review surface composes each `EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM` finding
+by:
+
+1. taking the finding's Definition `path`;
+2. forming the canonical source anchor `item:<path>`;
+3. finding `MergeReport` entries whose `anchors` array contains that anchor; and
+4. linking to those entries' `nodePath` values.
+
+If no `MergeReport` entry contains the anchor, the coverage finding remains
+uncovered and unanchored in the review surface. It MUST NOT be inserted into
+`MergeReport`.
+
+Level 4 MAY compose additional resolver families such as Response Actions,
+Registry, or Ontology when available. Those findings remain owned by their source
+specifications and MUST NOT be recoded as `COMP-REGENERATION-*` findings unless
+this specification defines such a code.

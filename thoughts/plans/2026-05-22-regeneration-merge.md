@@ -327,20 +327,31 @@ merge_generated_node(N_new):
 
     elif structurally_equal(N_old, N_designer):
       merged_node = shallow_copy_without_children(N_new)
-      report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED")
+      if match_depended_on_anchor_mapping(N_old, N_new, ctx.anchorMappings):
+        report.surviving += entry(merged_node, code: "COMP-REGENERATION-RENAME-MIGRATED")
+      generated_deltas = generated_only_non_anchor_property_deltas(N_old, N_new)
+      if generated_deltas:
+        report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED", propertyDeltas: generated_deltas)
+      elif not match_depended_on_anchor_mapping(N_old, N_new, ctx.anchorMappings):
+        report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED")
 
     else:
       deltas = classify_designer_deltas(N_old, N_designer)
       # Base is N_new without children. Apply surviving designer deltas as
       # overlays; unrelated generator-only changes remain from N_new.
-      merged_node, conflict_entries, surviving_deltas = apply_three_way_node_merge(N_old, N_designer, N_new, deltas)
+      merged_node, conflict_entries, surviving_deltas, generated_deltas, rename_migrated = apply_three_way_node_merge(N_old, N_designer, N_new, deltas)
       # Report entries are code-scoped. The same node may emit both
       # PROPERTY-CONFLICT and WIDGET-SWAP conflict entries, and may also emit a
-      # DESIGNER-SURVIVED entry for unrelated non-conflicting designer deltas.
+      # DESIGNER-SURVIVED, REGENERATED, or RENAME-MIGRATED entry for unrelated
+      # non-conflicting deltas.
       report.conflicts += conflict_entries
+      if rename_migrated:
+        report.surviving += entry(merged_node, code: "COMP-REGENERATION-RENAME-MIGRATED")
       if surviving_deltas:
         report.surviving += entry(merged_node, code: "COMP-REGENERATION-DESIGNER-SURVIVED", propertyDeltas: surviving_deltas)
-      if not conflict_entries and not surviving_deltas:
+      if generated_deltas:
+        report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED", propertyDeltas: generated_deltas)
+      if not conflict_entries and not surviving_deltas and not generated_deltas and not rename_migrated:
         report.regenerated += entry(merged_node, code: "COMP-REGENERATION-REGENERATED")
 
   # Children are assembled recursively in new_generated child order before this
@@ -450,7 +461,7 @@ locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
 | `COMP-REGENERATION-PROPERTY-CONFLICT` | Both designer and new-generation changed the same property to different values | `warning` |
 | `COMP-REGENERATION-WIDGET-SWAP` | Designer changed a node's `component` type from old-generated and the change requires human review; emitted as a conflict unless new-generation independently made the same widget choice | `warning` |
 | `COMP-REGENERATION-DESIGNER-SURVIVED` | One or more non-conflicting designer deltas survived in the merged node | `info` |
-| `COMP-REGENERATION-REGENERATED` | Node regenerated from `new-generated` with no surviving designer delta and no conflict. Not emitted solely for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED` | `info` |
+| `COMP-REGENERATION-REGENERATED` | Node regenerated from `new-generated` with no surviving designer delta and no conflict, or one or more generated-only non-anchor property deltas remained on a mixed-outcome node. Not emitted solely for the anchor-set update already represented by `COMP-REGENERATION-RENAME-MIGRATED` | `info` |
 | `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Remains `warning` in `MergeReport`; review surfaces MAY show an error-level effective severity when a separate resolver error composes against the same node. | `warning` |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | Designer subtree reattached above its original parent because the parent chain orphaned | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | Designer subtree reattached at root because no ancestor matches in merged | `warning` |
@@ -542,7 +553,7 @@ A Studio-grade review surface MUST:
 
 ## Task 12: Spec prose — §11 Conformance
 
-- [ ] Draft §11 pinning four conformance levels.
+- [x] Draft §11 pinning four conformance levels.
 
 **Level 1 — Algorithm.** Implements §6 algorithm; emits findings per §7; honors §8 orphan rules and §9 substitution rules.
 
@@ -571,13 +582,13 @@ If cycle 1's report has non-empty `conflicts` or `pendingReview`, the convergenc
 
 §11 MUST state: a runtime that fails any one level does not conform. Schema-validity of the merged Component document is implicit (the output is a Component v1.1 document).
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 13: Author MergeReport schema
 
 - [ ] Create `schemas/regeneration-merge-report.schema.json`. JSON Schema 2020-12.
 
-Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` added so Studio can identify which properties survived/changed without re-diffing inputs):
+Shape (F5 + F7 fixes: every entry carries `code`/`severity`/`reason`; `propertyDeltas[]` added so Studio can identify which properties survived/changed without re-diffing inputs):
 
 ```json
 {
@@ -597,7 +608,7 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` 
   "$defs": {
     "Entry": {
       "type": "object",
-      "required": ["anchors", "nodePath", "code", "severity"],
+      "required": ["anchors", "nodePath", "code", "severity", "reason"],
       "properties": {
         "anchors":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Anchor set compared under §3 order-normalized set-equality (NOT a CRF semantic; regeneration-merge-spec only)." },
         "nodePath": { "type": "string", "description": "Stable path in the merged document tree (e.g., /tree/children/0)." },
@@ -631,6 +642,7 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`; `propertyDeltas[]` 
         { "$ref": "#/$defs/Entry" },
         {
           "type": "object",
+          "required": ["reattachedTo", "cascaded", "detached"],
           "properties": {
             "reattachedTo": { "type": "string", "description": "nodePath of the merged-tree node the orphan was reattached under." },
             "cascaded":     { "type": "boolean", "description": "True when reattachment had to walk above the original parent." },
@@ -683,9 +695,9 @@ def test_required_top_level_arrays(schema):
     assert required == {"version", "surviving", "regenerated", "orphaned", "pendingReview", "conflicts"}
 
 def test_entry_required_fields(schema):
-    """F7: code/severity hoisted from ConflictEntry to base Entry."""
+    """F7 + Task 11: code/severity/reason live on base Entry."""
     entry = schema["$defs"]["Entry"]
-    assert set(entry["required"]) == {"anchors", "nodePath", "code", "severity"}
+    assert set(entry["required"]) == {"anchors", "nodePath", "code", "severity", "reason"}
     assert entry["properties"]["anchors"]["uniqueItems"] is True
 
 def test_entry_code_enum(schema):
@@ -717,8 +729,14 @@ def test_entry_has_property_deltas(schema):
     assert entry_props["propertyDeltas"]["items"]["pattern"] == "^/"
 
 def test_orphan_entry_has_reattachment_fields(schema):
+    """§8: base orphan entries always carry reattachment metadata."""
     orphan_props = schema["$defs"]["OrphanEntry"]["allOf"][1]["properties"]
     assert {"reattachedTo", "cascaded", "detached"} <= set(orphan_props)
+    assert set(schema["$defs"]["OrphanEntry"]["allOf"][1]["required"]) == {
+        "reattachedTo",
+        "cascaded",
+        "detached",
+    }
 
 def test_conflict_entry_is_alias_of_base(schema):
     """F7: ConflictEntry no longer extends Entry with additional required fields."""
@@ -1172,3 +1190,11 @@ Task 23:       promotion-gate + architecture review
   - Aligned the design-decision row with the planned §10/Task 19 minimum: mandatory DOM attributes apply to pending-review and orphan preview markers, while conflict/surviving/regenerated/resolver/coverage markers may be host-defined unless a later spec version standardizes them.
   - Updated the planned orphan DOM marker rule to key on the base `COMP-REGENERATION-ORPHAN-NODE` entry so cascade/detached code-scoped entries do not require duplicate DOM markers.
   - Updated the future Studio E2E task to assert both `data-merge-status` and `data-merge-anchors`, matching the M2 specificity requirement.
+- 2026-05-22: Post-§8-§10 phase architecture/cadence reviews blocked §11 until cross-section drift was remediated:
+  - Reconciled `COMP-REGENERATION-REGENERATED` with `COMP-REGENERATION-RENAME-MIGRATED`: generated-only non-anchor property deltas now emit their own code-scoped `regenerated[]` entry even on rename-migrated or otherwise mixed-outcome nodes, while the rename anchor-set update itself does not double-report as regenerated.
+  - Updated the §6 plan pseudocode to emit `RENAME-MIGRATED`, `DESIGNER-SURVIVED`, and `REGENERATED` as independent code-scoped entries instead of using a single all-or-nothing fallback.
+  - Tightened the planned Task 13 schema and Task 14 tests so base entries require `reason`, matching §10 conflict-review requirements and the file inventory claim that every entry carries a reason.
+  - Tightened the planned Task 13 schema and Task 14 tests so `OrphanEntry` requires `reattachedTo`, `cascaded`, and `detached`, matching §8 orphan report requirements.
+- 2026-05-22: Task 12 §11 drafting tightened Level 4 scope:
+  - Required resolver composition for resolver inputs supplied to the merge context, so unavailable peer documents do not become impossible conformance obligations.
+  - Kept Trace out of Level 4 resolver-family examples; Trace remains an out-of-scope downstream consumer.
