@@ -95,6 +95,26 @@
       ]
     },
     {
+      "spec": "specs/core/validation-mapping.md",
+      "schema": "schemas/validation-mapping.schema.json",
+      "bluf": "specs/core/validation-mapping.bluf.md",
+      "llm": "specs/core/validation-mapping.llm.md",
+      "behaviorEssentials": [
+        "ActionIntent maps to exactly one default ValidationProfile, BlockingPolicy, and PersistencePolicy tuple in the Master Mapping Table.",
+        "ValidationProfile names pin existing Core global modes and per-shape timing filters; they do not introduce new runtime behavior.",
+        "BlockingPolicy block-on-error depends only on ValidationReport.valid, which is false exactly when error-count findings are present.",
+        "PersistencePolicy draft-checkpoint preserves Core VE-05: saving current response data is never blocked by validation findings.",
+        "SubmitButton without actionRef invokes the default submit mapping; report production may use live/on-submit, but completed status requires the on-submit completion gate."
+      ],
+      "conformanceEssentials": [
+        "A conforming validation-mapping document must expose the closed standard enums and a MasterTable const equal to the prose master table.",
+        "Processors must not introduce ValidationProfile, BlockingPolicy, or PersistencePolicy values outside the closed enums.",
+        "Publisher-defined x-prefixed ActionIntent values may exist only in intent position and must still bind to the closed profile, blocking, and persistence tuple space.",
+        "MappingEntry must reject complete-response tuples unless profile is on-submit and blocking is block-on-error.",
+        "ValidationSummary is passive display and must not trigger ActionIntent execution."
+      ]
+    },
+    {
       "spec": "specs/core/spec.md",
       "schema": "schemas/definition.schema.json",
       "bluf": "specs/core/definition-spec.bluf.md",

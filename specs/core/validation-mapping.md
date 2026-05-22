@@ -47,6 +47,11 @@ Additional terms:
 ## Bottom Line Up Front
 
 <!-- bluf:start file=validation-mapping.bluf.md -->
+- This document defines four closed vocabularies — `ActionIntent`, `ValidationProfile`, `BlockingPolicy`, `PersistencePolicy` — and a Master Mapping Table that names default tuples per intent. Future Response Actions documents MUST cite this table; they MUST NOT invent a parallel validation vocabulary.
+- Validation Profile names (`live`, `on-submit`, `on-demand`, `off`) pin existing Core terms: global mode (`continuous` / `deferred` / `disabled`) plus per-shape timing filter (`continuous` / `submit` / `demand`). No new runtime behavior is introduced.
+- The mapping preserves Core §5.5 VE-05 ("saving data MUST never be blocked by validation"). Persistence Policy `draft-checkpoint` is non-blocking regardless of validation findings; only `complete-response` requires `valid = true`.
+- A `SubmitButton` without an `actionRef` MUST be treated as invoking the implementation's default submit action (Master Mapping Table row for `submit`): profile `on-submit`, blocking `block-on-error`, persistence `complete-response`. Component §5.19 `mode` ∈ {`continuous`, `submit`} maps to profile `live` / `on-submit` for emitted-report production; Response status `completed` still requires the `on-submit` completion gate.
+- This BLUF is governed by `schemas/validation-mapping.schema.json` (the four enums + `MappingEntry` + `MasterTable` const). The schema is the canonical structural contract; prose is normative.
 <!-- bluf:end -->
 
 ---
@@ -374,11 +379,28 @@ A conformant **Mapping-Aware Processor** MUST:
 ### 9.2 Schema
 
 <!-- schema-ref:start id=validation-mapping-top-level schema=schemas/validation-mapping.schema.json pointers=# -->
+<!-- generated:schema-ref id=validation-mapping-top-level -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/properties/$formspecValidationMapping` | `$formspecValidationMapping` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Validation Mapping specification version. MUST be '1.0'. |
+| `#/properties/version` | `version` | <code>string</code> | yes | — | Version of this Validation Mapping Document. SemVer RECOMMENDED. |
 <!-- schema-ref:end -->
 
 ### 9.3 `$defs` Reference
 
 <!-- schema-ref:start id=validation-mapping-defs schema=schemas/validation-mapping.schema.json pointers=#/$defs/ActionIntent,#/$defs/ValidationProfile,#/$defs/BlockingPolicy,#/$defs/PersistencePolicy,#/$defs/MappingEntry,#/$defs/MasterTable -->
+<!-- generated:schema-ref id=validation-mapping-defs -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/$defs/ActionIntent` | `(self)` | <code>string</code> | — | enum: <code>"save-draft"</code>, <code>"autosave"</code>, <code>"review"</code>, <code>"submit"</code>, <code>"request-evidence"</code>; critical | Closed, abstract enum naming what a form caller is trying to do. save-draft: persist current Response as a draft, validation findings ignored. autosave: background or periodic save, identical mapping to save-draft. review: read-only validation pass; no persistence transition. submit: attempt transition to Response status 'completed'. request-evidence: invoke demand-timing shapes (Core §5.2.1) only. See specs/core/validation-mapping.md §2. |
+| `#/$defs/ValidationProfile` | `(self)` | <code>string</code> | — | enum: <code>"live"</code>, <code>"on-submit"</code>, <code>"on-demand"</code>, <code>"off"</code>; critical | Closed named profile pinning a (Core global mode, per-shape timing filter) pair under a single identifier. live: Core 'continuous' + continuous-timing shapes during normal revalidation. on-submit: Core 'continuous' + continuous and submit-timing shapes; demand shapes excluded. on-demand: Core 'deferred' + only demand-timing shapes fire. off: Core 'disabled' + no shapes fire (no ValidationReport produced). See specs/core/validation-mapping.md §3. |
+| `#/$defs/BlockingPolicy` | `(self)` | <code>string</code> | — | enum: <code>"non-blocking"</code>, <code>"block-on-error"</code>; critical | Closed two-value enum naming whether error-severity findings stop the surrounding intent. non-blocking: findings never stop the intent. block-on-error: intent halts before higher-persistence transitions when ValidationReport.valid is false (counts.error > 0). Preserves Core §5.5 VE-05 by blocking the transition, not the underlying data persistence. See specs/core/validation-mapping.md §4. |
+| `#/$defs/PersistencePolicy` | `(self)` | <code>string</code> | — | enum: <code>"none"</code>, <code>"draft-checkpoint"</code>, <code>"complete-response"</code>; critical | Closed three-value enum naming the Response lifecycle effect of the intent. none: no status change, no persistence. draft-checkpoint: persist current Response state, status remains 'in-progress' (permitted under any validation outcome, VE-05). complete-response: persist AND transition status to 'completed' (requires ValidationReport.valid === true, Core §5.4 invariant). See specs/core/validation-mapping.md §5. |
+| `#/$defs/MappingEntry/properties/blocking` | `blocking` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/BlockingPolicy</code> | — |
+| `#/$defs/MappingEntry/properties/intent` | `intent` | <code>composite</code> | yes | — | — |
+| `#/$defs/MappingEntry/properties/persistence` | `persistence` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/PersistencePolicy</code> | — |
+| `#/$defs/MappingEntry/properties/profile` | `profile` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ValidationProfile</code> | — |
+| `#/$defs/MasterTable` | `(self)` | <code>array</code> | — | const: <code>[{"intent":"save-draft","profile":"off","blocking":"non-blocking","persistence":"draft-checkpoint"},{"intent":"autosave","profile":"off","blocking":"non-blocking","persistence":"draft-checkpoint"},{"intent":"review","profile":"on-submit","blocking":"non-blocking","persistence":"none"},{"intent":"submit","profile":"on-submit","blocking":"block-on-error","persistence":"complete-response"},{"intent":"request-evidence","profile":"on-demand","blocking":"non-blocking","persistence":"draft-checkpoint"}]</code>; critical | Frozen master mapping table. MUST equal specs/core/validation-mapping.md §6 row-for-row. The const constrains any document carrying this property to the canonical table; documents that override individual entries do so per Action, not by replacing the master table. |
 <!-- schema-ref:end -->
 
 ### 9.4 Conformance Prohibitions
