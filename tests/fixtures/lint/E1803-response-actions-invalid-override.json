@@ -1,0 +1,22 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/intake",
+    "compatibleVersions": ">=1.0.0"
+  },
+  "actions": [
+    {
+      "id": "submit-with-broken-override",
+      "intent": "submit",
+      "validation": {
+        "profile": "off",
+        "blocking": "block-on-error",
+        "persistence": "complete-response"
+      },
+      "effects": [
+        { "type": "hostEvent", "eventName": "formspec-submit" }
+      ]
+    }
+  ]
+}

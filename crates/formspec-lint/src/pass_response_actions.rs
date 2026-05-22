@@ -28,8 +28,48 @@ pub(crate) fn lint_response_actions(
     };
     analyzer.check_target_definition();
     analyzer.check_duplicate_action_ids();
+    analyzer.check_invalid_validation_overrides();
     analyzer.check_component_action_refs();
     analyzer.diagnostics
+}
+
+/// VM §6.3 permitted-tuple predicate.
+///
+/// Returns `Some(rationale)` when the (profile, blocking, persistence) tuple
+/// fails one of the four VM §6.2 prohibitions. Returns `None` when the tuple
+/// is permitted OR when an axis is missing (schema validation owns shape
+/// errors; this predicate only judges fully-shaped tuples).
+fn vmap_override_violation(
+    profile: Option<&str>,
+    blocking: Option<&str>,
+    persistence: Option<&str>,
+) -> Option<&'static str> {
+    let (profile, blocking, persistence) = (profile?, blocking?, persistence?);
+    if persistence == "complete-response" && blocking != "block-on-error" {
+        return Some(
+            "complete-response persistence requires block-on-error blocking \
+             (VM §6.2 #2 — would let error-severity findings reach completed)",
+        );
+    }
+    if persistence == "complete-response" && profile != "on-submit" {
+        return Some(
+            "complete-response persistence requires on-submit profile \
+             (VM §6.2 #3 — partial report could allow completion)",
+        );
+    }
+    if blocking == "block-on-error" && persistence != "complete-response" {
+        return Some(
+            "block-on-error blocking requires complete-response persistence \
+             (VM §6.2 #5 — blocked draft checkpoints violate VE-05)",
+        );
+    }
+    if profile == "off" && blocking == "block-on-error" {
+        return Some(
+            "off profile with block-on-error blocking is forbidden \
+             (VM §6.2 #4 — no report under off, nothing to block on)",
+        );
+    }
+    None
 }
 
 struct Analyzer<'a> {
@@ -95,6 +135,36 @@ impl Analyzer<'_> {
                 ));
             } else {
                 first_paths.insert(id.to_string(), path);
+            }
+        }
+    }
+
+    fn check_invalid_validation_overrides(&mut self) {
+        let Some(actions) = self.doc.get("actions").and_then(Value::as_array) else {
+            return;
+        };
+        for (index, action) in actions.iter().enumerate() {
+            let Some(validation) = action.get("validation").and_then(Value::as_object) else {
+                continue;
+            };
+            let profile = validation.get("profile").and_then(Value::as_str);
+            let blocking = validation.get("blocking").and_then(Value::as_str);
+            let persistence = validation.get("persistence").and_then(Value::as_str);
+            if let Some(rationale) = vmap_override_violation(profile, blocking, persistence) {
+                let id = action
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("<unknown>");
+                self.diagnostics.push(error(
+                    crate::LintCode::E1803,
+                    PASS,
+                    format!("$.actions[{index}].validation"),
+                    format!(
+                        "VMAP-INVALID-OVERRIDE: Action {id:?} validation override \
+                         (profile={profile:?}, blocking={blocking:?}, persistence={persistence:?}) \
+                         violates the VM §6.3 permitted-tuple predicate: {rationale}"
+                    ),
+                ));
             }
         }
     }
@@ -283,6 +353,52 @@ mod tests {
             actionref_diag.severity,
             crate::types::LintSeverity::Error,
             "E1802 MUST be error severity per Component §5.19 Resolver Invariants"
+        );
+    }
+
+    #[test]
+    fn invalid_validation_override_emits_e1803_vmap_invalid_override() {
+        // VM §6.2 prohibition #5: block-on-error with non-complete-response
+        // persistence creates an incoherent blocked-draft state. Processors
+        // MUST reject with VMAP-INVALID-OVERRIDE per §8.1.2.
+        let mut doc = response_actions();
+        doc["actions"][0]["validation"] = json!({
+            "profile": "live",
+            "blocking": "block-on-error",
+            "persistence": "draft-checkpoint"
+        });
+
+        let diags = lint_response_actions(&doc, None, &[]);
+
+        let vmap_diag = diags
+            .iter()
+            .find(|d| d.code == crate::LintCode::E1803)
+            .expect("E1803 not emitted for VMAP-INVALID-OVERRIDE tuple");
+        assert_eq!(vmap_diag.severity, crate::types::LintSeverity::Error);
+        assert!(
+            vmap_diag.message.contains("VMAP-INVALID-OVERRIDE"),
+            "diagnostic message must carry the spec-mandated VMAP-INVALID-OVERRIDE string \
+             code so TS runtime + Rust lint emit the same surface: {:?}",
+            vmap_diag.message
+        );
+    }
+
+    #[test]
+    fn valid_master_table_override_emits_no_e1803() {
+        // The submit master-table row is a permitted tuple. An override that
+        // restates it MUST NOT trip the predicate.
+        let mut doc = response_actions();
+        doc["actions"][0]["validation"] = json!({
+            "profile": "on-submit",
+            "blocking": "block-on-error",
+            "persistence": "complete-response"
+        });
+
+        let diags = lint_response_actions(&doc, None, &[]);
+
+        assert!(
+            !diags.iter().any(|d| d.code == crate::LintCode::E1803),
+            "permitted-tuple override must not emit E1803: {diags:#?}"
         );
     }
 }

@@ -1194,6 +1194,16 @@
       "suggestedFix": "declare a matching Response Actions actions[].id or update the ActionButton actionRef",
       "fixtures": ["tests/fixtures/lint/E1800-response-actions-semantic-invalid.json"],
       "state": "tested"
+    },
+    {
+      "code": "E1803",
+      "pass": 9,
+      "severity": "error",
+      "title": "VMAP-INVALID-OVERRIDE: Response Actions validation override violates the §6.3 permitted-tuple predicate",
+      "specRef": "specs/core/validation-mapping.md#62-what-overrides-cannot-do",
+      "suggestedFix": "replace the per-action validation tuple with one that satisfies VM §6.3: complete-response requires (on-submit, block-on-error); block-on-error requires complete-response; off + block-on-error is forbidden",
+      "fixtures": ["tests/fixtures/lint/E1803-response-actions-invalid-override.json"],
+      "state": "tested"
     }
   ]
 }
