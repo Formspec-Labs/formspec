@@ -208,13 +208,13 @@ freshGenerationWithoutCommonAncestor(
 
 ## Task 5: Spec prose — §4 Generated-node markers
 
-- [ ] Draft §4 defining when a node is considered "generated" for merge purposes.
+- [x] Draft §4 defining when a node is considered "generated" for merge purposes.
 
-Rule: presence of `x-generation` with at least one of `source`, `strategy`, `generatedBy`, or non-empty `anchors`. Nodes without `x-generation` are designer-authored from inception and are preserved as-is across regeneration (they cannot be regenerated because they have no source linkage).
+Rule: define `hasGenerationMarker` as presence of `x-generation` with at least one of `source`, `strategy`, `generatedBy`, or non-empty `anchors`; `generatedAt` alone does not make a node generated for merge purposes. Define `hasMatchableGenerationAnchors` separately, using §3's non-empty computed anchor set. Nodes without `x-generation` are treated as designer-authored for regeneration-merge classification and are preserved as-is across regeneration (they cannot be regenerated because they have no source linkage).
 
 §4 MUST address: how a designer "adopts" a generated node by editing it (the node retains `x-generation`; designer edits are tracked via the three-way diff against `old-generated`).
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 6: Spec prose — §5 Designer-edit detection
 
@@ -953,3 +953,7 @@ Task 23:       promotion-gate + architecture review
   - Added deterministic duplicate-anchor ambiguity handling when recursive parent identity reaches a missing/empty-anchor parent.
   - Replaced bracket fallback paths with RFC 6901 JSON Pointer paths and restated that prefix/suffix semantics remain CRF-owned.
 - 2026-05-22: Post-Task-4 review by `formspec-specs:spec-expert` (verdict APPROVE) found one nit: the load-bearing design table still used stale "sibling tree-path tiebreaker" shorthand. Cleaned before commit.
+- 2026-05-22: Pre-Task-5 architecture review by `formspec-specs:spec-expert` (verdict GO with constraints) steered §4 before drafting:
+  - Split generation classification into `hasGenerationMarker` and `hasMatchableGenerationAnchors` so provenance-only nodes do not become matchable against `new-generated`.
+  - Clarified that absence of `x-generation` is a regeneration-merge classification, not a claim about the node's unknowable history.
+  - Excluded `generatedAt`-only metadata from generated-marker classification and left invalid `x-generation` shapes to Component schema validation.

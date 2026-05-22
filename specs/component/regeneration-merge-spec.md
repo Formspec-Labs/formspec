@@ -370,6 +370,58 @@ by a non-anchor heuristic.
 
 ## 4. Generated-Node Markers
 
+### 4.1 Marker Classification
+
+Regeneration merge uses `x-generation` only for authoring-time merge
+classification and reporting. Invalid `x-generation` shapes are Component schema
+validation concerns; this specification assumes schema-valid Component v1.1
+inputs.
+
+A node has a generation marker when:
+
+- it has an `x-generation` object; and
+- that object has at least one of `source`, `strategy`, `generatedBy`, or a
+  non-empty `anchors` array after §3.1 anchor-set computation.
+
+`generatedAt` alone does not make a node generated for merge purposes. A
+timestamp-only `x-generation` object is provenance metadata, not a merge
+classification signal.
+
+### 4.2 Matchable Generation Anchors
+
+A node has matchable generation anchors only when §3 computes a non-empty anchor
+set from `x-generation.anchors[]`.
+
+`hasGenerationMarker` and `hasMatchableGenerationAnchors` are separate states. A
+node may carry generator provenance through `source`, `strategy`, or
+`generatedBy` and still be non-matchable against `new_generated` if it has no
+matchable anchors. Such a node may be preserved or reported by later merge
+steps, but §3 identity MUST NOT match it against `new_generated`.
+
+### 4.3 Designer-Edited Generated Nodes
+
+Designer edits do not remove generation marker status. A designer may edit a
+node that still carries `x-generation`; the node remains generated for
+classification and reporting, while the designer edit itself is detected by the
+three-way comparison against `old_generated`.
+
+A host or authoring tool MUST NOT infer from `x-generation` alone that the
+current node value is untouched generator output. The current node may be
+generated, generated-then-edited, imported from another authoring workflow, or
+manually annotated with provenance metadata.
+
+### 4.4 Nodes Without Generation Markers
+
+A node without a generation marker is treated as designer-authored for
+regeneration-merge classification. That classification does not assert the
+node's historical origin; it only says the merge processor lacks source linkage
+that would let it regenerate the node.
+
+Nodes without generation markers cannot be regenerated from `new_generated` by
+this specification. They are preserved through old-to-designer matching when
+possible, or surfaced through orphan/pending-review/conflict handling when their
+surrounding generated structure changes.
+
 ## 5. Designer-Edit Detection
 
 ## 6. Merge Algorithm
