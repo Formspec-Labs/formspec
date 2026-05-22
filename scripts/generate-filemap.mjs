@@ -43,6 +43,9 @@ const EXCLUDE_DIRS = new Set([
   'reconstructed-examples', // Generated example reconstructions
   'public',             // Built/deployed site output
   'storybook-static',   // Storybook build output
+  'test-results',       // Playwright run output
+  'playwright-report',  // Playwright HTML report output
+  'playwright-report-storybook', // Storybook Playwright report output
 ]);
 
 const EXCLUDE_PATTERNS = [
