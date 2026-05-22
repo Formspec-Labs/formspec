@@ -89,3 +89,33 @@ test('FetchIssuerFetcher rejects mismatched +sha256 content hash', async () => {
 
   await assert.rejects(() => fetcher.fetch('https://x/i.json'), /content hash/i);
 });
+
+test('FetchIssuerFetcher refetches once after mismatched +sha256 content hash', async () => {
+  const pinned = {
+    ...ISSUER,
+    version: `1.0.0+sha256-${'a'.repeat(64)}`,
+  };
+  const refreshed = {
+    ...ISSUER,
+    version: '1.0.1',
+    name: 'X Refetched',
+  };
+  const seenInit = [];
+  const fetch = async (_url, init) => {
+    seenInit.push(init);
+    return response(JSON.stringify(seenInit.length === 1 ? pinned : refreshed), {
+      status: 200,
+      headers: { etag: `"v${seenInit.length}"` },
+    });
+  };
+  const fetcher = new FetchIssuerFetcher({ fetch });
+
+  const got = await fetcher.fetch('https://x/i.json', { ifNoneMatch: '"old"' });
+
+  assert.equal(got.issuer.name, 'X Refetched');
+  assert.equal(got.etag, '"v2"');
+  assert.deepEqual(seenInit, [
+    { headers: { 'if-none-match': '"old"' } },
+    { cache: 'reload' },
+  ]);
+});

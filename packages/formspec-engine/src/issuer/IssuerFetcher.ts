@@ -42,32 +42,52 @@ export class FetchIssuerFetcher implements IssuerFetcher {
     }
 
     public async fetch(url: string, options: IssuerFetchOptions = {}): Promise<IssuerFetchResult> {
-        const init: RequestInit = {};
-        if (options.ifNoneMatch) {
-            init.headers = { 'if-none-match': options.ifNoneMatch };
-        }
-        const response = await this._fetch(url, init);
-        if (response.status === 304) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            const init = requestInit(options, attempt > 0);
+            const response = await this._fetch(url, init);
+            if (response.status === 304) {
+                return {
+                    notModified: true,
+                    etag: response.headers.get('etag') ?? options.ifNoneMatch,
+                    cacheControl: response.headers.get('cache-control') ?? undefined,
+                };
+            }
+            if (!response.ok) {
+                throw new Error(`Issuer fetch ${url} returned ${response.status}`);
+            }
+            const rawBytes = new Uint8Array(await response.arrayBuffer());
+            const issuer = JSON.parse(new TextDecoder().decode(rawBytes)) as Issuer;
+            try {
+                await verifyContentHash(issuer, rawBytes);
+            } catch (error) {
+                if (attempt === 0 && error instanceof IssuerContentHashMismatchError) {
+                    continue;
+                }
+                throw error;
+            }
             return {
-                notModified: true,
-                etag: response.headers.get('etag') ?? options.ifNoneMatch,
+                issuer,
+                rawBytes,
+                etag: response.headers.get('etag') ?? undefined,
                 cacheControl: response.headers.get('cache-control') ?? undefined,
             };
         }
-        if (!response.ok) {
-            throw new Error(`Issuer fetch ${url} returned ${response.status}`);
-        }
-        const rawBytes = new Uint8Array(await response.arrayBuffer());
-        const issuer = JSON.parse(new TextDecoder().decode(rawBytes)) as Issuer;
-        await verifyContentHash(issuer, rawBytes);
-        return {
-            issuer,
-            rawBytes,
-            etag: response.headers.get('etag') ?? undefined,
-            cacheControl: response.headers.get('cache-control') ?? undefined,
-        };
+        throw new Error(`Issuer fetch ${url} exhausted content-hash refetch`);
     }
 }
+
+function requestInit(options: IssuerFetchOptions, forceReload: boolean): RequestInit {
+    if (forceReload) {
+        return { cache: 'reload' };
+    }
+    const init: RequestInit = {};
+    if (options.ifNoneMatch) {
+        init.headers = { 'if-none-match': options.ifNoneMatch };
+    }
+    return init;
+}
+
+class IssuerContentHashMismatchError extends Error {}
 
 async function verifyContentHash(issuer: Issuer, rawBytes: Uint8Array): Promise<void> {
     const match = /\+sha256-([0-9a-f]{64})$/.exec(issuer.version);
@@ -84,7 +104,7 @@ async function verifyContentHash(issuer: Issuer, rawBytes: Uint8Array): Promise<
         .map((byte) => byte.toString(16).padStart(2, '0'))
         .join('');
     if (actual !== expected) {
-        throw new Error(
+        throw new IssuerContentHashMismatchError(
             `Issuer ${issuer.url} content hash mismatch (expected ${expected}, got ${actual})`,
         );
     }

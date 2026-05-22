@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import glob
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -99,13 +100,21 @@ def drive_langmap_fallback(_case_dir: Path, case: dict):
 
 
 def drive_content_hash(_case_dir: Path, case: dict):
-    cached = case["cached"]
-    fresh = case["fresh"]
-    assert cached["url"] == fresh["url"]
-    assert cached["version"] != fresh["version"]
-    assert version_has_sha256(cached["version"])
-    assert version_has_sha256(fresh["version"])
-    assert cache_token(cached) != cache_token(fresh)
+    attempts = []
+    accepted = None
+    for fetch in case["fetches"]:
+        issuer = fetch["issuer"]
+        attempts.append(issuer["version"])
+        if content_hash_valid(issuer):
+            accepted = issuer
+            break
+
+    expected = case["expected"]
+    assert accepted is not None, f"{case.get('name', 'content-hash')}: no accepted refetch"
+    assert attempts == expected["attemptVersions"]
+    assert len(attempts) - 1 == expected["refetches"]
+    assert accepted["version"] == expected["finalVersion"]
+    assert cache_token(case["fetches"][0]["issuer"]) != cache_token(accepted)
 
 
 def drive_publisher_legacy(_case_dir: Path, case: dict):
@@ -251,8 +260,16 @@ def resolve_lang_value(value, locale: str, default_language: str):
     return next(iter(value.values()), None)
 
 
-def version_has_sha256(version: str) -> bool:
-    return re.search(r"\+sha256-[0-9a-f]{64}$", version) is not None
+def content_hash_valid(issuer: dict) -> bool:
+    match = re.search(r"\+sha256-([0-9a-f]{64})$", issuer["version"])
+    if not match:
+        return True
+    return issuer_sha256(issuer) == match.group(1)
+
+
+def issuer_sha256(issuer: dict) -> str:
+    body = json.dumps(issuer, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(body).hexdigest()
 
 
 def cache_token(issuer: dict) -> str:
