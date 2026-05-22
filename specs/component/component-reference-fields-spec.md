@@ -633,4 +633,61 @@ source specifications.
 
 ## 8. Conformance
 
-Task 9 drafts this section.
+This specification defines three independent conformance claims. Implementations
+MAY claim one claim without claiming the others, but they MUST NOT imply support
+for an unclaimed surface.
+
+### 8.1 Schema Additivity Conformance
+
+An implementation claiming Schema Additivity Conformance MUST accept the fields
+defined by this specification as OPTIONAL Component node metadata. The Component
+schema delta MUST NOT change the type, required status, enum, pattern, or
+structural meaning of any pre-existing Component field.
+
+Every Component document that conformed before this specification lands MUST
+continue to validate unchanged. The absence of `unitRef`, `taskRefs`,
+`conceptRefs`, or `x-generation` MUST NOT produce a schema error, resolver
+finding, renderer difference, or migration requirement.
+
+Schema additivity also requires no-rewrite compatibility. Processors MUST NOT
+rewrite existing Component documents to add these fields, remove these fields, or
+normalize their values as part of validation. A no-rewrite regression suite that
+validates pre-existing Component fixtures unchanged is the required evidence for
+this claim.
+
+### 8.2 Reference Resolver Conformance
+
+An implementation claiming Reference Resolver Conformance MUST implement the
+context, traversal, lookup, report, and invariant rules in §6. It MUST emit
+`COMP-REFERENTIAL-INTEGRITY` findings using the `kind`, severity, and cardinality
+rules in §7.
+
+The resolver MUST be deterministic, no-mutation, and one-directional. It MAY add
+report-only annotations for successful or unresolved references, but those
+annotations MUST NOT be written into Component, Definition, Experience, Response
+Actions, Registry, Ontology, Mapping, Intake Handoff, Respondent Ledger, Trace,
+or Response artifacts.
+
+Reference Resolver Conformance does not imply Renderer Ignore Conformance. A
+processor that only produces reference reports MUST NOT claim that its renderer
+preserves output identity unless renderer-specific evidence proves that claim.
+
+### 8.3 Renderer Ignore Conformance
+
+An implementation claiming Renderer Ignore Conformance MUST ignore `unitRef`,
+`taskRefs`, `conceptRefs`, and `x-generation` for default runtime output. Two
+Component documents that differ only by the presence, absence, order, or value of
+these reference metadata fields MUST render the same output for the same
+Definition, data, Theme, Response Actions, and host runtime context.
+
+Renderer Ignore Conformance MUST be proven by output-identity evidence for the
+metadata fields the renderer supports. The `x-generation` fixture pair defined by
+this plan is the minimum required evidence for generation metadata. Hosts that
+surface resolved Unit, Task, Concept, or generation metadata in authoring,
+debugging, review, search, analytics, or strict-policy tools MUST keep those
+tools outside the default runtime renderer claim.
+
+Renderer Ignore Conformance does not permit a renderer to invoke actions,
+trigger validation, change Response status, fetch external concept resources, or
+perform regeneration based on these fields. Any such behavior belongs to a
+separate host feature outside this specification.

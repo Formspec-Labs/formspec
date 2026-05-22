@@ -158,6 +158,8 @@ Closure: hosts MUST NOT downgrade `error`; MAY upgrade lower severities under st
 
 ## Task 9: §8 Conformance — additivity, resolver, no-rewrite
 
+- [x] Draft §8 conformance surfaces, no-rewrite evidence invariant, and renderer-ignore evidence boundary.
+
 Three conformance levels:
 
 1. **Schema additivity.** Every new field OPTIONAL. No existing field type/required-set/enum/pattern modified.
