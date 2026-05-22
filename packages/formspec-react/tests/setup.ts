@@ -1,4 +1,5 @@
 /** @filedesc Vitest setup — act-environment flag plus per-test React root cleanup. */
+import { act } from 'react';
 import { afterEach, vi } from 'vitest';
 
 // Tell React's act() that this is a test environment
@@ -26,13 +27,15 @@ vi.mock('react-dom/client', async (importOriginal) => {
 });
 
 afterEach(() => {
-    while (trackedRoots.length > 0) {
-        const root = trackedRoots.pop();
-        try {
-            root?.unmount();
-        } catch {
-            // Root may already be unmounted by the test itself; ignore.
+    act(() => {
+        while (trackedRoots.length > 0) {
+            const root = trackedRoots.pop();
+            try {
+                root?.unmount();
+            } catch {
+                // Root may already be unmounted by the test itself; ignore.
+            }
         }
-    }
-    document.body.innerHTML = '';
+        document.body.innerHTML = '';
+    });
 });

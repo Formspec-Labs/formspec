@@ -4,6 +4,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { initFormspecEngine, createFormEngine, createDemoSubmitResponseActions } from '@formspec-org/engine';
+import { actRender, actRenderAsync } from './render-utils';
 import type { LayoutNode } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
@@ -68,11 +69,7 @@ const responseActionsDocument = createDemoSubmitResponseActions({
 });
 
 function renderInto(element: React.ReactElement): HTMLElement {
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const root = createRoot(container);
-    flushSync(() => { root.render(element); });
-    return container;
+    return actRender(element);
 }
 
 // ── FormspecForm auto-renderer ─────────────────────────────────────
@@ -1829,7 +1826,7 @@ describe('ValidationSummaryDisplay gate behavior', () => {
 // ── simpleMarkdown URL sanitization ──────────────────────────────────
 
 describe('simpleMarkdown URL sanitization in Text nodes', () => {
-    function renderTextNode(text: string): HTMLElement {
+    async function renderTextNode(text: string): Promise<HTMLElement> {
         const engine = createFormEngine(testDefinition);
         const plan: LayoutNode = {
             id: 'root', component: 'Stack', category: 'layout',
@@ -1840,82 +1837,82 @@ describe('simpleMarkdown URL sanitization in Text nodes', () => {
                 },
             ],
         };
-        return renderInto(
+        return actRenderAsync(
             <FormspecProvider engine={engine}>
                 <FormspecNode node={plan} />
             </FormspecProvider>
         );
     }
 
-    it('renders safe https links as anchor elements', () => {
-        const container = renderTextNode('[Click here](https://example.com)');
+    it('renders safe https links as anchor elements', async () => {
+        const container = await renderTextNode('[Click here](https://example.com)');
         const anchor = container.querySelector('a');
         expect(anchor).toBeTruthy();
         expect(anchor!.getAttribute('href')).toBe('https://example.com');
         expect(anchor!.textContent).toBe('Click here');
     });
 
-    it('renders safe http links as anchor elements', () => {
-        const container = renderTextNode('[Site](http://example.com)');
+    it('renders safe http links as anchor elements', async () => {
+        const container = await renderTextNode('[Site](http://example.com)');
         const anchor = container.querySelector('a');
         expect(anchor).toBeTruthy();
         expect(anchor!.getAttribute('href')).toBe('http://example.com');
     });
 
-    it('renders mailto links as anchor elements', () => {
-        const container = renderTextNode('[Email us](mailto:hello@example.com)');
+    it('renders mailto links as anchor elements', async () => {
+        const container = await renderTextNode('[Email us](mailto:hello@example.com)');
         const anchor = container.querySelector('a');
         expect(anchor).toBeTruthy();
         expect(anchor!.getAttribute('href')).toBe('mailto:hello@example.com');
     });
 
-    it('renders tel links as anchor elements', () => {
-        const container = renderTextNode('[Call us](tel:+15551234567)');
+    it('renders tel links as anchor elements', async () => {
+        const container = await renderTextNode('[Call us](tel:+15551234567)');
         const anchor = container.querySelector('a');
         expect(anchor).toBeTruthy();
         expect(anchor!.getAttribute('href')).toBe('tel:+15551234567');
     });
 
-    it('renders relative /path links as anchor elements', () => {
-        const container = renderTextNode('[Home](/home)');
+    it('renders relative /path links as anchor elements', async () => {
+        const container = await renderTextNode('[Home](/home)');
         const anchor = container.querySelector('a');
         expect(anchor).toBeTruthy();
         expect(anchor!.getAttribute('href')).toBe('/home');
     });
 
-    it('renders anchor fragment links as anchor elements', () => {
-        const container = renderTextNode('[Section](#section-id)');
+    it('renders anchor fragment links as anchor elements', async () => {
+        const container = await renderTextNode('[Section](#section-id)');
         const anchor = container.querySelector('a');
         expect(anchor).toBeTruthy();
         expect(anchor!.getAttribute('href')).toBe('#section-id');
     });
 
-    it('strips javascript: URLs — renders span with text only', () => {
-        const container = renderTextNode('[Click me](javascript:alert(1))');
+    it('strips javascript: URLs — renders span with text only', async () => {
+        const container = await renderTextNode('[Click me](javascript:alert(1))');
         expect(container.querySelector('a')).toBeNull();
         const span = container.querySelector('span');
         expect(span).toBeTruthy();
         expect(span!.textContent).toBe('Click me');
     });
 
-    it('strips data: URLs — renders span with text only', () => {
-        const container = renderTextNode('[img](data:text/html,<h1>xss</h1>)');
+    it('strips data: URLs — renders span with text only', async () => {
+        const container = await renderTextNode('[img](data:text/html,<h1>xss</h1>)');
         expect(container.querySelector('a')).toBeNull();
         const span = container.querySelector('span');
         expect(span).toBeTruthy();
         expect(span!.textContent).toBe('img');
     });
 
-    it('strips vbscript: URLs — renders span with text only', () => {
-        const container = renderTextNode('[Run](vbscript:MsgBox(1))');
+    it('strips vbscript: URLs — renders span with text only', async () => {
+        const container = await renderTextNode('[Run](vbscript:MsgBox(1))');
         expect(container.querySelector('a')).toBeNull();
         const span = container.querySelector('span');
         expect(span).toBeTruthy();
         expect(span!.textContent).toBe('Run');
     });
 
-    it('strips javascript: URL with leading whitespace — case insensitive', () => {
-        const container = renderTextNode('[XSS](  JAVASCRIPT:alert(1))');
+    it('strips javascript: URL with leading whitespace — case insensitive', async () => {
+        const container = await renderTextNode('[XSS](  JAVASCRIPT:alert(1))');
         expect(container.querySelector('a')).toBeNull();
     });
 });
