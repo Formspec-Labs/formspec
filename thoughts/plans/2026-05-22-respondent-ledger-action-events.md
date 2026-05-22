@@ -58,7 +58,7 @@ related:
 ## Self-Review Note
 
 - The four new kinds are OPTIONAL. Ledger §3.2 lists non-goals for the spec and §8.2 uses `MAY` for existing optional kinds; this plan extends the optional set without changing the required-event commitment surface.
-- Payload binding (`$defs/ActionEventPayload`) lives on the event itself, not in `changes`. Rationale is positive (action lifecycle is not a field-edit), NOT a precedent claim. Earlier draft text claimed a mirror with `validation.snapshot-recorded` — incorrect. The existing schema has no allOf clause for `validation.snapshot-recorded`. The §8.5 prohibition on `changes` for `action.*` is a NEW conformance rule, intentionally introduced.
+- Payload binding (`$defs/ActionEventPayload`) lives on the event itself, not in `changes`. Rationale is positive (action lifecycle is not a field-edit), NOT a precedent claim. The §8.5 prohibition on `changes` for `action.*` is a NEW conformance rule, intentionally introduced.
 - The `terminal` enum on `ActionEventPayload` is restricted to `{failed, deferred, replayed}` — the only values the four published kinds emit. The `completed` lifecycle moment is covered by existing `response.completed`; `blocked` manifests via `action.failed` with `causeRef` discriminator.
 - `causeRef` / `replayTokenRef` / `priorInvocationRef` are semantically opaque to the Ledger but their BYTE encoding is constrained (ASCII-printable pattern + maxLength) so Trellis canonical event hash construction (trellis-core.md §22.2) is deterministic across deployments. The Response Actions runtime owns the semantic content; this spec owns the encoding.
 - The RA-plan fixture set will use these kinds; failure to land this plan first blocks RA-plan Task 13–15 fixture authoring.
@@ -283,7 +283,7 @@ The Respondent Ledger optionally records Response Actions invocation lifecycle. 
 | `action.deferred` | An invocation terminates in `deferred`. | `actionId`, `invocationId`, `terminal: "deferred"`, `replayTokenRef`, optionally `effectIndex` |
 | `action.replayed` | A replay re-enters with a prior invocationId and short-circuits durable effects via the idempotency contract. | `actionId`, `invocationId`, `terminal: "replayed"`, `priorInvocationRef` |
 
-`actionEvent` is the payload binding. Schema enforces presence on each `action.*` kind and forbids `changes`. Rationale: action lifecycle is not a field edit. Field-level material changes from a successful invocation are owned by the kind the action ultimately triggered — typically `draft.saved`, `response.submit-attempted`, `response.completed`, or `attachment.added`. This is a NEW conformance rule introduced by §8.5; it does not mirror any existing event-type clause. Earlier draft text claimed a mirror with `validation.snapshot-recorded` — that claim was incorrect (`validation.snapshot-recorded` has no conditional clause in the existing schema) and has been retracted.
+`actionEvent` is the payload binding. Schema enforces presence on each `action.*` kind and forbids `changes`. Rationale: action lifecycle is not a field edit. Field-level material changes from a successful invocation are owned by the kind the action ultimately triggered — typically `draft.saved`, `response.submit-attempted`, `response.completed`, or `attachment.added`. This is a NEW conformance rule introduced by §8.5; it does not mirror any existing event-type clause.
 
 Each of the four `action.*` kinds is independently optional. A processor MAY emit any subset (e.g., `action.invoked` + `action.failed` only, skipping `action.deferred` and `action.replayed` when those paths are not exercised).
 
@@ -293,6 +293,17 @@ Each of the four `action.*` kinds is independently optional. A processor MAY emi
 - maxLength bound (excludes unbounded payload inflation)
 
 A Trellis verifier consuming an exported chain treats these fields as canonical UTF-8 byte strings; the schema-side encoding constraint makes that stranger-test viable without requiring the verifier to consult the Response Actions spec to interpret the payload.
+
+**Recommended `causeRef` vocabulary (non-normative).** While `causeRef` semantic content is opaque to the Ledger, the Response Actions companion spec (and other future consumers) MAY adopt a shared convention for interoperability. Recommended values when the originating runtime is Response Actions:
+
+| Terminal cause | Recommended `causeRef` value |
+|---|---|
+| Validation gate failed | `blocked:validation` |
+| Precondition (severity: block) failed | `blocked:precondition` |
+| Effect failed with `onError: fail` | `effect-failed:<effect-type>:<index>` (e.g., `effect-failed:handoffAssembly:2`) |
+| Effect failed with `onError: defer` | `effect-deferred:<effect-type>:<index>` |
+
+The Ledger does NOT enforce this vocabulary. Processors MAY use other opaque values that satisfy the schema's ASCII-printable pattern and maxLength constraints. A Trellis verifier treats every `causeRef` value as a canonical byte string regardless of its semantic content.
 
 `priorInvocationRef` is **invocation-scoped only**. A processor that reuses this field as a case-continuation handle, response-continuation pointer, or session reference is non-conforming. The Ledger spec §3.2 non-goal forbidding `case.*` event families applies transitively.
 

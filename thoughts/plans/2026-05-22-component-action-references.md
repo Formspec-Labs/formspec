@@ -251,10 +251,10 @@ The referenced Action lives in the Response Actions document:
   "id": "submit-application",
   "intent": "submit",
   "effects": [
-    { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "concat(@invocation.id, '/map')" },
-    { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "idempotencyKey": "concat(@invocation.id, '/submit-attempted')" },
-    { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "concat(@invocation.id, '/handoff')" },
-    { "type": "ledgerAppend", "eventKind": "response.completed", "idempotencyKey": "concat(@invocation.id, '/completed')" },
+    { "type": "mappingExecution", "mappingRef": "applicationPayload", "idempotencyKey": "@invocation.id & '/map'" },
+    { "type": "ledgerAppend", "eventKind": "response.submit-attempted", "idempotencyKey": "@invocation.id & '/submit-attempted'" },
+    { "type": "handoffAssembly", "handoffProfileRef": "intakeStandard", "recipientRef": "wosIntake", "idempotencyKey": "@invocation.id & '/handoff'" },
+    { "type": "ledgerAppend", "eventKind": "response.completed", "idempotencyKey": "@invocation.id & '/completed'" },
     { "type": "hostEvent", "eventName": "formspec-submit", "detailRef": "{ reportRef: @validation.lastReport, handoffOutcomeRef: @effects[2].outcomeRef }" }
   ]
 }
@@ -315,6 +315,7 @@ remains in VM."
 
 **Files:**
 - Modify: `specs/component/component-spec.md` §6.13 (ValidationSummary)
+- Modify: `specs/core/validation-mapping.md` §8.1 (ValidationSummary `source` prop)
 
 - [ ] **Step 1: Update the §6.13 prose**
 
@@ -326,11 +327,25 @@ ValidationSummary's `source: "submit"` semantics ("reads the latest `formspec-su
 
 This is a prose update, not a behavior change. No schema modification.
 
+- [ ] **Step 1.5: Update VM §8.1 prose**
+
+`specs/core/validation-mapping.md §8.1` (ValidationSummary's `source` prop description) also references the legacy SubmitButton emit-event behavior and is stale post-Plan-E. Add a single paragraph to the existing §8.1 prose — do NOT restructure §8.1:
+
+```markdown
+**After Component Action References lands**, `formspec-submit` CustomEvent is dispatched by Action `hostEvent` effects rather than by the widget itself. Authors who want a ValidationSummary with `source: "submit"` to receive updates MUST declare a `hostEvent` effect on the submit Action's effect chain. ValidationSummary does not drive event dispatch; it only reads the most recent event detail from the host.
+```
+
+This is a single-paragraph append to §8.1. No structural rewrite of §8.1.
+
 - [ ] **Step 2: Commit**
 
 ```bash
-cd formspec && git add specs/component/component-spec.md
-git commit -m "docs(spec): clarify ValidationSummary source: submit depends on Action hostEvent"
+cd formspec && git add specs/component/component-spec.md specs/core/validation-mapping.md
+git commit -m "docs(spec): clarify ValidationSummary source: submit depends on Action hostEvent
+
+Updates Component §6.13 and VM §8.1 — both referenced the legacy
+SubmitButton emit-event behavior. Post-Plan-E, formspec-submit is
+dispatched by Action hostEvent effects; the widget does not dispatch."
 ```
 
 ---
@@ -613,6 +628,8 @@ git commit -m "test(e2e): pin ActionButton click → Action invocation → hostE
 ---
 
 ## Task 9.5: Sync schemas into the formspec-lint crate + propose make-target
+
+> **Scope note:** This task introduces stack-wide build infrastructure (the `sync-lint-schemas` target + script). It lives in this plan because Plan E is the first plan to need it, but the infrastructure itself is generic — future plans (e.g., the Component Reference Fields follow-up) MUST also use this target rather than re-inventing schema-sync logic. The make-target and script SHOULD be considered for promotion to a separate stack-infrastructure plan if more consumers appear.
 
 **Files:**
 - Modify: `crates/formspec-lint/schemas/component.schema.json` (mirror of canonical)

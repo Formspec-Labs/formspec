@@ -385,9 +385,9 @@ Expected: no regressions.
 cd formspec && git add packages/formspec-engine/src/engine/FormEngine.ts
 git commit -m "feat(engine): FormEngine.getValidationReport accepts { profile }
 
-VM ValidationProfile resolution via DI port. Backwards compatible:
-existing { mode } callers unaffected; passing both is rejected to
-prevent ambiguity. off short-circuits to an empty valid report;
+VM §3 / §9.1.2 ValidationProfile resolution via DI port. Breaking:
+{ mode } removed — callers passing mode throw at runtime.
+off short-circuits to null (no ValidationReport produced per VM §9.1.2);
 on-demand filters to demand-timing shapes."
 ```
 
