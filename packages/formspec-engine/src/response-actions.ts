@@ -41,7 +41,7 @@ export interface ActionRefFinding {
     kind: 'actionRef';
     nodeId?: string;
     target: string;
-    reason?: 'missing-actionRef' | 'no-response-actions-document';
+    reason?: 'missing-actionRef' | 'no-response-actions-document' | 'missing-submit-action';
 }
 
 export interface ActionResolution {
@@ -206,6 +206,17 @@ const MASTER_TABLE: Record<StandardResponseActionIntent, ValidationOverride> =
 
 function isStandardActionIntent(intent: string): intent is StandardResponseActionIntent {
     return Object.prototype.hasOwnProperty.call(MASTER_TABLE, intent);
+}
+
+/** Host finding when `onSubmit` is wired but no submit-intent Action is published. */
+export function missingSubmitActionFinding(): ActionRefFinding {
+    return {
+        code: 'COMP-REFERENTIAL-INTEGRITY',
+        severity: 'error',
+        kind: 'actionRef',
+        target: 'submit',
+        reason: 'missing-submit-action',
+    };
 }
 
 function actionRefFinding(

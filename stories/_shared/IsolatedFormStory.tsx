@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FormspecForm } from '@formspec-org/react';
 import type { SubmitResult, ComponentMap } from '@formspec-org/react';
+import { createDemoSubmitResponseActions } from '@formspec-org/engine';
 import formspecReactCssUrl from '../../packages/formspec-react/src/formspec.css?url';
 import { getStoryAppearanceClass, type StoryAppearance } from './storyAppearance';
 
@@ -45,6 +46,12 @@ export function IsolatedFormStory({
         const appearanceClassName = appearance === 'system' ? undefined : getStoryAppearanceClass(appearance);
         return [className, appearanceClassName].filter(Boolean).join(' ') || undefined;
     }, [appearance, className]);
+    const responseActionsDocument = useMemo(
+        () => (showSubmit && definition?.url
+            ? createDemoSubmitResponseActions({ definitionUrl: definition.url })
+            : undefined),
+        [definition?.url, showSubmit],
+    );
 
     useEffect(() => {
         const host = hostRef.current;
@@ -81,6 +88,7 @@ export function IsolatedFormStory({
                         components={components}
                         componentDocument={componentDocument}
                         initialData={initialData}
+                        responseActionsDocument={responseActionsDocument}
                         onSubmit={showSubmit ? setResult : undefined}
                         className={formspecClassName}
                     />

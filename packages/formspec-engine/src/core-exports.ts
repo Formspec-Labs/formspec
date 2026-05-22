@@ -78,10 +78,15 @@ export {
     findResponseActionByIntent,
     invokeResponseAction,
     InvalidValidationTupleError,
+    missingSubmitActionFinding,
     resolveResponseAction,
     resolveResponseActionValidationTuple,
     validationProfileForAction,
 } from './response-actions.js';
+export {
+    createDemoSubmitResponseActions,
+    type DemoSubmitResponseActionsOptions,
+} from './demo-submit-response-actions.js';
 // §10 prohibits implicit-default Actions and free-string fallbacks. Renderers
 // that need a submit-intent actionRef MUST call `findResponseActionByIntent`
 // (exported above) and treat a null result as "no submit Action published" —

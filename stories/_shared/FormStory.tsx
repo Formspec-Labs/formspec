@@ -1,7 +1,8 @@
-/** Reusable wrapper for stories that render a single Formspec definition. */
-import React, { useState } from 'react';
+/** @filedesc Reusable wrapper for stories that render a single Formspec definition. */
+import React, { useMemo, useState } from 'react';
 import { FormspecForm } from '@formspec-org/react';
 import type { SubmitResult, ComponentMap } from '@formspec-org/react';
+import { createDemoSubmitResponseActions } from '@formspec-org/engine';
 
 export interface FormStoryProps {
     /** The Formspec definition JSON. */
@@ -31,6 +32,12 @@ export function FormStory({
     className,
 }: FormStoryProps) {
     const [result, setResult] = useState<SubmitResult | null>(null);
+    const responseActionsDocument = useMemo(
+        () => (showSubmit && definition?.url
+            ? createDemoSubmitResponseActions({ definitionUrl: definition.url })
+            : undefined),
+        [definition?.url, showSubmit],
+    );
 
     return (
         <div>
@@ -40,6 +47,7 @@ export function FormStory({
                 components={components}
                 componentDocument={componentDocument}
                 initialData={initialData}
+                responseActionsDocument={responseActionsDocument}
                 onSubmit={showSubmit ? setResult : undefined}
                 className={className}
             />
