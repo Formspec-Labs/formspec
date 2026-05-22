@@ -1984,7 +1984,7 @@ Locate `specs/component/component-spec.md:2264` (the closing example of Validati
 
 #### Cross-Reference
 
-`ValidationSummary.source` and `mode` map to [Validation Mapping §3 profiles](../core/validation-mapping.md#3-validation-profile): `source: "live"` + `mode: "continuous"` corresponds to profile `live`; `source: "live"` + `mode: "submit"` corresponds to profile `on-submit`; `source: "submit"` is a passive reader of the most recent ValidationReport regardless of profile. ValidationSummary is a Display component and MUST NOT trigger Action Intents.
+`ValidationSummary.source` and `mode` map to [Validation Mapping §3 profiles](../core/validation-mapping.md#3-validation-profile): `source: "live"` + `mode: "continuous"` corresponds to profile `live`; `source: "live"` + `mode: "submit"` corresponds to profile `on-submit`; `source: "submit"` is a passive reader of the latest `formspec-submit` event detail. ValidationSummary is a Display component and MUST NOT trigger Action Intents.
 
 ```
 
