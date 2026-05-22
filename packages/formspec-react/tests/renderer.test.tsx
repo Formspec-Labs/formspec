@@ -944,7 +944,7 @@ describe('ActionButton', () => {
     });
 
     it('emits type="button" to mirror the webcomponent renderer (parity)', () => {
-        // §13.6 is silent on HTML type; both reference renderers MUST
+        // §10 is silent on HTML type; both reference renderers MUST
         // emit type="button" so that an ActionButton inside a parent
         // <form> does not cascade to native submit on handler-throw.
         // Webcomponent: packages/formspec-webcomponent/src/components/interactive.ts

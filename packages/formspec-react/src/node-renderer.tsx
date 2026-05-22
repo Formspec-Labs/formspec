@@ -156,11 +156,11 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         <button
             // type="button" mirrors the webcomponent's ActionButton renderer
             // (packages/formspec-webcomponent/src/components/interactive.ts):
-            // the §13.6 spec is silent on the HTML type, but if an
-            // ActionButton lives inside a parent <form> and the click handler
-            // throws, type="submit" cascades to native form submission and
-            // bypasses Response Actions entirely. type="button" eliminates
-            // the foot-gun and keeps cross-renderer parity.
+            // §10 is silent on the HTML type, but if an ActionButton lives
+            // inside a parent <form> and the click handler throws,
+            // type="submit" cascades to native form submission and bypasses
+            // Response Actions entirely. type="button" eliminates the
+            // foot-gun and keeps cross-renderer parity.
             type="button"
             className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
             disabled={!resolution.resolved}
