@@ -296,6 +296,14 @@ export function wasmLintDocument(
     return JSON.parse(resultJson);
 }
 
+/** @deprecated Use `wasmLintDocument(doc, { registryDocuments })`. */
+export function wasmLintDocumentWithRegistries(
+    doc: unknown,
+    registries: unknown[],
+): { documentType: string | null; valid: boolean; diagnostics: any[] } {
+    return wasmLintDocument(doc, { registryDocuments: registries });
+}
+
 /** Collect the rewriteable targets in a FEL expression. */
 export function wasmCollectFELRewriteTargets(expression: string): {
     fieldPaths: string[];

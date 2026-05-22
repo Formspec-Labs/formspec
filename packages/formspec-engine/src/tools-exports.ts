@@ -46,6 +46,9 @@ export { createMappingEngine, RuntimeMappingEngine } from './mapping/RuntimeMapp
 /** FEL eval for tooling (WASM); returns a JSON-compatible value. */
 export { wasmEvalFEL as evalFEL } from './wasm-bridge-runtime.js';
 
+/** @deprecated Use `lintDocument(doc, { registryDocuments })`. */
+export { wasmLintDocumentWithRegistries as lintDocumentWithRegistries } from './wasm-bridge-tools.js';
+
 export { wasmEvaluateScreenerDocument } from './wasm-bridge-runtime.js';
 
 export type { EvalValidation } from './diff.js';
