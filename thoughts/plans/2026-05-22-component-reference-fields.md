@@ -202,6 +202,8 @@ Definition / Experience / Response Actions base documents — same shape family 
 
 ## Task 15: Schema-shape pytest
 
+- [x] Add schema-shape pytest pinning Component 1.1 id/version marker, reference-field shapes, optionality, fixture validity, and negative shape cases.
+
 ```python
 from tests.unit.support.schema_fixtures import build_schema_registry
 # ... pin: $id /1.1, $formspecComponent enum extended, four new properties on
