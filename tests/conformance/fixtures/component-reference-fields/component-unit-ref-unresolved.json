@@ -1,0 +1,22 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "missingUnitSection",
+    "title": "Missing unit reference",
+    "unitRef": "missingUnit",
+    "taskRefs": ["identifyApplicant"],
+    "children": [
+      {
+        "component": "TextInput",
+        "id": "missingUnitNameInput",
+        "bind": "applicantName"
+      }
+    ]
+  }
+}

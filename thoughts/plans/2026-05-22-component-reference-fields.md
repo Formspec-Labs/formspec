@@ -187,6 +187,8 @@ Definition / Experience / Response Actions base documents — same shape family 
 
 ## Task 13: Author per-kind unresolved fixtures
 
+- [x] Add per-kind unresolved Component fixtures for `unitRef`, `taskRefs`, `conceptRefs`, and missing Experience context.
+
 - `component-unit-ref-unresolved.json` → expects severity `error`, kind `unitRef`.
 - `component-task-refs-unresolved.json` → expects severity `warning`, kind `taskRefs` (one finding per node, not per entry).
 - `component-concept-refs-unresolved.json` → expects severity `info`, kind `conceptRefs`.

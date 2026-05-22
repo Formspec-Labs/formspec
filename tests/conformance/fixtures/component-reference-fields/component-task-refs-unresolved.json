@@ -1,0 +1,22 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "missingTasksSection",
+    "title": "Missing task references",
+    "unitRef": "identity",
+    "taskRefs": ["missingTask", "anotherMissingTask"],
+    "children": [
+      {
+        "component": "TextInput",
+        "id": "missingTasksNameInput",
+        "bind": "applicantName"
+      }
+    ]
+  }
+}
