@@ -1,4 +1,9 @@
-"""No-rewrite regression gate for existing Component documents."""
+"""No-rewrite regression gate for existing conforming Component documents.
+
+Benchmark references are included after their separate baseline cleanup. That
+cleanup repaired files that were already invalid under the existing schema; this
+gate proves the additive reference fields do not require another rewrite.
+"""
 
 from __future__ import annotations
 

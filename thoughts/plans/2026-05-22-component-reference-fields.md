@@ -227,6 +227,8 @@ from tests.unit.support.schema_fixtures import build_schema_registry
 # Component documents that advertise $formspecComponent.
 ```
 
+- [x] Baseline cleanup accounted for: benchmark reference files that were already invalid under the existing Component schema were normalized before this gate. The no-rewrite claim applies to the conforming corpus after that precondition, not to stale benchmark files as authored before cleanup.
+
 ## Task 17: Resolver pytest
 
 - [x] Add inline resolver pytest covering §6 traversal/report invariants, §7 severity/cardinality fixtures, generation-anchor findings, no-mutation, one-directional inputs, determinism, and stable path keys for nodes without `id`.

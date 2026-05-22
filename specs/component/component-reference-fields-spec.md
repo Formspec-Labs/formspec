@@ -649,6 +649,11 @@ continue to validate unchanged. The absence of `unitRef`, `taskRefs`,
 `conceptRefs`, or `x-generation` MUST NOT produce a schema error, resolver
 finding, renderer difference, or migration requirement.
 
+This claim applies to Component documents that already conformed to the
+pre-existing Component schema. Stale benchmark reference files that did not
+validate under the existing schema are baseline-corpus cleanup, not evidence for
+or against this additivity claim.
+
 Schema additivity also requires no-rewrite compatibility. Processors MUST NOT
 rewrite existing Component documents to add these fields, remove these fields, or
 normalize their values as part of validation. A no-rewrite regression suite that
