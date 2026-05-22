@@ -18,13 +18,13 @@ related:
 
 **Status:** draft. This plan executes AFTER the [Component Reference Fields plan](2026-05-22-component-reference-fields.md) lands (`x-generation` shape stable, anchor taxonomy pinned). It implements [follow-on spec #5 of the semantic-layers concept note](../specs/2026-05-20-formspec-semantic-layers.md) — the "small generation companion" branch of concept §10.5. Concept §10.5 names the artifact and concept §7.2 enumerates its contents; this plan turns both into a canonical spec, fixtures, and a deterministic algorithm pytest.
 
-**Goal:** Author the canonical regeneration merge spec at `specs/component/regeneration-merge-spec.md`. Define a deterministic three-way merge (`old-generated` ⊕ `designer-edited` ⊕ `new-generated` → `merged + merge-report`) keyed by `x-generation.anchors`. Pin source-anchor identity, generated-node detection, designer-edit preservation rules, conflict severities, orphan handling, rename/migration handling, and Studio review UX expectations. Prove the algorithm is deterministic, no-mutation on inputs, and identical-output across implementations via fixture-driven pytest.
+**Goal:** Author the canonical regeneration merge spec at `specs/component/regeneration-merge-spec.md`. Define a deterministic three-way merge (`old-generated` ⊕ `designer-edited` ⊕ `new-generated` → `merged + merge-report`) keyed by `x-generation.anchors`. Pin source-anchor identity, generated-node detection, designer-edit preservation rules, conflict severities, orphan handling, anchor-mapped rename handling, and Studio review UX expectations. Prove the algorithm is deterministic, no-mutation on inputs, and identical-output across implementations via fixture-driven pytest.
 
 **Architecture:** Three-way merge keyed by `x-generation.anchors`. A node is identified across the three input trees by its anchor set (not by tree position or `id`), because designers may reorder and `id` is OPTIONAL on `ComponentBase`. The merge walks `new-generated` (the structural authority for what SHOULD exist), then for each node looks up the matching `old-generated` node (was it always there?) and the `designer-edited` node (did a designer touch it?). Three-way diff against `old-generated` as the common ancestor decides: keep designer edit, regenerate, or surface a conflict. Orphans (in `designer-edited` but not `new-generated`) are preserved but marked `orphan` in the report — concept §7.2 "Never silently delete designer-authored layout." Output: `merged` Component document (schema-valid) + `MergeReport` (structured surviving / regenerated / orphaned / pending-review / conflict lists). The `MergeReport` is the structural seed for the future Trace impact map (concept §10.6); this plan defines its shape, not Trace's query surface.
 
 **Tech Stack:** JSON Schema 2020-12, Markdown (BCP-14), pytest under `formspec/tests/conformance/`, Python merge harness lives inline in the pytest (the spec is the contract; runtime implementations land in separate engine plans).
 
-**Sequencing:** Spec prose §1–§11 → MergeReport schema → fixtures (each merge case in concept §7.2 plus orphan/rename) → algorithm pytest → invariant pytest (determinism, no-mutation, idempotency) → Studio E2E (gated — defer if Studio isn't ready) → upstream back-references → doc pipeline.
+**Sequencing:** Spec prose §1–§11 → MergeReport schema → fixtures (each merge case in concept §7.2 plus orphan/rename) → algorithm pytest → invariant pytest (determinism, no-mutation, convergence) → Studio E2E (gated — defer if Studio isn't ready) → upstream back-references → doc pipeline.
 
 **Citations:** "CRF §" = `specs/component/component-reference-fields-spec.md`. "COMP §" = `specs/component/component-spec.md`. "EXP §" = `specs/experience/experience-spec.md`. "RA §" = `specs/response-actions/response-actions-spec.md`. "Concept §" = `thoughts/specs/2026-05-20-formspec-semantic-layers.md`.
 
@@ -40,10 +40,11 @@ This plan MUST NOT execute until:
 Verify before Task 1:
 
 ```bash
-cd formspec && grep -q '"x-generation"' schemas/component.schema.json && echo "x-generation schema: OK"
-cd formspec && grep -q '"$id".*"/component/1.1"' schemas/component.schema.json && echo "Component v1.1: OK"
-cd formspec && grep -q 'x-generation.anchors' specs/component/component-reference-fields-spec.md && echo "Anchor taxonomy: OK"
-cd formspec && grep -q 'COMP-REFERENTIAL-INTEGRITY' specs/component/component-reference-fields-spec.md && echo "Finding code: OK"
+cd /Users/mikewolfd/Work/formspec-stack/formspec
+grep -q '"x-generation"' schemas/component.schema.json && echo "x-generation schema: OK"
+node -e 'const s=require("./schemas/component.schema.json"); if (s["$id"] !== "https://formspec.org/schemas/component/1.1") process.exit(1); console.log("Component v1.1: OK")'
+grep -q 'x-generation.anchors' specs/component/component-reference-fields-spec.md && echo "Anchor taxonomy: OK"
+grep -q 'COMP-REFERENTIAL-INTEGRITY' specs/component/component-reference-fields-spec.md && echo "Finding code: OK"
 ```
 
 If any check fails, stop and surface to the user — the Component Reference Fields plan is the blocker.
@@ -62,7 +63,7 @@ Pressure-tested by 2026-05-22 architecture-review scout. Findings folded in belo
 | Finding code family | New `COMP-REGENERATION-*` for **merge-context-only findings**; **reference-resolution failures route through existing `COMP-REFERENTIAL-INTEGRITY`** (or Component-resolver bind findings) **plus a merge-context annotation** | HIGH | Reviewer's H4: the "static vs merge-time" framing was wrong because CRF resolvers can run at any time. The real boundary is "findings that only exist because a merge happened" vs "findings about reference integrity that exist independent of merge." Bind/actionRef/unitRef failures from an orphaned node MUST be emitted by the existing CRF/Component resolver, not duplicated in the regeneration family. |
 | MergeReport schema | New `regeneration-merge-report.schema.json` | HIGH | Cross-runtime conformance + concrete structural seed for Trace (concept §10.6). |
 | Coverage findings | **Delegated to Experience resolver** (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`, EXP §S8). MergeReport does NOT carry coverage gaps | HIGH | H2 fix: concept §10.6 lists four things Studio review needs; the fourth ("required items lack coverage") is already owned by EXP-COVERAGE. Studio composes the MergeReport AND the Experience resolver findings; duplicating coverage in MergeReport would re-create dual-ownership. |
-| Rename handling | **Migration document is the primary signal — no heuristic detection.** A rename is detected ONLY when a migration entry maps `old_anchor → new_anchor` such that substituting the mapping in N_old's anchor set yields exactly N_new's anchor set | HIGH | H3 fix: "pattern consistent with a rename" cannot be defined without picking arbitrary set-distance thresholds. Migration-as-substitution gives a deterministic, two-implementation-agreement rule. |
+| Rename handling | **Anchor-mappings document is the primary signal — no heuristic detection.** A rename is detected ONLY when an anchor-mapping entry maps `old_anchor → new_anchor` such that substituting the mapping in N_old's anchor set yields exactly N_new's anchor set | HIGH | H3 fix: "pattern consistent with a rename" cannot be defined without picking arbitrary set-distance thresholds. Anchor-mapping substitution gives a deterministic, two-implementation-agreement rule. |
 | Anchor-mappings document format | **Defined inline by this spec** as a minimum shape: `{ "$formspecAnchorMappings": "1.0", "anchorMappings": [{ "from": "<anchor>", "to": "<anchor>" }] }`. Anchor-pair only; named `anchorMappings` to avoid collision with Core §6.7 `migrations` (which transforms Response data, a different domain) | MEDIUM | L3 + F6 fix: no `migration-spec.md` exists in `formspec/specs/`; the term "migration" is already taken by Core §6.7. Defining a minimum here unblocks rename handling under a non-colliding name. If a richer anchor-mappings spec lands later, this minimum is a forward-compatible subset. |
 | Convergence (not idempotency) | Re-running merge after no source change yields zero conflicts and zero pendingReview | HIGH | H1 fix: original "idempotency" definition (`merge(new, merged1, new) == merged1`) requires undefined `x-generation` carry-forward semantics for pendingReview nodes and would fail/pass for wrong reasons. Pure determinism is covered by `test_determinism`; the meaningful steady-state invariant is convergence. |
 | Studio DOM contract | `data-merge-status` AND `data-merge-anchors` on every report-affected node | MEDIUM | M2 fix: `data-merge-status` alone could pass with a single root marker; pairing with `data-merge-anchors` (sorted, comma-joined) ties the DOM assertion to a specific MergeReport entry. |
@@ -82,7 +83,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 | `specs/component/regeneration-merge-spec.llm.md` | Generated LLM artifact (do not hand-edit). |
 | `schemas/regeneration-merge-report.schema.json` | Structured shape of the `MergeReport`: `surviving[]`, `regenerated[]`, `orphaned[]`, `pendingReview[]`, `conflicts[]`, each entry carrying `anchors`, `nodePath`, `reason`, `severity`. |
 | `tests/conformance/spec/test_regeneration_merge_algorithm.py` | Algorithm pytest. Drives every fixture pair through an inline reference merger; asserts merged document + MergeReport shape against expected output. |
-| `tests/conformance/spec/test_regeneration_merge_invariants.py` | Invariant pytest: determinism (two runs identical), no-mutation (inputs unchanged after merge), idempotency (merging twice with no source change yields identical output). |
+| `tests/conformance/spec/test_regeneration_merge_invariants.py` | Invariant pytest: determinism (two runs identical), no-mutation (inputs unchanged after merge), convergence (clean cycle re-run yields identical output with zero conflicts and zero pendingReview). |
 | `tests/conformance/spec/test_regeneration_merge_report_schema.py` | Schema-shape pytest for `regeneration-merge-report.schema.json`. |
 | `tests/conformance/fixtures/regeneration-merge/` | Per-case fixture directory. Each case is a directory with `old-generated.json`, `designer-edited.json`, `new-generated.json`, `expected-merged.json`, `expected-report.json`. |
 
@@ -104,7 +105,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 - **Runtime merger implementation.** This is a spec + conformance plan. Engine implementations (Rust crate, TypeScript engine, Python tooling) land in their own plans that consume this spec.
 - **Studio review screen design.** Visual design and full Studio UX are product surface; only the DOM-level pending-review-marker conformance contract lives here.
 - **Host-defined merge policy hooks.** Concept §7.2 baseline rules only; host overrides are a v1.1 extension.
-- **Migrations spec.** Rename handling honors `migration` markers; the migration document format itself is owned by an existing spec — this plan only references it.
+- **Broad migration/changelog spec.** Rename handling consumes only the minimum `$formspecAnchorMappings.anchorMappings[]` shape defined in Task 10. Response-data migrations, semantic changelogs, versioning policy, and richer migration document formats remain outside this plan.
 
 ---
 
@@ -113,7 +114,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 - **Three-way merge identity** keyed on anchor-set equality is the load-bearing design. Tests MUST cover: anchor-set match, anchor-set mismatch (orphan in designer-edited, new node in new-generated), partial anchor overlap (treated as mismatch + warn).
 - **`old-generated` persistence** is a host requirement, not a spec data shape. Surface it explicitly in §2 — implementations that drop the common ancestor cannot pass conformance.
 - **Finding-code separation** (`COMP-REGENERATION-*` vs `COMP-REFERENTIAL-INTEGRITY`) keeps merge-time conflicts and static reference-integrity findings distinct in tooling. Do not collapse.
-- **Idempotency** is the strongest correctness check: re-running merge with identical inputs MUST yield byte-identical output. Pinned by `test_regeneration_merge_invariants.py`.
+- **Convergence** is the strongest steady-state correctness check: after a clean first merge with zero conflicts and zero pendingReview, re-running with no source change MUST yield byte-identical output with zero conflicts and zero pendingReview. Pinned by `test_regeneration_merge_invariants.py`.
 - **Cold-read test:** a future agent reading this plan alone produces a conforming spec without referring to the concept note. Concept §7.2 baseline rules are quoted verbatim in Task 7's spec-prose section.
 
 ---
@@ -149,7 +150,7 @@ git commit specs/component/regeneration-merge-spec.md specs/component/regenerati
 
 ## Task 2: Spec prose — §1 Introduction + scope + relationship
 
-- [ ] Draft §1 covering: purpose (concept §7.2 + §10.5), scope (three-way Component merge only), out-of-scope (Trace, runtime engines, Studio UX, migration document format), relationship to Component Reference Fields (consumes `x-generation`), conformance posture, BCP-14 keyword usage.
+- [ ] Draft §1 covering: purpose (concept §7.2 + §10.5), scope (three-way Component merge only), out-of-scope (Trace, runtime engines, Studio UX, broad migration/changelog format beyond the Task 10 anchor-mappings minimum), relationship to Component Reference Fields (consumes `x-generation`), conformance posture, BCP-14 keyword usage.
 
 The §1 prose MUST state the `old-generated` persistence requirement explicitly. A host that does not persist `old-generated` cannot perform three-way merge and therefore cannot conform.
 
@@ -315,14 +316,14 @@ locate_merged_parent(N): walk N's parent chain in designer-edited; for each
 | `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Default `warning`. Escalates to `error` ONLY if accompanied by an unresolved CRF/bind finding emitted by the resolver for the same node. | `warning` (→ `error` via composition) |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | Designer subtree reattached above its original parent because the parent chain orphaned | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | Designer subtree reattached at root because no ancestor matches in merged | `warning` |
-| `COMP-REGENERATION-RENAME-MIGRATED` | Anchor sets differ between old and new but migration document substitution makes them equal | `info` |
+| `COMP-REGENERATION-RENAME-MIGRATED` | Anchor sets differ between old and new but anchor-mapping substitution makes them equal | `info` |
 | `COMP-REGENERATION-PENDING-REVIEW` | Newly generated node not present in old or designer | `info` |
 
 §7 MUST state:
 
 - Hosts MUST NOT downgrade `error`. Hosts MAY upgrade lower severities under a host-defined strict mode.
 - The merge MUST NOT emit `COMP-REGENERATION-ORPHAN-BINDING` or any other reference-resolution finding under the regeneration family. Bind/reference failures are emitted by the resolver and composed into the review surface as separate findings against the same node.
-- **No heuristic rename detection** (H3 fix). A `COMP-REGENERATION-RENAME-UNDOCUMENTED` finding does not exist; if anchor sets differ and no migration substitution makes them equal, the nodes simply do not match (the N_old becomes an `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW`). Authors who want rename support author a migration entry.
+- **No heuristic rename detection** (H3 fix). A `COMP-REGENERATION-RENAME-UNDOCUMENTED` finding does not exist; if anchor sets differ and no anchor-mapping substitution makes them equal, the nodes simply do not match (the N_old becomes an `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW`). Authors who want rename support author an anchor-mapping entry.
 
 - [ ] Commit.
 
@@ -344,9 +345,9 @@ Rules:
 
 - [ ] Commit.
 
-## Task 10: Spec prose — §9 Rename and migration handling
+## Task 10: Spec prose — §9 Rename and anchor-mapping handling
 
-- [ ] Draft §9 defining rename detection via migration substitution. **H3 fix: no heuristic detection — migration document is the only signal.**
+- [ ] Draft §9 defining rename detection via anchor-mapping substitution. **H3 fix: no heuristic detection — the anchor-mappings document is the only signal.**
 
 **Anchor-mappings document shape (L3 + F6 fix).** No `migration-spec.md` exists in `formspec/specs/` as of this writing. This spec defines the minimum **anchor-mappings document** shape consumed by the merge. The artifact is named `anchorMappings`, NOT `migrations`, to avoid conceptual collision with Core §6.7 (which uses `migrations` for Response-data field transformations within a Definition document — a different concept).
 
@@ -360,7 +361,7 @@ Rules:
 }
 ```
 
-Each entry maps a single old anchor (`from`) to a single new anchor (`to`). Entries are unordered and processed as a set. A richer migration spec MAY land later (semantic versioning, conditional migrations, value transforms); the minimum shape above is its forward-compatible subset.
+Each entry maps a single old anchor (`from`) to a single new anchor (`to`). Entries are unordered and processed as a set. A richer anchor-mappings spec MAY land later (semantic versioning, conditional mappings, value-transform links); the minimum shape above is its forward-compatible subset.
 
 **Match-via-substitution rule.** Let `substitute(anchors, M)` apply every applicable mapping entry in `M` to the anchor set `anchors`. A node N_old matches N_new via substitution iff:
 
@@ -370,16 +371,16 @@ substitute(N_old.anchors, M) == N_new.anchors
 
 — that is, applying the mappings to N_old's anchor set yields EXACTLY N_new's anchor set under the §3 order-normalized set rule. If substitution does not produce equality, no match is declared.
 
-**When a migration match succeeds, the merge:**
+**When an anchor-mapping match succeeds, the merge:**
 
 1. Treats N_old and N_new as matched (in the same pass as the primary anchor-equality check).
 2. Applies N_new's anchor set to the merged node.
 3. Preserves designer presentation choices via the standard three-way merge (§6).
 4. Emits `COMP-REGENERATION-RENAME-MIGRATED` at `info` severity.
 
-**When no migration match succeeds and anchor-set equality also fails,** the nodes simply do not match. N_old becomes `COMP-REGENERATION-ORPHAN-NODE`; N_new becomes `COMP-REGENERATION-PENDING-REVIEW`. No `RENAME-UNDOCUMENTED` finding exists — the orphan + pending-review pair is the signal.
+**When no anchor-mapping match succeeds and anchor-set equality also fails,** the nodes simply do not match. N_old becomes `COMP-REGENERATION-ORPHAN-NODE`; N_new becomes `COMP-REGENERATION-PENDING-REVIEW`. No `RENAME-UNDOCUMENTED` finding exists — the orphan + pending-review pair is the signal.
 
-§9 MUST NOT define heuristic rename detection (set-distance, edit-distance, prefix-family matching). Authors who want rename support author migration entries.
+§9 MUST NOT define heuristic rename detection (set-distance, edit-distance, prefix-family matching). Authors who want rename support author anchor-mapping entries.
 
 - [ ] Commit.
 
@@ -603,9 +604,9 @@ Each case is a directory with five files: `old-generated.json`, `designer-edited
 
 - [ ] **Case `designer-precedes`** — designer authored a node at an anchor that new-generation now also produces (old does not have it). Expected: `COMP-REGENERATION-DESIGNER-PRECEDES` at `warning`.
 
-- [ ] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; migration document maps the substitution. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`.
+- [ ] **Case `rename-migrated`** — anchors changed `item:dateOfBirth` → `item:birthDate`; an anchor-mapping document maps the substitution. Expected: matched, presentation preserved, `COMP-REGENERATION-RENAME-MIGRATED` at `info`.
 
-- [ ] **Case `rename-no-migration`** — anchors changed without migration entry. Expected: NOT matched; N_old becomes `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
+- [ ] **Case `rename-no-migration`** — anchors changed without an anchor-mapping entry. Expected: NOT matched; N_old becomes `ORPHAN-NODE`, N_new becomes `PENDING-REVIEW` (H3 fix: no heuristic, no `RENAME-UNDOCUMENTED` finding).
 
 - [ ] **Case `subtree-children-add`** — designer added a child node under a regenerated `Section`. Expected: regenerated `Section` in merged; designer's child appended; orphan/pending-review entry for the child.
 
@@ -864,7 +865,7 @@ cd /Users/mikewolfd/Work/formspec-stack/formspec && npm run check:deps
 Agent({
   description: "Regeneration merge spec review",
   subagent_type: "formspec-specs:formspec-scout",
-  prompt: "Review specs/component/regeneration-merge-spec.md (just-landed draft) plus tests/conformance/spec/test_regeneration_merge_*.py and tests/conformance/fixtures/regeneration-merge/. Pressure-test: (1) three-way merge identity keyed on anchor-set equality — does it hold for every fixture? (2) finding-code family separation from COMP-REFERENTIAL-INTEGRITY — is the boundary sharp? (3) idempotency invariant — does the fixture corpus actually exercise it? (4) rename handling — is the migration-document seam underspecified? Report findings under 500 words.",
+  prompt: "Review specs/component/regeneration-merge-spec.md (just-landed draft) plus tests/conformance/spec/test_regeneration_merge_*.py and tests/conformance/fixtures/regeneration-merge/. Pressure-test: (1) three-way merge identity keyed on anchor-set equality — does it hold for every fixture? (2) finding-code family separation from COMP-REFERENTIAL-INTEGRITY — is the boundary sharp? (3) convergence invariant — does the fixture corpus actually exercise the narrowed steady-state contract? (4) rename handling — is the anchor-mappings seam underspecified? Report findings under 500 words.",
   run_in_background: true
 })
 ```
@@ -883,7 +884,7 @@ Task 14:       schema-shape pytest
 Task 15:       shared base fixtures
 Task 16:       12 per-case fixtures
 Task 17:       algorithm pytest (TDD: red → green)
-Task 18:       invariant pytest (determinism, no-mutation, idempotency)
+Task 18:       invariant pytest (determinism, no-mutation, convergence)
 Task 19:       Studio E2E (gated; deferred to TODO if Studio not ready)
 Task 20:       upstream cross-references
 Task 21:       artifact pipeline registration
@@ -896,7 +897,7 @@ Task 23:       promotion-gate + architecture review
 - **Do not redefine `COMP-REFERENTIAL-INTEGRITY`.** The new `COMP-REGENERATION-*` family is separate.
 - **Do not define Trace.** The MergeReport is Trace's structural seed (concept §10.6); the Trace query/cache spec is a separate plan.
 - **Do not implement runtime mergers.** Rust/TS/Python engine implementations land in their own plans against this spec's fixture corpus.
-- **Do not define the migration document format.** Spec only references it; the migration format is owned elsewhere.
+- **Do not define broad migration/changelog semantics.** Task 10 defines only the minimum `$formspecAnchorMappings.anchorMappings[]` input shape needed for deterministic rename matching; richer migration/changelog formats remain outside this plan.
 - **Do not design Studio review UX.** §10 pins DOM-level markers only; visual/interaction design is product surface.
 
 ## Deviations
@@ -906,9 +907,9 @@ Task 23:       promotion-gate + architecture review
   - **B2 (orphan reattachment):** §6/Task 7 — explicit `locate_merged_parent` rule; orphans reattach to nearest surviving ancestor or cascade to root with `detached` flag.
   - **H1 (idempotency → convergence):** §11/Task 18 — replaced idempotency claim with convergence (re-running after no source change yields zero conflicts + zero pendingReview).
   - **H2 (coverage findings):** §11/Task 12/13 — delegated coverage to Experience resolver (`EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM`); MergeReport schema description documents the join-by-`nodePath` composition rule.
-  - **H3 (rename algorithm):** §9/Task 10 — pinned migration-substitution rule (`substitute(N_old.anchors, M) == N_new.anchors`), removed heuristic and `RENAME-UNDOCUMENTED` code.
+  - **H3 (rename algorithm):** §9/Task 10 — pinned anchor-mapping substitution rule (`substitute(N_old.anchors, M) == N_new.anchors`), removed heuristic and `RENAME-UNDOCUMENTED` code.
   - **H4 (finding family boundary):** §7/Task 8 — restated as merge-context-only; dropped `COMP-REGENERATION-ORPHAN-BINDING`; orphan severity composes with CRF/Component resolver findings.
-  - **L3 (migration document):** §9/Task 10 — defined minimum migration shape inline since no `migration-spec.md` exists.
+  - **L3 (anchor-mappings document):** §9/Task 10 — defined minimum anchor-mappings shape inline since no `migration-spec.md` exists.
   - **M1 (old-generated requirement):** §2/Task 3 — added `COMP-REGENERATION-NO-COMMON-ANCESTOR` and pinned no-two-way-fallback degradation.
   - **M2 (DOM contract):** §10/Task 11 — paired `data-merge-status` with `data-merge-anchors` for specificity.
   - **M3 (CRF BLUF):** Task 20 — extended CRF update to include matching BLUF bullet.
@@ -921,3 +922,7 @@ Task 23:       promotion-gate + architecture review
   - **F5 (property-level diff missing):** Task 13 schema — added OPTIONAL `propertyDeltas[]` (JSON Pointer strings) to base `Entry`. Studio uses the pointer set to drive its diff view; values are read from input documents the merge consumed.
   - **F6 (migration name collision):** §9/Task 10 — renamed document type from `$formspecMigration.migrations` to `$formspecAnchorMappings.anchorMappings`. Avoids Core §6.7 `migrations` (Response-data transforms) collision. Updated context tuple, Design Decisions row, and §9 prose.
   - **F7 (schema-prose code inconsistency):** Task 13 schema — hoisted `code` and `severity` from `ConflictEntry` to base `Entry` so every report entry carries them. `ConflictEntry` becomes a `$ref` alias of `Entry`; array placement (conflicts[] vs orphaned[] vs pendingReview[]) is the role discriminator, code identifies the specific finding within that role. Task 14 tests updated.
+- 2026-05-22: Pre-Task-1 architecture-review pass #3 by `formspec-specs:spec-expert` (verdict NO-GO until plan remediation) found the Component Reference Fields prerequisite architecturally sufficient but blocked execution on plan defects. Remediated inline before Task 1:
+  - **P3-BLOCKER (false-negative preflight):** replaced the brittle `$id` grep with a JSON-value check for `https://formspec.org/schemas/component/1.1` and made the multi-line preflight block use one absolute `cd`.
+  - **P3-HIGH (rename seam contradiction):** made §9 and out-of-scope reminders consistently define only the minimum `$formspecAnchorMappings.anchorMappings[]` input shape; broad migration/changelog semantics remain out of scope.
+  - **P3-WARNING (invariant vocabulary drift):** replaced stale idempotency references in file-structure, self-review, review prompt, and sequencing recap with the narrowed convergence invariant.
