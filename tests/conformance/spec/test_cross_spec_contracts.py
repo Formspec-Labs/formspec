@@ -844,11 +844,18 @@ class TestRegistrySchema:
 
     def test_er2_1__publisher_required(self):
         pub = _def(REG_S, "Publisher")
-        assert set(pub["required"]) == {"name", "url"}
+        assert set(pub["required"]) == {"name"}
 
     def test_er2_1__publisher_url_format_uri(self):
         pub = _def(REG_S, "Publisher")
         assert pub["properties"]["url"]["format"] == "uri"
+        assert pub["properties"]["url"]["deprecated"] is True
+
+    def test_er2_1__publisher_party_fields(self):
+        pub = _def(REG_S, "Publisher")
+        assert pub["properties"]["homepage"]["format"] == "uri"
+        assert "contactPoint" in pub["properties"]
+        assert pub["properties"]["contact"]["deprecated"] is True
 
     def test_er3__entry_required_fields(self):
         entry = _def(REG_S, "RegistryEntry")
