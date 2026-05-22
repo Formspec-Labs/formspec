@@ -11,7 +11,7 @@
     "component": "Stack",
     "children": [
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Patient Information",
         "children": [
           {
@@ -32,8 +32,7 @@
                   { "component": "TextInput", "bind": "patient.lastName" },
                   { "component": "DatePicker", "bind": "patient.dob" },
                   { "component": "NumberInput", "bind": "patient.age", "step": 1, "min": 0, "max": 130 },
-                  { "component": "Select", "bind": "patient.sex" },
-                  { "component": "Spacer" }
+                  { "component": "Select", "bind": "patient.sex" }
                 ]
               }
             ]
@@ -58,7 +57,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Current Visit",
         "children": [
           { "component": "CheckboxGroup", "bind": "currentVisit.symptoms", "columns": 2 },
@@ -82,7 +81,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Medical History",
         "children": [
           {
@@ -150,7 +149,7 @@
         ]
       },
       {
-        "component": "Page",
+        "component": "Section",
         "title": "Summary",
         "children": [
           {
