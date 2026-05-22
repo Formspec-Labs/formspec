@@ -409,7 +409,9 @@ for each orphan_root in orphan_roots sorted by designer_edited pre-order documen
     append orphan_root subtree once as a child of direct_parent
     report.orphaned += entry(orphan_root,
       code: "COMP-REGENERATION-ORPHAN-NODE",
-      reattachedTo: direct_parent.nodePath)
+      reattachedTo: direct_parent.nodePath,
+      cascaded: false,
+      detached: false)
   else:
     nearest = locate_nearest_higher_ancestor_in_merged(orphan_root)
     if nearest is not None:
@@ -417,20 +419,24 @@ for each orphan_root in orphan_roots sorted by designer_edited pre-order documen
       report.orphaned += entry(orphan_root,
         code: "COMP-REGENERATION-ORPHAN-NODE",
         reattachedTo: nearest.nodePath,
-        cascaded: true)
+        cascaded: true,
+        detached: false)
       report.orphaned += entry(orphan_root,
         code: "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
         reattachedTo: nearest.nodePath,
-        cascaded: true)
+        cascaded: true,
+        detached: false)
     else:
       append orphan_root subtree once under /tree after the last root child
       report.orphaned += entry(orphan_root,
         code: "COMP-REGENERATION-ORPHAN-NODE",
         reattachedTo: "/tree",
+        cascaded: false,
         detached: true)
       report.orphaned += entry(orphan_root,
         code: "COMP-REGENERATION-ORPHAN-DETACHED",
         reattachedTo: "/tree",
+        cascaded: false,
         detached: true)
 
 locate_direct_parent_in_merged(N): inspect only N's immediate parent in
@@ -488,7 +494,7 @@ Rules:
    - The orphan carries an `error`-severity CRF finding (e.g., `unitRef` unresolved with Experience loaded), or
    - The Component-resolver emits an error-level bind-resolution finding against the orphan.
 4. Cascade and detachment cases (§6 algorithm) emit `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` (`info`) and `COMP-REGENERATION-ORPHAN-DETACHED` (`warning`) respectively, in ADDITION to the base `ORPHAN-NODE` entry.
-5. Orphans appear in `MergeReport.orphaned[]` with full anchor set, `nodePath` in merged (the reattached path), `reattachedTo`, and `cascaded`/`detached` flags. The resolver-emitted reference findings are NOT duplicated in `MergeReport`; they live in their own resolver report and the review surface composes them to orphan entries by the resolver's affected Component node key/path when available.
+5. Orphans appear in `MergeReport.orphaned[]` with full anchor set, `nodePath` in merged (the reattached path), `reattachedTo`, and explicit boolean `cascaded`/`detached` flags. The resolver-emitted reference findings are NOT duplicated in `MergeReport`; they live in their own resolver report and the review surface composes them to orphan entries by the resolver's affected Component node key/path when available.
 
 §8 MUST address rendering: orphan nodes render normally (the designer authored them, they should display). Tooling MAY visually mark them via the §10 `data-merge-status` attribute; the spec does not mandate visual treatment.
 
@@ -586,9 +592,9 @@ If cycle 1's report has non-empty `conflicts` or `pendingReview`, the convergenc
 
 ## Task 13: Author MergeReport schema
 
-- [ ] Create `schemas/regeneration-merge-report.schema.json`. JSON Schema 2020-12.
+- [x] Create `schemas/regeneration-merge-report.schema.json`. JSON Schema 2020-12.
 
-Shape (F5 + F7 fixes: every entry carries `code`/`severity`/`reason`; `propertyDeltas[]` added so Studio can identify which properties survived/changed without re-diffing inputs):
+Shape (F5 + F7 fixes: every entry carries `code`/`severity`/`reason`; `propertyDeltas[]` added so Studio can identify which properties survived/changed without re-diffing inputs; implementation also pins array-specific code placement and code-specific severity to the §7 table):
 
 ```json
 {
@@ -598,10 +604,10 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`/`reason`; `propertyD
   "required": ["version", "surviving", "regenerated", "orphaned", "pendingReview", "conflicts"],
   "properties": {
     "version": { "const": "1.0" },
-    "surviving":    { "type": "array", "items": { "$ref": "#/$defs/Entry" } },
-    "regenerated":  { "type": "array", "items": { "$ref": "#/$defs/Entry" } },
+    "surviving":    { "type": "array", "items": { "$ref": "#/$defs/SurvivingEntry" } },
+    "regenerated":  { "type": "array", "items": { "$ref": "#/$defs/RegeneratedEntry" } },
     "orphaned":     { "type": "array", "items": { "$ref": "#/$defs/OrphanEntry" } },
-    "pendingReview":{ "type": "array", "items": { "$ref": "#/$defs/Entry" } },
+    "pendingReview":{ "type": "array", "items": { "$ref": "#/$defs/PendingReviewEntry" } },
     "conflicts":    { "type": "array", "items": { "$ref": "#/$defs/ConflictEntry" } }
   },
   "description": "Coverage findings are NOT included here. They are emitted by the Experience coverage resolver (EXP §10) as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM, carry the field `path` (Definition item path, NOT `nodePath`), and compose into the review surface via a two-hop join: EXP `path` -> anchor string `item:<path>` -> MergeReport entry whose `anchors` includes that string -> MergeReport entry's `nodePath`. CRF and Component bind/reference-resolution failures are also NOT included here; when those resolver findings identify an affected Component node by node key/path, review surfaces compose them to MergeReport entries for that same merged node without duplicating resolver findings inside MergeReport.",
@@ -612,62 +618,157 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`/`reason`; `propertyD
       "properties": {
         "anchors":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Anchor set compared under §3 order-normalized set-equality (NOT a CRF semantic; regeneration-merge-spec only)." },
         "nodePath": { "type": "string", "description": "Stable path in the merged document tree (e.g., /tree/children/0)." },
-        "code": {
-          "enum": [
-            "COMP-REGENERATION-NO-COMMON-ANCESTOR",
-            "COMP-REGENERATION-DESIGNER-PRECEDES",
-            "COMP-REGENERATION-DESIGNER-REMOVED",
-            "COMP-REGENERATION-PROPERTY-CONFLICT",
-            "COMP-REGENERATION-WIDGET-SWAP",
-            "COMP-REGENERATION-DESIGNER-SURVIVED",
-            "COMP-REGENERATION-REGENERATED",
-            "COMP-REGENERATION-ORPHAN-NODE",
-            "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
-            "COMP-REGENERATION-ORPHAN-DETACHED",
-            "COMP-REGENERATION-RENAME-MIGRATED",
-            "COMP-REGENERATION-PENDING-REVIEW"
-          ]
-        },
+        "code": { "$ref": "#/$defs/Code" },
         "severity": { "enum": ["error", "warning", "info"] },
-        "reason":   { "type": "string" },
+        "reason":   { "type": "string", "minLength": 1 },
         "propertyDeltas": {
           "type": "array",
           "description": "JSON Pointer strings for properties on this node that differ between old, designer, and new. Studio uses these as the diff key set; actual property values are read from the three input documents the merge consumed. OPTIONAL: empty array allowed when no property-level change applies (e.g., orphans, pending-review nodes).",
-          "items": { "type": "string", "pattern": "^/" }
+          "items": { "type": "string", "pattern": "^/" },
+          "uniqueItems": true
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-NO-COMMON-ANCESTOR" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "error" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-DESIGNER-PRECEDES" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-DESIGNER-REMOVED" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-PROPERTY-CONFLICT" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-WIDGET-SWAP" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-DESIGNER-SURVIVED" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-REGENERATED" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-NODE" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-DETACHED" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-RENAME-MIGRATED" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": { "properties": { "code": { "const": "COMP-REGENERATION-PENDING-REVIEW" } }, "required": ["code"] },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        }
+      ]
+    },
+    "SurvivingEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        { "type": "object", "properties": { "code": { "enum": ["COMP-REGENERATION-DESIGNER-SURVIVED", "COMP-REGENERATION-RENAME-MIGRATED"] } } }
+      ],
+      "unevaluatedProperties": false
+    },
+    "RegeneratedEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        { "type": "object", "properties": { "code": { "const": "COMP-REGENERATION-REGENERATED" } } }
+      ],
+      "unevaluatedProperties": false
     },
     "OrphanEntry": {
+      "type": "object",
       "allOf": [
         { "$ref": "#/$defs/Entry" },
         {
           "type": "object",
           "required": ["reattachedTo", "cascaded", "detached"],
           "properties": {
+            "code": { "enum": ["COMP-REGENERATION-ORPHAN-NODE", "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE", "COMP-REGENERATION-ORPHAN-DETACHED"] },
             "reattachedTo": { "type": "string", "description": "nodePath of the merged-tree node the orphan was reattached under." },
             "cascaded":     { "type": "boolean", "description": "True when reattachment had to walk above the original parent." },
             "detached":     { "type": "boolean", "description": "True when no surviving ancestor existed and the orphan reattached at /tree." }
           }
         }
-      ]
+      ],
+      "unevaluatedProperties": false
+    },
+    "PendingReviewEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        { "type": "object", "properties": { "code": { "const": "COMP-REGENERATION-PENDING-REVIEW" } } }
+      ],
+      "unevaluatedProperties": false
     },
     "ConflictEntry": {
-      "$ref": "#/$defs/Entry",
-      "description": "Same shape as Entry. Conflicts are distinguished by array placement (conflicts[]), not by extra fields. Conflict-specific finding codes (DESIGNER-PRECEDES, DESIGNER-REMOVED, PROPERTY-CONFLICT, WIDGET-SWAP, NO-COMMON-ANCESTOR) appear here; non-conflict codes (DESIGNER-SURVIVED, REGENERATED, ORPHAN-NODE, PENDING-REVIEW, RENAME-MIGRATED, etc.) appear in their own arrays."
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        { "type": "object", "properties": { "code": { "enum": ["COMP-REGENERATION-NO-COMMON-ANCESTOR", "COMP-REGENERATION-DESIGNER-PRECEDES", "COMP-REGENERATION-DESIGNER-REMOVED", "COMP-REGENERATION-PROPERTY-CONFLICT", "COMP-REGENERATION-WIDGET-SWAP"] } } }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Code": {
+      "enum": [
+        "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+        "COMP-REGENERATION-DESIGNER-PRECEDES",
+        "COMP-REGENERATION-DESIGNER-REMOVED",
+        "COMP-REGENERATION-PROPERTY-CONFLICT",
+        "COMP-REGENERATION-WIDGET-SWAP",
+        "COMP-REGENERATION-DESIGNER-SURVIVED",
+        "COMP-REGENERATION-REGENERATED",
+        "COMP-REGENERATION-ORPHAN-NODE",
+        "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+        "COMP-REGENERATION-ORPHAN-DETACHED",
+        "COMP-REGENERATION-RENAME-MIGRATED",
+        "COMP-REGENERATION-PENDING-REVIEW"
+      ]
     }
   }
 }
 ```
 
-- [ ] Validate via Ajv 2020-12 standalone:
+- [x] Validate via Ajv 2020-12 standalone:
 
 ```bash
-cd formspec && npx ajv compile -c ajv-formats --spec=draft2020 -s schemas/regeneration-merge-report.schema.json
+node --input-type=module <<'EOF'
+import fs from 'node:fs';
+import Ajv2020 from 'ajv/dist/2020.js';
+import standaloneCode from 'ajv/dist/standalone/index.js';
+import addFormats from 'ajv-formats';
+
+const schema = JSON.parse(fs.readFileSync('schemas/regeneration-merge-report.schema.json', 'utf8'));
+const ajv = new Ajv2020({ strict: true, allErrors: true, code: { source: true } });
+addFormats(ajv);
+const validate = ajv.compile(schema);
+standaloneCode(ajv, validate);
+console.log('ajv standalone ok');
+EOF
 ```
 
-Expected: clean compile, no errors.
+Expected: `ajv standalone ok`.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 14: Schema-shape pytest
 
@@ -679,12 +780,48 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, ValidationError
 
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schemas" / "regeneration-merge-report.schema.json"
 
 @pytest.fixture(scope="module")
 def schema() -> dict:
     return json.loads(SCHEMA_PATH.read_text())
+
+@pytest.fixture(scope="module")
+def validator(schema) -> Draft202012Validator:
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema)
+
+def _entry(code: str, severity: str, **extra) -> dict:
+    return {
+        "anchors": ["item:/applicant/name"],
+        "nodePath": "/tree/children/0",
+        "code": code,
+        "severity": severity,
+        "reason": "sample",
+        **extra,
+    }
+
+def _report(**overrides) -> dict:
+    report = {
+        "version": "1.0",
+        "surviving": [_entry("COMP-REGENERATION-DESIGNER-SURVIVED", "info")],
+        "regenerated": [_entry("COMP-REGENERATION-REGENERATED", "info")],
+        "orphaned": [
+            _entry(
+                "COMP-REGENERATION-ORPHAN-NODE",
+                "warning",
+                reattachedTo="/tree",
+                cascaded=False,
+                detached=False,
+            )
+        ],
+        "pendingReview": [_entry("COMP-REGENERATION-PENDING-REVIEW", "info")],
+        "conflicts": [_entry("COMP-REGENERATION-PROPERTY-CONFLICT", "warning")],
+    }
+    report.update(overrides)
+    return report
 
 def test_id_and_version(schema):
     assert schema["$id"].endswith("/regeneration-merge-report/1.0")
@@ -699,10 +836,11 @@ def test_entry_required_fields(schema):
     entry = schema["$defs"]["Entry"]
     assert set(entry["required"]) == {"anchors", "nodePath", "code", "severity", "reason"}
     assert entry["properties"]["anchors"]["uniqueItems"] is True
+    assert entry["properties"]["code"]["$ref"] == "#/$defs/Code"
+    assert entry["properties"]["reason"]["minLength"] == 1
 
 def test_entry_code_enum(schema):
-    entry_props = schema["$defs"]["Entry"]["properties"]
-    codes = set(entry_props["code"]["enum"])
+    codes = set(schema["$defs"]["Code"]["enum"])
     assert codes == {
         "COMP-REGENERATION-NO-COMMON-ANCESTOR",
         "COMP-REGENERATION-DESIGNER-PRECEDES",
@@ -720,28 +858,120 @@ def test_entry_code_enum(schema):
     assert "COMP-REGENERATION-ORPHAN-BINDING" not in codes
     assert "COMP-REGENERATION-RENAME-UNDOCUMENTED" not in codes
     assert "COMP-REGENERATION-DESIGNER-INSERTED" not in codes
-    assert set(entry_props["severity"]["enum"]) == {"error", "warning", "info"}
+    assert set(schema["$defs"]["Entry"]["properties"]["severity"]["enum"]) == {
+        "error",
+        "warning",
+        "info",
+    }
+
+def test_code_severity_constraints(schema):
+    """§7: each finding code pins its canonical severity."""
+    entry = schema["$defs"]["Entry"]
+    severities = {
+        rule["if"]["properties"]["code"]["const"]: rule["then"]["properties"]["severity"]["const"]
+        for rule in entry["allOf"]
+    }
+    assert severities == {
+        "COMP-REGENERATION-NO-COMMON-ANCESTOR": "error",
+        "COMP-REGENERATION-DESIGNER-PRECEDES": "warning",
+        "COMP-REGENERATION-DESIGNER-REMOVED": "warning",
+        "COMP-REGENERATION-PROPERTY-CONFLICT": "warning",
+        "COMP-REGENERATION-WIDGET-SWAP": "warning",
+        "COMP-REGENERATION-DESIGNER-SURVIVED": "info",
+        "COMP-REGENERATION-REGENERATED": "info",
+        "COMP-REGENERATION-ORPHAN-NODE": "warning",
+        "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE": "info",
+        "COMP-REGENERATION-ORPHAN-DETACHED": "warning",
+        "COMP-REGENERATION-RENAME-MIGRATED": "info",
+        "COMP-REGENERATION-PENDING-REVIEW": "info",
+    }
 
 def test_entry_has_property_deltas(schema):
     """F5: Studio needs property-level diff visibility."""
     entry_props = schema["$defs"]["Entry"]["properties"]
     assert "propertyDeltas" in entry_props
     assert entry_props["propertyDeltas"]["items"]["pattern"] == "^/"
+    assert entry_props["propertyDeltas"]["uniqueItems"] is True
+
+def test_report_arrays_use_role_specific_entries(schema):
+    props = schema["properties"]
+    assert props["surviving"]["items"]["$ref"] == "#/$defs/SurvivingEntry"
+    assert props["regenerated"]["items"]["$ref"] == "#/$defs/RegeneratedEntry"
+    assert props["orphaned"]["items"]["$ref"] == "#/$defs/OrphanEntry"
+    assert props["pendingReview"]["items"]["$ref"] == "#/$defs/PendingReviewEntry"
+    assert props["conflicts"]["items"]["$ref"] == "#/$defs/ConflictEntry"
+
+def test_role_specific_code_placement(schema):
+    surviving_code = schema["$defs"]["SurvivingEntry"]["allOf"][1]["properties"]["code"]
+    assert set(surviving_code["enum"]) == {
+        "COMP-REGENERATION-DESIGNER-SURVIVED",
+        "COMP-REGENERATION-RENAME-MIGRATED",
+    }
+    assert schema["$defs"]["RegeneratedEntry"]["allOf"][1]["properties"]["code"]["const"] == (
+        "COMP-REGENERATION-REGENERATED"
+    )
+    assert schema["$defs"]["PendingReviewEntry"]["allOf"][1]["properties"]["code"]["const"] == (
+        "COMP-REGENERATION-PENDING-REVIEW"
+    )
 
 def test_orphan_entry_has_reattachment_fields(schema):
     """§8: base orphan entries always carry reattachment metadata."""
     orphan_props = schema["$defs"]["OrphanEntry"]["allOf"][1]["properties"]
     assert {"reattachedTo", "cascaded", "detached"} <= set(orphan_props)
+    assert set(orphan_props["code"]["enum"]) == {
+        "COMP-REGENERATION-ORPHAN-NODE",
+        "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+        "COMP-REGENERATION-ORPHAN-DETACHED",
+    }
     assert set(schema["$defs"]["OrphanEntry"]["allOf"][1]["required"]) == {
         "reattachedTo",
         "cascaded",
         "detached",
     }
 
-def test_conflict_entry_is_alias_of_base(schema):
-    """F7: ConflictEntry no longer extends Entry with additional required fields."""
+def test_conflict_entry_is_role_specific(schema):
+    """Conflicts share base Entry fields but only allow conflict finding codes."""
     conflict = schema["$defs"]["ConflictEntry"]
-    assert conflict.get("$ref") == "#/$defs/Entry"
+    assert conflict["allOf"][0]["$ref"] == "#/$defs/Entry"
+    assert set(conflict["allOf"][1]["properties"]["code"]["enum"]) == {
+        "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+        "COMP-REGENERATION-DESIGNER-PRECEDES",
+        "COMP-REGENERATION-DESIGNER-REMOVED",
+        "COMP-REGENERATION-PROPERTY-CONFLICT",
+        "COMP-REGENERATION-WIDGET-SWAP",
+    }
+    assert conflict["unevaluatedProperties"] is False
+
+def test_valid_report_instance(validator):
+    validator.validate(_report())
+
+def test_role_specific_codes_are_rejected(validator):
+    bad = _report(conflicts=[_entry("COMP-REGENERATION-REGENERATED", "info")])
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
+
+def test_wrong_code_severity_is_rejected(validator):
+    bad = _report(
+        conflicts=[
+            _entry("COMP-REGENERATION-NO-COMMON-ANCESTOR", "warning")
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
+
+def test_orphan_metadata_is_required(validator):
+    bad = _report(
+        orphaned=[
+            _entry(
+                "COMP-REGENERATION-ORPHAN-NODE",
+                "warning",
+                reattachedTo="/tree",
+                cascaded=False,
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
 
 def test_exp_two_hop_join_documented(schema):
     """F3: schema MUST document the EXP path -> item:<path> -> anchors join,
@@ -1118,7 +1348,7 @@ Task 23:       promotion-gate + architecture review
   - **F4 (convergence over-claimed):** §11/Task 18 — narrowed convergence guarantee to "applies only when cycle 1's report has empty conflicts AND empty pendingReview"; `test_convergence` skips fixtures that produced cycle-1 findings (resolution semantics are host-defined).
   - **F5 (property-level diff missing):** Task 13 schema — added OPTIONAL `propertyDeltas[]` (JSON Pointer strings) to base `Entry`. Studio uses the pointer set to drive its diff view; values are read from input documents the merge consumed.
   - **F6 (migration name collision):** §9/Task 10 — renamed document type from `$formspecMigration.migrations` to `$formspecAnchorMappings.anchorMappings`. Avoids Core §6.7 `migrations` (Response-data transforms) collision. Updated context tuple, Design Decisions row, and §9 prose.
-  - **F7 (schema-prose code inconsistency):** Task 13 schema — hoisted `code` and `severity` from `ConflictEntry` to base `Entry` so every report entry carries them. `ConflictEntry` becomes a `$ref` alias of `Entry`; array placement (conflicts[] vs orphaned[] vs pendingReview[]) is the role discriminator, code identifies the specific finding within that role. Task 14 tests updated.
+  - **F7 (schema-prose code inconsistency):** Task 13 schema — hoisted `code` and `severity` from `ConflictEntry` to base `Entry` so every report entry carries them. The concrete schema now also defines role-specific entry defs (`SurvivingEntry`, `RegeneratedEntry`, `OrphanEntry`, `PendingReviewEntry`, `ConflictEntry`) so array placement and code enum agree structurally, while base `Entry` pins code-specific severities to the §7 table. Task 14 tests updated.
 - 2026-05-22: Pre-Task-1 architecture-review pass #3 by `formspec-specs:spec-expert` (verdict NO-GO until plan remediation) found the Component Reference Fields prerequisite architecturally sufficient but blocked execution on plan defects. Remediated inline before Task 1:
   - **P3-BLOCKER (false-negative preflight):** replaced the brittle `$id` grep with a JSON-value check for `https://formspec.org/schemas/component/1.1` and made the multi-line preflight block use one absolute `cd`.
   - **P3-HIGH (rename seam contradiction):** made §9 and out-of-scope reminders consistently define only the minimum `$formspecAnchorMappings.anchorMappings[]` input shape; broad migration/changelog semantics remain out of scope.
@@ -1198,3 +1428,11 @@ Task 23:       promotion-gate + architecture review
 - 2026-05-22: Task 12 §11 drafting tightened Level 4 scope:
   - Required resolver composition for resolver inputs supplied to the merge context, so unavailable peer documents do not become impossible conformance obligations.
   - Kept Trace out of Level 4 resolver-family examples; Trace remains an out-of-scope downstream consumer.
+- 2026-05-22: Task 13 schema implementation tightened the planned schema beyond the earlier alias sketch:
+  - Added role-specific entry defs for every report array so non-conflict codes cannot validate under `conflicts[]`, orphan-only codes cannot validate outside `orphaned[]`, and surviving/regenerated/pending-review arrays only accept their owned codes.
+  - Encoded the §7 code-to-severity table with conditional schema constraints so a report entry cannot pair a valid code with the wrong canonical severity.
+  - Replaced the unavailable root `npx ajv ...` CLI command with a repo-local Node validation command that imports installed `ajv/dist/2020.js`, runs strict Ajv 2020-12 compilation, and generates standalone validator code.
+- 2026-05-22: Post-Task-13 cadence review found stale orphan pseudocode after `OrphanEntry` became strict:
+  - Updated §6.7 task pseudocode so every orphan entry includes explicit `reattachedTo`, `cascaded`, and `detached` fields, including false values when cascade/detachment does not apply.
+  - Tightened the committed §8 orphan report prose to describe `cascaded` and `detached` as required booleans rather than true-only optional flags, aligning it with §11 Level 2 and the schema.
+  - Expanded the planned Task 14 tests with instance-validation cases for valid reports, wrong role placement, wrong code severity, and missing orphan metadata.

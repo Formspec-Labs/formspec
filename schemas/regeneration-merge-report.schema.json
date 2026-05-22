@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/regeneration-merge-report/1.0",
+  "title": "Formspec Regeneration Merge Report",
+  "description": "Structured report emitted by the Component regeneration merge processor. Coverage findings are NOT included here. They are emitted by the Experience coverage resolver as EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM, carry the field `path` (Definition item path, NOT `nodePath`), and compose into the review surface via a two-hop join: EXP `path` -> anchor string `item:<path>` -> MergeReport entry whose `anchors` includes that string -> MergeReport entry's `nodePath`. CRF and Component bind/reference-resolution failures are also NOT included here; when those resolver findings identify an affected Component node by node key/path, review surfaces compose them to MergeReport entries for that same merged node without duplicating resolver findings inside MergeReport.",
+  "type": "object",
+  "required": [
+    "version",
+    "surviving",
+    "regenerated",
+    "orphaned",
+    "pendingReview",
+    "conflicts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "1.0",
+      "description": "Regeneration MergeReport schema version."
+    },
+    "surviving": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SurvivingEntry" }
+    },
+    "regenerated": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RegeneratedEntry" }
+    },
+    "orphaned": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/OrphanEntry" }
+    },
+    "pendingReview": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PendingReviewEntry" }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ConflictEntry" }
+    }
+  },
+  "$defs": {
+    "Entry": {
+      "type": "object",
+      "required": [
+        "anchors",
+        "nodePath",
+        "code",
+        "severity",
+        "reason"
+      ],
+      "properties": {
+        "anchors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Anchor set compared under regeneration-merge order-normalized set equality. This is not a Component Reference Fields semantic."
+        },
+        "nodePath": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Stable RFC 6901 JSON Pointer path in the merged Component document tree, such as /tree/children/0."
+        },
+        "code": { "$ref": "#/$defs/Code" },
+        "severity": {
+          "enum": ["error", "warning", "info"]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable explanation suitable for review surfaces."
+        },
+        "propertyDeltas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "uniqueItems": true,
+          "description": "Node-local RFC 6901 JSON Pointer strings for properties that differ between old, designer, and new inputs. Optional and allowed to be empty when no property-level change applies."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-NO-COMMON-ANCESTOR" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "error" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-DESIGNER-PRECEDES" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-DESIGNER-REMOVED" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-PROPERTY-CONFLICT" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-WIDGET-SWAP" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-DESIGNER-SURVIVED" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-REGENERATED" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-NODE" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-DETACHED" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-RENAME-MIGRATED" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        },
+        {
+          "if": {
+            "properties": { "code": { "const": "COMP-REGENERATION-PENDING-REVIEW" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "info" } } }
+        }
+      ]
+    },
+    "SurvivingEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": [
+                "COMP-REGENERATION-DESIGNER-SURVIVED",
+                "COMP-REGENERATION-RENAME-MIGRATED"
+              ]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "RegeneratedEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        {
+          "type": "object",
+          "properties": {
+            "code": { "const": "COMP-REGENERATION-REGENERATED" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "OrphanEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        {
+          "type": "object",
+          "required": [
+            "reattachedTo",
+            "cascaded",
+            "detached"
+          ],
+          "properties": {
+            "code": {
+              "enum": [
+                "COMP-REGENERATION-ORPHAN-NODE",
+                "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+                "COMP-REGENERATION-ORPHAN-DETACHED"
+              ]
+            },
+            "reattachedTo": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "nodePath of the merged-tree node the orphan was reattached under."
+            },
+            "cascaded": {
+              "type": "boolean",
+              "description": "True when reattachment had to walk above the original parent."
+            },
+            "detached": {
+              "type": "boolean",
+              "description": "True when no surviving ancestor existed and the orphan reattached at /tree."
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "PendingReviewEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        {
+          "type": "object",
+          "properties": {
+            "code": { "const": "COMP-REGENERATION-PENDING-REVIEW" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ConflictEntry": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Entry" },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": [
+                "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+                "COMP-REGENERATION-DESIGNER-PRECEDES",
+                "COMP-REGENERATION-DESIGNER-REMOVED",
+                "COMP-REGENERATION-PROPERTY-CONFLICT",
+                "COMP-REGENERATION-WIDGET-SWAP"
+              ]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Code": {
+      "enum": [
+        "COMP-REGENERATION-NO-COMMON-ANCESTOR",
+        "COMP-REGENERATION-DESIGNER-PRECEDES",
+        "COMP-REGENERATION-DESIGNER-REMOVED",
+        "COMP-REGENERATION-PROPERTY-CONFLICT",
+        "COMP-REGENERATION-WIDGET-SWAP",
+        "COMP-REGENERATION-DESIGNER-SURVIVED",
+        "COMP-REGENERATION-REGENERATED",
+        "COMP-REGENERATION-ORPHAN-NODE",
+        "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+        "COMP-REGENERATION-ORPHAN-DETACHED",
+        "COMP-REGENERATION-RENAME-MIGRATED",
+        "COMP-REGENERATION-PENDING-REVIEW"
+      ]
+    }
+  }
+}

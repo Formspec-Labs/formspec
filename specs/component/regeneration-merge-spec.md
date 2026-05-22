@@ -862,8 +862,10 @@ Every selected orphan root MUST produce an `orphaned[]` entry with
   and §9 substitution when applicable;
 - `nodePath`, the orphan root's path in `merged` after reattachment;
 - `reattachedTo`, the merged node path under which the orphan root was attached;
-- `cascaded: true` when reattachment walked above the original parent; and
-- `detached: true` when reattachment fell back to `/tree`.
+- `cascaded`, a boolean that is `true` when reattachment walked above the
+  original parent and `false` otherwise; and
+- `detached`, a boolean that is `true` when reattachment fell back to `/tree`
+  and `false` otherwise.
 
 If reattachment cascades above the orphan root's immediate parent, the processor
 MUST also emit a code-scoped `orphaned[]` entry for
