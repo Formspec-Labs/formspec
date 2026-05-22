@@ -21,9 +21,9 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1 introduction/scope language and §2 input/output contract have landed.
-Later normative sections, schema, fixtures, algorithm tests, invariant tests,
-registration, and generated artifacts land in the follow-on tasks of
+The §1-§5 normative prose has landed. Later normative sections, schema,
+fixtures, algorithm tests, invariant tests, registration, and generated
+artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
 
 ## Bottom Line Up Front
@@ -423,6 +423,74 @@ possible, or surfaced through orphan/pending-review/conflict handling when their
 surrounding generated structure changes.
 
 ## 5. Designer-Edit Detection
+
+### 5.1 Classifier Role
+
+Designer-edit detection classifies structural deltas between matched
+`old_generated` and `designer_edited` nodes. It uses `old_generated` as the
+common ancestor and returns normalized delta classes for §6 to consume.
+
+This section does not decide final merge output, report array placement, or
+finding severity. §6 consumes the deltas to preserve, regenerate, orphan, or
+conflict nodes. §7 defines the finding family and severities.
+
+### 5.2 Structural Comparison Rules
+
+Designer-edit detection compares parsed JSON values, not rendered output,
+visual semantics, platform widget behavior, or authoring-tool presentation.
+
+Object member order is insignificant. Two objects compare by member names and
+member values. An absent member and a member with JSON `null` are different
+values.
+
+Array order is significant unless another section explicitly defines
+order-insensitive behavior for a specific comparison. For example, §3 anchor-set
+equality is order-normalized for merge identity only; that identity rule does
+not make every JSON array order-insensitive.
+
+Child arrays are compared by matched child identities, not by raw subtree text.
+The parent node receives child-order, child-add, or child-remove deltas.
+Descendant property changes are classified on the matched descendant node rather
+than being duplicated as parent subtree changes.
+
+### 5.3 Delta Classes
+
+For each matched `old_generated` / `designer_edited` node pair, the detector
+MUST emit the following structural delta classes when applicable:
+
+| Delta class | Condition | Notes |
+|---|---|---|
+| `propertyOverride` | A non-`children`, non-`component` property differs between old and designer. | §6 decides whether the value survives, regenerates, or conflicts with `new_generated`. |
+| `childReorder` | Matched children remain present but their order differs. | The delta records the designer order by child identity. |
+| `childAdd` | Designer contains a child with no matching old child. | §6/§8 map the child through existing orphaned or pending-review handling; no separate `designer-inserted` report bucket exists. |
+| `childRemove` | Old contains a child with no matching designer child. | §6/§7 decide whether this becomes `COMP-REGENERATION-DESIGNER-REMOVED`. |
+| `widgetSwap` | The `component` value differs between old and designer. | §6 decides whether the designer widget survives; §7 owns `COMP-REGENERATION-WIDGET-SWAP` when review is required. |
+
+The detector MAY emit more than one delta class for the same node. For example,
+a designer may change `props.label`, reorder children, and swap the widget type
+on the same Component node.
+
+### 5.4 Preservation-Only Matches
+
+Nodes without matchable generation anchors, including nodes with provenance-only
+generation markers, may match between `old_generated` and `designer_edited` only
+for preservation under §3.4.
+
+Such matches can produce designer-edit deltas, but those deltas are
+preservation-only. They MUST NOT create an old-to-new regeneration match, MUST
+NOT assert source authority, and MUST NOT be used to manufacture conflicts
+against `new_generated` solely by path, `id`, component type, or sibling
+position.
+
+### 5.5 Output Discipline
+
+Designer-edit detection MUST NOT mutate `old_generated`, `designer_edited`,
+`new_generated`, or `RegenerationMergeContext`. It returns delta data to the
+merge operation; any "marked" or "flagged" status is report output only.
+
+Authoring or review surfaces MAY visualize structural deltas. Runtime renderers
+remain out of scope and MUST NOT change rendering behavior because a node has
+designer-edit deltas or `x-generation` metadata.
 
 ## 6. Merge Algorithm
 

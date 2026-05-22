@@ -218,21 +218,25 @@ Rule: define `hasGenerationMarker` as presence of `x-generation` with at least o
 
 ## Task 6: Spec prose — §5 Designer-edit detection
 
-- [ ] Draft §5 defining how the merge detects that a designer edited a generated node.
+- [x] Draft §5 defining how the merge detects that a designer edited a generated node.
 
-Algorithm: for each node N_designer in `designer-edited` with matching N_old in `old-generated`, compare every property and subtree. Any difference is a designer edit. Differences are categorized:
+§5 is a structural-delta classifier, not the merge algorithm. For each node N_designer in `designer-edited` with matching N_old in `old-generated`, compare parsed JSON values using N_old as the common ancestor. Object member order is insignificant; array order is significant except where another section explicitly overrides it (for example §3 anchor-set equality). Compare child arrays by matched child identities so descendant edits do not bubble into parent deltas.
 
-| Diff class | Example | Default treatment |
+Any difference is a designer edit. Differences are categorized for §6/§7 consumption:
+
+| Delta class | Example | §5 output |
 |---|---|---|
-| Property override | designer changed `props.label` from "Name" to "Full Name" | Preserve if N_new's same property equals N_old's (designer-only); conflict if N_new also changed it. |
-| Children reorder | designer reordered two children | Preserve designer order; regenerate child content if N_new changed it. |
-| Children add | designer inserted a child not present in old or new | Preserve and mark `designer-inserted`. |
-| Children remove | designer deleted a child present in old; new still has it | Conflict — designer intent vs source authority. |
-| Widget swap | designer changed `component: TextInput` → `TextArea` | Preserve (designer intent dominates widget choice); flag `pending-review`. |
+| Property override | designer changed `props.label` from "Name" to "Full Name" | Property delta. §6 preserves if N_new's same property equals N_old's; §6/§7 reports conflict if N_new also changed it differently. |
+| Children reorder | designer reordered two children | Child-order delta on the parent. §6 may preserve ordering while child content remains classified at each child node. |
+| Children add | designer inserted a child not present in old or new | Child-add delta. §6/§8 maps the child into existing orphaned/pending-review handling; no `designer-inserted` report bucket exists. |
+| Children remove | designer deleted a child present in old; new still has it | Child-remove delta. §6/§7 decides whether this becomes `COMP-REGENERATION-DESIGNER-REMOVED`. |
+| Widget swap | designer changed `component: TextInput` → `TextArea` | Widget-swap delta. §6 preserves the designer widget for review when appropriate; §7 reports `COMP-REGENERATION-WIDGET-SWAP` as a warning conflict unless N_new independently made the same widget choice. |
 
-§5 MUST emphasize: the algorithm operates on JSON values, not on visual semantics. Renderers are free to surface diffs visually; the spec defines structural rules only.
+§5 MUST state that non-matchable generated markers and designer-authored nodes can participate in old/designer preservation deltas only; they do not create old/new regeneration matches or source-authority conflicts.
 
-- [ ] Commit.
+§5 MUST emphasize: the algorithm operates on JSON values, not on visual semantics. Authoring or review surfaces MAY visualize structural deltas; runtime renderers remain out of scope. All "mark" or "flag" language writes to returned report output only and MUST NOT mutate inputs (§2.5).
+
+- [x] Commit.
 
 ## Task 7: Spec prose — §6 Merge algorithm
 
@@ -319,7 +323,7 @@ locate_merged_parent(N): walk N's parent chain in designer-edited; for each
 | `COMP-REGENERATION-DESIGNER-PRECEDES` | Designer-authored node at an anchor that new-generation also produced (no N_old) | `warning` |
 | `COMP-REGENERATION-DESIGNER-REMOVED` | Designer deleted a generated node; new-generation still produces it | `warning` |
 | `COMP-REGENERATION-PROPERTY-CONFLICT` | Both designer and new-generation changed the same property to different values | `warning` |
-| `COMP-REGENERATION-WIDGET-SWAP` | Designer swapped widget; new-generation changed the same widget differently | `warning` (pending-review) |
+| `COMP-REGENERATION-WIDGET-SWAP` | Designer changed a node's `component` type from old-generated and the change requires human review; emitted as a conflict unless new-generation independently made the same widget choice | `warning` |
 | `COMP-REGENERATION-ORPHAN-NODE` | Designer subtree has no matching anchor set in new-generation. Default `warning`. Escalates to `error` ONLY if accompanied by an unresolved CRF/bind finding emitted by the resolver for the same node. | `warning` (→ `error` via composition) |
 | `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` | Designer subtree reattached above its original parent because the parent chain orphaned | `info` |
 | `COMP-REGENERATION-ORPHAN-DETACHED` | Designer subtree reattached at root because no ancestor matches in merged | `warning` |
@@ -595,7 +599,7 @@ Each case is a directory with five files: `old-generated.json`, `designer-edited
 
 - [ ] **Case `property-conflict`** — both designer and new-generated changed the same `props.label`. Expected: `COMP-REGENERATION-PROPERTY-CONFLICT` finding, severity `warning`.
 
-- [ ] **Case `widget-swap`** — designer changed `TextInput` → `TextArea`. Expected: merged preserves `TextArea`, `COMP-REGENERATION-WIDGET-SWAP` at `warning` (pending-review).
+- [ ] **Case `widget-swap`** — designer changed `TextInput` → `TextArea`; new-generated kept `TextInput`. Expected: merged preserves `TextArea`, `conflicts[]` contains `COMP-REGENERATION-WIDGET-SWAP` at `warning` for review.
 
 - [ ] **Case `pending-review-new-node`** — new-generated added a node not in old or designer. Expected: `pendingReview` entry, `COMP-REGENERATION-PENDING-REVIEW` at `info`.
 
@@ -957,3 +961,8 @@ Task 23:       promotion-gate + architecture review
   - Split generation classification into `hasGenerationMarker` and `hasMatchableGenerationAnchors` so provenance-only nodes do not become matchable against `new-generated`.
   - Clarified that absence of `x-generation` is a regeneration-merge classification, not a claim about the node's unknowable history.
   - Excluded `generatedAt`-only metadata from generated-marker classification and left invalid `x-generation` shapes to Component schema validation.
+- 2026-05-22: Pre-Task-6 architecture review by `formspec-specs:spec-expert` (verdict NO-GO until plan correction) found §5 designer-edit detection was mixing classifier and merge/report outcomes. Remediated the plan before drafting §5:
+  - Made §5 a structural-delta classifier; §6 consumes deltas for preserve/regenerate/conflict decisions and §7 owns finding codes.
+  - Resolved widget-swap handling as a warning conflict entry (`conflicts[]`) requiring review, while the merge can preserve the designer widget when appropriate.
+  - Removed the undefined `designer-inserted` bucket; child additions map through existing orphaned/pending-review handling.
+  - Defined JSON structural comparison, old/designer-only preservation for non-matchable nodes, and no-mutation/report-output-only wording.
