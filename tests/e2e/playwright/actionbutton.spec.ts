@@ -1,4 +1,7 @@
 /** @filedesc Browser E2E coverage for ActionButton actionRef -> hostEvent invocation. */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { expect, test } from '@playwright/test';
 import { gotoHarness } from '../browser/helpers/harness';
 
@@ -40,14 +43,20 @@ const COMPONENT = {
   },
 };
 
+// targetDefinition is REQUIRED by response-actions.schema.json (`required`
+// includes targetDefinition). The earlier fixture also carried a partial
+// `validation: { profile: 'on-submit' }` override — schema-invalid because
+// ValidationOverride => ValidationTuple is closed and requires the full
+// (profile, blocking, persistence) tuple. Drop the override; master-table
+// inheritance for intent=submit produces the same tuple.
 const RESPONSE_ACTIONS = {
   $formspecResponseActions: '1.0',
   version: '1.0.0',
+  targetDefinition: { url: DEFINITION.url },
   actions: [
     {
       id: 'submit-application',
       intent: 'submit',
-      validation: { profile: 'on-submit' },
       effects: [
         { type: 'hostEvent', eventName: 'formspec-submit' },
       ],
@@ -55,7 +64,29 @@ const RESPONSE_ACTIONS = {
   ],
 };
 
+function loadSchema(name: string): any {
+  const path = resolve(__dirname, '..', '..', '..', 'schemas', name);
+  return JSON.parse(readFileSync(path, 'utf-8'));
+}
+
+const ajv = new Ajv2020({ strict: false, allErrors: true });
+// Pre-register cross-referenced schemas; ValidationOverride $refs VM ValidationTuple.
+ajv.addSchema(loadSchema('validation-mapping.schema.json'));
+const validateResponseActions = ajv.compile(loadSchema('response-actions.schema.json'));
+
 test.describe('ActionButton', () => {
+  test.beforeAll(() => {
+    // Fail-fast: if the fixture drifts off the schema, the runtime would
+    // accept it but the schema gate (and conformance suite) would not.
+    const ok = validateResponseActions(RESPONSE_ACTIONS);
+    if (!ok) {
+      throw new Error(
+        'ActionButton E2E fixture violates response-actions schema: '
+        + JSON.stringify(validateResponseActions.errors, null, 2),
+      );
+    }
+  });
+
   test('click invokes resolved Action and emits hostEvent submit detail', async ({ page }) => {
     await gotoHarness(page);
     await page.evaluate(({ definition, component, responseActions }) => {
