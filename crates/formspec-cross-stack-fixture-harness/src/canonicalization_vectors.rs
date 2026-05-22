@@ -13,12 +13,12 @@
 //! against the same byte response the cross-stack harness uses to drive ring
 //! verification (fs-7md4 regression coverage).
 
+use crate::paths::cross_stack_fixtures_root;
 use integrity_canonical::{
     DigestAlgorithm, canonical_response_handoff_bytes, canonical_response_signed_payload_bytes,
     compute_digest,
 };
 use serde_json::{Value, json};
-use std::path::PathBuf;
 
 /// One canonicalization vector covering both digest contracts for a Response.
 #[derive(Debug, Clone, PartialEq)]
@@ -118,23 +118,7 @@ pub fn vector_c_bundle_001() -> CanonicalizationVector {
 /// Resolves the path relative to this crate's manifest dir so the loader stays
 /// reproducible across workspaces.
 fn bundle_001_response() -> Value {
-    let formspec_root = std::env::var_os("FORMSPEC_ROOT_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-            manifest_dir
-                .parent()
-                .expect("crate dir has a parent")
-                .parent()
-                .expect("crates dir has a parent")
-                .to_path_buf()
-        });
-    let path = formspec_root
-        .join("tests")
-        .join("fixtures")
-        .join("cross-stack")
+    let path = cross_stack_fixtures_root()
         .join("001-standalone-formspec-verified")
         .join("formspec-response.json");
     let bytes = std::fs::read(&path)

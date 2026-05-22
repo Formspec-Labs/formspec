@@ -145,45 +145,9 @@ struct TrellisEventData {
     admission_failed_reason: Option<String>,
 }
 
-/// Resolves the formspec crate root.
-///
-/// Default path: walks up two parents from runtime `CARGO_MANIFEST_DIR`
-/// (`crates/formspec-cross-stack-fixture-harness/` → `crates/` → repo root).
-/// Falls back to the compile-time manifest dir when the test binary is invoked
-/// outside `cargo test`. `FORMSPEC_ROOT_DIR` env var overrides — set this when
-/// the harness moves to another location relative to the formspec repo, rather
-/// than rewriting the parent walk. Uses `var_os` so non-UTF8 paths work on
-/// platforms where filesystem paths are not guaranteed UTF-8.
-fn formspec_root() -> PathBuf {
-    if let Some(override_path) = std::env::var_os("FORMSPEC_ROOT_DIR") {
-        return PathBuf::from(override_path);
-    }
-    let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-    manifest_dir
-        .parent()
-        .expect("crate dir has a parent")
-        .parent()
-        .expect("crates dir has a parent")
-        .to_path_buf()
-}
-
-/// Resolves the cross-stack fixture corpus directory under the formspec repo.
-///
-/// Asserts the manifest schema is present so a stale checkout or a crate move
-/// fails loudly rather than silently discovering zero bundles.
+/// Local alias — fixture root lives in the harness library (`paths` module).
 fn cross_stack_root() -> PathBuf {
-    let root = formspec_root()
-        .join("tests")
-        .join("fixtures")
-        .join("cross-stack");
-    assert!(
-        root.join("manifest.schema.json").exists(),
-        "cross-stack fixtures not found at {:?} — crate may have moved; set FORMSPEC_ROOT_DIR to override",
-        root
-    );
-    root
+    cross_stack_fixtures_root()
 }
 
 /// Decodes the response-signing method URI from `signatureValue`.

@@ -35,5 +35,7 @@
 #![warn(missing_docs)]
 
 pub mod canonicalization_vectors;
+pub mod paths;
 
 pub use integrity_bundle_fixtures::*;
+pub use paths::{cross_stack_fixtures_root, formspec_root};

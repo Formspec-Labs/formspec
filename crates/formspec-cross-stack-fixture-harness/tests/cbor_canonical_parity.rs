@@ -20,6 +20,7 @@
 use std::path::Path;
 
 use ciborium::Value;
+use formspec_cross_stack_fixture_harness::cross_stack_fixtures_root;
 use integrity_cbor::{cbor_value_to_json, json_to_dcbor_bytes};
 
 /// Bundles + their CBOR file names.
@@ -35,25 +36,7 @@ const PARITY_TARGETS: &[(&str, &str)] = &[
 ];
 
 fn bundle_file(bundle: &str, name: &str) -> std::path::PathBuf {
-    let formspec_root = std::env::var_os("FORMSPEC_ROOT_DIR")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| {
-            let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
-                .map(std::path::PathBuf::from)
-                .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-            manifest_dir
-                .parent()
-                .expect("crate dir has a parent")
-                .parent()
-                .expect("crates dir has a parent")
-                .to_path_buf()
-        });
-    formspec_root
-        .join("tests")
-        .join("fixtures")
-        .join("cross-stack")
-        .join(bundle)
-        .join(name)
+    cross_stack_fixtures_root().join(bundle).join(name)
 }
 
 /// Decode the Python-cbor2-authored bytes via ciborium, lift through

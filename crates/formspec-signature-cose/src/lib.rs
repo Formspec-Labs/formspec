@@ -281,17 +281,13 @@ mod tests {
 
     /// Resolves the formspec repo root for shared workspace fixtures.
     ///
-    /// Prefers the runtime `CARGO_MANIFEST_DIR` that Cargo injects when running
-    /// tests so stale compile-time paths from other worktrees do not break fixture
-    /// discovery. `FORMSPEC_ROOT_DIR` overrides the walk when the repo layout moves.
+    /// Uses this crate's compile-time manifest dir so paths stay correct when
+    /// tests run from another workspace. `FORMSPEC_ROOT_DIR` overrides the walk.
     fn formspec_root() -> std::path::PathBuf {
         if let Some(override_path) = std::env::var_os("FORMSPEC_ROOT_DIR") {
             return override_path.into();
         }
-        let manifest_dir = std::env::var_os("CARGO_MANIFEST_DIR")
-            .map(std::path::PathBuf::from)
-            .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-        manifest_dir
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .expect("crate dir has a parent")
             .parent()
