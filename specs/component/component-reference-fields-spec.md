@@ -377,7 +377,77 @@ behavior outside this specification.
 
 ## 5. `x-generation`
 
-Task 6 drafts this section.
+### 5.1 Shape
+
+`x-generation` is an OPTIONAL object field on a Component node. It records
+generator provenance and source anchors for authored, generated, or
+generated-then-edited Component trees.
+
+The object has the following standard members. All members are OPTIONAL:
+
+| Member | Type | Meaning |
+|---|---|---|
+| `source` | string | Generator source label, such as an Experience Unit, prompt, template, or generator input bundle. |
+| `strategy` | string | Generator strategy identifier, such as `unit-to-section` or a host-defined strategy name. |
+| `generatedBy` | string | Generator name and version, service id, or other producer identifier. |
+| `generatedAt` | string | Generation timestamp. When present, authors SHOULD use an RFC 3339 date-time string. |
+| `anchors` | array of string | Source anchors used to explain or review the generated node. |
+
+Generators MAY include additional members for private provenance. Unknown
+members are extension metadata. Processors MUST preserve them when they preserve
+the Component node, but MUST NOT treat them as runtime behavior.
+
+### 5.2 Anchor Prefixes
+
+`x-generation.anchors[]` entries are strings with a required prefix. The prefix
+identifies the source artifact family; the suffix is the source-layer identifier
+in that family.
+
+The standard prefixes are:
+
+- `item:` -- a Definition item key or bind path.
+- `unit:` -- an Experience `Unit.id`.
+- `task:` -- an Experience `Task.id`.
+- `action:` -- a Response Actions `actions[*].id`.
+- `concept:` -- a Registry, Ontology, or external concept id.
+
+Anchor suffix syntax is owned by the referenced source layer. A resolver MUST
+NOT rewrite anchor suffixes to match a different source format, and MUST NOT
+invent anchors for missing source artifacts.
+
+### 5.3 Anchor Resolution and Findings
+
+Anchor resolution is best-effort report metadata. A resolver MAY check anchors
+against loaded Definition, Experience, Response Actions, Registry, or Ontology
+context. If an anchor cannot be resolved, §7 assigns the default finding:
+`COMP-REFERENTIAL-INTEGRITY`, kind `"x-generation.anchors"`, severity `"info"`.
+
+Unresolved anchors MUST NOT invalidate the Component document, block rendering,
+or trigger regeneration. They indicate that provenance metadata may be stale or
+incomplete.
+
+When source context is absent, processors MAY preserve anchors without resolving
+them. Missing source context MUST NOT be treated as a runtime error.
+
+### 5.4 Runtime Semantics
+
+`x-generation` is provenance metadata. Renderers MUST ignore it for default
+runtime output. The presence, absence, or content of `x-generation` MUST NOT
+change rendering, layout, binding, localization, validation, calculation,
+Mapping execution, Response status, Response Actions invocation, Experience
+coverage, Registry or Ontology content, Trace content, or Respondent Ledger
+behavior.
+
+This specification defines shape and reporting posture only. It does not define
+regeneration merge behavior, designer-edit preservation, conflict severity,
+orphan handling, rename handling, Trace predicates, Trace cache invalidation, or
+review UX. Those behaviors require a separate regeneration or Trace
+specification.
+
+Processors MUST NOT execute, fetch, or trust generator-provided metadata by
+default. Hosts that use `source`, `strategy`, `generatedBy`, `generatedAt`,
+`anchors`, or extension members for authoring tools MUST treat those values as
+untrusted metadata.
 
 ## 6. Cross-Document Resolution Algorithm
 

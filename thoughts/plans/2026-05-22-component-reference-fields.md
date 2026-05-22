@@ -130,6 +130,8 @@ Shape (array of `ConceptRef` objects, $ref to `experience.schema.json#/$defs/Con
 
 ## Task 6: §5 x-generation
 
+- [x] Draft §5 `x-generation` shape, anchor prefixes, anchor findings, and runtime semantics.
+
 Shape (`{ source, strategy, generatedBy, anchors, generatedAt }`, all OPTIONAL, `additionalProperties: true` for generator extensions). Runtime posture: MUST be ignored by renderers. Anchors prefix taxonomy: `item:` / `unit:` / `task:` / `action:` / `concept:`.
 
 ## Task 7: §6 Cross-Document Resolution Algorithm
