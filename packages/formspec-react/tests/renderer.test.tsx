@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { initFormspecEngine, createFormEngine } from '@formspec-org/engine';
+import { initFormspecEngine, createFormEngine, createDemoSubmitResponseActions } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
@@ -63,18 +63,9 @@ const testDefinition = {
     ],
 };
 
-const responseActionsDocument = {
-    $formspecResponseActions: '1.0',
-    version: '1.0.0',
-    actions: [
-        {
-            id: 'submit',
-            intent: 'submit',
-            validation: { profile: 'on-submit', blocking: 'non-blocking', persistence: 'none' },
-            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
-        },
-    ],
-};
+const responseActionsDocument = createDemoSubmitResponseActions({
+    definitionUrl: testDefinition.url,
+});
 
 function renderInto(element: React.ReactElement): HTMLElement {
     const container = document.createElement('div');
@@ -1022,10 +1013,10 @@ describe('ActionButton', () => {
         expect(nameInput.getAttribute('aria-invalid')).toBe('true');
     });
 
-    it('does not auto-inject an action button when no Response Actions document is loaded', async () => {
+    it('emits a finding when onSubmit is wired without a submit Action', async () => {
         const onSubmit = vi.fn();
         const onActionFinding = vi.fn();
-        const container = renderInto(
+        renderInto(
             <FormspecForm
                 definition={testDefinition}
                 onSubmit={onSubmit}
@@ -1033,11 +1024,14 @@ describe('ActionButton', () => {
             />
         );
 
-        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
-        expect(button).toBeNull();
         await new Promise(resolve => setTimeout(resolve, 0));
-        expect(onActionFinding).not.toHaveBeenCalled();
-        expect(onSubmit).not.toHaveBeenCalled();
+        expect(onActionFinding).toHaveBeenCalledWith(
+            expect.objectContaining({
+                code: 'COMP-REFERENTIAL-INTEGRITY',
+                reason: 'missing-submit-action',
+                target: 'submit',
+            }),
+        );
     });
 
     it('passes non-submit host events and invocation terminals to host callbacks', () => {

@@ -19,7 +19,7 @@ import type {
     ResponseActionsDocumentInput,
 } from '@formspec-org/engine';
 import type { EffectRequest, FormResponse, Precondition, ValidationReport } from '@formspec-org/types';
-import { createFormEngine, findResponseActionByIntent, resolveResponseAction } from '@formspec-org/engine';
+import { createFormEngine, findResponseActionByIntent, missingSubmitActionFinding, resolveResponseAction } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import {
     planDefinitionFallback,
@@ -299,6 +299,14 @@ export function FormspecProvider(props: FormspecProviderProps) {
         }
         return root;
     }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
+
+    // §10: surface a finding when the host wires onSubmit but no submit Action
+    // is published — otherwise auto-inject silently no-ops.
+    useEffect(() => {
+        if (!onSubmit || !onActionFinding) return;
+        if (findResponseActionByIntent(responseActionsDocument, 'submit')) return;
+        onActionFinding(missingSubmitActionFinding());
+    }, [onSubmit, onActionFinding, responseActionsDocument]);
 
     // Touched tracking — stable across re-renders
     const touchedFieldsRef = useRef(new Set<string>());

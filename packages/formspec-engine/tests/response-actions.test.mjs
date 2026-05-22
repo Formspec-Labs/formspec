@@ -734,3 +734,45 @@ test('engine MASTER_TABLE matches raw VM schema const (defense-in-depth)', () =>
     }, `intent ${row.intent} (raw schema) should resolve to VM schema row`);
   }
 });
+
+test('createDemoSubmitResponseActions defaults to non-blocking submit for demo error UX', async () => {
+  const { createDemoSubmitResponseActions } = await import('../dist/index.js');
+  const doc = createDemoSubmitResponseActions({
+    definitionUrl: 'https://example.gov/forms/demo',
+    actionId: 'submit-application',
+  });
+  assert.equal(doc.targetDefinition.url, 'https://example.gov/forms/demo');
+  assert.equal(doc.actions.length, 1);
+  const tuple = resolveResponseActionValidationTuple(doc.actions[0]);
+  assert.deepEqual(tuple, {
+    profile: 'on-submit',
+    blocking: 'non-blocking',
+    persistence: 'none',
+  });
+});
+
+test('createDemoSubmitResponseActions can inherit master-table submit tuple', async () => {
+  const { createDemoSubmitResponseActions } = await import('../dist/index.js');
+  const doc = createDemoSubmitResponseActions({
+    definitionUrl: 'https://example.gov/forms/intake',
+    actionId: 'submit-intake',
+    emitOnValidationError: false,
+  });
+  const tuple = resolveResponseActionValidationTuple(doc.actions[0]);
+  assert.deepEqual(tuple, {
+    profile: 'on-submit',
+    blocking: 'block-on-error',
+    persistence: 'complete-response',
+  });
+});
+
+test('missingSubmitActionFinding identifies host onSubmit without submit Action', async () => {
+  const { missingSubmitActionFinding } = await import('../dist/index.js');
+  assert.deepEqual(missingSubmitActionFinding(), {
+    code: 'COMP-REFERENTIAL-INTEGRITY',
+    severity: 'error',
+    kind: 'actionRef',
+    target: 'submit',
+    reason: 'missing-submit-action',
+  });
+});
