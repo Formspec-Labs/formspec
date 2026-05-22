@@ -707,7 +707,17 @@ Shape (F5 + F7 fixes: every entry carries `code`/`severity`/`reason`; `propertyD
             "reattachedTo": { "type": "string", "description": "nodePath of the merged-tree node the orphan was reattached under." },
             "cascaded":     { "type": "boolean", "description": "True when reattachment had to walk above the original parent." },
             "detached":     { "type": "boolean", "description": "True when no surviving ancestor existed and the orphan reattached at /tree." }
-          }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE" } }, "required": ["code"] },
+              "then": { "properties": { "cascaded": { "const": true }, "detached": { "const": false } } }
+            },
+            {
+              "if": { "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-DETACHED" } }, "required": ["code"] },
+              "then": { "properties": { "cascaded": { "const": false }, "detached": { "const": true } } }
+            }
+          ]
         }
       ],
       "unevaluatedProperties": false
@@ -916,7 +926,8 @@ def test_role_specific_code_placement(schema):
 
 def test_orphan_entry_has_reattachment_fields(schema):
     """§8: base orphan entries always carry reattachment metadata."""
-    orphan_props = schema["$defs"]["OrphanEntry"]["allOf"][1]["properties"]
+    orphan_shape = schema["$defs"]["OrphanEntry"]["allOf"][1]
+    orphan_props = orphan_shape["properties"]
     assert {"reattachedTo", "cascaded", "detached"} <= set(orphan_props)
     assert set(orphan_props["code"]["enum"]) == {
         "COMP-REGENERATION-ORPHAN-NODE",
@@ -927,6 +938,18 @@ def test_orphan_entry_has_reattachment_fields(schema):
         "reattachedTo",
         "cascaded",
         "detached",
+    }
+    flag_constraints = {
+        rule["if"]["properties"]["code"]["const"]: rule["then"]["properties"]
+        for rule in orphan_shape["allOf"]
+    }
+    assert flag_constraints["COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE"] == {
+        "cascaded": {"const": True},
+        "detached": {"const": False},
+    }
+    assert flag_constraints["COMP-REGENERATION-ORPHAN-DETACHED"] == {
+        "cascaded": {"const": False},
+        "detached": {"const": True},
     }
 
 def test_conflict_entry_is_role_specific(schema):
@@ -967,6 +990,36 @@ def test_orphan_metadata_is_required(validator):
                 "warning",
                 reattachedTo="/tree",
                 cascaded=False,
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
+
+def test_orphan_cascade_code_requires_cascade_flags(validator):
+    bad = _report(
+        orphaned=[
+            _entry(
+                "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+                "info",
+                reattachedTo="/tree",
+                cascaded=False,
+                detached=False,
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
+
+def test_orphan_detached_code_requires_detached_flags(validator):
+    bad = _report(
+        orphaned=[
+            _entry(
+                "COMP-REGENERATION-ORPHAN-DETACHED",
+                "warning",
+                reattachedTo="/tree",
+                cascaded=False,
+                detached=False,
             )
         ]
     )
@@ -1014,9 +1067,9 @@ Each case is a directory with five required files: `old-generated.json`, `design
 
 - [ ] **Case `orphan-broken-binding`** — same as above but `bind` no longer resolves. Expected: `COMP-REGENERATION-ORPHAN-NODE` at `warning` in MergeReport PLUS a separate Component-resolver bind-failure finding at `error` (composed in the review surface, NOT duplicated in MergeReport per H4).
 
-- [ ] **Case `orphan-cascade`** — designer subtree's parent is itself orphaned; reattaches to grandparent. Expected: `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info` plus base `ORPHAN-NODE`.
+- [ ] **Case `orphan-cascade`** — designer subtree's parent is itself orphaned; reattaches to grandparent. Expected: base `COMP-REGENERATION-ORPHAN-NODE` at `warning` plus `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info`; both entries carry `cascaded: true` and `detached: false`.
 
-- [ ] **Case `orphan-detached`** — designer subtree has no surviving ancestor in merged; reattaches at root. Expected: `COMP-REGENERATION-ORPHAN-DETACHED` at `warning`.
+- [ ] **Case `orphan-detached`** — designer subtree has no surviving ancestor in merged; reattaches at root. Expected: base `COMP-REGENERATION-ORPHAN-NODE` at `warning` plus `COMP-REGENERATION-ORPHAN-DETACHED` at `warning`; both entries carry `cascaded: false` and `detached: true`.
 
 - [ ] **Case `designer-removed`** — old has a generated node; designer deleted it; new-generated still produces it. Expected: `COMP-REGENERATION-DESIGNER-REMOVED` at `warning`.
 
@@ -1438,3 +1491,6 @@ Task 23:       promotion-gate + architecture review
   - Expanded the planned Task 14 tests with instance-validation cases for valid reports, wrong role placement, wrong code severity, and missing orphan metadata.
 - 2026-05-22: Post-Task-15 cadence review found stale §2 future-tense schema wording after Task 13 landed:
   - Updated §2 to require `MergeReport` validation against `schemas/regeneration-merge-report.schema.json` version `1.0` and point to §11.3 for report-shape conformance.
+- 2026-05-22: Post-Task-15 architecture review found two pre-Task-16 orphan-fixture risks:
+  - Tightened the MergeReport schema and Task 14 tests so `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` requires `cascaded: true` / `detached: false`, and `COMP-REGENERATION-ORPHAN-DETACHED` requires `cascaded: false` / `detached: true`.
+  - Updated Task 16 orphan-cascade and orphan-detached fixture expectations so both include the required base `COMP-REGENERATION-ORPHAN-NODE` entry plus the code-scoped cascade/detached entry.

@@ -869,11 +869,12 @@ Every selected orphan root MUST produce an `orphaned[]` entry with
 If reattachment cascades above the orphan root's immediate parent, the processor
 MUST also emit a code-scoped `orphaned[]` entry for
 `COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info` severity for the same
-orphan root.
+orphan root. That entry MUST carry `cascaded: true` and `detached: false`.
 
 If reattachment falls back to `/tree`, the processor MUST also emit a
 code-scoped `orphaned[]` entry for `COMP-REGENERATION-ORPHAN-DETACHED` at
-`warning` severity for the same orphan root.
+`warning` severity for the same orphan root. That entry MUST carry
+`cascaded: false` and `detached: true`.
 
 The same orphan root MAY therefore appear in more than one `orphaned[]` entry
 when more than one code applies. This follows §7.2's code-scoped entry rule.

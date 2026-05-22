@@ -172,7 +172,8 @@ def test_role_specific_code_placement(schema):
 
 def test_orphan_entry_has_reattachment_fields(schema):
     """§8: base orphan entries always carry reattachment metadata."""
-    orphan_props = schema["$defs"]["OrphanEntry"]["allOf"][1]["properties"]
+    orphan_shape = schema["$defs"]["OrphanEntry"]["allOf"][1]
+    orphan_props = orphan_shape["properties"]
     assert {"reattachedTo", "cascaded", "detached"} <= set(orphan_props)
     assert set(orphan_props["code"]["enum"]) == {
         "COMP-REGENERATION-ORPHAN-NODE",
@@ -183,6 +184,18 @@ def test_orphan_entry_has_reattachment_fields(schema):
         "reattachedTo",
         "cascaded",
         "detached",
+    }
+    flag_constraints = {
+        rule["if"]["properties"]["code"]["const"]: rule["then"]["properties"]
+        for rule in orphan_shape["allOf"]
+    }
+    assert flag_constraints["COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE"] == {
+        "cascaded": {"const": True},
+        "detached": {"const": False},
+    }
+    assert flag_constraints["COMP-REGENERATION-ORPHAN-DETACHED"] == {
+        "cascaded": {"const": False},
+        "detached": {"const": True},
     }
 
 
@@ -226,6 +239,38 @@ def test_orphan_metadata_is_required(validator):
                 "warning",
                 reattachedTo="/tree",
                 cascaded=False,
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
+
+
+def test_orphan_cascade_code_requires_cascade_flags(validator):
+    bad = _report(
+        orphaned=[
+            _entry(
+                "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE",
+                "info",
+                reattachedTo="/tree",
+                cascaded=False,
+                detached=False,
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validator.validate(bad)
+
+
+def test_orphan_detached_code_requires_detached_flags(validator):
+    bad = _report(
+        orphaned=[
+            _entry(
+                "COMP-REGENERATION-ORPHAN-DETACHED",
+                "warning",
+                reattachedTo="/tree",
+                cascaded=False,
+                detached=False,
             )
         ]
     )

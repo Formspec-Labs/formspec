@@ -230,7 +230,33 @@
               "type": "boolean",
               "description": "True when no surviving ancestor existed and the orphan reattached at /tree."
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE" } },
+                "required": ["code"]
+              },
+              "then": {
+                "properties": {
+                  "cascaded": { "const": true },
+                  "detached": { "const": false }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": { "code": { "const": "COMP-REGENERATION-ORPHAN-DETACHED" } },
+                "required": ["code"]
+              },
+              "then": {
+                "properties": {
+                  "cascaded": { "const": false },
+                  "detached": { "const": true }
+                }
+              }
+            }
+          ]
         }
       ],
       "unevaluatedProperties": false
