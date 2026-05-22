@@ -133,8 +133,8 @@
       ],
       "crates": [],
       "packages": {},
-      "reason": "Schema, master table, and fixture semantics are pinned, but no runtime package surface executes ValidationMapping as a public contract.",
-      "tracking": "tests/conformance/spec/test_validation_mapping_table.py"
+      "reason": "Schema, master table, and fixture semantics are pinned. Runtime crate/package execution is intentionally deferred to the Response Actions layer, which will consume ValidationMapping as a public contract.",
+      "tracking": "thoughts/specs/2026-05-20-formspec-semantic-layers.md"
     },
     "definition": {
       "status": "enforced",
