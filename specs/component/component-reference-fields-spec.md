@@ -451,7 +451,153 @@ untrusted metadata.
 
 ## 6. Cross-Document Resolution Algorithm
 
-Task 7 drafts this section.
+### 6.1 Resolution Context
+
+A reference-field resolver receives a Component document plus optional peer
+documents and host policy:
+
+| Field | Required | Purpose |
+|---|---:|---|
+| `component` | Yes | The Component document whose root `tree` and component templates are resolved. |
+| `definition` | No | Definition context for `item:` generation anchors. |
+| `experience` | No | Experience context for `unitRef`, `taskRefs`, `unit:` anchors, and `task:` anchors. |
+| `responseActions` | No | Response Actions context for `ActionButton.actionRef` and `action:` anchors. |
+| `registry` | No | Registry context for `conceptRefs` and `concept:` anchors. |
+| `ontology` | No | Ontology context for `conceptRefs` and `concept:` anchors. |
+| `hostPolicy` | No | Host-owned policy for strict concept resolution, external concept lookup, and report verbosity. |
+
+The resolver MAY receive richer host-owned adapters for Registry, Ontology, or
+external concept lookup. Those adapters are context, not Component semantics.
+
+### 6.2 Resolution Report
+
+The resolver returns a report with two top-level members:
+
+| Field | Meaning |
+|---|---|
+| `findings` | Ordered list of `COMP-REFERENTIAL-INTEGRITY` findings emitted while resolving reference fields. |
+| `annotations` | Map from stable node keys to report-only resolution annotations. |
+
+Each finding MUST include the finding `code`, `kind`, `severity`, a human-readable
+message, and enough node identity to locate the offending Component node. When a
+node has `id`, the finding MUST include that `nodeId`. Every finding MUST also
+include the stable node path so processors can locate nodes without `id`.
+
+Annotation keys are deterministic:
+
+- If a node has `id`, the key is that `id`.
+- If a node lacks `id`, the key is the node's stable JSON Pointer path.
+
+`ComponentBase.id` is optional, so processors MUST NOT require `id` to produce a
+complete report. JSON Pointer paths use the authored Component document shape:
+`/tree` for the root tree, `/tree/children/0` for child nodes, and
+`/components/<templateName>/tree` for custom component template roots. Template
+names in JSON Pointer segments MUST be escaped according to RFC 6901.
+
+Annotations are report-only. They MAY include resolved Unit ids, Task ids,
+ConceptRef summaries, generation-anchor status, and action-ref status by
+reference to Component §5.19. They MUST NOT be written back into Component or
+peer documents.
+
+### 6.3 Traversal Surface
+
+The conforming resolver walks the authored Component document, not an
+implementation-specific rendered DOM or host widget tree.
+
+The traversal set is:
+
+1. The root `component.tree`, in document order.
+2. Every authored custom component template tree under `component.components`,
+   in lexical order by template name.
+
+Within each tree, traversal is pre-order: visit a node before its `children`,
+and visit children in array order.
+
+Custom component instances are resolved at their authored reference node. The
+resolver MUST NOT expand custom component instances before producing the
+conformance report, because expansion would make fallback paths and duplicate
+template nodes implementation-defined. Hosts MAY run an additional expanded-tree
+report for authoring tools, but that report is host-specific and MUST keep its
+annotation keys distinct from the conforming authored-tree report.
+
+### 6.4 Invariants
+
+The resolver MUST be:
+
+- **Deterministic.** The same inputs produce byte-for-byte equivalent findings
+  and annotations. Finding order follows traversal order, then the per-node kind
+  order in §6.5, then source-array order for missing ids.
+- **No-mutation.** The resolver MUST NOT mutate Component, Definition,
+  Experience, Response Actions, Registry, Ontology, or host-policy inputs.
+- **One-directional.** Component reference fields may read peer documents, but
+  resolution MUST NOT synthesize, repair, delete, reorder, or write into any
+  peer document.
+- **Report-only.** Findings and annotations describe authoring or provenance
+  state. They MUST NOT alter rendering, validation, Response status, Mapping,
+  Response Actions invocation, Intake Handoff, Respondent Ledger, Trace, or
+  Registry/Ontology behavior.
+
+### 6.5 Per-Node Resolution Order
+
+For each visited Component node, the resolver processes reference surfaces in
+this order:
+
+1. `ActionButton.actionRef`, by reference to Component §5.19.
+2. `unitRef`, as defined in §2.
+3. `taskRefs`, as defined in §3.
+4. `conceptRefs`, as defined in §4.
+5. `x-generation.anchors`, as defined in §5.
+
+`ActionButton.actionRef` remains owned by Component §5.19. This specification
+does not redefine its severity, inert-button behavior, or no-fallback rule. The
+resolver may include `actionRef` findings in the same `COMP-REFERENTIAL-INTEGRITY`
+report so hosts can present one reference-integrity report, but it MUST preserve
+Component §5.19 semantics exactly.
+
+### 6.6 Lookup Construction
+
+Before traversal, the resolver builds immutable lookup sets from provided
+context:
+
+- Definition item keys and bind paths for `item:` anchors, if `definition` is
+  present.
+- Experience `units[*].id` for `unitRef` and `unit:` anchors, if `experience` is
+  present.
+- Experience `tasks[*].id` for `taskRefs` and `task:` anchors, if `experience`
+  is present.
+- Response Actions `actions[*].id` for `ActionButton.actionRef` and `action:`
+  anchors, if `responseActions` is present.
+- Registry/Ontology/external concept ids according to host policy for
+  `conceptRefs` and `concept:` anchors.
+
+Lookup construction MUST NOT validate, normalize, or repair peer documents
+beyond reading their declared identifiers. Peer-document schema validation
+belongs to those documents' own conformance layers.
+
+### 6.7 Algorithm
+
+For every node in the traversal set:
+
+1. Compute the node key and node path as described in §6.2.
+2. If the node is an `ActionButton`, apply the Component §5.19 `actionRef`
+   resolver and append any resulting findings.
+3. If `unitRef` is present, resolve it against the Experience Unit lookup and
+   emit findings according to §2.3.
+4. If `taskRefs` is present, resolve entries against the Experience Task lookup
+   and emit findings according to §3.3.
+5. If `conceptRefs` is present and host policy attempts concept resolution,
+   resolve entries through the configured Registry/Ontology/external concept
+   context and emit findings according to §4.3.
+6. If `x-generation.anchors` is present and anchor checking is enabled, resolve
+   each anchor according to its prefix and emit findings according to §5.3 and
+   §7.
+7. Add report-only annotations for successful resolutions and unresolved
+   reference summaries.
+
+If optional context is absent, the resolver follows the per-field rules in
+§2-§5. It MUST NOT invent peer context, infer a default Action, fetch external
+concepts or anchors without host policy, or treat absent optional context as a
+Component schema failure.
 
 ## 7. Findings
 

@@ -136,7 +136,9 @@ Shape (`{ source, strategy, generatedBy, anchors, generatedAt }`, all OPTIONAL, 
 
 ## Task 7: §6 Cross-Document Resolution Algorithm
 
-Define `ResolutionContext = (Component, Experience?, ResponseActions?, Registry?)`. Define `ResolutionReport` shape: findings list + per-node annotation map. Annotation keys MUST use `node.id` when present and a stable JSON Pointer / tree path when `id` is absent, because `ComponentBase.id` is optional. Pin resolver invariants: deterministic, no-mutation, one-directional (Component reads from Experience/Response Actions/Registry but never writes). Algorithm walks the Component tree, resolves each reference field, emits findings per the severity table. Same code (`COMP-REFERENTIAL-INTEGRITY`) used by Plan E's ActionButton resolver; this plan adds the kind discriminators.
+- [x] Draft §6 resolution context, report shape, traversal surface, invariants, lookup construction, and algorithm.
+
+Define `ResolutionContext = (Component, Definition?, Experience?, ResponseActions?, Registry?, Ontology?)`. Define `ResolutionReport` shape: findings list + per-node annotation map. Annotation keys MUST use `node.id` when present and a stable JSON Pointer / tree path when `id` is absent, because `ComponentBase.id` is optional. Pin resolver invariants: deterministic, no-mutation, one-directional (Component reads from Definition/Experience/Response Actions/Registry/Ontology but never writes). Algorithm walks the authored Component tree plus custom component template trees, resolves each reference field, emits findings per the severity table. Same code (`COMP-REFERENTIAL-INTEGRITY`) used by Plan E's ActionButton resolver; this plan adds the kind discriminators.
 
 ## Task 8: §7 Findings — severity-by-kind table
 
@@ -254,3 +256,4 @@ Task 21:       promotion-gate + architecture review
 
 - 2026-05-22: Before Task 1, external review found Response Actions validation-tuple hardening gaps in the dirty precondition slice. Remediated those HIGH/WARNING findings first so the Response Actions precondition remains audit-ready before component reference fields land; also fixed the related dist-backed warning-test isolation and archived thought-plan links needed by the gate.
 - 2026-05-22: Architecture review blocked scaffold-only `spec-artifacts.config.json` and `surface-coverage.json` edits. Repo gates require every configured spec/schema pair to have an enforced, path-backed contract row; adding either now would fail metadata checks or overclaim proof. Task 1 was split into Task 1A now, with Task 1B/1C deferred to the proof-surface slice.
+- 2026-05-22: Task 7 architecture review expanded the resolver context from the plan's original Component/Experience/ResponseActions/Registry tuple to include optional Definition and Ontology context, and required an explicit authored-tree/custom-template traversal surface so `item:` anchors and nodes without `id` have deterministic report keys.
