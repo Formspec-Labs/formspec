@@ -165,3 +165,27 @@ Profile does NOT change:
 ### 3.3 Profile Closure
 
 Profile names are closed. Authors MUST NOT introduce additional profile names (e.g., `partial`, `silent`, `batch`), including `x-`-prefixed profile names. Publisher-specific behavior MUST use an `x-` ActionIntent paired with one of this section's four profiles. The four named profiles cover the existing Core terms that interact with action intent; additional profiles would re-open the §9 row-3 stop condition.
+
+## 4. Blocking Policy
+
+`BlockingPolicy` is a **closed, two-value enum** naming whether error-severity findings prevent the surrounding intent from completing.
+
+| Value | Behavior |
+|-------|----------|
+| `non-blocking` | Findings of any severity (including `error`) do not stop the intent. The intent completes regardless of `ValidationReport.valid`. The report MAY still be produced and surfaced to the user. |
+| `block-on-error` | The intent MUST NOT complete when `ValidationReport.valid` is `false` (equivalently, when `counts.error > 0`). The intent halts before any persistence-policy effect higher than `draft-checkpoint` is applied. |
+
+### 4.1 Blocking Reconciliation with Core §5.5 VE-05
+
+Core §5.5 critical rule VE-05 states: *"Saving data MUST never be blocked by validation."* This document preserves VE-05.
+
+- `non-blocking` is consistent with VE-05 by definition.
+- `block-on-error` is consistent with VE-05 because it blocks **the transition** to a higher persistence policy (typically `complete-response`), not the underlying Response data persistence. A `block-on-error` intent that fails validation under `complete-response` persistence MUST leave the Response in `status: in-progress` with its data preserved (matching VE-05).
+
+A processor MUST NOT discard Response data on a blocked submission. The Response remains saveable as a draft (intent `save-draft` would succeed against the same data).
+
+### 4.2 Blocking and Warning/Info Severity
+
+`block-on-error` is keyed off `error` severity only. Findings of `warning` or `info` severity NEVER block, regardless of policy. This aligns with Core §5.3.1 ("only error blocks completion") and the `validation-report.schema.json` invariant `valid = (counts.error === 0)`.
+
+Blocking Policy values are closed. A Response Actions document MUST NOT add author-specific Blocking Policy values (e.g., `x-acme-block-on-warning`). Publisher-specific behavior MUST use an `x-` ActionIntent paired with one of this section's two blocking policies, or wait for a future revision of this spec.
