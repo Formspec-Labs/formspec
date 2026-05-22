@@ -413,17 +413,17 @@ The following shape illustrates the current reference model after the Component 
     "url": "https://example.gov/forms/intake",
     "compatibleVersions": ">=1.0.0 <2.0.0"
   },
-  "x-generation": {
-    "source": "experience:identity",
-    "strategy": "unit-to-section",
-    "generatedBy": "formspec-wireframe-generator@0.1.0",
-    "anchors": ["item:applicantName", "item:dateOfBirth", "unit:identity"]
-  },
   "tree": {
     "id": "identitySection",
     "component": "Section",
     "unitRef": "identity",
     "taskRefs": ["identifyApplicant"],
+    "x-generation": {
+      "source": "experience:identity",
+      "strategy": "unit-to-section",
+      "generatedBy": "formspec-wireframe-generator@0.1.0",
+      "anchors": ["item:applicantName", "item:dateOfBirth", "unit:identity"]
+    },
     "children": [
       {
         "id": "applicantNameInput",

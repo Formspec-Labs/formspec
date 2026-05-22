@@ -89,7 +89,7 @@ export interface Actor {
  */
 export interface Task {
   /**
-   * Stable identifier for this Task. Unique within tasks[].
+   * Stable identifier for this Task. Unique within tasks[]. Referenced by Component nodes via taskRefs[].
    */
   id: string;
   title?: string;
@@ -103,7 +103,7 @@ export interface Task {
  */
 export interface Unit {
   /**
-   * Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef (forthcoming).
+   * Stable identifier for this Unit. Unique within units[]. Referenced by Component nodes via unitRef.
    */
   id: string;
   kind: UnitKind;
