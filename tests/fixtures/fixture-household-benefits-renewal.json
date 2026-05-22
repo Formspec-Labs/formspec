@@ -288,7 +288,7 @@
       "constraintMessage": "Income must be zero or greater."
     },
     {
-      "path": "household.householdMembers[*].memberNoSsnReason",
+      "path": "household.householdMembers[*].memberNoSsn.memberNoSsnReason",
       "relevant": "$memberNoSsn = true",
       "required": "$memberNoSsn = true",
       "default": ""
@@ -307,7 +307,7 @@
     {
       "path": "renewalContact.renewalEmail",
       "whitespace": "trim",
-      "constraint": "empty($) or matches($, '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
+      "constraint": "empty($) or matches($, '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')",
       "constraintMessage": "Enter a valid email address."
     },
     {

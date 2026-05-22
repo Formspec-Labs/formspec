@@ -206,7 +206,7 @@
     {
       "path": "vendorProfile.vendorContactEmail",
       "whitespace": "trim",
-      "constraint": "matches($, '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')",
+      "constraint": "matches($, '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')",
       "constraintMessage": "Enter a valid email address."
     },
     {
