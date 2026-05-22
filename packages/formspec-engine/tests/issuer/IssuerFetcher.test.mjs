@@ -33,6 +33,28 @@ test('FetchIssuerFetcher fetches and parses an Issuer document', async () => {
   assert.ok(got.rawBytes instanceof Uint8Array);
 });
 
+test('FetchIssuerFetcher sends If-None-Match and reports 304 revalidation', async () => {
+  let seenInit;
+  const fetch = async (_url, init) => {
+    seenInit = init;
+    return new Response(null, {
+      status: 304,
+      headers: {
+        etag: '"abc"',
+        'cache-control': 'max-age=120',
+      },
+    });
+  };
+  const fetcher = new FetchIssuerFetcher({ fetch });
+
+  const got = await fetcher.fetch('https://x/i.json', { ifNoneMatch: '"old"' });
+
+  assert.equal(seenInit.headers['if-none-match'], '"old"');
+  assert.equal(got.notModified, true);
+  assert.equal(got.etag, '"abc"');
+  assert.equal(got.cacheControl, 'max-age=120');
+});
+
 test('FetchIssuerFetcher throws on non-2xx responses', async () => {
   const fetch = async () => response('', { status: 404 });
   const fetcher = new FetchIssuerFetcher({ fetch });

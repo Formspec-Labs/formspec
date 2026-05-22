@@ -2,15 +2,28 @@
 
 import type { Issuer } from './types';
 
-export interface IssuerFetchResult {
+export interface IssuerFetchOptions {
+    ifNoneMatch?: string;
+}
+
+export interface IssuerFetchedResult {
     issuer: Issuer;
     rawBytes: Uint8Array;
     etag?: string;
     cacheControl?: string;
+    notModified?: false;
 }
 
+export interface IssuerNotModifiedResult {
+    notModified: true;
+    etag?: string;
+    cacheControl?: string;
+}
+
+export type IssuerFetchResult = IssuerFetchedResult | IssuerNotModifiedResult;
+
 export interface IssuerFetcher {
-    fetch(url: string): Promise<IssuerFetchResult>;
+    fetch(url: string, options?: IssuerFetchOptions): Promise<IssuerFetchResult>;
 }
 
 export interface FetchIssuerFetcherOptions {
@@ -28,8 +41,19 @@ export class FetchIssuerFetcher implements IssuerFetcher {
         this._fetch = fetchImpl;
     }
 
-    public async fetch(url: string): Promise<IssuerFetchResult> {
-        const response = await this._fetch(url);
+    public async fetch(url: string, options: IssuerFetchOptions = {}): Promise<IssuerFetchResult> {
+        const init: RequestInit = {};
+        if (options.ifNoneMatch) {
+            init.headers = { 'if-none-match': options.ifNoneMatch };
+        }
+        const response = await this._fetch(url, init);
+        if (response.status === 304) {
+            return {
+                notModified: true,
+                etag: response.headers.get('etag') ?? options.ifNoneMatch,
+                cacheControl: response.headers.get('cache-control') ?? undefined,
+            };
+        }
         if (!response.ok) {
             throw new Error(`Issuer fetch ${url} returned ${response.status}`);
         }

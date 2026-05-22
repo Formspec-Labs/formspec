@@ -150,6 +150,118 @@ test('IssuerStore caches by URL and reuses on second resolve', async () => {
   assert.equal(calls, 1);
 });
 
+test('IssuerStore refetches expired max-age=0 entries', async () => {
+  const v1 = mkIssuer({ url: 'L', version: '1.0.0' });
+  const v2 = mkIssuer({ url: 'L', version: '1.0.1' });
+  const served = [v1, v2];
+  let calls = 0;
+  const fetcher = {
+    async fetch() {
+      const issuer = served[calls];
+      calls += 1;
+      return {
+        issuer,
+        rawBytes: new TextEncoder().encode(JSON.stringify(issuer)),
+        cacheControl: 'max-age=0',
+      };
+    },
+  };
+  const store = new IssuerStore(fetcher);
+
+  const first = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+  const second = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+
+  assert.equal(first.primary.version, '1.0.0');
+  assert.equal(second.primary.version, '1.0.1');
+  assert.equal(calls, 2);
+});
+
+test('IssuerStore applies default freshness when Cache-Control is absent', async () => {
+  const v1 = mkIssuer({ url: 'L', version: '1.0.0' });
+  const v2 = mkIssuer({ url: 'L', version: '1.0.1' });
+  let now = 0;
+  let calls = 0;
+  const fetcher = {
+    async fetch() {
+      calls += 1;
+      const issuer = calls === 1 ? v1 : v2;
+      return { issuer, rawBytes: new TextEncoder().encode(JSON.stringify(issuer)) };
+    },
+  };
+  const store = new IssuerStore(fetcher, { now: () => now, defaultMaxAgeMs: 1000 });
+
+  const first = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+  now = 999;
+  const cached = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+  now = 1001;
+  const refreshed = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+
+  assert.equal(first.primary.version, '1.0.0');
+  assert.equal(cached.primary.version, '1.0.0');
+  assert.equal(refreshed.primary.version, '1.0.1');
+  assert.equal(calls, 2);
+});
+
+test('IssuerStore does not cache no-store entries', async () => {
+  const v1 = mkIssuer({ url: 'L', version: '1.0.0' });
+  const v2 = mkIssuer({ url: 'L', version: '1.0.1' });
+  let calls = 0;
+  const fetcher = {
+    async fetch() {
+      calls += 1;
+      const issuer = calls === 1 ? v1 : v2;
+      return {
+        issuer,
+        rawBytes: new TextEncoder().encode(JSON.stringify(issuer)),
+        cacheControl: 'no-store',
+      };
+    },
+  };
+  const store = new IssuerStore(fetcher);
+
+  const first = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+  const second = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+
+  assert.equal(first.primary.version, '1.0.0');
+  assert.equal(second.primary.version, '1.0.1');
+  assert.equal(calls, 2);
+});
+
+test('IssuerStore revalidates expired ETag entries and keeps cached issuer on 304', async () => {
+  const v1 = mkIssuer({ url: 'L', version: '1.0.0' });
+  const seenOptions = [];
+  let now = 0;
+  let calls = 0;
+  const fetcher = {
+    async fetch(_url, options) {
+      seenOptions.push(options);
+      calls += 1;
+      if (calls === 1) {
+        return {
+          issuer: v1,
+          rawBytes: new TextEncoder().encode(JSON.stringify(v1)),
+          etag: '"v1"',
+          cacheControl: 'max-age=0',
+        };
+      }
+      return { notModified: true, etag: '"v1"', cacheControl: 'max-age=60' };
+    },
+  };
+  const store = new IssuerStore(fetcher, { now: () => now });
+
+  const first = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+  now = 1;
+  const second = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+  now = 59_000;
+  const cached = await store.resolve({ definitionIssuer: { kind: 'url', url: 'L' } });
+
+  assert.equal(first.primary.version, '1.0.0');
+  assert.equal(second.primary.version, '1.0.0');
+  assert.equal(cached.primary.version, '1.0.0');
+  assert.deepEqual(seenOptions, [undefined, { ifNoneMatch: '"v1"' }]);
+  assert.equal(calls, 2);
+});
+
 test('IssuerStore invalidates cache when requested', async () => {
   const v1 = mkIssuer({ url: 'L', version: '1.0.0' });
   const v2 = mkIssuer({ url: 'L', version: '1.0.1' });
