@@ -106,6 +106,36 @@ class TestResponseActionsValidationTuple:
         with pytest.raises(ValidationError):
             _validator().validate(doc)
 
+    @pytest.mark.parametrize(
+        "shadow_intent",
+        [
+            "x-save-draft",
+            "x-autosave",
+            "x-review",
+            "x-submit",
+            "x-request-evidence",
+        ],
+    )
+    def test_x_intent_must_not_shadow_master_intent(self, shadow_intent: str) -> None:
+        """x- intents MUST NOT collide with the 5 closed VM master-table names.
+
+        Bare ``^x-`` would have admitted these as valid extension intents while
+        the prose forbids shadowing; the pattern must reject them at the
+        schema layer so static lint cannot quietly let them through.
+        """
+        doc = _base_doc()
+        action = doc["actions"][0]
+        action["id"] = "custom-action"
+        action["intent"] = shadow_intent
+        action["validation"] = {
+            "profile": "on-submit",
+            "blocking": "block-on-error",
+            "persistence": "complete-response",
+        }
+
+        with pytest.raises(ValidationError):
+            _validator().validate(doc)
+
 
 class TestResponseActionsEffectTaxonomy:
     def test_host_event_must_not_carry_idempotency_key(self) -> None:

@@ -118,6 +118,34 @@ class TestValidationMappingSchemaShape:
         }))
         assert errors, "Unprefixed non-enum intents MUST be rejected"
 
+    @pytest.mark.parametrize("shadow_intent", [
+        "x-save-draft",
+        "x-autosave",
+        "x-review",
+        "x-submit",
+        "x-request-evidence",
+    ])
+    def test_mapping_entry_rejects_x_intent_that_shadows_master_name(self, schema, shadow_intent):
+        """x- mapping intents MUST NOT shadow the 5 closed VM master-table names.
+
+        Bare ``^x-`` would silently let these through; the tightened pattern
+        rejects them at the schema layer so a custom mapping row cannot
+        masquerade as an override of a standard intent.
+        """
+        entry_schema = {
+            "$schema": schema["$schema"],
+            "$defs": schema["$defs"],
+            "$ref": "#/$defs/MappingEntry",
+        }
+        validator = jsonschema.Draft202012Validator(entry_schema)
+        errors = list(validator.iter_errors({
+            "intent": shadow_intent,
+            "profile": "on-submit",
+            "blocking": "block-on-error",
+            "persistence": "complete-response",
+        }))
+        assert errors, f"{shadow_intent} MUST be rejected as a shadow of a master-table intent"
+
     @pytest.mark.parametrize("bad_entry", [
         {
             "intent": "submit",

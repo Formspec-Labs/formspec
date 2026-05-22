@@ -55,8 +55,8 @@
         { "$ref": "https://formspec.org/schemas/validationMapping/1.0#/$defs/ActionIntent" },
         {
           "type": "string",
-          "pattern": "^x-",
-          "description": "Publisher-defined action intent extension per VM §6.1. MUST be paired with an explicit validation block on the Action; processors MUST NOT consult the master table for x- intents."
+          "pattern": "^x-(?!(?:save-draft|autosave|review|submit|request-evidence)$)[A-Za-z0-9_-]+$",
+          "description": "Publisher-defined action intent extension per VM §6.1. MUST be paired with an explicit validation block on the Action; processors MUST NOT consult the master table for x- intents. The pattern forbids shadowing any standard VM ActionIntent name (x-save-draft, x-autosave, x-review, x-submit, x-request-evidence)."
         }
       ],
       "description": "Closed VM ActionIntent enum OR an x-prefixed publisher extension intent."

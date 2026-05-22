@@ -152,8 +152,8 @@
             { "$ref": "#/$defs/ActionIntent" },
             {
               "type": "string",
-              "pattern": "^x-",
-              "description": "Publisher-defined action intent extension. MUST carry an explicit mapping tuple and MUST NOT shadow a master-table intent."
+              "pattern": "^x-(?!(?:save-draft|autosave|review|submit|request-evidence)$)[A-Za-z0-9_-]+$",
+              "description": "Publisher-defined action intent extension. MUST carry an explicit mapping tuple and MUST NOT shadow a master-table intent (x-save-draft, x-autosave, x-review, x-submit, x-request-evidence are forbidden by the pattern)."
             }
           ]
         },
