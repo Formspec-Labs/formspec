@@ -4730,6 +4730,17 @@ data-cites="instance">@instance</span>() references. Secondary instances
 are read-only by default during form completion.</td>
 </tr>
 <tr>
+<td><code>#/properties/issuer</code></td>
+<td><code>issuer</code></td>
+<td><code>composite</code></td>
+<td>no</td>
+<td>critical</td>
+<td>Optional Issuer binding. Inline (full Issuer document) for
+individual/small-org case; ref ({url} only) for shared/agency case.
+Inverse cardinality from locale/references/ontology (Definition points
+OUT to Issuer).</td>
+</tr>
+<tr>
 <td><code>#/properties/items</code></td>
 <td><code>items</code></td>
 <td><code>array</code></td>

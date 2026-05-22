@@ -305,6 +305,34 @@
       "$ref": "#/$defs/Migrations",
       "description": "Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped."
     },
+    "issuer": {
+      "description": "Optional Issuer binding. Inline (full Issuer document) for individual/small-org case; ref ({url} only) for shared/agency case. Inverse cardinality from locale/references/ontology (Definition points OUT to Issuer).",
+      "oneOf": [
+        {
+          "$ref": "https://formspec.org/schemas/issuer/1.0"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url"],
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      ],
+      "examples": [
+        {
+          "url": "https://example.gov/issuer.json"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Binding to Issuer document (inline full doc or {url} ref). Resolution cascade: host > definition > unbranded."
+      }
+    },
     "extensions": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions",
       "description": "Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip.",
