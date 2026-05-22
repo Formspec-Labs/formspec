@@ -99,8 +99,8 @@ cd formspec && grep -q "COMP-REFERENTIAL-INTEGRITY" specs/component/component-sp
 ## Task 1: Scaffold spec files
 
 - [x] Task 1A: Create `specs/component/component-reference-fields-spec.{md,bluf.md}` scaffold.
-- [ ] Task 1B: Register in `spec-artifacts.config.json` with generated `.llm.md` once proof-surface files exist.
-- [ ] Task 1C: Add `tests/contracts/surface-coverage.json` row in the same proof-surface slice as Task 1B.
+- [x] Task 1B: Register in `spec-artifacts.config.json` with generated `.llm.md` once proof-surface files exist.
+- [x] Task 1C: Add `tests/contracts/surface-coverage.json` row in the same proof-surface slice as Task 1B.
 
 Architecture review found that Task 1B and Task 1C cannot be scaffold-only in the current repo gates: every configured spec/schema pair must have a local enforced contract row, and every enforced row must point at existing proof surfaces. Deferring both avoids either a failing metadata gate or a false proof claim.
 
@@ -295,3 +295,6 @@ Task 21:       promotion-gate + architecture review
 - 2026-05-22: Task 7 architecture review expanded the resolver context from the plan's original Component/Experience/ResponseActions/Registry tuple to include optional Definition and Ontology context, and required an explicit authored-tree/custom-template traversal surface so `item:` anchors and nodes without `id` have deterministic report keys.
 - 2026-05-22: Task 10 architecture review expanded the schema delta beyond `schemas/component.schema.json`. Bumping the Component schema `$id` to `/1.1` requires canonical TargetDefinition `$ref` consumers and the lint-crate schema registration/mirror to move with it, otherwise local schema registries and generated types lose the component resource.
 - 2026-05-22: Task 11 architecture review added minimal Registry and Ontology base fixtures to the planned Definition/Experience/Response Actions base set. Task 12's all-resolved fixture needs explicit concept context for `conceptRefs`; otherwise concept resolution would be not-attempted rather than resolved.
+- 2026-05-22: Completion audit found Task 1B/1C still unchecked after the proof surfaces existed. Closed them in a final registration slice by adding the companion spec to `scripts/spec-artifacts.config.json`, generating `component-reference-fields-spec.llm.md`, adding a dedicated `componentReferenceFields` surface-coverage row, and annotating the new schema fields as LLM-critical metadata for the generated artifact.
+- 2026-05-22: Final code review found the renderer-ignore proof was narrower than the contract-row wording. Broadened the Playwright E2E from `x-generation`-only to `unitRef`, `taskRefs`, `conceptRefs`, and `x-generation` so the package proof matches Renderer Ignore Conformance.
+- 2026-05-22: Final architecture review found the renderer-ignore E2E still used a `1.0` Component marker while the promoted reference-field schema is `1.1`, and the webcomponent warned on `1.1` documents. Updated the renderer support check to accept `1.1`, moved the E2E fixture to `1.1`, asserted no unsupported-version warning, and refreshed the companion spec status prose from scaffold-era language to landed-draft language.

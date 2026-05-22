@@ -14,7 +14,7 @@ const DEFINITION = {
 };
 
 const BASE_COMPONENT = {
-  $formspecComponent: '1.0',
+  $formspecComponent: '1.1',
   version: '1.0.0',
   targetDefinition: { url: 'urn:test:component-reference-fields-rendering' },
   tree: {
@@ -35,24 +35,31 @@ const BASE_COMPONENT = {
   },
 };
 
-function withGenerationMetadata(): typeof BASE_COMPONENT {
+function withReferenceMetadata(): typeof BASE_COMPONENT {
   const component = JSON.parse(JSON.stringify(BASE_COMPONENT)) as typeof BASE_COMPONENT;
   const tree = component.tree as Record<string, unknown> & {
     children: Array<Record<string, unknown>>;
   };
   const children = tree.children;
+  tree.unitRef = 'identity';
+  tree.taskRefs = ['collectIdentity', 'reviewApplication'];
+  tree.conceptRefs = [{ id: 'person.identity', source: 'registry' }];
   tree['x-generation'] = {
     source: 'unit:identity',
     strategy: 'unit-to-stack',
     generatedBy: 'component-reference-fields-e2e/1.0.0',
     anchors: ['unit:identity'],
   };
+  children[0].unitRef = 'identity';
+  children[0].taskRefs = ['collectIdentity'];
   children[1]['x-generation'] = {
     source: 'item:applicantName',
     strategy: 'item-to-input',
     generatedBy: 'component-reference-fields-e2e/1.0.0',
     anchors: ['item:applicantName'],
   };
+  children[2].conceptRefs = [{ id: 'household.size', source: 'ontology' }];
+  children[3].taskRefs = ['reviewApplication'];
   children[3]['x-generation'] = {
     source: 'task:reviewApplication',
     strategy: 'task-to-section',
@@ -88,10 +95,18 @@ async function renderSnapshot(page: Page, componentDocument: unknown): Promise<s
 }
 
 test.describe('Component reference-field rendering', () => {
-  test('x-generation metadata does not change default rendered DOM', async ({ page }) => {
-    const baseSnapshot = await renderSnapshot(page, BASE_COMPONENT);
-    const generationSnapshot = await renderSnapshot(page, withGenerationMetadata());
+  test('reference metadata does not change default rendered DOM', async ({ page }) => {
+    const warnings: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'warning') {
+        warnings.push(message.text());
+      }
+    });
 
-    expect(generationSnapshot).toBe(baseSnapshot);
+    const baseSnapshot = await renderSnapshot(page, BASE_COMPONENT);
+    const metadataSnapshot = await renderSnapshot(page, withReferenceMetadata());
+
+    expect(metadataSnapshot).toBe(baseSnapshot);
+    expect(warnings.filter((message) => message.includes('Unsupported Component Document version'))).toEqual([]);
   });
 });

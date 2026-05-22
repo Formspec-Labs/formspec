@@ -204,6 +204,30 @@
       ]
     },
     {
+      "spec": "specs/component/component-reference-fields-spec.md",
+      "schema": "schemas/component.schema.json",
+      "bluf": "specs/component/component-reference-fields-spec.bluf.md",
+      "llm": "specs/component/component-reference-fields-spec.llm.md",
+      "llmCriticalRoots": [
+        "#/$defs/ComponentBase/properties/unitRef",
+        "#/$defs/ComponentBase/properties/taskRefs",
+        "#/$defs/ComponentBase/properties/conceptRefs",
+        "#/$defs/ComponentBase/properties/x-generation"
+      ],
+      "behaviorEssentials": [
+        "Component reference fields are optional metadata on Component nodes and must not change rendering, binding, validation, Response, or Response Actions semantics.",
+        "unitRef and taskRefs resolve against loaded Experience Unit.id and Task.id values without mutating Component or Experience documents.",
+        "conceptRefs reuse the Experience ConceptRef shape and remain host-policy metadata unless an explicit strict concept policy upgrades diagnostics.",
+        "x-generation records provenance and anchors only; default renderers must ignore it and regeneration merge behavior remains out of scope.",
+        "Reference resolution is deterministic, report-only, no-mutation, and one-directional from Component to loaded context documents."
+      ],
+      "conformanceEssentials": [
+        "Schema Additivity Conformance requires all new fields to remain optional and all previously conforming Component documents to validate unchanged.",
+        "Reference Resolver Conformance requires COMP-REFERENTIAL-INTEGRITY findings with the kind, severity, cardinality, traversal, and no-mutation rules defined by the companion spec.",
+        "Renderer Ignore Conformance requires default runtime output identity for Component documents that differ only by reference metadata."
+      ]
+    },
+    {
       "spec": "specs/locale/locale-spec.md",
       "schema": "schemas/locale.schema.json",
       "bluf": "specs/locale/locale-spec.bluf.md",

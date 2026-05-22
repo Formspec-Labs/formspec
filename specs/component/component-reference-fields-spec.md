@@ -20,9 +20,11 @@ This document is a **Draft** companion specification to the
 reference metadata on Component nodes and the cross-document resolution contract
 for those fields.
 
-This scaffold lands before the Component schema delta. Normative section bodies,
-schema changes, conformance fixtures, resolver tests, and renderer-ignore tests
-land in later plan slices.
+The normative section bodies, Component schema delta, conformance fixtures,
+resolver tests, no-rewrite regression, renderer-ignore E2E, spec-artifact
+registration, and contract-surface row have landed with this draft. The document
+remains draft until the owner promotes the Component 1.1 reference-field surface
+from implementation-ready draft to ratified specification.
 
 ## Bottom Line Up Front
 

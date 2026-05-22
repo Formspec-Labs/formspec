@@ -205,7 +205,12 @@
         "unitRef": {
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
-          "description": "Optional reference to an Experience Unit.id. Report-only metadata; does not affect rendering, binding, validation, or Response semantics."
+          "description": "Optional reference to an Experience Unit.id. Report-only metadata; does not affect rendering, binding, validation, or Response semantics.",
+          "examples": ["identity"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Links a component node to its primary Experience Unit without changing runtime behavior."
+          }
         },
         "taskRefs": {
           "type": "array",
@@ -213,18 +218,40 @@
             "type": "string",
             "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
           },
-          "description": "Optional references to Experience Task.id values. Report-only metadata; order is authoring/reporting order only."
+          "description": "Optional references to Experience Task.id values. Report-only metadata; order is authoring/reporting order only.",
+          "examples": [["collectIdentity", "reviewApplication"]],
+          "x-lm": {
+            "critical": true,
+            "intent": "Records advisory Experience Task links without ordering, workflow, validation, or rendering effects."
+          }
         },
         "conceptRefs": {
           "type": "array",
           "items": {
             "$ref": "https://formspec.org/schemas/experience/1.0#/$defs/ConceptRef"
           },
-          "description": "Optional concept references using the Experience ConceptRef shape. Host-policy metadata; does not execute validation or mapping logic."
+          "description": "Optional concept references using the Experience ConceptRef shape. Host-policy metadata; does not execute validation or mapping logic.",
+          "examples": [[{ "id": "person.name", "source": "registry" }]],
+          "x-lm": {
+            "critical": true,
+            "intent": "Reuses Experience ConceptRef for host-policy metadata while keeping validation and mapping semantics elsewhere."
+          }
         },
         "x-generation": {
           "type": "object",
           "description": "Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.",
+          "examples": [
+            {
+              "source": "unit:identity",
+              "strategy": "unit-to-section",
+              "generatedBy": "component-generator/1.0.0",
+              "anchors": ["unit:identity", "item:applicantName"]
+            }
+          ],
+          "x-lm": {
+            "critical": true,
+            "intent": "Records provenance and source anchors only; renderers must ignore it and merge behavior is out of scope."
+          },
           "properties": {
             "source": {
               "type": "string",

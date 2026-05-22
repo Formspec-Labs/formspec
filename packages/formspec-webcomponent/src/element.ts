@@ -43,6 +43,7 @@ import {
 } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
+const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1']);
 
 function componentFormPresentation(componentDocument: ComponentDocument | null): unknown {
     return (componentDocument as (ComponentDocument & { formPresentation?: unknown }) | null)?.formPresentation;
@@ -744,7 +745,7 @@ export class FormspecRender extends HTMLElement {
         setupBreakpointsFn(this, this._breakpoints);
 
         if (this._componentDocument) {
-            if (this._componentDocument.$formspecComponent !== '1.0') {
+            if (!SUPPORTED_COMPONENT_DOCUMENT_VERSIONS.has(this._componentDocument.$formspecComponent)) {
                 console.warn(`Unsupported Component Document version: ${this._componentDocument.$formspecComponent}`);
             }
 

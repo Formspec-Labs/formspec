@@ -361,6 +361,43 @@
         "core, layout, webcomponent, and React packages cover component authoring, ActionButton insertion, and rendering parity"
       ]
     },
+    "componentReferenceFields": {
+      "status": "enforced",
+      "spec": "specs/component/component-reference-fields-spec.md",
+      "schema": "schemas/component.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_component_reference_fields_schema.py",
+        "tests/conformance/spec/test_component_no_rewrite_regression.py",
+        "tests/conformance/spec/test_component_reference_resolution.py",
+        "tests/e2e/playwright/component-reference-fields.spec.ts"
+      ],
+      "crates": [
+        "crates/formspec-core/src/schema_validator.rs",
+        "crates/formspec-lint/src/schema_validation.rs",
+        "crates/formspec-lint/schemas/component.schema.json"
+      ],
+      "packages": {
+        "core": [
+          "packages/formspec-core/src/generated/component-schema-props.ts"
+        ],
+        "types": [
+          "packages/formspec-types/src/generated/component.ts",
+          "packages/formspec-types/tests/schema-sync.test.ts",
+          "packages/formspec-types/tests/schema-fuzz.test.ts"
+        ],
+        "webcomponent": [
+          "packages/formspec-webcomponent/src/element.ts",
+          "packages/formspec-webcomponent/src/rendering/emit-node.ts",
+          "tests/e2e/playwright/component-reference-fields.spec.ts"
+        ]
+      },
+      "checks": [
+        "ComponentBase reference-field schema shape, optionality, and negative cases are pinned by conformance tests",
+        "no-rewrite coverage validates the pre-existing conforming Component corpus unchanged after the additive field delta",
+        "the resolver pytest pins deterministic, no-mutation, one-directional COMP-REFERENTIAL-INTEGRITY findings",
+        "generated core props, generated TypeScript types, and webcomponent renderer-ignore E2E cover package surfaces"
+      ]
+    },
     "locale": {
       "status": "enforced",
       "spec": "specs/locale/locale-spec.md",
