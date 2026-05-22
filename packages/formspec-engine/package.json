@@ -34,6 +34,10 @@
     "./fel-tools": {
       "types": "./dist/fel/fel-api-tools.d.ts",
       "default": "./dist/fel/fel-api-tools.js"
+    },
+    "./demo-fixtures": {
+      "types": "./dist/demo-submit-response-actions.d.ts",
+      "default": "./dist/demo-submit-response-actions.js"
     }
   },
   "sideEffects": [

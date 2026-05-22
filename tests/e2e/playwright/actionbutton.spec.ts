@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { createDemoSubmitResponseActions } from '@formspec-org/engine';
+import { createDemoSubmitResponseActions } from '@formspec-org/engine/demo-fixtures';
 import { expect, test } from '@playwright/test';
 import { gotoHarness } from '../browser/helpers/harness';
 

@@ -12,7 +12,7 @@ import {
   waitForFormEngine,
 } from './engine-harness';
 import { waitForWasm } from './harness';
-import { createDemoSubmitResponseActions } from '@formspec-org/engine';
+import { createDemoSubmitResponseActions } from '@formspec-org/engine/demo-fixtures';
 
 export {
   engineSetValue,
