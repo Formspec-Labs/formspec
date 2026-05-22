@@ -27,7 +27,7 @@ const ROOT = resolve(__dirname, '..');
 // No shared output dir needed — each package writes to its own folder.
 
 /** Recursively collect all .d.ts files under a directory.
- * Skips `internal/` subtrees: per §10 + §13.6, helpers under internal/ are
+ * Skips `internal/` subtrees: per §10, helpers under internal/ are
  * renderer-private and MUST NOT appear on the published API surface. */
 function collectDtsFiles(dir) {
   const results = [];

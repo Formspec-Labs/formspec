@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import {
+  findResponseActionByIntent,
   invokeResponseAction,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
@@ -12,7 +13,6 @@ import {
   RESPONSE_ACTIONS_PRECONDITION_BINDINGS,
   RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS,
 } from '../dist/index.js';
-import { defaultActionRefForIntent } from '../dist/internal/default-action-ref.js';
 import { VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -219,23 +219,27 @@ test('resolveResponseActionValidationTuple rejects override violating VM §6.3 c
   );
 });
 
-test('derives injected submit actionRef from submit intent (internal helper still callable)', () => {
-  // §13.6: there is no implicit default Action and no free-string fallback.
-  // The helper exists only as a private utility for renderers that need to
-  // bridge legacy SubmitButton flows; it MUST NOT be on the public surface.
-  assert.equal(defaultActionRefForIntent(responseActions, 'submit'), 'send-application');
-  assert.equal(defaultActionRefForIntent(null, 'submit'), '');
+test('renderers derive submit actionRef via findResponseActionByIntent — null when absent', () => {
+  // §10: no implicit default Action, no free-string fallback. Reference
+  // renderers (formspec-react, formspec-webcomponent) MUST resolve the
+  // submit-intent Action through findResponseActionByIntent and treat a
+  // null/undefined result as "skip injection" — never render an
+  // ActionButton bound to an empty string.
+  assert.equal(findResponseActionByIntent(responseActions, 'submit')?.id, 'send-application');
+  assert.equal(findResponseActionByIntent(null, 'submit'), null);
 });
 
-test('defaultActionRefForIntent is NOT exposed on the engine public surface', async () => {
-  // §10 + §13.6: implicit-default helpers MUST NOT advertise themselves on
-  // the contract surface so renderers cannot silently fall back to picking
-  // an arbitrary first matching Action.
+test('no implicit-default-Action helper leaks onto the engine public surface', async () => {
+  // §10: implicit-default helpers MUST NOT advertise themselves on the
+  // contract surface so renderers cannot silently fall back to picking an
+  // arbitrary first matching Action. The historical
+  // `defaultActionRefForIntent` shim has been removed entirely; if a
+  // future PR re-introduces one, this test must fail.
   const publicSurface = await import('../dist/index.js');
   assert.equal(
     'defaultActionRefForIntent' in publicSurface,
     false,
-    'defaultActionRefForIntent must be removed from public engine exports',
+    'defaultActionRefForIntent must remain removed from public engine exports',
   );
 });
 

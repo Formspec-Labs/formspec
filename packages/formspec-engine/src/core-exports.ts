@@ -82,10 +82,10 @@ export {
     resolveResponseActionValidationTuple,
     validationProfileForAction,
 } from './response-actions.js';
-// `defaultActionRefForIntent` is intentionally NOT re-exported here. §10 +
-// §13.6 prohibit implicit-default behavior on the contract surface; the
-// helper now lives at './internal/default-action-ref.js' and is private to
-// the reference renderers.
+// §10 prohibits implicit-default Actions and free-string fallbacks. Renderers
+// that need a submit-intent actionRef MUST call `findResponseActionByIntent`
+// (exported above) and treat a null result as "no submit Action published" —
+// no convenience wrapper that silently substitutes an empty string.
 export {
     RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS,
     RESPONSE_ACTIONS_PRECONDITION_BINDINGS,

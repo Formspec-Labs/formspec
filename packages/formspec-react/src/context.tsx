@@ -19,12 +19,7 @@ import type {
     ResponseActionsDocumentInput,
 } from '@formspec-org/engine';
 import type { EffectRequest, FormResponse, Precondition, ValidationReport } from '@formspec-org/types';
-import { createFormEngine, resolveResponseAction } from '@formspec-org/engine';
-// §10 + §13.6: defaultActionRefForIntent is intentionally NOT on the public
-// engine surface — it is a renderer-internal helper. Auto-injection MUST
-// guard against the empty-string return so we never render an inert
-// ActionButton (WARNING 2 / §10 no free-string-fallback).
-import { defaultActionRefForIntent } from '@formspec-org/engine/internal/default-action-ref';
+import { createFormEngine, findResponseActionByIntent, resolveResponseAction } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import {
     planDefinitionFallback,
@@ -292,14 +287,14 @@ export function FormspecProvider(props: FormspecProviderProps) {
             };
         }
 
-        // §10/§13.6: only inject an ActionButton when a submit-intent
-        // Action actually exists in the loaded Response Actions document.
-        // Auto-injecting an empty actionRef would render an inert button
-        // forever, violating §10's no-free-string-fallback rule.
+        // §10: only inject an ActionButton when a submit-intent Action
+        // actually exists in the loaded Response Actions document. §10
+        // forbids implicit-default Actions and free-string fallbacks, so
+        // auto-injection MUST be a no-op when no submit Action is published.
         if (onSubmit) {
-            const actionRef = defaultActionRefForIntent(responseActionsDocument, 'submit');
-            if (actionRef) {
-                ensureActionButton(root, planCtx.nextId, { pageMode, actionRef });
+            const submitAction = findResponseActionByIntent(responseActionsDocument, 'submit');
+            if (submitAction) {
+                ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: submitAction.id });
             }
         }
         return root;
