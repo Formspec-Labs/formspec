@@ -77,6 +77,7 @@ export {
     declaresHostEvent,
     findResponseActionByIntent,
     invokeResponseAction,
+    InvalidValidationTupleError,
     resolveResponseAction,
     resolveResponseActionValidationTuple,
     validationProfileForAction,

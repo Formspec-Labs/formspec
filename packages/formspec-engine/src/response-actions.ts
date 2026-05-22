@@ -264,9 +264,86 @@ export function findResponseActionByIntent(
     return document.actions.find(action => action?.intent === intent) ?? null;
 }
 
+/**
+ * Structured error thrown when an explicit `action.validation` override
+ * fails the VM §6.3 closed-tuple predicate. The `code` mirrors the Rust
+ * lint pass identifier (formspec-lint VMAP-INVALID-OVERRIDE) so runtime
+ * findings line up with static-analysis output.
+ */
+export class InvalidValidationTupleError extends Error {
+    readonly code = 'VMAP-INVALID-OVERRIDE';
+    readonly actionId: string;
+    readonly override: Record<string, unknown>;
+    constructor(actionId: string, override: Record<string, unknown>, message: string) {
+        super(message);
+        this.name = 'InvalidValidationTupleError';
+        this.actionId = actionId;
+        this.override = override;
+    }
+}
+
+const REQUIRED_TUPLE_KEYS = ['profile', 'blocking', 'persistence'] as const;
+
+/**
+ * Enforces VM §6.3 on a candidate ValidationOverride object. The schema
+ * gate normally catches this, but a host that supplies an override directly
+ * to runtime code (skipping schema validation) MUST still be rejected here
+ * — a partial or self-contradictory tuple would otherwise corrupt the
+ * blocking gate downstream.
+ */
+function assertValidationTupleValid(actionId: string, override: ValidationOverride): void {
+    const overrideRecord = override as unknown as Record<string, unknown>;
+    const missing = REQUIRED_TUPLE_KEYS.filter(k => typeof overrideRecord[k] !== 'string');
+    if (missing.length > 0) {
+        throw new InvalidValidationTupleError(
+            actionId,
+            overrideRecord,
+            `Response Action '${actionId}' validation override missing required keys: ${missing.join(', ')} (VM §6.3 requires the full closed (profile, blocking, persistence) tuple).`,
+        );
+    }
+    const { profile, blocking, persistence } = override;
+    // VM §6.3 clause 1: persistence=complete-response => profile=on-submit AND blocking=block-on-error
+    if (persistence === 'complete-response') {
+        if (profile !== 'on-submit') {
+            throw new InvalidValidationTupleError(
+                actionId,
+                overrideRecord,
+                `Response Action '${actionId}' violates VM §6.3 clause 1: persistence=complete-response requires profile=on-submit (got '${profile}').`,
+            );
+        }
+        if (blocking !== 'block-on-error') {
+            throw new InvalidValidationTupleError(
+                actionId,
+                overrideRecord,
+                `Response Action '${actionId}' violates VM §6.3 clause 1: persistence=complete-response requires blocking=block-on-error (got '${blocking}').`,
+            );
+        }
+    }
+    // VM §6.3 clause 2: blocking=block-on-error => persistence=complete-response
+    if (blocking === 'block-on-error' && persistence !== 'complete-response') {
+        throw new InvalidValidationTupleError(
+            actionId,
+            overrideRecord,
+            `Response Action '${actionId}' violates VM §6.3 clause 2: blocking=block-on-error requires persistence=complete-response (got '${persistence}').`,
+        );
+    }
+    // VM §6.3 clause 3: NOT (profile=off AND blocking=block-on-error)
+    if (profile === 'off' && blocking === 'block-on-error') {
+        throw new InvalidValidationTupleError(
+            actionId,
+            overrideRecord,
+            `Response Action '${actionId}' violates VM §6.3 clause 3: profile=off cannot combine with blocking=block-on-error.`,
+        );
+    }
+}
+
 export function resolveResponseActionValidationTuple(action: ResponseAction): ValidationOverride {
     const override = action.validation;
     if (override) {
+        // VM §6.3 predicate enforcement: a schema-bypassing host (or a
+        // malformed in-memory document) MUST be rejected with a structured
+        // code so finding-aware UIs and the static lint pass align.
+        assertValidationTupleValid(action.id, override);
         return override;
     }
 

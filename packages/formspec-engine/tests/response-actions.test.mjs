@@ -85,6 +85,64 @@ test('requires explicit validation tuple for x-prefixed intents', () => {
   );
 });
 
+test('resolveResponseActionValidationTuple rejects partial override (VMAP-INVALID-OVERRIDE)', () => {
+  // VM §6.3 predicate: the closed (profile, blocking, persistence) tuple
+  // MUST be complete. A host-supplied partial override (e.g., profile only)
+  // bypasses the schema validator and corrupts the blocking-gate evaluation
+  // if waved through. The runtime MUST reject with a structured code that
+  // aligns with the Rust lint pass (VMAP-INVALID-OVERRIDE).
+  const partialAction = {
+    id: 'partial',
+    intent: 'x-custom-partial',
+    validation: { profile: 'on-submit' }, // missing blocking + persistence
+    effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+  };
+  assert.throws(
+    () => resolveResponseActionValidationTuple(partialAction),
+    err => err.code === 'VMAP-INVALID-OVERRIDE'
+      && /missing/i.test(err.message)
+      && /blocking|persistence/.test(err.message),
+  );
+});
+
+test('resolveResponseActionValidationTuple rejects override violating VM §6.3 clause 3 (profile=off + blocking=block-on-error)', () => {
+  // VM §6.3 clause 3 forbids `profile=off AND blocking=block-on-error`.
+  const action = {
+    id: 'bad-clause3',
+    intent: 'x-custom',
+    validation: {
+      profile: 'off',
+      blocking: 'block-on-error',
+      persistence: 'draft-checkpoint',
+    },
+    effects: [{ type: 'hostEvent', eventName: 'noop' }],
+  };
+  assert.throws(
+    () => resolveResponseActionValidationTuple(action),
+    err => err.code === 'VMAP-INVALID-OVERRIDE'
+      && /§6\.3|VM/i.test(err.message),
+  );
+});
+
+test('resolveResponseActionValidationTuple rejects override violating VM §6.3 clause 1 (persistence=complete-response requires on-submit + block-on-error)', () => {
+  // VM §6.3 clause 1: persistence=complete-response REQUIRES
+  // profile=on-submit AND blocking=block-on-error.
+  const action = {
+    id: 'bad-clause1',
+    intent: 'x-custom',
+    validation: {
+      profile: 'live',
+      blocking: 'non-blocking',
+      persistence: 'complete-response',
+    },
+    effects: [{ type: 'hostEvent', eventName: 'noop' }],
+  };
+  assert.throws(
+    () => resolveResponseActionValidationTuple(action),
+    err => err.code === 'VMAP-INVALID-OVERRIDE',
+  );
+});
+
 test('derives injected submit actionRef from submit intent (internal helper still callable)', () => {
   // §13.6: there is no implicit default Action and no free-string fallback.
   // The helper exists only as a private utility for renderers that need to
