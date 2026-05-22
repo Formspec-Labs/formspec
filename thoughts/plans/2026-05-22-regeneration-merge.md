@@ -467,7 +467,7 @@ locate_nearest_higher_ancestor_in_merged(N): walk ancestors above N's immediate
 
 ## Task 9: Spec prose — §8 Orphan handling
 
-- [ ] Draft §8 defining orphan handling end-to-end. Reflects H4 (finding-family separation) and B2 (reattachment is explicit).
+- [x] Draft §8 defining orphan handling end-to-end. Reflects H4 (finding-family separation) and B2 (reattachment is explicit).
 
 Rules:
 
@@ -481,7 +481,7 @@ Rules:
 
 §8 MUST address rendering: orphan nodes render normally (the designer authored them, they should display). Tooling MAY visually mark them via the §10 `data-merge-status` attribute; the spec does not mandate visual treatment.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 10: Spec prose — §9 Rename and anchor-mapping handling
 

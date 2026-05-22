@@ -21,7 +21,7 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1-§7 normative prose has landed. Later normative sections, schema,
+The §1-§8 normative prose has landed. Later normative sections, schema,
 fixtures, algorithm tests, invariant tests, registration, and generated
 artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
@@ -819,6 +819,93 @@ uncovered, and the new node is handled as pending review when it has no
 deterministic old or designer match.
 
 ## 8. Orphan Handling
+
+### 8.1 Orphan Definition
+
+An orphan is a designer-authored subtree from `designer_edited` that the §6.7
+uncovered-orphan pass preserves because it has no deterministic representation in
+`new_generated`. Orphans include:
+
+- designer-added children below generated parents;
+- designer subtrees whose source anchors no longer exist after regeneration;
+- designer subtrees whose anchor key is ambiguous after §3 duplicate handling or
+  §9 anchor-mapping substitution; and
+- designer subtrees whose nearest generated ancestor was removed or no longer
+  resolves in `merged`.
+
+The orphan unit reported by `MergeReport.orphaned[]` is the maximal uncovered
+orphan root selected by §6.7. Descendants of that root are preserved as part of
+the copied subtree and MUST NOT each produce duplicate base orphan entries unless
+they are independently selected as uncovered roots by §6.7.
+
+### 8.2 Preservation Rule
+
+A processor MUST NOT silently delete designer-authored layout solely because it
+is no longer produced by `new_generated`. When §6.7 selects an uncovered orphan
+root, the processor MUST copy that subtree from `designer_edited` into `merged`
+at the deterministic reattachment target defined by §6.7.
+
+Orphan preservation does not assert that the orphan remains source-valid. It
+preserves designer-authored presentation for review while resolver findings and
+the `MergeReport` explain why the subtree needs attention.
+
+### 8.3 Report Entries
+
+Every selected orphan root MUST produce an `orphaned[]` entry with
+`COMP-REGENERATION-ORPHAN-NODE` at `warning` severity. The entry MUST include:
+
+- `anchors`, using the orphan root's computed anchor set after §3 normalization
+  and §9 substitution when applicable;
+- `nodePath`, the orphan root's path in `merged` after reattachment;
+- `reattachedTo`, the merged node path under which the orphan root was attached;
+- `cascaded: true` when reattachment walked above the original parent; and
+- `detached: true` when reattachment fell back to `/tree`.
+
+If reattachment cascades above the orphan root's immediate parent, the processor
+MUST also emit a code-scoped `orphaned[]` entry for
+`COMP-REGENERATION-ORPHAN-REATTACHED-CASCADE` at `info` severity for the same
+orphan root.
+
+If reattachment falls back to `/tree`, the processor MUST also emit a
+code-scoped `orphaned[]` entry for `COMP-REGENERATION-ORPHAN-DETACHED` at
+`warning` severity for the same orphan root.
+
+The same orphan root MAY therefore appear in more than one `orphaned[]` entry
+when more than one code applies. This follows §7.2's code-scoped entry rule.
+
+### 8.4 Resolver Composition
+
+Orphan entries are merge-context findings only. They MUST NOT duplicate
+Component, Component Reference Fields, Response Actions, Experience, Registry,
+Ontology, or other resolver findings.
+
+After producing `merged`, a conforming runtime MUST invoke the Component and
+Component Reference Fields resolver over the merged Component document when the
+required peer context is available. Resolver findings for orphan nodes, such as
+unresolved `bind`, `actionRef`, `unitRef`, or `x-generation.anchors`, appear as
+separate resolver findings in the review surface.
+
+When those resolver findings identify an affected Component node by node key or
+node path, the review surface composes them to the orphan entry for the same
+merged node. `COMP-REGENERATION-ORPHAN-NODE` remains `warning` in
+`MergeReport`; a review surface MAY display an error-level effective severity
+when a separate resolver finding for the same node has `error` severity.
+
+This node-key/path composition is distinct from Experience coverage composition.
+Experience coverage findings carry Definition `path` values, not Component
+node paths, and compose through the §11 two-hop `path -> item:<path> -> anchors`
+join.
+
+### 8.5 Rendering and Review
+
+Orphan nodes render normally as Component content. Runtime renderers MUST NOT
+change rendering behavior solely because a node appears in `orphaned[]`.
+
+Authoring and review tooling MAY visually mark orphan nodes. When tooling exposes
+the DOM-level review contract defined in §10, an orphan-marked rendered node MUST
+carry the §10 `data-merge-status="orphan"` and `data-merge-anchors` attributes.
+Cascade and detached state are report metadata; this specification does not
+require additional runtime rendering attributes for those states.
 
 ## 9. Rename and Anchor-Mapping Handling
 
