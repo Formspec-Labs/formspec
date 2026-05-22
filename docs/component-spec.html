@@ -3085,9 +3085,11 @@ interactive control.</li>
 <li>On click, MUST resolve <code>actionRef</code> to exactly one
 Response Action and invoke it through the Response Actions invocation
 state machine.</li>
-<li>While the invocation is non-terminal (<code>invoking</code>,
-<code>preconditions-evaluated</code>, <code>validation-running</code>,
-<code>blocking-gate</code>, or <code>effects-running</code>):
+<li>While the invocation is non-terminal (<code>created</code>,
+<code>preconditions</code>, <code>validation</code>,
+<code>blocking-gate</code>, or <code>effects-running</code>; see <a
+href="../response-actions/response-actions-spec.md">Response Actions
+§7</a> for the invocation state vocabulary):
 <ul>
 <li>If <code>disableWhenPending</code> is <code>true</code>, MUST render
 the button as disabled/inert.</li>

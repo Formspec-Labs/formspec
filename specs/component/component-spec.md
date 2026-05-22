@@ -1629,9 +1629,10 @@ effect. The widget does not carry validation or event-dispatch policy.
 - MUST NOT accept a `bind` property.
 - On click, MUST resolve `actionRef` to exactly one Response Action and
   invoke it through the Response Actions invocation state machine.
-- While the invocation is non-terminal (`invoking`,
-  `preconditions-evaluated`, `validation-running`, `blocking-gate`, or
-  `effects-running`):
+- While the invocation is non-terminal (`created`, `preconditions`,
+  `validation`, `blocking-gate`, or `effects-running`; see
+  [Response Actions §7](../response-actions/response-actions-spec.md) for
+  the invocation state vocabulary):
   - If `disableWhenPending` is `true`, MUST render the button as
     disabled/inert.
   - MUST display `pendingLabel` when present.
