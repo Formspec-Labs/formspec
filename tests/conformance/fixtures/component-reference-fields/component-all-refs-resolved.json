@@ -1,0 +1,155 @@
+{
+  "$formspecComponent": "1.1",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "id": "applicantDetails",
+    "title": "Applicant details",
+    "unitRef": "identity",
+    "taskRefs": ["identifyApplicant"],
+    "conceptRefs": [
+      {
+        "id": "x-example-person-name",
+        "source": "registry"
+      },
+      {
+        "id": "https://example.gov/concepts/person-name",
+        "source": "ontology"
+      }
+    ],
+    "x-generation": {
+      "source": "unit:identity",
+      "strategy": "unit-to-section",
+      "generatedBy": "component-reference-fields-fixture/1.0.0",
+      "generatedAt": "2026-05-22T00:00:00Z",
+      "anchors": [
+        "item:applicantName",
+        "unit:identity",
+        "task:identifyApplicant",
+        "action:save-draft",
+        "concept:x-example-person-name"
+      ]
+    },
+    "children": [
+      {
+        "component": "TextInput",
+        "id": "applicantNameInput",
+        "bind": "applicantName",
+        "unitRef": "identity",
+        "taskRefs": ["identifyApplicant"],
+        "conceptRefs": [
+          {
+            "id": "x-example-person-name",
+            "source": "registry"
+          }
+        ],
+        "x-generation": {
+          "source": "item:applicantName",
+          "strategy": "item-to-input",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "generatedAt": "2026-05-22T00:00:00Z",
+          "anchors": [
+            "item:applicantName",
+            "unit:identity",
+            "task:identifyApplicant",
+            "concept:x-example-person-name"
+          ]
+        }
+      },
+      {
+        "component": "NumberInput",
+        "id": "householdSizeInput",
+        "bind": "householdSize",
+        "unitRef": "householdReview",
+        "taskRefs": ["reviewHousehold"],
+        "conceptRefs": [
+          {
+            "id": "x-example-household-size",
+            "source": "registry"
+          },
+          {
+            "id": "https://example.gov/concepts/household-size",
+            "source": "ontology"
+          }
+        ],
+        "x-generation": {
+          "source": "item:householdSize",
+          "strategy": "item-to-input",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "generatedAt": "2026-05-22T00:00:00Z",
+          "anchors": [
+            "item:householdSize",
+            "unit:householdReview",
+            "task:reviewHousehold",
+            "concept:x-example-household-size"
+          ]
+        }
+      },
+      {
+        "component": "ActionButton",
+        "id": "saveDraftButton",
+        "label": {
+          "literal": "Save draft"
+        },
+        "actionRef": "save-draft",
+        "unitRef": "identity",
+        "taskRefs": ["identifyApplicant"],
+        "x-generation": {
+          "source": "action:save-draft",
+          "strategy": "action-to-button",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "generatedAt": "2026-05-22T00:00:00Z",
+          "anchors": [
+            "unit:identity",
+            "task:identifyApplicant",
+            "action:save-draft"
+          ]
+        }
+      },
+      {
+        "component": "Signature",
+        "id": "applicantSignatureInput",
+        "bind": "applicantSignature",
+        "unitRef": "submitConfirmation",
+        "taskRefs": ["submitApplication"],
+        "x-generation": {
+          "source": "item:applicantSignature",
+          "strategy": "item-to-input",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "generatedAt": "2026-05-22T00:00:00Z",
+          "anchors": [
+            "item:applicantSignature",
+            "unit:submitConfirmation",
+            "task:submitApplication",
+            "action:submit"
+          ]
+        }
+      },
+      {
+        "component": "ActionButton",
+        "id": "submitButton",
+        "label": {
+          "literal": "Submit"
+        },
+        "actionRef": "submit",
+        "unitRef": "submitConfirmation",
+        "taskRefs": ["submitApplication"],
+        "x-generation": {
+          "source": "action:submit",
+          "strategy": "action-to-button",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "generatedAt": "2026-05-22T00:00:00Z",
+          "anchors": [
+            "unit:submitConfirmation",
+            "task:submitApplication",
+            "action:submit"
+          ]
+        }
+      }
+    ]
+  }
+}

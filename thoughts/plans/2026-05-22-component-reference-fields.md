@@ -180,6 +180,8 @@ Definition / Experience / Response Actions base documents — same shape family 
 
 ## Task 12: Author additivity + happy-path fixtures
 
+- [x] Add no-reference Component baseline and all-reference resolved happy-path Component fixture.
+
 - `component-no-refs.json`: zero new fields. Backward-compat baseline.
 - `component-all-refs-resolved.json`: every new field present, all resolving. Expected: zero findings, full annotation map.
 

@@ -1,0 +1,26 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/component-reference-fields-base",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "tree": {
+    "component": "Section",
+    "title": "Applicant details",
+    "children": [
+      {
+        "component": "TextInput",
+        "bind": "applicantName"
+      },
+      {
+        "component": "NumberInput",
+        "bind": "householdSize"
+      },
+      {
+        "component": "Signature",
+        "bind": "applicantSignature"
+      }
+    ]
+  }
+}
