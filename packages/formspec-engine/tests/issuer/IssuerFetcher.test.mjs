@@ -33,6 +33,23 @@ test('FetchIssuerFetcher fetches and parses an Issuer document', async () => {
   assert.ok(got.rawBytes instanceof Uint8Array);
 });
 
+test('FetchIssuerFetcher binds the default global fetch implementation', async (t) => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  let seenThis;
+  globalThis.fetch = async function () {
+    seenThis = this;
+    return response(JSON.stringify(ISSUER), { status: 200 });
+  };
+  const fetcher = new FetchIssuerFetcher();
+
+  await fetcher.fetch('https://x/i.json');
+
+  assert.equal(seenThis, globalThis);
+});
+
 test('FetchIssuerFetcher sends If-None-Match and reports 304 revalidation', async () => {
   let seenInit;
   const fetch = async (_url, init) => {

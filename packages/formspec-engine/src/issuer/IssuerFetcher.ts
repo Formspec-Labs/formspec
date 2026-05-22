@@ -34,7 +34,7 @@ export class FetchIssuerFetcher implements IssuerFetcher {
     private readonly _fetch: typeof globalThis.fetch;
 
     public constructor(options: FetchIssuerFetcherOptions = {}) {
-        const fetchImpl = options.fetch ?? globalThis.fetch;
+        const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
         if (typeof fetchImpl !== 'function') {
             throw new Error('FetchIssuerFetcher requires a fetch implementation');
         }
