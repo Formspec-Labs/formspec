@@ -169,6 +169,13 @@ merge(
   new_generated: Component v1.1,
   context: { definition?, experience?, responseActions?, registry?, ontology?, hostPolicy?, anchorMappings? }
 ) -> { merged: Component v1.1, report: MergeReport }
+
+freshGenerationWithoutCommonAncestor(
+  old_generated: null,
+  designer_edited: Component v1.1,
+  new_generated: Component v1.1,
+  context: { definition?, experience?, responseActions?, registry?, ontology?, hostPolicy?, anchorMappings? }
+) -> { merged: Component v1.1, report: MergeReport }
 ```
 
 §2 MUST clarify that `context` reuses the peer-document fields from CRF §6's `ResolutionContext` (`definition`, `experience`, `responseActions`, `registry`, `ontology`, `hostPolicy`) and extends that context with optional `anchorMappings`. The three Component documents are merge inputs, not the CRF resolver's single `component` slot.
@@ -669,7 +676,7 @@ def test_merge_case(case_dir: Path) -> None:
 cd formspec && python -m pytest tests/conformance/spec/test_regeneration_merge_algorithm.py -v
 ```
 
-- [ ] Commit final ("test(regeneration-merge): green — all 12 cases pass").
+- [ ] Commit final ("test(regeneration-merge): green — all 17 cases pass").
 
 ## Task 18: Invariant pytest
 
@@ -935,3 +942,8 @@ Task 23:       promotion-gate + architecture review
   - Made absent `old-generated` degrade to `merged == new_generated` plus `report.conflicts[]` entry `COMP-REGENERATION-NO-COMMON-ANCESTOR` at `error`; removed the weaker host-warning language.
   - Added no-mutation requirements for all three Component inputs and the peer-document context, and clarified the CRF context reuse plus optional `anchorMappings` extension.
   - Post-draft review requested one fix before commit: §2 now treats `MergeReport` as a named output until the Task 13 schema lands, avoiding a false normative pointer to still-empty §7/§11 sections.
+- 2026-05-22: Four-commit cadence review by `formspec-specs:formspec-scout` (verdict REQUEST-CHANGES) blocked Task 4 until four fixes landed:
+  - Split §2 operation shapes into normal three-way merge (`old_generated: Component v1.1`) and absent-common-ancestor degradation (`old_generated: null`) so callers can receive `COMP-REGENERATION-NO-COMMON-ANCESTOR` instead of being rejected before report emission.
+  - Reworded the BLUF proof posture from already-proven to future fixture-driven proof before promotion.
+  - Corrected Task 17's final commit-message text from "all 12 cases pass" to "all 17 cases pass."
+  - Updated the spec status paragraph to acknowledge that §2 has landed.

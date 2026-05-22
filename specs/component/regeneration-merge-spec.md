@@ -21,9 +21,9 @@ This document is a **Draft** companion specification to the
 will define deterministic regeneration merge semantics for Component documents
 that carry `x-generation` source anchors.
 
-The §1 introduction and scope language has landed. Later normative sections,
-schema, fixtures, algorithm tests, invariant tests, registration, and generated
-artifacts land in the follow-on tasks of
+The §1 introduction/scope language and §2 input/output contract have landed.
+Later normative sections, schema, fixtures, algorithm tests, invariant tests,
+registration, and generated artifacts land in the follow-on tasks of
 `thoughts/plans/2026-05-22-regeneration-merge.md`.
 
 ## Bottom Line Up Front
@@ -33,7 +33,7 @@ artifacts land in the follow-on tasks of
 - Merge identity is based on `x-generation.anchors` from the Component Reference Fields spec, with no runtime rendering effect.
 - Designer-authored presentation changes are preserved when their source anchors still resolve; conflicts and orphaned nodes are reported instead of silently discarded.
 - Rename handling is explicit: only `$formspecAnchorMappings.anchorMappings[]` substitution can preserve presentation across changed anchors.
-- Conformance is fixture-driven: schema shape, merge algorithm behavior, and invariants are proven by the regeneration merge pytest suite.
+- Conformance is fixture-driven: schema shape, merge algorithm behavior, and invariants will be proven by the regeneration merge pytest suite before this draft is promoted.
 <!-- bluf:end -->
 
 ## Table of Contents
@@ -170,6 +170,8 @@ conflict entries.
 The regeneration merge operation has three Component inputs, one optional peer
 context input, and two outputs:
 
+The conforming three-way merge path has this operation shape:
+
 ```text
 merge(
   old_generated: Component v1.1,
@@ -179,15 +181,27 @@ merge(
 ) -> { merged: Component v1.1, report: MergeReport v1.0 }
 ```
 
-The `old_generated`, `designer_edited`, `new_generated`, and `merged` documents
-MUST declare `$formspecComponent: "1.1"` and MUST validate against the Component
-schema whose `$id` is `https://formspec.org/schemas/component/1.1`.
+The absent-common-ancestor degradation path has this operation shape:
+
+```text
+freshGenerationWithoutCommonAncestor(
+  old_generated: null,
+  designer_edited: Component v1.1,
+  new_generated: Component v1.1,
+  context: RegenerationMergeContext
+) -> { merged: Component v1.1, report: MergeReport v1.0 }
+```
+
+When `old_generated` is present, the `old_generated`, `designer_edited`,
+`new_generated`, and `merged` documents MUST declare `$formspecComponent:
+"1.1"` and MUST validate against the Component schema whose `$id` is
+`https://formspec.org/schemas/component/1.1`.
 
 Validating against the Component v1.1 schema is not sufficient by itself because
 that schema accepts earlier Component version markers for backward
-compatibility. A regeneration-merge processor MUST reject a Component document
-that does not declare `$formspecComponent: "1.1"` for any of the three inputs or
-for the merged output.
+compatibility. A regeneration-merge processor MUST reject any present Component
+document that does not declare `$formspecComponent: "1.1"` for `old_generated`,
+`designer_edited`, `new_generated`, or `merged`.
 
 `MergeReport` MUST validate against
 `schemas/regeneration-merge-report.schema.json` once that schema lands. Until
