@@ -22,6 +22,8 @@ export type JsonRecord = Record<string, JsonValue>;
 import type { LocaleDocument } from './locale.js';
 import type { FieldViewModel } from './field-view-model.js';
 import type { FormViewModel } from './form-view-model.js';
+import type { IssuerFetcher } from './issuer/IssuerFetcher.js';
+import type { IssuerSource, ResolvedIssuer } from './issuer/types.js';
 
 // ── FEL catalog types ────────────────────────────────────────────────
 
@@ -223,6 +225,8 @@ export interface FormEngineOptions {
     runtimeContext?: FormEngineRuntimeContext;
     registryEntries?: RegistryEntry[];
     reactiveRuntime?: import('./reactivity/types.js').EngineReactiveRuntime;
+    issuerFetcher?: IssuerFetcher;
+    issuerOverride?: IssuerSource;
 }
 
 export interface RegistryEntry {
@@ -382,6 +386,8 @@ export interface IFormEngine {
     readonly definition: FormDefinition;
 
     setRuntimeContext(context: FormEngineRuntimeContext): void;
+    setIssuerOverride(source: IssuerSource | undefined): void;
+    getResolvedIssuer(): Promise<ResolvedIssuer>;
 
     getOptions(path: string): OptionEntry[];
     getOptionsSignal(path: string): EngineSignal<OptionEntry[]> | undefined;

@@ -238,6 +238,7 @@ export function buildFormspecResponseEnvelope(options: {
     data: Record<string, unknown>;
     report: ValidationReport;
     timestamp: string;
+    displayedIssuer?: { url: string; version: string };
     meta?: {
         id?: string;
         author?: { id: string; name?: string };
@@ -269,6 +270,9 @@ export function buildFormspecResponseEnvelope(options: {
     }
     if (options.meta?.subject) {
         response.subject = options.meta.subject;
+    }
+    if (options.displayedIssuer) {
+        response.displayedIssuer = options.displayedIssuer;
     }
     if (authoredSignatures) {
         response.authoredSignatures = authoredSignatures;

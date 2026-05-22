@@ -31,6 +31,9 @@ import type {
 import { preactReactiveRuntime } from '../reactivity/preact-runtime.js';
 import type { EngineReactiveRuntime, EngineSignal, ReadonlyEngineSignal } from '../reactivity/types.js';
 import { LocaleStore, type LocaleDocument } from '../locale.js';
+import { FetchIssuerFetcher } from '../issuer/IssuerFetcher.js';
+import { IssuerStore } from '../issuer/IssuerStore.js';
+import type { Issuer, IssuerSource, ResolvedIssuer } from '../issuer/types.js';
 import { createFieldViewModel, type FieldViewModel } from '../field-view-model.js';
 import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
@@ -131,6 +134,7 @@ export class FormEngine implements IFormEngine {
     private readonly _variableDefs: FormVariable[];
     private readonly _variableSignalKeys = new Map<string, string[]>();
     private readonly _externalValidation: ValidationResult[] = [];
+    private readonly _issuerStore: IssuerStore;
 
     private readonly _localeStore: LocaleStore;
     private readonly _fieldViewModels: Record<string, FieldViewModel> = {};
@@ -141,6 +145,9 @@ export class FormEngine implements IFormEngine {
     private _previousEvalResult: EvalResult | null = null;
     private _fullResult: EvalResult | null = null;
     private _labelContext: string | null = null;
+    private _issuerOverride: IssuerSource | undefined;
+    private _resolvedIssuer: ResolvedIssuer | undefined;
+    private _issuerResolutionPromise: Promise<ResolvedIssuer> | undefined;
     private _runtimeContext: {
         nowProvider: () => Date;
         locale?: string;
@@ -161,8 +168,12 @@ export class FormEngine implements IFormEngine {
             runtimeContext,
             registryEntries,
             reactiveRuntime = preactReactiveRuntime,
+            issuerFetcher,
+            issuerOverride,
         } = options;
         this._rx = reactiveRuntime;
+        this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
+        this._issuerOverride = issuerOverride;
         this.instanceVersion = this._rx.signal(0);
         this.structureVersion = this._rx.signal(0);
         this._evaluationVersion = this._rx.signal(0);
@@ -252,6 +263,25 @@ export class FormEngine implements IFormEngine {
         if (this._fullResult) {
             this._evaluate();
         }
+    }
+
+    public setIssuerOverride(source: IssuerSource | undefined): void {
+        this._issuerOverride = source;
+        this._resolvedIssuer = undefined;
+        this._issuerResolutionPromise = undefined;
+    }
+
+    public async getResolvedIssuer(): Promise<ResolvedIssuer> {
+        if (!this._issuerResolutionPromise) {
+            this._issuerResolutionPromise = this._issuerStore.resolve({
+                definitionIssuer: definitionIssuerSource(this.definition),
+                hostOverride: this._issuerOverride,
+            }).then((resolved) => {
+                this._resolvedIssuer = resolved;
+                return resolved;
+            });
+        }
+        return this._issuerResolutionPromise;
     }
 
     public getOptions(path: string): OptionEntry[] {
@@ -570,6 +600,7 @@ export class FormEngine implements IFormEngine {
             data,
             report,
             timestamp: this.nowISO(),
+            displayedIssuer: this.getDisplayedIssuerPin(),
             meta,
         }) as unknown as FormResponse;
     }
@@ -791,6 +822,8 @@ export class FormEngine implements IFormEngine {
             Object.prototype.hasOwnProperty.call(maybeOptions, 'runtimeContext')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'registryEntries')
             || Object.prototype.hasOwnProperty.call(maybeOptions, 'reactiveRuntime')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerFetcher')
+            || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerOverride')
         );
         if (hasOptionsShape) {
             return {
@@ -1395,6 +1428,40 @@ export class FormEngine implements IFormEngine {
             meta: this._runtimeContext.meta,
         });
     }
+
+    private getDisplayedIssuerPin(): { url: string; version: string } | undefined {
+        if (this._resolvedIssuer && this._resolvedIssuer.source !== 'unbranded') {
+            return {
+                url: this._resolvedIssuer.primary.url,
+                version: this._resolvedIssuer.primary.version,
+            };
+        }
+
+        const immediateSource = this._issuerOverride ?? definitionIssuerSource(this.definition);
+        if (immediateSource?.kind === 'inline') {
+            return {
+                url: immediateSource.issuer.url,
+                version: immediateSource.issuer.version,
+            };
+        }
+
+        return undefined;
+    }
+}
+
+function definitionIssuerSource(definition: FormDefinition): IssuerSource | undefined {
+    const issuer = (definition as FormDefinition & { issuer?: unknown }).issuer;
+    if (!issuer || typeof issuer !== 'object') {
+        return undefined;
+    }
+    const record = issuer as Record<string, unknown>;
+    if (record.$formspecIssuer === '1.0' && typeof record.url === 'string') {
+        return { kind: 'inline', issuer: issuer as Issuer };
+    }
+    if (typeof record.url === 'string') {
+        return { kind: 'url', url: record.url };
+    }
+    return undefined;
 }
 
 function assertNeverReplayEvent(event: never): EngineReplayApplyResult {
