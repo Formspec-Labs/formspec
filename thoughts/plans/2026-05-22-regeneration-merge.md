@@ -150,11 +150,11 @@ git commit specs/component/regeneration-merge-spec.md specs/component/regenerati
 
 ## Task 2: Spec prose — §1 Introduction + scope + relationship
 
-- [ ] Draft §1 covering: purpose (concept §7.2 + §10.5), scope (three-way Component merge only), out-of-scope (Trace, runtime engines, Studio UX, broad migration/changelog format beyond the Task 10 anchor-mappings minimum), relationship to Component Reference Fields (consumes `x-generation`), conformance posture, BCP-14 keyword usage.
+- [x] Draft §1 covering: purpose (concept §7.2 + §10.5), scope (three-way Component merge only), out-of-scope (Trace, runtime engines, Studio UX, broad migration/changelog format beyond the Task 10 anchor-mappings minimum), relationship to Component Reference Fields (consumes `x-generation`), conformance posture, BCP-14 keyword usage.
 
 The §1 prose MUST state the `old-generated` persistence requirement explicitly. A host that does not persist `old-generated` cannot perform three-way merge and therefore cannot conform.
 
-- [ ] Commit.
+- [x] Commit.
 
 ## Task 3: Spec prose — §2 Inputs and outputs
 
@@ -926,3 +926,7 @@ Task 23:       promotion-gate + architecture review
   - **P3-BLOCKER (false-negative preflight):** replaced the brittle `$id` grep with a JSON-value check for `https://formspec.org/schemas/component/1.1` and made the multi-line preflight block use one absolute `cd`.
   - **P3-HIGH (rename seam contradiction):** made §9 and out-of-scope reminders consistently define only the minimum `$formspecAnchorMappings.anchorMappings[]` input shape; broad migration/changelog semantics remain out of scope.
   - **P3-WARNING (invariant vocabulary drift):** replaced stale idempotency references in file-structure, self-review, review prompt, and sequencing recap with the narrowed convergence invariant.
+- 2026-05-22: Pre-Task-2 architecture review by `formspec-specs:spec-expert` (verdict GO with guardrails) steered §1 wording before commit:
+  - Kept the semantic-layers note as normative intent only, not a conformance source.
+  - Made `old-generated` a mandatory common ancestor for conforming three-way merge.
+  - Preserved the CRF boundary, Trace exclusion, runtime/Studio out-of-scope limits, and narrowed anchor-mappings rename scope in §1.
