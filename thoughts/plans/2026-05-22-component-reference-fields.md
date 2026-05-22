@@ -229,6 +229,8 @@ from tests.unit.support.schema_fixtures import build_schema_registry
 
 ## Task 17: Resolver pytest
 
+- [x] Add inline resolver pytest covering §6 traversal/report invariants, §7 severity/cardinality fixtures, generation-anchor findings, no-mutation, one-directional inputs, determinism, and stable path keys for nodes without `id`.
+
 Inline reference resolver implementing §6. Fixture-driven assertions on findings per the §7 severity table. Plus invariants: determinism (run twice, identical output), no-mutation (deep-copy comparison), one-directional (Experience/Response Actions documents unchanged after resolution), and stable annotation identity for nodes without `id`.
 
 ## Task 18: Renderer-ignore invariant E2E
