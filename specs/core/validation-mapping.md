@@ -189,3 +189,33 @@ A processor MUST NOT discard Response data on a blocked submission. The Response
 `block-on-error` is keyed off `error` severity only. Findings of `warning` or `info` severity NEVER block, regardless of policy. This aligns with Core §5.3.1 ("only error blocks completion") and the `validation-report.schema.json` invariant `valid = (counts.error === 0)`.
 
 Blocking Policy values are closed. A Response Actions document MUST NOT add author-specific Blocking Policy values (e.g., `x-acme-block-on-warning`). Publisher-specific behavior MUST use an `x-` ActionIntent paired with one of this section's two blocking policies, or wait for a future revision of this spec.
+
+## 5. Persistence Policy
+
+`PersistencePolicy` is a **closed, three-value enum** naming the Response lifecycle effect of the intent.
+
+| Value | Response status effect | When required |
+|-------|------------------------|---------------|
+| `none` | No status change. The Response is not persisted by this intent. The engine MAY still produce a ValidationReport and surface it to the user. | Used by `review` intent (validation-only). |
+| `draft-checkpoint` | Persist current Response state. Status remains `in-progress`. Permitted under any validation outcome (VE-05). | Used by `save-draft`, `autosave`, `request-evidence`. |
+| `complete-response` | Persist current Response state AND transition status to `completed`. REQUIRES `ValidationReport.valid === true` (equivalently `counts.error === 0`). | Used by `submit` intent. |
+
+### 5.1 Persistence Reconciliation with Response Status
+
+The Response schema (`response.schema.json`, §4) defines four statuses: `in-progress`, `completed`, `amended`, `stopped`. This spec reconciles the first two; `amended` and `stopped` are out of scope:
+
+- `amended` re-opens a previously `completed` Response. A future Response Actions intent (e.g., `x-amend-response`) would map to `complete-response` from `amended` once validation passes.
+- `stopped` is an abandonment, not a save. No `ActionIntent` in this spec produces `stopped`.
+
+### 5.2 Persistence and `block-on-error`
+
+When `BlockingPolicy` is `block-on-error` and validation fails:
+
+- If the matching `PersistencePolicy` is `complete-response`, the processor MUST NOT transition status. It MUST preserve the Response data in `status: in-progress` (per VE-05). The blocked intent has the same data-preservation/checkpointability effect as `save-draft`; it does not apply the `complete-response` persistence effect.
+- If the matching `PersistencePolicy` is `draft-checkpoint` or `none`, blocking does not affect persistence (the policy was already non-transitioning). The intent completes its persistence effect and surfaces the report.
+
+### 5.3 Persistence Without Validation
+
+Under `ValidationProfile: off`, no ValidationReport is produced. The persistence effect proceeds regardless. This applies to `save-draft` and `autosave` and is consistent with VE-05.
+
+A processor that wishes to produce a ValidationReport during a draft save (for telemetry, audit, or UI display) MUST use a different intent (`review` runs validation without persisting) or a Response Actions `x-` ActionIntent whose explicit mapping uses one of this spec's closed profiles.
