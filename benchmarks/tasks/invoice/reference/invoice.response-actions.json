@@ -1,0 +1,17 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://formspec.org/examples/invoice",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "submit",
+      "intent": "submit",
+      "effects": [
+        { "type": "hostEvent", "eventName": "formspec-submit" }
+      ]
+    }
+  ]
+}

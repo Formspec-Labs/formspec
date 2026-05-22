@@ -1162,3 +1162,11 @@ Hand-edited monitoring entries — non-actionable items kept for visibility. Not
 - **Source**: editor/layout split review
 - **File**: `packages/formspec-core/src/raw-project.ts:350-373`
 - **Action**: Monitor. Resolution path documented: add dirty flag. Not yet implemented. Tracked as `fs-47iv`.
+
+### 20. Benchmark references — broader schema drift
+
+- **Source**: 2026-05-22 Response Actions remediation (BLOCKER 1)
+- **Files**: `benchmarks/tasks/{clinical-intake,grant-application,grant-report,invoice}/reference/`
+- **Symptom**: After `SubmitButton`→`ActionButton` migration, references still score below 1.0 against the validator. Errors: `Spacer` missing schema branch (`Unknown component type`), `Page` body shape mismatch (`children`/`title` unevaluated on the Stack-coded `Page` variant), `grant-application` definition uses `presentation.layout.page` / `colSpan` keys removed from the definition schema. Independent of Response Actions; pre-existing schema-vs-references drift accumulated across other spec migrations.
+- **Action**: Defer. Conformance gate at `tests/conformance/test_benchmark_references.py` pins the Response-Actions-specific invariants (no SubmitButton; every ActionButton actionRef resolves) so this remediation does not regress. A follow-up should either (a) migrate each reference to the current schema and lift the gate to assert `run_benchmark.py score == 1.0`, or (b) ratify a schema rollback for the specific drift surfaces named above. Either way, future schema edits must include reference updates in the same change.
+- **Port path**: `tests/conformance/test_benchmark_references.py` is the seam — extend it once references reach 1.0.

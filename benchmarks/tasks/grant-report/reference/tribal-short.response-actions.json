@@ -1,0 +1,17 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+    "compatibleVersions": ">=3.0.0 <4.0.0"
+  },
+  "actions": [
+    {
+      "id": "submit",
+      "intent": "submit",
+      "effects": [
+        { "type": "hostEvent", "eventName": "formspec-submit" }
+      ]
+    }
+  ]
+}
