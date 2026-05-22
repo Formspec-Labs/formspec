@@ -70,3 +70,9 @@ Three concentric layers — pick the one that matches your need:
 | Hooks | `useField`, `useForm`, `useWhen`, `useSignal`, ... | Hand-build the UI; the hooks expose the same reactive view models the renderer consumes. |
 
 See [`src/`](src/) for the full hook surface. Each hook is a thin React adapter around the engine's `FieldViewModel` / form-level signals.
+
+`ActionButton` rendering requires a `responseActionsDocument` whose `actions[*].id`
+matches the button's `actionRef`. When an action cannot be resolved, the button is
+rendered inert and `onActionFinding` receives a `COMP-REFERENTIAL-INTEGRITY`
+finding. A resolved action calls `onSubmit` only when it declares a
+`hostEvent` effect for `formspec-submit`.

@@ -192,11 +192,10 @@
                         "jumpLinks": true
                     },
                     {
-                        "component": "SubmitButton",
-                        "label": "Submit Report",
-                        "mode": "submit",
-                        "emitEvent": true,
-                        "pendingLabel": "Submitting..."
+                        "component": "ActionButton",
+                        "actionRef": "submit-report",
+                        "label": { "literal": "Submit Report" },
+                        "pendingLabel": { "literal": "Submitting..." }
                     }
                 ]
             }

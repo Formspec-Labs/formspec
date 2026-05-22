@@ -329,13 +329,13 @@ describe('reconcileComponentTree', () => {
       children: [
         { component: 'TextInput', bind: 'name' },
         { component: 'NumberInput', bind: 'age' },
-        { component: 'SubmitButton', _layout: true, nodeId: 'submit' },
+        { component: 'ActionButton', actionRef: 'submit', _layout: true, nodeId: 'submit' },
       ],
     };
 
     const tree = reconcileComponentTree(definition, existing);
     expect(tree.children).toHaveLength(3);
-    expect(tree.children[2].component).toBe('SubmitButton');
+    expect(tree.children[2].component).toBe('ActionButton');
   });
 
   it('keeps end-positioned layout wrapper at end after new fields are added', () => {
@@ -344,7 +344,7 @@ describe('reconcileComponentTree', () => {
       nodeId: 'root',
       children: [
         { component: 'TextInput', bind: 'name' },
-        { component: 'SubmitButton', _layout: true, nodeId: 'submit' },
+        { component: 'ActionButton', actionRef: 'submit', _layout: true, nodeId: 'submit' },
       ],
     };
 
@@ -359,8 +359,8 @@ describe('reconcileComponentTree', () => {
 
     const tree = reconcileComponentTree(definition, existing);
     expect(tree.children).toHaveLength(4); // 3 fields + submit
-    // Submit button should remain at the end, not at index 1
-    expect(tree.children[3].component).toBe('SubmitButton');
+    // Action button should remain at the end, not at index 1
+    expect(tree.children[3].component).toBe('ActionButton');
     expect(tree.children[3]._layout).toBe(true);
   });
 
@@ -372,7 +372,7 @@ describe('reconcileComponentTree', () => {
         { component: 'TextInput', bind: 'name' },
         { component: 'Divider', _layout: true, nodeId: 'divider' },
         { component: 'NumberInput', bind: 'age' },
-        { component: 'SubmitButton', _layout: true, nodeId: 'submit' },
+        { component: 'ActionButton', actionRef: 'submit', _layout: true, nodeId: 'submit' },
       ],
     };
 
@@ -389,7 +389,7 @@ describe('reconcileComponentTree', () => {
     // divider was at index 1 (not last) → stays at index 1
     expect(tree.children[1].component).toBe('Divider');
     // submit was last → stays last
-    expect(tree.children[tree.children.length - 1].component).toBe('SubmitButton');
+    expect(tree.children[tree.children.length - 1].component).toBe('ActionButton');
   });
 
   it('handles multiple layout wrappers, only the last one tracks wasLast', () => {
@@ -401,7 +401,7 @@ describe('reconcileComponentTree', () => {
         { component: 'TextInput', bind: 'name' },
         { component: 'Divider', _layout: true, nodeId: 'divider' },
         { component: 'NumberInput', bind: 'age' },
-        { component: 'SubmitButton', _layout: true, nodeId: 'submit' },
+        { component: 'ActionButton', actionRef: 'submit', _layout: true, nodeId: 'submit' },
       ],
     };
 
@@ -421,7 +421,7 @@ describe('reconcileComponentTree', () => {
     // Divider was at 2 (not last) → clamped to min(2, ...)
     expect(tree.children[2].component).toBe('Divider');
     // Submit was last → must be at end
-    expect(tree.children[tree.children.length - 1].component).toBe('SubmitButton');
+    expect(tree.children[tree.children.length - 1].component).toBe('ActionButton');
   });
 
   it('preserves wasLast wrapper inside a nested group', () => {

@@ -592,7 +592,7 @@ The following component properties are localizable:
 | ConditionalGroup | `fallback` |
 | Tabs | `tabLabels[N]` |
 | Accordion | `labels[N]` |
-| SubmitButton | `label`, `pendingLabel` |
+| ActionButton | `label`, `pendingLabel` |
 | DataTable | `columns[N].header` |
 | Panel | `title` |
 | Modal | `title`, `triggerLabel` |

@@ -30,7 +30,7 @@ export type AnyComponent = {
   | Collapsible
   | ConditionalGroup
   | Tabs
-  | SubmitButton
+  | ActionButton
   | Accordion
   | RadioGroup
   | MoneyInput
@@ -88,7 +88,7 @@ export type AnyComponent2 =
   | Collapsible
   | ConditionalGroup
   | Tabs
-  | SubmitButton
+  | ActionButton
   | Accordion
   | RadioGroup
   | MoneyInput
@@ -222,7 +222,7 @@ export type AnyComponent3 = {
   | Collapsible
   | ConditionalGroup
   | Tabs
-  | SubmitButton
+  | ActionButton
   | Accordion
   | RadioGroup
   | MoneyInput
@@ -575,28 +575,36 @@ export interface Tabs {
   children?: ChildrenArray;
 }
 /**
- * Button that triggers renderer submission. Calls the host renderer's submit API and can optionally emit the formspec-submit event.
+ * Button that invokes a named Action from the loaded Response Actions document. Validation and host event behavior come from the resolved Action, not from widget-local policy.
  */
-export interface SubmitButton {
-  component: 'SubmitButton';
+export interface ActionButton {
+  component: 'ActionButton';
   /**
-   * Button label text.
+   * Id of the Action in the loaded Response Actions document that this button invokes on click. MUST satisfy the Action.id pattern.
    */
-  label?: string;
+  actionRef: string;
   /**
-   * Validation mode used for response/report generation when clicked.
+   * Button label as a locale reference or literal string wrapper.
    */
-  mode?: 'continuous' | 'submit';
+  label?:
+    | {
+        ref: string;
+      }
+    | {
+        literal: string;
+      };
   /**
-   * Whether clicking the button dispatches the formspec-submit CustomEvent.
+   * Label shown while the resolved Action is invoking, as a locale reference or literal string wrapper.
    */
-  emitEvent?: boolean;
+  pendingLabel?:
+    | {
+        ref: string;
+      }
+    | {
+        literal: string;
+      };
   /**
-   * Label text shown while shared submit pending state is true.
-   */
-  pendingLabel?: string;
-  /**
-   * Whether the button is disabled while shared submit pending state is true.
+   * When true, the button is disabled while the invocation is in flight. When false, the button may be clicked again; Response Actions idempotency prevents duplicate side effects.
    */
   disableWhenPending?: boolean;
 }

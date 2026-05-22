@@ -13,6 +13,10 @@ import type {
     ValidationResult,
 } from '@formspec-org/types';
 import type { EngineReplayEvent, Issuer, IssuerSource } from '@formspec-org/engine';
+import type {
+    ActionHost,
+    ResponseActionsDocument,
+} from './action-invocation';
 import { globalRegistry } from './registry';
 import {
     ScreenerRoute,
@@ -27,7 +31,7 @@ import {
     ItemDescriptor,
     planComponentTree,
     planDefinitionFallback,
-    ensureSubmitButton,
+    ensureActionButton,
     preparePlanContext,
     mergeFormPresentationForPlanning,
 } from '@formspec-org/layout';
@@ -122,6 +126,11 @@ import {
     isSubmitPending as isSubmitPendingFn,
     resolveValidationTarget as resolveValidationTargetFn,
 } from './submit';
+import {
+    resolveActionRef as resolveActionRefFn,
+    invokeAction as invokeActionFn,
+    emitActionFinding,
+} from './action-invocation';
 import { IssuerChrome } from './issuer/IssuerChrome';
 import { parseQueryIssuerOverride } from './issuer/queryOverride';
 
@@ -159,6 +168,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ _definition: FormDefinition | null = null;
     /** @internal */ _componentDocument: ComponentDocument | null = null;
     /** @internal */ _themeDocument: ThemeDocument | null = null;
+    /** @internal */ _responseActionsDocument: ResponseActionsDocument | null = null;
     /** @internal */ _registryEntries: Map<string, RegistryEntry> = new Map();
     /** @internal */ engine: IFormEngine | null = null;
     /** @internal */ cleanupFns: Array<() => void> = [];
@@ -217,7 +227,7 @@ export class FormspecRender extends HTMLElement {
      * Prefer this over separate engine hydration — consumed once when the engine is created.
      */
     private _initialData: FormDataRecord | null = null;
-    /** Whether to auto-inject a SubmitButton node into the layout plan. Defaults to true. */
+    /** Whether to auto-inject an ActionButton node into the layout plan. Defaults to true. */
     private _showSubmit = true;
     /** Shared pending state for submit flows (e.g. async host submits). */
     /** @internal */ _submitPendingSignal = signal(false);
@@ -235,6 +245,10 @@ export class FormspecRender extends HTMLElement {
 
     private get _submitHost(): SubmitHost {
         return this as unknown as SubmitHost;
+    }
+
+    private get _actionHost(): ActionHost {
+        return this as unknown as ActionHost;
     }
 
     /** @internal */ resolveToken = (val: unknown): unknown => resolveTokenFn(this._stylingHost, val);
@@ -474,6 +488,17 @@ export class FormspecRender extends HTMLElement {
         return this._componentDocument;
     }
 
+    /** Set the Response Actions document used by ActionButton actionRef resolution. */
+    set responseActionsDocument(val: ResponseActionsDocument | null | undefined) {
+        this._responseActionsDocument = val ?? null;
+        this.scheduleRender();
+    }
+
+    /** The currently loaded Response Actions document, or null if none is loaded. */
+    get responseActionsDocument(): ResponseActionsDocument | null {
+        return this._responseActionsDocument;
+    }
+
     /**
      * Set the theme document. Loads/unloads referenced stylesheets via
      * ref-counting and schedules a re-render.
@@ -489,7 +514,7 @@ export class FormspecRender extends HTMLElement {
         return this._themeDocument;
     }
 
-    /** Whether to auto-inject a SubmitButton into the layout plan. Defaults to true. */
+    /** Whether to auto-inject an ActionButton into the layout plan. Defaults to true. */
     get showSubmit(): boolean {
         return this._showSubmit;
     }
@@ -634,6 +659,20 @@ export class FormspecRender extends HTMLElement {
         return submitFn(this._submitHost, options);
     }
 
+    /** Resolve an ActionButton actionRef against the loaded Response Actions document. */
+    resolveActionRef(actionRef: string, nodeId?: string) {
+        const resolution = resolveActionRefFn(this._actionHost, actionRef, nodeId);
+        if (resolution.finding) {
+            emitActionFinding(this._actionHost, resolution.finding);
+        }
+        return resolution;
+    }
+
+    /** Invoke a resolved Action and dispatch declared hostEvent effects. */
+    invokeAction(actionRef: string, nodeId?: string) {
+        return invokeActionFn(this._actionHost, actionRef, nodeId);
+    }
+
     /**
      * Resolve a validation result/path to a navigation target with metadata.
      */
@@ -744,7 +783,7 @@ export class FormspecRender extends HTMLElement {
             );
             const pageMode = pageModeFromPresentation(planCtx.formPresentation);
             if (this._showSubmit) {
-                ensureSubmitButton(plan, planCtx.nextId, { pageMode });
+                ensureActionButton(plan, planCtx.nextId, { pageMode });
             }
             emitNodeFn(this._renderHost, plan, container, '');
         } else {
@@ -763,7 +802,7 @@ export class FormspecRender extends HTMLElement {
                     : undefined,
             };
             if (this._showSubmit) {
-                ensureSubmitButton(wrapperNode, planCtx.nextId, { pageMode });
+                ensureActionButton(wrapperNode, planCtx.nextId, { pageMode });
             }
             emitNodeFn(this._renderHost, wrapperNode, container, '');
         }

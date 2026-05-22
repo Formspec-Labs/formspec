@@ -10,7 +10,6 @@ Source schema: `schemas/validation-mapping.schema.json`
 - This document defines four closed vocabularies — `ActionIntent`, `ValidationProfile`, `BlockingPolicy`, `PersistencePolicy` — and a Master Mapping Table that names default tuples per intent. Future Response Actions documents MUST cite this table; they MUST NOT invent a parallel validation vocabulary.
 - Validation Profile names (`live`, `on-submit`, `on-demand`, `off`) pin existing Core terms: global mode (`continuous` / `deferred` / `disabled`) plus per-shape timing filter (`continuous` / `submit` / `demand`). No new runtime behavior is introduced.
 - The mapping preserves Core §5.5 VE-05 ("saving data MUST never be blocked by validation"). Persistence Policy `draft-checkpoint` is non-blocking regardless of validation findings; only `complete-response` requires `valid = true`.
-- A `SubmitButton` without an `actionRef` MUST be treated as invoking the implementation's default submit action (Master Mapping Table row for `submit`): profile `on-submit`, blocking `block-on-error`, persistence `complete-response`. Component §5.19 `mode` ∈ {`continuous`, `submit`} maps to profile `live` / `on-submit` for emitted-report production; Response status `completed` still requires the `on-submit` completion gate.
 - This BLUF is governed by `schemas/validation-mapping.schema.json` (the four enums, `ValidationTuplePredicate`, closed `ValidationTuple`, `MappingEntry`, and `MasterTable` const). The schema is the canonical structural contract; prose is normative.
 
 ## Critical Schema Fields
@@ -33,7 +32,7 @@ Source schema: `schemas/validation-mapping.schema.json`
 - ValidationProfile names pin existing Core global modes and per-shape timing filters; they do not introduce new runtime behavior.
 - BlockingPolicy block-on-error depends only on ValidationReport.valid, which is false exactly when error-count findings are present.
 - PersistencePolicy draft-checkpoint preserves Core VE-05: saving current response data is never blocked by validation findings.
-- SubmitButton without actionRef invokes the default submit mapping; report production may use live/on-submit, but completed status requires the on-submit completion gate.
+- ActionButton resolves actionRef to a Response Action; the resolved Action's intent or explicit override supplies the validation tuple.
 
 ## Conformance Essentials
 

@@ -33,6 +33,13 @@ export type { ThemeDocument, PresentationBlock, ItemDescriptor, AccessibilityBlo
 
 // Types
 export type { RenderContext, ComponentPlugin, ValidationTargetMetadata, ScreenerRoute, ScreenerRouteType, ScreenerStateSnapshot } from './types';
+export type {
+    ActionRefFinding,
+    ActionResolution,
+    ResponseAction,
+    ResponseActionsDocument,
+    ResponseActionEffect,
+} from './action-invocation';
 
 // Default theme
 import { buildPlatformTheme } from '@formspec-org/layout';

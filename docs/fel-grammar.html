@@ -80,6 +80,9 @@ Expressions</a>
 Forms</a></li>
 <li><a href="#path-resolution-rules" id="toc-path-resolution-rules">6.2
 Path Resolution Rules</a></li>
+<li><a href="#host-supplied-context-bindings"
+id="toc-host-supplied-context-bindings">6.3 Host-Supplied Context
+Bindings</a></li>
 </ul></li>
 <li><a href="#conformance" id="toc-conformance">7. Conformance</a></li>
 </ul></li>
@@ -521,12 +524,12 @@ precedence as usual. Postfix operators (<code>.field</code>,
 expression grammar.</p>
 <pre class="peg"><code>FieldRef       ← &#39;$&#39; Identifier PathTail*
                / &#39;$&#39;
-               / ContextRef
+               / ContextRef PathTail*
 
 PathTail       ← &#39;.&#39; Identifier
                / &#39;[&#39; _ ( Integer / &#39;*&#39; ) _ &#39;]&#39;
 
-ContextRef     ← &#39;@&#39; Identifier (&#39;(&#39; _ StringLiteral _ &#39;)&#39;)? (&#39;.&#39; Identifier)*</code></pre>
+ContextRef     ← &#39;@&#39; Identifier (&#39;(&#39; _ StringLiteral? _ &#39;)&#39;)?</code></pre>
 <h3 id="reference-forms">6.1 Reference Forms</h3>
 <table>
 <colgroup>
@@ -594,8 +597,9 @@ ContextRef     ← &#39;@&#39; Identifier (&#39;(&#39; _ StringLiteral _ &#39;)&
 </tr>
 <tr>
 <td><code>@name</code></td>
-<td>Value of named variable declared in <code>variables</code></td>
-<td></td>
+<td>Context identifier; host-supplied catalogs are governed by
+§6.3.</td>
+<td><code>@response.applicantName</code></td>
 </tr>
 <tr>
 <td><code>@instance('n')</code></td>
@@ -630,7 +634,244 @@ the processor MUST signal a definition error.</li>
 subscript continue path resolution into the selected object(s). Multiple
 subscripts may be chained: <code>$a[1].nested[*].value</code> is
 valid.</li>
+<li><strong>Context postfix access:</strong> <code>PathTail</code>
+applies after <code>ContextRef</code>, so
+<code>@response.items[1].amount</code> and
+<code>@effects[*].outcomeRef</code> use the same postfix traversal rules
+as <code>$</code> field references.</li>
 </ol>
+<h3 id="host-supplied-context-bindings">6.3 Host-Supplied Context
+Bindings</h3>
+<p>FEL is host-agnostic: the same grammar embeds in Formspec
+Definitions, Mapping documents, Response Actions documents, Experience
+documents, and other future host specifications. Each host MAY require
+additional context that the FEL grammar reserves a slot for but does NOT
+itself enumerate. Such context flows through the <code>ContextRef</code>
+production (§6) using <code>@name</code> syntax. This section specifies
+the protocol a host spec MUST follow when declaring such bindings, and
+what a conformant catalog-aware FEL evaluator MUST do at evaluation
+time.</p>
+<h4 id="declaration-shape">6.3.1 Declaration shape</h4>
+<p>A host specification declaring host-supplied context bindings MUST
+publish a binding catalog: a closed list of identifiers, each entry
+carrying:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Yes</td>
+<td>The identifier following <code>@</code>. MUST satisfy the
+<code>Identifier</code> lexical rule (§3.2). MUST NOT collide with
+grammar-reserved context names (<code>current</code>,
+<code>index</code>, <code>count</code>, <code>instance</code>).</td>
+</tr>
+<tr>
+<td><code>kind</code></td>
+<td>Yes</td>
+<td>One of <code>value</code>, <code>object</code>,
+<code>function</code>. Determines path access semantics (§6.3.2).</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>Yes</td>
+<td>Informative human-readable type contract (for example, “object with
+fields <code>id</code>, <code>attempt</code>”, “datetime”, or
+“function() -&gt; datetime”). FEL evaluators do not normatively
+type-check this field.</td>
+</tr>
+<tr>
+<td><code>purity</code></td>
+<td>Yes</td>
+<td>One of <code>pure</code> (deterministic over the bound value) or
+<code>impure</code> (evaluation MAY produce a different value across
+invocations, for example a clock read).</td>
+</tr>
+<tr>
+<td><code>evaluationTiming</code></td>
+<td>Yes</td>
+<td>One of <code>eager</code> (resolved once before expression
+evaluation begins) or <code>lazy</code> (resolved on demand at the
+access site).</td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>Yes</td>
+<td>One of <code>expression</code> (bound for the entire expression) or
+<code>subexpression</code> (bound only within a specific scope; reserved
+for future use).</td>
+</tr>
+</tbody>
+</table>
+<p>Host specs MUST publish the catalog in normative prose adjacent to
+wherever the FEL expression is declared. The catalog MUST be closed: a
+catalog-aware FEL evaluator MUST reject any <code>@name</code> whose
+<code>name</code> is not registered and is not a grammar-reserved
+context name.</p>
+<h4 id="evaluator-obligations">6.3.2 Evaluator obligations</h4>
+<p>A conformant FEL evaluator that supports host-supplied bindings:</p>
+<ol type="1">
+<li><strong>MUST</strong> accept a host-supplied binding catalog at the
+start of evaluation. The crate-level API for accepting the catalog is
+implementation-defined; the conformance requirement is observable
+behavior, not API shape.</li>
+<li><strong>MUST</strong> reject a <code>@name</code> reference whose
+<code>name</code> is not in the active catalog AND is not a
+grammar-reserved context name (§6.1). Rejection is an evaluation error,
+not a parse error.</li>
+<li><strong>MUST</strong> resolve <code>@name</code> references
+according to the catalog entry’s <code>kind</code>:
+<ul>
+<li><code>value</code>: <code>@name</code> returns the bound scalar.
+<code>@name.suffix</code> is an evaluation error.</li>
+<li><code>object</code>: <code>@name</code> returns the root bound
+object. The evaluator, not the catalog, traverses dot-segments per §6.2
+path-resolution rules.</li>
+<li><code>function</code>: <code>@name(...)</code> invokes the bound
+function. Bare <code>@name</code> is an evaluation error. The existing
+grammar permits a context call with no arguments or a single string
+literal argument.</li>
+</ul></li>
+<li><strong>MUST</strong> pass function-call string arguments to the
+host binding resolver when the implementation exposes such an API. A
+function binding that does not accept the supplied argument MUST reject
+the access as an evaluation error.</li>
+<li><strong>MUST</strong> isolate catalogs across evaluator instances. A
+catalog supplied to one evaluation MUST NOT leak into another evaluation
+that did not receive it.</li>
+</ol>
+<p>Evaluations that do not opt into a host-supplied catalog MAY retain
+implementation-defined environment context behavior for backwards
+compatibility. Once a host catalog is active, unregistered non-reserved
+names MUST be rejected.</p>
+<p>The host adapter or catalog implementation, not the grammar, is
+responsible for honoring <code>evaluationTiming</code>:
+<code>eager</code> bindings are materialized once for the evaluation,
+while <code>lazy</code> bindings are resolved on demand. A reference
+evaluator MAY receive already-materialized roots as long as observable
+behavior satisfies the host spec’s declared timing.</p>
+<h4 id="examples-non-normative">6.3.3 Examples (non-normative)</h4>
+<p>A Response Actions document can declare:</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr>
+<th>name</th>
+<th>kind</th>
+<th>type</th>
+<th>purity</th>
+<th>evaluationTiming</th>
+<th>scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>response</code></td>
+<td>object</td>
+<td>Current Response snapshot</td>
+<td>pure</td>
+<td>eager</td>
+<td>expression</td>
+</tr>
+<tr>
+<td><code>definition</code></td>
+<td>object</td>
+<td>Pinned Definition</td>
+<td>pure</td>
+<td>eager</td>
+<td>expression</td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>object</td>
+<td><code>{ id, intent, actor }</code></td>
+<td>pure</td>
+<td>eager</td>
+<td>expression</td>
+</tr>
+<tr>
+<td><code>now</code></td>
+<td>function</td>
+<td><code>() -&gt; datetime</code></td>
+<td>impure</td>
+<td>lazy</td>
+<td>expression</td>
+</tr>
+<tr>
+<td><code>validation</code></td>
+<td>object</td>
+<td><code>{ lastReport: ValidationReport \| null }</code></td>
+<td>pure</td>
+<td>eager</td>
+<td>expression</td>
+</tr>
+<tr>
+<td><code>invocation</code></td>
+<td>object</td>
+<td><code>{ id: string, attempt: integer }</code></td>
+<td>pure</td>
+<td>eager</td>
+<td>expression</td>
+</tr>
+</tbody>
+</table>
+<p>Example expressions: <code>@response.applicantName != null</code>,
+<code>@now() &gt; @response.openedAt</code>, and
+<code>@invocation.attempt = 1</code>.</p>
+<p>Grammar-built-ins are a separate category. The grammar-reserved
+context names (<code>current</code>, <code>index</code>,
+<code>count</code>, <code>instance</code> per §6.1) are NOT
+host-supplied bindings. They are normative parts of the FEL grammar.
+Host specs MUST NOT re-declare grammar-built-ins in their §6.3
+catalog.</p>
+<p>The Mapping spec owns <code>@source</code> / <code>@target</code> as
+Mapping-context bindings. Those names are not globally reserved outside
+Mapping; a catalog-aware non-Mapping host that does not register them
+MUST reject them as unbound.</p>
+<h4 id="relationship-to-6.2">6.3.4 Relationship to §6.2</h4>
+<p>Host-supplied object bindings interact with §6.2 path-resolution
+rules as follows:</p>
+<ul>
+<li>§6.2.1 (lexical scope) does NOT apply to host bindings.
+<code>@name</code> is global to the expression; it is not affected by
+repeatable-group scope.</li>
+<li>§6.2.2 (index bounds) applies to host bindings whose object
+structure contains arrays; <code>@effects[1].outcomeRef</code> uses
+one-based FEL indexing.</li>
+<li>§6.2.3 (instance lookup) is for <code>@instance('name')</code>,
+which is grammar-reserved and not subject to §6.3 registration.</li>
+<li>§6.2.4 (chaining) applies: <code>@response.items[1].amount</code> is
+legal when <code>response</code> is registered as an
+<code>object</code>-kind binding and the path traverses validly.</li>
+</ul>
+<h4 id="conformance-hook">6.3.5 Conformance hook</h4>
+<p>A host spec adopting §6.3 MUST publish:</p>
+<ol type="1">
+<li>The closed catalog (§6.3.1 fields populated).</li>
+<li>The relationship between the host’s evaluation moments and each
+binding’s <code>evaluationTiming</code>.</li>
+<li>Negative conformance fixtures asserting unbound <code>@name</code>
+references are rejected.</li>
+</ol>
+<p>These three items are the §6.3 acceptance bar for a host adopter.</p>
 <h2 id="conformance">7. Conformance</h2>
 <p>Locale formatting builtins (<code>formatNumber</code>,
 <code>formatDate</code>) and other cataloged functions are not part of

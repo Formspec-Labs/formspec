@@ -5,7 +5,7 @@ import {
     planDefinitionFallback,
     createNodeIdGenerator,
     preparePlanContext,
-    ensureSubmitButton,
+    ensureActionButton,
     type PlanContext,
     type LayoutNode,
 } from '../src/index';
@@ -1418,7 +1418,7 @@ describe('grant-application integration', () => {
     });
 });
 
-// ── ensureSubmitButton ────────────────────────────────────────────────
+// ── ensureActionButton ────────────────────────────────────────────────
 
 function makeNode(component: string, children: LayoutNode[] = []): LayoutNode {
     return {
@@ -1431,59 +1431,60 @@ function makeNode(component: string, children: LayoutNode[] = []): LayoutNode {
     };
 }
 
-describe('ensureSubmitButton', () => {
-    it('adds a SubmitButton to a plain Stack with no submit', () => {
+describe('ensureActionButton', () => {
+    it('adds an ActionButton to a plain Stack with no action button', () => {
         const root = makeNode('Stack', [makeNode('TextInput')]);
-        ensureSubmitButton(root);
-        expect(root.children.at(-1)?.component).toBe('SubmitButton');
+        ensureActionButton(root);
+        expect(root.children.at(-1)?.component).toBe('ActionButton');
+        expect(root.children.at(-1)?.props?.actionRef).toBe('submit');
     });
 
-    it('does not add a SubmitButton when one already exists', () => {
-        const root = makeNode('Stack', [makeNode('SubmitButton')]);
-        ensureSubmitButton(root);
-        expect(root.children.filter(c => c.component === 'SubmitButton')).toHaveLength(1);
+    it('does not add an ActionButton when one already exists', () => {
+        const root = makeNode('Stack', [makeNode('ActionButton')]);
+        ensureActionButton(root);
+        expect(root.children.filter(c => c.component === 'ActionButton')).toHaveLength(1);
     });
 
-    it('does not add a SubmitButton when the tree contains a Wizard', () => {
+    it('does not add an ActionButton when the tree contains a Wizard', () => {
         const root = makeNode('Stack', [makeNode('Wizard', [makeNode('Section')])]);
-        ensureSubmitButton(root);
-        expect(root.children.some(c => c.component === 'SubmitButton')).toBe(false);
+        ensureActionButton(root);
+        expect(root.children.some(c => c.component === 'ActionButton')).toBe(false);
     });
 
-    it('adds a SubmitButton when Section children are ordinary single-page structure', () => {
+    it('adds an ActionButton when Section children are ordinary single-page structure', () => {
         const root = makeNode('Stack', [
             makeNode('Section', [makeNode('TextInput')]),
             makeNode('Section', [makeNode('Select')]),
         ]);
-        ensureSubmitButton(root);
-        expect(root.children.at(-1)?.component).toBe('SubmitButton');
+        ensureActionButton(root);
+        expect(root.children.at(-1)?.component).toBe('ActionButton');
     });
 
-    it('does not add a SubmitButton when the root Stack has Section page units in wizard mode', () => {
+    it('does not add an ActionButton when the root Stack has Section page units in wizard mode', () => {
         const root = makeNode('Stack', [
             makeNode('Section', [makeNode('TextInput')]),
             makeNode('Section', [makeNode('Select')]),
         ]);
-        ensureSubmitButton(root, createNodeIdGenerator(), { pageMode: 'wizard' });
-        expect(root.children.some(c => c.component === 'SubmitButton')).toBe(false);
+        ensureActionButton(root, createNodeIdGenerator(), { pageMode: 'wizard' });
+        expect(root.children.some(c => c.component === 'ActionButton')).toBe(false);
     });
 
-    it('adds a SubmitButton after Section page units in tabs mode', () => {
+    it('adds an ActionButton after Section page units in tabs mode', () => {
         const root = makeNode('Stack', [
             makeNode('Section', [makeNode('TextInput')]),
             makeNode('Section', [makeNode('Select')]),
         ]);
-        ensureSubmitButton(root, createNodeIdGenerator(), { pageMode: 'tabs' });
-        expect(root.children.map(c => c.component)).toEqual(['Section', 'Section', 'SubmitButton']);
+        ensureActionButton(root, createNodeIdGenerator(), { pageMode: 'tabs' });
+        expect(root.children.map(c => c.component)).toEqual(['Section', 'Section', 'ActionButton']);
     });
 
-    it('wraps a root Accordion in Stack so SubmitButton is not an accordion section', () => {
+    it('wraps a root Accordion in Stack so ActionButton is not an accordion section', () => {
         const root = makeNode('Accordion', [makeNode('Text'), makeNode('Text'), makeNode('Text')]);
-        ensureSubmitButton(root);
+        ensureActionButton(root);
         expect(root.component).toBe('Stack');
         expect(root.children).toHaveLength(2);
         expect(root.children[0].component).toBe('Accordion');
         expect(root.children[0].children).toHaveLength(3);
-        expect(root.children[1].component).toBe('SubmitButton');
+        expect(root.children[1].component).toBe('ActionButton');
     });
 });

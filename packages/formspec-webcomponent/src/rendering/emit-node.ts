@@ -233,6 +233,8 @@ export function renderActualComponent(host: RenderHost, comp: ComponentDescripto
         themeDocument: host._themeDocument,
         prefix,
         submit: (opts) => host.submit(opts),
+        resolveActionRef: (actionRef, nodeId) => host.resolveActionRef(actionRef, nodeId),
+        invokeAction: (actionRef, nodeId) => host.invokeAction(actionRef, nodeId),
         resolveValidationTarget: (r) => host.resolveValidationTarget(r),
         focusField: (p: string) => host.focusField(p),
         submitPendingSignal: host._submitPendingSignal,
@@ -395,7 +397,7 @@ function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent:
     const adapterFn = globalRegistry.resolveAdapterFn('Tabs');
     if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
 
-    // Keep non-page siblings, such as an injected SubmitButton, after the tabs.
+    // Keep non-page siblings, such as an injected ActionButton, after the tabs.
     for (const orphan of orphans) {
         ctx.renderComponent(orphan, parent, ctx.prefix);
     }

@@ -22,6 +22,10 @@ spec-artifacts: node_modules
 docs-check: node_modules
 	npm run docs:check
 
+.PHONY: sync-lint-schemas
+sync-lint-schemas:
+	node scripts/sync-lint-schemas.mjs
+
 test-unit: build-js
 	npm run test:unit
 	npm run --workspace=@formspec/signature-port test

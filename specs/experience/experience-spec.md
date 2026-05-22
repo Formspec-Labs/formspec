@@ -291,7 +291,7 @@ ConceptRefs are informative for processors that do not load a Registry or Ontolo
 
 ### 6.3 ActionRef
 
-References a Response Action identifier (forthcoming companion spec, concept §10.2).
+References a Response Action identifier.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
@@ -299,7 +299,7 @@ References a Response Action identifier (forthcoming companion spec, concept §1
 | `role` | string (`primary`, `secondary`, `escape`) | OPTIONAL | The action's role in this unit. Default: `primary`. |
 | `description` | string | OPTIONAL | Optional clarifying note. |
 
-Until the Response Actions companion spec lands, `ActionRef.id` is a free string. Processors MUST NOT reject an Experience because `ActionRef.id` does not resolve -- resolution depends on a sibling spec that does not yet exist. Coverage-aware processors MAY emit an informative finding ("ActionRef target spec not present").
+Every `ActionRef.id` resolves against the loaded Response Actions document's `actions[*].id` set. Processors MUST load a Response Actions document when the Experience document contains any `ActionRef`. An unresolved `ActionRef.id` MUST be treated as an Experience document error; processors MUST emit a finding and render any corresponding action trigger inert. There is no free-string fallback.
 
 ## 7. Applicability
 
@@ -484,7 +484,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/$defs/ConceptRef/properties/source` | `source` | <code>string</code> | no | enum: <code>"registry"</code>, <code>"ontology"</code>, <code>"external"</code>; default: <code>"registry"</code> | — |
 | `#/$defs/ActionRef/properties/description` | `description` | <code>string</code> | no | — | — |
 | `#/$defs/ActionRef/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
-| `#/$defs/ActionRef/properties/id` | `id` | <code>string</code> | yes | — | Response Action identifier (forthcoming companion spec). |
+| `#/$defs/ActionRef/properties/id` | `id` | <code>string</code> | yes | — | Response Action identifier. MUST resolve against the loaded Response Actions document's actions[*].id set. |
 | `#/$defs/ActionRef/properties/role` | `role` | <code>string</code> | no | enum: <code>"primary"</code>, <code>"secondary"</code>, <code>"escape"</code>; default: <code>"primary"</code> | — |
 | `#/$defs/Applicability/properties/actorRefs` | `actorRefs` | <code>array</code> | no | — | — |
 | `#/$defs/Applicability/properties/channels` | `channels` | <code>array</code> | no | — | — |

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/validationMapping/1.0",
   "title": "Formspec Validation Mapping",
-  "description": "Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (SubmitButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. This schema's MasterTable const MUST equal the prose §6 row-for-row; conformance is pinned by tests/conformance/spec/test_validation_mapping_table.py.",
+  "description": "Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. This schema's MasterTable const MUST equal the prose §6 row-for-row; conformance is pinned by tests/conformance/spec/test_validation_mapping_table.py.",
   "type": "object",
   "required": ["$formspecValidationMapping", "version"],
   "additionalProperties": false,

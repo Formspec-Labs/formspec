@@ -5,6 +5,9 @@
   "description": "A Formspec Mapping DSL v1.0 document describing bidirectional data transformation between a Formspec Response and an external schema. A Mapping Document is a standalone JSON artifact — not embedded in a Definition — that declares field-level correspondences, structural reorganizations, type coercions, value translations, and conditional logic sufficient to convert a Response into an API payload, database record, CSV export, or XML document, and to reverse that transformation when importing. All computed transforms use the Formspec Expression Language (FEL). The DSL generalizes the version-migration fieldMap from §6.7 of the core specification.",
   "type": "object",
   "required": ["$formspecMapping", "version", "definitionRef", "definitionVersion", "targetSchema", "rules"],
+  "patternProperties": {
+    "^x-": true
+  },
   "additionalProperties": false,
   "properties": {
     "$formspecMapping": {
@@ -284,7 +287,9 @@
           "$ref": "#/$defs/ValueMap",
           "description": "Lookup table for value substitution. REQUIRED when transform is 'valueMap'. Auto-reversible only when the forward map is bijective (every value is unique); non-injective maps require an explicit reverse.valueMap.",
           "examples": [
-            { "low": 1, "medium": 2, "high": 3 },
+            {
+              "forward": { "low": 1, "medium": 2, "high": 3 }
+            },
             {
               "forward": { "male": "M", "female": "F", "other": "O" },
               "unmapped": "passthrough"

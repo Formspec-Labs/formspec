@@ -14,6 +14,18 @@ beforeAll(async () => {
 function renderWithValidationSummary(summaryProps: Record<string, any> = {}) {
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
+    el.responseActionsDocument = {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        actions: [
+            {
+                id: 'submit',
+                intent: 'submit',
+                validation: { profile: 'on-submit' },
+                effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+            },
+        ],
+    };
     el.componentDocument = {
         $formspecComponent: '1.0',
         version: '1.0.0',

@@ -63,6 +63,19 @@ const testDefinition = {
     ],
 };
 
+const responseActionsDocument = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    actions: [
+        {
+            id: 'submit',
+            intent: 'submit',
+            validation: { profile: 'on-submit' },
+            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        },
+    ],
+};
+
 function renderInto(element: React.ReactElement): HTMLElement {
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -912,13 +925,17 @@ describe('component map overrides', () => {
     });
 });
 
-// ── SubmitButton ──────────────────────────────────────────────────
+// ── ActionButton ──────────────────────────────────────────────────
 
-describe('SubmitButton', () => {
-    it('renders a submit button when onSubmit is provided', () => {
+describe('ActionButton', () => {
+    it('renders an action button when onSubmit is provided', () => {
         const onSubmit = () => {};
         const container = renderInto(
-            <FormspecForm definition={testDefinition} onSubmit={onSubmit} />
+            <FormspecForm
+                definition={testDefinition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={onSubmit}
+            />
         );
 
         const button = container.querySelector('button[type="submit"]');
@@ -926,7 +943,7 @@ describe('SubmitButton', () => {
         expect(button!.textContent).toBe('Submit');
     });
 
-    it('does not render a submit button when onSubmit is absent', () => {
+    it('does not render an action button when onSubmit is absent', () => {
         const container = renderInto(
             <FormspecForm definition={testDefinition} />
         );
@@ -940,7 +957,11 @@ describe('SubmitButton', () => {
         const onSubmit = (result: any) => { submitted = result; };
 
         const container = renderInto(
-            <FormspecForm definition={testDefinition} onSubmit={onSubmit} />
+            <FormspecForm
+                definition={testDefinition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={onSubmit}
+            />
         );
 
         const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
@@ -959,7 +980,11 @@ describe('SubmitButton', () => {
         const onSubmit = (result: any) => { submitted = result; };
 
         const container = renderInto(
-            <FormspecForm definition={testDefinition} onSubmit={onSubmit} />
+            <FormspecForm
+                definition={testDefinition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={onSubmit}
+            />
         );
 
         // Before clicking submit, the required 'name' field error should not be visible
@@ -975,6 +1000,33 @@ describe('SubmitButton', () => {
 
         // After submit, the field should be touched and error should be visible
         expect(nameInput.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('renders an inert action button and reports a finding when no Response Actions document is loaded', async () => {
+        const onSubmit = vi.fn();
+        const onActionFinding = vi.fn();
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                onSubmit={onSubmit}
+                onActionFinding={onActionFinding}
+            />
+        );
+
+        const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;
+        expect(button).toBeTruthy();
+        expect(button.disabled).toBe(true);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(onActionFinding).toHaveBeenCalledWith(expect.objectContaining({
+            code: 'COMP-REFERENTIAL-INTEGRITY',
+            severity: 'error',
+            kind: 'actionRef',
+            target: 'submit',
+            reason: 'no-response-actions-document',
+        }));
+
+        flushSync(() => { button.click(); });
+        expect(onSubmit).not.toHaveBeenCalled();
     });
 });
 

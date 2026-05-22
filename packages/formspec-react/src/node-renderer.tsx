@@ -1,10 +1,11 @@
 'use client';
 
 /** @filedesc Recursive LayoutNode renderer — dispatches to field or layout components. */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { signal as createSignal } from '@preact/signals-core';
 import type { LayoutNode } from '@formspec-org/layout';
 import { useFormspecContext } from './context';
+import type { ResponseAction } from './context';
 import { useSignal } from './use-signal';
 import { useField } from './use-field';
 import { useForm } from './use-form';
@@ -67,27 +68,72 @@ export function FormspecNode({ node }: { node: LayoutNode }) {
         return <DisplayNode node={node} />;
     }
 
-    if (node.component === 'SubmitButton') {
-        return <SubmitButtonNode node={node} />;
+    if (node.component === 'ActionButton') {
+        return <ActionButtonNode node={node} />;
     }
 
     return <LayoutNodeRenderer node={node} />;
 }
 
-function SubmitButtonNode({ node }: { node: LayoutNode }) {
-    const { onSubmit } = useFormspecContext();
+function resolveActionButtonLabel(value: unknown, fallback: string): string {
+    if (value && typeof value === 'object') {
+        const label = value as { literal?: unknown; ref?: unknown };
+        if (typeof label.literal === 'string') return label.literal;
+    }
+    return typeof value === 'string' ? value : fallback;
+}
+
+function actionRefFor(node: LayoutNode): string {
+    const value = node.props?.actionRef;
+    return typeof value === 'string' ? value : '';
+}
+
+function submitModeForAction(action: ResponseAction): 'continuous' | 'submit' {
+    return action.validation?.profile === 'live' ? 'continuous' : 'submit';
+}
+
+function declaresHostSubmit(action: ResponseAction): boolean {
+    return (action.effects ?? []).some(effect =>
+        effect?.type === 'hostEvent' && effect.eventName === 'formspec-submit',
+    );
+}
+
+function ActionButtonNode({ node }: { node: LayoutNode }) {
+    const { onSubmit, onActionFinding, resolveActionRef } = useFormspecContext();
     const form = useForm();
-    const label = (node.props?.label as string) || 'Submit';
+    const actionRef = actionRefFor(node);
+    const resolution = resolveActionRef(actionRef, node.id);
+    const finding = resolution.finding;
+    const findingKey = finding
+        ? `${finding.code}:${finding.kind}:${finding.nodeId ?? ''}:${finding.target}:${finding.reason ?? ''}`
+        : '';
+    const label = resolveActionButtonLabel(node.props?.label, 'Submit');
+
+    useEffect(() => {
+        if (finding) {
+            onActionFinding?.(finding);
+        }
+    }, [findingKey, onActionFinding]);
 
     const handleClick = useCallback(() => {
-        if (!onSubmit) return;
-        onSubmit(form.submit({ mode: 'submit' }));
-    }, [form, onSubmit]);
+        const nextResolution = resolveActionRef(actionRef, node.id);
+        if (!nextResolution.resolved || !nextResolution.action) {
+            if (nextResolution.finding) {
+                onActionFinding?.(nextResolution.finding);
+            }
+            return;
+        }
+        const result = form.submit({ mode: submitModeForAction(nextResolution.action) });
+        if (declaresHostSubmit(nextResolution.action)) {
+            onSubmit?.(result);
+        }
+    }, [actionRef, form, node.id, onActionFinding, onSubmit, resolveActionRef]);
 
     return (
         <button
             type="submit"
-            className={node.cssClasses?.join(' ') || 'formspec-submit'}
+            className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
+            disabled={!resolution.resolved}
             onClick={handleClick}
         >
             {label}

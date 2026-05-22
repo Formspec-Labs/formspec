@@ -43,7 +43,7 @@ describe('ComponentRegistry', () => {
             // Display
             'Heading', 'Text', 'Card', 'Alert', 'Badge', 'ProgressBar', 'Summary', 'ValidationSummary',
             // Interactive (Wizard is driven by formPresentation.pageMode, not a plugin)
-            'Tabs', 'SubmitButton',
+            'Tabs', 'ActionButton',
             // Special
             'ConditionalGroup', 'DataTable',
         ];

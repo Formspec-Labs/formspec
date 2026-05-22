@@ -18,6 +18,7 @@ export const COMPONENT_BASE_PROP_NAMES = [
 
 export const COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]> = {
   Accordion: ['allowMultiple', 'defaultOpen', 'labels'],
+  ActionButton: ['actionRef', 'disableWhenPending', 'label', 'pendingLabel'],
   Alert: ['dismissible', 'severity', 'text'],
   Badge: ['text', 'variant'],
   Card: ['background', 'border', 'elevation', 'padding', 'radius', 'subtitle', 'title'],
@@ -43,7 +44,6 @@ export const COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]> = {
   Signature: ['clearable', 'height', 'penWidth', 'strokeColor'],
   Slider: ['max', 'min', 'showTicks', 'showValue', 'step'],
   Stack: ['align', 'background', 'border', 'direction', 'elevation', 'gap', 'justify', 'padding', 'radius', 'wrap'],
-  SubmitButton: ['disableWhenPending', 'emitEvent', 'label', 'mode', 'pendingLabel'],
   Summary: ['items'],
   Tabs: ['defaultTab', 'placement', 'tabLabels'],
   Text: ['format', 'text'],

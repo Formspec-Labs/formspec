@@ -3391,7 +3391,7 @@ property (§5.2.1) that controls when they fire (`"continuous"`, `"submit"`,
 
 #### 5.5.1 Action Intent Mapping (informative pointer)
 
-Per-shape `timing` and global mode together compose four named **Validation Profiles** (`live`, `on-submit`, `on-demand`, `off`) defined in the companion [Validation Mapping specification](validation-mapping.md). The mapping document is the normative reconciliation between this section, Component `SubmitButton.mode` (Component §5.19), Component `ValidationSummary.source` (Component §6.13), ValidationReport severity, and Response status transitions. Mapping-Aware processors consult that document for the master table of action intents; non-Mapping-Aware processors implement Core §5.5 as written, which already produces equivalent observable behavior for the default submit case.
+Per-shape `timing` and global mode together compose four named **Validation Profiles** (`live`, `on-submit`, `on-demand`, `off`) defined in the companion [Validation Mapping specification](validation-mapping.md). The mapping document is the normative reconciliation between this section, Component `ActionButton.actionRef` (Component §5.19), Component `ValidationSummary.source` (Component §6.13), ValidationReport severity, and Response status transitions. Mapping-Aware processors consult that document for the master table of action intents; non-Mapping-Aware processors implement Core §5.5 as written.
 
 ### 5.6 Non-Relevant Field Handling
 

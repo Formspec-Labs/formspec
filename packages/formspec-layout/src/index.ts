@@ -59,7 +59,7 @@ export {
     planComponentTree,
     planDefinitionFallback,
     planContains,
-    ensureSubmitButton,
+    ensureActionButton,
     createNodeIdGenerator,
     preparePlanContext,
 } from './planner.js';

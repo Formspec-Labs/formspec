@@ -318,7 +318,7 @@ describe('diagnose', () => {
     expect(warning!.message).toContain('Other');
   });
 
-  it('does not report STALE_THEME_REGION_KEY for component-only nodes like submit buttons', () => {
+  it('does not report STALE_THEME_REGION_KEY for component-only nodes like action buttons', () => {
     const project = createRawProject();
     project.dispatch({
       type: 'definition.addItem',
@@ -327,13 +327,13 @@ describe('diagnose', () => {
     const pageId = addPage(project, 'Page 1');
     moveNodeToPage(project, pageId, { bind: 'page1' });
 
-    // Add a submit button component node and assign its nodeId to the page
+    // Add an action button component node and assign its nodeId to the page
     const result = project.dispatch({
       type: 'component.addNode',
       payload: {
         parent: { nodeId: 'root' },
-        component: 'SubmitButton',
-        props: { label: 'Submit' },
+        component: 'ActionButton',
+        props: { actionRef: 'submit', label: { literal: 'Submit' } },
       },
     });
     const nodeId = (result as any)?.nodeRef?.nodeId;
@@ -414,8 +414,8 @@ describe('diagnose', () => {
       type: 'component.addNode',
       payload: {
         parent: { nodeId: 'root' },
-        component: 'SubmitButton',
-        props: { label: 'Submit' },
+        component: 'ActionButton',
+        props: { actionRef: 'submit', label: { literal: 'Submit' } },
       },
     });
     project.dispatch({

@@ -20,7 +20,7 @@
     { "name": "Collapsible", "primaryHint": "Collapsible", "widgets": ["Collapsible"], "category": "container" },
     { "name": "ConditionalGroup", "primaryHint": "ConditionalGroup", "widgets": ["ConditionalGroup"], "category": "container" },
     { "name": "Tabs", "primaryHint": "Tabs", "widgets": ["Tabs"], "category": "layout" },
-    { "name": "SubmitButton", "primaryHint": "SubmitButton", "widgets": ["SubmitButton"], "category": "display" },
+    { "name": "ActionButton", "primaryHint": "ActionButton", "widgets": ["ActionButton"], "category": "display" },
     { "name": "Accordion", "primaryHint": "Accordion", "widgets": ["Accordion"], "category": "layout" },
     { "name": "RadioGroup", "primaryHint": "RadioGroup", "widgets": ["RadioGroup"], "category": "input" },
     { "name": "MoneyInput", "primaryHint": "MoneyInput", "widgets": ["MoneyInput"], "category": "input" },
@@ -174,7 +174,7 @@
       "DataTable": ["columns", "showRowNumbers"],
       "Modal": ["title", "size", "triggerLabel", "headingLevel", "placement"],
       "Popover": ["triggerLabel", "placement"],
-      "SubmitButton": ["label", "pendingLabel"]
+      "ActionButton": ["actionRef", "label", "pendingLabel"]
     }
   },
   "breakpoints": {

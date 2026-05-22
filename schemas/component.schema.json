@@ -286,7 +286,7 @@
         { "$ref": "#/$defs/Collapsible" },
         { "$ref": "#/$defs/ConditionalGroup" },
         { "$ref": "#/$defs/Tabs" },
-        { "$ref": "#/$defs/SubmitButton" },
+        { "$ref": "#/$defs/ActionButton" },
         { "$ref": "#/$defs/Accordion" },
         { "$ref": "#/$defs/RadioGroup" },
         { "$ref": "#/$defs/MoneyInput" },
@@ -842,9 +842,10 @@
       ]
     },
 
-    "SubmitButton": {
+    "ActionButton": {
       "$ref": "#/$defs/ComponentBase",
-      "description": "Button that triggers renderer submission. Calls the host renderer's submit API and can optionally emit the formspec-submit event.",
+      "description": "Button that invokes a named Action from the loaded Response Actions document. Validation and host event behavior come from the resolved Action, not from widget-local policy.",
+      "required": ["component", "actionRef"],
       "x-lm": {
         "category": "display",
         "level": "core",
@@ -852,33 +853,64 @@
         "bind": "forbidden"
       },
       "properties": {
-        "component": { "const": "SubmitButton" },
+        "component": { "const": "ActionButton" },
+        "actionRef": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Id of the Action in the loaded Response Actions document that this button invokes on click. MUST satisfy the Action.id pattern."
+        },
         "label": {
-          "type": "string",
-          "description": "Button label text."
-        },
-        "mode": {
-          "type": "string",
-          "enum": ["continuous", "submit"],
-          "description": "Validation mode used for response/report generation when clicked."
-        },
-        "emitEvent": {
-          "type": "boolean",
-          "description": "Whether clicking the button dispatches the formspec-submit CustomEvent."
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["ref"],
+              "additionalProperties": false,
+              "properties": {
+                "ref": { "type": "string" }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["literal"],
+              "additionalProperties": false,
+              "properties": {
+                "literal": { "type": "string" }
+              }
+            }
+          ],
+          "description": "Button label as a locale reference or literal string wrapper."
         },
         "pendingLabel": {
-          "type": "string",
-          "description": "Label text shown while shared submit pending state is true."
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["ref"],
+              "additionalProperties": false,
+              "properties": {
+                "ref": { "type": "string" }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["literal"],
+              "additionalProperties": false,
+              "properties": {
+                "literal": { "type": "string" }
+              }
+            }
+          ],
+          "description": "Label shown while the resolved Action is invoking, as a locale reference or literal string wrapper."
         },
         "disableWhenPending": {
           "type": "boolean",
           "default": true,
-          "description": "Whether the button is disabled while shared submit pending state is true."
+          "description": "When true, the button is disabled while the invocation is in flight. When false, the button may be clicked again; Response Actions idempotency prevents duplicate side effects."
         }
       },
       "unevaluatedProperties": false,
       "examples": [
-        { "component": "SubmitButton", "label": "Submit Application", "mode": "submit", "emitEvent": true, "pendingLabel": "Submitting…" }
+        { "component": "ActionButton", "actionRef": "submit-application", "label": { "literal": "Submit Application" }, "pendingLabel": { "literal": "Submitting…" } }
       ]
     },
 
@@ -1433,7 +1465,7 @@
               "TextInput", "NumberInput", "DatePicker", "Select", "CheckboxGroup", "Toggle", "FileUpload",
               "Heading", "Text", "Divider",
               "Card", "Collapsible", "ConditionalGroup",
-              "Tabs", "SubmitButton", "Accordion",
+              "Tabs", "ActionButton", "Accordion",
               "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
               "Alert", "Badge", "ProgressBar", "Summary", "ValidationSummary", "DataTable",
               "Panel", "Modal", "Popover"

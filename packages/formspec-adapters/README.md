@@ -231,7 +231,7 @@ const renderTextInput: AdapterRenderFn<TextInputBehavior> = (behavior, parent, a
 
 - **`integrationCSS` is omitted** — nothing is injected into `<head>`. Styling is only utility classes on the emitted DOM, compiled by your Tailwind/Vite (or CDN) pipeline. In Tailwind v4, add `@source` for `packages/formspec-adapters/src/tailwind/**/*.ts` so class names are discovered.
 
-- **Core plugin styling** — `Card`, `SubmitButton`, and `ValidationSummary` are not adapter-rendered; they still use `formspec-*` class hooks. Import **`formspec-adapters/tailwind-formspec-core.css`** for light-theme defaults (teal accent, white cards, validation summary). Rules are in **`@layer components`** so Tailwind **utilities** on those nodes (e.g. `cssClass` on `SubmitButton`) override the defaults. Override `--formspec-tw-*` on `:root` for token tweaks without utilities.
+- **Core plugin styling** — `Card`, `ActionButton`, and `ValidationSummary` are not adapter-rendered; they still use `formspec-*` class hooks. Import **`formspec-adapters/tailwind-formspec-core.css`** for light-theme defaults (teal accent, white cards, validation summary). Rules are in **`@layer components`** so Tailwind **utilities** on those nodes (e.g. `cssClass` on `ActionButton`) override the defaults. Override `--formspec-tw-*` on `:root` for token tweaks without utilities.
 
 **Customization:**
 

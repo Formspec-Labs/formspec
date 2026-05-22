@@ -194,11 +194,10 @@
                 "jumpLinks": true
               },
               {
-                "component": "SubmitButton",
-                "label": "Submit Intake",
-                "mode": "submit",
-                "emitEvent": true,
-                "pendingLabel": "Submitting..."
+                "component": "ActionButton",
+                "actionRef": "submit-intake",
+                "label": { "literal": "Submit Intake" },
+                "pendingLabel": { "literal": "Submitting..." }
               }
             ]
           }

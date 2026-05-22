@@ -55,7 +55,7 @@ export type PresentationBlock = {
     | 'Collapsible'
     | 'ConditionalGroup'
     | 'Tabs'
-    | 'SubmitButton'
+    | 'ActionButton'
     | 'Accordion'
     | 'RadioGroup'
     | 'MoneyInput'

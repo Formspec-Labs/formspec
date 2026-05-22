@@ -149,10 +149,10 @@ export const UI_POLICY = {
       "category": "layout"
     },
     {
-      "name": "SubmitButton",
-      "primaryHint": "SubmitButton",
+      "name": "ActionButton",
+      "primaryHint": "ActionButton",
       "widgets": [
-        "SubmitButton"
+        "ActionButton"
       ],
       "category": "display"
     },
@@ -857,7 +857,8 @@ export const UI_POLICY = {
         "triggerLabel",
         "placement"
       ],
-      "SubmitButton": [
+      "ActionButton": [
+        "actionRef",
         "label",
         "pendingLabel"
       ]

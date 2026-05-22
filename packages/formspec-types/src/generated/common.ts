@@ -28,7 +28,7 @@ export type BuiltInWidgetName =
   | 'Collapsible'
   | 'ConditionalGroup'
   | 'Tabs'
-  | 'SubmitButton'
+  | 'ActionButton'
   | 'Accordion'
   | 'RadioGroup'
   | 'MoneyInput'

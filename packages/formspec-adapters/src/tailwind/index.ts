@@ -1,7 +1,7 @@
 /**
  * @filedesc Tailwind CSS render adapter — utility-first styling on semantic HTML elements.
  *
- * Core layout plugins (`Card`, `SubmitButton`, `ValidationSummary`) are not adapter-rendered;
+ * Core layout plugins (`Card`, `ActionButton`, `ValidationSummary`) are not adapter-rendered;
  * they use `formspec-*` classes. Import **`formspec-adapters/tailwind-formspec-core.css`** in your
  * app (before host overrides) for sensible defaults, or supply your own styles.
  */

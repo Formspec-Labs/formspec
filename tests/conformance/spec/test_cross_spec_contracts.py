@@ -1241,7 +1241,7 @@ class TestBucket1SchemaStructure:
             "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
             "Alert", "Badge", "ProgressBar", "Summary", "ValidationSummary", "DataTable",
             "Panel", "Modal", "Popover",
-            "SubmitButton",
+            "ActionButton",
         ]
         base_props = COMP_S["$defs"].get("ComponentBase", {}).get("properties", {})
         for name in builtins:

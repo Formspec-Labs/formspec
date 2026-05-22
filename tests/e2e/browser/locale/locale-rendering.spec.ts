@@ -40,7 +40,7 @@ const COMPONENT = {
       { component: 'TextInput', bind: 'email' },
       { component: 'Select', bind: 'color' },
       { component: 'NumberInput', bind: 'count' },
-      { component: 'SubmitButton', id: 'submit-btn', label: 'Submit Form' },
+      { component: 'ActionButton', id: 'submit-btn', actionRef: 'submit', label: { literal: 'Submit Form' } },
     ],
   },
 };

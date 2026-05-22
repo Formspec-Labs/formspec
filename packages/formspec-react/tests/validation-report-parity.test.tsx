@@ -27,6 +27,19 @@ const definition = {
     binds: [{ path: 'name', required: 'true' }],
 };
 
+const responseActionsDocument = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    actions: [
+        {
+            id: 'submit',
+            intent: 'submit',
+            validation: { profile: 'on-submit' },
+            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        },
+    ],
+};
+
 function renderInto(element: React.ReactElement): { container: HTMLElement; root: ReturnType<typeof createRoot> } {
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -39,7 +52,11 @@ describe('React ValidationReport parity', () => {
     it('submits the same ValidationReport envelope fields exposed by renderer packages', () => {
         let submitted: any = null;
         const { container, root } = renderInto(
-            <FormspecForm definition={definition} onSubmit={(result) => { submitted = result; }} />,
+            <FormspecForm
+                definition={definition}
+                responseActionsDocument={responseActionsDocument}
+                onSubmit={(result) => { submitted = result; }}
+            />,
         );
 
         const button = container.querySelector('button[type="submit"]') as HTMLButtonElement;

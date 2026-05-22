@@ -241,7 +241,7 @@
         "id": {
           "type": "string",
           "minLength": 1,
-          "description": "Response Action identifier (forthcoming companion spec)."
+          "description": "Response Action identifier. MUST resolve against the loaded Response Actions document's actions[*].id set."
         },
         "role": {
           "type": "string",

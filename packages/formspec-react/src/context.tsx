@@ -11,7 +11,7 @@ import {
     planDefinitionFallback,
     planComponentTree,
     preparePlanContext,
-    ensureSubmitButton,
+    ensureActionButton,
     mergeFormPresentationForPlanning,
 } from '@formspec-org/layout';
 import type { ComponentMap } from './component-map';
@@ -19,6 +19,40 @@ import type { ComponentMap } from './component-map';
 export interface SubmitResult {
     response: FormResponse;
     validationReport: ValidationReport;
+}
+
+export interface ResponseAction {
+    id: string;
+    intent?: string;
+    validation?: {
+        profile?: 'live' | 'on-submit' | 'on-demand' | 'off';
+    };
+    effects?: Array<{
+        type?: string;
+        eventName?: string;
+        [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+}
+
+export interface ResponseActionsDocument {
+    actions?: ResponseAction[];
+    [key: string]: unknown;
+}
+
+export interface ActionResolution {
+    resolved: boolean;
+    action: ResponseAction | null;
+    finding?: ActionRefFinding;
+}
+
+export interface ActionRefFinding {
+    code: 'COMP-REFERENTIAL-INTEGRITY';
+    severity: 'error';
+    kind: 'actionRef';
+    nodeId?: string;
+    target: string;
+    reason?: 'missing-actionRef' | 'no-response-actions-document';
 }
 
 export interface FormspecContextValue {
@@ -29,8 +63,14 @@ export interface FormspecContextValue {
     themeDocument?: any;
     /** Component document from the provider (used for container token emission). */
     componentDocument?: any;
+    /** Response Actions document used by ActionButton actionRef resolution. */
+    responseActionsDocument?: ResponseActionsDocument | null;
     /** Callback invoked on form submission. Absent means no built-in submit button. */
     onSubmit?: (result: SubmitResult) => void;
+    /** Callback invoked when ActionButton actionRef resolution produces a finding. */
+    onActionFinding?: (finding: ActionRefFinding) => void;
+    /** Resolve an ActionButton actionRef against the loaded Response Actions document. */
+    resolveActionRef: (actionRef: string, nodeId?: string) => ActionResolution;
     /** Mark a field as touched (e.g., on blur). */
     touchField: (path: string) => void;
     /** Touch every field in the definition (e.g., before submit to reveal all errors). */
@@ -62,6 +102,8 @@ export interface FormspecProviderProps {
     componentDocument?: any;
     /** Theme document for presentation cascade. */
     themeDocument?: any;
+    /** Response Actions document for ActionButton actionRef resolution. */
+    responseActionsDocument?: ResponseActionsDocument | null;
     /** Initial response data to pre-populate fields (for edit flows). */
     initialData?: Record<string, any>;
     /** Registry entries for extension field validation. */
@@ -76,6 +118,8 @@ export interface FormspecProviderProps {
     components?: ComponentMap;
     /** Callback for form submission. If provided, a submit button is rendered. */
     onSubmit?: (result: SubmitResult) => void;
+    /** Callback for ActionButton actionRef resolution findings. */
+    onActionFinding?: (finding: ActionRefFinding) => void;
     children: React.ReactNode;
 }
 
@@ -90,6 +134,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         definition,
         componentDocument,
         themeDocument,
+        responseActionsDocument,
         initialData,
         registryEntries,
         runtimeContext,
@@ -97,6 +142,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         issuerOverride,
         components = {},
         onSubmit,
+        onActionFinding,
         children,
     } = props;
     const hasIssuerOverrideProp = Object.prototype.hasOwnProperty.call(props, 'issuerOverride');
@@ -210,7 +256,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         }
 
         if (onSubmit) {
-            ensureSubmitButton(root, planCtx.nextId, { pageMode });
+            ensureActionButton(root, planCtx.nextId, { pageMode });
         }
         return root;
     }, [engine, componentDocument, themeDocument, activeBreakpoint, onSubmit, mergedFormPresentation]);
@@ -242,6 +288,53 @@ export function FormspecProvider(props: FormspecProviderProps) {
         return touchedFieldsRef.current.has(path);
     }, []);
 
+    const resolveActionRef = useCallback((actionRef: string, nodeId?: string): ActionResolution => {
+        const node = nodeId ? { nodeId } : {};
+        if (!actionRef) {
+            return {
+                resolved: false,
+                action: null,
+                finding: {
+                    code: 'COMP-REFERENTIAL-INTEGRITY',
+                    severity: 'error',
+                    kind: 'actionRef',
+                    ...node,
+                    target: actionRef,
+                    reason: 'missing-actionRef',
+                },
+            };
+        }
+        if (!responseActionsDocument || !Array.isArray(responseActionsDocument.actions)) {
+            return {
+                resolved: false,
+                action: null,
+                finding: {
+                    code: 'COMP-REFERENTIAL-INTEGRITY',
+                    severity: 'error',
+                    kind: 'actionRef',
+                    ...node,
+                    target: actionRef,
+                    reason: 'no-response-actions-document',
+                },
+            };
+        }
+        const action = responseActionsDocument.actions.find(candidate => candidate?.id === actionRef) ?? null;
+        if (!action) {
+            return {
+                resolved: false,
+                action: null,
+                finding: {
+                    code: 'COMP-REFERENTIAL-INTEGRITY',
+                    severity: 'error',
+                    kind: 'actionRef',
+                    ...node,
+                    target: actionRef,
+                },
+            };
+        }
+        return { resolved: true, action };
+    }, [responseActionsDocument]);
+
     // Auto-emit theme tokens as CSS custom properties when themeDocument has tokens
     useEffect(() => {
         if (typeof document === 'undefined' || !themeDocument?.tokens) return;
@@ -262,7 +355,10 @@ export function FormspecProvider(props: FormspecProviderProps) {
             components,
             themeDocument,
             componentDocument,
+            responseActionsDocument,
             onSubmit,
+            onActionFinding,
+            resolveActionRef,
             touchField,
             touchAllFields,
             touchedVersion: touchedVersionSignal,
@@ -270,7 +366,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registryEntries: registryMap,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, themeDocument, componentDocument, onSubmit, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, themeDocument, componentDocument, responseActionsDocument, onSubmit, onActionFinding, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
     );
 
     return (

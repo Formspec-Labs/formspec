@@ -26,6 +26,18 @@ function renderWithTree(tree: any) {
     return el;
 }
 
+function responseActions(...ids: string[]) {
+    return {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        actions: ids.map(id => ({
+            id,
+            intent: 'submit',
+            effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+        })),
+    };
+}
+
 describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
     afterEach(() => {
         document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
@@ -106,7 +118,7 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
         expect(prevBtn.classList.contains('formspec-hidden')).toBe(false);
     });
 
-    it('keeps the last-step submit button enabled', () => {
+    it('keeps the last-step action button enabled', () => {
         const el = renderPageModeWizard([
             { title: 'Step 1', children: [{ component: 'Text', text: 'Step 1' }] },
             { title: 'Step 2', children: [{ component: 'Text', text: 'Step 2' }] },
@@ -619,7 +631,7 @@ describe('Tabs plugin', () => {
     });
 });
 
-describe('SubmitButton plugin', () => {
+describe('ActionButton plugin', () => {
     afterEach(() => {
         document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
     });
@@ -634,11 +646,12 @@ describe('SubmitButton plugin', () => {
             title: 'Test',
             items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
         };
+        el.responseActionsDocument = responseActions('save-draft');
         el.componentDocument = minimalComponentDoc({
             component: 'Stack',
             children: [
                 { component: 'TextInput', bind: 'name' },
-                { component: 'SubmitButton', label: 'Save Draft' },
+                { component: 'ActionButton', actionRef: 'save-draft', label: { literal: 'Save Draft' } },
             ],
         });
         el.render();
@@ -668,7 +681,7 @@ describe('SubmitButton plugin', () => {
         expect(typeof detail.validationReport.timestamp).toBe('string');
     });
 
-    it('emitEvent=false suppresses formspec-submit event', () => {
+    it('click dispatches formspec-submit without widget-local emitEvent policy', async () => {
         const el = document.createElement('formspec-render') as any;
         document.body.appendChild(el);
         el.definition = {
@@ -678,18 +691,18 @@ describe('SubmitButton plugin', () => {
             title: 'Test',
             items: [],
         };
+        el.responseActionsDocument = responseActions('submit');
         el.componentDocument = minimalComponentDoc({
-            component: 'SubmitButton',
-            emitEvent: false,
+            component: 'ActionButton',
+            actionRef: 'submit',
         });
         el.render();
 
-        let emitted = false;
-        el.addEventListener('formspec-submit', () => {
-            emitted = true;
+        const received = new Promise((resolve) => {
+            el.addEventListener('formspec-submit', resolve, { once: true });
         });
         (el.querySelector('.formspec-submit') as HTMLButtonElement).click();
-        expect(emitted).toBe(false);
+        await expect(received).resolves.toBeDefined();
     });
 
     it('reacts to shared submit pending state', () => {
@@ -702,11 +715,12 @@ describe('SubmitButton plugin', () => {
             title: 'Test',
             items: [],
         };
+        el.responseActionsDocument = responseActions('save', 'queue');
         el.componentDocument = minimalComponentDoc({
             component: 'Stack',
             children: [
-                { component: 'SubmitButton', label: 'Save', pendingLabel: 'Saving...' },
-                { component: 'SubmitButton', label: 'Queue', pendingLabel: 'Queued...', disableWhenPending: false },
+                { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save' }, pendingLabel: { literal: 'Saving...' } },
+                { component: 'ActionButton', actionRef: 'queue', label: { literal: 'Queue' }, pendingLabel: { literal: 'Queued...' }, disableWhenPending: false },
             ],
         });
         el.render();
@@ -728,6 +742,38 @@ describe('SubmitButton plugin', () => {
         expect(buttons[0].textContent).toBe('Save');
         expect(buttons[1].disabled).toBe(false);
         expect(buttons[1].textContent).toBe('Queue');
+    });
+
+    it('is inert when actionRef has no loaded Response Actions document', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:form',
+            version: '1.0.0',
+            title: 'Test',
+            items: [],
+        };
+        el.componentDocument = minimalComponentDoc({
+            component: 'ActionButton',
+            actionRef: 'submit',
+        });
+        const findings: any[] = [];
+        el.addEventListener('formspec-action-finding', (event: CustomEvent) => {
+            findings.push(event.detail.finding);
+        });
+        el.render();
+
+        const button = el.querySelector('.formspec-submit') as HTMLButtonElement;
+        expect(button.disabled).toBe(true);
+        expect(findings).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                code: 'COMP-REFERENTIAL-INTEGRITY',
+                kind: 'actionRef',
+                reason: 'no-response-actions-document',
+                target: 'submit',
+            }),
+        ]));
     });
 });
 

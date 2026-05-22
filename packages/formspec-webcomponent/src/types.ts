@@ -16,6 +16,7 @@ import type {
     TokenResolvable,
     ValidationTargetMetadata,
 } from './hub-types.js';
+import type { ActionResolution } from './action-invocation.js';
 
 export type { ValidationTargetMetadata } from './hub-types.js';
 
@@ -63,6 +64,12 @@ export interface RenderContext {
         response: FormResponse;
         validationReport: ValidationReport;
     } | null;
+
+    /** Resolve an ActionButton actionRef against the loaded Response Actions document. */
+    resolveActionRef: (actionRef: string, nodeId?: string) => ActionResolution;
+
+    /** Invoke a resolved Action, including hostEvent effects. */
+    invokeAction: (actionRef: string, nodeId?: string) => SubmitDetail | null;
 
     /** Resolve a validation result/path to a target path + label + jump metadata. */
     resolveValidationTarget: (resultOrPath: string | ValidationResult) => ValidationTargetMetadata;

@@ -25,7 +25,7 @@ const DISPLAY_COMPONENTS = new Set([
 ]);
 
 const INTERACTIVE_COMPONENTS = new Set([
-    'SubmitButton', 'DataTable',
+    'ActionButton', 'DataTable',
 ]);
 
 export function classifyComponent(type: string): LayoutNode['category'] {
@@ -61,32 +61,32 @@ export function planContains(node: LayoutNode, component: string): boolean {
     return node.children.some(child => planContains(child, component));
 }
 
-const SUBMIT_MUST_BE_SIBLING_ROOTS = new Set(['Accordion', 'Tabs']);
+const ACTION_MUST_BE_SIBLING_ROOTS = new Set(['Accordion', 'Tabs']);
 
-export function ensureSubmitButton(
+export function ensureActionButton(
     root: LayoutNode,
     nextId: NodeIdGenerator = createNodeIdGenerator(),
     options: { pageMode?: string } = {},
 ): void {
-    if (planContains(root, 'Wizard') || planContains(root, 'SubmitButton')) return;
+    if (planContains(root, 'Wizard') || planContains(root, 'ActionButton')) return;
 
-    const submitNode: LayoutNode = {
+    const actionNode: LayoutNode = {
         id: nextId('submit'),
-        component: 'SubmitButton',
+        component: 'ActionButton',
         category: 'interactive',
-        props: {},
+        props: { actionRef: 'submit' },
         cssClasses: [],
         children: [],
     };
 
-    if (SUBMIT_MUST_BE_SIBLING_ROOTS.has(root.component)) {
+    if (ACTION_MUST_BE_SIBLING_ROOTS.has(root.component)) {
         const inner: LayoutNode = { ...root };
         root.id = nextId('root-stack');
         root.component = 'Stack';
         root.category = 'layout';
         root.props = {};
         root.cssClasses = [];
-        root.children = [inner, submitNode];
+        root.children = [inner, actionNode];
         delete root.style;
         delete root.accessibility;
         delete root.bindPath;
@@ -107,7 +107,7 @@ export function ensureSubmitButton(
         return;
     }
 
-    root.children.push(submitNode);
+    root.children.push(actionNode);
 }
 
 // ── Token resolution helpers ─────────────────────────────────────────

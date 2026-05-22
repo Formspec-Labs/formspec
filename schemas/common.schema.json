@@ -186,7 +186,7 @@
         "TextInput", "NumberInput", "DatePicker", "Select", "CheckboxGroup", "Toggle", "FileUpload",
         "Heading", "Text", "Divider",
         "Card", "Collapsible", "ConditionalGroup",
-        "Tabs", "SubmitButton", "Accordion",
+        "Tabs", "ActionButton", "Accordion",
         "RadioGroup", "MoneyInput", "Slider", "Rating", "Signature",
         "Alert", "Badge", "ProgressBar", "Summary", "ValidationSummary", "DataTable",
         "Panel", "Modal", "Popover"

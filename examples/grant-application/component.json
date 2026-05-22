@@ -567,9 +567,9 @@
                 "cssClass": "review-alert"
               },
               {
-                "component": "SubmitButton",
-                "label": "Submit Application",
-                "mode": "submit"
+                "component": "ActionButton",
+                "actionRef": "submit-application",
+                "label": { "literal": "Submit Application" }
               }
             ]
           }

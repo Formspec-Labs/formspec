@@ -4,7 +4,7 @@ import { defaultAdapter } from '../adapters/default/index';
 import { LayoutPlugins } from './layout';
 import { InputPlugins } from './inputs';
 import { HeadingPlugin, TextPlugin, CardPlugin, AlertPlugin, BadgePlugin, ProgressBarPlugin, SummaryPlugin, ValidationSummaryPlugin } from './display';
-import { TabsPlugin, SubmitButtonPlugin } from './interactive';
+import { TabsPlugin, ActionButtonPlugin } from './interactive';
 import { ConditionalGroupPlugin, DataTablePlugin } from './special';
 
 /**
@@ -23,7 +23,7 @@ export function registerDefaultComponents() {
     globalRegistry.register(ProgressBarPlugin);
     globalRegistry.register(SummaryPlugin);
     globalRegistry.register(TabsPlugin);
-    globalRegistry.register(SubmitButtonPlugin);
+    globalRegistry.register(ActionButtonPlugin);
     globalRegistry.register(ValidationSummaryPlugin);
     globalRegistry.register(ConditionalGroupPlugin);
     globalRegistry.register(DataTablePlugin);

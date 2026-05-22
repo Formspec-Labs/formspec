@@ -1,7 +1,7 @@
-/** @filedesc USWDS v3 adapter for SubmitButton — usa-button primary action. */
+/** @filedesc USWDS v3 adapter for ActionButton — usa-button primary action. */
 import type { AdapterRenderFn } from '@formspec-org/webcomponent';
 
-export const renderSubmitButton: AdapterRenderFn<any> = (
+export const renderActionButton: AdapterRenderFn<any> = (
     behavior,
     parent,
     actx,
@@ -9,7 +9,7 @@ export const renderSubmitButton: AdapterRenderFn<any> = (
     const button = document.createElement('button');
     if (behavior.id) button.id = behavior.id;
     button.type = 'button';
-    button.className = 'formspec-submit usa-button';
+    button.className = 'formspec-action formspec-submit usa-button';
     button.textContent = behavior.defaultLabel || 'Submit';
     button.style.alignSelf = 'flex-start';
 

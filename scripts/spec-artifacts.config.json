@@ -104,7 +104,7 @@
         "ValidationProfile names pin existing Core global modes and per-shape timing filters; they do not introduce new runtime behavior.",
         "BlockingPolicy block-on-error depends only on ValidationReport.valid, which is false exactly when error-count findings are present.",
         "PersistencePolicy draft-checkpoint preserves Core VE-05: saving current response data is never blocked by validation findings.",
-        "SubmitButton without actionRef invokes the default submit mapping; report production may use live/on-submit, but completed status requires the on-submit completion gate."
+        "ActionButton resolves actionRef to a Response Action; the resolved Action's intent or explicit override supplies the validation tuple."
       ],
       "conformanceEssentials": [
         "A conforming validation-mapping document must expose the closed standard enums and a MasterTable const equal to the prose master table.",

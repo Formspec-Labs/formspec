@@ -669,10 +669,10 @@ All 12 built-in input component plugins, exported as a single array for bulk reg
 
 Renders a tabbed interface via the behavior-adapter pipeline.
 
-## `SubmitButtonPlugin: ComponentPlugin`
+## `ActionButtonPlugin: ComponentPlugin`
 
-Renders a submit button that invokes the host renderer's `submit()` API.
-Supports submit mode selection and optional event dispatch control.
+Renders an action button by resolving `actionRef` through the host Action registry.
+Unresolved actions are inert; host events are dispatched only by resolved Action `hostEvent` effects.
 
 ## `buildSectionBehavior(comp: any, ctx: RenderContext): SectionLayoutBehavior`
 
@@ -783,10 +783,12 @@ schedules a re-render. Throws if engine initialization fails.
 - **(set) componentDocument** (`ComponentDocument | null`): Set the component document (component tree, custom components, tokens,
 breakpoints). Schedules a re-render.
 - **(get) componentDocument** (`ComponentDocument | null`): The currently loaded component document.
+- **(set) responseActionsDocument** (`ResponseActionsDocument | null | undefined`): Set the Response Actions document used by ActionButton actionRef resolution.
+- **(get) responseActionsDocument** (`ResponseActionsDocument | null`): The currently loaded Response Actions document, or null if none is loaded.
 - **(set) themeDocument** (`ThemeDocument | null`): Set the theme document. Loads/unloads referenced stylesheets via
 ref-counting and schedules a re-render.
 - **(get) themeDocument** (`ThemeDocument | null`): The currently loaded theme document, or `null` if none.
-- **(get) showSubmit** (`boolean`): Whether to auto-inject a SubmitButton into the layout plan. Defaults to true.
+- **(get) showSubmit** (`boolean`): Whether to auto-inject an ActionButton into the layout plan. Defaults to true.
 - **(set) screenerDocument** (`ScreenerDocument | null`): Set the standalone Screener Document.
 - **(get) registryEntries** (`Map<string, RegistryEntry>`): The current registry entry lookup (extension name → entry).
 - **(set) localeDocuments** (`LocaleDocument | LocaleDocument[]`): Load one or more locale documents into the engine. If the engine
@@ -1284,6 +1286,8 @@ depending on the `FormspecRender` element directly.
         response: FormResponse;
         validationReport: ValidationReport;
     } | null`): Build submit payload + validation report and optionally dispatch `formspec-submit`.
+- **resolveActionRef** (`(actionRef: string, nodeId?: string) => ActionResolution`): Resolve an ActionButton actionRef against the loaded Response Actions document.
+- **invokeAction** (`(actionRef: string, nodeId?: string) => SubmitDetail | null`): Invoke a resolved Action, including declared hostEvent effects.
 - **resolveValidationTarget** (`(resultOrPath: string | ValidationResult) => ValidationTargetMetadata`): Resolve a validation result/path to a target path + label + jump metadata.
 - **focusField** (`(path: string) => boolean`): Reveal and focus a field by path; returns false when no target field is found.
 - **submitPendingSignal** (`Signal<boolean>`): Reactive shared submit pending signal used by submit-oriented plugins.

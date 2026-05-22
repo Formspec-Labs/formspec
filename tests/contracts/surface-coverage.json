@@ -273,6 +273,7 @@
       "schema": "schemas/component.schema.json",
       "conformance": [
         "tests/conformance/schemas/test_component_schema.py",
+        "tests/conformance/spec/test_actionbutton_binding.py",
         "tests/unit/test_validator_component_semantics.py"
       ],
       "crates": [
@@ -287,9 +288,13 @@
           "packages/formspec-core/tests/component-page-resolution.test.ts"
         ],
         "webcomponent": [
+          "packages/formspec-webcomponent/tests/components/interactive-plugins.test.ts",
           "packages/formspec-webcomponent/tests/components/component-props.test.ts",
           "packages/formspec-webcomponent/tests/components/custom-components.test.ts",
           "packages/formspec-webcomponent/tests/components/layout-components.test.ts"
+        ],
+        "layout": [
+          "packages/formspec-layout/tests/planner.test.ts"
         ],
         "react": [
           "packages/formspec-react/tests/button-parity.test.ts",
@@ -299,9 +304,9 @@
         ]
       },
       "checks": [
-        "component schema and semantic lint behavior are covered",
+        "component schema, ActionButton actionRef binding, and semantic lint behavior are covered",
         "Rust component tree and compatibility lint surfaces are covered",
-        "core, webcomponent, and React packages cover component authoring and rendering parity"
+        "core, layout, webcomponent, and React packages cover component authoring, ActionButton insertion, and rendering parity"
       ]
     },
     "locale": {

@@ -23,6 +23,7 @@ document.body.appendChild(el);
 
 // Set registryDocuments BEFORE definition — the engine is created on `set definition`.
 el.registryDocuments = myRegistryDoc;
+el.responseActionsDocument = myResponseActionsDoc;
 el.definition = myDefinition;
 el.componentDocument = myComponentDoc;
 el.themeDocument = myTheme;
@@ -38,6 +39,7 @@ The element is exported but not auto-registered. Call `customElements.define()` 
 |---|---|---|
 | `definition` | `object` | Formspec definition JSON. Creates a new `FormEngine` and schedules a render. |
 | `componentDocument` | `object` | Component document JSON (layout tree, tokens, breakpoints). Schedules a render. |
+| `responseActionsDocument` | `object \| null` | Response Actions document used to resolve `ActionButton.actionRef`. Unresolved action buttons are inert and emit `formspec-action-finding`. |
 | `themeDocument` | `ThemeDocument \| null` | Theme document. Loads and unloads external stylesheets and schedules a render. |
 | `registryDocuments` | `object \| object[]` | One or more extension registry documents. Builds an internal extension-name-to-entry map. **Set this before `definition`** — the engine reads registry entries at construction time. |
 
@@ -62,6 +64,8 @@ setRuntimeContext(context: object): void
 // Validation and submission
 touchAllFields(): void
 submit(options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }): { response: object; validationReport: object } | null
+resolveActionRef(actionRef: string, nodeId?: string): ActionResolution
+invokeAction(actionRef: string, nodeId?: string): { response: object; validationReport: object } | null
 resolveValidationTarget(resultOrPath: any): ValidationTargetMetadata
 
 // Field focus
@@ -90,7 +94,8 @@ All events bubble and are composed.
 
 | Event | When | `detail` |
 |---|---|---|
-| `formspec-submit` | `submit()` called with `emitEvent !== false` | `{ response, validationReport }` |
+| `formspec-submit` | `submit()` called with `emitEvent !== false`, or an invoked Action declares a `hostEvent` effect with `eventName: "formspec-submit"` | `{ response, validationReport }` |
+| `formspec-action-finding` | `ActionButton.actionRef` is missing, unresolved, or no Response Actions document is loaded | `{ finding: { code: "COMP-REFERENTIAL-INTEGRITY", severity: "error", kind: "actionRef", ... } }` |
 | `formspec-submit-pending-change` | Submit pending state toggles | `{ pending: boolean }` |
 | `formspec-screener-state-change` | Screener state changes (definition set, skip, restart, route selected) | `{ hasScreener, completed, routeType, route, reason }` |
 | `formspec-screener-route` | Screener evaluates a route | `{ route, answers, routeType, isInternal }` |
@@ -131,7 +136,7 @@ interface ComponentPlugin {
 | **Layout** (9) | Section, Stack, Grid, Divider, Collapsible, Panel, Accordion, Modal, Popover |
 | **Input** (12) | TextInput, NumberInput, Select, Toggle, DatePicker, RadioGroup, CheckboxGroup, Slider, Rating, FileUpload, Signature, MoneyInput |
 | **Display** (8) | Heading, Text, Card, Alert, Badge, ProgressBar, Summary, ValidationSummary |
-| **Interactive** (2) | Tabs, SubmitButton |
+| **Interactive** (2) | Tabs, ActionButton |
 | **Special** (2) | ConditionalGroup, DataTable |
 
 ## Render Adapters

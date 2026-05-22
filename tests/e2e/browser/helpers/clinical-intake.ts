@@ -25,6 +25,18 @@ export {
 const ROOT = path.resolve(__dirname, '../../../../');
 const INTAKE_DIR = path.join(ROOT, 'examples/clinical-intake');
 const REGISTRIES_DIR = path.join(ROOT, 'registries');
+const CLINICAL_RESPONSE_ACTIONS = {
+  $formspecResponseActions: '1.0',
+  version: '1.0.0',
+  actions: [
+    {
+      id: 'submit-intake',
+      intent: 'submit',
+      validation: { profile: 'on-submit' },
+      effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+    },
+  ],
+};
 
 export function loadClinicalIntakeArtifacts() {
   return {
@@ -45,14 +57,15 @@ export async function mountClinicalIntakeWithScreener(page: Page): Promise<void>
   await page.goto('/');
   await page.waitForSelector('formspec-render', { state: 'attached' });
   await waitForWasm(page);
-  await page.evaluate(({ def, scr, comp, thm, reg }) => {
+  await page.evaluate(({ def, scr, comp, thm, reg, actions }) => {
     const el: any = document.querySelector('formspec-render');
     el.registryDocuments = reg;
+    el.responseActionsDocument = actions;
     el.screenerDocument = scr;
     el.definition = def;
     el.componentDocument = comp;
     el.themeDocument = thm;
-  }, { def: definition, scr: screener, comp: component, thm: theme, reg: registry });
+  }, { def: definition, scr: screener, comp: component, thm: theme, reg: registry, actions: CLINICAL_RESPONSE_ACTIONS });
   await waitForFormEngine(page);
 }
 
@@ -65,14 +78,15 @@ export async function mountClinicalIntake(page: Page): Promise<void> {
   await page.goto('/');
   await page.waitForSelector('formspec-render', { state: 'attached' });
   await waitForWasm(page);
-  await page.evaluate(({ def, comp, thm, reg }) => {
+  await page.evaluate(({ def, comp, thm, reg, actions }) => {
     const el: any = document.querySelector('formspec-render');
     el.registryDocuments = reg;
+    el.responseActionsDocument = actions;
     el.definition        = def;
     el.skipScreener();
     el.componentDocument = comp;
     el.themeDocument     = thm;
-  }, { def: definition, comp: component, thm: theme, reg: registry });
+  }, { def: definition, comp: component, thm: theme, reg: registry, actions: CLINICAL_RESPONSE_ACTIONS });
   await waitForFormEngine(page);
 }
 

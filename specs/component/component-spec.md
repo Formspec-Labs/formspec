@@ -18,7 +18,8 @@ presentation tree** of UI components bound to a Formspec Definition's items.
 **Version:** 1.0.0-draft.1
 **Date:** 2026-04-09
 **Depends on:** Formspec Core Specification v1.0 (../core/spec.md), Formspec Theme
-Specification v1.0 (theme-spec.md), FEL Normative Grammar v1.0
+Specification v1.0 (theme-spec.md), Response Actions Specification v1.0
+(../response-actions/response-actions-spec.md), FEL Normative Grammar v1.0
 (shipped with the `fel-core` crate at `../../../fel-core/specs/fel/fel-grammar.md`)
 
 ---
@@ -536,7 +537,7 @@ property are addressable.
 | ConditionalGroup | `fallback` |
 | Tabs | `tabLabels[N]` |
 | Accordion | `labels[N]` |
-| SubmitButton | `label`, `pendingLabel` |
+| ActionButton | `label`, `pendingLabel` |
 | DataTable | `columns[N].header` |
 | Panel | `title` |
 | Modal | `title`, `triggerLabel` |
@@ -1574,7 +1575,7 @@ children.
 }
 ```
 
-### 5.19 SubmitButton
+### 5.19 ActionButton
 
 **Category:** Display
 **Level:** Core
@@ -1583,51 +1584,103 @@ children.
 
 #### Description
 
-A button that triggers the renderer's submit flow. When clicked, the
-renderer collects the current form response, generates a validation
-report in the configured `mode`, and either dispatches a
-`formspec-submit` CustomEvent (when `emitEvent` is `true`) or calls
-the host renderer's submit API directly.
+An `ActionButton` is a button widget that invokes a named Action on
+click. It is the canonical action-trigger widget; there is no
+widget-specific notion of "submit". The button's semantics derive
+entirely from the resolved Action in the loaded Response Actions
+document.
 
-While a submission is pending (the shared submit-pending state is
-`true`), the button SHOULD display `pendingLabel` (when provided) in
-place of `label`, and — unless `disableWhenPending` is `false` — MUST
-be rendered in a disabled/inert state to prevent duplicate submissions.
+Every `ActionButton` MUST declare `actionRef`. The value MUST be the
+`id` of an Action in the Response Actions document loaded for the form.
+If no Response Actions document is loaded, or if `actionRef` does not
+match any `actions[*].id`, the renderer MUST treat the button as inert
+and MUST emit a `COMP-REFERENTIAL-INTEGRITY` finding with severity
+`error`, kind `"actionRef"`, the offending node id when available, and
+the missing action id. The renderer MUST NOT silently invoke a different
+Action or fall through to an implicit default.
 
-SubmitButton has no `bind` relationship. It interacts with the form
-as a whole, not with any individual item.
+`actionRef` is trigger-bound. It MUST appear only on `ActionButton`.
+The schema enforces this by declaring `actionRef` only on `ActionButton`
+and closing other component definitions. Future trigger widgets MAY
+adopt `actionRef` only through a named spec amendment that cites this
+resolver contract and extends the schema for that widget.
+
+`ActionButton` has no `bind` relationship. It has no `mode` prop; the
+validation profile flows from the resolved Action's `validation` block,
+which inherits the Validation Mapping §6 master row for the Action's
+intent or explicitly overrides it under the Validation Mapping tuple
+predicate. It has no `emitEvent` prop; a renderer dispatches a host
+event iff the resolved Action's effect chain declares a `hostEvent`
+effect. The widget does not carry validation or event-dispatch policy.
 
 #### Props
 
-| Prop | Type | Default | Token-able | Description |
-|------|------|---------|------------|-------------|
-| `label` | string | `"Submit"` | No | Button label text. |
-| `mode` | string | `"submit"` | No | Validation mode used when clicked. MUST be one of `"continuous"` or `"submit"`. Controls which validation pass produces the report emitted with the event. |
-| `emitEvent` | boolean | `false` | No | When `true`, clicking the button dispatches a `formspec-submit` CustomEvent whose `detail` carries the current response and validation report. |
-| `pendingLabel` | string | — | No | Label text shown while the shared submit-pending state is `true`. Falls back to `label` when absent. |
-| `disableWhenPending` | boolean | `true` | No | Whether the button is rendered in a disabled/inert state while the shared submit-pending state is `true`. |
+| Prop | Type | Default | Required | Description |
+|---|---|---|---|---|
+| `actionRef` | string | — | Yes | Id of the Action this button invokes. |
+| `label` | Locale ref or literal | — | No | Button text. |
+| `pendingLabel` | Locale ref or literal | — | No | Label shown while the invocation is in flight. |
+| `disableWhenPending` | boolean | `true` | No | When true, button disables during in-flight invocation. |
 
 #### Rendering Requirements
 
 - MUST render as a native button element or equivalent accessible
   interactive control.
 - MUST NOT accept a `bind` property.
-- When clicked and `emitEvent` is `true`, MUST dispatch a
-  `formspec-submit` CustomEvent on the host element.
-- When the shared submit-pending state is `true`:
+- On click, MUST resolve `actionRef` to exactly one Response Action and
+  invoke it through the Response Actions invocation state machine.
+- While the invocation is non-terminal (`invoking`,
+  `preconditions-evaluated`, `validation-running`, `blocking-gate`, or
+  `effects-running`):
   - If `disableWhenPending` is `true`, MUST render the button as
     disabled/inert.
   - MUST display `pendingLabel` when present.
+- On terminal states (`completed`, `failed`, `blocked`, or `deferred`),
+  MUST re-enable the button unless some other host state disables it.
+- Repeated clicks are governed by the Response Actions idempotency
+  contract; the widget itself does not define duplicate-effect policy.
 
 #### Example
 
 ```json
-{ "component": "SubmitButton", "label": "Submit Application", "mode": "submit", "emitEvent": true, "pendingLabel": "Submitting…" }
+{
+  "component": "ActionButton",
+  "actionRef": "submit-application",
+  "label": { "literal": "Submit Application" },
+  "pendingLabel": { "literal": "Submitting…" }
+}
 ```
 
-#### Cross-Reference
+The referenced Action lives in the Response Actions document:
 
-A `SubmitButton` without an `actionRef` MUST be treated as invoking the implementation's default submit action, per [Validation Mapping §7.1](../core/validation-mapping.md#71-the-default-submit-action-rule). `mode: "continuous"` maps to Validation Mapping profile `live` for report production; `mode: "submit"` maps to profile `on-submit`. Response status `completed` still requires the `on-submit` completion gate. Future Component reference additions (concept §10.4) MAY add `actionRef`; until then, the default-submit-action rule applies.
+```json
+{
+  "id": "submit-application",
+  "intent": "submit",
+  "effects": [
+    { "type": "hostEvent", "eventName": "formspec-submit", "detailRef": "@validation.lastReport" }
+  ]
+}
+```
+
+The `formspec-submit` CustomEvent is dispatched because the Action
+declares the `hostEvent` effect; the widget does not need a separate
+event flag.
+
+#### Resolver Invariants
+
+The `actionRef` resolver MUST be deterministic, MUST NOT mutate the
+Component or Response Actions documents, MUST NOT silently fall back to
+another Action, and MUST be one-directional: Component reads Response
+Actions, but widget interaction does not modify the Action document.
+
+`COMP-REFERENTIAL-INTEGRITY` is the finding code for `actionRef`
+resolution failures. An unresolved `actionRef` with a Response Actions
+document present is an `error` finding of kind `"actionRef"` naming the
+missing Action id. An `actionRef` with no Response Actions document
+loaded is also an `error` finding of kind `"actionRef"` with
+`reason: "no-response-actions-document"`. Hosts MUST NOT downgrade
+these findings.
 
 ---
 
@@ -2255,6 +2308,15 @@ event detail). Optionally renders jump links that invoke
 - When no findings are present, the component SHOULD render nothing
   (empty state) or a brief "No issues" indicator.
 
+**Source: "submit" requires a hostEvent declaration.**
+ValidationSummary with `source: "submit"` reads the most recent
+`formspec-submit` CustomEvent detail. After Component Action References,
+that event is dispatched by an `ActionButton`'s resolved Action via a
+`hostEvent` effect; widgets do not dispatch on their own. To receive
+submit-event updates, the submit Action MUST declare
+`{ "type": "hostEvent", "eventName": "formspec-submit", ... }` in its
+effect chain.
+
 #### Fallback Behavior
 
 Core processors MUST replace ValidationSummary with one or more
@@ -2269,7 +2331,7 @@ finding's severity as the Alert `variant`.
 
 #### Cross-Reference
 
-`ValidationSummary.source` and `mode` map to [Validation Mapping §3 profiles](../core/validation-mapping.md#3-validation-profile): `source: "live"` + `mode: "continuous"` corresponds to profile `live`; `source: "live"` + `mode: "submit"` corresponds to profile `on-submit`; `source: "submit"` is a passive reader of the latest `formspec-submit` event detail. ValidationSummary is a Display component and MUST NOT trigger Action Intents.
+`ValidationSummary.source` and `mode` map to [Validation Mapping §3 profiles](../core/validation-mapping.md#3-validation-profile): `source: "live"` + `mode: "continuous"` corresponds to profile `live`; `source: "live"` + `mode: "submit"` corresponds to profile `on-submit`; `source: "submit"` is a passive reader of the latest `formspec-submit` event detail. ValidationSummary is a Display component and MUST NOT trigger Action Intents or dispatch host events.
 
 ---
 
@@ -3485,7 +3547,7 @@ classification and key characteristics.
 | 11 | Heading | Display | Core | No | Forbidden | Section heading (h1–h6). |
 | 12 | Text | Display | Core | No | Optional | Static or data-bound text. |
 | 13 | Divider | Display | Core | No | Forbidden | Horizontal rule separator. |
-| 14 | SubmitButton | Display | Core | No | Forbidden | Form submission trigger button. |
+| 14 | ActionButton | Display | Core | No | Forbidden | Action trigger button. |
 | 15 | Card | Container | Core | Yes | Forbidden | Bordered surface grouping. |
 | 16 | Collapsible | Container | Core | Yes | Forbidden | Expandable/collapsible section. |
 | 17 | ConditionalGroup | Container | Core | Yes | Forbidden | Condition-based visibility group. |

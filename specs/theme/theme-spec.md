@@ -1171,7 +1171,7 @@ editorial uses, but processors SHOULD warn.
 | `Tabs` | Layout | group | — | `Section` |
 | `Accordion` | Layout | group | — | `Section` |
 | `DataTable` | Interactive | group | — | `Stack` |
-| `SubmitButton` | Interactive | action | — | — |
+| `ActionButton` | Interactive | action | — | — |
 | `Heading` | Display | display | — | — |
 | `Text` | Display | display | — | — |
 | `Divider` | Display | display | — | — |

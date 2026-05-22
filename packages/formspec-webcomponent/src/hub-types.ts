@@ -16,6 +16,10 @@ import type {
     PresentationBlock,
     ThemeDocument,
 } from '@formspec-org/layout';
+import type {
+    ActionResolution,
+    ResponseActionsDocument,
+} from './action-invocation.js';
 
 export type { PresentationBlock };
 
@@ -86,6 +90,7 @@ export interface RenderHost {
     _definition: FormDefinition | null;
     _componentDocument: ComponentDocument | null;
     _themeDocument: ThemeDocument | null;
+    _responseActionsDocument: ResponseActionsDocument | null;
     cleanupFns: Array<() => void>;
     touchedFields: Set<string>;
     touchedVersion: Signal<number>;
@@ -107,6 +112,8 @@ export interface RenderHost {
     findItemByKey(key: string, items?: FormItem[]): FormItem | null;
     _registryEntries: Map<string, RegistryEntry>;
     submit(options?: { mode?: 'continuous' | 'submit'; emitEvent?: boolean }): SubmitDetail | null;
+    resolveActionRef(actionRef: string, nodeId?: string): ActionResolution;
+    invokeAction(actionRef: string, nodeId?: string): SubmitDetail | null;
     resolveValidationTarget(resultOrPath: string | ValidationResult): ValidationTargetMetadata;
     focusField(path: string): boolean;
     setSubmitPending(pending: boolean): void;

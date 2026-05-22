@@ -36,7 +36,7 @@ Attach a per-plan ID generator when callers omit `nextId`.
 
 ## `planContains(node: LayoutNode, component: string): boolean`
 
-## `ensureSubmitButton(root: LayoutNode, nextId?: NodeIdGenerator, options?: {
+## `ensureActionButton(root: LayoutNode, nextId?: NodeIdGenerator, options?: {
     pageMode?: string;
 }): void`
 

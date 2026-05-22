@@ -87,11 +87,10 @@
             "jumpLinks": true
           },
           {
-            "component": "SubmitButton",
-            "label": "Submit Invoice",
-            "mode": "submit",
-            "emitEvent": true,
-            "pendingLabel": "Submitting..."
+            "component": "ActionButton",
+            "actionRef": "submit-invoice",
+            "label": { "literal": "Submit Invoice" },
+            "pendingLabel": { "literal": "Submitting..." }
           }
         ]
       }

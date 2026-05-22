@@ -16,9 +16,9 @@ status: draft
 
 ## Status of This Document
 
-This document is a **draft normative companion** to [Formspec v1.0 core specification](spec.md). It reconciles validation-related vocabulary across Core §5 (Validation), Component §5.19 (SubmitButton), Component §6.13 (ValidationSummary), and the Response status lifecycle so that future Response Actions documents have a single mapping to cite.
+This document is a **draft normative companion** to [Formspec v1.0 core specification](spec.md). It reconciles validation-related vocabulary across Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle so that future Response Actions documents have a single mapping to cite.
 
-This spec was promoted from the concept architecture note [`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md). It addresses the **§9 row 3** promotion gate (one reconciliation table over action intent, Core global modes, per-shape timing, `SubmitButton.mode`, `ValidationSummary.source`, severity, and Response status transitions) and the **§11.2** open question (validation profile names).
+This spec was promoted from the concept architecture note [`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md). It addresses the **§9 row 3** promotion gate (one reconciliation table over action intent, Core global modes, per-shape timing, `ValidationSummary.source`, severity, and Response status transitions) and the **§11.2** open question (validation profile names).
 
 This document **MUST land before any Response Actions schema** (concept §10 order).
 
@@ -50,7 +50,6 @@ Additional terms:
 - This document defines four closed vocabularies — `ActionIntent`, `ValidationProfile`, `BlockingPolicy`, `PersistencePolicy` — and a Master Mapping Table that names default tuples per intent. Future Response Actions documents MUST cite this table; they MUST NOT invent a parallel validation vocabulary.
 - Validation Profile names (`live`, `on-submit`, `on-demand`, `off`) pin existing Core terms: global mode (`continuous` / `deferred` / `disabled`) plus per-shape timing filter (`continuous` / `submit` / `demand`). No new runtime behavior is introduced.
 - The mapping preserves Core §5.5 VE-05 ("saving data MUST never be blocked by validation"). Persistence Policy `draft-checkpoint` is non-blocking regardless of validation findings; only `complete-response` requires `valid = true`.
-- A `SubmitButton` without an `actionRef` MUST be treated as invoking the implementation's default submit action (Master Mapping Table row for `submit`): profile `on-submit`, blocking `block-on-error`, persistence `complete-response`. Component §5.19 `mode` ∈ {`continuous`, `submit`} maps to profile `live` / `on-submit` for emitted-report production; Response status `completed` still requires the `on-submit` completion gate.
 - This BLUF is governed by `schemas/validation-mapping.schema.json` (the four enums, `ValidationTuplePredicate`, closed `ValidationTuple`, `MappingEntry`, and `MasterTable` const). The schema is the canonical structural contract; prose is normative.
 <!-- bluf:end -->
 
@@ -63,7 +62,7 @@ Additional terms:
 This specification names abstract action intents and the validation, blocking, and persistence behavior they imply. It exists so that:
 
 1. Authors of Response Actions documents (forthcoming, concept §10.2) have a single reconciliation table to cite instead of inventing a parallel validation vocabulary.
-2. Component `SubmitButton` (Component §5.19) continues to behave per its existing prop table while gaining a documented forward-compatible link to the eventual `actionRef` field.
+2. Component `ActionButton` (Component §5.19) invokes a named Response Action by `actionRef`; this document defines the validation, blocking, and persistence tuple that the resolved Action inherits or explicitly overrides.
 3. Processors that encounter intents other than `submit` (e.g., autosave, request-evidence) have a single normative source for how to translate the intent into Core validation behavior and Response lifecycle effects.
 
 This specification does NOT define:
@@ -82,14 +81,14 @@ This specification does NOT define:
 | ValidationResult `severity` (`error` / `warning` / `info`) | Core §5.3.1 | Drives `BlockingPolicy` (§4) |
 | ValidationReport `valid` (`= counts.error === 0`) | Core §5.4 / `validation-report.schema.json` | Sole criterion for `block-on-error` (§4) |
 | Response `status` (`in-progress` / `completed` / `amended` / `stopped`) | `response.schema.json` | Pinned by `PersistencePolicy` (§5) |
-| `SubmitButton.mode` (`continuous` / `submit`) | Component §5.19 | Mapped to `ValidationProfile` (§7) |
-| `ValidationSummary.source` (`live` / `submit`) | Component §6.13 | Mapped to `ValidationProfile` (§8) |
+| `ActionButton.actionRef` | Component §5.19 | Resolves to a Response Action whose intent maps through §6 |
+| `ValidationSummary.source` (`live` / `submit`) | Component §6.13 | Mapped to `ValidationProfile` (§7) |
 | VE-05 ("saving data MUST never be blocked by validation") | Core §5.5 | Preserved by `non-blocking` policies (§4) |
 
 ### 1.3 Design Principles
 
 1. **Additive, not invasive.** This spec introduces no new schemas for existing artifacts, no new runtime behavior, and no new Component fields. Engines that implement Core §5.5 already satisfy the four axes.
-2. **Closed vocabularies.** `ValidationProfile`, `BlockingPolicy`, and `PersistencePolicy` are closed. `ActionIntent` has a closed standard set plus publisher-defined `x-` extension intents (§10), each still bound to the closed profile/policy tuple space.
+2. **Closed vocabularies.** `ValidationProfile`, `BlockingPolicy`, and `PersistencePolicy` are closed. `ActionIntent` has a closed standard set plus publisher-defined `x-` extension intents (§9), each still bound to the closed profile/policy tuple space.
 3. **Existing terms anchor.** Validation Profile names pin existing Core terms; they do not introduce a parallel set of mode names. `live` pins Core `continuous` mode + per-shape `continuous` timing; `on-submit` pins Core `continuous` mode + per-shape `submit` timing (filter); `on-demand` pins Core `deferred` mode + per-shape `demand` timing (filter); `off` pins Core `disabled` mode.
 4. **One table, one truth.** §6 is the master table. The schema's `MasterTable` const MUST equal §6 row for row. Pytest pins it (Tasks 24, 25).
 5. **Non-overriding defaults.** Master-table tuples are defaults. A Response Actions document MAY override (profile, blocking, persistence) per action; it MUST NOT introduce a new `ActionIntent` outside this spec's closed enum without an `x-` extension.
@@ -100,25 +99,23 @@ This specification defines one conformance level for documents and a separate le
 
 | Level | Requirements |
 |-------|--------------|
-| **Mapping-Aware Document** | Any document with an explicit intent identifier whose value is a member of the closed `ActionIntent` enum (§2) or an `x-` extension intent (§10). |
-| **Mapping-Aware Processor** | A processor that, given a Mapping-Aware Document with intent `I`, MUST apply the Master Mapping Table tuple `(profile, blocking, persistence)` keyed by `I` unless the document explicitly overrides one or more axes. The same processor MUST also apply the §7 default-submit-action fallback for legacy `SubmitButton` nodes without `actionRef`. |
+| **Mapping-Aware Document** | Any document with an explicit intent identifier whose value is a member of the closed `ActionIntent` enum (§2) or an `x-` extension intent (§9). |
+| **Mapping-Aware Processor** | A processor that, given a Mapping-Aware Document with intent `I`, MUST apply the Master Mapping Table tuple `(profile, blocking, persistence)` keyed by `I` unless the document explicitly overrides one or more axes. |
 
-A `SubmitButton` without `actionRef` is not a Mapping-Aware Document because current Component §5.19 does not carry an intent identifier. Its default submit semantics are a processor fallback defined in §7.1, not a document-conformance claim.
-
-A conformant Core processor that is NOT Mapping-Aware MAY ignore this specification entirely. Existing engines that only support `SubmitButton.mode` continue to satisfy Core §5.5 and Component §5.19 without consulting this mapping; the §7 default-submit-action rule (concept §6.6) takes effect only when an engine is Mapping-Aware.
+A conformant Core processor that is NOT Mapping-Aware MAY ignore this specification entirely. Existing engines that only implement Core §5.5 continue to satisfy Core without consulting this mapping. A processor becomes Mapping-Aware only when it consumes an explicit intent-bearing document such as Response Actions.
 
 #### 1.4.1 Conformance Prohibitions
 
 A conformant processor MUST NOT:
 
-1. Introduce additional `ValidationProfile`, `BlockingPolicy`, or `PersistencePolicy` values outside the closed enums in §§3–5, or introduce additional standard `ActionIntent` values outside §2 except through the `x-` extension mechanism (§10).
+1. Introduce additional `ValidationProfile`, `BlockingPolicy`, or `PersistencePolicy` values outside the closed enums in §§3–5, or introduce additional standard `ActionIntent` values outside §2 except through the `x-` extension mechanism (§9).
 2. Apply a Master Mapping Table tuple that contradicts §6.
 3. Cause persistence to be blocked by validation findings under any `PersistencePolicy` other than `complete-response`, in violation of Core §5.5 VE-05.
 4. Treat `block-on-error` as blocking persistence below the `complete-response` policy.
 
 ## 2. Action Intent
 
-`ActionIntent` is a **closed, abstract enum** naming what a form caller is trying to do. Authors and processors MUST use these identifiers verbatim; they MUST NOT introduce parallel intent names (e.g., `quickSave`, `validateOnly`) outside the `x-` extension mechanism (§10).
+`ActionIntent` is a **closed, abstract enum** naming what a form caller is trying to do. Authors and processors MUST use these identifiers verbatim; they MUST NOT introduce parallel intent names (e.g., `quickSave`, `validateOnly`) outside the `x-` extension mechanism (§9).
 
 | Value | Meaning |
 |-------|---------|
@@ -142,8 +139,8 @@ This section resolves the concept-note §11.2 open question (validation profile 
 
 | Profile | Core global mode (§5.5) | Per-shape timing filter (§5.2.1) | Meaning |
 |---------|-------------------------|----------------------------------|---------|
-| `live` | `continuous` | continuous-timing shapes fire during normal revalidation; submit and demand shapes wait for their explicit triggers | Validation evaluates on every value change; matches current Core default and `SubmitButton.mode: continuous` report production. |
-| `on-submit` | `continuous` | continuous and submit-timing shapes fire; demand shapes do NOT fire | Validation evaluates the completion-eligible shape set once; matches `SubmitButton.mode: submit` report production without redefining demand timing. |
+| `live` | `continuous` | continuous-timing shapes fire during normal revalidation; submit and demand shapes wait for their explicit triggers | Validation evaluates on every value change; matches current Core default live validation. |
+| `on-submit` | `continuous` | continuous and submit-timing shapes fire; demand shapes do NOT fire | Validation evaluates the completion-eligible shape set once without redefining demand timing. |
 | `on-demand` | `deferred` | only shapes with `timing: demand` fire | Used by `request-evidence` intent. Continuous and submit shapes are deferred per Core §5.5 deferred-mode override. |
 | `off` | `disabled` | no shapes fire | Used by `save-draft` and `autosave`. ValidationReport is NOT produced. |
 
@@ -227,7 +224,7 @@ A processor that wishes to produce a ValidationReport during a draft save (for t
 
 ## 6. The Master Mapping Table
 
-This section is the **load-bearing reconciliation** required by concept §9 row 3 ("one table that reconciles action intent, Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, severity, and Response status transitions"). The table below is normative. The schema's `MasterTable` const (§9 / `schemas/validation-mapping.schema.json`) MUST equal this table row-for-row; the pytest in `tests/conformance/spec/test_validation_mapping_table.py` MUST pin it.
+This section is the **load-bearing reconciliation** required by concept §9 row 3 ("one table that reconciles action intent, Core global modes, per-shape timing, `ValidationSummary.source`, severity, and Response status transitions"). The table below is normative. The schema's `MasterTable` const (§8 / `schemas/validation-mapping.schema.json`) MUST equal this table row-for-row; the pytest in `tests/conformance/spec/test_validation_mapping_table.py` MUST pin it.
 
 | Action Intent | Validation Profile | Blocking Policy | Persistence Policy |
 |---------------|--------------------|-----------------|--------------------|
@@ -269,52 +266,7 @@ permitted(profile, blocking, persistence) :=
 
 The five master-table rows satisfy this predicate. Implementations MUST validate any override against it.
 
-## 7. SubmitButton Compatibility
-
-Component §5.19 defines `SubmitButton` with the following load-bearing existing behavior (PRESERVED by this spec):
-
-- `bind` is forbidden.
-- `mode` ∈ {`continuous`, `submit`}, default `submit`. Controls which validation pass produces the report emitted on click.
-- `emitEvent` defaults to `false`; when `true`, click dispatches `formspec-submit` CustomEvent.
-- `pendingLabel` and `disableWhenPending` handle in-flight submission state.
-
-### 7.1 The Default Submit Action Rule
-
-Per concept §6.6: *"A SubmitButton without `actionRef` invokes the implementation's default submit action."*
-
-A Mapping-Aware processor that encounters a legacy `SubmitButton` without `actionRef` MUST treat it as invoking an action with intent `submit`, profile `on-submit`, blocking `block-on-error`, persistence `complete-response` — the master-table row for `submit` (§6).
-
-Concretely, this means:
-
-1. When the button is clicked, the processor runs the `on-submit` validation profile for completion gating (Core `continuous` mode + continuous and submit-timing shapes; demand shapes remain deferred).
-2. If the resulting ValidationReport's `valid` is `false`, the processor MUST NOT transition Response `status` to `completed`. It MUST preserve the Response in `status: in-progress` with full data (VE-05).
-3. If `valid` is `true`, the processor MUST transition `status` to `completed`.
-4. The processor's existing emit/event behavior (`formspec-submit` CustomEvent or host renderer submit API call, per Component §5.19) continues unchanged.
-
-### 7.2 `SubmitButton.mode` Reconciliation
-
-`SubmitButton.mode` controls the validation pass that produces the report carried on the `formspec-submit` event detail. It maps to `ValidationProfile`:
-
-| `SubmitButton.mode` | `ValidationProfile` |
-|---------------------|---------------------|
-| `"continuous"`      | `live`              |
-| `"submit"`          | `on-submit`         |
-
-Authors who set `mode: "continuous"` are opting into the `live` profile for the report emitted with the event. A Mapping-Aware processor MUST honor the prop for report production, but `complete-response` persistence still requires the `on-submit` completion gate from §6.3 before Response status can become `completed`.
-
-`SubmitButton.mode` does NOT affect Blocking Policy or Persistence Policy — those remain master-table defaults (`block-on-error`, `complete-response`). To override those, an author MUST move to a future Response Actions document with an explicit `actionRef`.
-
-### 7.3 Future `actionRef` Compatibility
-
-Component reference additions (concept §10.4) MAY add `actionRef` to `SubmitButton` and other trigger nodes. That future spec, not this document, will define the lookup and precedence rules for resolved Response Action documents. The only compatibility rule defined here is the fallback path for existing `SubmitButton` documents without `actionRef` (§7.1).
-
-Until concept §10.4 lands, `actionRef` is future shape. Existing `SubmitButton` documents without `actionRef` continue to behave per §7.1.
-
-### 7.4 Migration
-
-There is no migration. Existing Component documents continue to work unchanged. Mapping-Aware processors gain the §7.1 interpretation; non-Mapping-Aware processors continue to follow Component §5.19 directly (which produces equivalent observable behavior for the default submit case).
-
-## 8. ValidationSummary Compatibility
+## 7. ValidationSummary Compatibility
 
 Component §6.13 `ValidationSummary` has two existing props that intersect this mapping:
 
@@ -323,7 +275,7 @@ Component §6.13 `ValidationSummary` has two existing props that intersect this 
 
 These are PRESERVED.
 
-### 8.1 `source` Reconciliation
+### 7.1 `source` Reconciliation
 
 `source` selects which validation state the summary displays:
 
@@ -340,26 +292,28 @@ A Mapping-Aware processor MUST treat:
 
 `ValidationSummary` never starts a profile run. It only reads state already produced by the engine or by a prior submit/action trigger.
 
-### 8.2 `ValidationSummary` Has No Persistence Effect
+After Component Action References lands, `formspec-submit` CustomEvent is dispatched by Action `hostEvent` effects rather than by the widget itself. Authors who want a ValidationSummary with `source: "submit"` to receive updates MUST declare a `hostEvent` effect on the submit Action's effect chain. ValidationSummary does not drive event dispatch; it only reads the most recent event detail from the host.
+
+### 7.2 `ValidationSummary` Has No Persistence Effect
 
 `ValidationSummary` is a Display component. It MUST NOT trigger any Action Intent, MUST NOT mutate Response data, and MUST NOT transition Response status. This spec adds no behavior; the reconciliation here exists solely so that ValidationSummary's `source` and `mode` props have a single normative term to be expressed in.
 
-### 8.3 Future Reference Additions Out of Scope
+### 7.3 Future Reference Additions Out of Scope
 
 `ValidationSummary` is not a trigger. This document defines only its passive-reader reconciliation to existing Component §6.13 props. Future Component reference additions (concept §10.4), if any, own their own field shape and precedence rules.
 
-## 9. Conformance
+## 8. Conformance
 
-### 9.1 Conformance Levels
+### 8.1 Conformance Levels
 
 This specification defines two conformance levels (§1.4):
 
 | Level | Requirements |
 |-------|--------------|
-| **Mapping-Aware Document** | Explicit intent identifier ∈ closed `ActionIntent` enum (§2) or `x-` extension intent (§10). Any override tuple satisfies the §6.3 permitted-tuple predicate. |
-| **Mapping-Aware Processor** | Applies §6 master-table tuple unless the document explicitly overrides. Rejects prohibited override combinations with `VMAP-INVALID-OVERRIDE`. Honors §7.1 default-submit-action rule for SubmitButton-without-actionRef. Preserves VE-05 under all blocked-completion scenarios. |
+| **Mapping-Aware Document** | Explicit intent identifier ∈ closed `ActionIntent` enum (§2) or `x-` extension intent (§9). Any override tuple satisfies the §6.3 permitted-tuple predicate. |
+| **Mapping-Aware Processor** | Applies §6 master-table tuple unless the document explicitly overrides. Rejects prohibited override combinations with `VMAP-INVALID-OVERRIDE`. Preserves VE-05 under all blocked-completion scenarios. |
 
-#### 9.1.1 Mapping-Aware Document
+#### 8.1.1 Mapping-Aware Document
 
 A conformant **Mapping-Aware Document** MUST:
 
@@ -367,18 +321,17 @@ A conformant **Mapping-Aware Document** MUST:
 2. If overriding the master-table defaults, supply a permitted (profile, blocking, persistence) tuple per §6.3.
 3. Not redefine the four enum members of any axis.
 
-#### 9.1.2 Mapping-Aware Processor
+#### 8.1.2 Mapping-Aware Processor
 
 A conformant **Mapping-Aware Processor** MUST:
 
 1. Resolve any master-table intent to its §6 default tuple in the absence of an explicit document override.
 2. Apply explicit overrides verbatim when present.
 3. Reject prohibited tuples (§6.3 predicate failures) with a `VMAP-INVALID-OVERRIDE` finding.
-4. Honor §7.1 default-submit-action rule for any `SubmitButton` without `actionRef`.
-5. Preserve Core §5.5 VE-05 under all blocked-completion scenarios (Response data MUST remain saveable in `status: in-progress`).
-6. Honor Core §5.5 disabled-mode under `ValidationProfile: off` (no ValidationReport produced).
+4. Preserve Core §5.5 VE-05 under all blocked-completion scenarios (Response data MUST remain saveable in `status: in-progress`).
+5. Honor Core §5.5 disabled-mode under `ValidationProfile: off` (no ValidationReport produced).
 
-### 9.2 Schema
+### 8.2 Schema
 
 <!-- schema-ref:start id=validation-mapping-top-level schema=schemas/validation-mapping.schema.json pointers=# -->
 <!-- generated:schema-ref id=validation-mapping-top-level -->
@@ -388,7 +341,7 @@ A conformant **Mapping-Aware Processor** MUST:
 | `#/properties/version` | `version` | <code>string</code> | yes | — | Version of this Validation Mapping Document. SemVer RECOMMENDED. |
 <!-- schema-ref:end -->
 
-### 9.3 `$defs` Reference
+### 8.3 `$defs` Reference
 
 <!-- schema-ref:start id=validation-mapping-defs schema=schemas/validation-mapping.schema.json pointers=#/$defs/ActionIntent,#/$defs/ValidationProfile,#/$defs/BlockingPolicy,#/$defs/PersistencePolicy,#/$defs/ValidationTuplePredicate,#/$defs/ValidationTuple,#/$defs/MappingEntry,#/$defs/MasterTable -->
 <!-- generated:schema-ref id=validation-mapping-defs -->
@@ -411,7 +364,7 @@ A conformant **Mapping-Aware Processor** MUST:
 | `#/$defs/MasterTable` | `(self)` | <code>array</code> | — | const: <code>[{"intent":"save-draft","profile":"off","blocking":"non-blocking","persistence":"draft-checkpoint"},{"intent":"autosave","profile":"off","blocking":"non-blocking","persistence":"draft-checkpoint"},{"intent":"review","profile":"on-submit","blocking":"non-blocking","persistence":"none"},{"intent":"submit","profile":"on-submit","blocking":"block-on-error","persistence":"complete-response"},{"intent":"request-evidence","profile":"on-demand","blocking":"non-blocking","persistence":"draft-checkpoint"}]</code>; critical | Frozen master mapping table. MUST equal specs/core/validation-mapping.md §6 row-for-row. The const constrains any document carrying this property to the canonical table; documents that override individual entries do so per Action, not by replacing the master table. |
 <!-- schema-ref:end -->
 
-### 9.4 Conformance Prohibitions
+### 8.4 Conformance Prohibitions
 
 A conformant processor MUST NOT:
 
@@ -421,7 +374,7 @@ A conformant processor MUST NOT:
 4. Produce a `completed`-status Response when ValidationReport `valid` is `false` (Core §5.4 invariant).
 5. Discard Response data on a blocked submission.
 
-## 10. Extension Points
+## 9. Extension Points
 
 Authors MAY introduce custom `ActionIntent` values under the `x-` prefix (e.g., `x-acme-bulk-import`). Each `x-` intent MUST carry a complete (profile, blocking, persistence) triple in the Response Actions document referencing it. Mapping-Aware processors that do not recognize the intent MUST honor the document-supplied triple verbatim.
 
@@ -431,7 +384,7 @@ Extensions MUST NOT:
 2. Introduce parallel `ValidationProfile`, `BlockingPolicy`, or `PersistencePolicy` enum values. Profiles and policies are closed; richer behavior MUST be expressed by an `x-` intent paired with an existing-enum triple.
 3. Bypass the §6.3 permitted-tuple predicate.
 
-## 11. Security Considerations
+## 10. Security Considerations
 
 The Validation Mapping is metadata over existing Core and Component behavior. It introduces no new attack surface, no new credential handling, and no new persistence pathway. Security considerations are:
 

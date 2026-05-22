@@ -31,7 +31,7 @@ export {
 export {
     classifyComponent,
     createNodeIdGenerator,
-    ensureSubmitButton,
+    ensureActionButton,
     extractProps,
     normalizeCssClass,
     planContains,

@@ -159,7 +159,7 @@ export interface ConceptRef {
  */
 export interface ActionRef {
   /**
-   * Response Action identifier (forthcoming companion spec).
+   * Response Action identifier. MUST resolve against the loaded Response Actions document's actions[*].id set.
    */
   id: string;
   role?: 'primary' | 'secondary' | 'escape';

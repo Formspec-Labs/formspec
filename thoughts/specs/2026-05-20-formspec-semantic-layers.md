@@ -39,7 +39,7 @@ Response Actions  makes form actions portable
 Trace             makes generated UI explainable
 ```
 
-The direction is sound, but it is not yet a shippable architecture. The hard work lives in the companion specs: validation mapping, action execution, Component regeneration, SubmitButton compatibility, Intake Handoff boundaries, and Trace predicates.
+The direction is sound, but it is not yet a shippable architecture. The hard work lives in the companion specs: validation mapping, action execution, Component regeneration, ActionButton binding, Intake Handoff boundaries, and Trace predicates.
 
 The layers must not replace Definition, Component, Theme, Locale, Mapping, References, Ontology, Intake Handoff, or Respondent Ledger. They name missing seams around those artifacts so generators and reviewers can reason about UI without weakening the executable model.
 
@@ -57,7 +57,7 @@ Formal work must preserve these current facts unless a later normative spec expl
 | Core validation mode | Global modes are `continuous`, `deferred`, and `disabled` | Response Actions must not reuse those words with different meanings |
 | Shape timing | Per-shape timing is `continuous`, `submit`, or `demand` | Action intent is not the same thing as shape timing |
 | Response status | `in-progress` may contain validation errors; `completed` must not contain error-level validation results | Draft save and final completion have different blocking rules |
-| Component `SubmitButton` | Existing trigger with no `bind`; validates in `continuous` or `submit` mode and emits `formspec-submit` or calls the host submit API | Response Actions must preserve existing Component documents |
+| Component `ActionButton` | Trigger with no `bind`; invokes a required `actionRef` whose resolved Action owns validation and host-event policy | Response Actions must provide the action document that makes triggers executable |
 | Component `ValidationSummary` | Reads live validation state or latest `formspec-submit` detail | New validation vocabulary must not break existing validation UI |
 | Locale | Owns strings and fallback only, including `$component.<nodeId>.<property>` keys | Experience and Component may provide stable IDs, but Locale owns string values |
 | Mapping | Owns response-to-external-payload transformation | Response Actions may reference mappings but must not inline their rules |
@@ -117,7 +117,7 @@ Experience and Response Actions are authored source artifacts. Component documen
 
 ### 5.5 Mark Future Shape Clearly
 
-This note names future Component reference fields such as `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and `x-generation`. Those fields are not current Component schema unless and until the Component reference-additions spec lands. Examples that use them are future-shape examples.
+This note names Component reference fields such as `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and `x-generation`. `actionRef` on `ActionButton` is current Component schema after the Component Action References plan; the remaining fields are still future-shape examples until their follow-up spec lands.
 
 ### 5.6 Promote By Bundles
 
@@ -240,19 +240,19 @@ The formal spec must separate these axes:
 
 The Response Actions companion spec must include a mapping table before any schema lands. At minimum, fixtures should cover invalid draft save, submit blocked by error-level findings, warning-only submit allowed, demand-shape invocation, and disabled/no-validation behavior.
 
-### 6.6 SubmitButton Compatibility
+### 6.6 ActionButton Binding
 
-Current Component already has `SubmitButton`. It collects the current response, generates a validation report in its configured mode, and may emit `formspec-submit` or call the host renderer's submit API.
+Current Component now has `ActionButton`. It invokes a required `actionRef`; the resolved Response Action carries validation profile, blocking policy, persistence policy, and host-event effects.
 
-Response Actions must preserve that compatibility path. The default migration rule should be:
+There is no default-submit fallback. A trigger without a resolvable Action is an authoring or host-configuration error:
 
 ```text
-A SubmitButton without actionRef invokes the implementation's default submit action.
+An ActionButton actionRef must resolve to actions[*].id in the loaded Response Actions document.
 ```
 
-A future Component schema may add `actionRef` after Response Action identities are stable. Until that spec lands, `actionRef` on Component nodes is future shape, not current Component schema.
+The Component schema permits `actionRef` only on `ActionButton`; other reference fields remain future shape.
 
-The compatibility spec should explain how existing `SubmitButton` examples, adapters, renderers, and validation summaries continue to work while richer action references become available.
+Validation summaries continue to read latest `formspec-submit` details when a resolved Action declares a `hostEvent` effect for that event.
 
 ### 6.7 Component And Theme
 
@@ -403,7 +403,7 @@ If Definition renames `dateOfBirth` to `birthDate` through a proper migration or
 
 ### 7.3 Future-Shape Example
 
-The following shape illustrates the desired future reference model. It is not valid current Component schema until the Component reference-additions spec lands.
+The following shape illustrates the desired future reference model. The `ActionButton.actionRef` portion is current Component schema; `unitRef`, `taskRefs`, and `x-generation` remain future shape until the Component Reference Fields follow-up lands.
 
 ```json
 {
@@ -439,7 +439,7 @@ The following shape illustrates the desired future reference model. It is not va
       },
       {
         "id": "submitApplication",
-        "component": "SubmitButton",
+        "component": "ActionButton",
         "actionRef": "submitApplication"
       }
     ]
@@ -447,7 +447,7 @@ The following shape illustrates the desired future reference model. It is not va
 }
 ```
 
-Current-compatible Component examples should omit `unitRef`, `taskRefs`, and `actionRef`, or place experimental metadata only where the current schema permits extensions.
+Current-compatible Component examples should omit `unitRef` and `taskRefs`, or place experimental metadata only where the current schema permits extensions. Action triggers should use `ActionButton.actionRef`.
 
 ---
 
@@ -460,9 +460,9 @@ Minimum useful bundle:
 ```text
 Definition
 Experience with at least one task and unit
-Response Actions with one default submit action
+Response Actions with one named submit action
 generated Component draft
-current-compatible SubmitButton path
+ActionButton path with required actionRef
 ValidationReport fixture
 optional Respondent Ledger event or head reference
 optional Intake Handoff fixture for submit
@@ -473,7 +473,7 @@ The bundle should prove these claims:
 
 1. A generator can derive a Component draft from semantic source.
 2. A designer can edit the Component draft without losing all edits on regeneration.
-3. A submit trigger can use existing `SubmitButton` behavior while mapping to a default Response Action.
+3. A submit trigger can use `ActionButton.actionRef` to invoke a submit Response Action.
 4. Invalid draft save is allowed.
 5. Error-level validation blocks completion.
 6. Warning-only validation does not block completion.
@@ -492,8 +492,8 @@ Treat these as gates for formalization. They are not implementation details to d
 |---|---|---|
 | Experience shape | Actors, tasks, units, applicability, typed references, abstract `unit.kind`, coverage expectations, and seed-from-Definition guidance | Units become layout containers or required fields can disappear from generated experiences without detection |
 | Response Actions runtime | Invocation state, preconditions, validation profile mapping, blocking policy, persistence policy, effect ordering, failure/deferred outcomes, and idempotency posture | The spec only defines JSON properties and leaves processors to invent behavior |
-| Validation mapping | One table that reconciles action intent, Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, severity, and Response status transitions | A new `save/submit/demand/autosave` validation vocabulary ships without mapping to Core and Component |
-| SubmitButton compatibility | Default submit action rule, `actionRef` migration story, current event/API compatibility, examples, adapters, and validation-summary behavior | Existing Component documents need rewrites before Response Actions can be adopted |
+| Validation mapping | One table that reconciles action intent, Core global modes, per-shape timing, `ValidationSummary.source`, severity, and Response status transitions | A new `save/submit/demand/autosave` validation vocabulary ships without mapping to Core and Component |
+| ActionButton binding | Required `actionRef`, no widget-local validation or event policy, inert unresolved triggers, examples, adapters, and validation-summary behavior | Action triggers can execute without a resolved Response Action or silently fall back to a default |
 | Regeneration merge | Source anchors, generated markers, designer-edit preservation, conflict severities, orphan statuses, rename handling, and review UX expectations | The spec says "merge" but cannot explain how edits survive or how conflicts surface |
 | Intake Handoff seam | Cross-spec fixture with Response, ValidationReport, Respondent Ledger evidence, Intake Handoff, and workflow-host outcome | Formspec emits governed case lifecycle events or conflates handoff payload with host acceptance envelope |
 | Trace consumer | Named first consumer, minimal predicates, input digest model, stale rejection, orphan status, and required-item coverage checks | Trace remains an abstract cache with no consumer or is treated as authored truth |
@@ -507,8 +507,8 @@ Formalize in this order:
 
 1. **Experience companion spec.** Define actor, task, unit, applicability, typed references, the `unit.kind` registry, coverage expectations, seed-from-Definition guidance, and the minimum authoring bundle. **Landed:** [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md) (draft, 2026-05-21).
 2. **Response Actions companion spec.** Define action identity, FEL precondition context, action intent, validation trigger mapping, blocking policy, persistence policy, effect requests, host event boundaries, idempotency, retry, failure, and deferred behavior.
-3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, Component `SubmitButton.mode`, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands. **Landed:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) (draft, 2026-05-22).
-4. **SubmitButton compatibility and Component reference additions.** Preserve current `SubmitButton` behavior, define the default submit action rule, then add `unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and generation metadata.
+3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands. **Landed:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) (draft, 2026-05-22).
+4. **ActionButton binding and Component reference additions.** Require `ActionButton.actionRef`, remove widget-local validation/event policy, and leave `unitRef`, `taskRefs`, `conceptRefs`, and generation metadata to the follow-up Component Reference Fields plan. **Landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)).
 5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.
 6. **Trace query/cache spec.** Use Studio regeneration review as the first consumer unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics.
 
@@ -526,11 +526,11 @@ Response Actions remains a peer artifact while it orchestrates actions. If it re
 
 ### 11.2 Validation Profile Names
 
-The formal specs need a stable way to name validation profiles without colliding with Core global modes, per-shape timing, or Component `SubmitButton.mode`. **Resolved:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) §3 defines the closed enum `live` / `on-submit` / `on-demand` / `off`.
+The formal specs need a stable way to name validation profiles without colliding with Core global modes or per-shape timing. **Resolved:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) §3 defines the closed enum `live` / `on-submit` / `on-demand` / `off`.
 
 ### 11.3 Component Reference Fields
 
-`unitRef`, `taskRefs`, `actionRef`, `conceptRefs`, and generation metadata should land only after Experience and Response Action identities are stable.
+`unitRef`, `taskRefs`, `conceptRefs`, and generation metadata should land only after Experience identities and regeneration consumers are stable. **Resolved:** `actionRef` is required on `ActionButton`; no fallback path exists.
 
 ### 11.4 Trace Predicate Set
 
