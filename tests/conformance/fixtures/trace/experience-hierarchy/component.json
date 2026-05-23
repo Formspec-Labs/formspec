@@ -1,0 +1,16 @@
+{
+  "$formspecComponent": "1.1",
+  "url": "https://example.gov/forms/grant/components/main",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/grant", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "tree": {
+    "id": "root",
+    "component": "Section",
+    "children": [
+      { "id": "nameInput", "component": "TextInput", "bind": "applicantName", "unitRef": "identity" },
+      { "id": "incomeInput", "component": "NumberInput", "bind": "annualIncome", "unitRef": "income" },
+      { "id": "notesInput", "component": "TextArea", "bind": "reviewerNotes", "unitRef": "reviewNotes" },
+      { "id": "submitBtn", "component": "ActionButton", "actionRef": "submitGrant" }
+    ]
+  }
+}

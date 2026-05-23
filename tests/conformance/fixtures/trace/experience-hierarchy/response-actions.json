@@ -1,0 +1,14 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/grant", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "actions": [
+    {
+      "id": "submitGrant",
+      "intent": "submit",
+      "effects": [
+        { "type": "hostEvent", "eventName": "submitGrant" }
+      ]
+    }
+  ]
+}

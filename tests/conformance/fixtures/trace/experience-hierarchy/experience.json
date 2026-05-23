@@ -1,0 +1,37 @@
+{
+  "$formspecExperience": "1.0",
+  "name": "grant-hierarchy",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/grant", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "actors": [
+    { "id": "applicant", "title": "Applicant" },
+    { "id": "reviewer", "title": "Program reviewer" }
+  ],
+  "tasks": [
+    { "id": "apply", "title": "Apply for grant", "actorRefs": ["applicant"] },
+    { "id": "review", "title": "Review application", "actorRefs": ["reviewer"] }
+  ],
+  "units": [
+    {
+      "id": "identity",
+      "kind": "data-entry",
+      "actorRef": "applicant",
+      "taskRefs": ["apply"],
+      "itemRefs": [ { "path": "applicantName" } ]
+    },
+    {
+      "id": "income",
+      "kind": "data-entry",
+      "actorRef": "applicant",
+      "taskRefs": ["apply"],
+      "itemRefs": [ { "path": "annualIncome" } ]
+    },
+    {
+      "id": "reviewNotes",
+      "kind": "review",
+      "actorRef": "reviewer",
+      "taskRefs": ["review"],
+      "itemRefs": [ { "path": "reviewerNotes" } ]
+    }
+  ]
+}

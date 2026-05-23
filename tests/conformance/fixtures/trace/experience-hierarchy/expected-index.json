@@ -1,0 +1,127 @@
+{
+  "$formspecTrace": "1.0",
+  "sources": [
+    {
+      "kind": "component",
+      "identity": {
+        "sourceRef": "component.json",
+        "targetDefinitionUrl": "https://example.gov/forms/grant",
+        "version": "1.0.0",
+        "url": "https://example.gov/forms/grant/components/main"
+      },
+      "digest": "sha256:2a7418013483d6e188b8e46c025348cee70128dcec71dd36ced428f1759daa04"
+    },
+    {
+      "kind": "definition",
+      "identity": {
+        "url": "https://example.gov/forms/grant",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:9f494295d3353b2b8f8f9fdddc9da4474c6441ce0a83623488373bea3f314a90"
+    },
+    {
+      "kind": "experience",
+      "identity": {
+        "sourceRef": "experience.json",
+        "targetDefinitionUrl": "https://example.gov/forms/grant",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:989ec48f553ee442f14df4fb2ee4ca803679eae3af97dd791dc0ad666af861ad"
+    },
+    {
+      "kind": "responseActions",
+      "identity": {
+        "sourceRef": "response-actions.json",
+        "targetDefinitionUrl": "https://example.gov/forms/grant",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:104103e4b70ec075e5afdb0ab6068f9d3f217aaeadc8a9ab5ce78f8555967a0d"
+    }
+  ],
+  "edges": [
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/0",
+        "item:applicantName"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/1",
+        "item:annualIncome"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/2",
+        "item:reviewerNotes"
+      ]
+    },
+    {
+      "kind": "task-involves-actor",
+      "endpoints": [
+        "task:apply",
+        "actor:applicant"
+      ]
+    },
+    {
+      "kind": "task-involves-actor",
+      "endpoints": [
+        "task:review",
+        "actor:reviewer"
+      ]
+    },
+    {
+      "kind": "trigger-invokes-action",
+      "endpoints": [
+        "componentNodePath:/tree/children/3",
+        "action:submitGrant"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:identity",
+        "item:applicantName"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:income",
+        "item:annualIncome"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:reviewNotes",
+        "item:reviewerNotes"
+      ]
+    },
+    {
+      "kind": "unit-serves-task",
+      "endpoints": [
+        "unit:identity",
+        "task:apply"
+      ]
+    },
+    {
+      "kind": "unit-serves-task",
+      "endpoints": [
+        "unit:income",
+        "task:apply"
+      ]
+    },
+    {
+      "kind": "unit-serves-task",
+      "endpoints": [
+        "unit:reviewNotes",
+        "task:review"
+      ]
+    }
+  ]
+}

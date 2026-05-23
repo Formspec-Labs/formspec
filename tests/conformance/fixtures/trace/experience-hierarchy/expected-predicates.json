@@ -1,0 +1,92 @@
+{
+  "componentNodesForItem": {
+    "applicantName": [
+      "componentNodePath:/tree/children/0"
+    ],
+    "annualIncome": [
+      "componentNodePath:/tree/children/1"
+    ],
+    "reviewerNotes": [
+      "componentNodePath:/tree/children/2"
+    ],
+    "nonexistent": []
+  },
+  "unitsForItem": {
+    "applicantName": [
+      "identity"
+    ],
+    "annualIncome": [
+      "income"
+    ],
+    "reviewerNotes": [
+      "reviewNotes"
+    ],
+    "nonexistent": []
+  },
+  "itemsForUnit": {
+    "identity": [
+      "applicantName"
+    ],
+    "income": [
+      "annualIncome"
+    ],
+    "reviewNotes": [
+      "reviewerNotes"
+    ],
+    "nonexistent": []
+  },
+  "tasksForUnit": {
+    "identity": [
+      "apply"
+    ],
+    "income": [
+      "apply"
+    ],
+    "reviewNotes": [
+      "review"
+    ],
+    "nonexistent": []
+  },
+  "unitsForTask": {
+    "apply": [
+      "identity",
+      "income"
+    ],
+    "review": [
+      "reviewNotes"
+    ],
+    "nonexistent": []
+  },
+  "actorsForTask": {
+    "apply": [
+      "applicant"
+    ],
+    "review": [
+      "reviewer"
+    ],
+    "nonexistent": []
+  },
+  "tasksForActor": {
+    "applicant": [
+      "apply"
+    ],
+    "reviewer": [
+      "review"
+    ],
+    "nonexistent": []
+  },
+  "actionForTrigger": {
+    "/tree/children/3": "submitGrant",
+    "/tree/children/0": null
+  },
+  "triggersForAction": {
+    "submitGrant": [
+      "componentNodePath:/tree/children/3"
+    ],
+    "nonexistent": []
+  },
+  "itemsForAction": {
+    "submitGrant": [],
+    "nonexistent": []
+  }
+}

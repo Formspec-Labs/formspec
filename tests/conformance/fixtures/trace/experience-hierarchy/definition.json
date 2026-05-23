@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/grant",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Grant Application",
+  "items": [
+    { "key": "applicantName", "type": "field", "dataType": "string", "label": "Applicant name" },
+    { "key": "annualIncome", "type": "field", "dataType": "number", "label": "Annual income" },
+    { "key": "reviewerNotes", "type": "field", "dataType": "string", "label": "Reviewer notes" }
+  ],
+  "binds": [
+    { "path": "applicantName", "required": "true" },
+    { "path": "annualIncome", "required": "true" }
+  ]
+}
