@@ -1,0 +1,160 @@
+{
+  "componentNodesForItem": {
+    "householdIncome": [
+      "componentNodePath:/tree/children/0"
+    ],
+    "grossIncome": [
+      "componentNodePath:/tree/children/1"
+    ],
+    "standardDeduction": [
+      "componentNodePath:/tree/children/2"
+    ],
+    "dependents": [
+      "componentNodePath:/tree/children/3"
+    ],
+    "eligibility": [
+      "componentNodePath:/tree/children/4"
+    ],
+    "threshold": [],
+    "incomeAfterDeductions": []
+  },
+  "itemsForComponent": {
+    "/tree/children/0": [
+      "householdIncome"
+    ],
+    "/tree/children/4": [
+      "eligibility"
+    ],
+    "/tree/children/5": []
+  },
+  "unitsForItem": {
+    "householdIncome": [
+      "incomeEntry"
+    ],
+    "grossIncome": [
+      "incomeEntry"
+    ],
+    "standardDeduction": [
+      "incomeEntry"
+    ],
+    "dependents": [
+      "incomeEntry"
+    ],
+    "eligibility": [],
+    "threshold": []
+  },
+  "itemsForUnit": {
+    "incomeEntry": [
+      "dependents",
+      "grossIncome",
+      "householdIncome",
+      "standardDeduction"
+    ],
+    "nonexistent": []
+  },
+  "actionForTrigger": {
+    "/tree/children/5": "submitEligibility",
+    "/tree/children/0": null
+  },
+  "triggersForAction": {
+    "submitEligibility": [
+      "componentNodePath:/tree/children/5"
+    ],
+    "nonexistent": []
+  },
+  "itemsForAction": {
+    "submitEligibility": [],
+    "nonexistent": []
+  },
+  "dependenciesOf": {
+    "eligibility": [
+      "dependents",
+      "householdIncome",
+      "threshold"
+    ],
+    "incomeAfterDeductions": [
+      "grossIncome",
+      "standardDeduction"
+    ],
+    "householdIncome": [],
+    "threshold": [],
+    "dependents": []
+  },
+  "dependentsOn": {
+    "householdIncome": [
+      "eligibility"
+    ],
+    "threshold": [
+      "eligibility"
+    ],
+    "dependents": [
+      "eligibility"
+    ],
+    "grossIncome": [
+      "incomeAfterDeductions"
+    ],
+    "standardDeduction": [
+      "incomeAfterDeductions"
+    ],
+    "eligibility": [],
+    "incomeAfterDeductions": []
+  },
+  "whatDependsOn": {
+    "householdIncome": {
+      "subjectItem": "item:householdIncome",
+      "directDependentItems": [
+        "item:eligibility"
+      ],
+      "transitiveDependentItems": [],
+      "renderingNodes": [
+        "componentNodePath:/tree/children/0"
+      ],
+      "collectingUnits": [
+        "unit:incomeEntry"
+      ],
+      "visibilityNodes": [],
+      "actionPreconditions": [],
+      "conceptBindings": []
+    },
+    "grossIncome": {
+      "subjectItem": "item:grossIncome",
+      "directDependentItems": [
+        "item:incomeAfterDeductions"
+      ],
+      "transitiveDependentItems": [],
+      "renderingNodes": [
+        "componentNodePath:/tree/children/1"
+      ],
+      "collectingUnits": [
+        "unit:incomeEntry"
+      ],
+      "visibilityNodes": [],
+      "actionPreconditions": [],
+      "conceptBindings": []
+    },
+    "threshold": {
+      "subjectItem": "item:threshold",
+      "directDependentItems": [
+        "item:eligibility"
+      ],
+      "transitiveDependentItems": [],
+      "renderingNodes": [],
+      "collectingUnits": [],
+      "visibilityNodes": [],
+      "actionPreconditions": [],
+      "conceptBindings": []
+    },
+    "eligibility": {
+      "subjectItem": "item:eligibility",
+      "directDependentItems": [],
+      "transitiveDependentItems": [],
+      "renderingNodes": [
+        "componentNodePath:/tree/children/4"
+      ],
+      "collectingUnits": [],
+      "visibilityNodes": [],
+      "actionPreconditions": [],
+      "conceptBindings": []
+    }
+  }
+}

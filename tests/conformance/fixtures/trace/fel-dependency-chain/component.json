@@ -1,0 +1,19 @@
+{
+  "$formspecComponent": "1.1",
+  "url": "https://example.gov/forms/eligibility/components/main",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/eligibility", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "tree": {
+    "id": "root",
+    "component": "Section",
+    "unitRef": "incomeEntry",
+    "children": [
+      { "id": "hhInput", "component": "NumberInput", "bind": "householdIncome", "unitRef": "incomeEntry" },
+      { "id": "grossInput", "component": "NumberInput", "bind": "grossIncome", "unitRef": "incomeEntry" },
+      { "id": "stdInput", "component": "NumberInput", "bind": "standardDeduction", "unitRef": "incomeEntry" },
+      { "id": "depInput", "component": "NumberInput", "bind": "dependents", "unitRef": "incomeEntry" },
+      { "id": "eligOut", "component": "ReadonlyDisplay", "bind": "eligibility" },
+      { "id": "submitBtn", "component": "ActionButton", "actionRef": "submitEligibility" }
+    ]
+  }
+}

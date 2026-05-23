@@ -1,0 +1,20 @@
+{
+  "$formspecExperience": "1.0",
+  "name": "eligibility",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/eligibility", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "tasks": [ { "id": "applyForBenefit" } ],
+  "units": [
+    {
+      "id": "incomeEntry",
+      "kind": "data-entry",
+      "taskRefs": ["applyForBenefit"],
+      "itemRefs": [
+        { "path": "householdIncome" },
+        { "path": "grossIncome" },
+        { "path": "standardDeduction" },
+        { "path": "dependents" }
+      ]
+    }
+  ]
+}

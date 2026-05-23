@@ -1,0 +1,148 @@
+{
+  "$formspecTrace": "1.0",
+  "sources": [
+    {
+      "kind": "component",
+      "identity": {
+        "sourceRef": "component.json",
+        "targetDefinitionUrl": "https://example.gov/forms/eligibility",
+        "version": "1.0.0",
+        "url": "https://example.gov/forms/eligibility/components/main"
+      },
+      "digest": "sha256:ae971be78c3d5ef3f1864364717b136ac71a17ed6fa1ac1ee7dbb49808983039"
+    },
+    {
+      "kind": "definition",
+      "identity": {
+        "url": "https://example.gov/forms/eligibility",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:103c1c61ca815ae8767014b925fcac8a583be5ade116925f750903616338ecc9"
+    },
+    {
+      "kind": "experience",
+      "identity": {
+        "sourceRef": "experience.json",
+        "targetDefinitionUrl": "https://example.gov/forms/eligibility",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:8b8178331e0345cbfb7c510f552cddb6e05f9aa468eaf5c69a81af71e44a5fc2"
+    },
+    {
+      "kind": "responseActions",
+      "identity": {
+        "sourceRef": "response-actions.json",
+        "targetDefinitionUrl": "https://example.gov/forms/eligibility",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:a923f964f16c5cf5da1124321eba3a6acdc647b07fd151149135454bba74d829"
+    }
+  ],
+  "edges": [
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/0",
+        "item:householdIncome"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/1",
+        "item:grossIncome"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/2",
+        "item:standardDeduction"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/3",
+        "item:dependents"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/4",
+        "item:eligibility"
+      ]
+    },
+    {
+      "kind": "item-depends-on-item",
+      "endpoints": [
+        "item:eligibility",
+        "item:dependents"
+      ]
+    },
+    {
+      "kind": "item-depends-on-item",
+      "endpoints": [
+        "item:eligibility",
+        "item:householdIncome"
+      ]
+    },
+    {
+      "kind": "item-depends-on-item",
+      "endpoints": [
+        "item:eligibility",
+        "item:threshold"
+      ]
+    },
+    {
+      "kind": "item-depends-on-item",
+      "endpoints": [
+        "item:incomeAfterDeductions",
+        "item:grossIncome"
+      ]
+    },
+    {
+      "kind": "item-depends-on-item",
+      "endpoints": [
+        "item:incomeAfterDeductions",
+        "item:standardDeduction"
+      ]
+    },
+    {
+      "kind": "trigger-invokes-action",
+      "endpoints": [
+        "componentNodePath:/tree/children/5",
+        "action:submitEligibility"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:incomeEntry",
+        "item:dependents"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:incomeEntry",
+        "item:grossIncome"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:incomeEntry",
+        "item:householdIncome"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:incomeEntry",
+        "item:standardDeduction"
+      ]
+    }
+  ]
+}

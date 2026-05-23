@@ -1,0 +1,27 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/eligibility",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Eligibility",
+  "items": [
+    { "key": "householdIncome", "type": "field", "dataType": "number", "label": "Household income" },
+    { "key": "threshold", "type": "field", "dataType": "number", "label": "Income threshold" },
+    { "key": "dependents", "type": "field", "dataType": "integer", "label": "Number of dependents" },
+    { "key": "grossIncome", "type": "field", "dataType": "number", "label": "Gross income" },
+    { "key": "standardDeduction", "type": "field", "dataType": "number", "label": "Standard deduction" },
+    { "key": "incomeAfterDeductions", "type": "field", "dataType": "number", "label": "Income after deductions" },
+    { "key": "eligibility", "type": "field", "dataType": "boolean", "label": "Eligible" }
+  ],
+  "binds": [
+    { "path": "householdIncome", "required": "true" },
+    { "path": "grossIncome", "required": "true" },
+    { "path": "dependents", "required": "true" },
+    { "path": "incomeAfterDeductions", "calculate": "$grossIncome - $standardDeduction" },
+    { "path": "eligibility", "calculate": "$householdIncome < $threshold and $dependents > 0" }
+  ],
+  "_bind_dependencies": {
+    "incomeAfterDeductions": ["grossIncome", "standardDeduction"],
+    "eligibility": ["householdIncome", "threshold", "dependents"]
+  }
+}
