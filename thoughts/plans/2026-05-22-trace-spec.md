@@ -2320,7 +2320,7 @@ python3 -m pytest tests/ -q
 
 Expected: zero regressions. New Trace tests pass; pre-existing suite unchanged.
 
-- [ ] **Step 4: Dispatch semi-formal-code-review subagent**
+- [x] **Step 4: Dispatch semi-formal-code-review subagent**
 
 Per stack-level review discipline (`formspec-stack/CLAUDE.md` §HIGH PRIORITY — Review discipline), dispatch `formspec-specs:semi-formal-code-review` over the full Trace landing as a single review pass. BLOCKER findings go to a fresh craftsman; the implementer does not self-remediate.
 
@@ -2333,13 +2333,18 @@ Scope: specs/trace/, schemas/trace-index.schema.json, tests/conformance/spec/tes
 Run in background.
 ```
 
-- [ ] **Step 5: Final commit if filemap regenerated**
+- [x] **Step 5: Final commit if filemap regenerated**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec status
 # If filemap.json shows modified:
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "docs(filemap): regenerate after trace spec landing"
 ```
+
+Result: no Trace filemap commit was made. `npm run docs:filemap:check`
+passes at HEAD; the remaining dirty `filemap.json` entries correspond to
+pre-existing unrelated common-registry work and are intentionally outside the
+Trace lane.
 
 ---
 
@@ -2355,6 +2360,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 - 2026-05-23: Follow-up architecture review found the checked-in fixture corpus did not itself demonstrate `action-has-precondition` or `node-visibility-references-item`; those edge kinds were only exercised in synthetic tests. The `fel-dependency-chain` fixture now carries a valid Response Actions precondition and a schema-valid Component `when`, and its expected TraceIndex demonstrates all remaining edge kinds.
 - 2026-05-23: Follow-up architecture review found predicate-count wording drift. The contract now names sixteen simple predicates plus the `whatDependsOn` join predicate, for seventeen callable predicates in the oracle registry.
 - 2026-05-23: Follow-up architecture review found the schema accepted non-numeric `effect:<actionId>:<index>` endpoint suffixes and the semantic-layers note still contained a stale pre-Trace anchor. The schema now requires a numeric effect index, and the concept note now points at the Trace spec/schema/fixtures as the conformance source.
+- 2026-05-23: Final code and architecture follow-up reviews over the landed Trace contract returned no open findings. The remaining child worktree dirt is unrelated common-registry/filemap work and was not committed in the Trace lane.
 
 ---
 
@@ -2362,6 +2368,6 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 
 | Gate | Status after this plan |
 |---|---|
-| **Trace consumer** — named first consumer, minimal predicates, input digest model, stale rejection, orphan status, required-item coverage checks | STRUCTURALLY ADDRESSED, NOT CLOSED — this plan pins Studio authoring plus regeneration review as the seed consumer pair, with eleven edge kinds, sixteen simple predicates plus the `whatDependsOn` join predicate, source identity, canonical digests, stale rejection, and composition preconditions. The gate closes only after the Trace spec/schema/fixtures/tests land and the chosen regeneration-review route exposes a stable review subject handle. |
+| **Trace consumer** — named first consumer, minimal predicates, input digest model, stale rejection, orphan status, required-item coverage checks | CLOSED — this plan pins Studio authoring plus regeneration review as the seed consumer pair, with eleven edge kinds, sixteen simple predicates plus the `whatDependsOn` join predicate, source identity, canonical digests, stale rejection, and composition preconditions. The Trace spec, schema, fixture corpus, stale-rejection oracle, and composition proof are landed; final code and architecture reviews returned no open findings. |
 
 All other concept §9 gates are unaffected by this plan.
