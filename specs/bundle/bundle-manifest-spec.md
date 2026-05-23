@@ -95,7 +95,7 @@ A Bundle Manifest MUST carry a `version` property whose value is a strict SemVer
 
 The Bundle Manifest spec itself is versioned via `$formspecBundle`, which MUST equal `"1.0"` for documents conforming to this spec. The `$formspecBundle` value tracks the major.minor of the canonical schema `$id` (`https://formspec.org/schemas/bundleManifest/1.0`); future minor versions (`1.1`, `1.2`) introduce new sibling slots while remaining backward compatible with `1.0` documents that do not use them, and a major bump (`2.0`) signals a breaking shape change.
 
-A processor that supports only `1.0` MUST check `$formspecBundle` before structural schema validation. A document with `$formspecBundle` other than `"1.0"` MUST be rejected with an `unsupported-bundle-version` error rather than a generic schema-validation failure (which would otherwise surface as an `additionalProperties` or `const` mismatch and obscure the version-negotiation cause). Forward compatibility is asymmetric: `1.1`-aware processors MAY accept `1.0` documents directly, but `1.0` processors MUST NOT silently accept `1.1` documents on the chance that no new slots are used.
+A processor that supports only `1.0` MUST check `$formspecBundle` before structural schema validation. A document with `$formspecBundle` other than `"1.0"` MUST be rejected with an `unsupported-bundle-version` error rather than a generic schema-validation failure (which would otherwise surface as a `const` mismatch and obscure the version-negotiation cause). Forward compatibility is asymmetric: `1.1`-aware processors MAY accept `1.0` documents directly, but `1.0` processors MUST NOT silently accept `1.1` documents on the chance that no new slots are used.
 
 ### 2.3 Sibling Version Pinning
 
