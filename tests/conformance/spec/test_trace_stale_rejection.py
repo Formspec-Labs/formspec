@@ -3,7 +3,7 @@
 Spec invariant: predicate execution MUST verify all `sources[]` digests
 against the supplied artifacts BEFORE returning any result. On mismatch,
 raise `TraceStaleError`. Rejection is UNCONDITIONAL — no partial results
-for any of the 16 v1 predicates (§7.3).
+for any v1 callable predicate (§7.3).
 
 Four rejection reasons pinned here (§7.2):
   - source-missing       — TraceIndex entry with no supplied artifact
@@ -11,9 +11,9 @@ Four rejection reasons pinned here (§7.2):
   - extra-source-present — supplied artifact has no TraceIndex entry
   - duplicate-source-entry — TraceIndex repeats a (kind, identity) source key
 
-This pytest pins all four reasons across all sixteen predicates plus
-the `whatDependsOn` JOIN. It uses a synthetic in-memory source set so it
-does not depend on the parallel fixtures-authoring agent.
+This pytest pins all four reasons across the sixteen simple predicates plus
+the `whatDependsOn` join predicate. It uses a synthetic in-memory source set
+so it does not depend on the parallel fixtures-authoring agent.
 """
 
 from __future__ import annotations
@@ -55,8 +55,8 @@ from tests.conformance.spec.test_trace_predicates import (
 
 
 def _synthetic_sources() -> dict[str, dict]:
-    """In-memory source set with every kind populated so all 16 predicates
-    have at least one matching edge to chew on."""
+    """In-memory source set with every kind populated so each callable
+    predicate has at least one matching edge to chew on."""
     return {
         "definition": {
             "$formspec": "1.0",
@@ -170,8 +170,8 @@ def _build_fresh_index() -> tuple[dict, dict[str, dict]]:
 # Predicate invocation catalogue — every predicate gets a representative call
 # ---------------------------------------------------------------------------
 
-# Each entry: (name, callable(index, srcs)) covering all 16 predicates plus
-# the whatDependsOn JOIN. Arg values are chosen to hit non-empty results in
+# Each entry: (name, callable(index, srcs)) covering all simple predicates plus
+# the whatDependsOn join. Arg values are chosen to hit non-empty results in
 # the fresh case — so when the test mutates the index/srcs into a stale
 # state, the predicate would otherwise return a non-empty result; the
 # stale-rejection invariant MUST short-circuit instead.
