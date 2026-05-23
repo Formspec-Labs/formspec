@@ -1,0 +1,10 @@
+{
+  "fixture": "invalid-missing-definition",
+  "purpose": "Bundle without required `definition`. Schema MUST reject.",
+  "expected": { "valid": false, "errorContains": "definition" },
+  "bundle": {
+    "$formspecBundle": "1.0",
+    "version": "1.0.0",
+    "id": "https://example.gov/forms/broken"
+  }
+}
