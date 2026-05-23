@@ -46,6 +46,9 @@ benchmarks/runs/
 # macOS debug symbol bundles (e.g. next to maturin-built .dylib under src/formspec/)
 **/*.dSYM/
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # Rust / WASM build artifacts
 target/
 packages/formspec-engine/wasm-pkg/
