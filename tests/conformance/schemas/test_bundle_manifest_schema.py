@@ -64,3 +64,8 @@ class TestBundleManifestNegativeFixtures:
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-unknown-property.json"))
         assert "screener" in str(excinfo.value) or "additional propert" in str(excinfo.value).lower()
+
+    def test_bad_version_rejected(self) -> None:
+        with pytest.raises(ValidationError) as excinfo:
+            _validator().validate(_fixture_bundle("invalid-bad-version.json"))
+        assert "version" in str(excinfo.value).lower() or "pattern" in str(excinfo.value).lower()
