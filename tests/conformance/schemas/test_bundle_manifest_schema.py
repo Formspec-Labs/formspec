@@ -59,3 +59,8 @@ class TestBundleManifestNegativeFixtures:
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-missing-definition.json"))
         assert "definition" in str(excinfo.value)
+
+    def test_unknown_property_rejected(self) -> None:
+        with pytest.raises(ValidationError) as excinfo:
+            _validator().validate(_fixture_bundle("invalid-unknown-property.json"))
+        assert "screener" in str(excinfo.value) or "additional propert" in str(excinfo.value).lower()
