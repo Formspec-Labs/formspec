@@ -2311,7 +2311,7 @@ npm run docs:filemap:check
 
 Expected: both pass. If filemap is stale, run `npm run docs:filemap` and commit the regenerated `filemap.json`.
 
-- [ ] **Step 3: Optional broader sanity — Python conformance suite**
+- [x] **Step 3: Optional broader sanity — Python conformance suite**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -2350,6 +2350,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 - 2026-05-23: Fixture `expected-index.json` files now use `"<computed>"` digests and include all builder-emitted edges. Fixture-only dependency hints are included in source digests so stale rejection cannot be bypassed by changing extraction-driving metadata.
 - 2026-05-23: Stale rejection now rejects duplicate `(kind, identity)` source entries as `duplicate-source-entry`; duplicate source identity makes freshness ambiguous.
 - 2026-05-23: `tests/contracts/surface-coverage.json` adds `runtimeScope: "spec-conformance-only"` for Trace. Trace v1.0 lands the spec/schema/fixture/predicate/stale/composition contract only; runtime crate/package implementations must add their own surfaces when they consume this contract.
+- 2026-05-23: The broader Python conformance suite treats Trace `component.json` fixtures as part of the Component no-rewrite compatibility corpus. Trace fixtures now use schema-valid Component nodes (`Stack`, `Text`, and `TextInput` with `maxLines`) rather than unchecked illustrative component names.
 
 ---
 

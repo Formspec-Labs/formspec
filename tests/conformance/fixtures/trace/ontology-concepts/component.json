@@ -5,7 +5,7 @@
   "targetDefinition": { "url": "https://example.gov/forms/financial", "compatibleVersions": ">=1.0.0 <2.0.0" },
   "tree": {
     "id": "root",
-    "component": "Section",
+    "component": "Stack",
     "unitRef": "financialEntry",
     "children": [
       {

@@ -5,11 +5,11 @@
   "targetDefinition": { "url": "https://example.gov/forms/grant", "compatibleVersions": ">=1.0.0 <2.0.0" },
   "tree": {
     "id": "root",
-    "component": "Section",
+    "component": "Stack",
     "children": [
       { "id": "nameInput", "component": "TextInput", "bind": "applicantName", "unitRef": "identity" },
       { "id": "incomeInput", "component": "NumberInput", "bind": "annualIncome", "unitRef": "income" },
-      { "id": "notesInput", "component": "TextArea", "bind": "reviewerNotes", "unitRef": "reviewNotes" },
+      { "id": "notesInput", "component": "TextInput", "bind": "reviewerNotes", "unitRef": "reviewNotes", "maxLines": 4 },
       { "id": "submitBtn", "component": "ActionButton", "actionRef": "submitGrant" }
     ]
   }
