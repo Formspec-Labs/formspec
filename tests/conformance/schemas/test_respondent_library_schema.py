@@ -77,6 +77,13 @@ class TestRespondentLibraryConstraints:
         with pytest.raises(ValidationError):
             _validator().validate(doc)
 
+    def test_trust_model_server_aggregation_rejected(self) -> None:
+        doc = _base_doc()
+        doc["trustModel"]["serverAggregation"] = "allowed"
+
+        with pytest.raises(ValidationError):
+            _validator().validate(doc)
+
     def test_presentation_policy_requires_document_refs(self) -> None:
         doc = _base_doc()
         doc["presentationPolicies"] = [
