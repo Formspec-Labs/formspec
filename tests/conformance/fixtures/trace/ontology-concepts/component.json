@@ -1,0 +1,32 @@
+{
+  "$formspecComponent": "1.1",
+  "url": "https://example.gov/forms/financial/components/main",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/financial", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "tree": {
+    "id": "root",
+    "component": "Section",
+    "unitRef": "financialEntry",
+    "children": [
+      {
+        "id": "incomeInput",
+        "component": "NumberInput",
+        "bind": "householdIncome",
+        "unitRef": "financialEntry",
+        "conceptRefs": [
+          { "id": "fibo:HouseholdIncome", "source": "ontology" }
+        ]
+      },
+      {
+        "id": "ssnInput",
+        "component": "TextInput",
+        "bind": "socialSecurityNumber",
+        "unitRef": "financialEntry",
+        "conceptRefs": [
+          { "id": "hl7:SSN", "source": "ontology" }
+        ]
+      },
+      { "id": "submitBtn", "component": "ActionButton", "actionRef": "submitIntake" }
+    ]
+  }
+}

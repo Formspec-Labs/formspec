@@ -1,0 +1,115 @@
+{
+  "$formspecTrace": "1.0",
+  "sources": [
+    {
+      "kind": "component",
+      "identity": {
+        "sourceRef": "component.json",
+        "targetDefinitionUrl": "https://example.gov/forms/financial",
+        "version": "1.0.0",
+        "url": "https://example.gov/forms/financial/components/main"
+      },
+      "digest": "sha256:b7782a4d91517aac12cd907987b7a6ca3b58200b04753f219e0c91ea2a9c837d"
+    },
+    {
+      "kind": "definition",
+      "identity": {
+        "url": "https://example.gov/forms/financial",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:283b563fa1742e97b70406bcaa2155a53508c986828f52e799211708b298542c"
+    },
+    {
+      "kind": "experience",
+      "identity": {
+        "sourceRef": "experience.json",
+        "targetDefinitionUrl": "https://example.gov/forms/financial",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:91fc4d843e86ee085f303c8bb3633558974aab6c07da65c5c5a76267ecf70367"
+    },
+    {
+      "kind": "ontology",
+      "identity": {
+        "sourceRef": "ontology.json",
+        "targetDefinitionUrl": "https://example.gov/forms/financial",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:62e50db37744c84e9b630e7c5c066aca60c93419fc13698559526bb20232c50c"
+    },
+    {
+      "kind": "responseActions",
+      "identity": {
+        "sourceRef": "response-actions.json",
+        "targetDefinitionUrl": "https://example.gov/forms/financial",
+        "version": "1.0.0"
+      },
+      "digest": "sha256:7dc28529f0b88db5f99fa9a3f90071da75877afc454e364487979b5e95259301"
+    }
+  ],
+  "edges": [
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/0",
+        "item:householdIncome"
+      ]
+    },
+    {
+      "kind": "component-renders-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/1",
+        "item:socialSecurityNumber"
+      ]
+    },
+    {
+      "kind": "concept-refs-component-node",
+      "endpoints": [
+        "concept:fibo:HouseholdIncome",
+        "componentNodePath:/tree/children/0"
+      ]
+    },
+    {
+      "kind": "concept-refs-component-node",
+      "endpoints": [
+        "concept:hl7:SSN",
+        "componentNodePath:/tree/children/1"
+      ]
+    },
+    {
+      "kind": "concept-refs-item",
+      "endpoints": [
+        "concept:fibo:HouseholdIncome",
+        "item:householdIncome"
+      ]
+    },
+    {
+      "kind": "concept-refs-item",
+      "endpoints": [
+        "concept:hl7:SSN",
+        "item:socialSecurityNumber"
+      ]
+    },
+    {
+      "kind": "trigger-invokes-action",
+      "endpoints": [
+        "componentNodePath:/tree/children/2",
+        "action:submitIntake"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:financialEntry",
+        "item:householdIncome"
+      ]
+    },
+    {
+      "kind": "unit-collects-item",
+      "endpoints": [
+        "unit:financialEntry",
+        "item:socialSecurityNumber"
+      ]
+    }
+  ]
+}

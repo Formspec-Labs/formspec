@@ -1,0 +1,15 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/financial",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Financial Intake",
+  "items": [
+    { "key": "householdIncome", "type": "field", "dataType": "number", "label": "Household income" },
+    { "key": "socialSecurityNumber", "type": "field", "dataType": "string", "label": "SSN" }
+  ],
+  "binds": [
+    { "path": "householdIncome", "required": "true" },
+    { "path": "socialSecurityNumber", "required": "true" }
+  ]
+}

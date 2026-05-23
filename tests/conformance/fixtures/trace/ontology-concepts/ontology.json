@@ -1,0 +1,18 @@
+{
+  "$formspecOntology": "1.0",
+  "name": "financial-intake-ontology",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/financial", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "concepts": {
+    "householdIncome": {
+      "concept": "fibo:HouseholdIncome",
+      "system": "https://spec.edmcouncil.org/fibo/",
+      "display": "Household Income"
+    },
+    "socialSecurityNumber": {
+      "concept": "hl7:SSN",
+      "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+      "display": "Social Security Number"
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "componentNodesForItem": {
+    "householdIncome": [
+      "componentNodePath:/tree/children/0"
+    ],
+    "socialSecurityNumber": [
+      "componentNodePath:/tree/children/1"
+    ],
+    "nonexistent": []
+  },
+  "unitsForItem": {
+    "householdIncome": [
+      "financialEntry"
+    ],
+    "socialSecurityNumber": [
+      "financialEntry"
+    ],
+    "nonexistent": []
+  },
+  "itemsForUnit": {
+    "financialEntry": [
+      "householdIncome",
+      "socialSecurityNumber"
+    ],
+    "nonexistent": []
+  },
+  "actionForTrigger": {
+    "/tree/children/2": "submitIntake",
+    "/tree/children/0": null
+  },
+  "conceptsForItem": {
+    "householdIncome": [
+      "fibo:HouseholdIncome"
+    ],
+    "socialSecurityNumber": [
+      "hl7:SSN"
+    ],
+    "nonexistent": []
+  },
+  "itemsForConcept": {
+    "fibo:HouseholdIncome": [
+      "householdIncome"
+    ],
+    "hl7:SSN": [
+      "socialSecurityNumber"
+    ],
+    "nonexistent": []
+  },
+  "conceptsForNode": {
+    "/tree/children/0": [
+      "fibo:HouseholdIncome"
+    ],
+    "/tree/children/1": [
+      "hl7:SSN"
+    ],
+    "/tree/children/2": []
+  },
+  "whatDependsOn": {
+    "householdIncome": {
+      "subjectItem": "item:householdIncome",
+      "directDependentItems": [],
+      "transitiveDependentItems": [],
+      "renderingNodes": [
+        "componentNodePath:/tree/children/0"
+      ],
+      "collectingUnits": [
+        "unit:financialEntry"
+      ],
+      "visibilityNodes": [],
+      "actionPreconditions": [],
+      "conceptBindings": [
+        "concept:fibo:HouseholdIncome"
+      ]
+    },
+    "socialSecurityNumber": {
+      "subjectItem": "item:socialSecurityNumber",
+      "directDependentItems": [],
+      "transitiveDependentItems": [],
+      "renderingNodes": [
+        "componentNodePath:/tree/children/1"
+      ],
+      "collectingUnits": [
+        "unit:financialEntry"
+      ],
+      "visibilityNodes": [],
+      "actionPreconditions": [],
+      "conceptBindings": [
+        "concept:hl7:SSN"
+      ]
+    }
+  }
+}

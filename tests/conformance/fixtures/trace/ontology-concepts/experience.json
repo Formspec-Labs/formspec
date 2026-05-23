@@ -1,0 +1,18 @@
+{
+  "$formspecExperience": "1.0",
+  "name": "financial-intake",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.gov/forms/financial", "compatibleVersions": ">=1.0.0 <2.0.0" },
+  "tasks": [ { "id": "completeIntake" } ],
+  "units": [
+    {
+      "id": "financialEntry",
+      "kind": "data-entry",
+      "taskRefs": ["completeIntake"],
+      "itemRefs": [
+        { "path": "householdIncome" },
+        { "path": "socialSecurityNumber" }
+      ]
+    }
+  ]
+}
