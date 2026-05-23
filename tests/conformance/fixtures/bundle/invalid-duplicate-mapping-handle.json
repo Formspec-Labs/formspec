@@ -1,0 +1,15 @@
+{
+  "fixture": "invalid-duplicate-mapping-handle",
+  "purpose": "Two `mappings[]` entries share the same `handle`. Spec semantics test MUST reject.",
+  "expected": { "valid": false, "errorContains": "handle" },
+  "bundle": {
+    "$formspecBundle": "1.0",
+    "version": "1.0.0",
+    "id": "https://example.gov/forms/dup-handle",
+    "definition": { "url": "https://example.gov/forms/dup-handle/definition", "version": "1.0.0" },
+    "mappings": [
+      { "url": "https://example.gov/forms/dup-handle/mapping-1", "handle": "applicationPayload" },
+      { "url": "https://example.gov/forms/dup-handle/mapping-2", "handle": "applicationPayload" }
+    ]
+  }
+}
