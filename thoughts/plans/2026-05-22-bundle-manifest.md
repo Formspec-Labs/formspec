@@ -114,7 +114,7 @@ depends_on:
 **Files:**
 - Create: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Write the spec scaffold**
+- [x] **Step 1: Write the spec scaffold**
 
 ```markdown
 ---
@@ -202,12 +202,12 @@ Additional terms:
 <!-- §6 prose lands in Task 18 -->
 ```
 
-- [ ] **Step 2: Verify file lands at correct path**
+- [x] **Step 2: Verify file lands at correct path**
 
 Run: `test -f /Users/mikewolfd/Work/formspec-stack/formspec/specs/bundle/bundle-manifest-spec.md && echo OK`
 Expected: `OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -225,7 +225,7 @@ in tasks 13-18 of thoughts/plans/2026-05-22-bundle-manifest.md."
 **Files:**
 - Create: `schemas/bundle-manifest.schema.json`
 
-- [ ] **Step 1: Write minimum schema (only `$formspecBundle`, `version`, `id`, `definition` stub)**
+- [x] **Step 1: Write minimum schema (only `$formspecBundle`, `version`, `id`, `definition` stub)**
 
 ```json
 {
@@ -308,12 +308,12 @@ in tasks 13-18 of thoughts/plans/2026-05-22-bundle-manifest.md."
 }
 ```
 
-- [ ] **Step 2: Validate schema is well-formed**
+- [x] **Step 2: Validate schema is well-formed**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -c "import json, jsonschema; s=json.load(open('schemas/bundle-manifest.schema.json')); jsonschema.Draft202012Validator.check_schema(s); print('OK')"`
 Expected: `OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -332,7 +332,7 @@ subsequent tasks of thoughts/plans/2026-05-22-bundle-manifest.md."
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/bundle-definition-only.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -352,7 +352,7 @@ subsequent tasks of thoughts/plans/2026-05-22-bundle-manifest.md."
 }
 ```
 
-- [ ] **Step 2: Verify fixture validates against schema**
+- [x] **Step 2: Verify fixture validates against schema**
 
 Run:
 ```bash
@@ -367,7 +367,7 @@ print('OK')
 ```
 Expected: `OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -382,7 +382,7 @@ git commit tests/conformance/fixtures/bundle/bundle-definition-only.json -m "tes
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/invalid-missing-definition.json`
 
-- [ ] **Step 1: Author fixture (deliberately invalid)**
+- [x] **Step 1: Author fixture (deliberately invalid)**
 
 ```json
 {
@@ -397,7 +397,7 @@ git commit tests/conformance/fixtures/bundle/bundle-definition-only.json -m "tes
 }
 ```
 
-- [ ] **Step 2: Verify schema rejects fixture**
+- [x] **Step 2: Verify schema rejects fixture**
 
 Run:
 ```bash
@@ -416,7 +416,7 @@ except jsonschema.ValidationError as e:
 ```
 Expected: `OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -431,7 +431,7 @@ git commit tests/conformance/fixtures/bundle/invalid-missing-definition.json -m 
 **Files:**
 - Create: `tests/conformance/schemas/test_bundle_manifest_schema.py`
 
-- [ ] **Step 1: Write failing test file**
+- [x] **Step 1: Write failing test file**
 
 ```python
 """Schema acceptance tests for the Bundle Manifest companion spec."""
@@ -491,12 +491,12 @@ class TestBundleManifestNegativeFixtures:
         assert "definition" in str(excinfo.value)
 ```
 
-- [ ] **Step 2: Run tests**
+- [x] **Step 2: Run tests**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py -v`
 Expected: all tests PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -511,7 +511,7 @@ git commit tests/conformance/schemas/test_bundle_manifest_schema.py -m "test(bun
 **Files:**
 - Modify: `schemas/bundle-manifest.schema.json` — add `experience`, `responseActions`, `component`, `theme`, `references`, `ontology`, `registry` as optional `SiblingRef` properties.
 
-- [ ] **Step 1: Add the seven optional single-cardinality slots to `properties`**
+- [x] **Step 1: Add the seven optional single-cardinality slots to `properties`**
 
 Add these property entries to the `properties` object in `schemas/bundle-manifest.schema.json`, between `definition` and the schema's closing braces (preserve existing properties):
 
@@ -546,17 +546,17 @@ Add these property entries to the `properties` object in `schemas/bundle-manifes
     }
 ```
 
-- [ ] **Step 2: Validate schema is still well-formed**
+- [x] **Step 2: Validate schema is still well-formed**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -c "import json, jsonschema; jsonschema.Draft202012Validator.check_schema(json.load(open('schemas/bundle-manifest.schema.json'))); print('OK')"`
 Expected: `OK`
 
-- [ ] **Step 3: Run existing schema tests to confirm no regression**
+- [x] **Step 3: Run existing schema tests to confirm no regression**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py -v`
 Expected: all tests PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -575,7 +575,7 @@ documented inline; no synthesis."
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/bundle-full-singles.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -600,7 +600,7 @@ documented inline; no synthesis."
 }
 ```
 
-- [ ] **Step 2: Add a passing test for it**
+- [x] **Step 2: Add a passing test for it**
 
 Edit `tests/conformance/schemas/test_bundle_manifest_schema.py` and add to `class TestBundleManifestPositiveFixtures`:
 
@@ -609,12 +609,12 @@ Edit `tests/conformance/schemas/test_bundle_manifest_schema.py` and add to `clas
         _validator().validate(_fixture_bundle("bundle-full-singles.json"))
 ```
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py -v`
 Expected: all tests PASS including `test_full_singles_validates`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -629,7 +629,7 @@ git commit tests/conformance/fixtures/bundle/bundle-full-singles.json tests/conf
 **Files:**
 - Modify: `schemas/bundle-manifest.schema.json` — add `locales`, `mappings` as optional typed arrays with per-entry distinguishing key.
 
-- [ ] **Step 1: Add `locales` and `mappings` to `properties`**
+- [x] **Step 1: Add `locales` and `mappings` to `properties`**
 
 Append to the `properties` object (after `registry`):
 
@@ -656,7 +656,7 @@ Append to the `properties` object (after `registry`):
     }
 ```
 
-- [ ] **Step 2: Add `LocaleRef` and `MappingRef` to `$defs`**
+- [x] **Step 2: Add `LocaleRef` and `MappingRef` to `$defs`**
 
 Append to `$defs` (after `SiblingRef`):
 
@@ -691,12 +691,12 @@ Append to `$defs` (after `SiblingRef`):
     }
 ```
 
-- [ ] **Step 3: Validate schema**
+- [x] **Step 3: Validate schema**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -c "import json, jsonschema; jsonschema.Draft202012Validator.check_schema(json.load(open('schemas/bundle-manifest.schema.json'))); print('OK')"`
 Expected: `OK`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -715,7 +715,7 @@ semantics tests (Task 11); schema enforces shape."
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/bundle-with-locales-and-mappings.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -738,7 +738,7 @@ semantics tests (Task 11); schema enforces shape."
 }
 ```
 
-- [ ] **Step 2: Add passing test**
+- [x] **Step 2: Add passing test**
 
 Edit `tests/conformance/schemas/test_bundle_manifest_schema.py`, add to `TestBundleManifestPositiveFixtures`:
 
@@ -747,12 +747,12 @@ Edit `tests/conformance/schemas/test_bundle_manifest_schema.py`, add to `TestBun
         _validator().validate(_fixture_bundle("bundle-with-locales-and-mappings.json"))
 ```
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py -v`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -767,7 +767,7 @@ git commit tests/conformance/fixtures/bundle/bundle-with-locales-and-mappings.js
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/invalid-duplicate-locale-tag.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -787,7 +787,7 @@ git commit tests/conformance/fixtures/bundle/bundle-with-locales-and-mappings.js
 }
 ```
 
-- [ ] **Step 2: Commit (no test yet — test lands in Task 12 with semantics file)**
+- [x] **Step 2: Commit (no test yet — test lands in Task 12 with semantics file)**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -802,7 +802,7 @@ git commit tests/conformance/fixtures/bundle/invalid-duplicate-locale-tag.json -
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/invalid-duplicate-mapping-handle.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -822,7 +822,7 @@ git commit tests/conformance/fixtures/bundle/invalid-duplicate-locale-tag.json -
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -837,7 +837,7 @@ git commit tests/conformance/fixtures/bundle/invalid-duplicate-mapping-handle.js
 **Files:**
 - Create: `tests/conformance/spec/test_bundle_manifest_semantics.py`
 
-- [ ] **Step 1: Write semantics test**
+- [x] **Step 1: Write semantics test**
 
 ```python
 """Spec-semantics tests for Bundle Manifest beyond schema acceptance.
@@ -907,12 +907,12 @@ class TestBundleIdDistinctness:
         )
 ```
 
-- [ ] **Step 2: Run tests**
+- [x] **Step 2: Run tests**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/spec/test_bundle_manifest_semantics.py -v`
 Expected: all tests PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -927,7 +927,7 @@ git commit tests/conformance/spec/test_bundle_manifest_semantics.py -m "test(bun
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/invalid-unknown-property.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -944,7 +944,7 @@ git commit tests/conformance/spec/test_bundle_manifest_semantics.py -m "test(bun
 }
 ```
 
-- [ ] **Step 2: Add test to schema test file**
+- [x] **Step 2: Add test to schema test file**
 
 Edit `tests/conformance/schemas/test_bundle_manifest_schema.py`, add to `TestBundleManifestNegativeFixtures`:
 
@@ -955,12 +955,12 @@ Edit `tests/conformance/schemas/test_bundle_manifest_schema.py`, add to `TestBun
         assert "screener" in str(excinfo.value) or "additional propert" in str(excinfo.value).lower()
 ```
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py -v`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -975,7 +975,7 @@ git commit tests/conformance/fixtures/bundle/invalid-unknown-property.json tests
 **Files:**
 - Create: `tests/conformance/fixtures/bundle/invalid-bad-version.json`
 
-- [ ] **Step 1: Author fixture**
+- [x] **Step 1: Author fixture**
 
 ```json
 {
@@ -991,7 +991,7 @@ git commit tests/conformance/fixtures/bundle/invalid-unknown-property.json tests
 }
 ```
 
-- [ ] **Step 2: Add test**
+- [x] **Step 2: Add test**
 
 Edit `tests/conformance/schemas/test_bundle_manifest_schema.py`, add to `TestBundleManifestNegativeFixtures`:
 
@@ -1002,12 +1002,12 @@ Edit `tests/conformance/schemas/test_bundle_manifest_schema.py`, add to `TestBun
         assert "version" in str(excinfo.value).lower() or "pattern" in str(excinfo.value).lower()
 ```
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py -v`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1022,7 +1022,7 @@ git commit tests/conformance/fixtures/bundle/invalid-bad-version.json tests/conf
 **Files:**
 - Modify: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Replace the §1 placeholder comment with prose**
+- [x] **Step 1: Replace the §1 placeholder comment with prose**
 
 Replace `<!-- §1 prose lands in Task 13 -->` with:
 
@@ -1043,7 +1043,7 @@ The Bundle Manifest is a **pure composition envelope**. It MUST NOT:
 A Definition without a Bundle Manifest remains a valid Formspec form. The Bundle Manifest is the **opt-in** seam between architectural breadth (many specs) and authoring ergonomics (open one thing).
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1058,7 +1058,7 @@ git commit specs/bundle/bundle-manifest-spec.md -m "docs(bundle): §1 Introducti
 **Files:**
 - Modify: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Replace the §2 placeholder comment with prose**
+- [x] **Step 1: Replace the §2 placeholder comment with prose**
 
 Replace `<!-- §2 prose lands in Task 14 -->` with:
 
@@ -1089,7 +1089,7 @@ Producers SHOULD pin exact versions in published bundles. Range expressions are 
 A bundle's sibling pin SHOULD be a subset of the sibling artifact's own `targetDefinition.compatibleVersions` range. Bundles MUST NOT widen a sibling's compatibility envelope.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1104,7 +1104,7 @@ git commit specs/bundle/bundle-manifest-spec.md -m "docs(bundle): §2 Identity a
 **Files:**
 - Modify: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Replace the §3 placeholder comment with prose**
+- [x] **Step 1: Replace the §3 placeholder comment with prose**
 
 Replace `<!-- §3 prose lands in Task 15 -->` with:
 
@@ -1162,7 +1162,7 @@ The following artifacts MUST NOT appear in a Bundle Manifest. They are response-
 - Trace
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1177,7 +1177,7 @@ git commit specs/bundle/bundle-manifest-spec.md -m "docs(bundle): §3 Members pr
 **Files:**
 - Modify: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Replace the §4 placeholder comment with prose**
+- [x] **Step 1: Replace the §4 placeholder comment with prose**
 
 Replace `<!-- §4 prose lands in Task 16 -->` with:
 
@@ -1198,7 +1198,7 @@ A **Definition-only bundle** is a valid bundle and a valid form. It is the simpl
 The opt-in escalation is monotone: an author starts with `definition`, adds `experience` when task intent becomes worth naming, adds `component` when widget choice becomes worth controlling, and so on. Each addition is an authored artifact, not a synthesized one.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1217,7 +1217,7 @@ Experience from Definition structure."
 **Files:**
 - Modify: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Replace the §5 placeholder comment with prose**
+- [x] **Step 1: Replace the §5 placeholder comment with prose**
 
 Replace `<!-- §5 prose lands in Task 17 -->` with:
 
@@ -1250,7 +1250,7 @@ A bundle that names a sibling whose back-reference targets a different Definitio
 This specification does NOT introduce a `definition.bundle` field, a `Bundle.legacyDefinitionOnly` flag, or any backwards-compat alias on existing primary specs. Bundle Manifest is a peer primary artifact; existing artifacts are unchanged. Implementations migrating to Bundle Manifest add bundle files alongside existing reference graphs; they do not modify existing schema shapes.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1268,7 +1268,7 @@ back-references. No shim path on existing primary specs."
 **Files:**
 - Modify: `specs/bundle/bundle-manifest-spec.md`
 
-- [ ] **Step 1: Replace the §6 placeholder comment with prose**
+- [x] **Step 1: Replace the §6 placeholder comment with prose**
 
 Replace `<!-- §6 prose lands in Task 18 -->` with:
 
@@ -1312,7 +1312,7 @@ The following are explicitly NOT part of this v1 conformance:
 - Diff and merge semantics for bundle versions. May be added in a future minor version.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1331,7 +1331,7 @@ no cross-sibling consistency beyond §5.3 sibling-pin agreement)."
 **Files:**
 - Create: `specs/bundle/bundle-manifest-spec.bluf.md`
 
-- [ ] **Step 1: Write BLUF**
+- [x] **Step 1: Write BLUF**
 
 ```markdown
 - This document defines the Bundle Manifest -- a single authored JSON artifact that names a Formspec form by composing its Definition (REQUIRED) and optional siblings (Experience, Response Actions, Component, Theme, References, Ontology, Registry, locales[], mappings[]) at coherent versions.
@@ -1341,7 +1341,7 @@ no cross-sibling consistency beyond §5.3 sibling-pin agreement)."
 - This BLUF is governed by `schemas/bundle-manifest.schema.json`, the canonical structural contract.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1358,17 +1358,17 @@ git commit specs/bundle/bundle-manifest-spec.bluf.md -m "docs(bundle): BLUF bull
 - Create: `specs/bundle/bundle-manifest-spec.llm.md` (auto-generated)
 - Modify: `specs/bundle/bundle-manifest-spec.md` BLUF block (auto-populated by generator)
 
-- [ ] **Step 1: Run doc generator**
+- [x] **Step 1: Run doc generator**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && npm run docs:generate`
 Expected: completes with no errors; new generated files appear under `specs/bundle/`.
 
-- [ ] **Step 2: Run doc gate**
+- [x] **Step 2: Run doc gate**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && npm run docs:check`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1383,7 +1383,7 @@ git commit filemap.json specs/bundle/bundle-manifest-spec.llm.md specs/bundle/bu
 **Files:**
 - Modify: `thoughts/specs/2026-05-20-formspec-semantic-layers.md` — §8
 
-- [ ] **Step 1: Edit §8 to append the coverage record**
+- [x] **Step 1: Edit §8 to append the coverage record**
 
 Locate the line in §8 that reads:
 
@@ -1413,7 +1413,7 @@ The eight MVB claims above are proven distributively by the existing fixture cor
 Coverage status: **complete**.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1431,7 +1431,7 @@ existing fixture corpus. No omnibus fixture needed."
 **Files:**
 - Modify: `thoughts/specs/2026-05-20-formspec-semantic-layers.md` — §10 (add row 7) and §11.5 (mark Resolved)
 
-- [ ] **Step 1: Add row 7 to §10**
+- [x] **Step 1: Add row 7 to §10**
 
 After the §10 entry for Trace (item 6), insert:
 
@@ -1439,7 +1439,7 @@ After the §10 entry for Trace (item 6), insert:
 7. **Bundle Manifest companion spec.** Define the author-facing composition envelope for Formspec forms: required `definition`, optional siblings, version pinning, absence semantics, and reference-graph relationship. **Landed:** [`specs/bundle/bundle-manifest-spec.md`](../../specs/bundle/bundle-manifest-spec.md) (draft, 2026-05-22).
 ```
 
-- [ ] **Step 2: Update §11.5 to mark Resolved**
+- [x] **Step 2: Update §11.5 to mark Resolved**
 
 Replace the §11.5 body:
 
@@ -1457,7 +1457,7 @@ with:
 The architecture needs an author-facing bundle concept or equivalent workflow. Without it, layer count will become an adoption blocker even if the layers are individually clean. **Resolved:** [`specs/bundle/bundle-manifest-spec.md`](../../specs/bundle/bundle-manifest-spec.md) defines a pure composition envelope: one Definition (required) plus optional siblings (Experience, Response Actions, Component, Theme, References, Ontology, Registry, locales[], mappings[]), coherent version pinning via the bundle's own SemVer, no inline sidecars, no synthesis on absence (concept §6.2 category error is avoided), and no shim on existing primary specs (forward composition adds to back-references; does not replace them).
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1472,7 +1472,7 @@ follow-on order now lists all seven promotion items with status."
 
 ### Task 25: Final verification + summary
 
-- [ ] **Step 1: Run the full Bundle Manifest test surface**
+- [x] **Step 1: Run the full Bundle Manifest test surface**
 
 Run:
 ```bash
@@ -1481,12 +1481,12 @@ python3 -m pytest tests/conformance/schemas/test_bundle_manifest_schema.py tests
 ```
 Expected: all tests PASS (8 schema tests + 5 semantics tests = 13 total).
 
-- [ ] **Step 2: Run doc gate one more time**
+- [x] **Step 2: Run doc gate one more time**
 
 Run: `cd /Users/mikewolfd/Work/formspec-stack/formspec && npm run docs:check`
 Expected: PASS
 
-- [ ] **Step 3: Confirm no shim/legacy bolt-on**
+- [x] **Step 3: Confirm no shim/legacy bolt-on**
 
 Run:
 ```bash
@@ -1495,7 +1495,7 @@ git diff main -- schemas/definition.schema.json schemas/component.schema.json sc
 ```
 Expected: NO diff (existing primary schemas untouched).
 
-- [ ] **Step 4: Print final status**
+- [x] **Step 4: Print final status**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1523,3 +1523,32 @@ echo "=== Bundle Manifest landed ===" && \
 **Type consistency check:** `SiblingRef.url` (required, URI), `SiblingRef.version` (optional, SemVer/range) consistent across §3, schema, and fixtures. `locale` BCP47 pattern consistent between §3.4 prose and `LocaleRef` schema. `handle` slug pattern consistent between §3.4 prose and `MappingRef` schema.
 
 **No-shims discipline check:** every existing primary spec/schema (Definition, Experience, Response Actions, Component, Theme, Locale, Mapping, References, Ontology, Registry) is unchanged by this plan. Bundle Manifest lands as a peer primary artifact. T25 step 3 verifies no diff on existing schemas.
+
+---
+
+## Deviations Log (execution 2026-05-22)
+
+All tasks landed end-to-end. Two review passes (formspec-scout semi-formal-code-review + cross-stack-scout / spec-expert semi-formal-architecture-review) and one final verification pass returned **zero open findings**. 15 Bundle conformance tests pass; `npm run docs:check` returns 311 pass; existing primary schemas show zero diff (no shims). The following deviations from the plan's literal text were taken; all are documented inline in the commits that introduced them:
+
+**Schema tightening (commit `cee02517`, code-review remediation):**
+- `version` SemVer regex tightened from the plan's lax pattern (`^[0-9]+\.[0-9]+\.[0-9]+...`) to the canonical semver.org regex that rejects leading zeros, empty pre-release ids, and leading-zero numeric pre-release ids.
+- Positive fixture envelope gained `"expected": { "valid": true }` for shape symmetry against negative fixtures (sibling convention in `tests/conformance/fixtures/response-actions/`).
+- Spec scaffold gained the missing `[RFC 8174]` link target.
+
+**Schema/fixture additions (commit `9b9fa6d3`, arch-review remediation):**
+- `LocaleRef.locale` pattern tightened to match `schemas/locale.schema.json`'s own tag pattern (`{2,8}` subtag length).
+- Added `tests/conformance/fixtures/bundle/invalid-id-equals-sibling-url.json` and a semantics test asserting it (§2.1 / §6.1 rule 3 had no negative fixture).
+- `SiblingRef`, `LocaleRef`, `MappingRef` gained `^x-` `patternProperties` for per-ref author annotations (symmetric with the top-level bundle's extensibility).
+- Slug pattern extracted to `$defs/Slug` (used by `bundle.name` and `MappingRef.handle`).
+
+**Doc-pipeline registrations (commit `a686714c`, T22 deviation):**
+- `scripts/spec-artifacts.config.json` — added a `bundle-manifest` entry. Required for the BLUF marker to populate and the `*.llm.md` to generate; not in the plan.
+- `tests/contracts/surface-coverage.json` — added a `bundle-manifest` contract row with `status: enforced`, `runtimeScope: spec-conformance-only`, following the `trace` precedent. Required by `tests/unit/test_contract_surface_coverage.py`; not in the plan.
+- `schemas/bundle-manifest.schema.json` — added `examples[]` on the three `x-lm.critical=true` nodes (`definition`, `locales`, `mappings`) per the spec-artifacts gate.
+
+**Final-review remediation (commits `077ef6fd` + `57b2a942`):**
+- Spec §2.2 — added explicit forward-compat MUST: `1.0`-only processors check `$formspecBundle` before structural validation and reject `1.x≠1.0` with `unsupported-bundle-version` rather than a generic schema failure.
+- Spec §6.2 — added closing paragraph clarifying that the static fixture corpus covers §6.1 rules 1/2/3/5 but rule 4 (§5.3 sibling-pin consistency) is an online check requiring sibling-resolver-stub. Mirrored in `surface-coverage.json`'s `runtimeRationale`.
+- Spec §4 — Locale-fallback bullet anchor pinned to "Locale spec §4 Fallback Cascade".
+- Schema `#/properties/id` — added `$comment` pointing readers to spec §2.1 / §6.1 rule 3 for the cross-property distinctness rule (JSON Schema cannot express it).
+- `surface-coverage.json` `checks[]` — replaced the count-bearing "five negative postures" phrasing with an enumeration that future-proofs against count drift; tightened the semantics-test description to match what those tests actually verify (fixture authoring intent, not processor enforcement).
