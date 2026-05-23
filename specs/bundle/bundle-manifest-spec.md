@@ -195,7 +195,32 @@ The opt-in escalation is monotone: an author starts with `definition`, adds `exp
 
 ## 5. Relationship to the Reference Graph
 
-<!-- §5 prose lands in Task 17 -->
+Sibling artifacts each carry a `targetDefinition` back-reference naming the Definition they bind to. Bundle Manifest does **not** change that back-reference graph -- it adds a forward-composition graph alongside it.
+
+### 5.1 Forward Composition (Bundle → Siblings)
+
+The bundle's slot-by-slot sibling references compose a form forward. A consumer that holds a Bundle Manifest can resolve every artifact needed to render or process the form without scanning a content addressable store, registry, or filesystem for documents that target a given Definition.
+
+This is the seam Bundle Manifest adds: discovery without reverse-scanning.
+
+### 5.2 Back-Reference Preservation (Sibling → Definition)
+
+Every sibling document continues to carry its own `targetDefinition` (Experience, Component, Response Actions, Theme, Locale, Mapping, References, Ontology). Those back-references are unchanged. Bundle Manifest does NOT consume them; it does NOT supersede them; it does NOT generate them.
+
+A sibling artifact remains independently valid against its own spec without ever appearing in a Bundle Manifest. The reverse-discovery path (load Definition; find siblings whose `targetDefinition.url` matches) MUST continue to work for tools that do not use Bundle Manifest.
+
+### 5.3 Consistency Between Bundle Pin and Back-Reference
+
+When a Bundle Manifest pins a sibling at version V, the loaded sibling document at `siblingRef.url` MUST satisfy two constraints:
+
+1. The sibling document's own `version` MUST be compatible with the bundle's pin (`siblingRef.version`).
+2. The sibling document's `targetDefinition.url` MUST equal the bundle's `definition.url`, and the sibling's `targetDefinition.compatibleVersions` MUST accept the bundle's `definition.version`.
+
+A bundle that names a sibling whose back-reference targets a different Definition is a bundle-resolution error.
+
+### 5.4 No Shim Path
+
+This specification does NOT introduce a `definition.bundle` field, a `Bundle.legacyDefinitionOnly` flag, or any backwards-compat alias on existing primary specs. Bundle Manifest is a peer primary artifact; existing artifacts are unchanged. Implementations migrating to Bundle Manifest add bundle files alongside existing reference graphs; they do not modify existing schema shapes.
 
 ## 6. Conformance
 
