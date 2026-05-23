@@ -54,6 +54,34 @@
         "critical": true,
         "intent": "Required core artifact reference"
       }
+    },
+    "experience": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Experience document reference (task intent). When absent, the form has no authored task intent layer; Trace simply lacks Experience edges. No synthesis."
+    },
+    "responseActions": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Response Actions document reference (form-scoped action orchestration). When absent, the form has no named actions; submit happens via host UI."
+    },
+    "component": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Component document reference (concrete UI tree). When absent, the renderer falls back to Definition's existing widget defaults."
+    },
+    "theme": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Theme document reference (visual tokens, density, presentation defaults). When absent, the renderer uses its built-in defaults."
+    },
+    "references": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional References document (external resource attachments: policy, documentation, examples, tools)."
+    },
+    "ontology": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Ontology document (concept metadata for items and choices)."
+    },
+    "registry": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Registry document (option-set / token registry enrichment)."
     }
   },
   "$defs": {
