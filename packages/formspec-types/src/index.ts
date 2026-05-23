@@ -158,6 +158,9 @@ export type FormDefinition = FormDefinitionKnownFields & {
 import type { ComponentDocument } from './generated/component.js';
 import type { ThemeDocument } from './generated/theme.js';
 import type { MappingDocument } from './generated/mapping.js';
+import type { ScreenerDocument } from './generated/screener.js';
+import type { ExperienceDocument } from './generated/experience.js';
+import type { ResponseActionsDocument } from './generated/response-actions.js';
 
 export interface ProjectBundle {
   /** The form definition artifact. */
@@ -170,4 +173,10 @@ export interface ProjectBundle {
   mappings: Record<string, MappingDocument>;
   /** Locale documents keyed by BCP 47 code (present only when locales are loaded). */
   locales?: Record<string, unknown>;
+  /** Standalone Screener Document (present only when a screener is loaded). */
+  screener?: ScreenerDocument;
+  /** Standalone Experience Document (present only when an experience is loaded). */
+  experience?: ExperienceDocument;
+  /** Standalone Response Actions Document (present only when response-actions are loaded). */
+  responseActions?: ResponseActionsDocument;
 }

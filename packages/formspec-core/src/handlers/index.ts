@@ -11,6 +11,8 @@ import { definitionPagesHandlers } from './definition-pages.js';
 import { definitionOptionsetsHandlers } from './definition-optionsets.js';
 import { definitionInstancesHandlers } from './definition-instances.js';
 import { screenerHandlers } from './screener.js';
+import { experienceHandlers } from './experience.js';
+import { responseActionsHandlers } from './response-actions.js';
 import { definitionMigrationsHandlers } from './definition-migrations.js';
 import { componentTreeHandlers } from './component-tree.js';
 import { componentPropertiesHandlers } from './component-properties.js';
@@ -31,6 +33,8 @@ export const builtinHandlers = Object.freeze({
   ...definitionOptionsetsHandlers,
   ...definitionInstancesHandlers,
   ...screenerHandlers,
+  ...experienceHandlers,
+  ...responseActionsHandlers,
   ...definitionMigrationsHandlers,
   ...componentTreeHandlers,
   ...componentPropertiesHandlers,

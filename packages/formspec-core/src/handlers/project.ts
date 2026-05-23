@@ -59,6 +59,17 @@ export const projectHandlers = {
       }
     }
 
+    // Import standalone sidecar documents (single emission policy: present iff non-null).
+    if (p.screener !== undefined) {
+      state.screener = p.screener ?? null;
+    }
+    if (p.experience !== undefined) {
+      state.experience = p.experience ?? null;
+    }
+    if (p.responseActions !== undefined) {
+      state.responseActions = p.responseActions ?? null;
+    }
+
     // Sync targetDefinition URLs
     const url = state.definition.url;
     if (!state.component.targetDefinition) state.component.targetDefinition = { url };

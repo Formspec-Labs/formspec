@@ -283,6 +283,8 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
     selectedLocaleId: options?.seed?.selectedLocaleId,
     extensions: { registries: seedRegs },
     screener: options?.seed?.screener ?? null,
+    experience: options?.seed?.experience ?? null,
+    responseActions: options?.seed?.responseActions ?? null,
     versioning: options?.seed?.versioning ?? {
       baseline: structuredClone(definition),
       releases: [],
@@ -481,6 +483,17 @@ export class RawProject implements IProjectCore {
           ...(ls.url ? { url: ls.url } : {}),
         };
       }
+    }
+
+    // Single emission policy for standalone sidecars: present iff non-null in state.
+    if (this._state.screener) {
+      bundle.screener = this._state.screener;
+    }
+    if (this._state.experience) {
+      bundle.experience = this._state.experience;
+    }
+    if (this._state.responseActions) {
+      bundle.responseActions = this._state.responseActions;
     }
 
     return structuredClone(bundle);

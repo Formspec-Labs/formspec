@@ -19,7 +19,7 @@ import type {
   ProjectBundle,
   TargetSchema,
 } from '@formspec-org/types';
-import type { ScreenerDocument } from './types.js';
+import type { ScreenerDocument, ExperienceDocument, ResponseActionsDocument } from './types.js';
 
 export interface ProjectCommandMap {
   'theme.setToken': { key: string; value: unknown };
@@ -57,6 +57,12 @@ export interface ProjectCommandMap {
   'screener.reorderRoute': { phaseId: string; index: number; direction: 'up' | 'down' };
   'screener.setAvailability': { from?: string | null; until?: string | null };
   'screener.setResultValidity': { duration: string | null };
+  'experience.setDocument': ExperienceDocument;
+  'experience.remove': Record<string, unknown>;
+  'experience.setMetadata': Record<string, unknown>;
+  'responseActions.setDocument': ResponseActionsDocument;
+  'responseActions.remove': Record<string, unknown>;
+  'responseActions.setMetadata': Record<string, unknown>;
   'project.import': Partial<ProjectBundle>;
   'project.importSubform': { definition: Record<string, unknown>; targetGroupPath?: string; keyPrefix?: string; };
   'project.loadRegistry': { registry: Record<string, unknown> };

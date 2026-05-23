@@ -2,7 +2,8 @@
 import type { SchemaValidator } from '@formspec-org/engine/fel-tools';
 import type {
   FormItem, FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
-  ScreenerDocument, FieldRule, TargetSchema,
+  ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
+  FieldRule, TargetSchema,
 } from '@formspec-org/types';
 
 // ── Schema-derived types (re-exported from formspec-types) ──────────
@@ -10,7 +11,7 @@ import type {
 export type {
   FormItem, FormBind, FormShape, FormVariable, FormInstance, FormOption,
   FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
-  ScreenerDocument,
+  ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
 } from '@formspec-org/types';
 
 // ── Internal content types ──────────────────────────────────────────
@@ -159,6 +160,10 @@ export interface ProjectState {
   extensions: ExtensionsState;
   /** Standalone Screener Document, or null if no screener is loaded. */
   screener: ScreenerDocument | null;
+  /** Standalone Experience Document, or null if no experience is loaded. */
+  experience: ExperienceDocument | null;
+  /** Standalone Response Actions Document, or null if no response-actions are loaded. */
+  responseActions: ResponseActionsDocument | null;
   /** Baseline snapshot and release history for changelog generation. */
   versioning: VersioningState;
 }
