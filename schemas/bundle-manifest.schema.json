@@ -82,6 +82,26 @@
     "registry": {
       "$ref": "#/$defs/SiblingRef",
       "description": "Optional Registry document (option-set / token registry enrichment)."
+    },
+    "locales": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/LocaleRef" },
+      "description": "Optional array of Locale references, one per BCP47 locale tag. Each entry's `locale` MUST be unique within the array.",
+      "x-lm": {
+        "critical": true,
+        "intent": "Per-locale Locale document references"
+      }
+    },
+    "mappings": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/MappingRef" },
+      "description": "Optional array of Mapping references, one per named mapping handle. Each entry's `handle` MUST be unique within the array.",
+      "x-lm": {
+        "critical": true,
+        "intent": "Per-handle Mapping document references"
+      }
     }
   },
   "$defs": {
@@ -99,6 +119,34 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional SemVer string (exact: '1.2.0') or range expression ('>=1.0.0 <2.0.0', '^1.0.0'). When omitted, any compatible-by-major version is accepted. Producers SHOULD pin exact versions in published bundles."
+        }
+      }
+    },
+    "LocaleRef": {
+      "type": "object",
+      "required": ["url", "locale"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 },
+        "locale": {
+          "type": "string",
+          "pattern": "^[a-zA-Z]{2,3}(-[A-Za-z0-9]+)*$",
+          "description": "BCP47 locale tag (e.g., 'en-US', 'es-MX')."
+        }
+      }
+    },
+    "MappingRef": {
+      "type": "object",
+      "required": ["url", "handle"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 },
+        "handle": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+          "description": "Author-chosen handle. Response Actions and other consumers resolve `mappingRef` by this handle."
         }
       }
     }
