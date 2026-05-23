@@ -482,6 +482,23 @@ The bundle should prove these claims:
 
 This bundle is the practical test for the architecture. If the bundle cannot be implemented cleanly, do not expand the layer set.
 
+### 8.1 Verified Coverage (2026-05-22)
+
+The eight MVB claims above are proven distributively by the existing fixture corpus. No omnibus MVB fixture is required; per-spec fixtures cover the claims.
+
+| Claim | Fixture |
+|---|---|
+| 1. A generator can derive a Component draft from semantic source | `tests/conformance/fixtures/component-reference-fields/x-generation-anchors-coverage.json` |
+| 2. A designer can edit the Component draft without losing all edits on regeneration | `tests/conformance/fixtures/regeneration-merge/designer-only-property/`, `designer-precedes/` |
+| 3. A submit trigger can use `ActionButton.actionRef` to invoke a submit Response Action | `tests/conformance/fixtures/component-reference-fields/component-all-refs-resolved.json` |
+| 4. Invalid draft save is allowed | `tests/conformance/fixtures/validation-mapping/intent-save-draft.json` |
+| 5. Error-level validation blocks completion | `tests/conformance/fixtures/validation-mapping/intent-submit-blocked.json` |
+| 6. Warning-only validation does not block completion | `tests/conformance/fixtures/validation-mapping/intent-submit-warning-only.json` |
+| 7. Intake Handoff remains a boundary artifact, not a case creation event | `tests/conformance/fixtures/response-actions/cross-spec-intake-handoff-seam.json` (expects `caseCreatedEventEmitted: false`) |
+| 8. Trace or a trace-like impact map can explain which source artifacts affected which Component nodes | `tests/conformance/fixtures/trace/{experience-hierarchy,fel-dependency-chain,ontology-concepts}/` |
+
+Coverage status: **complete**.
+
 ---
 
 ## 9. Promotion Gates
