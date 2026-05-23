@@ -178,7 +178,20 @@ The following artifacts MUST NOT appear in a Bundle Manifest. They are response-
 
 ## 4. Absence Semantics
 
-<!-- §4 prose lands in Task 16 -->
+A Bundle Manifest names which sibling artifacts compose a form. When a sibling slot is **absent**, that sibling's own specification rules govern -- not Bundle Manifest.
+
+Absence MUST NOT trigger synthesis. Specifically:
+
+- A bundle that references only `definition` MUST NOT cause a renderer, generator, or consumer to fabricate an Experience document from Definition structure. As the concept architecture note ([`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md) §6.2) warns: "Definition groups describe data structure ... Experience units describe task intent. Sometimes they align. Often they do not." Synthesizing Experience would conflate the two layers and create fake Trace coverage.
+- A bundle without `component` MUST cause renderers to use Definition's existing widget-default rendering (today's pre-Experience behavior). No Component tree is synthesized; the layered absence is honored.
+- A bundle without `theme` MUST cause renderers to use their built-in presentation defaults.
+- A bundle without `locales` MUST cause locale resolution to fall back to Definition-embedded strings (per Locale spec rules).
+- A bundle without `responseActions` MUST cause Component triggers to be unresolvable (per Component §5.19) -- which is an authoring or host-configuration error only if the Component document actually declares `ActionButton` nodes. A bundle with neither `responseActions` nor `component` has no triggers; submit happens via host UI outside Formspec's responsibility.
+- A bundle without `mappings` MUST cause Response Actions effects of type `mappingExecution` to fail resolution at invocation time (a Response Actions runtime error, not a bundle-shape error).
+
+A **Definition-only bundle** is a valid bundle and a valid form. It is the simple-form path: one Definition file plus one Bundle Manifest file, no synthesis, today's behavior with the addition of a stable form identity.
+
+The opt-in escalation is monotone: an author starts with `definition`, adds `experience` when task intent becomes worth naming, adds `component` when widget choice becomes worth controlling, and so on. Each addition is an authored artifact, not a synthesized one.
 
 ## 5. Relationship to the Reference Graph
 
