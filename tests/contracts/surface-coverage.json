@@ -698,11 +698,11 @@
       "packages": {},
       "checks": [
         "Bundle Manifest schema shape, closed surface, required-property enforcement, and SemVer strictness are pinned by schema conformance tests",
-        "Spec semantics tests enforce array-key uniqueness (locales[].locale, mappings[].handle) and id-vs-sibling-URL distinctness — invariants JSON Schema cannot express",
-        "Fixture corpus covers definition-only minimal, full-singles, locales+mappings, and the five negative postures (missing definition, duplicate locale/handle, id collision, unknown property, bad SemVer)"
+        "Spec semantics tests assert array-key uniqueness (locales[].locale, mappings[].handle) and id-vs-sibling-URL distinctness — invariants JSON Schema cannot express — by inspecting fixture authoring intent; processor-side enforcement of these rules awaits a loader implementation",
+        "Fixture corpus covers definition-only minimal, full-singles, locales+mappings, and the negative postures (missing definition, duplicate locale tag, duplicate mapping handle, id-equals-sibling-url, unknown property, bad SemVer)"
       ],
       "runtimeScope": "spec-conformance-only",
-      "runtimeRationale": "Bundle Manifest v1.0 defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3 and land when consumers (renderer, Studio, MCP) need them — at which point this row gains crate / package surfaces."
+      "runtimeRationale": "Bundle Manifest v1.0 defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3. As a consequence, §6.1 rule 4 (§5.3 sibling-pin consistency) requires an online sibling-resolver and is NOT covered by the static fixture corpus; conformance suites that exercise rule 4 must stub the sibling-load seam. This row gains crate / package surfaces — and corresponding integration fixtures — once a renderer / Studio / MCP consumer adopts the bundle."
     }
   }
 }

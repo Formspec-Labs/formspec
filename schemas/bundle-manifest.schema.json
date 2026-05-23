@@ -34,6 +34,7 @@
       "type": "string",
       "format": "uri",
       "description": "Stable canonical identity URL for this form. Distinct from any sibling URL. Two Bundle Manifests with the same `id` SHOULD be different versions of the same form.",
+      "$comment": "Cross-property distinctness (id != any sibling url) is a semantic invariant the schema cannot express; processors enforce it per spec §2.1 / §6.1 rule 3.",
       "examples": ["https://example.gov/forms/intake-2026"],
       "x-lm": {
         "critical": true,

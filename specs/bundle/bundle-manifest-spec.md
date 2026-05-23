@@ -95,6 +95,8 @@ A Bundle Manifest MUST carry a `version` property whose value is a strict SemVer
 
 The Bundle Manifest spec itself is versioned via `$formspecBundle`, which MUST equal `"1.0"` for documents conforming to this spec. The `$formspecBundle` value tracks the major.minor of the canonical schema `$id` (`https://formspec.org/schemas/bundleManifest/1.0`); future minor versions (`1.1`, `1.2`) introduce new sibling slots while remaining backward compatible with `1.0` documents that do not use them, and a major bump (`2.0`) signals a breaking shape change.
 
+A processor that supports only `1.0` MUST check `$formspecBundle` before structural schema validation. A document with `$formspecBundle` other than `"1.0"` MUST be rejected with an `unsupported-bundle-version` error rather than a generic schema-validation failure (which would otherwise surface as an `additionalProperties` or `const` mismatch and obscure the version-negotiation cause). Forward compatibility is asymmetric: `1.1`-aware processors MAY accept `1.0` documents directly, but `1.0` processors MUST NOT silently accept `1.1` documents on the chance that no new slots are used.
+
 ### 2.3 Sibling Version Pinning
 
 Each sibling reference -- `definition` and every populated optional sibling -- carries an optional `version` field. When present, `version` MUST be either:
@@ -190,7 +192,7 @@ Absence MUST NOT trigger synthesis. Specifically:
 - A bundle that references only `definition` MUST NOT cause a renderer, generator, or consumer to fabricate an Experience document from Definition structure. As the concept architecture note ([`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md) §6.2) warns: "Definition groups describe data structure ... Experience units describe task intent. Sometimes they align. Often they do not." Synthesizing Experience would conflate the two layers and create fake Trace coverage.
 - A bundle without `component` MUST cause renderers to use Definition's existing widget-default rendering (today's pre-Experience behavior). No Component tree is synthesized; the layered absence is honored.
 - A bundle without `theme` MUST cause renderers to use their built-in presentation defaults.
-- A bundle without `locales` MUST cause locale resolution to fall back to Definition-embedded strings (per Locale spec rules).
+- A bundle without `locales` MUST cause locale resolution to fall back to Definition-embedded strings (per [Locale spec §4 Fallback Cascade](../locale/locale-spec.md#4-fallback-cascade)).
 - A bundle without `responseActions` MUST cause Component triggers to be unresolvable (per Component §5.19) -- which is an authoring or host-configuration error only if the Component document actually declares `ActionButton` nodes. A bundle with neither `responseActions` nor `component` has no triggers; submit happens via host UI outside Formspec's responsibility.
 - A bundle without `mappings` MUST cause Response Actions effects of type `mappingExecution` to fail resolution at invocation time (a Response Actions runtime error, not a bundle-shape error).
 
@@ -258,6 +260,8 @@ This specification's normative conformance corpus lives at `tests/conformance/fi
 | `invalid-bad-version.json` | negative | Schema rejects non-SemVer `version` |
 
 A conforming implementation MUST process every fixture in this corpus and produce the documented posture.
+
+The static fixture corpus exercises every §6.1 rule that a processor can verify against a single document (rules 1, 2, 3, 5). Rule 4 -- §5.3 sibling-pin consistency -- requires the processor to load the named sibling document and inspect its `$formspec*` discriminator, `version`, and `targetDefinition` back-reference. That is an **online check**: no static bundle fixture can supply its own siblings. Conformance suites that exercise rule 4 MUST stub or load the sibling-resolution seam (loaders are §6.3 out of scope for v1).
 
 ### 6.3 Out of Scope for v1
 
