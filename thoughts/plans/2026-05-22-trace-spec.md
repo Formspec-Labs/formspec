@@ -2352,6 +2352,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 - 2026-05-23: `tests/contracts/surface-coverage.json` adds `runtimeScope: "spec-conformance-only"` for Trace. Trace v1.0 lands the spec/schema/fixture/predicate/stale/composition contract only; runtime crate/package implementations must add their own surfaces when they consume this contract.
 - 2026-05-23: The broader Python conformance suite treats Trace `component.json` fixtures as part of the Component no-rewrite compatibility corpus. Trace fixtures now use schema-valid Component nodes (`Stack`, `Text`, and `TextInput` with `maxLines`) rather than unchecked illustrative component names.
 - 2026-05-23: Follow-up code review found the canonical spec named the `whatDependsOn` ImpactReport subject field `item` while the oracle and fixtures used `subjectItem`. The spec now names `subjectItem` to match the conformance contract.
+- 2026-05-23: Follow-up architecture review found the checked-in fixture corpus did not itself demonstrate `action-has-precondition` or `node-visibility-references-item`; those edge kinds were only exercised in synthetic tests. The `fel-dependency-chain` fixture now carries a valid Response Actions precondition and a schema-valid Component `when`, and its expected TraceIndex demonstrates all remaining edge kinds.
 
 ---
 

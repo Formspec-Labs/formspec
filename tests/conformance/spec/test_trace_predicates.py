@@ -8,13 +8,15 @@ tooling) re-implement against the same fixture corpus under
 
 Per the plan's note on FEL dependency extraction without a WASM bridge:
 the Python harness does NOT re-implement `getFELDependencies`. Instead,
-fixtures encode dependency hints in their source artifacts as
-`_bind_dependencies` (Definition bind walk, per item path) and
-`_when_dependencies` (Component when-FEL walk, per node JSON pointer).
-The Trace spec specifies the OUTPUT — `item-depends-on-item` and
+fixtures encode Definition dependency hints in their source artifacts as
+`_bind_dependencies` (Definition bind walk, per item path). Component `when`
+fixtures use schema-valid `when` expressions for the simple `$item` subset
+this oracle can scan, and may use `_when_dependencies` hints for complex
+cases. The Trace spec specifies the OUTPUT — `item-depends-on-item` and
 `node-visibility-references-item` edges — not the extraction mechanism.
-Engine implementations call their FEL parser; the conformance oracle
-reads the fixture hint. Both produce byte-identical edge sets.
+Engine implementations call their FEL parser; the conformance oracle reads
+fixture hints or the fixture-subset `when` expression. Both produce
+byte-identical edge sets.
 
 Edge kinds (closed, 11):
     component-renders-item, unit-collects-item, trigger-invokes-action,
@@ -42,6 +44,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import deque
 from pathlib import Path
 from typing import Iterable, Optional
@@ -113,6 +116,23 @@ def _source_ref_for_kind(kind: str) -> str:
     raise KeyError(kind)
 
 
+_FEL_ITEM_REF = re.compile(
+    r"\$([A-Za-z_][A-Za-z0-9_]*(?:\[\*\])?(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\*\])?)*)"
+)
+
+
+def _extract_fixture_fel_dependencies(expr: object) -> list[str]:
+    """Return item refs for the fixture FEL subset used in Component `when`.
+
+    Production builders use the FEL dependency extractor. The oracle only
+    handles the simple variable-reference subset needed by checked-in fixtures;
+    fixture authors can still supply `_when_dependencies` for complex FEL.
+    """
+    if not isinstance(expr, str):
+        return []
+    return sorted(set(_FEL_ITEM_REF.findall(expr)))
+
+
 def _identity(kind: str, doc: dict, source_ref: Optional[str] = None) -> dict:
     if kind == "definition":
         return {"url": doc["url"], "version": doc["version"]}
@@ -155,9 +175,11 @@ def _walk_component_tree(
         })
 
     # Walk 7: node-visibility-references-item (one per item in `when` FEL deps)
-    # Source: the fixture's `_when_dependencies` hint, keyed by node path.
-    # Engine implementations call getFELDependencies(node['when']) instead.
-    for dep_item in when_hints.get(path, []) or []:
+    # Engine implementations call getFELDependencies(node['when']); this oracle
+    # scans the simple fixture subset and accepts explicit hints for complex FEL.
+    when_deps = set(when_hints.get(path, []) or [])
+    when_deps.update(_extract_fixture_fel_dependencies(node.get("when")))
+    for dep_item in sorted(when_deps):
         edges.append({
             "kind": "node-visibility-references-item",
             "endpoints": [f"componentNodePath:{path}", f"item:{dep_item}"],

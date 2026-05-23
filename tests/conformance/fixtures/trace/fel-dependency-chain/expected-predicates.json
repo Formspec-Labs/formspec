@@ -112,7 +112,9 @@
       "collectingUnits": [
         "unit:incomeEntry"
       ],
-      "visibilityNodes": [],
+      "visibilityNodes": [
+        "componentNodePath:/tree/children/4"
+      ],
       "actionPreconditions": [],
       "conceptBindings": []
     },

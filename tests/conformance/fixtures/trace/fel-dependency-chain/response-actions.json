@@ -6,6 +6,9 @@
     {
       "id": "submitEligibility",
       "intent": "submit",
+      "preconditions": [
+        { "id": "hasIncome", "expression": "@response.householdIncome > 0", "severity": "block" }
+      ],
       "effects": [
         { "type": "hostEvent", "eventName": "submitEligibility" }
       ]

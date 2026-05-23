@@ -12,7 +12,7 @@
       { "id": "grossInput", "component": "NumberInput", "bind": "grossIncome", "unitRef": "incomeEntry" },
       { "id": "stdInput", "component": "NumberInput", "bind": "standardDeduction", "unitRef": "incomeEntry" },
       { "id": "depInput", "component": "NumberInput", "bind": "dependents", "unitRef": "incomeEntry" },
-      { "id": "eligOut", "component": "Text", "bind": "eligibility" },
+      { "id": "eligOut", "component": "Text", "bind": "eligibility", "when": "$householdIncome > 0" },
       { "id": "submitBtn", "component": "ActionButton", "actionRef": "submitEligibility" }
     ]
   }

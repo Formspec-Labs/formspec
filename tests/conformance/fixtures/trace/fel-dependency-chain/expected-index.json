@@ -47,6 +47,13 @@
       ]
     },
     {
+      "kind": "action-has-precondition",
+      "endpoints": [
+        "action:submitEligibility",
+        "precondition:submitEligibility:hasIncome"
+      ]
+    },
+    {
       "kind": "component-renders-item",
       "endpoints": [
         "componentNodePath:/tree/children/0",
@@ -114,6 +121,13 @@
       "endpoints": [
         "item:incomeAfterDeductions",
         "item:standardDeduction"
+      ]
+    },
+    {
+      "kind": "node-visibility-references-item",
+      "endpoints": [
+        "componentNodePath:/tree/children/4",
+        "item:householdIncome"
       ]
     },
     {
