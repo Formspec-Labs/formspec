@@ -1,4 +1,4 @@
-"""Trace predicate conformance (maximal v1 — 11 edge kinds, 16 predicates).
+"""Trace predicate conformance (maximal v1 — 11 edge kinds, 17 callables).
 
 The inline reference builder and predicate harness in this file is the
 **conformance oracle** named by `thoughts/plans/2026-05-22-trace-spec.md`
@@ -27,7 +27,7 @@ Edge kinds (closed, 11):
 Source kinds (closed, 5):
     definition, experience, responseActions, component, ontology.
 
-Predicates (16):
+Predicates (17 callables: 16 simple predicates plus one join):
     componentNodesForItem, itemsForComponent, unitsForItem, itemsForUnit,
     tasksForUnit, unitsForTask, actorsForTask, tasksForActor,
     actionForTrigger, triggersForAction, itemsForAction, dependenciesOf,
@@ -456,7 +456,7 @@ def _strip_prefix(value: str, prefix: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Predicates (§6.1) — 16 forward + the whatDependsOn JOIN
+# Predicates (§6.1) — 16 simple predicates + the whatDependsOn JOIN
 # ---------------------------------------------------------------------------
 
 
@@ -1067,9 +1067,12 @@ def test_action_for_trigger_raises_on_duplicate_edges() -> None:
         action_for_trigger(index, srcs, "/tree/children/0")
 
 
-def test_predicate_registry_covers_all_sixteen() -> None:
-    """Pin the closed v1 predicate vocabulary — adding or removing a predicate
-    is a spec change. This test fails on accidental drift."""
+def test_predicate_registry_covers_all_callables() -> None:
+    """Pin the closed v1 callable predicate vocabulary.
+
+    Adding or removing a predicate is a spec change. This test fails on
+    accidental drift.
+    """
     expected = {
         "componentNodesForItem", "itemsForComponent",
         "unitsForItem", "itemsForUnit",

@@ -419,7 +419,7 @@
       "packages": {},
       "checks": [
         "TraceIndex schema shape, closed source/edge enums, endpoint ordering, digest syntax, and no-finding edge shape are pinned by schema conformance tests",
-        "the reference builder and predicate harness cover eleven edge kinds, sixteen predicates, deterministic indexes, and computed fixture digests",
+        "the reference builder and predicate harness cover eleven edge kinds, sixteen simple predicates plus the whatDependsOn join predicate, deterministic indexes, and computed fixture digests",
         "stale rejection covers digest mismatch, missing source, extra source, duplicate source identity, no partial results, and ActionButton special cases",
         "Studio review composition keeps regeneration records, CRF resolver findings, EXP-COVERAGE findings, and Trace edges in separate streams"
       ]

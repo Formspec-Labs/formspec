@@ -278,7 +278,7 @@
       "maxItems": 2,
       "prefixItems": [
         { "type": "string", "pattern": "^action:.+$" },
-        { "type": "string", "pattern": "^effect:.+:.+$" }
+        { "type": "string", "pattern": "^effect:.+:[0-9]+$" }
       ],
       "items": false
     },

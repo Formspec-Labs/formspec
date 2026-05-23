@@ -23,7 +23,7 @@ related:
 
 **Tech Stack:** JSON Schema 2020-12, Markdown (BCP-14), pytest under `formspec/tests/conformance/spec/`, Python builder + predicate harness lives inline in the pytest (the spec is the contract; runtime implementations land in separate engine plans).
 
-**Sequencing:** Spec prose §1–§11 → TraceIndex schema → fixtures covering the eleven-edge/sixteen-predicate contract plus stale-rejection cases → schema-shape pytest → predicate pytest → stale-rejection invariant pytest → composition pytest (Trace + abstract review-record stream + EXP-COVERAGE for Studio review) → upstream cross-reference note → doc pipeline registration.
+**Sequencing:** Spec prose §1–§11 → TraceIndex schema → fixtures covering the eleven-edge/seventeen-callable-predicate contract plus stale-rejection cases → schema-shape pytest → predicate pytest → stale-rejection invariant pytest → composition pytest (Trace + abstract review-record stream + EXP-COVERAGE for Studio review) → upstream cross-reference note → doc pipeline registration.
 
 **Citations:** "CRF §" = `specs/component/component-reference-fields-spec.md`. "COMP §" = `specs/component/component-spec.md`. "EXP §" = `specs/experience/experience-spec.md`. "RA §" = `specs/response-actions/response-actions-spec.md`. "Concept §" = `thoughts/specs/2026-05-20-formspec-semantic-layers.md` (design intent, not a conformance source). "RegenMerge §" = `specs/component/regeneration-merge-spec.md` (paused-after-task-16; may relocate to MCP/ProposalManager route).
 
@@ -67,7 +67,7 @@ If any check fails, stop and surface to the user.
 | Canonical digest | SHA-256 over canonical bytes, encoded as `sha256:<lowercase-hex>` | HIGH | Response has a signed-payload canonical profile, but Definition / Experience / Response Actions / Component do not define per-artifact canonical bytes. Trace v1.0 therefore defines its own source-digest profile: whole JSON artifact serialized with RFC 8785 JCS unless the source spec explicitly defines a stronger canonical form. |
 | Edge kinds — closed set v1.0 | **Eleven kinds** — see §5.1. | HIGH | All eleven are grounded in current sibling specs (Definition FEL binds, Experience task/actor/unit hierarchy, Response Actions effects/preconditions, Component `when`-FEL and `conceptRefs`, Ontology concept map). Maximalist one-shot delivery per `formspec-stack/CLAUDE.md`: ship every edge whose source spec is already ratified; do not fragment the relationship surface across versions. Mapping, References, Respondent Ledger, and submission edges remain deferred until owning specs expose stable identity. |
 | Edge identity | Each edge carries `(kind, endpoints[])` where endpoints are typed source references. v1.0 endpoint prefixes are `componentNodePath:`, `item:`, `unit:`, `task:`, `actor:`, `action:`, `effect:`, `precondition:`, `concept:`. | HIGH | `item:`, `unit:`, `task:`, `action:`, `concept:` reuse CRF anchor prefixes. `actor:`, `precondition:`, `effect:`, `componentNodePath:` are Trace-introduced extensions; if a future CRF revision adopts any, Trace defers to CRF. |
-| Predicates v1.0 | **Sixteen predicates** including the `whatDependsOn(itemPath) -> ImpactReport` JOIN query — see §6.1. | HIGH | `whatDependsOn` is the J3 refactor-with-confidence predicate that Studio authoring of complex grant applications drives. Reverse predicates (`itemsForUnit`, `triggersForAction`, `itemsForAction`, `unitsForTask`, `tasksForActor`, `itemsForConcept`, `conceptsForItem`, `conceptsForNode`, `dependenciesOf`, `dependentsOn`) ship in v1.0 because they're typed function signatures, not a query DSL — no DSL design is needed. |
+| Predicates v1.0 | **Sixteen simple predicates plus the `whatDependsOn(itemPath) -> ImpactReport` JOIN predicate** — see §6.1 and §6.2. | HIGH | `whatDependsOn` is the seventeenth callable predicate and the J3 refactor-with-confidence predicate that Studio authoring of complex grant applications drives. Reverse predicates (`itemsForUnit`, `triggersForAction`, `itemsForAction`, `unitsForTask`, `tasksForActor`, `itemsForConcept`, `conceptsForItem`, `conceptsForNode`, `dependenciesOf`, `dependentsOn`) ship in v1.0 because they're typed function signatures, not a query DSL — no DSL design is needed. |
 | Effect identity | `effect:<actionId>:<0-based-index>` | HIGH | Effects have no `id` field. Index matches RA §6.4 trace-artifact convention. Digest-coupled: if `effects[]` reorders, source digest changes and stale-rejection fires. |
 | Precondition identity | `precondition:<actionId>:<preconditionId>` using the existing `id` on precondition objects per RA §4. | HIGH | Preconditions DO carry `id`; reuse it. |
 | Ontology source kind | `ontology` is the fifth `sources[].kind` value. Required when `concept-refs-item` edges are emitted. | HIGH | Concepts live in the Ontology Document (`ontology-spec.md` §3), not a Definition extension. Builders that inspect Ontology MUST declare it in `sources[]`. |
@@ -129,7 +129,7 @@ Decisions marked HIGH should not change without owner pushback.
 - **Source identity does not invent ids.** Experience and Response Actions lack top-level document ids. Trace uses `sourceRef` for source-file / host identity and records source-declared fields separately.
 - **Canonical bytes are Trace-owned for source digests.** Unless a source spec defines canonical bytes for the whole artifact, Trace v1.0 uses RFC 8785 JCS over the full JSON artifact.
 - **Edge endpoint identity uses current CRF anchor prefixes.** `item:applicantName`, `unit:identity`, and `action:submitApplication` reuse existing anchor vocabulary. `componentNodePath:` is Trace-owned.
-- **Predicate set is consumer-sized, not concept-note maximal.** Concept §11.4 defers query-surface detail until a named consumer needs it. The v1 contract intentionally ships eleven edge kinds and sixteen typed predicates because the first consumer is now Studio authoring plus regeneration review, not regeneration review alone; Mapping, References, Respondent Ledger, submission, and cross-projection verifier predicates remain deferred.
+- **Predicate set is consumer-sized, not concept-note maximal.** Concept §11.4 defers query-surface detail until a named consumer needs it. The v1 contract intentionally ships eleven edge kinds, sixteen simple predicates, and the `whatDependsOn` join predicate because the first consumer is now Studio authoring plus regeneration review, not regeneration review alone; Mapping, References, Respondent Ledger, submission, and cross-projection verifier predicates remain deferred.
 - **Composition contract is the load-bearing seam.** Studio review's success criterion is that Trace + the chosen review-record stream + EXP-COVERAGE compose without double-counting and without loss. The composition pytest must not pin a standalone merge-report shape.
 - **Cold-read test:** a future agent reading this plan alone produces a conforming spec without referring to the concept note. Concept §6.12 predicate list is quoted verbatim in Task 6's spec-prose section; concept §5.4 cache disclaimer is quoted in Task 2.
 
@@ -246,7 +246,7 @@ This specification defines:
 2. The source-set declaration and per-artifact identity tuple (§3).
 3. The canonical digest model (§4).
 4. The closed v1 set of eleven edge kinds and endpoint identity vocabulary (§5).
-5. Predicate semantics for the sixteen v1 predicates, including the `whatDependsOn(itemPath) -> ImpactReport` JOIN query for refactor-with-confidence analysis (§6).
+5. Predicate semantics for the sixteen simple v1 predicates plus the `whatDependsOn(itemPath) -> ImpactReport` JOIN query for refactor-with-confidence analysis (§6).
 6. The stale-cache rejection invariant (§7).
 7. The composition contract with regeneration-review records, Component reference-resolution findings, and Experience coverage findings (§8).
 8. The JSON Schema (§9).
@@ -579,7 +579,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [x] **Step 1: Draft §6 prose with the sixteen v1.0 predicates**
+- [x] **Step 1: Draft §6 prose with the sixteen simple v1.0 predicates plus the join predicate**
 
 Append:
 
@@ -588,7 +588,7 @@ Append:
 
 ### 6.1 v1.0 Predicate Set
 
-**Sixteen predicates** ship in v1.0, sized to Studio authoring of complex grant applications and regeneration review. Predicates are grouped by concern. Reverse predicates ship in v1.0 because they're typed function signatures — no query DSL is needed. The `whatDependsOn` JOIN query is the J3 refactor-with-confidence predicate.
+**Sixteen simple predicates plus the `whatDependsOn` join predicate** ship in v1.0, sized to Studio authoring of complex grant applications and regeneration review. Predicates are grouped by concern. Reverse predicates ship in v1.0 because they're typed function signatures — no query DSL is needed. The `whatDependsOn` JOIN query is the seventeenth callable predicate and the J3 refactor-with-confidence predicate.
 
 #### Forward predicates — Component rendering
 
@@ -1151,7 +1151,7 @@ Write `schemas/trace-index.schema.json`:
               "endpoints": {
                 "prefixItems": [
                   { "pattern": "^action:" },
-                  { "pattern": "^effect:" }
+                  { "pattern": "^effect:.+:[0-9]+$" }
                 ]
               }
             }
@@ -1622,11 +1622,11 @@ The reference builder MUST run all the following walks. The inline harness below
 8. **Component `conceptRefs` walk (NEW)** — for each node with `conceptRefs`, emit `concept-refs-component-node` edges (one per `ConceptRef.id`).
 9. **Ontology concept map walk (NEW)** — when `ontology` source present, for each key in `ontology.concepts`, emit `concept-refs-item` edge (`concept:<conceptIri>`, `item:<itemPath>`).
 
-The predicate harness MUST also implement the sixteen predicates of §6.1 including the `whatDependsOn` JOIN with `ImpactReport` shape (§6.2 — transitive closure with cycle-safe visited set).
+The predicate harness MUST also implement the sixteen simple predicates of §6.1 plus the `whatDependsOn` JOIN with `ImpactReport` shape (§6.2 — transitive closure with cycle-safe visited set).
 
 - [x] **Step 1: Write the inline reference builder + predicate harness + pytest**
 
-Note: the skeleton below shows the original three-edge implementation. The maximalist v1.0 implementation extends it with the eight additional walks listed above and the sixteen predicates of §6.1. Authoring the full reference implementation is part of this task.
+Note: the skeleton below shows the original three-edge implementation. The maximalist v1.0 implementation extends it with the eight additional walks listed above and the sixteen simple predicates of §6.1 plus the `whatDependsOn` join predicate. Authoring the full reference implementation is part of this task.
 
 ```python
 """Trace predicate conformance.
@@ -2267,7 +2267,7 @@ In §10, update item 6 from:
 to:
 
 ```
-6. **Trace query/cache spec.** Use Studio authoring and regeneration review as the first consumers unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics. **Draft planned:** [`specs/trace/trace-spec.md`](../../specs/trace/trace-spec.md) will define the v1 source set, identity tuples, digest model, eleven edge kinds, sixteen predicates, `whatDependsOn(itemPath)`, and Studio-review composition preconditions.
+6. **Trace query/cache spec.** Use Studio authoring and regeneration review as the first consumers unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics. **Draft planned:** [`specs/trace/trace-spec.md`](../../specs/trace/trace-spec.md) will define the v1 source set, identity tuples, digest model, eleven edge kinds, sixteen simple predicates, `whatDependsOn(itemPath)`, and Studio-review composition preconditions.
 ```
 
 In §11.4, leave the committed/deferred posture intact and append a note under the opening paragraph:
@@ -2279,7 +2279,7 @@ Trace posture is committed. Predicate names, query language, source-set rules, a
 ```
 
 ```
-Drafting note: the Trace v1 plan uses Definition, Experience, Response Actions, Component, and optional Ontology sources; eleven relationship edges; sixteen predicates; stale-cache rejection; and a composition precondition that the chosen regeneration-review route expose a stable Component-subject handle. Do not mark this section resolved until the spec, schema, fixtures, and composition proof land.
+Drafting note: the Trace v1 plan uses Definition, Experience, Response Actions, Component, and optional Ontology sources; eleven relationship edges; sixteen simple predicates plus `whatDependsOn(itemPath)`; stale-cache rejection; and a composition precondition that the chosen regeneration-review route expose a stable Component-subject handle. Do not mark this section resolved until the spec, schema, fixtures, and composition proof land.
 ```
 
 - [x] **Step 2: Commit**
@@ -2345,7 +2345,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 
 ## Deviations
 
-- 2026-05-23: Reviewer pass found the plan still asserted both the original three-edge seed contract and the expanded eleven-edge/sixteen-predicate contract. The landed direction is the expanded contract because the current sibling specs already expose stable Definition FEL dependencies, Experience hierarchy, Response Actions effect/precondition, Component visibility/concept, and Ontology concept surfaces. Mapping, References, Respondent Ledger, submission, and cross-projection verifier edges remain deferred.
+- 2026-05-23: Reviewer pass found the plan still asserted both the original three-edge seed contract and the expanded eleven-edge/seventeen-callable-predicate contract. The landed direction is the expanded contract because the current sibling specs already expose stable Definition FEL dependencies, Experience hierarchy, Response Actions effect/precondition, Component visibility/concept, and Ontology concept surfaces. Mapping, References, Respondent Ledger, submission, and cross-projection verifier edges remain deferred.
 - 2026-05-23: The Trace schema test originally skipped when `schemas/trace-index.schema.json` was absent. The final test now treats schema absence as failure once the Trace contract is in scope.
 - 2026-05-23: Fixture `expected-index.json` files now use `"<computed>"` digests and include all builder-emitted edges. Fixture-only dependency hints are included in source digests so stale rejection cannot be bypassed by changing extraction-driving metadata.
 - 2026-05-23: Stale rejection now rejects duplicate `(kind, identity)` source entries as `duplicate-source-entry`; duplicate source identity makes freshness ambiguous.
@@ -2353,6 +2353,8 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 - 2026-05-23: The broader Python conformance suite treats Trace `component.json` fixtures as part of the Component no-rewrite compatibility corpus. Trace fixtures now use schema-valid Component nodes (`Stack`, `Text`, and `TextInput` with `maxLines`) rather than unchecked illustrative component names.
 - 2026-05-23: Follow-up code review found the canonical spec named the `whatDependsOn` ImpactReport subject field `item` while the oracle and fixtures used `subjectItem`. The spec now names `subjectItem` to match the conformance contract.
 - 2026-05-23: Follow-up architecture review found the checked-in fixture corpus did not itself demonstrate `action-has-precondition` or `node-visibility-references-item`; those edge kinds were only exercised in synthetic tests. The `fel-dependency-chain` fixture now carries a valid Response Actions precondition and a schema-valid Component `when`, and its expected TraceIndex demonstrates all remaining edge kinds.
+- 2026-05-23: Follow-up architecture review found predicate-count wording drift. The contract now names sixteen simple predicates plus the `whatDependsOn` join predicate, for seventeen callable predicates in the oracle registry.
+- 2026-05-23: Follow-up architecture review found the schema accepted non-numeric `effect:<actionId>:<index>` endpoint suffixes and the semantic-layers note still contained a stale pre-Trace anchor. The schema now requires a numeric effect index, and the concept note now points at the Trace spec/schema/fixtures as the conformance source.
 
 ---
 
@@ -2360,6 +2362,6 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 
 | Gate | Status after this plan |
 |---|---|
-| **Trace consumer** — named first consumer, minimal predicates, input digest model, stale rejection, orphan status, required-item coverage checks | STRUCTURALLY ADDRESSED, NOT CLOSED — this plan pins Studio authoring plus regeneration review as the seed consumer pair, with eleven edge kinds, sixteen predicates, source identity, canonical digests, stale rejection, and composition preconditions. The gate closes only after the Trace spec/schema/fixtures/tests land and the chosen regeneration-review route exposes a stable review subject handle. |
+| **Trace consumer** — named first consumer, minimal predicates, input digest model, stale rejection, orphan status, required-item coverage checks | STRUCTURALLY ADDRESSED, NOT CLOSED — this plan pins Studio authoring plus regeneration review as the seed consumer pair, with eleven edge kinds, sixteen simple predicates plus the `whatDependsOn` join predicate, source identity, canonical digests, stale rejection, and composition preconditions. The gate closes only after the Trace spec/schema/fixtures/tests land and the chosen regeneration-review route exposes a stable review subject handle. |
 
 All other concept §9 gates are unaffected by this plan.

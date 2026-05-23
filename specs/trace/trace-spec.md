@@ -72,7 +72,7 @@ This specification defines:
 2. The source-set declaration and per-artifact identity tuple.
 3. The canonical digest model.
 4. The closed v1 set of eleven edge kinds and endpoint identity vocabulary.
-5. Predicate semantics for the sixteen v1 predicates and the `whatDependsOn(itemPath) -> ImpactReport` join query.
+5. Predicate semantics for the sixteen simple v1 predicates plus the `whatDependsOn(itemPath) -> ImpactReport` join predicate.
 6. The stale-cache rejection invariant.
 7. The composition contract with regeneration-review records, Component reference-resolution findings, and Experience coverage findings.
 8. The JSON Schema.
@@ -262,7 +262,7 @@ Builders MUST produce byte-identical edge lists for byte-identical source artifa
 
 ### 6.1 Predicate Set
 
-Sixteen named predicates ship in v1.0:
+Sixteen simple predicates ship in v1.0:
 
 | Predicate | Returns |
 |---|---|
@@ -287,7 +287,7 @@ Predicates return sorted, deduplicated outputs. Predicates MUST NOT mutate the T
 
 ### 6.2 Impact Report
 
-`whatDependsOn(itemPath) -> ImpactReport` is the v1 join predicate for refactor-with-confidence analysis. It returns a JSON object with these members:
+`whatDependsOn(itemPath) -> ImpactReport` is the seventeenth callable predicate and the v1 join predicate for refactor-with-confidence analysis. It returns a JSON object with these members:
 
 | Field | Source |
 |---|---|

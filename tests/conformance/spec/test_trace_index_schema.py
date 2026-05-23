@@ -470,6 +470,16 @@ def test_action_emits_effect_endpoint_prefixes_enforced(
     assert not validator.is_valid(doc)
 
 
+def test_action_emits_effect_endpoint_index_must_be_numeric(
+    validator: Draft202012Validator,
+) -> None:
+    doc = _minimal_doc(edges=[{
+        "kind": "action-emits-effect",
+        "endpoints": ["action:submit", "effect:submit:notAnIndex"],
+    }])
+    assert not validator.is_valid(doc)
+
+
 def test_action_has_precondition_endpoint_prefixes_enforced(
     validator: Draft202012Validator,
 ) -> None:
