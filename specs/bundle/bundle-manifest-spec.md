@@ -78,7 +78,32 @@ A Definition without a Bundle Manifest remains a valid Formspec form. The Bundle
 
 ## 2. Identity and Versioning
 
-<!-- §2 prose lands in Task 14 -->
+### 2.1 Bundle Identity
+
+A Bundle Manifest MUST carry an `id` property whose value is a stable canonical URL identifying the form. Two Bundle Manifests with the same `id` SHOULD be different versions of the same form; an `id` change SHOULD be reserved for forms that have diverged enough to no longer share a continuous evolution.
+
+The `id` MUST be distinct from every sibling URL referenced in the same bundle (`definition.url`, every optional single-cardinality slot's `url`, and every entry in `locales[]` / `mappings[]`). A bundle's `id` is the form's identity; a sibling's URL is an artifact's identity. Collapsing them would mean the form and one of its parts share an identity, which breaks publication and Trace.
+
+### 2.2 Bundle Version
+
+A Bundle Manifest MUST carry a `version` property whose value is a strict SemVer 2.0.0 string (no leading zeros in numeric identifiers, no empty pre-release identifiers, no leading-zero numeric pre-release identifiers). The bundle version represents the **coherent published form**: bumping any sibling version SHOULD bump the bundle version. Producers MAY publish multiple bundle versions for the same `id` (different SemVer values); consumers MAY pin against any.
+
+The Bundle Manifest spec itself is versioned via `$formspecBundle`, which MUST equal `"1.0"` for documents conforming to this spec. The `$formspecBundle` value tracks the major.minor of the canonical schema `$id` (`https://formspec.org/schemas/bundleManifest/1.0`); future minor versions (`1.1`, `1.2`) introduce new sibling slots while remaining backward compatible with `1.0` documents that do not use them, and a major bump (`2.0`) signals a breaking shape change.
+
+### 2.3 Sibling Version Pinning
+
+Each sibling reference -- `definition` and every populated optional sibling -- carries an optional `version` field. When present, `version` MUST be either:
+
+- an **exact** SemVer 2.0.0 string (e.g., `"1.2.0"`), OR
+- a **range expression** in the form Definition's `targetDefinition.compatibleVersions` accepts (e.g., `">=1.0.0 <2.0.0"`, `"^1.0.0"`).
+
+When `version` is omitted, the bundle accepts any compatible-by-major sibling version (equivalent to `"^<sibling-current-major>"`).
+
+Producers SHOULD pin exact versions in published bundles. Range expressions are RECOMMENDED for development and prerelease workflows.
+
+A bundle's sibling pin SHOULD be a subset of the sibling artifact's own `targetDefinition.compatibleVersions` range. Bundles MUST NOT widen a sibling's compatibility envelope.
+
+The bundle's top-level `version` is shape-validated as strict SemVer because it pins the published-form identity (one row in a release catalog). Per-`SiblingRef.version` is shape-validated only as a non-empty string because it carries the broader "exact or range" grammar described above; range-expression validation is the responsibility of the sibling resolution step, not the schema.
 
 ## 3. Members
 
