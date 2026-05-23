@@ -224,4 +224,41 @@ This specification does NOT introduce a `definition.bundle` field, a `Bundle.leg
 
 ## 6. Conformance
 
-<!-- §6 prose lands in Task 18 -->
+### 6.1 Conformance Targets
+
+A **Bundle-Aware Processor** MUST:
+
+1. Validate the Bundle Manifest document against `schemas/bundle-manifest.schema.json`.
+2. Enforce array-uniqueness: every `locales[].locale` MUST be unique within `locales`; every `mappings[].handle` MUST be unique within `mappings`.
+3. Enforce identity distinctness: the bundle's `id` MUST NOT equal any sibling `url` in the same bundle (singles or array entries; see §2.1).
+4. When resolving siblings: load each sibling URL, verify the sibling document's discriminator matches the slot per the §3.4 table, and verify §5.3 sibling-pin consistency.
+5. Honor §4 Absence Semantics. Absent siblings MUST NOT be synthesized.
+
+A processor MAY perform partial loads (e.g., resolve only `definition` and `component` for a quick preview).
+
+### 6.2 Conformance Fixtures
+
+This specification's normative conformance corpus lives at `tests/conformance/fixtures/bundle/`:
+
+| Fixture | Posture | Proves |
+|---|---|---|
+| `bundle-definition-only.json` | positive | Minimum valid bundle (definition-only) |
+| `bundle-full-singles.json` | positive | Every optional single-cardinality sibling populated |
+| `bundle-with-locales-and-mappings.json` | positive | Array-cardinality siblings (locales, mappings) |
+| `invalid-missing-definition.json` | negative | Schema rejects bundle without `definition` |
+| `invalid-duplicate-locale-tag.json` | negative | Semantics rejects duplicate `locales[].locale` |
+| `invalid-duplicate-mapping-handle.json` | negative | Semantics rejects duplicate `mappings[].handle` |
+| `invalid-id-equals-sibling-url.json` | negative | Semantics rejects bundle `id` colliding with any sibling URL |
+| `invalid-unknown-property.json` | negative | Closed schema rejects unknown top-level property |
+| `invalid-bad-version.json` | negative | Schema rejects non-SemVer `version` |
+
+A conforming implementation MUST process every fixture in this corpus and produce the documented posture.
+
+### 6.3 Out of Scope for v1
+
+The following are explicitly NOT part of this v1 conformance:
+
+- A canonical bundle-loader implementation (Rust crate, TS module, Python loader). Bundle Manifest is a declarative envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations land when consumers (renderer, Studio, MCP) need them.
+- Cross-sibling consistency beyond §5.3 (e.g., verifying that a Component's `actionRef` resolves against the bundled Response Actions document). That verification is the responsibility of each sibling's own spec.
+- Bundle composition (a bundle that references another bundle). Bundles MUST compose siblings only.
+- Diff and merge semantics for bundle versions. May be added in a future minor version.
