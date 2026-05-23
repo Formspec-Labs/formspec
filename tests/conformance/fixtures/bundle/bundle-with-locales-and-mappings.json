@@ -1,0 +1,19 @@
+{
+  "fixture": "bundle-with-locales-and-mappings",
+  "purpose": "Positive: array-cardinality siblings populated. Two locales, two mappings, distinct keys.",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "1.0",
+    "version": "1.0.0",
+    "id": "https://example.gov/forms/multi-locale-2026",
+    "definition": { "url": "https://example.gov/forms/multi-locale/definition", "version": "1.0.0" },
+    "locales": [
+      { "url": "https://example.gov/forms/multi-locale/locale-en-us", "version": "1.0.0", "locale": "en-US" },
+      { "url": "https://example.gov/forms/multi-locale/locale-es-us", "version": "1.0.0", "locale": "es-US" }
+    ],
+    "mappings": [
+      { "url": "https://example.gov/forms/multi-locale/mapping-application", "version": "1.0.0", "handle": "applicationPayload" },
+      { "url": "https://example.gov/forms/multi-locale/mapping-reviewer",    "version": "1.0.0", "handle": "reviewerSummary" }
+    ]
+  }
+}

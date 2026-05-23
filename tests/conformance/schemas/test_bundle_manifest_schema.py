@@ -50,6 +50,9 @@ class TestBundleManifestPositiveFixtures:
     def test_full_singles_validates(self) -> None:
         _validator().validate(_fixture_bundle("bundle-full-singles.json"))
 
+    def test_locales_and_mappings_validate(self) -> None:
+        _validator().validate(_fixture_bundle("bundle-with-locales-and-mappings.json"))
+
 
 class TestBundleManifestNegativeFixtures:
     def test_missing_definition_rejected(self) -> None:
