@@ -1,0 +1,47 @@
+{
+  "$formspecRespondentLibrary": "1.0",
+  "version": "1.0.0",
+  "libraryId": "urn:formspec:respondent-library:presentation-demo",
+  "subject": {
+    "subjectRef": "respondent:presentation-demo",
+    "privacyTier": "pseudonymous"
+  },
+  "aggregationMode": "client-wallet",
+  "trustModel": {
+    "storagePosture": "client-encrypted",
+    "issuerIsolation": "per-issuer",
+    "serverAggregation": "forbidden",
+    "presentationDefault": "explicit-consent"
+  },
+  "documents": [
+    {
+      "id": "doc-id-proof",
+      "kind": "identity-proof",
+      "displayName": "Verified identity proof",
+      "capturedAt": "2026-05-02T12:00:00Z",
+      "contentRef": {
+        "uri": "urn:formspec:credential:vc:identity-proof",
+        "mediaType": "application/vc+ld+json"
+      }
+    },
+    {
+      "id": "doc-income",
+      "kind": "income-proof",
+      "displayName": "Income attestation",
+      "capturedAt": "2026-05-03T12:00:00Z",
+      "contentRef": {
+        "uri": "urn:formspec:credential:vc:income-proof",
+        "mediaType": "application/vc+ld+json"
+      }
+    }
+  ],
+  "presentationPolicies": [
+    {
+      "id": "eligibility-docs",
+      "scope": "selected-documents",
+      "documentRefs": ["doc-id-proof", "doc-income"],
+      "allowedPurposes": ["eligibility", "identity-proofing"],
+      "protocolHints": ["openid4vp", "w3c-vc-data-model-2.0"]
+    }
+  ]
+}

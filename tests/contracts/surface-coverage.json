@@ -683,6 +683,25 @@
       "reason": "Signature Profile has substantial WOS proof, but active WOS TODO entries still track verifier dispatch, receipt consumption, and remaining admission-failure paths.",
       "tracking": "../work-spec/TODO.md"
     },
+    "respondent-library": {
+      "status": "enforced",
+      "spec": "specs/respondent-library/library-spec.md",
+      "schema": "schemas/respondent-library.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_respondent_library_schema.py"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/respondent-library/"
+      ],
+      "packages": {},
+      "checks": [
+        "Respondent Library schema shape, client-wallet aggregation, forbidden server aggregation, document-kind closure, WOS applicant-status projection reference, selective-presentation policy, and passkey-HPKE envelope requirements are pinned by schema conformance tests",
+        "Fixture corpus covers a respondent-place library, selective-presentation policy, and portability export snapshot"
+      ],
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "Respondent Library v1.0 defines the normative sidecar and fixture corpus that formspec-web must consume through DI. Wallet, sync, HPKE byte-work, WOS status adapters, and web UI adapters land in downstream implementation plans and must add crate/package surfaces when they consume this contract."
+    },
     "bundle-manifest": {
       "status": "enforced",
       "spec": "specs/bundle/bundle-manifest-spec.md",

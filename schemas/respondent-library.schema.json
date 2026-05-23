@@ -1,0 +1,533 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/respondentLibrary/1.0",
+  "title": "Formspec Respondent Library",
+  "description": "A client-held Respondent Library document for respondent-side obligations, documents, submissions, applicant-status projections, selective-presentation policies, portability exports, and wallet trust posture. The document is aggregated client-side; cross-tenant server aggregation is forbidden. WOS applicant status remains externally owned and is referenced or cached as a projection.",
+  "type": "object",
+  "required": [
+    "$formspecRespondentLibrary",
+    "version",
+    "libraryId",
+    "subject",
+    "aggregationMode",
+    "trustModel"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecRespondentLibrary": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Respondent Library specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for Respondent Library document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Respondent Library document. SemVer is RECOMMENDED.",
+      "examples": ["1.0.0"]
+    },
+    "libraryId": {
+      "type": "string",
+      "format": "uri",
+      "description": "Stable URI for this respondent-held library or export snapshot.",
+      "examples": ["urn:formspec:respondent-library:demo-wallet"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Library identity; not an issuer tenant or server account id"
+      }
+    },
+    "subject": {
+      "$ref": "#/$defs/SubjectBinding",
+      "description": "Privacy-preserving respondent subject binding for the local wallet/library.",
+      "examples": [
+        {
+          "subjectRef": "respondent:demo",
+          "privacyTier": "pseudonymous"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Subject binding for client-held aggregation; not authorization"
+      }
+    },
+    "aggregationMode": {
+      "type": "string",
+      "const": "client-wallet",
+      "description": "Aggregation mode. Only client-wallet is conforming; server-side cross-tenant aggregation is forbidden.",
+      "examples": ["client-wallet"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Forbids formspec-web or any server from becoming the cross-issuer aggregation authority"
+      }
+    },
+    "trustModel": {
+      "$ref": "#/$defs/TrustModel",
+      "description": "Trust and storage posture that governs the whole library."
+    },
+    "encryption": {
+      "$ref": "#/$defs/EncryptionEnvelope",
+      "description": "Optional envelope describing client-side encryption for the library."
+    },
+    "obligations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Obligation" },
+      "description": "Upcoming or open respondent obligations across issuers."
+    },
+    "documents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DocumentRecord" },
+      "description": "Respondent-held documents, credentials, attachments, receipts, and correspondence."
+    },
+    "submissions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SubmissionRecord" },
+      "description": "Submission history visible to the respondent across issuers. Applicant status is referenced as a WOS applicant projection, not redefined here."
+    },
+    "presentationPolicies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PresentationPolicy" },
+      "description": "Policies that bound which documents may be presented to which recipients and purposes."
+    },
+    "export": {
+      "$ref": "#/$defs/ExportPackage",
+      "description": "Optional portability/export metadata for a library snapshot."
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "SubjectBinding": {
+      "type": "object",
+      "required": ["subjectRef", "privacyTier"],
+      "additionalProperties": false,
+      "properties": {
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Local wallet subject reference. It MAY be pseudonymous and MUST NOT be treated as a cross-issuer server account id.",
+          "examples": ["respondent:demo"]
+        },
+        "privacyTier": {
+          "type": "string",
+          "enum": ["anonymous", "pseudonymous", "verified"],
+          "description": "Privacy posture of the subject binding."
+        },
+        "assuranceRef": {
+          "type": "string",
+          "description": "Optional reference to an identity attestation, credential, or assurance record."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "IssuerRef": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable issuer, sender, or recipient name."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Issuer document URL, organization homepage, or stable issuer URI."
+        },
+        "identifier": {
+          "type": "string",
+          "format": "uri",
+          "description": "Stable identifier such as a DID, ROR, Wikidata, or own-domain URI."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "DefinitionRef": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical Formspec Definition URL."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pinned Definition version, when known."
+        }
+      }
+    },
+    "Obligation": {
+      "type": "object",
+      "required": ["id", "issuer", "title", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable local obligation id."
+        },
+        "issuer": { "$ref": "#/$defs/IssuerRef" },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Respondent-visible obligation title."
+        },
+        "description": { "type": "string" },
+        "state": {
+          "type": "string",
+          "enum": ["upcoming", "due", "overdue", "submitted", "satisfied", "closed", "unknown"],
+          "description": "Local state used to render the obligations stream."
+        },
+        "dueAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "formRef": { "$ref": "#/$defs/DefinitionRef" },
+        "submissionRef": {
+          "type": "string",
+          "description": "Optional link to a local SubmissionRecord.id that satisfied or attempted the obligation."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "DocumentKind": {
+      "type": "string",
+      "enum": [
+        "identity-proof",
+        "income-proof",
+        "proof-of-address",
+        "proof-of-age",
+        "eligibility-evidence",
+        "form-attachment",
+        "signed-receipt",
+        "correspondence",
+        "other"
+      ],
+      "description": "Closed v1 document-kind taxonomy. Unsupported domain-specific kinds belong in extensions until promoted."
+    },
+    "ContentRef": {
+      "type": "object",
+      "required": ["uri", "mediaType"],
+      "additionalProperties": false,
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Opaque URI for local encrypted storage, content-addressed storage, or credential location."
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA media type or profile media type."
+        },
+        "sha256": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional SHA-256 content digest in deployment profile encoding."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "DocumentRecord": {
+      "type": "object",
+      "required": ["id", "kind", "displayName", "capturedAt", "contentRef"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable document id within the library."
+        },
+        "kind": { "$ref": "#/$defs/DocumentKind" },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Respondent-visible document label."
+        },
+        "issuer": { "$ref": "#/$defs/IssuerRef" },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "contentRef": { "$ref": "#/$defs/ContentRef" },
+        "sourceSubmissionRef": {
+          "type": "string",
+          "description": "Optional SubmissionRecord.id that produced or uploaded this document."
+        },
+        "presentationPolicyRef": {
+          "type": "string",
+          "description": "Optional PresentationPolicy.id that usually governs this record."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "ApplicantStatusProjection": {
+      "type": "object",
+      "required": ["sourceSchema", "projectionKind", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceSchema": {
+          "type": "string",
+          "const": "https://schemas.formspec.io/wos-api/applicant/v1",
+          "description": "Normative source schema for applicant-visible status projections."
+        },
+        "projectionKind": {
+          "type": "string",
+          "enum": [
+            "ApplicantCaseSummary",
+            "ApplicantCaseDetail",
+            "ApplicantTaskSummary",
+            "ApplicantNotificationListItem",
+            "ApplicantStatusTimelineEntry"
+          ],
+          "description": "WOS applicant API projection kind. Values name external schema definitions; this schema does not redefine their internal status vocabulary."
+        },
+        "resourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "WOS resource URN or equivalent applicant-visible resource id."
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri-reference",
+          "description": "Optional endpoint path or URL from which the projection was read."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "headline": {
+          "type": "string",
+          "description": "Optional display headline copied from or derived from the applicant projection."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Optional display summary copied from or derived from the applicant projection."
+        },
+        "payloadDigest": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional digest of the cached applicant projection payload."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "SubmissionRecord": {
+      "type": "object",
+      "required": ["id", "issuer", "definitionRef", "submittedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable local submission id."
+        },
+        "issuer": { "$ref": "#/$defs/IssuerRef" },
+        "definitionRef": { "$ref": "#/$defs/DefinitionRef" },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "applicantStatus": {
+          "$ref": "#/$defs/ApplicantStatusProjection",
+          "description": "Optional WOS applicant-status projection reference/cache. The applicant API remains the source of status vocabulary."
+        },
+        "receiptRef": {
+          "type": "string",
+          "description": "Optional receipt, ledger, or verification reference."
+        },
+        "documentRefs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "DocumentRecord ids attached to this submission."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "PresentationPurpose": {
+      "type": "string",
+      "enum": [
+        "eligibility",
+        "identity-proofing",
+        "appeal",
+        "renewal",
+        "audit",
+        "respondent-export",
+        "other"
+      ]
+    },
+    "PresentationPolicy": {
+      "type": "object",
+      "required": ["id", "scope", "allowedPurposes"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "scope": { "const": "selected-documents" } },
+            "required": ["scope"]
+          },
+          "then": {
+            "required": ["documentRefs"]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable policy id."
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["selected-documents", "all-documents", "metadata-only"],
+          "description": "Which library material this policy may present."
+        },
+        "documentRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "DocumentRecord ids authorized by selected-documents policies."
+        },
+        "allowedPurposes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/PresentationPurpose" }
+        },
+        "recipientIssuer": { "$ref": "#/$defs/IssuerRef" },
+        "protocolHints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["openid4vp", "w3c-vc-data-model-2.0", "download", "copy-link"]
+          },
+          "description": "Presentation protocol hints. Hints do not grant access without respondent consent."
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "TrustModel": {
+      "type": "object",
+      "required": ["storagePosture", "issuerIsolation", "serverAggregation", "presentationDefault"],
+      "additionalProperties": false,
+      "properties": {
+        "storagePosture": {
+          "type": "string",
+          "enum": ["client-encrypted", "client-local-only", "export-snapshot"],
+          "description": "Where and how the library is stored."
+        },
+        "issuerIsolation": {
+          "type": "string",
+          "enum": ["per-issuer", "per-program", "respondent-chosen"],
+          "description": "How issuer data is partitioned in the local wallet."
+        },
+        "serverAggregation": {
+          "type": "string",
+          "const": "forbidden",
+          "description": "Servers MUST NOT aggregate this library across issuers or tenants."
+        },
+        "presentationDefault": {
+          "type": "string",
+          "enum": ["explicit-consent", "deny-by-default"],
+          "description": "Default access posture for presenting library material."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "EncryptionEnvelope": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "mode": { "const": "passkey-hpke" } },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["keyDerivation", "recipientKeyRef"]
+          }
+        }
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["none", "passkey-hpke"],
+          "description": "Encryption envelope mode. passkey-hpke is the intended production posture."
+        },
+        "keyDerivation": {
+          "type": "string",
+          "enum": ["passkey-derived", "external-key"],
+          "description": "How the encryption key is derived or located."
+        },
+        "recipientKeyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Recipient HPKE public key or key-handle reference."
+        },
+        "cipherSuite": {
+          "type": "string",
+          "description": "Optional HPKE ciphersuite identifier."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "ExportPackage": {
+      "type": "object",
+      "required": ["id", "format", "createdAt", "includes"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": ["portable-json", "encrypted-portable-json"],
+          "description": "Portable export package format."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "includes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["documents", "submissions", "obligations", "presentation-policies"]
+          }
+        },
+        "encryption": {
+          "$ref": "#/$defs/EncryptionEnvelope"
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    }
+  }
+}

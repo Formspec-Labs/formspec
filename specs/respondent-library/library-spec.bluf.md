@@ -1,0 +1,5 @@
+- Respondent Library is a client-held document for obligations, documents, submissions, applicant-status projections, selective-presentation policies, and portability exports; it is not a server-side respondent database.
+- Conforming documents require `$formspecRespondentLibrary`, `version`, `libraryId`, `subject`, `aggregationMode: "client-wallet"`, and `trustModel.serverAggregation: "forbidden"`.
+- The v1 document-kind taxonomy is closed: identity proof, income proof, proof of address, proof of age, eligibility evidence, form attachment, signed receipt, correspondence, and other.
+- Presentation policies are explicit-consent gates over document refs and purposes; OpenID4VP and W3C VC Data Model 2.0 are protocol/data-model hints, not implicit grants.
+- Passkey-derived HPKE is the intended production encryption posture; servers MUST NOT aggregate cross-tenant obligations, documents, or history for the respondent.

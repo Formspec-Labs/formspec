@@ -134,6 +134,25 @@
       ]
     },
     {
+      "spec": "specs/respondent-library/library-spec.md",
+      "schema": "schemas/respondent-library.schema.json",
+      "bluf": "specs/respondent-library/library-spec.bluf.md",
+      "llm": "specs/respondent-library/library-spec.llm.md",
+      "behaviorEssentials": [
+        "Aggregate respondent obligations, reusable documents, submission history, applicant-status projections, and presentation policies only in a respondent-held client wallet or encrypted export.",
+        "Reject server-side cross-tenant aggregation: aggregationMode must be client-wallet and trustModel.serverAggregation must be forbidden.",
+        "Use the closed v1 document-kind taxonomy for portable rendering and selective-presentation policy; domain-specific kinds stay in x- extensions until promoted.",
+        "Require explicit presentation policy before document material is released; OpenID4VP and W3C VC hints are protocols, not grants.",
+        "Treat applicant-status projections and obligations as respondent-visible evidence, not governed workflow authority."
+      ],
+      "conformanceEssentials": [
+        "A conforming Respondent Library document must include $formspecRespondentLibrary=1.0, version, libraryId, subject, aggregationMode=client-wallet, and a trust model forbidding server aggregation.",
+        "Document records must use the closed DocumentKind taxonomy and opaque contentRef storage references.",
+        "selected-documents presentation policies must name at least one documentRef and at least one allowed purpose.",
+        "passkey-hpke encryption envelopes must carry key derivation and recipient key references."
+      ]
+    },
+    {
       "spec": "specs/core/spec.md",
       "schema": "schemas/definition.schema.json",
       "bluf": "specs/core/definition-spec.bluf.md",

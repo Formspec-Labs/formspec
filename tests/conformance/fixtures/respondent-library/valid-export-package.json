@@ -1,0 +1,29 @@
+{
+  "$formspecRespondentLibrary": "1.0",
+  "version": "1.0.0",
+  "libraryId": "urn:formspec:respondent-library:export-demo",
+  "subject": {
+    "subjectRef": "respondent:export-demo",
+    "privacyTier": "pseudonymous"
+  },
+  "aggregationMode": "client-wallet",
+  "trustModel": {
+    "storagePosture": "client-encrypted",
+    "issuerIsolation": "per-issuer",
+    "serverAggregation": "forbidden",
+    "presentationDefault": "explicit-consent"
+  },
+  "documents": [],
+  "submissions": [],
+  "export": {
+    "id": "export-2026-05-23",
+    "format": "portable-json",
+    "createdAt": "2026-05-23T12:00:00Z",
+    "includes": ["documents", "submissions", "obligations", "presentation-policies"],
+    "encryption": {
+      "mode": "passkey-hpke",
+      "keyDerivation": "passkey-derived",
+      "recipientKeyRef": "urn:formspec:key:export-demo#hpke"
+    }
+  }
+}

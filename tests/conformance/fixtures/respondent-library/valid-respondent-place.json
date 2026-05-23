@@ -1,0 +1,90 @@
+{
+  "$formspecRespondentLibrary": "1.0",
+  "version": "1.0.0",
+  "libraryId": "urn:formspec:respondent-library:demo-wallet",
+  "subject": {
+    "subjectRef": "respondent:demo",
+    "privacyTier": "pseudonymous"
+  },
+  "aggregationMode": "client-wallet",
+  "trustModel": {
+    "storagePosture": "client-encrypted",
+    "issuerIsolation": "per-issuer",
+    "serverAggregation": "forbidden",
+    "presentationDefault": "explicit-consent"
+  },
+  "encryption": {
+    "mode": "passkey-hpke",
+    "keyDerivation": "passkey-derived",
+    "recipientKeyRef": "urn:formspec:key:demo-wallet#hpke"
+  },
+  "obligations": [
+    {
+      "id": "renew-benefits",
+      "issuer": {
+        "name": "Example Department of Benefits",
+        "url": "https://benefits.example.gov"
+      },
+      "title": "Renew household benefits",
+      "state": "due",
+      "dueAt": "2026-06-30T23:59:59Z",
+      "formRef": {
+        "url": "https://benefits.example.gov/forms/renewal",
+        "version": "2026.1"
+      }
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-proof-address",
+      "kind": "proof-of-address",
+      "displayName": "Utility bill",
+      "issuer": {
+        "name": "Example Utility",
+        "url": "https://utility.example.com"
+      },
+      "capturedAt": "2026-05-01T12:00:00Z",
+      "contentRef": {
+        "uri": "urn:formspec:blob:sha256:abc123",
+        "mediaType": "application/pdf",
+        "sha256": "abc123"
+      },
+      "presentationPolicyRef": "address-only"
+    }
+  ],
+  "submissions": [
+    {
+      "id": "sub-2026-0001",
+      "issuer": {
+        "name": "Example Department of Benefits",
+        "url": "https://benefits.example.gov"
+      },
+      "definitionRef": {
+        "url": "https://benefits.example.gov/forms/renewal",
+        "version": "2026.1"
+      },
+      "submittedAt": "2026-05-15T14:30:00Z",
+      "applicantStatus": {
+        "sourceSchema": "https://schemas.formspec.io/wos-api/applicant/v1",
+        "projectionKind": "ApplicantStatusTimelineEntry",
+        "resourceRef": "urn:wos:case_demo_0001",
+        "updatedAt": "2026-05-15T14:31:00Z",
+        "headline": "Received",
+        "summary": "Your renewal was received and is waiting for review."
+      },
+      "receiptRef": "urn:formspec:receipt:sub-2026-0001"
+    }
+  ],
+  "presentationPolicies": [
+    {
+      "id": "address-only",
+      "scope": "selected-documents",
+      "documentRefs": ["doc-proof-address"],
+      "allowedPurposes": ["eligibility"],
+      "recipientIssuer": {
+        "name": "Example Department of Benefits",
+        "url": "https://benefits.example.gov"
+      }
+    }
+  ]
+}
