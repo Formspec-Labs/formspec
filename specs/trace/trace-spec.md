@@ -291,7 +291,7 @@ Predicates return sorted, deduplicated outputs. Predicates MUST NOT mutate the T
 
 | Field | Source |
 |---|---|
-| `item` | Subject item path. |
+| `subjectItem` | Subject item endpoint string (`item:<path>`). |
 | `directDependentItems` | Direct `item-depends-on-item` reverse edges. |
 | `transitiveDependentItems` | Breadth-first transitive closure over reverse item dependencies, excluding the subject. |
 | `renderingNodes` | `component-renders-item` edges for the subject. |
