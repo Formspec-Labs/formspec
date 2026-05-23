@@ -9,7 +9,7 @@
         "version": "1.0.0",
         "url": "https://example.gov/forms/eligibility/components/main"
       },
-      "digest": "sha256:ae971be78c3d5ef3f1864364717b136ac71a17ed6fa1ac1ee7dbb49808983039"
+      "digest": "<computed>"
     },
     {
       "kind": "definition",
@@ -17,7 +17,7 @@
         "url": "https://example.gov/forms/eligibility",
         "version": "1.0.0"
       },
-      "digest": "sha256:103c1c61ca815ae8767014b925fcac8a583be5ade116925f750903616338ecc9"
+      "digest": "<computed>"
     },
     {
       "kind": "experience",
@@ -26,7 +26,7 @@
         "targetDefinitionUrl": "https://example.gov/forms/eligibility",
         "version": "1.0.0"
       },
-      "digest": "sha256:8b8178331e0345cbfb7c510f552cddb6e05f9aa468eaf5c69a81af71e44a5fc2"
+      "digest": "<computed>"
     },
     {
       "kind": "responseActions",
@@ -35,10 +35,17 @@
         "targetDefinitionUrl": "https://example.gov/forms/eligibility",
         "version": "1.0.0"
       },
-      "digest": "sha256:a923f964f16c5cf5da1124321eba3a6acdc647b07fd151149135454bba74d829"
+      "digest": "<computed>"
     }
   ],
   "edges": [
+    {
+      "kind": "action-emits-effect",
+      "endpoints": [
+        "action:submitEligibility",
+        "effect:submitEligibility:0"
+      ]
+    },
     {
       "kind": "component-renders-item",
       "endpoints": [
@@ -142,6 +149,13 @@
       "endpoints": [
         "unit:incomeEntry",
         "item:standardDeduction"
+      ]
+    },
+    {
+      "kind": "unit-serves-task",
+      "endpoints": [
+        "unit:incomeEntry",
+        "task:applyForBenefit"
       ]
     }
   ]

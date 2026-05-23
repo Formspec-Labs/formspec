@@ -510,7 +510,7 @@ Formalize in this order:
 3. **Validation mapping appendix or shared section.** Reconcile Core global modes, per-shape timing, `ValidationSummary.source`, ValidationReport severity, and Response status transitions before Response Actions schema lands. **Landed:** [`specs/core/validation-mapping.md`](../../specs/core/validation-mapping.md) (draft, 2026-05-22).
 4. **ActionButton binding and Component reference additions.** Require `ActionButton.actionRef`, remove widget-local validation/event policy, and add `unitRef`, `taskRefs`, `conceptRefs`, and generation metadata as additive Component node metadata. **Fully landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)) and [`specs/component/component-reference-fields-spec.md`](../../specs/component/component-reference-fields-spec.md) (2026-05-22, via [Component Reference Fields plan](../plans/2026-05-22-component-reference-fields.md)).
 5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.
-6. **Trace query/cache spec.** Use Studio regeneration review as the first consumer unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics.
+6. **Trace query/cache spec.** Use Studio authoring and regeneration review as the first consumers unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics. **Draft landed:** [`specs/trace/trace-spec.md`](../../specs/trace/trace-spec.md) defines the v1 source set, identity tuples, digest model, eleven edge kinds, sixteen predicates, `whatDependsOn(itemPath)`, stale-cache rejection, and Studio-review composition preconditions.
 
 Each formal spec should include normative prose, JSON Schema, examples, semantic validation rules, conformance fixtures, generated-type impacts, downstream consumer impacts, and migration notes.
 
@@ -534,7 +534,9 @@ The formal specs need a stable way to name validation profiles without colliding
 
 ### 11.4 Trace Predicate Set
 
-Trace posture is committed. Predicate names, query language, source-set rules, and verification semantics are deferred until the named consumer needs them. Studio regeneration review is the proposed first consumer.
+Trace posture is committed. Predicate names, source-set rules, and freshness semantics are now defined by the draft Trace spec for Studio authoring and regeneration review. Query language and cross-projection verification remain deferred.
+
+Drafting note: Trace v1 uses Definition, Experience, Response Actions, Component, and optional Ontology sources; eleven relationship edges; sixteen predicates; stale-cache rejection; and a composition precondition that the chosen regeneration-review route expose a stable Component-subject handle. Do not mark this section fully resolved until the spec, schema, fixtures, and composition proof have passed the final review gates.
 
 ### 11.5 Bundle Manifest
 

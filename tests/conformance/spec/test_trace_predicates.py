@@ -56,33 +56,17 @@ FIXTURE_ROOT = REPO / "tests" / "conformance" / "fixtures" / "trace"
 # Canonical bytes + digest (§4)
 # ---------------------------------------------------------------------------
 
-# Builder-only keys: fixture-level metadata for the Python conformance oracle
-# (e.g. FEL dependency hints). These keys MUST be stripped before digest
-# computation so they do not perturb the canonical bytes the spec defines.
-# Engine implementations that derive dependencies from FEL parsing never see
-# these keys at all.
-_BUILDER_ONLY_KEYS = frozenset({"_bind_dependencies", "_when_dependencies"})
-
-
-def _strip_builder_only(value):
-    if isinstance(value, dict):
-        return {
-            k: _strip_builder_only(v)
-            for k, v in value.items()
-            if k not in _BUILDER_ONLY_KEYS
-        }
-    if isinstance(value, list):
-        return [_strip_builder_only(v) for v in value]
-    return value
-
-
 def _canonical_bytes(doc: dict) -> bytes:
-    """Minimal RFC 8785-style canonicalization: sort keys, no whitespace, UTF-8.
+    """Fixture-subset canonical JSON bytes: sort keys, no whitespace, UTF-8.
 
-    Strips fixture-builder-only keys per `_BUILDER_ONLY_KEYS`.
+    Trace's production digest profile is RFC 8785 JCS. The conformance
+    fixtures intentionally stay in the JCS-equivalent subset for this helper:
+    no floating-point numbers and no non-finite values. Fixture-only extraction
+    hints remain part of the source artifact digest so changing a hint cannot
+    bypass stale rejection.
     """
     return json.dumps(
-        _strip_builder_only(doc),
+        doc,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
@@ -396,7 +380,13 @@ def _verify_fresh(index: dict, srcs: dict[str, dict]) -> None:
     """
     by_key: dict[tuple[str, str], dict] = {}
     for entry in index["sources"]:
-        by_key[_identity_key(entry["kind"], entry["identity"])] = entry
+        key = _identity_key(entry["kind"], entry["identity"])
+        if key in by_key:
+            raise TraceStaleError(
+                "duplicate-source-entry",
+                {"kind": entry["kind"], "identity": entry["identity"]},
+            )
+        by_key[key] = entry
 
     supplied_keys: set[tuple[str, str]] = set()
     for kind, doc in srcs.items():

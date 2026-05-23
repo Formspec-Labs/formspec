@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/trace-index/1.0",
+  "title": "Formspec TraceIndex",
+  "description": "Generated relationship index over Formspec source artifacts. A TraceIndex is a CACHE, not authored truth: predicate execution MUST verify input digests against supplied sources and reject stale indices. Hand-authored TraceIndex documents are non-conforming for production use; they are permitted only for fixtures and tests.",
+  "type": "object",
+  "required": ["$formspecTrace", "sources", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecTrace": {
+      "const": "1.0",
+      "description": "TraceIndex schema version marker."
+    },
+    "sources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SourceEntry" },
+      "description": "Every source artifact inspected by the builder, including sources that contributed zero edges."
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/EdgeEntry" },
+      "description": "Deterministically sorted relationship edges extracted from the source set."
+    }
+  },
+  "$defs": {
+    "Sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Lowercase SHA-256 digest over Trace canonical source bytes."
+    },
+    "DefinitionSourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "version"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "description": "Definition source identity tuple."
+    },
+    "SidecarSourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRef", "targetDefinitionUrl", "version"],
+      "properties": {
+        "sourceRef": { "type": "string", "minLength": 1 },
+        "targetDefinitionUrl": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "description": "Source identity tuple for sidecar sources without top-level document ids."
+    },
+    "ComponentSourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRef", "targetDefinitionUrl", "version"],
+      "properties": {
+        "sourceRef": { "type": "string", "minLength": 1 },
+        "targetDefinitionUrl": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" }
+      },
+      "description": "Component source identity tuple; url is optional because sourceRef is the concrete locator."
+    },
+    "OntologySourceIdentity": {
+      "$ref": "#/$defs/SidecarSourceIdentity"
+    },
+    "SourceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "identity", "digest"],
+      "properties": {
+        "kind": {
+          "enum": ["definition", "experience", "responseActions", "component", "ontology"]
+        },
+        "identity": { "type": "object" },
+        "digest": { "$ref": "#/$defs/Sha256Digest" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "definition" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "identity": { "$ref": "#/$defs/DefinitionSourceIdentity" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "experience" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "identity": { "$ref": "#/$defs/SidecarSourceIdentity" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "responseActions" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "identity": { "$ref": "#/$defs/SidecarSourceIdentity" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "component" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "identity": { "$ref": "#/$defs/ComponentSourceIdentity" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "ontology" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "identity": { "$ref": "#/$defs/OntologySourceIdentity" }
+            }
+          }
+        }
+      ]
+    },
+    "TypedEndpoint": {
+      "type": "string",
+      "pattern": "^(item|unit|task|actor|action|concept|effect|precondition|componentNodePath):.+$"
+    },
+    "EndpointPair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/TypedEndpoint" }
+    },
+    "EdgeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "endpoints"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "component-renders-item",
+            "unit-collects-item",
+            "trigger-invokes-action",
+            "item-depends-on-item",
+            "unit-serves-task",
+            "task-involves-actor",
+            "action-emits-effect",
+            "action-has-precondition",
+            "concept-refs-item",
+            "concept-refs-component-node",
+            "node-visibility-references-item"
+          ]
+        },
+        "endpoints": { "$ref": "#/$defs/EndpointPair" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "component-renders-item" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/ComponentRendersItemEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "unit-collects-item" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/UnitCollectsItemEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "trigger-invokes-action" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/TriggerInvokesActionEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "item-depends-on-item" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/ItemDependsOnItemEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "unit-serves-task" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/UnitServesTaskEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "task-involves-actor" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/TaskInvolvesActorEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "action-emits-effect" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/ActionEmitsEffectEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "action-has-precondition" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/ActionHasPreconditionEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "concept-refs-item" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/ConceptRefsItemEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "concept-refs-component-node" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/ConceptRefsComponentNodeEndpoints" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "node-visibility-references-item" } }, "required": ["kind"] },
+          "then": { "properties": { "endpoints": { "$ref": "#/$defs/NodeVisibilityReferencesItemEndpoints" } } }
+        }
+      ]
+    },
+    "ComponentRendersItemEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^componentNodePath:/.*$" },
+        { "type": "string", "pattern": "^item:.+$" }
+      ],
+      "items": false
+    },
+    "UnitCollectsItemEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^unit:.+$" },
+        { "type": "string", "pattern": "^item:.+$" }
+      ],
+      "items": false
+    },
+    "TriggerInvokesActionEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^componentNodePath:/.*$" },
+        { "type": "string", "pattern": "^action:.+$" }
+      ],
+      "items": false
+    },
+    "ItemDependsOnItemEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^item:.+$" },
+        { "type": "string", "pattern": "^item:.+$" }
+      ],
+      "items": false
+    },
+    "UnitServesTaskEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^unit:.+$" },
+        { "type": "string", "pattern": "^task:.+$" }
+      ],
+      "items": false
+    },
+    "TaskInvolvesActorEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^task:.+$" },
+        { "type": "string", "pattern": "^actor:.+$" }
+      ],
+      "items": false
+    },
+    "ActionEmitsEffectEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^action:.+$" },
+        { "type": "string", "pattern": "^effect:.+:.+$" }
+      ],
+      "items": false
+    },
+    "ActionHasPreconditionEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^action:.+$" },
+        { "type": "string", "pattern": "^precondition:.+:.+$" }
+      ],
+      "items": false
+    },
+    "ConceptRefsItemEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^concept:.+$" },
+        { "type": "string", "pattern": "^item:.+$" }
+      ],
+      "items": false
+    },
+    "ConceptRefsComponentNodeEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^concept:.+$" },
+        { "type": "string", "pattern": "^componentNodePath:/.*$" }
+      ],
+      "items": false
+    },
+    "NodeVisibilityReferencesItemEndpoints": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string", "pattern": "^componentNodePath:/.*$" },
+        { "type": "string", "pattern": "^item:.+$" }
+      ],
+      "items": false
+    }
+  }
+}

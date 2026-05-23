@@ -17,13 +17,13 @@ related:
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:test-driven-development.
 
-**Goal:** Author the canonical Trace spec at `specs/trace/trace-spec.md`. Define a `TraceIndex` document — a generated, normalized relationship graph over the v1 source set (Definition, Experience, Response Actions, Component) — plus predicate semantics, source-set rules, canonical input-digest model, and stale-cache rejection invariant. Pin only the v1 relationship vocabulary that is grounded in current sibling specs: `component-renders-item`, `unit-collects-item`, and `trigger-invokes-action`. Mapping, References, Respondent Ledger, submission, and reverse-query edges remain future work until their owning specs provide stable relationship and identity surfaces. Cross-projection verification semantics are deferred (concept §6.12 line "Trace does not yet verify cross-projection consistency by itself").
+**Goal:** Author the canonical Trace spec at `specs/trace/trace-spec.md`. Define a `TraceIndex` document — a generated, normalized relationship graph over the v1 source set (Definition, Experience, Response Actions, Component, and optional Ontology) — plus predicate semantics, source-set rules, canonical input-digest model, and stale-cache rejection invariant. Pin the v1 relationship vocabulary grounded in current sibling specs as eleven edge kinds: Component rendering, Experience item/task/actor hierarchy, ActionButton invocation, Response Actions effect/precondition relationships, Definition FEL item dependencies, Component `when` visibility dependencies, and concept bindings. Mapping, References, Respondent Ledger, submission, and cross-projection verifier edges remain future work until their owning specs provide stable relationship and identity surfaces. Cross-projection verification semantics are deferred (concept §6.12 line "Trace does not yet verify cross-projection consistency by itself").
 
-**Architecture:** TraceIndex is a normalized, deterministic, append-built JSON document. Each inspected source artifact contributes a `sources[]` entry carrying `(kind, identity, digest)`. Edge extraction is declarative: walking Component yields `component-renders-item` edges (one per `bind`) and `trigger-invokes-action` edges (one per `ActionButton.actionRef`); walking Experience yields `unit-collects-item` edges (one per `Unit.itemRefs[]` entry). Definition and Response Actions are still v1 source artifacts when supplied: Definition provides the item identity space, and Response Actions provides the action identity space for freshness and resolver composition, but Trace does not invent a Response Actions submission edge. The index is produced by a builder that consumes source artifacts and emits a TraceIndex; predicates are deterministic queries over the edge list. Stale rejection: the builder records canonical digests of every inspected source artifact at build time; predicate execution MUST first re-verify all source digests against the supplied artifacts and reject the index when any digest mismatches. Composition with regeneration review: Trace supplies the static relationship index, the chosen regeneration-review route supplies per-cycle review records, and the Experience coverage resolver supplies uncovered-required-item findings. **Trace itself owns no merge findings, no coverage findings, no resolver findings — only the relationship edges.**
+**Architecture:** TraceIndex is a normalized, deterministic, append-built JSON document. Each inspected source artifact contributes a `sources[]` entry carrying `(kind, identity, digest)`. Edge extraction is declarative: walking Component yields render, trigger, visibility, and concept-node edges; walking Experience yields item, unit-task, and task-actor edges; walking Response Actions yields action-effect and action-precondition edges; walking Definition yields FEL item-dependency edges; walking Ontology yields concept-item edges. Definition and Response Actions are v1 source artifacts when supplied: Definition provides the item identity space, and Response Actions provides the action identity space for freshness and resolver composition, but Trace does not invent a Response Actions submission edge. The index is produced by a builder that consumes source artifacts and emits a TraceIndex; predicates are deterministic queries over the edge list. Stale rejection: the builder records canonical digests of every inspected source artifact at build time; predicate execution MUST first re-verify all source digests against the supplied artifacts and reject the index when any digest mismatches, source identity is missing/extra/duplicated, or freshness is otherwise ambiguous. Composition with regeneration review: Trace supplies the static relationship index, the chosen regeneration-review route supplies per-cycle review records, and the Experience coverage resolver supplies uncovered-required-item findings. **Trace itself owns no merge findings, no coverage findings, no resolver findings — only the relationship edges.**
 
 **Tech Stack:** JSON Schema 2020-12, Markdown (BCP-14), pytest under `formspec/tests/conformance/spec/`, Python builder + predicate harness lives inline in the pytest (the spec is the contract; runtime implementations land in separate engine plans).
 
-**Sequencing:** Spec prose §1–§11 → TraceIndex schema → fixtures (one per first-consumer predicate plus stale-rejection cases) → schema-shape pytest → predicate pytest → stale-rejection invariant pytest → composition pytest (Trace + abstract review-record stream + EXP-COVERAGE for Studio review) → upstream cross-reference note → doc pipeline registration.
+**Sequencing:** Spec prose §1–§11 → TraceIndex schema → fixtures covering the eleven-edge/sixteen-predicate contract plus stale-rejection cases → schema-shape pytest → predicate pytest → stale-rejection invariant pytest → composition pytest (Trace + abstract review-record stream + EXP-COVERAGE for Studio review) → upstream cross-reference note → doc pipeline registration.
 
 **Citations:** "CRF §" = `specs/component/component-reference-fields-spec.md`. "COMP §" = `specs/component/component-spec.md`. "EXP §" = `specs/experience/experience-spec.md`. "RA §" = `specs/response-actions/response-actions-spec.md`. "Concept §" = `thoughts/specs/2026-05-20-formspec-semantic-layers.md` (design intent, not a conformance source). "RegenMerge §" = `specs/component/regeneration-merge-spec.md` (paused-after-task-16; may relocate to MCP/ProposalManager route).
 
@@ -65,9 +65,12 @@ If any check fails, stop and surface to the user.
 | Source-set declaration | TraceIndex MUST declare every source artifact it inspected in `sources[]` with source identity + canonical digest | HIGH | Concept §6.12: "A materialized Trace must carry input digests and must be rejected as stale when any input digest changes." Source set is the ledger of what produced the index. |
 | Source identity | Definition uses declared `{ url, version }`. Sidecar sources use a Trace `sourceRef` supplied by the builder / host plus declared source fields (`version`, `targetDefinition.url`, and `url` when the source has one). | HIGH | Experience and Response Actions do not define top-level document ids. Trace MUST NOT pretend those ids exist; it must distinguish source-location identity from source-declared semantic identity. |
 | Canonical digest | SHA-256 over canonical bytes, encoded as `sha256:<lowercase-hex>` | HIGH | Response has a signed-payload canonical profile, but Definition / Experience / Response Actions / Component do not define per-artifact canonical bytes. Trace v1.0 therefore defines its own source-digest profile: whole JSON artifact serialized with RFC 8785 JCS unless the source spec explicitly defines a stronger canonical form. |
-| Edge kinds — closed set v1.0 | Three kinds: `component-renders-item`, `unit-collects-item`, and `trigger-invokes-action` | HIGH | These are the relationship surfaces grounded in current Component, CRF, Experience, and Response Actions specs. Mapping, References, Respondent Ledger, and submission edges are not admitted until their owning specs expose stable identity and relationship semantics. |
-| Edge identity | Each edge carries `(kind, endpoints[])` where endpoints are typed source references. v1.0 endpoint prefixes are `componentNodePath:`, `item:`, `unit:`, and `action:`. | HIGH | `item:`, `unit:`, and `action:` reuse CRF anchor prefixes. `componentNodePath:` is Trace-owned because Component node identity is path-based when `id` is optional. |
-| Predicates v1.0 | Three: `componentNodesForItem(itemPath) -> nodePath[]`, `unitsForItem(itemPath) -> unitId[]`, `actionForTrigger(componentNodePath) -> actionId \| null`. These are the first-consumer (Studio regeneration review) needs | HIGH | Concept §11.4: "Predicate names, query language, source-set rules, and verification semantics are deferred until the named consumer needs them." Three is what Studio needs; no other edge kinds ship in v1.0. |
+| Edge kinds — closed set v1.0 | **Eleven kinds** — see §5.1. | HIGH | All eleven are grounded in current sibling specs (Definition FEL binds, Experience task/actor/unit hierarchy, Response Actions effects/preconditions, Component `when`-FEL and `conceptRefs`, Ontology concept map). Maximalist one-shot delivery per `formspec-stack/CLAUDE.md`: ship every edge whose source spec is already ratified; do not fragment the relationship surface across versions. Mapping, References, Respondent Ledger, and submission edges remain deferred until owning specs expose stable identity. |
+| Edge identity | Each edge carries `(kind, endpoints[])` where endpoints are typed source references. v1.0 endpoint prefixes are `componentNodePath:`, `item:`, `unit:`, `task:`, `actor:`, `action:`, `effect:`, `precondition:`, `concept:`. | HIGH | `item:`, `unit:`, `task:`, `action:`, `concept:` reuse CRF anchor prefixes. `actor:`, `precondition:`, `effect:`, `componentNodePath:` are Trace-introduced extensions; if a future CRF revision adopts any, Trace defers to CRF. |
+| Predicates v1.0 | **Sixteen predicates** including the `whatDependsOn(itemPath) -> ImpactReport` JOIN query — see §6.1. | HIGH | `whatDependsOn` is the J3 refactor-with-confidence predicate that Studio authoring of complex grant applications drives. Reverse predicates (`itemsForUnit`, `triggersForAction`, `itemsForAction`, `unitsForTask`, `tasksForActor`, `itemsForConcept`, `conceptsForItem`, `conceptsForNode`, `dependenciesOf`, `dependentsOn`) ship in v1.0 because they're typed function signatures, not a query DSL — no DSL design is needed. |
+| Effect identity | `effect:<actionId>:<0-based-index>` | HIGH | Effects have no `id` field. Index matches RA §6.4 trace-artifact convention. Digest-coupled: if `effects[]` reorders, source digest changes and stale-rejection fires. |
+| Precondition identity | `precondition:<actionId>:<preconditionId>` using the existing `id` on precondition objects per RA §4. | HIGH | Preconditions DO carry `id`; reuse it. |
+| Ontology source kind | `ontology` is the fifth `sources[].kind` value. Required when `concept-refs-item` edges are emitted. | HIGH | Concepts live in the Ontology Document (`ontology-spec.md` §3), not a Definition extension. Builders that inspect Ontology MUST declare it in `sources[]`. |
 | Stale rejection invariant | Predicate execution MUST verify every `sources[]` digest before any predicate runs. Any mismatch → REJECT (raise a defined error; predicate MUST NOT return partial results) | HIGH | Concept §6.12: "must be rejected as stale when any input digest changes." Non-negotiable. |
 | Stale rejection severity | `error` — there is no warning-level stale | HIGH | A stale Trace is structurally untrustworthy; serving it would silently corrupt Studio review. |
 | Source-set completeness rule | TraceIndex MUST declare every source artifact the builder inspected. A source listed in `sources[]` with zero contributing edges is allowed and still required if inspected. A source NOT listed whose digest would have changed an edge is a builder bug; the spec MAY NOT detect this from the index alone | MEDIUM | Builder responsibility, not index validation responsibility. Conformance fixtures pin a few cases. |
@@ -126,7 +129,7 @@ Decisions marked HIGH should not change without owner pushback.
 - **Source identity does not invent ids.** Experience and Response Actions lack top-level document ids. Trace uses `sourceRef` for source-file / host identity and records source-declared fields separately.
 - **Canonical bytes are Trace-owned for source digests.** Unless a source spec defines canonical bytes for the whole artifact, Trace v1.0 uses RFC 8785 JCS over the full JSON artifact.
 - **Edge endpoint identity uses current CRF anchor prefixes.** `item:applicantName`, `unit:identity`, and `action:submitApplication` reuse existing anchor vocabulary. `componentNodePath:` is Trace-owned.
-- **Predicate set is minimal by design.** Concept §11.4 explicitly defers query-surface detail. Shipping three predicates that Studio review needs is honest scoping; shipping six predicates would require a non-existent consumer to justify the other three.
+- **Predicate set is consumer-sized, not concept-note maximal.** Concept §11.4 defers query-surface detail until a named consumer needs it. The v1 contract intentionally ships eleven edge kinds and sixteen typed predicates because the first consumer is now Studio authoring plus regeneration review, not regeneration review alone; Mapping, References, Respondent Ledger, submission, and cross-projection verifier predicates remain deferred.
 - **Composition contract is the load-bearing seam.** Studio review's success criterion is that Trace + the chosen review-record stream + EXP-COVERAGE compose without double-counting and without loss. The composition pytest must not pin a standalone merge-report shape.
 - **Cold-read test:** a future agent reading this plan alone produces a conforming spec without referring to the concept note. Concept §6.12 predicate list is quoted verbatim in Task 6's spec-prose section; concept §5.4 cache disclaimer is quoted in Task 2.
 
@@ -138,7 +141,7 @@ Decisions marked HIGH should not change without owner pushback.
 - Create: `specs/trace/trace-spec.md`
 - Create: `specs/trace/trace-spec.bluf.md`
 
-- [ ] **Step 1: Create spec directory and frontmatter scaffolds**
+- [x] **Step 1: Create spec directory and frontmatter scaffolds**
 
 ```bash
 mkdir -p /Users/mikewolfd/Work/formspec-stack/formspec/specs/trace
@@ -194,7 +197,7 @@ Write `specs/trace/trace-spec.bluf.md` with placeholder BLUF stub (filled by Tas
 - (BLUF — populated when §1–§10 prose lands.)
 ```
 
-- [ ] **Step 2: Verify files exist**
+- [x] **Step 2: Verify files exist**
 
 ```bash
 ls /Users/mikewolfd/Work/formspec-stack/formspec/specs/trace/
@@ -207,7 +210,7 @@ trace-spec.bluf.md
 trace-spec.md
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md specs/trace/trace-spec.bluf.md -m "spec(trace): scaffold spec files (draft)"
@@ -222,7 +225,7 @@ Note: `scripts/spec-artifacts.config.json` and `tests/contracts/surface-coverage
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §1 prose**
+- [x] **Step 1: Draft §1 prose**
 
 Append §1 body covering purpose, scope, relationship, conformance posture, BCP-14 usage. Required content:
 
@@ -231,9 +234,9 @@ Append §1 body covering purpose, scope, relationship, conformance posture, BCP-
 
 ### 1.1 Purpose
 
-Trace is a generated relationship index over the v1 source set: Definition, Experience, Response Actions, and Component. A `TraceIndex` document carries (a) the source set that produced it, identified by source identity plus canonical content digest, and (b) typed edges extracted from those sources. Predicates over the index answer the v1 first-consumer questions: which Component node renders which Definition item, which Experience unit collects which item, and which ActionButton invokes which Response Action.
+Trace is a generated relationship index over the v1 source set: Definition, Experience, Response Actions, Component, and (when supplied) Ontology. A `TraceIndex` document carries (a) the source set that produced it, identified by source identity plus canonical content digest, and (b) typed edges extracted from those sources. Predicates over the index answer the v1 consumer questions across five families: Component rendering (which node renders which item), Experience hierarchy (which unit/task/actor relates to what), action/trigger (which ActionButton invokes which Action, which effects/preconditions that Action carries), FEL dependency (which items depend on which through bind expressions), and concepts (which ontology concepts bind which items or component nodes).
 
-Trace exists to make generated UI explainable, reviewable, and (in a future verifier consumer) verifiable. Its seed consumer is Studio regeneration review (concept §10.6): after Definition, Experience, or Response Actions changes, Studio composes Trace edges with per-cycle review records and Experience coverage findings to answer "what changed, what survived, what is now orphaned, what is uncovered."
+Trace exists to make generated UI explainable, reviewable, and refactorable. Its seed consumers are Studio authoring of complex grant applications and Studio regeneration review (concept §10.6). The key authoring question is **refactor-with-confidence**: given "rename `householdIncome`," `whatDependsOn` returns the full cascade — FEL `calculate`/`relevant`/`required` dependents, rendering nodes, collecting units, visibility conditions, concept bindings — before the author makes the change. After Definition, Experience, Response Actions, or Component changes, Studio composes Trace edges with per-cycle review records and Experience coverage findings to answer "what changed, what survived, what is now orphaned, what is uncovered."
 
 ### 1.2 Scope
 
@@ -242,8 +245,8 @@ This specification defines:
 1. The `TraceIndex` document shape (§2).
 2. The source-set declaration and per-artifact identity tuple (§3).
 3. The canonical digest model (§4).
-4. The closed v1 set of edge kinds and endpoint identity vocabulary (§5).
-5. Predicate semantics for the first-consumer questions (§6).
+4. The closed v1 set of eleven edge kinds and endpoint identity vocabulary (§5).
+5. Predicate semantics for the sixteen v1 predicates, including the `whatDependsOn(itemPath) -> ImpactReport` JOIN query for refactor-with-confidence analysis (§6).
 6. The stale-cache rejection invariant (§7).
 7. The composition contract with regeneration-review records, Component reference-resolution findings, and Experience coverage findings (§8).
 8. The JSON Schema (§9).
@@ -269,7 +272,8 @@ A materialized `TraceIndex` document is a CACHE, not authored truth. Concept §5
 | Experience (`experience/experience-spec.md`) | Source artifact. Trace extracts `unit-collects-item` edges. Coverage findings are NOT owned by Trace — they remain owned by the Experience coverage resolver (EXP §10), composed at the Studio review surface (§8). |
 | Response Actions (`response-actions/response-actions-spec.md`) | Source artifact when supplied. Response Actions owns the action identity space behind `action:` endpoints; Trace does not invent a submission edge. |
 | Component (`component/component-spec.md`) | Source artifact. Trace extracts `component-renders-item` edges from `bind` and `trigger-invokes-action` edges from `ActionButton.actionRef`. Regeneration provenance remains owned by the regeneration-review route. |
-| Component Reference Fields (`component/component-reference-fields-spec.md`) | Anchor-prefix vocabulary (`item:`, `unit:`, `task:`, `action:`, `concept:`) is reused by Trace endpoints (§5.2). Resolver findings (`COMP-REFERENTIAL-INTEGRITY`) are NOT duplicated in Trace; Studio composes them (§8). |
+| Component Reference Fields (`component/component-reference-fields-spec.md`) | Anchor-prefix vocabulary (`item:`, `unit:`, `task:`, `action:`, `concept:`) is reused by Trace endpoints (§5.2). `conceptRefs` on Component nodes is the source for `concept-refs-component-node` edges. Resolver findings (`COMP-REFERENTIAL-INTEGRITY`) are NOT duplicated in Trace; Studio composes them (§8). |
+| Ontology (`ontology/ontology-spec.md`) | Source artifact when supplied. Trace extracts `concept-refs-item` edges from the `concepts` map (keys are item paths, values are concept IRIs). When `concept-refs-item` edges are emitted, Ontology MUST appear in `sources[]` with its own digest. |
 | Regeneration Merge (`component/regeneration-merge-spec.md` — when landed) | Orthogonal. Trace is the static relationship index; the chosen regeneration-review route supplies per-cycle review records. Studio composes both (§8). Trace's schema and predicates do NOT reference RegenMerge constructs. |
 | Concept architecture note (`thoughts/specs/2026-05-20-formspec-semantic-layers.md`) | Design motivation only. §6.12 sketches predicate questions; §10.6 names Studio regeneration review as the seed consumer; §11.4 defers query-surface detail. Trace conformance comes from this spec, its schema, and its fixtures. |
 
@@ -278,7 +282,7 @@ A materialized `TraceIndex` document is a CACHE, not authored truth. Concept §5
 Three conformance levels are defined in §10. A conforming runtime MUST satisfy all three levels. Schema-validity of TraceIndex documents (Level 2) is necessary but not sufficient — predicate behavior (Level 1) and the stale-rejection invariant (Level 3) MUST also hold.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §1 introduction"
@@ -291,7 +295,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §2 prose**
+- [x] **Step 1: Draft §2 prose**
 
 Append:
 
@@ -327,7 +331,7 @@ A conforming TraceIndex MUST NOT contain top-level members other than `$formspec
 Builders MUST emit a finished TraceIndex as an immutable JSON value. Once written, a TraceIndex MUST NOT be mutated in place by predicate execution, composition, or any consumer. Predicates are pure functions over the index (§6.3).
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §2 document shape"
@@ -340,7 +344,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §3 prose**
+- [x] **Step 1: Draft §3 prose**
 
 Append:
 
@@ -367,7 +371,7 @@ Each entry in `sources[]` is a JSON object with these required members:
 
 | Field | Type | Description |
 |---|---|---|
-| `kind` | string, closed enum | One of `definition`, `experience`, `responseActions`, `component`. |
+| `kind` | string, closed enum | One of `definition`, `experience`, `responseActions`, `component`, `ontology`. |
 | `identity` | object | Identity tuple per §3.3. Shape varies by `kind`. |
 | `digest` | string | Canonical content digest per §4. |
 
@@ -381,6 +385,7 @@ No other members are permitted.
 | `experience` | `{ sourceRef: string, targetDefinitionUrl: string, version: string }` | Experience declares `targetDefinition.url` and `version`; `sourceRef` is the builder/host locator for the concrete sidecar document. |
 | `responseActions` | `{ sourceRef: string, targetDefinitionUrl: string, version: string }` | Response Actions declares `targetDefinition.url` and `version`; `sourceRef` is the builder/host locator for the concrete sidecar document. |
 | `component` | `{ sourceRef: string, targetDefinitionUrl: string, version: string, url?: string }` | Component declares `version`, `targetDefinition.url`, and optional `url`; `sourceRef` identifies the concrete Component document when `url` is absent or not unique enough for the host. |
+| `ontology` | `{ sourceRef: string, targetDefinitionUrl: string, version: string }` | Ontology declares `targetDefinition.url` and `version`; `sourceRef` is the builder/host locator for the concrete Ontology document. Required when `concept-refs-item` edges are emitted. |
 
 Identity tuples are closed per kind. A field not listed for that kind is non-conforming; in particular, Trace MUST NOT accept a sidecar `"id"` as a substitute for `sourceRef`.
 
@@ -395,7 +400,7 @@ A TraceIndex MUST NOT contain two `sources[]` entries with the same `(kind, iden
 `sources[]` entries MUST appear in deterministic order. The required order is the lexicographic sort of `(kind, identity-canonical-json)` ascending. This makes byte-equality of two same-input TraceIndex documents possible.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §3 source set + identity"
@@ -408,7 +413,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §4 prose**
+- [x] **Step 1: Draft §4 prose**
 
 Append:
 
@@ -434,7 +439,7 @@ The digest covers the entire source artifact, not just the portions Trace extrac
 A conforming TraceIndex document does NOT carry a self-digest. Self-digests are out of scope for v1.0; if hosts need an addressable TraceIndex handle, they compute it outside the document. (Self-digesting introduces serialization-order dependencies that the spec is not yet ready to commit to.)
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §4 canonical digests"
@@ -447,7 +452,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §5 prose with the three v1 edge kinds**
+- [x] **Step 1: Draft §5 prose with the eleven v1 edge kinds**
 
 Append:
 
@@ -456,32 +461,58 @@ Append:
 
 ### 5.1 Closed v1 Edge Set
 
-Concept §6.12 sketches six possible questions. v1.0 ships only the edge kinds grounded in current sibling specs:
+v1.0 ships **eleven edge kinds**, each grounded in a current sibling spec. Maximalist one-shot delivery per `formspec-stack/CLAUDE.md`: every edge whose source spec is already ratified ships in v1.0. Mapping, References, Respondent Ledger, and submission edges are NOT admitted until their owning specs expose stable identity and relationship semantics.
 
-| Edge kind | Question | Source artifact | Endpoint identity |
+| Edge kind | Question | Source artifact(s) | Endpoint identity |
 |---|---|---|---|
-| `component-renders-item` | Which Component node renders which item? | Component | `componentNodePath` (RFC 6901 JSON Pointer into the Component tree), `item:<itemPath>` |
-| `unit-collects-item` | Which Experience unit collects which item? | Experience | `unit:<unitId>`, `item:<itemPath>` |
-| `trigger-invokes-action` | Which ActionButton invokes which Response Action? | Component (ActionButton), with Response Actions as the action identity owner when supplied | `componentNodePath` (the ActionButton node), `action:<actionId>` |
+| `component-renders-item` | Which Component node renders which item? | Component (bind) | `componentNodePath:`, `item:` |
+| `unit-collects-item` | Which Experience unit collects which item? | Experience (unit.itemRefs) | `unit:`, `item:` |
+| `trigger-invokes-action` | Which ActionButton invokes which Response Action? | Component (ActionButton node) + Response Actions (action identity) | `componentNodePath:`, `action:` |
+| `item-depends-on-item` | Which item's FEL bind expressions reference which other item? | Definition (binds: calculate, relevant, required, constraint, readonly) | `item:` (dependent), `item:` (dependency) |
+| `unit-serves-task` | Which Experience unit advances which task? | Experience (unit.taskRefs[]) | `unit:`, `task:` |
+| `task-involves-actor` | Which task involves which actor? | Experience (task.actorRefs[]) | `task:`, `actor:` |
+| `action-emits-effect` | Which Response Action emits which effect? | Response Actions (action.effects[]) | `action:`, `effect:` |
+| `action-has-precondition` | Which Response Action is guarded by which precondition? | Response Actions (action.preconditions[]) | `action:`, `precondition:` |
+| `concept-refs-item` | Which ontology concept binds which Definition item? | Ontology (concepts map) | `concept:`, `item:` |
+| `concept-refs-component-node` | Which ontology concept is referenced by which Component node? | Component (node.conceptRefs[]) | `concept:`, `componentNodePath:` |
+| `node-visibility-references-item` | Which Component node's `when` expression depends on which item? | Component (node.when FEL) | `componentNodePath:`, `item:` |
 
 Builders MUST emit edges of every kind for which at least one matching relationship exists in the inspected sources. Builders MUST NOT emit edges of other kinds; the enum is CLOSED.
 
+**Note on `node-visibility-references-item`:** the edge kind ships in v1.0, but builders MAY emit empty (omit walking `when` FEL) if they do not yet support FEL dependency extraction on Component nodes. A v1.1 conformance level SHOULD require the pass. v1.0 builders that skip the pass MUST still report zero such edges (not omit the source from `sources[]`).
+
 ### 5.2 Endpoint Identity Vocabulary
 
-Endpoints use typed string prefixes:
+Endpoints use typed string prefixes. Prefixes carry the unambiguous namespace of their owning spec.
 
-| Prefix | Meaning |
-|---|---|
-| `item:<path>` | Definition item, identified by its dotted path (Core item path syntax). |
-| `unit:<id>` | Experience unit, identified by its `id`. |
-| `action:<id>` | Response Action, identified by its `id`. |
-| `componentNodePath:<jsonPointer>` | Component tree node, identified by RFC 6901 JSON Pointer. |
+| Prefix | Meaning | Owning spec |
+|---|---|---|
+| `item:<path>` | Definition item, identified by its dotted bind-path (Core §4.3.3 FieldRef syntax). | Core spec (CRF reuse) |
+| `unit:<id>` | Experience unit, identified by its `id`. | Experience spec (CRF reuse) |
+| `task:<id>` | Experience task, identified by its `id`. | Experience spec (CRF reuse) |
+| `actor:<id>` | Experience actor, identified by its `id`. | Experience spec |
+| `action:<id>` | Response Action, identified by its `id`. | Response Actions spec (CRF reuse) |
+| `concept:<id>` | Ontology concept or CRF ConceptRef `id`. | Ontology spec / CRF (reuse) |
+| `precondition:<actionId>:<preconditionId>` | Response Action precondition, identified by its containing Action `id` and the precondition object's `id`. | Response Actions spec |
+| `effect:<actionId>:<index>` | Response Action effect, identified by its containing Action `id` and 0-based position in `effects[]`. | Response Actions spec; see rationale below |
+| `componentNodePath:<jsonPointer>` | Component tree node, identified by RFC 6901 JSON Pointer. | Trace-introduced (Component node `id` is OPTIONAL; pointer is always stable for a given tree shape) |
 
-Anchor prefixes `item:`, `unit:`, and `action:` are CRF §5.2 reuses, NOT redefinitions. `componentNodePath:` is Trace-introduced typed-string vocabulary because Component node `id` is optional.
+**Effect identity rationale.** Effect objects have no `id` field per the Response Actions spec. The two candidate schemes are:
+
+- `effect:<actionId>:<index>` (0-based array position)
+- `effect:<actionId>:<type>:<eventName>` (discriminated by type + event name)
+
+The second scheme is unstable: `type` is not unique within an action (an action may have multiple `hostEvent` effects with different `eventName` values, but also multiple `ledgerAppend` effects where no `eventName` exists). The **0-based index** is the only stable, unambiguous ordinal for a given version of the Response Actions document, matching the `effectIndex` convention used in the Response Actions spec's own trace artifacts (RA §6.4: "0-based per host idiom"). If `effects[]` is reordered between builds, the index changes — but so does the digest, triggering stale rejection. Index stability is digest-coupled.
+
+Anchor prefixes `item:`, `unit:`, `task:`, `action:`, and `concept:` are CRF §5.2 reuses, NOT redefinitions. `actor:`, `precondition:`, `effect:`, and `componentNodePath:` are Trace-introduced extensions to that vocabulary. If a future CRF revision adopts `actor:` or `precondition:`, Trace MUST defer to the CRF definition.
 
 ### 5.3 Edge Determinism
 
 Edge extraction MUST be deterministic. For a given source set, two conforming builders MUST produce the same `edges[]` (modulo ordering, which is fixed in §5.5).
+
+For `item-depends-on-item` edges: FEL dependency extraction is performed by calling `getFELDependencies(expression)` (or equivalent `fel-core` `extract_dependencies`) on each bind expression (`calculate`, `relevant`, `required`, `constraint`, `readonly`). Each returned item path becomes one edge. The path returned is the FieldRef as written in the FEL expression (e.g., `$householdIncome` → `item:householdIncome`). Builders MUST strip the leading `$` sigil and normalize `[*]` wildcard paths per Core §4.3.3. If the same dependency appears in multiple bind expressions for the same item, deduplicate by `(kind, endpoints[])` before emission.
+
+For `action-emits-effect` edges: the 0-based index is the position of the effect in `action.effects[]` as parsed from the source artifact. The index is determined before sorting or normalization — the declared array order is the identity.
 
 For ambiguous source data (e.g., a Component with two `ActionButton`s bound to the same `actionRef`), the builder MUST emit one edge per matching relationship — duplicates are permitted if and only if both endpoints differ at least in one position. Two `edges[]` entries with byte-equal JSON serialization are forbidden (deduplicate before emission).
 
@@ -492,14 +523,14 @@ Each entry in `edges[]` is a JSON object with these required members:
 ```json
 {
   "kind": "<edge kind>",
-  "endpoints": [ "<typed-string>", "<typed-string>", ... ]
+  "endpoints": [ "<typed-string>", "<typed-string>" ]
 }
 ```
 
 | Field | Type | Description |
 |---|---|---|
-| `kind` | string, closed enum | One of the three kinds in §5.1. |
-| `endpoints` | array of typed strings | At least two endpoints. Per-kind endpoint count and ordering pinned in §5.6. |
+| `kind` | string, closed enum | One of the eleven kinds in §5.1. |
+| `endpoints` | array of typed strings | Exactly two endpoints per §5.6. |
 
 No other members are permitted.
 
@@ -514,18 +545,28 @@ This makes byte-equality of two same-input TraceIndex documents possible.
 
 ### 5.6 Per-Kind Endpoint Schema
 
-For each edge kind, `endpoints[]` MUST contain exactly the typed-string positions listed below, in the order listed:
+For each edge kind, `endpoints[]` MUST contain exactly two typed-string positions in the order listed:
 
-| Edge kind | endpoints[] (ordered) |
-|---|---|
-| `component-renders-item` | `[componentNodePath:<jsonPointer>, item:<itemPath>]` |
-| `unit-collects-item` | `[unit:<unitId>, item:<itemPath>]` |
-| `trigger-invokes-action` | `[componentNodePath:<jsonPointer>, action:<actionId>]` |
+| Edge kind | endpoints[0] | endpoints[1] |
+|---|---|---|
+| `component-renders-item` | `componentNodePath:<jsonPointer>` | `item:<path>` |
+| `unit-collects-item` | `unit:<unitId>` | `item:<path>` |
+| `trigger-invokes-action` | `componentNodePath:<jsonPointer>` | `action:<actionId>` |
+| `item-depends-on-item` | `item:<dependentPath>` (item whose bind FEL references the dependency) | `item:<dependencyPath>` (item being depended upon) |
+| `unit-serves-task` | `unit:<unitId>` | `task:<taskId>` |
+| `task-involves-actor` | `task:<taskId>` | `actor:<actorId>` |
+| `action-emits-effect` | `action:<actionId>` | `effect:<actionId>:<0-based-index>` |
+| `action-has-precondition` | `action:<actionId>` | `precondition:<actionId>:<preconditionId>` |
+| `concept-refs-item` | `concept:<conceptId>` | `item:<path>` |
+| `concept-refs-component-node` | `concept:<conceptId>` | `componentNodePath:<jsonPointer>` |
+| `node-visibility-references-item` | `componentNodePath:<jsonPointer>` (node whose `when` FEL references the item) | `item:<path>` (item referenced in the `when` expression) |
 
 A conforming builder MUST emit edges in exactly this endpoint shape and order. Validators MAY reject edges whose endpoint ordering or typed-string prefix does not match the declared kind.
+
+**`item-depends-on-item` direction note.** endpoints[0] is the dependent (the item that HAS the bind expression referencing the dependency); endpoints[1] is the dependency (the item being read). This convention matches the query question: given `item:eligibility` at endpoints[0], "what does `eligibility` depend on?" and given `item:householdIncome` at endpoints[1], "what depends on `householdIncome`?" The `whatDependsOn` JOIN query (§6.2) uses the endpoints[1] position as its primary index key.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §5 edges + endpoint vocabulary"
@@ -538,7 +579,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §6 prose with the three v1.0 predicates**
+- [x] **Step 1: Draft §6 prose with the sixteen v1.0 predicates**
 
 Append:
 
@@ -547,41 +588,113 @@ Append:
 
 ### 6.1 v1.0 Predicate Set
 
-Three predicates ship in v1.0, sized to the first-consumer (Studio regeneration review) needs. Reverse queries and any future predicates over Mapping, References, Respondent Ledger, submission, task, or concept edges are DEFERRED to a future minor version per concept §11.4 ("predicate names ... deferred until the named consumer needs them").
+**Sixteen predicates** ship in v1.0, sized to Studio authoring of complex grant applications and regeneration review. Predicates are grouped by concern. Reverse predicates ship in v1.0 because they're typed function signatures — no query DSL is needed. The `whatDependsOn` JOIN query is the J3 refactor-with-confidence predicate.
+
+#### Forward predicates — Component rendering
 
 | Predicate | Signature | Returns |
 |---|---|---|
-| `componentNodesForItem` | `(traceIndex, itemPath: string) -> componentNodePath[]` | All `componentNodePath` endpoints from `component-renders-item` edges whose `item:` endpoint equals `item:<itemPath>`. Sorted ascending lexicographically. Empty array if no match. |
-| `unitsForItem` | `(traceIndex, itemPath: string) -> unitId[]` | All `unit:` endpoint suffixes (`<unitId>` portion only) from `unit-collects-item` edges whose `item:` endpoint equals `item:<itemPath>`. Sorted ascending lexicographically. Empty array if no match. Deduplicate. |
-| `actionForTrigger` | `(traceIndex, componentNodePath: string) -> actionId \| null` | The `action:` endpoint suffix (`<actionId>` portion only) from the unique `trigger-invokes-action` edge whose `componentNodePath:` endpoint equals `componentNodePath:<jsonPointer>`. `null` if no match. If more than one matching edge exists, the TraceIndex is malformed (§5.3 forbids it); predicates MAY raise an error or return `null` — implementations MUST be consistent. |
+| `componentNodesForItem` | `(traceIndex, itemPath: string) -> componentNodePath[]` | All `componentNodePath` endpoint values from `component-renders-item` edges whose `item:` endpoint equals `item:<itemPath>`. Sorted ascending lexicographically. Empty array if no match. |
+| `itemsForComponent` | `(traceIndex, componentNodePath: string) -> itemPath[]` | All `item:` endpoint suffixes from `component-renders-item` edges whose `componentNodePath:` endpoint equals `componentNodePath:<componentNodePath>`. Sorted ascending. Empty array if no match. |
 
-### 6.2 Pure Functions
+#### Forward predicates — Experience hierarchy
 
-Predicates are pure functions over the (TraceIndex, args) input pair. They MUST NOT mutate the TraceIndex; they MUST NOT cache results across calls in a way that prevents re-execution from producing identical outputs.
+| Predicate | Signature | Returns |
+|---|---|---|
+| `unitsForItem` | `(traceIndex, itemPath: string) -> unitId[]` | All `unit:` endpoint suffixes from `unit-collects-item` edges whose `item:` endpoint equals `item:<itemPath>`. Sorted ascending. Deduplicated. Empty array if no match. |
+| `itemsForUnit` | `(traceIndex, unitId: string) -> itemPath[]` | All `item:` endpoint suffixes from `unit-collects-item` edges whose `unit:` endpoint equals `unit:<unitId>`. Sorted ascending. Empty array if no match. |
+| `tasksForUnit` | `(traceIndex, unitId: string) -> taskId[]` | All `task:` endpoint suffixes from `unit-serves-task` edges whose `unit:` endpoint equals `unit:<unitId>`. Sorted ascending. Empty array if no match. |
+| `unitsForTask` | `(traceIndex, taskId: string) -> unitId[]` | All `unit:` endpoint suffixes from `unit-serves-task` edges whose `task:` endpoint equals `task:<taskId>`. Sorted ascending. Empty array if no match. |
+| `actorsForTask` | `(traceIndex, taskId: string) -> actorId[]` | All `actor:` endpoint suffixes from `task-involves-actor` edges whose `task:` endpoint equals `task:<taskId>`. Sorted ascending. Empty array if no match. |
+| `tasksForActor` | `(traceIndex, actorId: string) -> taskId[]` | All `task:` endpoint suffixes from `task-involves-actor` edges whose `actor:` endpoint equals `actor:<actorId>`. Sorted ascending. Empty array if no match. |
 
-### 6.3 Determinism
+#### Forward predicates — Action/trigger
 
-For the same `(TraceIndex, predicate, args)`, every conforming implementation MUST return byte-identical output (modulo equivalent JSON representations). Sort order is fixed; deduplication is fixed (§6.1).
+| Predicate | Signature | Returns |
+|---|---|---|
+| `actionForTrigger` | `(traceIndex, componentNodePath: string) -> actionId \| null` | The `action:` endpoint suffix from the unique `trigger-invokes-action` edge whose `componentNodePath:` endpoint equals `componentNodePath:<componentNodePath>`. `null` if no match. If more than one matching edge exists the TraceIndex is malformed (§5.3 forbids it); implementations MUST raise an error. |
+| `triggersForAction` | `(traceIndex, actionId: string) -> componentNodePath[]` | All `componentNodePath` endpoint values from `trigger-invokes-action` edges whose `action:` endpoint equals `action:<actionId>`. Sorted ascending. Empty array if no match. |
+| `itemsForAction` | `(traceIndex, actionId: string) -> itemPath[]` | Two-hop JOIN: call `triggersForAction(traceIndex, actionId)` → for each result call `itemsForComponent(traceIndex, nodePath)` → union of all item paths. Sorted ascending. Deduplicated. Empty array if no match. |
 
-### 6.4 Stale-First Execution
+#### Forward predicates — FEL dependency
 
-Every predicate execution MUST verify the TraceIndex is fresh (§7) BEFORE returning. A stale TraceIndex MUST cause the predicate to fail with the defined stale error (§7.2). Predicates MUST NOT return partial results for stale indices.
+| Predicate | Signature | Returns |
+|---|---|---|
+| `dependenciesOf` | `(traceIndex, itemPath: string) -> itemPath[]` | All `item:` endpoint suffixes at endpoints[1] from `item-depends-on-item` edges whose endpoints[0] equals `item:<itemPath>`. Sorted ascending. Empty array if item has no FEL dependencies. |
+| `dependentsOn` | `(traceIndex, itemPath: string) -> itemPath[]` | All `item:` endpoint suffixes at endpoints[0] from `item-depends-on-item` edges whose endpoints[1] equals `item:<itemPath>`. Sorted ascending. Empty array if no item depends on this item. |
+
+#### Forward predicates — Concept
+
+| Predicate | Signature | Returns |
+|---|---|---|
+| `conceptsForItem` | `(traceIndex, itemPath: string) -> conceptId[]` | All `concept:` endpoint suffixes from `concept-refs-item` edges whose `item:` endpoint equals `item:<itemPath>`. Sorted ascending. Empty array if no match. |
+| `itemsForConcept` | `(traceIndex, conceptId: string) -> itemPath[]` | All `item:` endpoint suffixes from `concept-refs-item` edges whose `concept:` endpoint equals `concept:<conceptId>`. Sorted ascending. Empty array if no match. |
+| `conceptsForNode` | `(traceIndex, componentNodePath: string) -> conceptId[]` | All `concept:` endpoint suffixes from `concept-refs-component-node` edges whose `componentNodePath:` endpoint equals `componentNodePath:<componentNodePath>`. Sorted ascending. Empty array if no match. |
+
+#### JOIN predicate — Impact analysis
+
+| Predicate | Signature | Returns |
+|---|---|---|
+| `whatDependsOn` | `(traceIndex, itemPath: string) -> ImpactReport` | Full transitive impact report for the given item. See §6.2. |
+
+### 6.2 `ImpactReport` Shape
+
+`whatDependsOn(traceIndex, itemPath)` computes the complete impact surface for renaming, removing, or changing the item at `itemPath`. The result is an `ImpactReport`:
+
+```json
+{
+  "subjectItem": "item:<path>",
+  "directDependentItems": ["item:<path>", ...],
+  "transitiveDependentItems": ["item:<path>", ...],
+  "renderingNodes": ["componentNodePath:...", ...],
+  "collectingUnits": ["unit:<id>", ...],
+  "visibilityNodes": ["componentNodePath:...", ...],
+  "actionPreconditions": ["precondition:<actionId>:<id>", ...],
+  "conceptBindings": ["concept:<id>", ...]
+}
+```
+
+| Field | Type | Source edges | Description |
+|---|---|---|---|
+| `subjectItem` | typed string | — | The queried item. |
+| `directDependentItems` | typed string[] | `item-depends-on-item` (endpoints[1] = subject) | Items whose bind FEL expressions directly reference the subject item. |
+| `transitiveDependentItems` | typed string[] | Transitive closure of `item-depends-on-item` from subject | All items reachable by following FEL dependency chains from the subject. Excludes `directDependentItems`. Cycle-safe (track visited set). Sorted ascending. |
+| `renderingNodes` | typed string[] | `component-renders-item` (item: = subject) | Component nodes that render the subject item via `bind`. |
+| `collectingUnits` | typed string[] | `unit-collects-item` (item: = subject) | Experience units that collect the subject item. |
+| `visibilityNodes` | typed string[] | `node-visibility-references-item` (item: = subject) | Component nodes whose `when` FEL expression depends on the subject item. May be empty if the builder does not run the `when` FEL parse pass (§5.1 note). |
+| `actionPreconditions` | typed string[] | NOT yet extractable | Reserved; always empty in v1.0. Precondition FEL dependency extraction requires the `precondition-references-item` edge kind, deferred to v1.1. |
+| `conceptBindings` | typed string[] | `concept-refs-item` (item: = subject) | Concept identifiers bound to the subject item in the Ontology source. |
+
+**Transitive closure algorithm.** Starting from `itemPath`, collect all items in `directDependentItems`. For each, collect their direct dependents. Continue until no new items are found. Detect cycles by tracking visited item paths; a cycle means mutual dependency — include both items in the report and stop the cycle branch. The transitive set MUST exclude the subject item itself.
+
+**`whatDependsOn` answers the J3 refactor-with-confidence question.** Given "rename `householdIncome`," the report shows: which FEL `calculate`/`relevant`/`required`/`constraint` expressions in other items reference it (via `transitiveDependentItems`), which UI nodes render it (via `renderingNodes`), which Experience units collect it (via `collectingUnits`), which UI nodes' visibility depends on it (via `visibilityNodes`), and which Ontology concepts are bound to it (via `conceptBindings`).
+
+### 6.3 Pure Functions
+
+Predicates are pure functions over the (TraceIndex, args) input pair. They MUST NOT mutate the TraceIndex; they MUST NOT cache results across calls in a way that prevents re-execution from producing identical outputs. `whatDependsOn` performs transitive closure computation at call time — no memoization is required for conformance.
+
+### 6.4 Determinism
+
+For the same `(TraceIndex, predicate, args)`, every conforming implementation MUST return byte-identical output (modulo equivalent JSON representations). Sort order is fixed; deduplication is fixed (§6.1). Transitive closure order is deterministic: breadth-first traversal with items sorted ascending at each level, visited set tracking insertion order.
+
+### 6.5 Stale-First Execution
+
+Every predicate execution MUST verify the TraceIndex is fresh (§7) BEFORE returning. A stale TraceIndex MUST cause the predicate to fail with the defined stale error (§7.2). Predicates MUST NOT return partial results for stale indices. This applies to `whatDependsOn` as well — the entire ImpactReport computation is blocked on a fresh index.
 
 A host that has independently verified freshness MAY skip the per-call check ONLY if the verification result is structurally tied to the same `sources[]` digests the TraceIndex carries; implementations SHOULD provide an explicit `predicate(traceIndex, args, freshness=Fresh)` overload rather than a global toggle.
 
-### 6.5 v1.1 Predicate Reservations
+### 6.6 v1.1 Reservations
 
-A future minor version MAY add the following predicates (non-exhaustive list, recorded here so consumers know what is on deck):
+The following are explicitly deferred to a future minor version:
 
-- `itemsForUnit(traceIndex, unitId) -> itemPath[]` (reverse of `unitsForItem`)
-- `triggersForAction(traceIndex, actionId) -> componentNodePath[]` (reverse of `actionForTrigger`)
-- `itemsForAction(traceIndex, actionId) -> itemPath[]`
-- future Mapping / References / Respondent Ledger predicates only after those edge families are admitted
-
-These predicates are NOT part of v1.0 conformance. Implementations MAY ship them; they MUST NOT be called "Trace v1.0 conformant" predicates.
+- **`actionPreconditions` field of `ImpactReport`.** Requires a `precondition-references-item` edge kind (not in v1.0). When added, `ImpactReport.actionPreconditions` will be populated from those edges.
+- **Full `node-visibility-references-item` builder support.** While the edge kind ships in v1.0, the `when`-FEL parse pass is optional for v1.0 builders. v1.1 SHOULD require the pass for builders claiming full dependency analysis.
+- **Mapping, References, Respondent Ledger edge families.** Not admitted until their owning specs expose stable identity and relationship semantics.
+- **Cross-projection verification predicates.** Concept §6.12 defers. No verifier consumer has emerged.
+- **Query DSL.** Predicates v1.0 are typed function signatures over the edge list, not a query language.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §6 predicates"
@@ -594,7 +707,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §7 prose**
+- [x] **Step 1: Draft §7 prose**
 
 Append:
 
@@ -640,7 +753,7 @@ Concept §6.12: "A materialized Trace must carry input digests and must be rejec
 The rejection rule exists because Trace's value is its trustworthiness as a relationship index. A best-effort Trace (return what we can, warn about the rest) silently leaks stale relationships into Studio review, producing wrong "what changed" diffs. Rejection forces a rebuild; rebuild is cheap (sources are local).
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §7 stale-cache rejection"
@@ -653,7 +766,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §8 prose**
+- [x] **Step 1: Draft §8 prose**
 
 Append:
 
@@ -702,7 +815,7 @@ A composition surface MUST NOT count the same finding twice. The composition rul
 Trace's composition contract is written in terms of "the route-owned regeneration-review record," not in terms of any specific merge-report shape. If regeneration-merge relocates from a standalone three-way merge to an MCP/ProposalManager command-stream review, the join rule binds to that route's review subject handle. The Trace schema and predicates do NOT change, but §8 conformance remains blocked until the route exposes a stable Component node handle or explicit item-path handle.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §8 composition contract"
@@ -715,7 +828,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Modify: `specs/trace/trace-spec.md`
 
-- [ ] **Step 1: Draft §9 + §10 + §11 prose**
+- [x] **Step 1: Draft §9 + §10 + §11 prose**
 
 Append:
 
@@ -747,12 +860,14 @@ A conforming Trace implementation MUST satisfy all three levels.
 
 A conforming implementation MUST NOT:
 
-- Emit edge kinds outside the v1.0 closed set (§5.1).
+- Emit edge kinds outside the v1.0 closed set of eleven (§5.1).
 - Emit endpoints outside the v1.0 typed-string vocabulary (§5.2).
 - Treat hand-authored TraceIndex documents as production-conforming (§1.4).
 - Return partial predicate results for stale indices (§7.2).
 - Mutate inputs (§2.4).
 - Carry regeneration-review findings, coverage findings, or reference-resolution findings inside TraceIndex (§8.2).
+- Emit `concept-refs-item` edges without declaring the `ontology` source in `sources[]` (§3.1).
+- Emit `item-depends-on-item` edges that include item paths not present in the Definition (builder MUST validate extracted paths against the Definition item space).
 
 ### 10.3 Conformance Composition With Other Specs
 
@@ -760,15 +875,28 @@ A Studio-grade review surface that composes Trace with other streams MUST follow
 
 ## 11. Open Questions
 
-- **Cross-projection verification.** Concept §6.12 defers; no verifier consumer has emerged. When one does, this section opens.
-- **Predicate reverse queries** (`itemsForUnit`, `triggersForAction`, etc.) wait on a consumer that drives detail. Studio review v1.0 needs only the §6.1 set.
-- **TraceIndex self-digest.** Hosts that need an addressable handle compute it externally for v1.0. Adding a self-digest to TraceIndex is a v1.1 candidate if storage/distribution patterns demand it.
-- **Builder caching / incremental update.** Out of scope. Builders are deterministic; incremental construction is a host concern.
-- **Deferred edge families.** Mapping, References, Respondent Ledger, submission, task, and concept relationship edges wait until their owning specs publish stable identity and relationship semantics.
-- **Predicates returning Trace-derived findings** (e.g., "Component nodes whose items are not in any unit"). These are so close to coverage findings that they will collide if introduced — wait until coverage's surface is fully mature before opening this.
+The following are disciplined deferrals at maximal v1.0. Each names the condition under which it reopens.
+
+1. **Cross-projection verification.** Concept §6.12 defers; no verifier consumer has emerged. Reopens when a named consumer can define the predicate set and source set needed for consistency checking.
+
+2. **`precondition-references-item` edge family.** Requires `getFELDependencies` pass over `action.preconditions[*].expression`. The infrastructure exists; the builder pass does not yet ship. Reopens when Studio or a lint consumer needs "which items guard this action's precondition." When added, `ImpactReport.actionPreconditions` populates.
+
+3. **`node-visibility-references-item` full builder support.** The edge kind is in the v1.0 closed set; the `when`-FEL parse pass is OPTIONAL for v1.0 builders that emit empty `visibilityNodes`. A v1.1 conformance level SHOULD require the pass for builders claiming full dependency analysis support.
+
+4. **TraceIndex self-digest.** Hosts that need an addressable TraceIndex handle compute it externally for v1.0. Self-digesting is a v1.1 candidate if storage/distribution patterns demand it.
+
+5. **Builder caching / incremental update.** Builders MUST be deterministic; incremental construction is a host concern and out of scope.
+
+6. **Mapping, References, Respondent Ledger edge families.** Not admitted until their owning specs expose stable identity and relationship semantics. References spec exists but has no stable relationship surface; Mapping has no identity surface for Trace endpoints.
+
+7. **`whatDependsOn` cycle reporting.** v1.0 specifies cycle detection is cycle-safe (tracked visited set). Whether cycles are surfaced in the `ImpactReport` (as a `cycles[]` field) or silently suppressed is a v1.1 question pending a consumer that diagnoses circular FEL dependencies.
+
+8. **Multi-document source sets.** v1.0 assumes one document per source kind. Multi-component or multi-experience builds (e.g., a grant application with separate component documents per section) require a builder that correctly attributes edges to specific source entries. The source identity model (§3.3) supports this via `sourceRef`; predicate behavior for multi-source sets is undefined in v1.0.
+
+9. **Predicates returning Trace-derived findings** (e.g., "Component nodes whose items are not in any unit"). These are so close to coverage findings that they will collide if introduced — wait until coverage's surface is fully mature before opening this.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-spec.md -m "spec(trace): §9–§11 schema/conformance/open questions"
@@ -781,7 +909,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit specs/trace/trace-sp
 **Files:**
 - Create: `schemas/trace-index.schema.json`
 
-- [ ] **Step 1: Write schema**
+- [x] **Step 1: Write schema**
 
 Write `schemas/trace-index.schema.json`:
 
@@ -845,13 +973,24 @@ Write `schemas/trace-index.schema.json`:
       "required": ["sourceRef", "targetDefinitionUrl", "version"],
       "description": "Component source identity per §3.3."
     },
+    "OntologySourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceRef": { "type": "string", "minLength": 1 },
+        "targetDefinitionUrl": { "type": "string", "format": "uri" },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "required": ["sourceRef", "targetDefinitionUrl", "version"],
+      "description": "Ontology source identity per §3.3."
+    },
     "SourceEntry": {
       "type": "object",
       "required": ["kind", "identity", "digest"],
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "enum": ["definition", "experience", "responseActions", "component"]
+          "enum": ["definition", "experience", "responseActions", "component", "ontology"]
         },
         "identity": { "type": "object" },
         "digest": { "$ref": "#/$defs/Sha256Digest" }
@@ -888,6 +1027,14 @@ Write `schemas/trace-index.schema.json`:
               "identity": { "$ref": "#/$defs/ComponentSourceIdentity" }
             }
           }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "ontology" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "identity": { "$ref": "#/$defs/OntologySourceIdentity" }
+            }
+          }
         }
       ]
     },
@@ -900,7 +1047,15 @@ Write `schemas/trace-index.schema.json`:
           "enum": [
             "component-renders-item",
             "unit-collects-item",
-            "trigger-invokes-action"
+            "trigger-invokes-action",
+            "item-depends-on-item",
+            "unit-serves-task",
+            "task-involves-actor",
+            "action-emits-effect",
+            "action-has-precondition",
+            "concept-refs-item",
+            "concept-refs-component-node",
+            "node-visibility-references-item"
           ]
         },
         "endpoints": {
@@ -949,18 +1104,122 @@ Write `schemas/trace-index.schema.json`:
               }
             }
           }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "item-depends-on-item" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^item:" },
+                  { "pattern": "^item:" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "unit-serves-task" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^unit:" },
+                  { "pattern": "^task:" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "task-involves-actor" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^task:" },
+                  { "pattern": "^actor:" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "action-emits-effect" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^action:" },
+                  { "pattern": "^effect:" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "action-has-precondition" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^action:" },
+                  { "pattern": "^precondition:" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "concept-refs-item" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^concept:" },
+                  { "pattern": "^item:" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "concept-refs-component-node" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^concept:" },
+                  { "pattern": "^componentNodePath:/" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "node-visibility-references-item" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "endpoints": {
+                "prefixItems": [
+                  { "pattern": "^componentNodePath:/" },
+                  { "pattern": "^item:" }
+                ]
+              }
+            }
+          }
         }
       ]
     },
     "TypedEndpoint": {
       "type": "string",
-      "pattern": "^(item|unit|action|componentNodePath):.+$"
+      "pattern": "^(item|unit|task|actor|action|concept|effect|precondition|componentNodePath):.+$"
     }
   }
 }
 ```
 
-- [ ] **Step 2: Validate JSON syntax**
+- [x] **Step 2: Validate JSON syntax**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -969,7 +1228,7 @@ node -e 'JSON.parse(require("fs").readFileSync("schemas/trace-index.schema.json"
 
 Expected: `schema parses OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit schemas/trace-index.schema.json -m "schema(trace): trace-index.schema.json v1.0"
@@ -987,15 +1246,15 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit schemas/trace-index.
 - Create: `tests/conformance/fixtures/trace/grant-application-identity/expected-index.json`
 - Create: `tests/conformance/fixtures/trace/grant-application-identity/expected-predicates.json`
 
-This is the canonical happy-path fixture exercising all three v1.0 predicates with a minimal but realistic source set.
+This is the canonical happy-path fixture exercising the core v1.0 predicate families with a minimal but realistic source set.
 
-- [ ] **Step 1: Create fixture directory**
+- [x] **Step 1: Create fixture directory**
 
 ```bash
 mkdir -p /Users/mikewolfd/Work/formspec-stack/formspec/tests/conformance/fixtures/trace/grant-application-identity
 ```
 
-- [ ] **Step 2: Write `definition.json`**
+- [x] **Step 2: Write `definition.json`**
 
 ```json
 {
@@ -1015,7 +1274,7 @@ mkdir -p /Users/mikewolfd/Work/formspec-stack/formspec/tests/conformance/fixture
 }
 ```
 
-- [ ] **Step 3: Write `experience.json`**
+- [x] **Step 3: Write `experience.json`**
 
 ```json
 {
@@ -1035,7 +1294,7 @@ mkdir -p /Users/mikewolfd/Work/formspec-stack/formspec/tests/conformance/fixture
 }
 ```
 
-- [ ] **Step 4: Write `response-actions.json`**
+- [x] **Step 4: Write `response-actions.json`**
 
 ```json
 {
@@ -1054,7 +1313,7 @@ mkdir -p /Users/mikewolfd/Work/formspec-stack/formspec/tests/conformance/fixture
 }
 ```
 
-- [ ] **Step 5: Write `component.json`**
+- [x] **Step 5: Write `component.json`**
 
 ```json
 {
@@ -1075,7 +1334,7 @@ mkdir -p /Users/mikewolfd/Work/formspec-stack/formspec/tests/conformance/fixture
 }
 ```
 
-- [ ] **Step 6: Write `expected-index.json`**
+- [x] **Step 6: Write `expected-index.json`**
 
 Digests are deterministic from canonical bytes; the Task 14 builder pytest computes them at runtime, so the fixture stores `"digest": "<computed>"` placeholders that the pytest substitutes before comparison. (Per RegenMerge precedent — fixtures store the structural shape; the harness fills runtime-determined values.)
 
@@ -1098,7 +1357,7 @@ Digests are deterministic from canonical bytes; the Task 14 builder pytest compu
 }
 ```
 
-- [ ] **Step 7: Write `expected-predicates.json`**
+- [x] **Step 7: Write `expected-predicates.json`**
 
 ```json
 {
@@ -1119,7 +1378,7 @@ Digests are deterministic from canonical bytes; the Task 14 builder pytest compu
 }
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec add tests/conformance/fixtures/trace/grant-application-identity/
@@ -1133,7 +1392,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit -m "test(trace): gra
 **Files:**
 - Create: `tests/conformance/fixtures/trace/multi-unit/*` (Component with two units, two ActionButtons)
 
-- [ ] **Step 1: Create `multi-unit` fixture**
+- [x] **Step 1: Create `multi-unit` fixture**
 
 This fixture proves predicate determinism with duplicate-source-item across units and proves `actionForTrigger` returns the expected action when multiple ActionButtons exist.
 
@@ -1196,7 +1455,7 @@ Use this Component shape (other source files follow same pattern):
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec add tests/conformance/fixtures/trace/multi-unit/
@@ -1210,7 +1469,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit -m "test(trace): mul
 **Files:**
 - Create: `tests/conformance/spec/test_trace_index_schema.py`
 
-- [ ] **Step 1: Write the failing test (red)**
+- [x] **Step 1: Write the failing test (red)**
 
 ```python
 """Schema-shape conformance for trace-index.schema.json."""
@@ -1325,7 +1584,7 @@ def test_version_marker_locked_to_1_0(validator: Draft202012Validator) -> None:
     assert not validator.is_valid(doc)
 ```
 
-- [ ] **Step 2: Run pytest, expect PASS (the schema and fixtures are already in place from Tasks 11–13)**
+- [x] **Step 2: Run pytest, expect PASS (the schema and fixtures are already in place from Tasks 11–13)**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1336,7 +1595,7 @@ Expected: all tests pass.
 
 If any test fails, the schema or fixtures are wrong — fix the schema (Task 11) or fixture (Task 12/13) before continuing.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/spec/test_trace_index_schema.py -m "test(trace): schema-shape pytest"
@@ -1349,7 +1608,25 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/sp
 **Files:**
 - Create: `tests/conformance/spec/test_trace_predicates.py`
 
-- [ ] **Step 1: Write the inline reference builder + predicate harness + pytest**
+**Builder walks required for maximalist v1.0 (eleven edge kinds):**
+
+The reference builder MUST run all the following walks. The inline harness below shows the original three-edge skeleton; extend it to cover the additional eight edge kinds per §5.1:
+
+1. **Component bind walk** — emits `component-renders-item` edges (one per `bind` on a Component node).
+2. **Component trigger walk** — emits `trigger-invokes-action` edges (one per `ActionButton.actionRef`).
+3. **Experience itemRefs walk** — emits `unit-collects-item` edges (one per item in `unit.itemRefs[]`).
+4. **Definition bind walk (NEW)** — for each Bind in Definition, call `getFELDependencies(expression)` on each of `calculate`, `relevant`, `required`, `constraint`, `readonly` (skipping literal `"true"`/`"false"`); emit `item-depends-on-item` edges. For Python harness without WASM bridge, encode `_bind_dependencies` hints in the fixture's `definition.json` metadata as test-harness shortcuts; the spec specifies output, not extraction mechanism.
+5. **Experience hierarchy walk (NEW)** — for each unit, emit `unit-serves-task` edges (one per `unit.taskRefs[]` entry); for each task, emit `task-involves-actor` edges (one per `task.actorRefs[]` entry).
+6. **Response Actions effect/precondition walk (NEW)** — for each action, emit `action-emits-effect` edges (one per `effects[]` entry, 0-based index); emit `action-has-precondition` edges (one per `preconditions[]` entry using `precondition.id`).
+7. **Component `when` walk (NEW, may emit empty per §5.1 note)** — for each node with a `when` property, call `getFELDependencies(when)` (or use fixture `_when_dependencies` hint); emit `node-visibility-references-item` edges.
+8. **Component `conceptRefs` walk (NEW)** — for each node with `conceptRefs`, emit `concept-refs-component-node` edges (one per `ConceptRef.id`).
+9. **Ontology concept map walk (NEW)** — when `ontology` source present, for each key in `ontology.concepts`, emit `concept-refs-item` edge (`concept:<conceptIri>`, `item:<itemPath>`).
+
+The predicate harness MUST also implement the sixteen predicates of §6.1 including the `whatDependsOn` JOIN with `ImpactReport` shape (§6.2 — transitive closure with cycle-safe visited set).
+
+- [x] **Step 1: Write the inline reference builder + predicate harness + pytest**
+
+Note: the skeleton below shows the original three-edge implementation. The maximalist v1.0 implementation extends it with the eight additional walks listed above and the sixteen predicates of §6.1. Authoring the full reference implementation is part of this task.
 
 ```python
 """Trace predicate conformance.
@@ -1588,7 +1865,7 @@ def test_builder_is_deterministic(fixture_dir: Path) -> None:
         f"{fixture_dir.name}: builder output not byte-deterministic"
 ```
 
-- [ ] **Step 2: Run pytest, expect PASS**
+- [x] **Step 2: Run pytest, expect PASS**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1599,7 +1876,7 @@ Expected: every fixture passes builder match, predicate match, and determinism.
 
 If any fixture mismatches, the fixture's `expected-index.json` or `expected-predicates.json` is wrong; correct the fixture (the reference builder is the contract).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/spec/test_trace_predicates.py -m "test(trace): predicate + builder-determinism pytest"
@@ -1612,7 +1889,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/sp
 **Files:**
 - Create: `tests/conformance/spec/test_trace_stale_rejection.py`
 
-- [ ] **Step 1: Write the failing test (red)**
+- [x] **Step 1: Write the failing test (red)**
 
 ```python
 """Stale-rejection invariant for Trace predicates (§7).
@@ -1681,13 +1958,13 @@ def test_no_partial_results_on_stale() -> None:
 def test_fresh_index_does_not_raise() -> None:
     """Sanity: an unmodified index/srcs pair must not raise."""
     index, srcs = _index_and_srcs()
-    # All three predicates should run cleanly.
+    # All predicates should run cleanly.
     component_nodes_for_item(index, srcs, "applicantName")
     units_for_item(index, srcs, "applicantName")
     action_for_trigger(index, srcs, "/tree/children/2")
 ```
 
-- [ ] **Step 2: Run pytest, expect PASS**
+- [x] **Step 2: Run pytest, expect PASS**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1696,7 +1973,7 @@ python3 -m pytest tests/conformance/spec/test_trace_stale_rejection.py -v
 
 Expected: all 5 tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/spec/test_trace_stale_rejection.py -m "test(trace): stale-rejection invariant pytest"
@@ -1709,7 +1986,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/sp
 **Files:**
 - Create: `tests/conformance/spec/test_trace_studio_review_composition.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 This test pins §8 — Trace + synthetic route-owned review records + synthetic EXP-COVERAGE compose into a Studio-review-shaped output via the documented join. No double-counting; full information preservation.
 
@@ -1864,7 +2141,7 @@ def test_trace_carries_no_findings_of_its_own() -> None:
         assert "code" not in edge
 ```
 
-- [ ] **Step 2: Run pytest, expect PASS**
+- [x] **Step 2: Run pytest, expect PASS**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1873,7 +2150,7 @@ python3 -m pytest tests/conformance/spec/test_trace_studio_review_composition.py
 
 Expected: all 5 tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/spec/test_trace_studio_review_composition.py -m "test(trace): Studio review composition pytest"
@@ -1889,7 +2166,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit tests/conformance/sp
 
 Repo gate: registration was deferred until proof surfaces existed. Tasks 14–17 now exist; register.
 
-- [ ] **Step 1: Add Trace entry to `scripts/spec-artifacts.config.json`**
+- [x] **Step 1: Add Trace entry to `scripts/spec-artifacts.config.json`**
 
 Insert a new `specs[]` entry alphabetically (between `theme` and others; preserve existing order conventions):
 
@@ -1901,9 +2178,10 @@ Insert a new `specs[]` entry alphabetically (between `theme` and others; preserv
   "llm": "specs/trace/trace-spec.llm.md",
   "behaviorEssentials": [
     "TraceIndex is a generated cache, not authored truth — every predicate execution must verify input digests against supplied sources and reject stale indices.",
-    "Source-set declaration is exhaustive: every inspected source artifact appears in sources[] with identity tuple and SHA-256 canonical digest.",
-    "Edge kinds are a closed set of three; each edge has typed-string endpoints whose prefixes and ordering are pinned per kind.",
-    "Predicates v1.0 are pure deterministic functions over the edge list: componentNodesForItem, unitsForItem, actionForTrigger.",
+    "Source-set declaration is exhaustive: every inspected source artifact (Definition, Experience, Response Actions, Component, Ontology when used) appears in sources[] with identity tuple and SHA-256 canonical digest.",
+    "Edge kinds are a CLOSED set of eleven; each edge has typed-string endpoints whose prefixes and ordering are pinned per kind.",
+    "item-depends-on-item edges are extracted by applying getFELDependencies to every bind expression (calculate, relevant, required, constraint, readonly) in the Definition.",
+    "whatDependsOn(itemPath) -> ImpactReport is the JOIN query answering refactor-with-confidence: transitive FEL dependents, rendering nodes, collecting units, visibility conditions, and concept bindings.",
     "Trace carries no findings; it composes with route-owned regeneration-review records, CRF resolver findings, and EXP-COVERAGE findings at the Studio review surface."
   ],
   "conformanceEssentials": [
@@ -1915,7 +2193,7 @@ Insert a new `specs[]` entry alphabetically (between `theme` and others; preserv
 }
 ```
 
-- [ ] **Step 2: Add Trace contract row to `tests/contracts/surface-coverage.json`**
+- [x] **Step 2: Add Trace contract row to `tests/contracts/surface-coverage.json`**
 
 Insert a new `contracts.trace` entry:
 
@@ -1932,7 +2210,10 @@ Insert a new `contracts.trace` entry:
   ],
   "fixtures": [
     "tests/conformance/fixtures/trace/grant-application-identity/",
-    "tests/conformance/fixtures/trace/multi-unit/"
+    "tests/conformance/fixtures/trace/multi-unit/",
+    "tests/conformance/fixtures/trace/fel-dependency-chain/",
+    "tests/conformance/fixtures/trace/experience-hierarchy/",
+    "tests/conformance/fixtures/trace/ontology-concepts/"
   ],
   "crates": [],
   "packages": {}
@@ -1941,7 +2222,7 @@ Insert a new `contracts.trace` entry:
 
 (Crates and packages remain empty for v1.0 — engine implementations land in their own plans that will add their proof surfaces here.)
 
-- [ ] **Step 3: Run docs generation**
+- [x] **Step 3: Run docs generation**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1950,7 +2231,7 @@ npm run docs:generate
 
 Expected: emits `specs/trace/trace-spec.llm.md` and populates the BLUF marker block in `trace-spec.md`.
 
-- [ ] **Step 4: Run docs:check**
+- [x] **Step 4: Run docs:check**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -1959,7 +2240,7 @@ npm run docs:check
 
 Expected: passes. If it fails, the surface-coverage row or spec-artifacts entry is malformed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec add scripts/spec-artifacts.config.json tests/contracts/surface-coverage.json specs/trace/trace-spec.llm.md specs/trace/trace-spec.md specs/trace/trace-spec.bluf.md
@@ -1973,7 +2254,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit -m "docs(trace): reg
 **Files:**
 - Modify: `thoughts/specs/2026-05-20-formspec-semantic-layers.md`
 
-- [ ] **Step 1: Add a draft cross-reference without closing concept status**
+- [x] **Step 1: Add a draft cross-reference without closing concept status**
 
 Edit `thoughts/specs/2026-05-20-formspec-semantic-layers.md`:
 
@@ -1986,7 +2267,7 @@ In §10, update item 6 from:
 to:
 
 ```
-6. **Trace query/cache spec.** Use Studio regeneration review as the first consumer unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics. **Draft planned:** [`specs/trace/trace-spec.md`](../../specs/trace/trace-spec.md) will define the v1 source set, identity tuples, digest model, three seed predicates, and Studio-review composition preconditions.
+6. **Trace query/cache spec.** Use Studio authoring and regeneration review as the first consumers unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics. **Draft planned:** [`specs/trace/trace-spec.md`](../../specs/trace/trace-spec.md) will define the v1 source set, identity tuples, digest model, eleven edge kinds, sixteen predicates, `whatDependsOn(itemPath)`, and Studio-review composition preconditions.
 ```
 
 In §11.4, leave the committed/deferred posture intact and append a note under the opening paragraph:
@@ -1998,10 +2279,10 @@ Trace posture is committed. Predicate names, query language, source-set rules, a
 ```
 
 ```
-Drafting note: the Trace v1 plan narrows the seed surface to Definition, Experience, Response Actions, and Component sources; three relationship edges; three predicates; stale-cache rejection; and a composition precondition that the chosen regeneration-review route expose a stable Component-subject handle. Do not mark this section resolved until the spec, schema, fixtures, and composition proof land.
+Drafting note: the Trace v1 plan uses Definition, Experience, Response Actions, Component, and optional Ontology sources; eleven relationship edges; sixteen predicates; stale-cache rejection; and a composition precondition that the chosen regeneration-review route expose a stable Component-subject handle. Do not mark this section resolved until the spec, schema, fixtures, and composition proof land.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git -C /Users/mikewolfd/Work/formspec-stack/formspec commit thoughts/specs/2026-05-20-formspec-semantic-layers.md -m "docs(concept): add Trace draft cross-reference"
@@ -2011,7 +2292,7 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit thoughts/specs/2026-
 
 ## Task 20: Run full test suite + final commit gate
 
-- [ ] **Step 1: Run the four Trace pytests together**
+- [x] **Step 1: Run the four Trace pytests together**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -2020,7 +2301,7 @@ python3 -m pytest tests/conformance/spec/test_trace_index_schema.py tests/confor
 
 Expected: all pass.
 
-- [ ] **Step 2: Run docs:check + filemap freshness**
+- [x] **Step 2: Run docs:check + filemap freshness**
 
 ```bash
 cd /Users/mikewolfd/Work/formspec-stack/formspec
@@ -2062,10 +2343,20 @@ git -C /Users/mikewolfd/Work/formspec-stack/formspec commit filemap.json -m "doc
 
 ---
 
+## Deviations
+
+- 2026-05-23: Reviewer pass found the plan still asserted both the original three-edge seed contract and the expanded eleven-edge/sixteen-predicate contract. The landed direction is the expanded contract because the current sibling specs already expose stable Definition FEL dependencies, Experience hierarchy, Response Actions effect/precondition, Component visibility/concept, and Ontology concept surfaces. Mapping, References, Respondent Ledger, submission, and cross-projection verifier edges remain deferred.
+- 2026-05-23: The Trace schema test originally skipped when `schemas/trace-index.schema.json` was absent. The final test now treats schema absence as failure once the Trace contract is in scope.
+- 2026-05-23: Fixture `expected-index.json` files now use `"<computed>"` digests and include all builder-emitted edges. Fixture-only dependency hints are included in source digests so stale rejection cannot be bypassed by changing extraction-driving metadata.
+- 2026-05-23: Stale rejection now rejects duplicate `(kind, identity)` source entries as `duplicate-source-entry`; duplicate source identity makes freshness ambiguous.
+- 2026-05-23: `tests/contracts/surface-coverage.json` adds `runtimeScope: "spec-conformance-only"` for Trace. Trace v1.0 lands the spec/schema/fixture/predicate/stale/composition contract only; runtime crate/package implementations must add their own surfaces when they consume this contract.
+
+---
+
 ## Promotion gates (from concept §9)
 
 | Gate | Status after this plan |
 |---|---|
-| **Trace consumer** — named first consumer, minimal predicates, input digest model, stale rejection, orphan status, required-item coverage checks | STRUCTURALLY ADDRESSED, NOT CLOSED — this plan narrows v1 to the seed consumer, three predicates, source identity, canonical digests, stale rejection, and composition preconditions. The gate closes only after the Trace spec/schema/fixtures/tests land and the chosen regeneration-review route exposes a stable review subject handle. |
+| **Trace consumer** — named first consumer, minimal predicates, input digest model, stale rejection, orphan status, required-item coverage checks | STRUCTURALLY ADDRESSED, NOT CLOSED — this plan pins Studio authoring plus regeneration review as the seed consumer pair, with eleven edge kinds, sixteen predicates, source identity, canonical digests, stale rejection, and composition preconditions. The gate closes only after the Trace spec/schema/fixtures/tests land and the chosen regeneration-review route exposes a stable review subject handle. |
 
 All other concept §9 gates are unaffected by this plan.

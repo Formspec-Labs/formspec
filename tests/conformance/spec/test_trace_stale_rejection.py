@@ -5,12 +5,13 @@ against the supplied artifacts BEFORE returning any result. On mismatch,
 raise `TraceStaleError`. Rejection is UNCONDITIONAL — no partial results
 for any of the 16 v1 predicates (§7.3).
 
-Three rejection reasons (§7.2):
+Four rejection reasons pinned here (§7.2):
   - source-missing       — TraceIndex entry with no supplied artifact
   - digest-mismatch      — supplied artifact mutated since build
   - extra-source-present — supplied artifact has no TraceIndex entry
+  - duplicate-source-entry — TraceIndex repeats a (kind, identity) source key
 
-This pytest pins all three reasons across all sixteen predicates plus
+This pytest pins all four reasons across all sixteen predicates plus
 the `whatDependsOn` JOIN. It uses a synthetic in-memory source set so it
 does not depend on the parallel fixtures-authoring agent.
 """
@@ -282,6 +283,28 @@ def test_extra_source_present_rejects_every_predicate(name: str, call) -> None:
         call(index, srcs)
     assert exc.value.reason == "extra-source-present", (
         f"{name}: expected extra-source-present, got {exc.value.reason}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# duplicate-source-entry — every predicate must raise
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("name,call", ALL_PREDICATE_CALLS, ids=[n for n, _ in ALL_PREDICATE_CALLS])
+def test_duplicate_source_entry_rejects_every_predicate(name: str, call) -> None:
+    """A TraceIndex MUST NOT silently overwrite duplicate source keys.
+
+    Duplicate `(kind, identity)` entries make freshness ambiguous, so every
+    predicate MUST raise before returning.
+    """
+    index, srcs = _build_fresh_index()
+    index = json.loads(json.dumps(index))
+    index["sources"].append(json.loads(json.dumps(index["sources"][0])))
+    with pytest.raises(TraceStaleError) as exc:
+        call(index, srcs)
+    assert exc.value.reason == "duplicate-source-entry", (
+        f"{name}: expected duplicate-source-entry, got {exc.value.reason}"
     )
 
 

@@ -1,0 +1,5 @@
+- TraceIndex is a generated cache over Definition, Experience, Response Actions, Component, and optional Ontology sources; it is never authored production truth.
+- Every source inspected by the builder appears in `sources[]` with a closed identity tuple and `sha256:<lowercase-hex>` digest; stale predicate execution raises an error before returning any result.
+- Trace v1.0 has a closed set of eleven edge kinds and typed endpoint prefixes for items, units, tasks, actors, actions, effects, preconditions, concepts, and Component node paths.
+- Predicates are deterministic pure functions over the edge list, including the `whatDependsOn(itemPath)` impact report for refactor-with-confidence analysis.
+- Trace carries relationship edges only; regeneration-review findings, Component reference-resolution findings, and Experience coverage findings remain owned by their source streams and compose at the Studio review surface.

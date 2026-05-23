@@ -9,7 +9,7 @@
         "version": "1.0.0",
         "url": "https://example.gov/forms/grant/components/main"
       },
-      "digest": "sha256:2a7418013483d6e188b8e46c025348cee70128dcec71dd36ced428f1759daa04"
+      "digest": "<computed>"
     },
     {
       "kind": "definition",
@@ -17,7 +17,7 @@
         "url": "https://example.gov/forms/grant",
         "version": "1.0.0"
       },
-      "digest": "sha256:9f494295d3353b2b8f8f9fdddc9da4474c6441ce0a83623488373bea3f314a90"
+      "digest": "<computed>"
     },
     {
       "kind": "experience",
@@ -26,7 +26,7 @@
         "targetDefinitionUrl": "https://example.gov/forms/grant",
         "version": "1.0.0"
       },
-      "digest": "sha256:989ec48f553ee442f14df4fb2ee4ca803679eae3af97dd791dc0ad666af861ad"
+      "digest": "<computed>"
     },
     {
       "kind": "responseActions",
@@ -35,10 +35,17 @@
         "targetDefinitionUrl": "https://example.gov/forms/grant",
         "version": "1.0.0"
       },
-      "digest": "sha256:104103e4b70ec075e5afdb0ab6068f9d3f217aaeadc8a9ab5ce78f8555967a0d"
+      "digest": "<computed>"
     }
   ],
   "edges": [
+    {
+      "kind": "action-emits-effect",
+      "endpoints": [
+        "action:submitGrant",
+        "effect:submitGrant:0"
+      ]
+    },
     {
       "kind": "component-renders-item",
       "endpoints": [

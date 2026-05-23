@@ -398,6 +398,32 @@
         "generated core props, generated TypeScript types, and webcomponent renderer-ignore E2E cover package surfaces"
       ]
     },
+    "trace": {
+      "status": "enforced",
+      "spec": "specs/trace/trace-spec.md",
+      "schema": "schemas/trace-index.schema.json",
+      "conformance": [
+        "tests/conformance/spec/test_trace_index_schema.py",
+        "tests/conformance/spec/test_trace_predicates.py",
+        "tests/conformance/spec/test_trace_stale_rejection.py",
+        "tests/conformance/spec/test_trace_studio_review_composition.py"
+      ],
+      "fixtures": [
+        "tests/conformance/fixtures/trace/experience-hierarchy/",
+        "tests/conformance/fixtures/trace/fel-dependency-chain/",
+        "tests/conformance/fixtures/trace/ontology-concepts/"
+      ],
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "Trace v1.0 defines the canonical spec, schema, fixture corpus, predicate oracle, stale-rejection invariant, and Studio composition contract only. Runtime engine implementations land in separate plans and must add crate/package surfaces when they consume this contract.",
+      "crates": [],
+      "packages": {},
+      "checks": [
+        "TraceIndex schema shape, closed source/edge enums, endpoint ordering, digest syntax, and no-finding edge shape are pinned by schema conformance tests",
+        "the reference builder and predicate harness cover eleven edge kinds, sixteen predicates, deterministic indexes, and computed fixture digests",
+        "stale rejection covers digest mismatch, missing source, extra source, duplicate source identity, no partial results, and ActionButton special cases",
+        "Studio review composition keeps regeneration records, CRF resolver findings, EXP-COVERAGE findings, and Trace edges in separate streams"
+      ]
+    },
     "locale": {
       "status": "enforced",
       "spec": "specs/locale/locale-spec.md",

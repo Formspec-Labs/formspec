@@ -17,8 +17,7 @@ Pins the closed v1 vocabulary:
 
 Run order: this pytest is authored against the schema described in
 plan Task 11 (`thoughts/plans/2026-05-22-trace-spec.md` lines ~907-1220).
-The schema file itself is authored separately. When the schema is absent
-the tests skip cleanly so collection never breaks the suite.
+The schema is a required contract artifact; absence is a test failure.
 
 Negative tests cover the §5.1 / §3.3 / §10.2 prohibitions:
   - extra top-level members rejected
@@ -45,16 +44,6 @@ SCHEMA_PATH = REPO / "schemas" / "trace-index.schema.json"
 FIXTURE_ROOT = REPO / "tests" / "conformance" / "fixtures" / "trace"
 
 _VALID_DIGEST = "sha256:" + ("0" * 64)
-
-
-pytestmark = pytest.mark.skipif(
-    not SCHEMA_PATH.exists(),
-    reason=(
-        "schemas/trace-index.schema.json does not exist yet — Task 11 of "
-        "thoughts/plans/2026-05-22-trace-spec.md is authoring it. The "
-        "tests will run automatically once the schema lands."
-    ),
-)
 
 
 def _load(p: Path) -> dict:

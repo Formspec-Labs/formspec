@@ -42,6 +42,10 @@ runPython([
   'tests/conformance/schemas/test_validation_mapping_schema.py',
   'tests/conformance/spec/test_validation_mapping_table.py',
   'tests/conformance/spec/test_actionbutton_binding.py',
+  'tests/conformance/spec/test_trace_index_schema.py',
+  'tests/conformance/spec/test_trace_predicates.py',
+  'tests/conformance/spec/test_trace_stale_rejection.py',
+  'tests/conformance/spec/test_trace_studio_review_composition.py',
 ]);
 
 if (metadataOnly) {

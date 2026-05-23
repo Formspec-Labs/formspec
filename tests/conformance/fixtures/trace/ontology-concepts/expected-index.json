@@ -9,7 +9,7 @@
         "version": "1.0.0",
         "url": "https://example.gov/forms/financial/components/main"
       },
-      "digest": "sha256:b7782a4d91517aac12cd907987b7a6ca3b58200b04753f219e0c91ea2a9c837d"
+      "digest": "<computed>"
     },
     {
       "kind": "definition",
@@ -17,7 +17,7 @@
         "url": "https://example.gov/forms/financial",
         "version": "1.0.0"
       },
-      "digest": "sha256:283b563fa1742e97b70406bcaa2155a53508c986828f52e799211708b298542c"
+      "digest": "<computed>"
     },
     {
       "kind": "experience",
@@ -26,7 +26,7 @@
         "targetDefinitionUrl": "https://example.gov/forms/financial",
         "version": "1.0.0"
       },
-      "digest": "sha256:91fc4d843e86ee085f303c8bb3633558974aab6c07da65c5c5a76267ecf70367"
+      "digest": "<computed>"
     },
     {
       "kind": "ontology",
@@ -35,7 +35,7 @@
         "targetDefinitionUrl": "https://example.gov/forms/financial",
         "version": "1.0.0"
       },
-      "digest": "sha256:62e50db37744c84e9b630e7c5c066aca60c93419fc13698559526bb20232c50c"
+      "digest": "<computed>"
     },
     {
       "kind": "responseActions",
@@ -44,10 +44,17 @@
         "targetDefinitionUrl": "https://example.gov/forms/financial",
         "version": "1.0.0"
       },
-      "digest": "sha256:7dc28529f0b88db5f99fa9a3f90071da75877afc454e364487979b5e95259301"
+      "digest": "<computed>"
     }
   ],
   "edges": [
+    {
+      "kind": "action-emits-effect",
+      "endpoints": [
+        "action:submitIntake",
+        "effect:submitIntake:0"
+      ]
+    },
     {
       "kind": "component-renders-item",
       "endpoints": [
@@ -109,6 +116,13 @@
       "endpoints": [
         "unit:financialEntry",
         "item:socialSecurityNumber"
+      ]
+    },
+    {
+      "kind": "unit-serves-task",
+      "endpoints": [
+        "unit:financialEntry",
+        "task:completeIntake"
       ]
     }
   ]

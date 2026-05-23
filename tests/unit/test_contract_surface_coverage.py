@@ -58,6 +58,10 @@ def _has_any_proof_path(contract: dict[str, Any]) -> bool:
     return bool(contract.get("conformance") or contract.get("crates") or package_paths)
 
 
+def _is_spec_conformance_only(contract: dict[str, Any]) -> bool:
+    return contract.get("runtimeScope") == "spec-conformance-only"
+
+
 def _configured_spec_schema_pairs() -> set[tuple[str, str]]:
     config = _load_json(SPEC_ARTIFACTS_CONFIG)
     specs = config.get("specs")
@@ -104,11 +108,25 @@ def test_enforced_contracts_reference_existing_surfaces() -> None:
         _assert_paths_exist([schema_path], label=f"{contract_id}.schema")
 
         conformance = _as_paths(contract["conformance"])
+        _assert_paths_exist(conformance, label=f"{contract_id}.conformance")
+
+        if _is_spec_conformance_only(contract):
+            assert contract["crates"] == [], (
+                f"{contract_id}: spec-conformance-only contracts must not claim crate coverage"
+            )
+            assert contract["packages"] == {}, (
+                f"{contract_id}: spec-conformance-only contracts must not claim package coverage"
+            )
+            _assert_non_empty_text(
+                contract.get("runtimeRationale"),
+                label=f"{contract_id}: runtimeRationale",
+            )
+            continue
+
         crates = _as_paths(contract["crates"])
         packages = contract["packages"]
         assert isinstance(packages, dict) and packages, f"{contract_id}: packages must be non-empty"
 
-        _assert_paths_exist(conformance, label=f"{contract_id}.conformance")
         _assert_paths_exist(crates, label=f"{contract_id}.crates")
 
         for package_name, package_paths in packages.items():
