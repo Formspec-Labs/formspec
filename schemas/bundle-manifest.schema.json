@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/bundleManifest/1.0",
+  "title": "Formspec Bundle Manifest",
+  "description": "A Formspec Bundle Manifest per the Bundle Manifest specification. The author-facing composition envelope that names a Formspec form by referencing its Definition and optional sibling artifacts at coherent versions. Definition is the only required sibling; every other sibling is optional and absent siblings invoke their own spec's existing defaults (no synthesis). See specs/bundle/bundle-manifest-spec.md for normative prose.",
+  "type": "object",
+  "required": ["$formspecBundle", "version", "id", "definition"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecBundle": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Bundle Manifest specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for Bundle Manifest document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?(\\+[A-Za-z0-9.-]+)?$",
+      "description": "Version of this Bundle Manifest. MUST be a SemVer 2.0.0 string. The bundle's published version pins a coherent snapshot of sibling versions; bumping any sibling version SHOULD bump the bundle version.",
+      "examples": ["1.0.0", "1.2.0-draft.1"],
+      "x-lm": {
+        "critical": true,
+        "intent": "SemVer-strict published-form version"
+      }
+    },
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Stable canonical identity URL for this form. Distinct from any sibling URL. Two Bundle Manifests with the same `id` SHOULD be different versions of the same form.",
+      "examples": ["https://example.gov/forms/intake-2026"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Stable form identity URL"
+      }
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+      "description": "Optional human-friendly slug identifier."
+    },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "definition": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "REQUIRED. The Definition this bundle composes. Exactly one Definition per bundle.",
+      "x-lm": {
+        "critical": true,
+        "intent": "Required core artifact reference"
+      }
+    }
+  },
+  "$defs": {
+    "SiblingRef": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URL of the referenced sibling artifact."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional SemVer string (exact: '1.2.0') or range expression ('>=1.0.0 <2.0.0', '^1.0.0'). When omitted, any compatible-by-major version is accepted. Producers SHOULD pin exact versions in published bundles."
+        }
+      }
+    }
+  }
+}
