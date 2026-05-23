@@ -107,7 +107,74 @@ The bundle's top-level `version` is shape-validated as strict SemVer because it 
 
 ## 3. Members
 
-<!-- §3 prose lands in Task 15 -->
+### 3.1 Required Member
+
+| Member | Type | Cardinality | Description |
+|---|---|---|---|
+| `definition` | `SiblingRef` | exactly one | The Definition this bundle composes. Bundle MUST reference exactly one Definition. |
+
+### 3.2 Optional Single-Cardinality Members
+
+Each MAY appear at most once.
+
+| Member | Type | Composes |
+|---|---|---|
+| `experience` | `SiblingRef` | Task intent (Experience companion spec) |
+| `responseActions` | `SiblingRef` | Form-scoped action orchestration |
+| `component` | `SiblingRef` | Concrete UI tree |
+| `theme` | `SiblingRef` | Visual tokens and presentation defaults |
+| `references` | `SiblingRef` | External resource attachments |
+| `ontology` | `SiblingRef` | Concept metadata |
+| `registry` | `SiblingRef` | Option-set / token enrichment |
+
+### 3.3 Optional Array-Cardinality Members
+
+Each MAY appear at most once as a container. Each container holds one or more entries (`minItems: 1`); entries are distinguished by a member-specific key that MUST be unique within the array.
+
+| Member | Item Type | Per-entry Key | Description |
+|---|---|---|---|
+| `locales` | `LocaleRef` | `locale` (BCP47 tag) | One Locale document per supported locale. |
+| `mappings` | `MappingRef` | `handle` (slug) | One Mapping document per named handle. Response Actions and other consumers resolve `mappingRef` against this handle. |
+
+### 3.4 SiblingRef, LocaleRef, MappingRef Shapes
+
+All sibling references share a `url` (required, URI) and optional `version` (SemVer or range expression). Array-member item types add a per-entry key:
+
+- `LocaleRef = SiblingRef + { locale: BCP47 }`
+- `MappingRef = SiblingRef + { handle: slug }`
+
+`SiblingRef.url` MUST resolve to a single sibling artifact of the expected type. A bundle-aware processor SHOULD verify that the loaded artifact's discriminator matches the bundle slot. The discriminator names are slot-specific:
+
+| Bundle slot | Loaded-document discriminator |
+|---|---|
+| `definition` | `$formspec` (the Definition root carries the unqualified discriminator) |
+| `experience` | `$formspecExperience` |
+| `responseActions` | `$formspecResponseActions` |
+| `component` | `$formspecComponent` |
+| `theme` | `$formspecTheme` |
+| `references` | `$formspecReferences` |
+| `ontology` | `$formspecOntology` |
+| `registry` | `$formspecRegistry` |
+| `locales[]` | `$formspecLocale` |
+| `mappings[]` | `$formspecMapping` |
+
+The Definition naming asymmetry (`$formspec` vs every other sibling's `$formspec<Type>`) is inherited from the Definition core spec and is not adjusted by this spec. Mismatched discriminators are a bundle-resolution error, not a bundle-shape error.
+
+Each Ref shape MAY carry `x-*` extension properties (e.g., `x-lockfileHash`, `x-cachedAt`) for tooling-specific per-reference metadata; processors MUST ignore unknown `x-*` properties when resolving siblings.
+
+### 3.5 Closed Property Surface
+
+The Bundle Manifest schema declares `additionalProperties: false`. New sibling slots require a Bundle Manifest schema version bump (e.g., `$formspecBundle: "1.1"`). The closed surface keeps bundle resolution deterministic.
+
+Authors MAY use `x-*` extension properties on the top-level object for tooling-specific metadata. Bundle-aware processors MUST ignore unknown `x-*` properties when resolving siblings.
+
+### 3.6 Excluded Members (Runtime / Generated Artifacts)
+
+The following artifacts MUST NOT appear in a Bundle Manifest. They are response-scoped or generated, and are produced from a bundle at runtime rather than composing one:
+
+- Response, Validation Report, Determination Record
+- Respondent Ledger, Intake Handoff
+- Trace
 
 ## 4. Absence Semantics
 
