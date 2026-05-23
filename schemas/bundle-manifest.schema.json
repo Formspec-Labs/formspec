@@ -49,6 +49,9 @@
     "definition": {
       "$ref": "#/$defs/SiblingRef",
       "description": "REQUIRED. The Definition this bundle composes. Exactly one Definition per bundle.",
+      "examples": [
+        { "url": "https://example.gov/forms/intake/definition", "version": "1.2.0" }
+      ],
       "x-lm": {
         "critical": true,
         "intent": "Required core artifact reference"
@@ -87,6 +90,12 @@
       "minItems": 1,
       "items": { "$ref": "#/$defs/LocaleRef" },
       "description": "Optional array of Locale references, one per BCP47 locale tag. Each entry's `locale` MUST be unique within the array.",
+      "examples": [
+        [
+          { "url": "https://example.gov/forms/intake/locale-en-us", "version": "1.0.0", "locale": "en-US" },
+          { "url": "https://example.gov/forms/intake/locale-es-us", "version": "1.0.0", "locale": "es-US" }
+        ]
+      ],
       "x-lm": {
         "critical": true,
         "intent": "Per-locale Locale document references"
@@ -97,6 +106,11 @@
       "minItems": 1,
       "items": { "$ref": "#/$defs/MappingRef" },
       "description": "Optional array of Mapping references, one per named mapping handle. Each entry's `handle` MUST be unique within the array.",
+      "examples": [
+        [
+          { "url": "https://example.gov/forms/intake/mapping-application", "version": "1.0.0", "handle": "applicationPayload" }
+        ]
+      ],
       "x-lm": {
         "critical": true,
         "intent": "Per-handle Mapping document references"

@@ -682,6 +682,27 @@
       "packages": {},
       "reason": "Signature Profile has substantial WOS proof, but active WOS TODO entries still track verifier dispatch, receipt consumption, and remaining admission-failure paths.",
       "tracking": "../work-spec/TODO.md"
+    },
+    "bundle-manifest": {
+      "status": "enforced",
+      "spec": "specs/bundle/bundle-manifest-spec.md",
+      "schema": "schemas/bundle-manifest.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_bundle_manifest_schema.py",
+        "tests/conformance/spec/test_bundle_manifest_semantics.py"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/bundle/"
+      ],
+      "packages": {},
+      "checks": [
+        "Bundle Manifest schema shape, closed surface, required-property enforcement, and SemVer strictness are pinned by schema conformance tests",
+        "Spec semantics tests enforce array-key uniqueness (locales[].locale, mappings[].handle) and id-vs-sibling-URL distinctness — invariants JSON Schema cannot express",
+        "Fixture corpus covers definition-only minimal, full-singles, locales+mappings, and the five negative postures (missing definition, duplicate locale/handle, id collision, unknown property, bad SemVer)"
+      ],
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "Bundle Manifest v1.0 defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3 and land when consumers (renderer, Studio, MCP) need them — at which point this row gains crate / package surfaces."
     }
   }
 }

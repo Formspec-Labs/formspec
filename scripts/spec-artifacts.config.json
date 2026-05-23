@@ -480,6 +480,25 @@
         "Processors MUST enforce signer coverage and transition gating declared in the embedded signature block when any transition uses kind `signature`.",
         "Cryptographic certificate-of-completion bundles remain Trellis-owned; WOS governs workflow semantics and semantic evidence only."
       ]
+    },
+    {
+      "spec": "specs/bundle/bundle-manifest-spec.md",
+      "schema": "schemas/bundle-manifest.schema.json",
+      "bluf": "specs/bundle/bundle-manifest-spec.bluf.md",
+      "llm": "specs/bundle/bundle-manifest-spec.llm.md",
+      "behaviorEssentials": [
+        "Bundle Manifest is a pure composition envelope: references exactly one Definition and any combination of optional siblings (Experience, Response Actions, Component, Theme, References, Ontology, Registry, locales[], mappings[]) by canonical URL and version.",
+        "Absent siblings invoke each sibling spec's existing defaults; no synthesis, no inline sidecars, no shims on existing primary specs.",
+        "Bundle id MUST be distinct from every sibling URL (singles and array entries); locales[].locale and mappings[].handle MUST be unique within their array.",
+        "Bundle version is strict SemVer 2.0.0; per-SiblingRef.version accepts exact SemVer or range expressions resolved at sibling-resolution time.",
+        "Forward composition graph (bundle → siblings) lives alongside the existing back-reference graph (sibling.targetDefinition → Definition); reverse-discovery continues to work for tools that do not use Bundle Manifest."
+      ],
+      "conformanceEssentials": [
+        "A conforming Bundle Manifest must include $formspecBundle='1.0', strict-SemVer version, uri-shaped id, and exactly one definition SiblingRef.",
+        "Processors MUST enforce array uniqueness (locale tag, mapping handle), id-vs-sibling-URL distinctness, and §5.3 sibling-pin consistency at resolution time.",
+        "Loaded sibling discriminators must match the slot per the §3.4 table; Definition is identified by `$formspec` (unqualified) while every other sibling carries `$formspec<Type>`.",
+        "Bundle Manifest does NOT introduce shims, aliases, or backwards-compat fields on existing primary specs; existing artifacts remain unchanged."
+      ]
     }
   ]
 }
