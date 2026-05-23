@@ -22,8 +22,8 @@
     },
     "version": {
       "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?(\\+[A-Za-z0-9.-]+)?$",
-      "description": "Version of this Bundle Manifest. MUST be a SemVer 2.0.0 string. The bundle's published version pins a coherent snapshot of sibling versions; bumping any sibling version SHOULD bump the bundle version.",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Version of this Bundle Manifest. MUST be a strict SemVer 2.0.0 string (no leading zeros in numeric identifiers, no empty pre-release identifiers, no leading-zero numeric pre-release identifiers). The bundle's published version pins a coherent snapshot of sibling versions; bumping any sibling version SHOULD bump the bundle version.",
       "examples": ["1.0.0", "1.2.0-draft.1"],
       "x-lm": {
         "critical": true,

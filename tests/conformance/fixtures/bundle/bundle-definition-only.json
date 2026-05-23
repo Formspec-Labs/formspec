@@ -1,6 +1,7 @@
 {
   "fixture": "bundle-definition-only",
   "purpose": "Minimum valid Bundle Manifest: only Definition is referenced. Per concept §6.2 and §4 of this spec, no Experience is synthesized; the renderer falls back to Definition's existing widget defaults.",
+  "expected": { "valid": true },
   "bundle": {
     "$formspecBundle": "1.0",
     "version": "1.0.0",

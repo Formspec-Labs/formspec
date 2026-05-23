@@ -35,6 +35,7 @@ Additional terms:
 - **Definition-only bundle** -- A Bundle Manifest whose sole sibling reference is `definition`. Renders via Definition's existing widget defaults; no Experience or Component is synthesized.
 
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119
+[RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174
 [RFC 3986]: https://www.rfc-editor.org/rfc/rfc3986
 [RFC 8259]: https://www.rfc-editor.org/rfc/rfc8259
 
