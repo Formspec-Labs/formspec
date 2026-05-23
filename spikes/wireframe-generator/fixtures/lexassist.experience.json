@@ -1,0 +1,351 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "name": "lexassist-experience",
+  "title": "LexAssist — Task Intent",
+  "description": "Experience for the wireframe-generator spike. Units whose surface shape is not covered by the closed unit.kind enum carry an x-spike-kind extension. Composition sample data (e.g. message stream contents) lives on the unit via extensions, not in Definition.",
+  "targetDefinition": {
+    "url": "https://lexassist.example/spec/workspace",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actors": [
+    { "id": "attorney", "title": "Attorney", "description": "Primary user — practising lawyer." },
+    { "id": "admin", "title": "Firm Admin", "description": "Manages firm library, retention, PII posture." }
+  ],
+  "tasks": [
+    { "id": "configureProfile", "title": "Configure profile", "actorRefs": ["attorney"] },
+    { "id": "openMatter", "title": "Open a matter", "actorRefs": ["attorney"] },
+    { "id": "researchByChat", "title": "Research by conversation", "actorRefs": ["attorney"] },
+    { "id": "reviewDocument", "title": "Review a document", "actorRefs": ["attorney"] },
+    { "id": "runPlaybook", "title": "Run a playbook", "actorRefs": ["attorney"] },
+    { "id": "manageLibrary", "title": "Manage firm library", "actorRefs": ["admin"] },
+    { "id": "navigate", "title": "Navigate the workspace", "actorRefs": ["attorney", "admin"] }
+  ],
+  "units": [
+    {
+      "id": "shellAppNav",
+      "kind": "assistance",
+      "title": "Application navigation",
+      "actorRef": "attorney",
+      "taskRefs": ["navigate"],
+      "extensions": {
+        "x-spike-kind": "x-shell",
+        "x-spike-slot": "shell",
+        "x-spike-note": "Spike note: closest fit in the closed unit.kind enum is 'assistance' — wrong. Shell-layout is a Component-vocabulary concern, not a task kind."
+      }
+    },
+    {
+      "id": "homeWorkspaceGallery",
+      "kind": "review",
+      "title": "Your workspaces",
+      "actorRef": "attorney",
+      "taskRefs": ["openMatter"],
+      "extensions": {
+        "x-spike-kind": "x-gallery",
+        "x-spike-cards": [
+          { "title": "Acme v. Globex — discovery", "subtitle": "Litigation · 47 docs · 12 threads", "badge": "active" },
+          { "title": "Project Albatross M&A", "subtitle": "Transaction · 188 docs · 3 threads" },
+          { "title": "Quill IP licensing", "subtitle": "Advisory · 22 docs · 5 threads" },
+          { "title": "Internal: Whistleblower review", "subtitle": "Investigation · 14 docs · 1 thread", "badge": "restricted" }
+        ],
+        "x-spike-ai": { "fillable": false, "providerHint": null, "prompt": null }
+      }
+    },
+    {
+      "id": "homeRecentActivity",
+      "kind": "review",
+      "title": "Recent activity",
+      "actorRef": "attorney",
+      "taskRefs": ["navigate"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "💬", "primary": "Reply ready in Acme v. Globex — Privilege challenge", "secondary": "2 minutes ago · 4 citations" },
+          { "icon": "📄", "primary": "OCR finished for 'Albatross_due_diligence_v3.pdf'", "secondary": "12 minutes ago · 84 pages" },
+          { "icon": "🛠", "primary": "Playbook 'NDA Review' completed 3 redlines", "secondary": "Yesterday · Quill matter" },
+          { "icon": "🛡", "primary": "PII redaction flagged 6 spans in upload", "secondary": "Yesterday · admin review needed" }
+        ],
+        "x-spike-ai": { "fillable": true, "providerHint": "summary", "prompt": "Summarize what changed across your matters in the last 24 hours." }
+      }
+    },
+    {
+      "id": "homeNewMatter",
+      "kind": "data-entry",
+      "title": "Open a new matter",
+      "actorRef": "attorney",
+      "taskRefs": ["openMatter"],
+      "itemRefs": [
+        { "path": "matterDraft.title" },
+        { "path": "matterDraft.client" },
+        { "path": "matterDraft.matterType" },
+        { "path": "matterDraft.confidentiality" },
+        { "path": "matterDraft.openedOn" }
+      ],
+      "actionRefs": [{ "id": "openMatter", "role": "primary" }]
+    },
+    {
+      "id": "matterShell",
+      "kind": "assistance",
+      "title": "Matter workspace shell",
+      "actorRef": "attorney",
+      "taskRefs": ["navigate"],
+      "extensions": { "x-spike-kind": "x-shell", "x-spike-slot": "shell" }
+    },
+    {
+      "id": "matterThreadList",
+      "kind": "review",
+      "title": "Threads",
+      "actorRef": "attorney",
+      "taskRefs": ["researchByChat"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "💬", "primary": "Privilege challenge — depo prep", "secondary": "active · 14 messages · 9 citations" },
+          { "icon": "💬", "primary": "Spoliation arguments survey", "secondary": "12h ago · 8 messages" },
+          { "icon": "💬", "primary": "Motion to compel draft", "secondary": "yesterday · 6 messages" }
+        ]
+      }
+    },
+    {
+      "id": "matterDocList",
+      "kind": "review",
+      "title": "Documents",
+      "actorRef": "attorney",
+      "taskRefs": ["reviewDocument"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "📄", "primary": "Smith_deposition_2026-03-14.pdf", "secondary": "324 pages · indexed · 18 citations" },
+          { "icon": "📄", "primary": "Globex_response_to_RFP.docx", "secondary": "57 pages · pending OCR" },
+          { "icon": "📄", "primary": "EmailExport_2026-Q1.mbox", "secondary": "2,140 messages · privileged-detection on" }
+        ]
+      }
+    },
+    {
+      "id": "matterActivity",
+      "kind": "review",
+      "title": "Matter activity",
+      "actorRef": "attorney",
+      "taskRefs": ["navigate"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "🧠", "primary": "Agent finished retrieval over 187 docs", "secondary": "5m ago · privileged spans excluded" },
+          { "icon": "🛡", "primary": "Ethical-wall check passed for new uploads", "secondary": "1h ago" },
+          { "icon": "📌", "primary": "User pinned 4 paragraphs to the depo brief", "secondary": "Today" }
+        ]
+      }
+    },
+    {
+      "id": "matterHelper",
+      "kind": "assistance",
+      "title": "Helper",
+      "actorRef": "attorney",
+      "taskRefs": ["navigate"],
+      "extensions": {
+        "x-spike-kind": "x-shell",
+        "x-spike-slot": "right",
+        "x-spike-helper": [
+          { "label": "Cite to your draft brief", "kind": "action" },
+          { "label": "Why was this excluded?", "kind": "ai-prompt" },
+          { "label": "Compare against similar matters", "kind": "ai-prompt" }
+        ],
+        "x-spike-ai": { "fillable": true, "providerHint": "advisor", "prompt": "Suggest 3 next steps based on this matter's recent activity." }
+      }
+    },
+    {
+      "id": "threadHistory",
+      "kind": "review",
+      "title": "Thread",
+      "actorRef": "attorney",
+      "taskRefs": ["researchByChat"],
+      "extensions": {
+        "x-spike-kind": "x-conversation",
+        "x-spike-messages": [
+          {
+            "role": "user",
+            "text": "What are the strongest arguments for invoking work-product protection over the consultant's draft report under NY law?"
+          },
+          {
+            "role": "assistant",
+            "text": "Three strong lines under New York law: (1) the consultant was retained 'in anticipation of litigation' (Hickman; CPLR §3101(d)(2)); (2) the draft contains mental impressions, which receive heightened protection; (3) any disclosure to non-attorney consultants is within the privilege when reasonably necessary to the legal representation.",
+            "citations": [
+              { "label": "Hickman v. Taylor, 329 U.S. 495", "score": 0.94 },
+              { "label": "CPLR §3101(d)(2)", "score": 0.92 },
+              { "label": "Spectrum Sys. v. Chemical Bank, 78 N.Y.2d 371", "score": 0.81 }
+            ]
+          },
+          {
+            "role": "user",
+            "text": "Counterargument the opposing party will likely raise?"
+          },
+          {
+            "role": "assistant",
+            "text": "They will argue (a) the consultant's report was prepared in the ordinary course of business, not in anticipation of litigation, citing the dual-purpose-doctrine line; and (b) factual portions of the report are discoverable even if mental impressions are not.",
+            "citations": [{ "label": "United States v. Adlman, 134 F.3d 1194 (2d Cir.)", "score": 0.89 }]
+          }
+        ],
+        "x-spike-ai": { "fillable": true, "providerHint": "chat", "prompt": "(this entire surface is AI-driven; messages are the AI's output)" }
+      }
+    },
+    {
+      "id": "threadComposer",
+      "kind": "data-entry",
+      "title": "Reply",
+      "actorRef": "attorney",
+      "taskRefs": ["researchByChat"],
+      "itemRefs": [
+        { "path": "composer.draftText" },
+        { "path": "composer.mode" },
+        { "path": "composer.useFirmCorpus" }
+      ],
+      "actionRefs": [
+        { "id": "sendMessage", "role": "primary" },
+        { "id": "saveDraftMessage", "role": "secondary" }
+      ],
+      "extensions": {
+        "x-spike-ai": { "fillable": true, "providerHint": "rewrite", "prompt": "Improve this draft message — make it more precise and add citations where appropriate." }
+      }
+    },
+    {
+      "id": "docViewer",
+      "kind": "review",
+      "title": "Document",
+      "actorRef": "attorney",
+      "taskRefs": ["reviewDocument"],
+      "extensions": {
+        "x-spike-kind": "x-document-viewer",
+        "x-spike-docTitle": "Smith_deposition_2026-03-14.pdf",
+        "x-spike-pages": 324,
+        "x-spike-annotations": [
+          { "pageRange": "p.14–17", "label": "Privilege log gap", "by": "agent" },
+          { "pageRange": "p.118", "label": "Inconsistent date with 2025-11 letter", "by": "agent" },
+          { "pageRange": "p.224–229", "label": "Spoliation discussion (pinned)", "by": "user" }
+        ],
+        "x-spike-ai": { "fillable": true, "providerHint": "doc-annotate", "prompt": "Highlight inconsistencies with the broader case record." }
+      }
+    },
+    {
+      "id": "docCitations",
+      "kind": "review",
+      "title": "Citations & references",
+      "actorRef": "attorney",
+      "taskRefs": ["reviewDocument"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "📖", "primary": "FRCP 26(b)(3)", "secondary": "cited 4× · work-product doctrine" },
+          { "icon": "📖", "primary": "Hickman v. Taylor", "secondary": "cited 2×" },
+          { "icon": "📖", "primary": "Smith Affidavit ¶12", "secondary": "internal · pinned by user" }
+        ]
+      }
+    },
+    {
+      "id": "docActions",
+      "kind": "confirmation",
+      "title": "Document actions",
+      "actorRef": "attorney",
+      "taskRefs": ["reviewDocument"],
+      "actionRefs": [
+        { "id": "summarizeDoc", "role": "secondary" },
+        { "id": "extractTimeline", "role": "secondary" },
+        { "id": "exportRedlines", "role": "primary" }
+      ]
+    },
+    {
+      "id": "playbooksGallery",
+      "kind": "review",
+      "title": "Playbooks",
+      "actorRef": "attorney",
+      "taskRefs": ["runPlaybook"],
+      "extensions": {
+        "x-spike-kind": "x-gallery",
+        "x-spike-cards": [
+          { "title": "NDA Review", "subtitle": "Redline + risk summary · ~6 minutes" },
+          { "title": "Contract Diff", "subtitle": "Compare two contract versions · ~3 minutes" },
+          { "title": "Deposition Summarizer", "subtitle": "Time-coded summary + admissions · ~12 minutes" },
+          { "title": "Privilege Log Builder", "subtitle": "Auto-build privilege log from corpus · ~30 minutes" },
+          { "title": "Cease & Desist Draft", "subtitle": "Draft from facts pattern · ~4 minutes" },
+          { "title": "Reg Compliance Sweep", "subtitle": "Map controls to obligations · ~20 minutes" }
+        ]
+      }
+    },
+    {
+      "id": "playbookInputForm",
+      "kind": "data-entry",
+      "title": "Configure run",
+      "actorRef": "attorney",
+      "taskRefs": ["runPlaybook"],
+      "itemRefs": [
+        { "path": "playbookInput.playbookId" },
+        { "path": "playbookInput.primaryDoc" },
+        { "path": "playbookInput.counterpartyDoc" },
+        { "path": "playbookInput.playbookJurisdiction" },
+        { "path": "playbookInput.redlinePosture" },
+        { "path": "playbookInput.redlineNotes" }
+      ],
+      "actionRefs": [{ "id": "runPlaybook", "role": "primary" }]
+    },
+    {
+      "id": "playbookProgress",
+      "kind": "review",
+      "title": "Run progress",
+      "actorRef": "attorney",
+      "taskRefs": ["runPlaybook"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "✅", "primary": "Ingest document", "secondary": "OCR + token segmentation · 18s" },
+          { "icon": "✅", "primary": "Identify counterparty clauses", "secondary": "26 clauses found" },
+          { "icon": "⏳", "primary": "Apply firm redline standards", "secondary": "in progress · 14 of 26 clauses" },
+          { "icon": "·", "primary": "Generate risk summary", "secondary": "queued" },
+          { "icon": "·", "primary": "Export redlines", "secondary": "queued" }
+        ]
+      }
+    },
+    {
+      "id": "librarySettings",
+      "kind": "data-entry",
+      "title": "Firm library settings",
+      "actorRef": "admin",
+      "taskRefs": ["manageLibrary"],
+      "itemRefs": [
+        { "path": "librarySettings.sourceUpload" },
+        { "path": "librarySettings.retentionDays" },
+        { "path": "librarySettings.indexingPolicy" },
+        { "path": "librarySettings.piiHandling" }
+      ],
+      "actionRefs": [{ "id": "saveLibrarySettings", "role": "primary" }]
+    },
+    {
+      "id": "libraryAudit",
+      "kind": "review",
+      "title": "Recent admin events",
+      "actorRef": "admin",
+      "taskRefs": ["manageLibrary"],
+      "extensions": {
+        "x-spike-kind": "x-result-list",
+        "x-spike-rows": [
+          { "icon": "🛡", "primary": "PII redactor flagged 6 spans in 'employee_records.zip'", "secondary": "needs admin decision" },
+          { "icon": "🔒", "primary": "Ethical-wall created: Project Albatross ↔ Acme matter", "secondary": "applied to 4 users" },
+          { "icon": "📦", "primary": "Retention sweep removed 312 documents (>365d)", "secondary": "automatic" }
+        ]
+      }
+    },
+    {
+      "id": "profileForm",
+      "kind": "data-entry",
+      "title": "Profile",
+      "actorRef": "attorney",
+      "taskRefs": ["configureProfile"],
+      "itemRefs": [
+        { "path": "profile.fullName" },
+        { "path": "profile.firm" },
+        { "path": "profile.role" },
+        { "path": "profile.practiceAreas" },
+        { "path": "profile.jurisdictions" }
+      ],
+      "actionRefs": [{ "id": "saveProfile", "role": "primary" }]
+    }
+  ]
+}

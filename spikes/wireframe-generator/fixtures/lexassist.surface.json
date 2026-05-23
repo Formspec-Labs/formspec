@@ -1,0 +1,123 @@
+{
+  "$formspecSurface": "0.1-spike",
+  "version": "0.1.0",
+  "description": "EXPERIMENTAL spike sidecar. The proposed Navigation/Routing primitive missing from current Formspec. Composes Experience units into named slots per route and declares cross-route transitions. Modeled on UsiXML's Dialog Model and XIML's Navigation Model.",
+  "targetExperience": {
+    "url": "https://lexassist.example/spec/workspace#experience",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "appName": "LexAssist",
+  "appTagline": "AI-driven legal research and drafting workspace",
+  "nav": [
+    { "label": "Workspaces", "path": "/" },
+    { "label": "Playbooks", "path": "/playbooks" },
+    { "label": "Library admin", "path": "/admin/library" },
+    { "label": "Profile", "path": "/profile" }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "label": "Home — Workspaces",
+      "default": true,
+      "layout": "shell-with-three-pane",
+      "shellUnitRef": "shellAppNav",
+      "slots": {
+        "main": ["homeWorkspaceGallery", "homeNewMatter"],
+        "right": ["homeRecentActivity"]
+      },
+      "transitions": [
+        { "on": "selectWorkspace", "to": "matter", "params": { "id": "{cardId}" } }
+      ]
+    },
+    {
+      "id": "matter",
+      "path": "/m/:id",
+      "label": "Matter workspace",
+      "params": [{ "name": "id", "type": "string", "example": "acme-globex" }],
+      "layout": "shell-with-three-pane",
+      "shellUnitRef": "matterShell",
+      "slots": {
+        "left": ["matterThreadList", "matterDocList"],
+        "main": ["matterActivity"],
+        "right": ["matterHelper"]
+      },
+      "transitions": [
+        { "on": "selectThread", "to": "thread" },
+        { "on": "selectDoc", "to": "doc-viewer" }
+      ]
+    },
+    {
+      "id": "thread",
+      "path": "/m/:id/t/:tid",
+      "label": "Thread",
+      "params": [
+        { "name": "id", "type": "string", "example": "acme-globex" },
+        { "name": "tid", "type": "string", "example": "privilege-challenge" }
+      ],
+      "layout": "shell-with-three-pane",
+      "shellUnitRef": "matterShell",
+      "slots": {
+        "left": ["matterThreadList"],
+        "main": ["threadHistory", "threadComposer"],
+        "right": ["matterHelper"]
+      }
+    },
+    {
+      "id": "doc-viewer",
+      "path": "/m/:id/d/:did",
+      "label": "Document viewer",
+      "params": [
+        { "name": "id", "type": "string" },
+        { "name": "did", "type": "string", "example": "smith-deposition-2026-03-14" }
+      ],
+      "layout": "shell-with-three-pane",
+      "shellUnitRef": "matterShell",
+      "slots": {
+        "left": ["matterDocList"],
+        "main": ["docViewer", "docActions"],
+        "right": ["docCitations"]
+      }
+    },
+    {
+      "id": "playbooks",
+      "path": "/playbooks",
+      "label": "Playbook gallery",
+      "layout": "shell-with-main",
+      "shellUnitRef": "shellAppNav",
+      "slots": { "main": ["playbooksGallery"] },
+      "transitions": [{ "on": "selectPlaybook", "to": "playbook-runner" }]
+    },
+    {
+      "id": "playbook-runner",
+      "path": "/playbooks/:id/run",
+      "label": "Playbook runner",
+      "params": [{ "name": "id", "type": "string", "example": "nda-review" }],
+      "layout": "shell-with-three-pane",
+      "shellUnitRef": "shellAppNav",
+      "slots": {
+        "main": ["playbookInputForm"],
+        "right": ["playbookProgress"]
+      }
+    },
+    {
+      "id": "library",
+      "path": "/admin/library",
+      "label": "Firm library admin",
+      "layout": "shell-with-three-pane",
+      "shellUnitRef": "shellAppNav",
+      "slots": {
+        "main": ["librarySettings"],
+        "right": ["libraryAudit"]
+      }
+    },
+    {
+      "id": "profile",
+      "path": "/profile",
+      "label": "Profile",
+      "layout": "shell-with-main",
+      "shellUnitRef": "shellAppNav",
+      "slots": { "main": ["profileForm"] }
+    }
+  ]
+}

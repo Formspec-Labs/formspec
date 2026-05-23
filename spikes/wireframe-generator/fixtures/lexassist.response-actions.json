@@ -1,0 +1,80 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://lexassist.example/spec/workspace",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "saveProfile",
+      "intent": "save-draft",
+      "label": "Save profile",
+      "actor": "attorney",
+      "effects": [{ "type": "hostEvent", "eventName": "formspec-save-draft" }]
+    },
+    {
+      "id": "openMatter",
+      "intent": "submit",
+      "label": "Open matter",
+      "actor": "attorney",
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-open-matter" }]
+    },
+    {
+      "id": "sendMessage",
+      "intent": "x-send-message",
+      "label": "Send",
+      "actor": "attorney",
+      "validation": { "profile": "live", "blocking": "non-blocking", "persistence": "none" },
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-thread-send" }]
+    },
+    {
+      "id": "saveDraftMessage",
+      "intent": "save-draft",
+      "label": "Save draft",
+      "actor": "attorney",
+      "effects": [{ "type": "hostEvent", "eventName": "formspec-save-draft" }]
+    },
+    {
+      "id": "summarizeDoc",
+      "intent": "x-summarize",
+      "label": "Summarize",
+      "actor": "attorney",
+      "validation": { "profile": "off", "blocking": "non-blocking", "persistence": "none" },
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-doc-summarize" }]
+    },
+    {
+      "id": "extractTimeline",
+      "intent": "x-extract-timeline",
+      "label": "Extract timeline",
+      "actor": "attorney",
+      "validation": { "profile": "off", "blocking": "non-blocking", "persistence": "none" },
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-doc-timeline" }]
+    },
+    {
+      "id": "exportRedlines",
+      "intent": "submit",
+      "label": "Export redlines",
+      "actor": "attorney",
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-doc-export" }]
+    },
+    {
+      "id": "runPlaybook",
+      "intent": "submit",
+      "label": "Run playbook",
+      "actor": "attorney",
+      "preconditions": [
+        { "id": "playbookSelected", "expression": "not empty($playbookInput.playbookId)", "severity": "error" },
+        { "id": "primaryDocPresent", "expression": "present($playbookInput.primaryDoc)", "severity": "error" }
+      ],
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-playbook-run" }]
+    },
+    {
+      "id": "saveLibrarySettings",
+      "intent": "submit",
+      "label": "Save library settings",
+      "actor": "admin",
+      "effects": [{ "type": "hostEvent", "eventName": "lexassist-library-save" }]
+    }
+  ]
+}

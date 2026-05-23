@@ -1,0 +1,229 @@
+{
+  "$formspec": "1.0",
+  "url": "https://lexassist.example/spec/workspace",
+  "version": "1.0.0",
+  "versionAlgorithm": "semver",
+  "status": "active",
+  "title": "LexAssist Workspace",
+  "description": "Definition for a Harvey-AI-style legal research workspace. Models what the user authors / configures. View-state data (threads, citations, retrieved docs) is intentionally NOT in the Definition — it is enumerated by Surface fixtures and surfaced as a Findings item.",
+  "name": "lexassist-workspace",
+  "nonRelevantBehavior": "remove",
+  "items": [
+    {
+      "type": "group",
+      "key": "profile",
+      "label": "Attorney Profile",
+      "children": [
+        { "type": "field", "key": "fullName", "label": "Full name", "dataType": "string" },
+        { "type": "field", "key": "firm", "label": "Firm", "dataType": "string" },
+        {
+          "type": "field",
+          "key": "role",
+          "label": "Role",
+          "dataType": "choice",
+          "options": [
+            { "value": "partner", "label": "Partner" },
+            { "value": "associate", "label": "Associate" },
+            { "value": "counsel", "label": "Counsel" },
+            { "value": "paralegal", "label": "Paralegal" }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "practiceAreas",
+          "label": "Practice areas",
+          "dataType": "multiChoice",
+          "hint": "Used to bias retrieval and playbook suggestions.",
+          "options": [
+            { "value": "litigation", "label": "Litigation" },
+            { "value": "corporate", "label": "Corporate / M&A" },
+            { "value": "ip", "label": "Intellectual Property" },
+            { "value": "tax", "label": "Tax" },
+            { "value": "employment", "label": "Employment" },
+            { "value": "real-estate", "label": "Real Estate" },
+            { "value": "immigration", "label": "Immigration" }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "jurisdictions",
+          "label": "Jurisdictions",
+          "dataType": "multiChoice",
+          "options": [
+            { "value": "us-federal", "label": "US Federal" },
+            { "value": "us-ny", "label": "New York" },
+            { "value": "us-ca", "label": "California" },
+            { "value": "us-de", "label": "Delaware" },
+            { "value": "us-tx", "label": "Texas" },
+            { "value": "eu", "label": "European Union" },
+            { "value": "uk", "label": "United Kingdom" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "matterDraft",
+      "label": "New matter",
+      "description": "Fields filled when creating a matter (workspace).",
+      "children": [
+        { "type": "field", "key": "title", "label": "Matter title", "dataType": "string" },
+        { "type": "field", "key": "client", "label": "Client", "dataType": "string" },
+        {
+          "type": "field",
+          "key": "matterType",
+          "label": "Matter type",
+          "dataType": "choice",
+          "options": [
+            { "value": "litigation", "label": "Litigation" },
+            { "value": "transaction", "label": "Transaction" },
+            { "value": "advisory", "label": "Advisory" },
+            { "value": "internal", "label": "Internal investigation" }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "confidentiality",
+          "label": "Confidentiality",
+          "dataType": "choice",
+          "initialValue": "matter-only",
+          "options": [
+            { "value": "matter-only", "label": "Matter-only (no firm retrieval)" },
+            { "value": "firm-shared", "label": "Firm-shared retrieval" },
+            { "value": "ethical-wall", "label": "Ethical-wall restricted" }
+          ]
+        },
+        { "type": "field", "key": "openedOn", "label": "Opened on", "dataType": "date", "initialValue": "=today()" }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "composer",
+      "label": "Message composer",
+      "description": "The single input the user types into per thread. Awkward as a Definition item — see spike Findings.",
+      "children": [
+        { "type": "field", "key": "draftText", "label": "Your message", "dataType": "text", "hint": "Ask a question, paste a clause, or describe what you need." },
+        {
+          "type": "field",
+          "key": "useFirmCorpus",
+          "label": "Include firm corpus in retrieval",
+          "dataType": "boolean",
+          "initialValue": false
+        },
+        {
+          "type": "field",
+          "key": "mode",
+          "label": "Mode",
+          "dataType": "choice",
+          "initialValue": "research",
+          "options": [
+            { "value": "research", "label": "Research" },
+            { "value": "draft", "label": "Draft" },
+            { "value": "analyze", "label": "Analyze a doc" },
+            { "value": "translate", "label": "Translate / explain" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "playbookInput",
+      "label": "Playbook input",
+      "description": "Per-playbook input. The active playbook drives which children apply.",
+      "children": [
+        { "type": "field", "key": "playbookId", "label": "Playbook", "dataType": "string" },
+        { "type": "field", "key": "primaryDoc", "label": "Primary document", "dataType": "attachment" },
+        { "type": "field", "key": "counterpartyDoc", "label": "Counterparty document (optional)", "dataType": "attachment" },
+        {
+          "type": "field",
+          "key": "playbookJurisdiction",
+          "label": "Governing jurisdiction",
+          "dataType": "choice",
+          "options": [
+            { "value": "us-ny", "label": "New York" },
+            { "value": "us-ca", "label": "California" },
+            { "value": "us-de", "label": "Delaware" },
+            { "value": "uk", "label": "United Kingdom" },
+            { "value": "eu", "label": "European Union" }
+          ]
+        },
+        { "type": "field", "key": "redlinePosture", "label": "Redline posture (we represent…)", "dataType": "string", "hint": "e.g. 'buyer', 'employer', 'licensor'." },
+        { "type": "field", "key": "redlineNotes", "label": "Notes for the agent", "dataType": "text" }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "librarySettings",
+      "label": "Firm library admin",
+      "children": [
+        { "type": "field", "key": "sourceUpload", "label": "Upload sources", "dataType": "attachment" },
+        {
+          "type": "field",
+          "key": "retentionDays",
+          "label": "Retention (days)",
+          "dataType": "integer",
+          "initialValue": 365
+        },
+        {
+          "type": "field",
+          "key": "indexingPolicy",
+          "label": "Indexing policy",
+          "dataType": "choice",
+          "options": [
+            { "value": "full", "label": "Full retrieval index" },
+            { "value": "tagged-only", "label": "Tagged-only retrieval" },
+            { "value": "off", "label": "Hold without indexing" }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "piiHandling",
+          "label": "PII handling",
+          "dataType": "choice",
+          "initialValue": "redact",
+          "options": [
+            { "value": "redact", "label": "Redact before indexing" },
+            { "value": "tag", "label": "Tag and segregate" },
+            { "value": "block", "label": "Block from indexing" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "searchPanel",
+      "label": "Search",
+      "children": [
+        { "type": "field", "key": "query", "label": "Search the firm corpus", "dataType": "string" },
+        {
+          "type": "field",
+          "key": "scope",
+          "label": "Scope",
+          "dataType": "multiChoice",
+          "options": [
+            { "value": "matter", "label": "Active matter" },
+            { "value": "firm", "label": "Whole firm" },
+            { "value": "external", "label": "External (cases, statutes)" }
+          ]
+        }
+      ]
+    }
+  ],
+  "binds": [
+    { "path": "profile.fullName", "required": "true" },
+    { "path": "profile.firm", "required": "true" },
+    { "path": "profile.role", "required": "true" },
+    { "path": "matterDraft.title", "required": "true" },
+    { "path": "matterDraft.client", "required": "true" },
+    { "path": "matterDraft.matterType", "required": "true" },
+    { "path": "composer.draftText", "required": "true" },
+    { "path": "playbookInput.playbookId", "required": "true" },
+    { "path": "playbookInput.primaryDoc", "required": "true" },
+    {
+      "path": "playbookInput.counterpartyDoc",
+      "relevant": "$playbookInput.playbookId = 'contract-diff' or $playbookInput.playbookId = 'negotiation-review'"
+    },
+    { "path": "librarySettings.retentionDays", "constraint": "$ >= 30 and $ <= 3650", "constraintMessage": "Retention must be 30..3650 days." }
+  ],
+  "shapes": []
+}
