@@ -41,8 +41,7 @@
       }
     },
     "name": {
-      "type": "string",
-      "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+      "$ref": "#/$defs/Slug",
       "description": "Optional human-friendly slug identifier."
     },
     "title": { "type": "string" },
@@ -105,10 +104,18 @@
     }
   },
   "$defs": {
+    "Slug": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+      "description": "Shared slug pattern: ASCII letter start, then letters / digits / `_` / `-`. Used by `bundle.name` and `MappingRef.handle` so the two surfaces evolve in lockstep."
+    },
     "SiblingRef": {
       "type": "object",
       "required": ["url"],
       "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
       "properties": {
         "url": {
           "type": "string",
@@ -126,13 +133,17 @@
       "type": "object",
       "required": ["url", "locale"],
       "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
       "properties": {
         "url": { "type": "string", "format": "uri" },
         "version": { "type": "string", "minLength": 1 },
         "locale": {
           "type": "string",
-          "pattern": "^[a-zA-Z]{2,3}(-[A-Za-z0-9]+)*$",
-          "description": "BCP47 locale tag (e.g., 'en-US', 'es-MX')."
+          "minLength": 2,
+          "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$",
+          "description": "BCP47 locale tag. Pattern aligned with the Locale spec's own tag pattern (schemas/locale.schema.json `locale`); canonical BCP47 conformance remains the Locale spec's responsibility."
         }
       }
     },
@@ -140,12 +151,14 @@
       "type": "object",
       "required": ["url", "handle"],
       "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
       "properties": {
         "url": { "type": "string", "format": "uri" },
         "version": { "type": "string", "minLength": 1 },
         "handle": {
-          "type": "string",
-          "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+          "$ref": "#/$defs/Slug",
           "description": "Author-chosen handle. Response Actions and other consumers resolve `mappingRef` by this handle."
         }
       }

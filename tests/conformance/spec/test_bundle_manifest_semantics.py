@@ -51,15 +51,27 @@ class TestBundleArrayUniqueness:
         assert len(handles) != len(set(handles)), "fixture must contain a duplicate handle"
 
 
+def _all_sibling_urls(bundle: dict) -> list[str]:
+    urls: list[str] = []
+    for key in ("definition", "experience", "responseActions", "component",
+                "theme", "references", "ontology", "registry"):
+        if key in bundle:
+            urls.append(bundle[key]["url"])
+    for key in ("locales", "mappings"):
+        for entry in bundle.get(key, []):
+            urls.append(entry["url"])
+    return urls
+
+
 class TestBundleIdDistinctness:
     def test_bundle_id_distinct_from_sibling_urls(self) -> None:
         bundle = _bundle("bundle-full-singles.json")
-        sibling_urls = [
-            bundle[key]["url"]
-            for key in ("definition", "experience", "responseActions", "component",
-                        "theme", "references", "ontology", "registry")
-            if key in bundle
-        ]
-        assert bundle["id"] not in sibling_urls, (
+        assert bundle["id"] not in _all_sibling_urls(bundle), (
             "Bundle `id` MUST be distinct from any sibling URL"
+        )
+
+    def test_bundle_id_collision_with_sibling_url_rejected(self) -> None:
+        bundle = _bundle("invalid-id-equals-sibling-url.json")
+        assert bundle["id"] in _all_sibling_urls(bundle), (
+            "fixture must collide bundle `id` with a sibling URL"
         )
