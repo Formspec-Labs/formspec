@@ -47,6 +47,9 @@ class TestBundleManifestPositiveFixtures:
     def test_definition_only_validates(self) -> None:
         _validator().validate(_fixture_bundle("bundle-definition-only.json"))
 
+    def test_full_singles_validates(self) -> None:
+        _validator().validate(_fixture_bundle("bundle-full-singles.json"))
+
 
 class TestBundleManifestNegativeFixtures:
     def test_missing_definition_rejected(self) -> None:
