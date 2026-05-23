@@ -1,0 +1,489 @@
+{
+  "$formspecRegistry": "1.0",
+  "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
+  "publisher": {
+    "name": "Formspec Project",
+    "url": "https://formspec.org",
+    "contact": "extensions@formspec.org"
+  },
+  "published": "2026-03-02T00:00:00Z",
+  "entries": [
+    {
+      "name": "x-formspec-email",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Email address with RFC 5321 simplified validation. Extends string with a pattern that covers the vast majority of real-world addresses without rejecting uncommon but valid ones.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+        "maxLength": 254
+      },
+      "metadata": {
+        "inputMode": "email",
+        "autocomplete": "email",
+        "displayName": "Email address"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "contactEmail",
+          "dataType": "string",
+          "label": "Contact email",
+          "extensions": { "x-formspec-email": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-phone",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "International phone number in E.164 format (e.g. +14155551234). Stored as a string to preserve the leading plus sign and any leading zeros in country codes.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^\\+[1-9]\\d{1,14}$"
+      },
+      "metadata": {
+        "inputMode": "tel",
+        "autocomplete": "tel",
+        "displayName": "Phone number (E.164)"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "phone",
+          "dataType": "string",
+          "label": "Phone number",
+          "extensions": { "x-formspec-phone": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-phone-nanp",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "North American phone number in (###) ###-#### display format. For US/Canada/Caribbean forms where E.164 is unnecessarily strict. Stored with punctuation for human readability.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^\\([2-9]\\d{2}\\) [2-9]\\d{2}-\\d{4}$"
+      },
+      "metadata": {
+        "mask": "(###) ###-####",
+        "inputMode": "tel",
+        "autocomplete": "tel-national",
+        "displayName": "Phone number (US/CA)"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "officePhone",
+          "dataType": "string",
+          "label": "Office phone",
+          "extensions": { "x-formspec-phone-nanp": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-postal-code-us",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "US ZIP code in 5-digit or ZIP+4 format. Stored as string to preserve leading zeros (e.g. 01234).",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^\\d{5}(-\\d{4})?$"
+      },
+      "metadata": {
+        "inputMode": "numeric",
+        "autocomplete": "postal-code",
+        "displayName": "ZIP code"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "zipCode",
+          "dataType": "string",
+          "label": "ZIP code",
+          "extensions": { "x-formspec-postal-code-us": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-percentage",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Percentage value stored as a decimal number 0–100 (not 0–1). Renderers should display a '%' suffix. Precision defaults to 2 decimal places.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "decimal",
+      "constraints": {
+        "minimum": 0,
+        "maximum": 100
+      },
+      "metadata": {
+        "suffix": "%",
+        "precision": 2,
+        "displayName": "Percentage"
+      },
+      "examples": [
+        {
+          "type": "decimal",
+          "key": "indirectRate",
+          "dataType": "decimal",
+          "label": "Indirect cost rate",
+          "extensions": { "x-formspec-percentage": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-currency-usd",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "US Dollar amount stored as a non-negative decimal with 2-digit precision. For forms that always use USD and don't need the full money composite type.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "decimal",
+      "constraints": {
+        "minimum": 0
+      },
+      "metadata": {
+        "prefix": "$",
+        "precision": 2,
+        "thousandsSeparator": true,
+        "currencyCode": "USD",
+        "displayName": "US Dollars"
+      },
+      "examples": [
+        {
+          "type": "decimal",
+          "key": "salary",
+          "dataType": "decimal",
+          "label": "Annual salary",
+          "extensions": { "x-formspec-currency-usd": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-ssn",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "US Social Security Number in ###-##-#### format. Renderers should mask display (showing only last 4 digits) for privacy. Stored with hyphens.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^(?!000|666|9\\d{2})\\d{3}-(?!00)\\d{2}-(?!0000)\\d{4}$"
+      },
+      "metadata": {
+        "mask": "###-##-####",
+        "sensitive": true,
+        "displayMask": "***-**-{last4}",
+        "autocomplete": "off",
+        "displayName": "Social Security Number"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "ssn",
+          "dataType": "string",
+          "label": "Social Security Number",
+          "extensions": { "x-formspec-ssn": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-ein",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "US Employer Identification Number in ##-####### format.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^[0-9]{2}-[0-9]{7}$"
+      },
+      "metadata": {
+        "mask": "##-#######",
+        "displayName": "EIN"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "ein",
+          "dataType": "string",
+          "label": "Employer Identification Number",
+          "extensions": { "x-formspec-ein": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-credit-card",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Credit/debit card number stored as digits only (no spaces or hyphens). Renderers should format with spaces for readability. Validated by length (13–19 digits) and Luhn checksum.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^\\d{13,19}$"
+      },
+      "metadata": {
+        "sensitive": true,
+        "displayMask": "**** **** **** {last4}",
+        "inputMode": "numeric",
+        "autocomplete": "cc-number",
+        "displayName": "Card number"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "cardNumber",
+          "dataType": "string",
+          "label": "Card number",
+          "extensions": { "x-formspec-credit-card": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-color-hex",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Hex color code in #RRGGBB or #RGB format. Renderers may present a color picker.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+      },
+      "metadata": {
+        "inputType": "color",
+        "displayName": "Color"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "brandColor",
+          "dataType": "string",
+          "label": "Brand color",
+          "extensions": { "x-formspec-color-hex": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-slug",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "URL-safe slug: lowercase ASCII letters, digits, and hyphens. Must start and end with a letter or digit. Useful for identifiers, usernames, and URL paths.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "maxLength": 128
+      },
+      "metadata": {
+        "displayName": "Slug"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "projectSlug",
+          "dataType": "string",
+          "label": "Project URL slug",
+          "extensions": { "x-formspec-slug": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-ipv4",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "IPv4 address in dotted-decimal notation (e.g. 192.168.1.1). Pattern validates format; does not restrict to routable addresses.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$"
+      },
+      "metadata": {
+        "displayName": "IPv4 address"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "serverIp",
+          "dataType": "string",
+          "label": "Server IP address",
+          "extensions": { "x-formspec-ipv4": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-url",
+      "category": "dataType",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "HTTPS URL with domain validation. Pattern enforces https:// scheme, valid hostname labels, optional port, and optional path. Use a manual constraint with matches() if http:// is also needed.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "baseType": "string",
+      "constraints": {
+        "pattern": "^https://[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(?::[0-9]{1,5})?(?:/\\S*)?$",
+        "maxLength": 2048
+      },
+      "metadata": {
+        "inputMode": "url",
+        "displayName": "URL (HTTPS)"
+      },
+      "examples": [
+        {
+          "type": "string",
+          "key": "projectWebsite",
+          "dataType": "string",
+          "label": "Project website",
+          "extensions": { "x-formspec-url": true }
+        }
+      ]
+    },
+    {
+      "name": "x-formspec-luhn",
+      "category": "constraint",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Validates that a numeric string passes the Luhn checksum algorithm. Used for credit card numbers, IMEI numbers, Canadian SINs, and other identifiers that embed a check digit.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "string",
+          "description": "The numeric string to validate (digits only, no spaces or hyphens)."
+        }
+      ],
+      "examples": [
+        "x-formspec-luhn($cardNumber)"
+      ]
+    },
+    {
+      "name": "x-formspec-age",
+      "category": "function",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Calculates age in whole years from a birth date to today (or an optional reference date). Returns null if the birth date is in the future.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "parameters": [
+        {
+          "name": "birthDate",
+          "type": "date",
+          "description": "Date of birth in ISO 8601 format."
+        },
+        {
+          "name": "referenceDate",
+          "type": "date",
+          "description": "Optional reference date. Defaults to today() if omitted."
+        }
+      ],
+      "returns": "integer",
+      "examples": [
+        "x-formspec-age($dateOfBirth)",
+        "x-formspec-age($dateOfBirth, $applicationDate)"
+      ]
+    },
+    {
+      "name": "x-formspec-mask",
+      "category": "function",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Masks a string value for display, revealing only the last N characters and replacing the rest with a mask character. Useful for displaying partial SSNs, account numbers, etc.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "string",
+          "description": "The string to mask."
+        },
+        {
+          "name": "visibleChars",
+          "type": "integer",
+          "description": "Number of trailing characters to leave visible."
+        },
+        {
+          "name": "maskChar",
+          "type": "string",
+          "description": "Character to use for masking. Defaults to '*'."
+        }
+      ],
+      "returns": "string",
+      "examples": [
+        "x-formspec-mask($ssn, 4)",
+        "x-formspec-mask($accountNumber, 4, '•')"
+      ]
+    },
+    {
+      "name": "x-formspec-common",
+      "category": "namespace",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Namespace grouping the Formspec common extensions — widely useful data types, constraints, and functions that complement the core specification.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "members": [
+        "x-formspec-email",
+        "x-formspec-phone",
+        "x-formspec-phone-nanp",
+        "x-formspec-postal-code-us",
+        "x-formspec-percentage",
+        "x-formspec-currency-usd",
+        "x-formspec-ssn",
+        "x-formspec-ein",
+        "x-formspec-credit-card",
+        "x-formspec-color-hex",
+        "x-formspec-slug",
+        "x-formspec-ipv4",
+        "x-formspec-url",
+        "x-formspec-luhn",
+        "x-formspec-age",
+        "x-formspec-mask",
+        "x-formspec-plural-category"
+      ]
+    },
+    {
+      "name": "x-formspec-plural-category",
+      "category": "function",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "CLDR cardinal plural category function. Returns 'zero', 'one', 'two', 'few', 'many', or 'other' based on CLDR plural rules for the given count and locale. Required for languages with non-trivial plural forms (Arabic, Polish, Czech, etc.).",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "license": "Apache-2.0",
+      "parameters": [
+        { "name": "count", "type": "number", "description": "The numeric value to classify into a plural category." },
+        { "name": "locale", "type": "string", "description": "Optional BCP 47 locale code. When omitted, uses the active locale." }
+      ],
+      "returns": "string",
+      "metadata": {
+        "displayName": "Plural Category",
+        "categories": ["zero", "one", "two", "few", "many", "other"]
+      }
+    }
+  ]
+}

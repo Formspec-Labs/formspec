@@ -18,14 +18,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./common-registry": {
+      "types": "./dist/common-registry.d.ts",
+      "default": "./dist/common-registry.js"
     }
   },
   "sideEffects": false,
   "files": ["dist"],
   "scripts": {
     "codegen:component-props": "node ../../scripts/generate-component-schema-props.mjs",
-    "build": "npm run codegen:component-props && tsc",
-    "test": "vitest run",
+    "build": "npm run codegen:component-props && node ../../scripts/copy-common-registry.mjs && tsc",
+    "test": "node ../../scripts/copy-common-registry.mjs && vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {

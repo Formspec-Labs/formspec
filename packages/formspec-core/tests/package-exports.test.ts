@@ -34,13 +34,17 @@ function readPackageJson(): Record<string, unknown> {
 }
 
 describe('package export boundary', () => {
-  it('publishes only the package root', () => {
+  it('publishes root and common-registry subpaths', () => {
     const pkg = readPackageJson();
 
     expect(pkg.exports).toEqual({
       '.': {
         types: './dist/index.d.ts',
         default: './dist/index.js',
+      },
+      './common-registry': {
+        types: './dist/common-registry.d.ts',
+        default: './dist/common-registry.js',
       },
     });
     expect(pkg.sideEffects).toBe(false);
