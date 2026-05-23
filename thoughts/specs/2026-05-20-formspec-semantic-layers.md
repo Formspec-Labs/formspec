@@ -528,6 +528,7 @@ Formalize in this order:
 4. **ActionButton binding and Component reference additions.** Require `ActionButton.actionRef`, remove widget-local validation/event policy, and add `unitRef`, `taskRefs`, `conceptRefs`, and generation metadata as additive Component node metadata. **Fully landed:** [`specs/component/component-spec.md §5.19`](../../specs/component/component-spec.md) (2026-05-22, via [Component Action References plan](../plans/2026-05-22-component-action-references.md)) and [`specs/component/component-reference-fields-spec.md`](../../specs/component/component-reference-fields-spec.md) (2026-05-22, via [Component Reference Fields plan](../plans/2026-05-22-component-reference-fields.md)).
 5. **Regeneration merge and Studio review fixtures.** Define source anchors, generated markers, conflict severities, orphan handling, and review expectations. This may live with Component reference additions or as a small generation companion.
 6. **Trace query/cache spec.** Use Studio authoring and regeneration review as the first consumers unless a stronger consumer appears. Define predicates, source sets, input digests, stale-cache rejection, orphan status, coverage checks, and future verification semantics. **Draft landed:** [`specs/trace/trace-spec.md`](../../specs/trace/trace-spec.md) defines the v1 source set, identity tuples, digest model, eleven edge kinds, sixteen simple predicates plus `whatDependsOn(itemPath)`, stale-cache rejection, and Studio-review composition preconditions.
+7. **Bundle Manifest companion spec.** Define the author-facing composition envelope for Formspec forms: required `definition`, optional siblings, version pinning, absence semantics, and reference-graph relationship. **Landed:** [`specs/bundle/bundle-manifest-spec.md`](../../specs/bundle/bundle-manifest-spec.md) (draft, 2026-05-22).
 
 Each formal spec should include normative prose, JSON Schema, examples, semantic validation rules, conformance fixtures, generated-type impacts, downstream consumer impacts, and migration notes.
 
@@ -557,7 +558,7 @@ Drafting note: Trace v1 uses Definition, Experience, Response Actions, Component
 
 ### 11.5 Bundle Manifest
 
-The architecture needs an author-facing bundle concept or equivalent workflow. Without it, layer count will become an adoption blocker even if the layers are individually clean.
+The architecture needs an author-facing bundle concept or equivalent workflow. Without it, layer count will become an adoption blocker even if the layers are individually clean. **Resolved:** [`specs/bundle/bundle-manifest-spec.md`](../../specs/bundle/bundle-manifest-spec.md) defines a pure composition envelope: one Definition (required) plus optional siblings (Experience, Response Actions, Component, Theme, References, Ontology, Registry, locales[], mappings[]), coherent version pinning via the bundle's own SemVer, no inline sidecars, no synthesis on absence (concept §6.2 category error is avoided), and no shim on existing primary specs (forward composition adds to back-references; does not replace them).
 
 ---
 
