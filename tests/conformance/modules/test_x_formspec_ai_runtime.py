@@ -35,6 +35,7 @@ LEDGER_EVENT_SCHEMA = json.loads((SCHEMAS_DIR / "respondent-ledger-event.schema.
 
 MODULE_ID = "x-formspec-ai-runtime"
 COMMAND_EVENTS = ("ai.command-issued", "ai.command-completed", "ai.command-failed")
+SUGGESTION_EVENTS = ("ai.suggestion-offered", "ai.suggestion-accepted", "ai.suggestion-rejected")
 
 # The EventType third lane MUST admit ai.* values.
 EVENTTYPE_AI_USER_LANE_PATTERN = None
@@ -144,3 +145,43 @@ def test_contributes_names_all_resolve_within_document():
     sibling_names = {e["name"] for e in doc["entries"]}
     for name in entry["contributes"]:
         assert name in sibling_names
+
+
+# ── Suggestion family (Task 4.2) ─────────────────────────────────────
+
+
+def test_suggestion_family_cardinality_matches_baseline():
+    """Per ADR §8: suggestion family ships exactly 3 events."""
+    doc = _common_registry_doc()
+    entry = _get_entry(doc, MODULE_ID)
+    suggestion_contributions = [
+        c for c in entry["contributes"] if c.startswith(f"{MODULE_ID}-ai-suggestion-")
+    ]
+    assert len(suggestion_contributions) == 3
+
+
+@pytest.mark.parametrize("event", SUGGESTION_EVENTS)
+def test_suggestion_event_contribution_validates(event):
+    doc = _common_registry_doc()
+    name = f"{MODULE_ID}-{event.replace('.', '-')}"
+    entry = _get_entry(doc, name)
+    assert entry is not None, f"missing {name}"
+    assert entry["category"] == "property"
+    _entry_validator().validate(entry)
+
+
+@pytest.mark.parametrize("event", SUGGESTION_EVENTS)
+def test_suggestion_event_carries_dotted_kind_value(event):
+    doc = _common_registry_doc()
+    name = f"{MODULE_ID}-{event.replace('.', '-')}"
+    entry = _get_entry(doc, name)
+    ext = entry.get("extensions", {})
+    assert ext.get("x-formspec-kind-value") == event
+
+
+@pytest.mark.parametrize("event", SUGGESTION_EVENTS)
+def test_suggestion_event_value_matches_ai_lane_pattern(event):
+    assert EVENTTYPE_AI_USER_LANE_PATTERN is not None
+    assert re.match(EVENTTYPE_AI_USER_LANE_PATTERN, event), (
+        f"Event {event!r} does not match the EventType ^(ai|user)\\. lane pattern"
+    )

@@ -3059,7 +3059,10 @@
       "contributes": [
         "x-formspec-ai-runtime-ai-command-issued",
         "x-formspec-ai-runtime-ai-command-completed",
-        "x-formspec-ai-runtime-ai-command-failed"
+        "x-formspec-ai-runtime-ai-command-failed",
+        "x-formspec-ai-runtime-ai-suggestion-offered",
+        "x-formspec-ai-runtime-ai-suggestion-accepted",
+        "x-formspec-ai-runtime-ai-suggestion-rejected"
       ]
     },
     {
@@ -3102,6 +3105,48 @@
       "license": "Apache-2.0",
       "extensions": {
         "x-formspec-kind-value": "ai.command-failed"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-suggestion-offered",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.suggestion-offered` per ADR 0150 \u00a78 (suggestion family). An AI agent has proposed a change. Payload carries the suggested mutation set (typically a ChangeSet preview) that the user MAY accept or reject. Forms the offered-side of the suggestion lifecycle. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.suggestion-offered` preserved verbatim in extensions['x-formspec-kind-value'] for AI-tooling resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.suggestion-offered"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-suggestion-accepted",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.suggestion-accepted` per ADR 0150 \u00a78 (suggestion family). The user has accepted a previously-offered AI suggestion. Payload carries replyToEventId pointing at the ai.suggestion-offered event. Triggers materialization of the suggested changes through the kernel. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.suggestion-accepted` preserved verbatim in extensions['x-formspec-kind-value'] for AI-tooling resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.suggestion-accepted"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-suggestion-rejected",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.suggestion-rejected` per ADR 0150 \u00a78 (suggestion family). The user has rejected a previously-offered AI suggestion. Payload carries replyToEventId; the suggested changes are discarded (no kernel mutation). Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.suggestion-rejected` preserved verbatim in extensions['x-formspec-kind-value'] for AI-tooling resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.suggestion-rejected"
       }
     }
   ]
