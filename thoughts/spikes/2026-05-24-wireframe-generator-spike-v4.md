@@ -41,7 +41,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F7 | Data Sources need a spec, not widget payload folklore | Passing spike-local prototype | Pending final |
 | F8 | Response Actions should remain the only action executor | Passing spike-local prototype | Pending final |
 | F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Passing spike-local prototype | Pending final |
-| F10 | Authorization remains ADR 0152 work | Planned | Pending |
+| F10 | Authorization remains ADR 0152 work | Passing spike-local boundary check | Pending final |
 
 ## P0/P1/P2 Tracker
 
@@ -60,7 +60,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P2 | Define module-aware Locale ownership and collision behavior | Passing spike-local F9 proof |
 | P2 | Define responsive and a11y route policy | Passing spike-local F9 proof |
 | P2 | Define Theme token-slot contracts for module widgets | Passing spike-local F9 proof |
-| P2 | Carry ADR 0152 authorization into the graph only after ratification | Planned as boundary check |
+| P2 | Carry ADR 0152 authorization into the graph only after ratification | Passing spike-local F10 boundary check |
 
 ## Acceptance Test Tracker
 
@@ -254,6 +254,22 @@ Verification on 2026-05-24:
 
 The negative harness now covers schema-invalid UI policy, UI Policy targeting the wrong Surface, missing module Locale key ownership, module Locale key owner collision, missing route policy coverage, responsive collapse references to missing slots, and Theme assignments to undeclared widget token slots.
 
+### F10 - Authorization Boundary
+
+F10 keeps authorization out of the spike except for the two checks v3 already proved: session membership and binary `posture.allowedActors` admission. The app graph now rejects fine-grained authorization fields on Surface payloads, Response Actions, and Posture. Generated Components also reject authorization metadata in the generated bundle validator.
+
+Runtime still checks that the plan actor belongs to the active session, that the plan actor is admitted by `posture.allowedActors`, and that action invocation actors are both posture-admitted and session members. It does not add route, widget, action, host-policy, or audit-vocabulary authorization semantics.
+
+This is a boundary proof, not an ADR 0152 design. The production lesson is that the app graph should have an explicit seam where ADR 0152 policy will attach later; until then, fine-grained policy fields should fail rather than become accidental contracts.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers Surface, Response Actions, Posture, and Component attempts to introduce fine-grained authorization fields. Runtime coverage includes actor-not-in-session, posture-denied plan actor, and action actor not in session.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
@@ -264,8 +280,8 @@ The negative harness now covers schema-invalid UI policy, UI Policy targeting th
 6. Promote Data Sources as their own prose contract before production code. Do not let widget payloads define source semantics. The contract should name source families, cache/staleness rules, failure modes, provenance, and authorization boundary behavior.
 7. Keep Response Actions as the only executor. Surface and Component contracts should name triggers and targets; they should not own validation, blocking, effects, durable idempotency, replay, retry, or terminal state.
 8. Treat Locale ownership, route a11y/responsive policy, and Theme token slots as graph contracts. Production should not leave module Locale collisions, keyboard navigation, responsive collapse behavior, or widget token-slot targeting to renderer convention.
-9. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
-10. Add the remaining negative cases before any production wiring: EC2/EC5/EC12. F3 through F9 already cover embedded Surface route refs, missing transition params, duplicate Response Actions action ids, generated Component id collision, module version conflict, ambiguous runtime Response ownership, module-widget payload mismatch, module Locale ownership collision, and undeclared Theme token slots.
+9. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 proves that fine-grained policy fields should fail in Surface, Response Actions, Posture, and generated Components until ADR 0152 supplies the contract.
+10. Add the remaining negative cases before any production wiring: EC2/EC5/EC12. F3 through F10 already cover embedded Surface route refs, missing transition params, duplicate Response Actions action ids, generated Component id collision, module version conflict, ambiguous runtime Response ownership, module-widget payload mismatch, module Locale ownership collision, undeclared Theme token slots, and fine-grained authorization boundary violations.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 

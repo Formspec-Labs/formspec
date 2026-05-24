@@ -50,6 +50,26 @@ export type CoherenceReport = {
   issues: CoherenceIssue[];
 };
 
+const DEFERRED_AUTHORIZATION_KEYS = new Set([
+  "authorization",
+  "authz",
+  "policyRef",
+  "permissions",
+  "accessPolicy",
+  "allowedActors",
+]);
+
+const DEFERRED_POSTURE_AUTHORIZATION_KEYS = new Set([
+  "authorization",
+  "authz",
+  "routePolicies",
+  "widgetPolicies",
+  "actionPolicies",
+  "policyInputs",
+  "accessPolicy",
+  "permissions",
+]);
+
 type ActionSidecarRef = {
   url: string;
   version?: string;
@@ -69,6 +89,27 @@ function issue(
   message: string,
 ): void {
   issues.push({ severity, code, path, message });
+}
+
+function scanDeferredAuthorization(
+  value: unknown,
+  issues: CoherenceIssue[],
+  code: string,
+  path: string,
+  keys: Set<string> = DEFERRED_AUTHORIZATION_KEYS,
+): void {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => scanDeferredAuthorization(entry, issues, code, `${path}[${index}]`, keys));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    const childPath = `${path}.${key}`;
+    if (keys.has(key)) {
+      issue(issues, "error", code, childPath, `Fine-grained authorization field '${key}' is deferred to ADR 0152 and must not be introduced by this spike.`);
+    }
+    scanDeferredAuthorization(child, issues, code, childPath, keys);
+  }
 }
 
 function refsByUrl<T extends { url: string }>(items: T[]): Map<string, T> {
@@ -211,6 +252,7 @@ export function validateAppCoherence(inputs: GeneratorInputs, ajv: Ajv2020): Coh
   validateTransitionActionRefs(inputs, issues, sidecarsByDefinition);
   validateDataSources(inputs, issues);
   validateUiPolicy(inputs, issues, registry);
+  validateAuthorizationBoundary(inputs, issues);
   validateScreenerTargets(inputs, issues);
 
   return report(inputs, issues);
@@ -639,6 +681,14 @@ function validateThemeTokenAssignments(issues: CoherenceIssue[], registry: Regis
   }
 }
 
+function validateAuthorizationBoundary(inputs: GeneratorInputs, issues: CoherenceIssue[]): void {
+  scanDeferredAuthorization(inputs.surface, issues, "AUTHORIZATION-ADR0152-DEFERRED", "$.surface");
+  inputs.responseActions.forEach((sidecar, index) =>
+    scanDeferredAuthorization(sidecar, issues, "AUTHORIZATION-ADR0152-DEFERRED", `$.responseActions[${index}]`),
+  );
+  scanDeferredAuthorization(inputs.posture, issues, "AUTHORIZATION-ADR0152-DEFERRED", "$.posture", DEFERRED_POSTURE_AUTHORIZATION_KEYS);
+}
+
 function validateScreenerTargets(inputs: GeneratorInputs, issues: CoherenceIssue[]): void {
   if (!inputs.screener) return;
   const routeIds = new Set(inputs.surface.routes.map((route) => route.id));
@@ -659,6 +709,7 @@ export function validateComponentBundle(bundle: MultiRouteBundle): CoherenceIssu
   const issues: CoherenceIssue[] = [];
   const ids = new Map<string, string>();
   for (const route of bundle.routes) {
+    scanDeferredAuthorization(route.doc, issues, "COMP-AUTHORIZATION-DEFERRED", `component:${route.id}`);
     validateRouteComponentIdentity(route, issues);
     walkComponent(route.doc.tree, `component:${route.id}`, (node, path) => {
       const id = node.id;

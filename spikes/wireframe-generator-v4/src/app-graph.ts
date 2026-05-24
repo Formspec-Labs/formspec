@@ -51,6 +51,26 @@ type SourceArtifact = {
   doc: unknown;
 };
 
+const DEFERRED_AUTHORIZATION_KEYS = new Set([
+  "authorization",
+  "authz",
+  "policyRef",
+  "permissions",
+  "accessPolicy",
+  "allowedActors",
+]);
+
+const DEFERRED_POSTURE_AUTHORIZATION_KEYS = new Set([
+  "authorization",
+  "authz",
+  "routePolicies",
+  "widgetPolicies",
+  "actionPolicies",
+  "policyInputs",
+  "accessPolicy",
+  "permissions",
+]);
+
 const IDS = {
   appManifest: "https://formspec.org/spikes/wireframe-generator-v4/app-manifest/0.1",
   registry: "https://formspec.org/schemas/registry/v1.0/registry.json",
@@ -162,6 +182,38 @@ function surfaceIssue(issue: CoherenceIssue): AppGraphIssue {
   };
 }
 
+function authorizationIssue(path: string, key: string): AppGraphIssue {
+  return {
+    phase: "coherence",
+    label: "App Graph",
+    severity: "error",
+    code: "AUTHORIZATION-ADR0152-DEFERRED",
+    path,
+    message: `Fine-grained authorization field '${key}' is deferred to ADR 0152 and must not be introduced by this spike.`,
+  };
+}
+
+function scanDeferredAuthorization(value: unknown, path: string, keys: Set<string>): AppGraphIssue[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) => scanDeferredAuthorization(entry, `${path}[${index}]`, keys));
+  }
+  if (!value || typeof value !== "object") return [];
+  return Object.entries(value).flatMap(([key, child]) => {
+    const childPath = `${path}.${key}`;
+    const current = keys.has(key) ? [authorizationIssue(childPath, key)] : [];
+    return [...current, ...scanDeferredAuthorization(child, childPath, keys)];
+  });
+}
+
+function authorizationBoundaryIssues(inputs: GeneratorInputs): AppGraphIssue[] {
+  return [
+    ...inputs.responseActions.flatMap((sidecar, index) =>
+      scanDeferredAuthorization(sidecar, `$.responseActions[${index}]`, DEFERRED_AUTHORIZATION_KEYS),
+    ),
+    ...scanDeferredAuthorization(inputs.posture, "$.posture", DEFERRED_POSTURE_AUTHORIZATION_KEYS),
+  ];
+}
+
 function emptyCoherenceReport(): CoherenceReport {
   return {
     ok: false,
@@ -183,6 +235,7 @@ export function validateAppGraph(inputs: GeneratorInputs, ajv: Ajv2020): AppGrap
   const schemaFailures = schemas.filter((result) => !result.ok).length;
   const surfaceIssues = schemaFailures === 0 ? validateSurfaceContract(inputs.surface) : [];
   const coherence = schemaFailures === 0 ? validateAppCoherence(inputs, ajv) : emptyCoherenceReport();
+  const preSchemaBoundaryIssues = authorizationBoundaryIssues(inputs);
   const skippedCoherence: AppGraphIssue[] = schemaFailures === 0
     ? []
     : [{
@@ -193,7 +246,7 @@ export function validateAppGraph(inputs: GeneratorInputs, ajv: Ajv2020): AppGrap
         path: "$",
         message: "Coherence validation skipped because one or more source artifacts failed schema validation.",
       }];
-  const issues = [...schemaIssues(schemas), ...surfaceIssues.map(surfaceIssue), ...coherence.issues.map(coherenceIssue), ...skippedCoherence];
+  const issues = [...schemaIssues(schemas), ...preSchemaBoundaryIssues, ...surfaceIssues.map(surfaceIssue), ...coherence.issues.map(coherenceIssue), ...skippedCoherence];
   const surfaceErrors = surfaceIssues.filter((issue) => issue.severity === "error").length;
   return {
     ok: schemaFailures === 0 && surfaceErrors === 0 && coherence.ok,

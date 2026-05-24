@@ -316,6 +316,27 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 
 {
   const inputs = clone(base);
+  firstShellSlot(inputs).payload = {
+    ...(firstShellSlot(inputs).payload ?? {}),
+    authorization: { allowedActors: ["legalUser"] },
+  };
+  assertIssue("Surface authorization remains ADR 0152", inputs, "AUTHORIZATION-ADR0152-DEFERRED");
+}
+
+{
+  const inputs = clone(base);
+  (inputs.responseActions[0].actions[0] as unknown as { authorization?: unknown }).authorization = { policyRef: "policy:new-matter" };
+  assertIssue("Response Action authorization remains ADR 0152", inputs, "AUTHORIZATION-ADR0152-DEFERRED");
+}
+
+{
+  const inputs = clone(base);
+  (inputs.posture as unknown as { routePolicies?: unknown }).routePolicies = [{ routeId: "home", allowedActors: ["legalUser"] }];
+  assertIssue("Posture fine-grained authorization remains ADR 0152", inputs, "AUTHORIZATION-ADR0152-DEFERRED");
+}
+
+{
+  const inputs = clone(base);
   inputs.responseActions[1].actions[0].id = inputs.responseActions[0].actions[0].id;
   assertIssue("duplicate Response Actions action id", inputs, "RESPONSE-ACTIONS-ACTION-ID-COLLISION");
 }
@@ -549,10 +570,40 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 }
 
 {
+  const bundle = generateBundle(clone(base));
+  bundle.routes[0].doc.tree.extensions = {
+    ...((bundle.routes[0].doc.tree.extensions as Record<string, unknown> | undefined) ?? {}),
+    authorization: { allowedActors: ["legalUser"] },
+  };
+  assertComponentIssue("Component authorization remains ADR 0152", bundle, "COMP-AUTHORIZATION-DEFERRED");
+}
+
+{
   const plan = clone(baseRuntimePlan);
   const draft = plan.commands.find((command) => command.type === "draft" && command.definitionRef === "new-matter");
   if (draft?.type === "draft") delete draft.response.clientName;
   assertRuntimeIssue("runtime required field blocking", clone(base), plan, "RUNTIME-VALIDATION-BLOCKED");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  plan.actor = "urn:formspec:actor:human:outside-counsel";
+  assertRuntimeIssue("runtime actor must belong to session", clone(base), plan, "RUNTIME-SESSION-ACTOR");
+}
+
+{
+  const inputs = clone(base);
+  inputs.posture!.allowedActors = inputs.posture!.allowedActors?.filter((actor) => actor !== baseRuntimePlan.actor);
+  assertRuntimeIssue("runtime actor must be posture-admitted", inputs, clone(baseRuntimePlan), "RUNTIME-ACTOR-DENIED");
+}
+
+{
+  const inputs = clone(base);
+  inputs.posture!.allowedActors = [...(inputs.posture!.allowedActors ?? []), "urn:formspec:actor:human:outside-counsel"];
+  const plan = clone(baseRuntimePlan);
+  const invoke = plan.commands.find((command) => command.type === "invokeAction" && command.definitionRef === "new-matter");
+  if (invoke?.type === "invokeAction") invoke.actor = "urn:formspec:actor:human:outside-counsel";
+  assertRuntimeIssue("runtime action actor must belong to session", inputs, plan, "RUNTIME-ACTION-ACTOR-NOT-IN-SESSION");
 }
 
 {
