@@ -1601,6 +1601,319 @@
         "widgetCategory": "container",
         "fallback": "Collapsible"
       }
+    },
+    {
+      "name": "x-formspec-core-trace",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Trace closed-cores (5 SourceEntry.kind + 11 EdgeEntry.kind + 9 TypedEndpoint prefixes) republished as Registry property contributions per ADR 0150 \u00a74.9. Validation flows through schemas/trace-index.schema.json `oneOf [closed-core, x-pattern]` lanes (post-P0 Task 5); Registry contributions are descriptive metadata for posture admission and AI tooling.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-trace-source-kind-definition",
+        "x-formspec-core-trace-source-kind-experience",
+        "x-formspec-core-trace-source-kind-response-actions",
+        "x-formspec-core-trace-source-kind-component",
+        "x-formspec-core-trace-source-kind-ontology",
+        "x-formspec-core-trace-edge-kind-component-renders-item",
+        "x-formspec-core-trace-edge-kind-unit-collects-item",
+        "x-formspec-core-trace-edge-kind-trigger-invokes-action",
+        "x-formspec-core-trace-edge-kind-item-depends-on-item",
+        "x-formspec-core-trace-edge-kind-unit-serves-task",
+        "x-formspec-core-trace-edge-kind-task-involves-actor",
+        "x-formspec-core-trace-edge-kind-action-emits-effect",
+        "x-formspec-core-trace-edge-kind-action-has-precondition",
+        "x-formspec-core-trace-edge-kind-concept-refs-item",
+        "x-formspec-core-trace-edge-kind-concept-refs-component-node",
+        "x-formspec-core-trace-edge-kind-node-visibility-references-item",
+        "x-formspec-core-trace-endpoint-prefix-item",
+        "x-formspec-core-trace-endpoint-prefix-unit",
+        "x-formspec-core-trace-endpoint-prefix-task",
+        "x-formspec-core-trace-endpoint-prefix-actor",
+        "x-formspec-core-trace-endpoint-prefix-action",
+        "x-formspec-core-trace-endpoint-prefix-concept",
+        "x-formspec-core-trace-endpoint-prefix-effect",
+        "x-formspec-core-trace-endpoint-prefix-precondition",
+        "x-formspec-core-trace-endpoint-prefix-component-node-path"
+      ]
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-definition",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `definition` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-experience",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `experience` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-response-actions",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `responseActions` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-component",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `component` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-ontology",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `ontology` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-component-renders-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `component-renders-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-unit-collects-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `unit-collects-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-trigger-invokes-action",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `trigger-invokes-action` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-item-depends-on-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `item-depends-on-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-unit-serves-task",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `unit-serves-task` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-task-involves-actor",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `task-involves-actor` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-action-emits-effect",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `action-emits-effect` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-action-has-precondition",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `action-has-precondition` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-concept-refs-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `concept-refs-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-concept-refs-component-node",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `concept-refs-component-node` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-node-visibility-references-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `node-visibility-references-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-unit",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `unit` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-task",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `task` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-actor",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `actor` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-action",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `action` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-concept",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `concept` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-effect",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `effect` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-precondition",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `precondition` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-component-node-path",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `componentNodePath` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
     }
   ]
 }
