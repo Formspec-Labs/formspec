@@ -111,6 +111,21 @@
           "description": "When true, external timestamping authority receipt is required."
         }
       }
+    },
+    "allowedModules": {
+      "type": "array",
+      "items": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef" },
+      "description": "Deployment allowlist of modules admitted by this posture. Admission rule per ADR 0150 §4.4: every field present on the posture entry MUST equal the corresponding field on the document's `modules[]` entry; fields absent on the posture entry admit any value on the document side. A posture entry `{id, version}` admits any document entry with the same id+version regardless of publisher/lockHash; a posture entry `{id, version, lockHash}` requires byte-identical lockHash on the document side. This is the seam that closes hostile-substitution risk: bare URN allowlists admit any module reusing the URN, but `{id, version, lockHash}` pins what the bytes must look like.",
+      "x-lm": { "critical": true, "intent": "Field-equality admission — every present posture field must equal the corresponding document field; absent fields admit any value. Pinning lockHash closes hostile-substitution risk." }
+    },
+    "allowedActors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^urn:formspec:actor:.+"
+      },
+      "description": "Deployment allowlist of authoring-identity URNs admitted by this posture. Per ADR 0150 §5.4: actor admission is binary (allowed / not), not provenance-pinned the way modules are — a flat URN list, not a ModuleRef shape. A deployment refuses authoring acts from actors whose URN isn't in the allowlist.",
+      "x-lm": { "critical": true, "intent": "Binary actor admission — URN present in list admits the act; URN absent refuses it. URN pattern enforces `urn:formspec:actor:` prefix; product nuance (kind, channel) rides URN-encoded in the id segment." }
     }
   }
 }
