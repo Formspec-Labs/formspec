@@ -1,0 +1,20 @@
+{
+  "name": "formspec-wireframe-generator-spike-v2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Spike v2: derive ADR-0150 layered UI substrate wireframes from App Manifest, Surface, Registry, Experience, Response Actions, and per-view Definitions",
+  "type": "module",
+  "scripts": {
+    "spike": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
+

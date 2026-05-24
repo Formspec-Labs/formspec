@@ -1,0 +1,49 @@
+{
+  "$formspec": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" }
+  ],
+  "url": "https://lexassist.example/forms/profile",
+  "version": "1.0.0",
+  "status": "draft",
+  "name": "profile",
+  "title": "Profile",
+  "description": "Captures profile preferences as a small standalone form view.",
+  "date": "2026-05-23",
+  "items": [
+    {
+      "key": "displayName",
+      "type": "field",
+      "label": "Display name",
+      "dataType": "string"
+    },
+    {
+      "key": "role",
+      "type": "field",
+      "label": "Role",
+      "dataType": "choice",
+      "options": [
+        { "value": "partner", "label": "Partner" },
+        { "value": "associate", "label": "Associate" },
+        { "value": "paralegal", "label": "Paralegal" }
+      ]
+    },
+    {
+      "key": "notificationDigest",
+      "type": "field",
+      "label": "Notification digest",
+      "dataType": "choice",
+      "options": [
+        { "value": "realtime", "label": "Realtime" },
+        { "value": "hourly", "label": "Hourly" },
+        { "value": "daily", "label": "Daily" }
+      ]
+    }
+  ],
+  "binds": [
+    { "path": "displayName", "required": "true" },
+    { "path": "role", "required": "true" },
+    { "path": "notificationDigest", "required": "true" }
+  ]
+}

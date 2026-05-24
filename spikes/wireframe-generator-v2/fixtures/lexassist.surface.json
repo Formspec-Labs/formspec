@@ -1,0 +1,401 @@
+{
+  "$formspecSurface": "0.1-spike-v2",
+  "url": "https://lexassist.example/surfaces/workbench",
+  "version": "1.0.0",
+  "modules": [
+    { "id": "x-formspec-surface", "version": "^0.1.0" },
+    { "id": "x-formspec-presentation", "version": "^0.1.0" },
+    { "id": "x-formspec-conversation", "version": "^0.1.0" },
+    { "id": "x-formspec-document-viewer", "version": "^0.1.0" },
+    { "id": "x-formspec-ai-runtime", "version": "^0.1.0" }
+  ],
+  "description": "ADR-0150 Surface route graph for the LexAssist app shell.",
+  "appName": "LexAssist",
+  "appTagline": "Layered legal workspace generated from Formspec substrate artifacts.",
+  "targetExperience": {
+    "url": "https://lexassist.example/experiences/workbench",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "nav": [
+    { "label": "Home", "path": "/" },
+    { "label": "Matters", "path": "/m/acme" },
+    { "label": "Playbooks", "path": "/playbooks" },
+    { "label": "Library", "path": "/library" },
+    { "label": "Profile", "path": "/profile" }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "label": "Home",
+      "default": true,
+      "layout": "shell-with-main",
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "static-content",
+            "content": {
+              "heading": "Matter workbench",
+              "body": "This route combines non-form presentation units with one small form-capable slot."
+            }
+          },
+          {
+            "type": "experience-unit",
+            "unitRef": "matterGallery"
+          },
+          {
+            "type": "definition-form",
+            "definitionRef": "new-matter",
+            "unitRef": "newMatterForm"
+          }
+        ]
+      },
+      "transitions": [
+        { "on": "saveNewMatter", "to": "matter", "params": { "matterId": "createdMatterId" } }
+      ]
+    },
+    {
+      "id": "matter",
+      "path": "/m/:matterId",
+      "label": "Matter overview",
+      "layout": "shell-with-three-pane",
+      "params": [
+        { "name": "matterId", "type": "string", "example": "acme" }
+      ],
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "left": [
+          {
+            "type": "experience-unit",
+            "unitRef": "matterThreadList"
+          }
+        ],
+        "main": [
+          {
+            "type": "experience-unit",
+            "unitRef": "matterActivity"
+          }
+        ],
+        "right": [
+          {
+            "type": "experience-unit",
+            "unitRef": "matterHelper"
+          }
+        ]
+      },
+      "transitions": [
+        { "on": "openThread", "to": "thread", "params": { "matterId": "matterId", "threadId": "threadId" } },
+        { "on": "openDocument", "to": "doc-viewer", "params": { "matterId": "matterId", "docId": "docId" } }
+      ]
+    },
+    {
+      "id": "thread",
+      "path": "/m/:matterId/t/:threadId",
+      "label": "Thread",
+      "layout": "shell-with-three-pane",
+      "params": [
+        { "name": "matterId", "type": "string", "example": "acme" },
+        { "name": "threadId", "type": "string", "example": "demand-response" }
+      ],
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "left": [
+          {
+            "type": "experience-unit",
+            "unitRef": "matterThreadList"
+          }
+        ],
+        "main": [
+          {
+            "type": "experience-unit",
+            "unitRef": "conversationHistory"
+          },
+          {
+            "type": "definition-form",
+            "definitionRef": "thread-composer",
+            "unitRef": "threadComposer"
+          }
+        ],
+        "right": [
+          {
+            "type": "experience-unit",
+            "unitRef": "matterHelper"
+          }
+        ]
+      }
+    },
+    {
+      "id": "doc-viewer",
+      "path": "/m/:matterId/doc/:docId",
+      "label": "Document viewer",
+      "layout": "shell-with-three-pane",
+      "params": [
+        { "name": "matterId", "type": "string", "example": "acme" },
+        { "name": "docId", "type": "string", "example": "supply-agreement" }
+      ],
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "left": [
+          {
+            "type": "experience-unit",
+            "unitRef": "matterThreadList"
+          }
+        ],
+        "main": [
+          {
+            "type": "experience-unit",
+            "unitRef": "docViewer"
+          }
+        ],
+        "right": [
+          {
+            "type": "experience-unit",
+            "unitRef": "citationList"
+          },
+          {
+            "type": "embed-route",
+            "title": "Related discussion",
+            "routeRef": "thread"
+          }
+        ]
+      }
+    },
+    {
+      "id": "playbooks",
+      "path": "/playbooks",
+      "label": "Playbooks",
+      "layout": "shell-with-main",
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "static-content",
+            "content": {
+              "heading": "Reusable playbooks",
+              "body": "A pure non-form route. It uses Surface composition and Experience units without a Definition."
+            }
+          },
+          {
+            "type": "experience-unit",
+            "unitRef": "playbookGallery"
+          }
+        ]
+      },
+      "transitions": [
+        { "on": "runPlaybook", "to": "playbook-runner" }
+      ]
+    },
+    {
+      "id": "playbook-runner",
+      "path": "/playbooks/:playbookId/run",
+      "label": "Run playbook",
+      "layout": "shell-with-three-pane",
+      "params": [
+        { "name": "playbookId", "type": "string", "example": "demand-response" }
+      ],
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "left": [
+          {
+            "type": "experience-unit",
+            "unitRef": "playbookGallery"
+          }
+        ],
+        "main": [
+          {
+            "type": "definition-form",
+            "definitionRef": "playbook-runner",
+            "unitRef": "playbookRunnerForm"
+          }
+        ],
+        "right": [
+          {
+            "type": "experience-unit",
+            "unitRef": "playbookProgress"
+          }
+        ]
+      }
+    },
+    {
+      "id": "library",
+      "path": "/library",
+      "label": "Library",
+      "layout": "shell-with-three-pane",
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "left": [
+          {
+            "type": "experience-unit",
+            "unitRef": "citationList"
+          }
+        ],
+        "main": [
+          {
+            "type": "definition-form",
+            "definitionRef": "library-settings",
+            "unitRef": "librarySettingsForm"
+          }
+        ],
+        "right": [
+          {
+            "type": "experience-unit",
+            "unitRef": "libraryAudit"
+          }
+        ]
+      }
+    },
+    {
+      "id": "profile",
+      "path": "/profile",
+      "label": "Profile",
+      "layout": "shell-with-main",
+      "slots": {
+        "shell": [
+          {
+            "type": "module-widget",
+            "title": "Application shell",
+            "widgetRef": "x-formspec-presentation-shell",
+            "payload": {
+              "appName": "LexAssist",
+              "appTagline": "Layered legal workspace",
+              "nav": [
+                { "label": "Home", "path": "/" },
+                { "label": "Matters", "path": "/m/acme" },
+                { "label": "Playbooks", "path": "/playbooks" },
+                { "label": "Library", "path": "/library" },
+                { "label": "Profile", "path": "/profile" }
+              ]
+            }
+          }
+        ],
+        "main": [
+          {
+            "type": "definition-form",
+            "definitionRef": "profile",
+            "unitRef": "profileForm"
+          }
+        ]
+      }
+    }
+  ]
+}

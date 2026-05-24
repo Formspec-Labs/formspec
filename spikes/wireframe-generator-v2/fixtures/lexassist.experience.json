@@ -1,0 +1,373 @@
+{
+  "$formspecExperience": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-presentation", "version": "^0.1.0" },
+    { "id": "x-formspec-conversation", "version": "^0.1.0" },
+    { "id": "x-formspec-document-viewer", "version": "^0.1.0" },
+    { "id": "x-formspec-ai-runtime", "version": "^0.1.0" }
+  ],
+  "version": "1.0.0",
+  "name": "lexassist-workbench",
+  "title": "LexAssist workbench experience",
+  "description": "Task and unit layer shared by the LexAssist Surface route graph.",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/new-matter",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actors": [
+    {
+      "id": "legalUser",
+      "title": "Legal user"
+    },
+    {
+      "id": "assistantAgent",
+      "title": "AI assistant"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "openMatter",
+      "title": "Open a matter",
+      "actorRefs": ["legalUser"]
+    },
+    {
+      "id": "reviewMatter",
+      "title": "Review matter context",
+      "actorRefs": ["legalUser", "assistantAgent"]
+    },
+    {
+      "id": "composeThread",
+      "title": "Compose a thread message",
+      "actorRefs": ["legalUser", "assistantAgent"]
+    },
+    {
+      "id": "inspectDocument",
+      "title": "Inspect document evidence",
+      "actorRefs": ["legalUser", "assistantAgent"]
+    },
+    {
+      "id": "runPlaybook",
+      "title": "Run a playbook",
+      "actorRefs": ["legalUser", "assistantAgent"]
+    },
+    {
+      "id": "configureWorkspace",
+      "title": "Configure workspace",
+      "actorRefs": ["legalUser"]
+    }
+  ],
+  "units": [
+    {
+      "id": "matterGallery",
+      "kind": "x-formspec-presentation-gallery-unit",
+      "title": "Open matters",
+      "description": "Recent matters and suggested next work.",
+      "actorRef": "legalUser",
+      "taskRefs": ["reviewMatter"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-gallery",
+          "payload": {
+            "cards": [
+              { "title": "Acme supply agreement", "subtitle": "2 open threads", "badge": "Active" },
+              { "title": "Hawthorne employment review", "subtitle": "Draft response due Friday", "badge": "Due" },
+              { "title": "Northstar diligence", "subtitle": "14 uploaded authorities", "badge": "Review" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "newMatterForm",
+      "kind": "data-entry",
+      "title": "Create new matter",
+      "description": "Small form embedded on the home route.",
+      "actorRef": "legalUser",
+      "taskRefs": ["openMatter"],
+      "itemRefs": [
+        { "path": "matterTitle" },
+        { "path": "clientName" },
+        { "path": "jurisdiction" },
+        { "path": "matterType" },
+        { "path": "intakeSummary" }
+      ],
+      "actionRefs": [
+        { "id": "saveNewMatter", "role": "primary" }
+      ],
+      "extensions": {
+        "x-formspec-ai": {
+          "fillable": true,
+          "providerHint": "intake-draft",
+          "prompt": "Suggest an intake summary and matter type from the user's notes."
+        }
+      }
+    },
+    {
+      "id": "matterThreadList",
+      "kind": "x-formspec-presentation-list-unit",
+      "title": "Matter threads",
+      "actorRef": "legalUser",
+      "taskRefs": ["reviewMatter"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-result-list",
+          "payload": {
+            "rows": [
+              { "icon": "#", "primary": "Demand response", "secondary": "3 new citations" },
+              { "icon": "#", "primary": "Contract redlines", "secondary": "Waiting on upload" },
+              { "icon": "#", "primary": "Factual timeline", "secondary": "AI summary ready" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "matterActivity",
+      "kind": "x-formspec-presentation-list-unit",
+      "title": "Matter activity",
+      "actorRef": "legalUser",
+      "taskRefs": ["reviewMatter"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-result-list",
+          "payload": {
+            "rows": [
+              { "icon": "*", "primary": "New authority added", "secondary": "Fifth Circuit standing memo" },
+              { "icon": "*", "primary": "Playbook step completed", "secondary": "Demand response checklist" },
+              { "icon": "*", "primary": "Assistant drafted issue outline", "secondary": "Needs review" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "matterHelper",
+      "kind": "x-formspec-presentation-helper-unit",
+      "title": "Assistant carry-points",
+      "actorRef": "assistantAgent",
+      "taskRefs": ["reviewMatter", "composeThread"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-helper",
+          "payload": {
+            "helper": [
+              { "kind": "ai-prompt", "label": "Summarize unresolved issues" },
+              { "kind": "ai-prompt", "label": "Find similar authority" },
+              { "kind": "shortcut", "label": "Open citation graph" }
+            ]
+          }
+        },
+        "x-formspec-ai": {
+          "fillable": true,
+          "providerHint": "matter-helper",
+          "prompt": "Offer context-aware legal research prompts."
+        }
+      }
+    },
+    {
+      "id": "conversationHistory",
+      "kind": "x-formspec-conversation-thread-unit",
+      "title": "Demand response thread",
+      "actorRef": "legalUser",
+      "taskRefs": ["composeThread"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-conversation-thread",
+          "payload": {
+            "messages": [
+              { "role": "user", "text": "Can we rely on the limitation-of-liability clause?" },
+              {
+                "role": "assistant",
+                "text": "Likely yes, but the fraud carve-out needs separate treatment.",
+                "citations": [
+                  { "label": "Supply Agreement sec. 12.2", "score": 0.92 },
+                  { "label": "Fraud exception memo", "score": 0.81 }
+                ]
+              }
+            ],
+            "ai": {
+              "fillable": true,
+              "providerHint": "conversation-summary",
+              "prompt": "Continue the legal analysis with citations."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "threadComposer",
+      "kind": "data-entry",
+      "title": "Message composer",
+      "actorRef": "legalUser",
+      "taskRefs": ["composeThread"],
+      "itemRefs": [
+        { "path": "message" },
+        { "path": "attachAuthorities" },
+        { "path": "requestCitation" }
+      ],
+      "actionRefs": [
+        { "id": "sendMessage", "role": "primary" }
+      ],
+      "extensions": {
+        "x-formspec-ai": {
+          "fillable": true,
+          "providerHint": "message-draft",
+          "prompt": "Draft a concise cited reply from the current thread."
+        }
+      }
+    },
+    {
+      "id": "docViewer",
+      "kind": "x-formspec-document-viewer-unit",
+      "title": "Document viewer",
+      "actorRef": "legalUser",
+      "taskRefs": ["inspectDocument"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-document-viewer-document",
+          "payload": {
+            "docTitle": "Supply Agreement - executed.pdf",
+            "pages": 42,
+            "annotations": [
+              { "pageRange": "p. 7", "label": "Payment term", "by": "assistant" },
+              { "pageRange": "p. 18-19", "label": "Liability limitation", "by": "user" },
+              { "pageRange": "p. 31", "label": "Termination notice", "by": "assistant" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "citationList",
+      "kind": "x-formspec-presentation-list-unit",
+      "title": "Linked citations",
+      "actorRef": "legalUser",
+      "taskRefs": ["inspectDocument"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-result-list",
+          "payload": {
+            "rows": [
+              { "icon": "S", "primary": "Section 12.2", "secondary": "Limitation of liability" },
+              { "icon": "S", "primary": "Section 14.1", "secondary": "Termination for cause" },
+              { "icon": "M", "primary": "Fraud carve-out memo", "secondary": "Internal research" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "playbookGallery",
+      "kind": "x-formspec-presentation-gallery-unit",
+      "title": "Playbooks",
+      "actorRef": "legalUser",
+      "taskRefs": ["runPlaybook"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-gallery",
+          "payload": {
+            "cards": [
+              { "title": "Demand response", "subtitle": "Checklist and first draft", "badge": "Popular" },
+              { "title": "Contract issue spotter", "subtitle": "Clause triage", "badge": "Beta" },
+              { "title": "Diligence request list", "subtitle": "Generate follow-ups", "badge": "New" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "playbookRunnerForm",
+      "kind": "data-entry",
+      "title": "Run playbook",
+      "actorRef": "legalUser",
+      "taskRefs": ["runPlaybook"],
+      "itemRefs": [
+        { "path": "playbookGoal" },
+        { "path": "targetDeadline" },
+        { "path": "riskTolerance" }
+      ],
+      "actionRefs": [
+        { "id": "startPlaybook", "role": "primary" }
+      ]
+    },
+    {
+      "id": "playbookProgress",
+      "kind": "x-formspec-presentation-list-unit",
+      "title": "Run preview",
+      "actorRef": "assistantAgent",
+      "taskRefs": ["runPlaybook"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-result-list",
+          "payload": {
+            "rows": [
+              { "icon": "1", "primary": "Gather facts", "secondary": "Uses matter thread and uploaded documents" },
+              { "icon": "2", "primary": "Draft outline", "secondary": "Assistant-generated" },
+              { "icon": "3", "primary": "Human review", "secondary": "Required before send" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "librarySettingsForm",
+      "kind": "data-entry",
+      "title": "Library settings",
+      "actorRef": "legalUser",
+      "taskRefs": ["configureWorkspace"],
+      "itemRefs": [
+        { "path": "defaultJurisdiction" },
+        { "path": "watchTerms" },
+        { "path": "autoSummarize" }
+      ],
+      "actionRefs": [
+        { "id": "saveLibrarySettings", "role": "primary" }
+      ]
+    },
+    {
+      "id": "libraryAudit",
+      "kind": "x-formspec-presentation-list-unit",
+      "title": "Library activity",
+      "actorRef": "legalUser",
+      "taskRefs": ["configureWorkspace"],
+      "extensions": {
+        "x-formspec-widget": {
+          "kind": "x-formspec-presentation-result-list",
+          "payload": {
+            "rows": [
+              { "icon": "*", "primary": "8 documents indexed", "secondary": "Today" },
+              { "icon": "*", "primary": "2 citation conflicts flagged", "secondary": "Needs review" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "profileForm",
+      "kind": "data-entry",
+      "title": "Profile",
+      "actorRef": "legalUser",
+      "taskRefs": ["configureWorkspace"],
+      "itemRefs": [
+        { "path": "displayName" },
+        { "path": "role" },
+        { "path": "notificationDigest" }
+      ],
+      "actionRefs": [
+        { "id": "saveProfile", "role": "primary" }
+      ]
+    }
+  ],
+  "extensions": {
+    "x-spike-v2-targetDefinitions": [
+      "https://lexassist.example/forms/new-matter",
+      "https://lexassist.example/forms/thread-composer",
+      "https://lexassist.example/forms/playbook-runner",
+      "https://lexassist.example/forms/library-settings",
+      "https://lexassist.example/forms/profile"
+    ],
+    "x-spike-v2-current-schema-gap": "Experience 1.0 still has one targetDefinition; ADR 0150 wants per-view Definitions inside an app-level substrate."
+  }
+}

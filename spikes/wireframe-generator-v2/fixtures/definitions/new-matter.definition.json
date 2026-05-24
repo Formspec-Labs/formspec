@@ -1,0 +1,68 @@
+{
+  "$formspec": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-ai-runtime", "version": "^0.1.0" }
+  ],
+  "url": "https://lexassist.example/forms/new-matter",
+  "version": "1.0.0",
+  "status": "draft",
+  "name": "new-matter",
+  "title": "New matter intake",
+  "description": "Captures the form-bearing portion of the home route.",
+  "date": "2026-05-23",
+  "items": [
+    {
+      "key": "matterTitle",
+      "type": "field",
+      "label": "Matter title",
+      "dataType": "string",
+      "hint": "Short working title."
+    },
+    {
+      "key": "clientName",
+      "type": "field",
+      "label": "Client name",
+      "dataType": "string"
+    },
+    {
+      "key": "jurisdiction",
+      "type": "field",
+      "label": "Jurisdiction",
+      "dataType": "choice",
+      "options": [
+        { "value": "us-federal", "label": "US federal" },
+        { "value": "ca", "label": "California" },
+        { "value": "ny", "label": "New York" },
+        { "value": "tx", "label": "Texas" }
+      ]
+    },
+    {
+      "key": "matterType",
+      "type": "field",
+      "label": "Matter type",
+      "dataType": "choice",
+      "options": [
+        { "value": "contract-review", "label": "Contract review" },
+        { "value": "litigation", "label": "Litigation" },
+        { "value": "employment", "label": "Employment" },
+        { "value": "corporate", "label": "Corporate" }
+      ]
+    },
+    {
+      "key": "intakeSummary",
+      "type": "field",
+      "label": "Intake summary",
+      "dataType": "text",
+      "hint": "Paste the initial request or describe the issue."
+    }
+  ],
+  "binds": [
+    { "path": "matterTitle", "required": "true" },
+    { "path": "clientName", "required": "true" },
+    { "path": "jurisdiction", "required": "true" },
+    { "path": "matterType", "required": "true" },
+    { "path": "intakeSummary", "required": "true" }
+  ]
+}

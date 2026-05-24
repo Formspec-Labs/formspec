@@ -1,0 +1,25 @@
+{
+  "$formspecResponseActions": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" }
+  ],
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/profile",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "saveProfile",
+      "intent": "save-draft",
+      "label": { "literal": "Save profile" },
+      "effects": [
+        {
+          "type": "hostEvent",
+          "eventName": "lexassist.profile.save",
+          "detailRef": "{displayName: $displayName, role: $role}"
+        }
+      ]
+    }
+  ]
+}
