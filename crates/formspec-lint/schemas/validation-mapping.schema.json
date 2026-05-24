@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/validationMapping/1.0",
   "title": "Formspec Validation Mapping",
-  "description": "Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. This schema's MasterTable const MUST equal the prose §6 row-for-row; conformance is pinned by tests/conformance/spec/test_validation_mapping_table.py.",
+  "description": "Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. Per ADR 0150 §4.2/§10, the MasterTable four-constraint pin (const/minItems/maxItems/uniqueItems) was demoted: schema-layer carries only the row-shape contract; the closed-core 5 rows live as a JCS (RFC 8785) byte-equality fixture at tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json; row membership closes at the conformance layer via Registry's `validation-mapping-row` contribution category on the `x-formspec-core-actions` module. Conformance pin: tests/conformance/test_validation_mapping_master_table_demotion.py.",
   "type": "object",
   "required": ["$formspecValidationMapping", "version"],
   "additionalProperties": false,
@@ -179,18 +179,8 @@
     },
     "MasterTable": {
       "type": "array",
-      "minItems": 5,
-      "maxItems": 5,
-      "uniqueItems": true,
       "items": { "$ref": "#/$defs/MappingEntry" },
-      "const": [
-        { "intent": "save-draft", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
-        { "intent": "autosave", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
-        { "intent": "review", "profile": "on-submit", "blocking": "non-blocking", "persistence": "none" },
-        { "intent": "submit", "profile": "on-submit", "blocking": "block-on-error", "persistence": "complete-response" },
-        { "intent": "request-evidence", "profile": "on-demand", "blocking": "non-blocking", "persistence": "draft-checkpoint" }
-      ],
-      "description": "Frozen master mapping table. MUST equal specs/core/validation-mapping.md §6 row-for-row. The const constrains any document carrying this property to the canonical table; documents that override individual entries do so per Action, not by replacing the master table.",
+      "description": "Master mapping table that reconciles Action Intent with Validation Profile, Blocking Policy, and Persistence Policy. Per ADR 0150 §4.2/§10, this $def carries ONLY the row-shape contract (items → MappingEntry, which itself carries the §6.3 ValidationTuplePredicate). The four pre-ADR-0150 constraints — `const`, `minItems: 5`, `maxItems: 5`, `uniqueItems: true` — were demoted. Table cardinality opens at the schema layer; closed-core membership (the 5 §6 rows) is enforced at the conformance layer via Registry's `validation-mapping-row` contribution category on the `x-formspec-core-actions` module. The closed-core 5 rows remain authoritative as a JCS (RFC 8785) byte-equality fixture at tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json — byte-equality authority moved from schema to fixture.",
       "examples": [
         [
           { "intent": "save-draft", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
@@ -202,7 +192,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Canonical table tying ActionIntent to ValidationProfile, BlockingPolicy, and PersistencePolicy"
+        "intent": "Open-cardinality mapping-entry table; closed-core 5 rows authoritatively pinned as JCS RFC 8785 fixture (ADR 0150 §4.2/§10)"
       }
     }
   }

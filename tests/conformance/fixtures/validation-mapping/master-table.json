@@ -1,6 +1,6 @@
 {
   "fixture": "master-table",
-  "description": "Machine-readable form of the §6 Master Mapping Table. Single source of truth for tests/conformance/spec/test_validation_mapping_table.py. MUST equal schema MasterTable const row-for-row.",
+  "description": "Machine-readable form of the §6 Master Mapping Table. Single source of truth for tests/conformance/spec/test_validation_mapping_table.py. Per ADR 0150 §4.2/§10, the schema's MasterTable const was demoted; the canonical 5-row byte-equality pin now lives at closed-core-5-rows-jcs.json (JCS RFC 8785). This developer-facing fixture mirrors the §6 prose for human readability and per-row predicate validation.",
   "table": [
     { "intent": "save-draft", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },
     { "intent": "autosave", "profile": "off", "blocking": "non-blocking", "persistence": "draft-checkpoint" },

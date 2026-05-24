@@ -107,7 +107,7 @@
         "ActionButton resolves actionRef to a Response Action; the resolved Action's intent or explicit override supplies the validation tuple."
       ],
       "conformanceEssentials": [
-        "A conforming validation-mapping document must expose the closed standard enums and a MasterTable const equal to the prose master table.",
+        "A conforming validation-mapping document must expose the closed standard enums and an open-cardinality MasterTable whose closed-core 5 rows match the JCS (RFC 8785) byte-equality fixture at tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json (ADR 0150 §4.2/§10 demoted the prior const/minItems/maxItems/uniqueItems pin).",
         "Processors must not introduce ValidationProfile, BlockingPolicy, or PersistencePolicy values outside the closed enums.",
         "Publisher-defined x-prefixed ActionIntent values may exist only in intent position and must still bind to the closed profile, blocking, and persistence tuple space.",
         "MappingEntry must reject complete-response tuples unless profile is on-submit and blocking is block-on-error.",

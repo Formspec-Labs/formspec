@@ -9,18 +9,29 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES_DIR = ROOT / "tests" / "conformance" / "fixtures" / "response-actions"
-VALIDATION_MAPPING_SCHEMA = ROOT / "schemas" / "validation-mapping.schema.json"
+# Per ADR 0150 §4.2/§10 — MasterTable four-constraint demotion: schema's
+# MasterTable no longer carries `const`. Byte-equality authority for the
+# canonical 5 rows moved to the JCS (RFC 8785) fixture.
+JCS_MASTER_TABLE_FIXTURE = (
+    ROOT
+    / "tests"
+    / "conformance"
+    / "fixtures"
+    / "validation-mapping"
+    / "closed-core-5-rows-jcs.json"
+)
 
 
 def _load_master_table() -> dict[str, dict[str, str]]:
     """Derive the intent→(profile, blocking, persistence) map from the
-    Validation Mapping schema's canonical MasterTable.const. The schema is
-    the single source of truth — duplicating the rows in this harness
-    would break the §9 row-3 promotion gate the moment §6 prose moved.
+    canonical JCS (RFC 8785) byte-equality fixture for the §6 closed-core 5
+    rows. Per ADR 0150 §4.2/§10, this fixture replaced the schema's
+    `MasterTable.const` as the single source of truth for closed-core row
+    membership; duplicating the rows in this harness would break the §9
+    row-3 promotion gate the moment §6 prose moved.
     """
-    with VALIDATION_MAPPING_SCHEMA.open(encoding="utf-8") as handle:
-        schema = json.load(handle)
-    rows = schema["$defs"]["MasterTable"]["const"]
+    with JCS_MASTER_TABLE_FIXTURE.open(encoding="utf-8") as handle:
+        rows = json.load(handle)
     return {
         row["intent"]: {
             "profile": row["profile"],

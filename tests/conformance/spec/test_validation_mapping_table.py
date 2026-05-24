@@ -2,12 +2,18 @@
 
 Pins the machine-readable table and fixture semantics against the prose:
 
-  schemas/validation-mapping.schema.json  ($defs.MasterTable.const)
-  tests/conformance/fixtures/validation-mapping/master-table.json  (table)
+  tests/conformance/fixtures/validation-mapping/master-table.json  (developer-facing table)
+  tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json  (RFC 8785 byte-equality pin — post-ADR-0150 §4.2)
   Permitted-tuple predicate from §6.3.
   Validation Mapping fixture outcomes (profile filtering, reports, status transitions).
 
 If any drifts, the test fails — the §9 row-3 promotion gate has been broken.
+
+ADR 0150 §4.2/§10 demoted ``MasterTable.const`` (along with ``minItems``,
+``maxItems``, ``uniqueItems``) so the schema no longer carries the canonical
+5-row pin. Authority for the closed-core 5-row byte equality moved to the
+JCS fixture; the demotion conformance lives in
+``tests/conformance/test_validation_mapping_master_table_demotion.py``.
 """
 import json
 import re
@@ -199,17 +205,36 @@ def _evaluate_fixture(definition: dict, fixture: dict) -> dict:
 
 
 class TestMasterTablePin:
-    def test_schema_const_matches_expected(self, schema):
-        const = schema["$defs"]["MasterTable"].get("const")
-        assert const == EXPECTED_TABLE, "Schema MasterTable.const has drifted from §6 prose."
+    """Post-ADR-0150 §4.2 demotion: schema no longer carries ``MasterTable.const``.
+
+    Authority for the closed-core 5-row byte equality moved to the JCS fixture
+    (``closed-core-5-rows-jcs.json``); the four-constraint demotion + JCS
+    byte-equality conformance lives in
+    ``tests/conformance/test_validation_mapping_master_table_demotion.py``.
+
+    This class now pins only what the spec §6 prose ACTUALLY needs:
+    (1) the developer-facing fixture (``master-table.json``) matches the §6
+    table; (2) every row in the canonical table validates against the schema's
+    open-cardinality ``MasterTable`` shape (per-row predicate still binds).
+    """
 
     def test_fixture_matches_expected(self, master_fixture):
         assert master_fixture["table"] == EXPECTED_TABLE, "Fixture master-table.json drifted from §6 prose."
 
-    def test_schema_and_fixture_agree(self, schema, master_fixture):
-        assert schema["$defs"]["MasterTable"]["const"] == master_fixture["table"], (
-            "Schema MasterTable.const and master-table.json fixture disagree."
-        )
+    def test_canonical_5_rows_validate_against_open_master_table(self, schema):
+        """Post-§4.2 demotion: validate EXPECTED_TABLE through the (now
+        open-cardinality) MasterTable $def. Closed-core 5-row membership is
+        pinned at fixture authority — this just proves the row shape still
+        binds. See test_validation_mapping_master_table_demotion.py for the
+        byte-equality + four-constraint demotion conformance."""
+        table_schema = {
+            "$schema": schema["$schema"],
+            "$defs": schema["$defs"],
+            "$ref": "#/$defs/MasterTable",
+        }
+        validator = Draft202012Validator(table_schema)
+        errors = list(validator.iter_errors(EXPECTED_TABLE))
+        assert errors == [], [e.message for e in errors]
 
 
 class TestPermittedTuplePredicate:
