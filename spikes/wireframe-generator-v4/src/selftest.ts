@@ -1,31 +1,15 @@
 /** @filedesc Negative self-tests for the ADR-0150 v4 app-coherence validator. */
 
-import { readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import Ajv2020 from "ajv/dist/2020.js";
-import addFormats from "ajv-formats";
-
-import { validateAppCoherence } from "./coherence.js";
+import { resolveFixtureAppGraph } from "./artifact-resolver.js";
+import { validateAppGraph } from "./app-graph.js";
 import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
-import type { AppManifest, DataSourceCatalog, Definition, Experience, GeneratorInputs, JsonObject, PostureDeclaration, Registry, ResponseActions, Surface, SurfaceSlotEntry } from "./types.js";
-
-const SPIKE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const FIXTURE_ROOT = join(SPIKE_ROOT, "fixtures");
+import { buildValidator } from "./schema-loader.js";
+import type { GeneratorInputs, SurfaceSlotEntry } from "./types.js";
 
 type LocalRef = { url: string; version?: string; fixture?: string };
 
-async function readJson<T>(path: string): Promise<T> {
-  return JSON.parse(await readFile(path, "utf-8")) as T;
-}
-
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function fixturePath(ref: LocalRef): string {
-  if (!ref.fixture) throw new Error(`Missing fixture for ${ref.url}`);
-  return join(FIXTURE_ROOT, ref.fixture);
 }
 
 function refs(value: unknown): LocalRef[] {
@@ -34,39 +18,25 @@ function refs(value: unknown): LocalRef[] {
 }
 
 async function loadInputs(): Promise<GeneratorInputs> {
-  const appManifest = await readJson<AppManifest>(join(FIXTURE_ROOT, "lexassist.app-manifest.json"));
-  const actionRefs = refs(appManifest.responseActions);
-  const screenerRefs = refs(appManifest.screeners);
-  const experienceRefs = refs(appManifest.experiences);
-  const dataSourceRefs = refs(appManifest.dataSources);
-  const runtimePlan = await readJson<RuntimePlan>(fixturePath(appManifest.runtimePlan as LocalRef));
-  return {
-    appManifest,
-    definitions: await Promise.all(appManifest.definitions.map((ref) => readJson<Definition>(fixturePath(ref)))),
-    experience: await readJson<Experience>(fixturePath(experienceRefs[0])),
-    responseActions: await Promise.all(actionRefs.map((ref) => readJson<ResponseActions>(fixturePath(ref)))),
-    registry: await readJson<Registry>(fixturePath((appManifest.registries ?? [])[0] as LocalRef)),
-    surface: await readJson<Surface>(fixturePath((appManifest.surfaces ?? [])[0] as LocalRef)),
-    runtimePlan,
-    posture: await readJson<PostureDeclaration>(fixturePath(appManifest.posture as LocalRef)),
-    dataSources: await readJson<DataSourceCatalog>(fixturePath(dataSourceRefs[0])),
-    screener: await readJson<JsonObject>(fixturePath(screenerRefs[0])),
-    locales: await Promise.all((appManifest.locales ?? []).map((ref) => readJson<JsonObject>(fixturePath(ref)))),
-  };
-}
-
-function buildAjv(): Ajv2020 {
-  const ajv = new Ajv2020({ allErrors: true, strict: false, verbose: false });
-  addFormats(ajv);
-  return ajv;
+  return (await resolveFixtureAppGraph()).inputs;
 }
 
 function assertIssue(name: string, inputs: GeneratorInputs, expectedCode: string): void {
-  const report = validateAppCoherence(inputs, buildAjv());
+  const report = validateAppGraph(inputs, ajv);
   if (!report.issues.some((issue) => issue.code === expectedCode)) {
     throw new Error(`${name}: expected ${expectedCode}, got ${report.issues.map((issue) => issue.code).join(", ") || "no issues"}`);
   }
   console.log(`[selftest] ok ${name} -> ${expectedCode}`);
+}
+
+function assertIssues(name: string, inputs: GeneratorInputs, expectedCodes: string[]): void {
+  const report = validateAppGraph(inputs, ajv);
+  const actualCodes = report.issues.map((issue) => issue.code);
+  const missing = expectedCodes.filter((code) => !actualCodes.includes(code));
+  if (missing.length > 0) {
+    throw new Error(`${name}: expected ${missing.join(", ")}, got ${actualCodes.join(", ") || "no issues"}`);
+  }
+  console.log(`[selftest] ok ${name} -> ${expectedCodes.join(", ")}`);
 }
 
 function assertRuntimeIssue(name: string, inputs: GeneratorInputs, plan: RuntimePlan, expectedCode: string): void {
@@ -91,6 +61,7 @@ function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
 }
 
 const base = await loadInputs();
+const ajv = await buildValidator();
 const baseRuntimePlan = base.runtimePlan as RuntimePlan;
 
 assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone(baseRuntimePlan), (report) => {
@@ -118,7 +89,7 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 {
   const inputs = clone(base);
   delete (refs(inputs.appManifest.experiences)[0] as { targetDefinitions?: unknown }).targetDefinitions;
-  assertIssue("missing experience targetDefinitions index", inputs, "APP-COHERENCE-EXPERIENCE-TARGET-DEFINITIONS");
+  assertIssues("schema-invalid missing experience targetDefinitions index", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
 }
 
 {
@@ -130,12 +101,26 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 
 {
   const inputs = clone(base);
+  delete (inputs.responseActions[0] as { targetDefinition?: unknown }).targetDefinition;
+  assertIssues("schema-invalid response-actions sidecar returns graph report", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
+}
+
+{
+  const inputs = clone(base);
+  delete (inputs.registry as { entries?: unknown }).entries;
+  assertIssues("schema-invalid registry returns graph report", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
+}
+
+{
+  const inputs = clone(base);
   inputs.registry.entries.push(
     {
       name: "x-acme-rogue-widget-module",
       category: "module",
       version: "0.1.0",
       status: "stable",
+      description: "Unadmitted test module.",
+      compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
       contributes: ["x-acme-rogue-widget"],
     },
     {
@@ -143,6 +128,8 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
       category: "widget",
       version: "0.1.0",
       status: "stable",
+      description: "Unadmitted test widget.",
+      compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
       widgetShape: { props: { type: "object" } },
     },
   );

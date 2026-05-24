@@ -33,7 +33,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | ID | Finding | v4 status | Verdict |
 |---|---|---|---|
 | F1 | App Manifest needs first-class sidecar indexes | Passing spike-local prototype | Pending final |
-| F2 | App Graph Validator should be a production primitive | Planned | Pending |
+| F2 | App Graph Validator should be a production primitive | Passing spike-local prototype | Pending final |
 | F3 | Surface should become a normal contract surface | Planned | Pending |
 | F4 | Module admission needs one shared resolver | Planned | Pending |
 | F5 | Non-form Component identity must stop pretending to be a Definition | Planned | Pending |
@@ -49,7 +49,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 |---|---|---|
 | P0 | Promote App Manifest to a real app envelope with first-class sidecar indexes | Passing spike-local F1 proof |
 | P0 | Promote Surface to official schema/spec/conformance | Planned as spike-local proof only |
-| P0 | Build `AppGraphValidator` as a production validation layer | Planned as shared spike library |
+| P0 | Build `AppGraphValidator` as a production validation layer | Passing spike-local F2 proof |
 | P0 | Build a shared module admission and contribution resolver | Planned as shared spike library |
 | P0 | Remove the non-form Component `targetDefinition` shim | Planned as prototype identity only |
 | P1 | Define route/session/Response/action state ownership | Planned |
@@ -119,10 +119,26 @@ Verification on 2026-05-24:
 
 All three passed. The spike run validated the App Manifest, Registry, Surface, Posture, Screener, Locale, Experience, five Definitions, five Response Actions sidecars, Runtime Plan, generated Components for eight routes, app coherence, and runtime behavior with zero schema, coherence, or runtime errors.
 
+### F2 - AppGraphValidator Boundary
+
+F2 turns the app graph proof into a named spike primitive. `src/artifact-resolver.ts` resolves the manifest's first-class refs into `GeneratorInputs`, `src/schema-loader.ts` builds the schema validator, and `src/app-graph.ts` owns source artifact schema validation plus cross-artifact coherence. Data Sources remain F7 work: F2 loads them and checks graph references, but does not claim a full Data Source schema contract. The CLI now calls those primitives and writes `output/app-graph-report.json`; it no longer performs source artifact validation inline.
+
+This matters because graph truth now has one boundary. `validateAppGraph()` reports per-artifact schema failures and coherence failures in one result, and the negative harness routes app-level assertions through that result. If a source artifact is schema-invalid, the validator returns `APP-GRAPH-SCHEMA`, emits `APP-GRAPH-COHERENCE-SKIPPED`, and does not throw from shape assumptions. The runtime and generated Components remain downstream evidence: they run after the app graph report is built and do not decide whether the graph is valid.
+
+The F2 proof is still fixture-local. It does not promote official schemas, does not add lint or conformance wiring, and does not complete the future production split. `ArtifactResolver`, `ModuleResolver`, and `AppGraphValidator` should still become package-level primitives only after the prose contracts settle.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+All three passed after the extraction. The spike run now reports zero app graph schema failures, zero app coherence errors, and zero runtime errors. F2 re-review returned zero open findings.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
-2. Split the production implementation into three primitives: `ArtifactResolver` for manifest ref loading, `ModuleResolver` for admission/contribution ownership, and `AppGraphValidator` for cross-document invariants. Generated Components and runtime execution should consume their output, not define graph truth.
+2. Split the production implementation into three primitives: `ArtifactResolver` for manifest ref loading, `ModuleResolver` for admission/contribution ownership, and `AppGraphValidator` for cross-document invariants. F2 proves the shape in the spike; production should wait for prose contracts and then promote the split into shared packages. Generated Components and runtime execution should consume their output, not define graph truth.
 3. Keep Surface input-side and Component output-side. Surface should own route graph, slots, navigation, and app shell structure. Component generation should remain a projection and should not define Surface semantics.
 4. Treat the non-form Component `targetDefinition` value as an output-only compatibility shim until Component identity is fixed. The v4 generator labels it as `x-spike-v4-output-compatibility`; production should replace the shim with route or Surface identity before serious authoring/regeneration work depends on it.
 5. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
