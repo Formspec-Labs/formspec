@@ -879,6 +879,728 @@
         "persistence": "draft-checkpoint",
         "profile": "on-demand"
       }
+    },
+    {
+      "name": "x-formspec-core-component",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component built-in widget catalog (33 widgets across layout/input/display/container categories) republished as a Registry module per ADR 0150 \u00a74.9. Source-of-truth for widget validity remains `specs/ui-policy.json`, consumed by the formspec-lint widget-catalog pass; Registry contributions are descriptive metadata for posture admission, AI authoring tooling, and the contribution-payload validation phase (ADR \u00a79). The widgetShape.props field on each contribution is a permissive v1 default (`{type: object, additionalProperties: true}`) \u2014 closed-core widgets bypass lint code E604 (which only gates ^x- module-contributed widgets), so the props schema is documentation/AI-tooling metadata, not lint-enforced. Per-widget prop schemas tighten over time as Theme audit surfaces consumed prop sets.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-component-section",
+        "x-formspec-core-component-stack",
+        "x-formspec-core-component-grid",
+        "x-formspec-core-component-textinput",
+        "x-formspec-core-component-numberinput",
+        "x-formspec-core-component-datepicker",
+        "x-formspec-core-component-select",
+        "x-formspec-core-component-checkboxgroup",
+        "x-formspec-core-component-toggle",
+        "x-formspec-core-component-fileupload",
+        "x-formspec-core-component-heading",
+        "x-formspec-core-component-text",
+        "x-formspec-core-component-divider",
+        "x-formspec-core-component-card",
+        "x-formspec-core-component-collapsible",
+        "x-formspec-core-component-conditionalgroup",
+        "x-formspec-core-component-tabs",
+        "x-formspec-core-component-actionbutton",
+        "x-formspec-core-component-accordion",
+        "x-formspec-core-component-radiogroup",
+        "x-formspec-core-component-moneyinput",
+        "x-formspec-core-component-slider",
+        "x-formspec-core-component-rating",
+        "x-formspec-core-component-signature",
+        "x-formspec-core-component-alert",
+        "x-formspec-core-component-badge",
+        "x-formspec-core-component-progressbar",
+        "x-formspec-core-component-summary",
+        "x-formspec-core-component-validationsummary",
+        "x-formspec-core-component-datatable",
+        "x-formspec-core-component-panel",
+        "x-formspec-core-component-modal",
+        "x-formspec-core-component-popover"
+      ]
+    },
+    {
+      "name": "x-formspec-core-component-section",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Section` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Section",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-stack",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Stack` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Stack",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-grid",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Grid` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Grid",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-textinput",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `TextInput` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "TextInput",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-numberinput",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `NumberInput` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "NumberInput",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-datepicker",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `DatePicker` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "DatePicker",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-select",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Select` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Select",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-checkboxgroup",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `CheckboxGroup` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "CheckboxGroup",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-toggle",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Toggle` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Toggle",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-fileupload",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `FileUpload` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "FileUpload",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-heading",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Heading` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Heading",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-text",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Text` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Text",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-divider",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Divider` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Divider",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-card",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Card` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Card",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-collapsible",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Collapsible` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Collapsible",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-conditionalgroup",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ConditionalGroup` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ConditionalGroup",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-tabs",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Tabs` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Tabs",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-actionbutton",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ActionButton` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ActionButton",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-accordion",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Accordion` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Accordion",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-radiogroup",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `RadioGroup` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "RadioGroup",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "Select"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-moneyinput",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `MoneyInput` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MoneyInput",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "NumberInput"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-slider",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Slider` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Slider",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "NumberInput"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-rating",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Rating` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Rating",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "NumberInput"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-signature",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Signature` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Signature",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "FileUpload"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-alert",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Alert` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Alert",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Text"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-badge",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Badge` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Badge",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Text"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-progressbar",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ProgressBar` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ProgressBar",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Text"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-summary",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Summary` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Summary",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-validationsummary",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ValidationSummary` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ValidationSummary",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Alert"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-datatable",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `DataTable` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "DataTable",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-panel",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Panel` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Panel",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-modal",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Modal` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Modal",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container",
+        "fallback": "Collapsible"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-popover",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Popover` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Popover",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container",
+        "fallback": "Collapsible"
+      }
     }
   ]
 }
