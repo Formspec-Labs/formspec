@@ -990,6 +990,17 @@ href="component-reference-fields-spec.md#5-x-generation">Component
 Reference Fields §5</a>.</td>
 </tr>
 <tr>
+<td><code>extensions</code></td>
+<td>object</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Typed slot for <code>^x-*</code> extension payloads on every
+component node. Closes the long-standing gap where
+<code>unevaluatedProperties: false</code> on each component variant
+rejected ad-hoc <code>x-*</code> properties at the top level. Per ADR
+0150 §4.7 — substrate-level posture for any module-contributed extension
+payload.</td>
+</tr>
+<tr>
 <td><code>responsive</code></td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>

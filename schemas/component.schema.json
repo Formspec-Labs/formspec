@@ -237,6 +237,10 @@
             "intent": "Reuses Experience ConceptRef for host-policy metadata while keeping validation and mapping semantics elsewhere."
           }
         },
+        "extensions": {
+          "$ref": "#/$defs/Extensions",
+          "description": "Typed slot for ^x-* extension payloads on every component node. Closes the spike F2 finding where x-generation-style extensions had no typed home given each component variant's `unevaluatedProperties: false` posture. Per ADR 0150 §4.7."
+        },
         "x-generation": {
           "type": "object",
           "description": "Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.",

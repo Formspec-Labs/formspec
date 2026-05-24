@@ -362,6 +362,7 @@ are recognized on all component objects:
 | `taskRefs` | array of strings | **0..1** (OPTIONAL) | Advisory reference metadata linking the node to Experience Tasks. See [Component Reference Fields §3](component-reference-fields-spec.md#3-taskrefs). |
 | `conceptRefs` | array of ConceptRef objects | **0..1** (OPTIONAL) | Host-policy concept metadata using the Experience `ConceptRef` shape. See [Component Reference Fields §4](component-reference-fields-spec.md#4-conceptrefs). |
 | `x-generation` | object | **0..1** (OPTIONAL) | Generation provenance metadata. Renderers MUST ignore it for default runtime output. See [Component Reference Fields §5](component-reference-fields-spec.md#5-x-generation). |
+| `extensions` | object | **0..1** (OPTIONAL) | Typed slot for `^x-*` extension payloads on every component node. Closes the long-standing gap where `unevaluatedProperties: false` on each component variant rejected ad-hoc `x-*` properties at the top level. Per ADR 0150 §4.7 — substrate-level posture for any module-contributed extension payload. |
 | `responsive` | object | **0..1** (OPTIONAL) | Breakpoint-keyed prop overrides. See §9. |
 | `style` | object | **0..1** (OPTIONAL) | Flat style map. Values MAY contain `$token.path` references. See §10.2. |
 | `layout` | ComponentLayout | **0..1** (OPTIONAL) | Typed structural placement hints, such as grid placement metadata for documented layout contexts. |
