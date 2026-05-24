@@ -889,10 +889,15 @@ class TestRegistrySchema:
         }
 
     def test_er3__category_enum(self):
+        """ADR 0150 §4.1/§4.2: `namespace` renamed to `module`; six new
+        contribution categories (unit-kind, widget, action-intent, slot-type,
+        validation-mapping-row, token-category) added."""
         entry = _def(REG_S, "RegistryEntry")
         assert entry["properties"]["category"]["enum"] == [
-            "dataType", "function", "constraint", "property", "namespace",
-            "concept", "vocabulary"
+            "dataType", "function", "constraint", "property",
+            "module", "concept", "vocabulary",
+            "unit-kind", "widget", "action-intent", "slot-type",
+            "validation-mapping-row", "token-category",
         ]
 
     def test_er3__status_enum(self):

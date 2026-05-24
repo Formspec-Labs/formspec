@@ -534,21 +534,22 @@ class TestPatternMismatchMessage:
 
 # ── Namespace integrity ──────────────────────────────────────────────
 
-class TestNamespaceIntegrity:
-    """x-formspec-common namespace must list every non-namespace entry."""
+class TestModuleIntegrity:
+    """x-formspec-common module must list every non-module entry under contributes[]
+    (per ADR 0150 §4.1 — `namespace`/`members[]` renamed to `module`/`contributes[]`)."""
 
     def test_all_entries_listed(self):
-        # Use raw JSON since find_registry_entry doesn't return 'members'
-        ns_raw = next(
+        # Use raw JSON since find_registry_entry doesn't return 'contributes'
+        mod_raw = next(
             (e for e in REGISTRY_DOC["entries"] if e["name"] == "x-formspec-common"),
             None,
         )
-        assert ns_raw is not None
-        non_ns = [e for e in REGISTRY_DOC["entries"] if e.get("category") != "namespace"]
-        members = ns_raw.get("members", [])
-        for entry in non_ns:
-            assert entry["name"] in members, f"Namespace missing member '{entry['name']}'"
-        assert len(members) == len(non_ns)
+        assert mod_raw is not None
+        non_mod = [e for e in REGISTRY_DOC["entries"] if e.get("category") != "module"]
+        contributes = mod_raw.get("contributes", [])
+        for entry in non_mod:
+            assert entry["name"] in contributes, f"Module missing contribution '{entry['name']}'"
+        assert len(contributes) == len(non_mod)
 
 
 # ── §7.3 Compatibility check ─────────────────────────────────────────

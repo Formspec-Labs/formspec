@@ -209,6 +209,155 @@
         { "$ref": "#/$defs/CustomWidgetName" },
         { "type": "string", "const": "none" }
       ]
+    },
+    "ModuleRef": {
+      "type": "object",
+      "description": "Canonical module reference per ADR 0150 §4.4. Used by document `modules[]` (§4.3), `posture.allowedModules[]` (§4.4), `bundle-manifest.modules[]` (§5.2), and `module.dependencies[]` (§4.1).",
+      "required": ["id", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Module ID following the Registry naming pattern per ADR 0150 §4.8. Despite §4.4 prose calling this a 'URN', §4.3 examples and §4.8 regex are bare `^x-` prefix (e.g. 'x-formspec-core-task'). This pattern matches the canonical regex."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Strict SemVer string or range expression (e.g. '1.0.0', '^1.0.0', '>=1.0.0 <2.0.0')."
+        },
+        "publisher": {
+          "type": "string",
+          "format": "uri",
+          "description": "OPTIONAL provenance assertion (the document asserts; posture admission checks)."
+        },
+        "lockHash": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+:[A-Za-z0-9+/=]+$",
+          "description": "OPTIONAL digest pin (e.g. 'sha256:...'). Pins hostile-substitution risk when paired with posture.allowedModules[]."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "AuthorActor": {
+      "type": "object",
+      "description": "Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.",
+      "required": ["id", "kind", "actChannel"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^urn:formspec:actor:.+",
+          "description": "Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7)."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["human", "ai-agent", "service"],
+          "description": "Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'."
+        },
+        "actChannel": {
+          "type": "string",
+          "enum": ["human", "mcp", "agent", "service"],
+          "description": "Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP)."
+        },
+        "display": {
+          "type": "string",
+          "description": "Optional human-readable label for timeline/support views."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "SessionRef": {
+      "type": "object",
+      "description": "App Manifest session index entry per ADR 0150 §5.5. App Manifest carries `sessions: SessionRef[]` as the durable list of sessions held against the app; each entry is a temporal grouping with the act-record in the ledger via `respondent-ledger.sessionRefs[]` referencing this URN.",
+      "required": ["id", "openedAt", "actors"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^urn:formspec:session:.+",
+          "description": "Stable session URN."
+        },
+        "openedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "closedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Absent = currently open."
+        },
+        "actors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^urn:formspec:actor:.+"
+          },
+          "description": "URN refs into the App Manifest's actor list."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "Generation": {
+      "type": "object",
+      "description": "Generalized x-generation provenance carrier per ADR 0150 §5.3/§5.4. SUPERSET of the existing inline x-generation shape at component.schema.json:240-282 — every pre-existing field (source, strategy, generatedBy, generatedAt, anchors) remains valid; new fields (sourceModule, movedFrom, copiedFrom) layered on top. `generatedBy` migrates from free-form string to `oneOf [string, AuthorActor]` for backward compatibility while enabling structured authoring identity. `additionalProperties` stays open (no false) so tool-layer use is unconstrained beyond the documented superset.",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Existing field (component.schema.json:256-259): generator source label, such as an Experience Unit, prompt, template, or generator input bundle. Preserved as-is."
+        },
+        "strategy": {
+          "type": "string",
+          "description": "Existing field (component.schema.json:260-263): generator strategy identifier, such as unit-to-section or a host-defined strategy name. Preserved as-is."
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "Existing field (component.schema.json:268-271): generation timestamp. Authors SHOULD use an RFC 3339 date-time string. Preserved as-is."
+        },
+        "anchors": {
+          "type": "array",
+          "description": "Existing field (component.schema.json:272-279): source anchors with a standard prefix and source-layer-owned suffix. Preserves original `^(item|unit|task|action|concept):.+$` items pattern enforcement.",
+          "items": {
+            "type": "string",
+            "pattern": "^(item|unit|task|action|concept):.+$"
+          }
+        },
+        "generatedBy": {
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/$defs/AuthorActor" }
+          ],
+          "description": "Actor attribution per §5.4. Migration-friendly: pre-existing free-form string values (e.g. 'component-generator/1.0.0') continue to validate; new authoring stamps the full AuthorActor inline."
+        },
+        "sourceModule": {
+          "$ref": "#/$defs/ModuleRef",
+          "description": "Module/template provenance per §5.3. Orthogonal to generatedBy — answers 'which module supplied this template' not 'who authored this op'."
+        },
+        "movedFrom": {
+          "$ref": "#/$defs/CrossComponentRef",
+          "description": "Set by tooling on cross-Component move per §5.3."
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/CrossComponentRef",
+          "description": "Set by tooling on cross-Component copy per §5.3."
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      }
+    },
+    "CrossComponentRef": {
+      "type": "object",
+      "description": "Surface-route + intra-document node path. Used by Generation.movedFrom / Generation.copiedFrom for tool-layer cross-Component stitching per ADR 0150 §5.3.",
+      "required": ["route", "nodePath"],
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "type": "string"
+        },
+        "nodePath": {
+          "type": "string"
+        }
+      }
     }
   }
 }

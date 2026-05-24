@@ -114,7 +114,7 @@ class TestRegistryExtensions:
 class TestEntryMinimalValid:
 
     @pytest.mark.parametrize("category", [
-        "dataType", "function", "constraint", "property", "namespace",
+        "dataType", "function", "constraint", "property",
     ])
     def test_minimal_entry(self, category):
         entry = _minimal_entry(category)
@@ -164,7 +164,7 @@ class TestEntryName:
 class TestEntryCategory:
 
     @pytest.mark.parametrize("category", [
-        "dataType", "function", "constraint", "property", "namespace",
+        "dataType", "function", "constraint", "property",
     ])
     def test_valid_category(self, category):
         entry = _minimal_entry(category)
@@ -269,8 +269,15 @@ class TestEntryCategoryConditionals:
         entry = _minimal_entry("property")
         _validate(_minimal_registry(entries=[entry]))
 
-    def test_namespace_no_extra_fields_required(self):
-        entry = _minimal_entry("namespace")
+    def test_module_requires_contributes(self):
+        """ADR 0150 §4.1: module category replaces namespace; requires contributes[]."""
+        entry = _minimal_entry("module")
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    def test_module_with_contributes_validates(self):
+        entry = _minimal_entry("module")
+        entry["contributes"] = ["x-formspec-foo"]
         _validate(_minimal_registry(entries=[entry]))
 
 

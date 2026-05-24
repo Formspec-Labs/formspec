@@ -375,17 +375,17 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
   "entries": [
     {
       "name": "x-gov-grants",
-      "category": "namespace",
+      "category": "module",
       "version": "2.0.0",
       "status": "stable",
-      "description": "Namespace for federal grants management extensions. Groups CFDA lookup, SAM.gov registration validation, single-audit thresholds, and fiscal year utilities under one umbrella.",
+      "description": "Module bundling federal grants management extensions. Groups CFDA lookup, SAM.gov registration validation, single-audit thresholds, and fiscal year utilities under one umbrella. Renamed from `category: namespace` per ADR 0150 §4.1.",
       "specUrl": "https://grants.gov/formspec/x-gov-grants/v2.0/spec.html",
       "schemaUrl": "https://grants.gov/formspec/x-gov-grants/v2.0/schema.json",
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
       "license": "CC0-1.0",
-      "members": [
+      "contributes": [
         "x-gov-grants-cfda-lookup",
         "x-gov-grants-sam-registration",
         "x-gov-grants-single-audit",

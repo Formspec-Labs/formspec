@@ -95,12 +95,12 @@
           },
           {
             "name": "x-acme-grants",
-            "category": "namespace",
+            "category": "module",
             "version": "2.0.0",
             "status": "stable",
-            "description": "Namespace grouping federal grants management extensions.",
+            "description": "Module bundling federal grants management extensions.",
             "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
-            "members": [
+            "contributes": [
               "x-acme-currency",
               "x-acme-fiscal-year",
               "x-acme-duns-check"
@@ -243,12 +243,18 @@
             "function",
             "constraint",
             "property",
-            "namespace",
+            "module",
             "concept",
-            "vocabulary"
+            "vocabulary",
+            "unit-kind",
+            "widget",
+            "action-intent",
+            "slot-type",
+            "validation-mapping-row",
+            "token-category"
           ],
-          "description": "The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; property and namespace have no additional required properties.",
-          "examples": ["dataType", "function", "constraint", "namespace", "concept", "vocabulary"],
+          "description": "The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; module requires contributes; unit-kind requires semantics; widget requires widgetShape; action-intent requires validation; slot-type requires slotShape; validation-mapping-row requires row; token-category requires categoryShape. property has no additional required properties. `namespace` was renamed to `module` per ADR 0150 §4.1 (greenfield rename, no alias).",
+          "examples": ["dataType", "function", "constraint", "module", "concept", "vocabulary", "widget", "unit-kind", "token-category"],
           "x-lm": {
             "critical": true,
             "intent": "Discriminator that drives conditional required properties and tells processors how to consume the extension."
@@ -442,15 +448,67 @@
             "intent": "Return type declaration enabling static type checking of custom function calls in FEL."
           }
         },
-        "members": {
+        "contributes": {
           "type": "array",
-          "description": "Array of x-prefixed extension names grouped under this namespace. Only meaningful when category is 'namespace'. Members should be other entries in the same or a referenced registry.",
+          "description": "Array of x-prefixed Registry entry names this module bundles. REQUIRED when category is 'module'. Each MUST exist in this or a referenced registry. Replaces the old `members[]` per ADR 0150 §4.1.",
           "items": {
             "type": "string",
             "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
           },
           "examples": [
-            ["x-acme-currency", "x-acme-fiscal-year", "x-acme-duns-check"]
+            ["x-formspec-email", "x-formspec-phone", "x-formspec-ssn"]
+          ]
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Other modules this module requires. OPTIONAL when category is 'module'. Uses the canonical `ModuleRef` $def for shape parity with document `modules[]` and `posture.allowedModules[]`.",
+          "items": {
+            "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
+          },
+          "examples": [
+            [{"id": "x-formspec-core-task", "version": "^1.0.0"}]
+          ]
+        },
+        "semantics": {
+          "type": "object",
+          "description": "Processor/renderer obligations describing the unit-kind's behavioral semantics. REQUIRED when category is 'unit-kind'. Free-form per module; module ships canonical sub-schema referenced from `schemaUrl` for richer validation. Per ADR 0150 §4.2.",
+          "examples": [
+            {"processorObligation": "render-as-gallery", "rendererObligation": "media-grid"}
+          ]
+        },
+        "widgetShape": {
+          "type": "object",
+          "description": "Widget contract (props, children policy, fallback chain). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. Per ADR 0150 §4.2 / Component §progressive-to-core.",
+          "examples": [
+            {"props": {"type": "object"}, "childrenPolicy": "no-children", "fallback": "Stack"}
+          ]
+        },
+        "validation": {
+          "type": "object",
+          "description": "Full ValidationTuple per VM §6.1. REQUIRED when category is 'action-intent'. Per ADR 0150 §4.2.",
+          "examples": [
+            {"blocking": true, "sourceCanonical": ["error"], "actionEffectIfBlocked": "abort"}
+          ]
+        },
+        "slotShape": {
+          "type": "object",
+          "description": "What the slot binds to + composition rules. REQUIRED when category is 'slot-type'. Per ADR 0150 §4.2.",
+          "examples": [
+            {"binds": "embed-route", "compositionRule": "one-route-per-slot"}
+          ]
+        },
+        "row": {
+          "type": "object",
+          "description": "Closed MappingEntry shape per VM §6. REQUIRED when category is 'validation-mapping-row'. Contributes a row to the `validation-mapping.MasterTable` after the §4.2 four-constraint demotion. Per ADR 0150 §4.2.",
+          "examples": [
+            {"blocking": true, "sourceCanonical": ["error"], "targetSeverity": "error", "actionEffectIfBlocked": "abort"}
+          ]
+        },
+        "categoryShape": {
+          "type": "object",
+          "description": "Token category shape (mirrors today's token-registry.schema.json `Category` shape). REQUIRED when category is 'token-category'. Folds Token Registry into the unified Registry as a contribution profile per ADR 0150 §2.3/§4.2.",
+          "examples": [
+            {"type": "object", "properties": {"name": {"type": "string"}, "value": {"type": "string"}}}
           ]
         },
         "conceptUri": {
@@ -520,6 +578,111 @@
       },
       "additionalProperties": false,
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "module"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "contributes"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "unit-kind"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "semantics"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "widget"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "widgetShape"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "action-intent"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "validation"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "slot-type"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "slotShape"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "validation-mapping-row"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "row"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "token-category"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "categoryShape"
+            ]
+          }
+        },
         {
           "if": {
             "properties": {

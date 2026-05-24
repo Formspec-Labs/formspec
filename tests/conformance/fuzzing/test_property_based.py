@@ -513,7 +513,12 @@ def gen_mapping_doc(draw):
 
 @st.composite
 def gen_registry_entry(draw):
-    category = draw(st.sampled_from(["dataType", "function", "constraint", "property", "namespace"]))
+    # Per ADR 0150 §4.1/§4.2: namespace removed; module + 6 contribution
+    # categories added. The fuzzer focuses on the dataType/function/constraint/
+    # property quadrant (these don't require category-specific payloads), since
+    # `module` requires contributes[] and the 6 new categories require their
+    # own payload shapes.
+    category = draw(st.sampled_from(["dataType", "function", "constraint", "property"]))
     entry = {
         "name": draw(valid_registry_name),
         "category": category,
