@@ -850,6 +850,34 @@ git commit \
 
 - Reviewer-converged Deviations append here as P1→P4 execution surfaces them.
 
+### r2 (P1 execution log)
+
+P1 closed 6 commits (`77635138..4d5b588a`) with one mid-phase remediation commit
+(`c218e2a8`). Findings absorbed in flight (BLOCKER/HIGH/MEDIUM/LOW):
+
+**Task 1.1 AFTER review (spec-expert) — `RegistryEntry` Rust struct missing `contributes`/`semantics` (MEDIUM, deferred).** The Rust `RegistryEntry` struct at `crates/formspec-core/src/registry_client/types.rs:76-86` does not carry `contributes`, `semantics`, `widget_shape`, `validation`, `row`, or `category_shape` fields. The parser silently drops these. Does NOT break P1 (Python conformance validates via JSON Schema). Will surface when P4 lint, posture admission, or any Rust-side consumer needs to read `contributes[]` or contribution payloads. **Resolution: pick up as first step of whichever P1+/P2+ task first needs Rust-side module-membership reading; flagged in `formspec/TODO.md` at P1 closure if no immediate need surfaces during P2.** Not blocking P2 (Surface module's lint integration is a P2 sub-task; cross-check during Task 2.1 BEFORE arch review).
+
+**Task 1.1 AFTER review (spec-expert) — test file path divergence (LOW).** Plan named `formspec/tests/test_p1_module_x_formspec_core_task.py`; commit landed at `formspec/tests/conformance/modules/test_x_formspec_core_task.py`. Convention-consistent path improvement; not a defect. Plan path pointers stale — future agents reading the plan literally should follow the actual commit shape.
+
+**Tasks 1.1+1.2 code review (formspec-scout) — see commit `c218e2a8` for full absorption details.**
+- HIGH H-1: decorative `processorObligation`/`rendererObligation` keys dropped.
+- HIGH H-2: equivalence discriminator test added.
+- MEDIUM M-2: hand-rolled JCS swapped for `rfc8785`.
+- LOW L-3: "(LOAD-BEARING)" anxiety marker dropped.
+- MEDIUM M-1 (TestModuleIntegrity "exactly one module" rule may overconstrain valid vendor re-exports per ADR §4.6) — **deferred**: ADR §4.6 prose governs conflict resolution (cross-module value collision is hard-reject), not multi-module sponsorship of the same entry. No vendor re-export pattern exists in the plan; if one surfaces, relax the rule from "exactly one" to "at least one." Not blocking.
+- MEDIUM M-3 (JCS literal-bytes-from-spec cross-check) — **deferred**: low value relative to the existing fixture-equality check; the canonical fixture is itself derived from VM §6 spec, so dual-corruption risk is small.
+- LOW L-5 (verify `additionalProperties: true` claim in spec prose against actual schema) — **N/A**: spec prose Rule 3 no longer claims `additionalProperties: true` (the H-1 cleanup removed the optional-keys section that needed it).
+
+**Task 1.3 BEFORE review (spec-expert) — absorbed inline in commit `dd1787ce`.**
+- MEDIUM (C) `category` name collision: renamed `widgetShape.category` → `widgetShape.widgetCategory` to avoid clash with entry-level Registry `category` field.
+- HIGH (E) E604 lint binding scope: `widgetShape.props` for closed-core widgets is dead code from E604's perspective (E604 only fires for `^x-` widgets per `pass_modules.rs:436` `is_x_extension(widget)` gate). Module description prose explicitly states this; props schemas serve as documentation/AI-tooling metadata at v1. Mitigation (a) (lint pass remains authoritative for closed-core widget validity via `ui-policy.json`; Registry contributions are metadata) is the only coherent posture given E604's design.
+
+**Task 1.5 execution-time re-probe — EventType cardinality drift (r1 said 20 floor; actual = 27).** Plan-r1 listed 20 EventType closed-core values; live schema at execution had 27 (7 newer values added between r1 and execution: `response.migrated`, `response.correction-recorded`, `field.edit-recorded`, `action.invoked`, `action.failed`, `action.deferred`, `action.replayed`). The plan's Step 1 "re-probe at execution time" caught the drift; cardinality-assertion test in `test_x_formspec_core_ledger.py::test_module_cardinality_matches_schema` catches future drift by reading the schema at every test run.
+
+**Schema-prose dual-authority verified for ui-policy.json (Task 1.3).** The 6 formspec consumers + 1 formspec-studio test-side consumer + 4 generated artifacts were enumerated at plan r1 (M-1 scout). Mitigation (a) shipped: lint pass continues authoritative; Registry contributions are metadata. Dual-authority sync-drift detection lives in `test_module_contributes_matches_ui_policy_cardinality` + `test_widget_shape_category_matches_ui_policy` + `test_widget_shape_fallback_matches_ui_policy` (3 cardinality / category / fallback sync assertions per widget).
+
+**Phase summary.** All 5 P1 modules shipped; 109 new Registry contribution entries + 5 module entries + 1 cascade-fix commit. Total formspec-common.registry.json entries = 132 (was 18 pre-P1). Total conformance tests = 2598 passing (was 2229 pre-P1; +369 tests across the 5 module test files). Workspace cargo nextest = 1341 passing. npm doc gate, dep fence, html-docs: clean. No new lint codes (P0 Task 8's E603/E604/E605 cover P1 needs).
+
 ### r1 (2026-05-23) — Pre-P1-Task-1.1 arch-review absorptions
 
 Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-specs:formspec-scout`) returned BEFORE the first P1 commit landed. Both converged on REMEDIATE-THEN-PROCEED verdicts. Consolidated absorptions applied to the plan body above; no plan-shape changes, only execution-precision tightening.
