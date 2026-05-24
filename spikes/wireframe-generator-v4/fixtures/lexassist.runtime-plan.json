@@ -1,8 +1,8 @@
 {
-  "$wireframeRuntimePlan": "0.1-spike-v3",
+  "$wireframeRuntimePlan": "0.1-spike-v4",
   "url": "https://lexassist.example/runtime-plans/workbench-happy-path",
   "version": "0.1.0",
-  "sessionId": "urn:formspec:session:lexassist-spike-v3-demo",
+  "sessionId": "urn:formspec:session:lexassist-spike-v4-demo",
   "actor": "urn:formspec:actor:human:legal-user",
   "commands": [
     {

@@ -1,5 +1,5 @@
 {
-  "$wireframeDataSources": "0.1-spike-v3",
+  "$wireframeDataSources": "0.1-spike-v4",
   "url": "https://lexassist.example/data-sources/workbench",
   "version": "1.0.0",
   "description": "Spike-local data-source catalog for non-form Surface slots. This is proof infrastructure, not an ADR 0150 schema.",

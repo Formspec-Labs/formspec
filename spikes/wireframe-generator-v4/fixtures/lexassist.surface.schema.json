@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/spikes/wireframe-generator-v3/surface/0.1",
-  "title": "Spike v3 Surface",
+  "$id": "https://formspec.org/spikes/wireframe-generator-v4/surface/0.1",
+  "title": "Spike v4 Surface",
   "description": "Spike-local Surface schema sketch that models the ADR 0150 route graph and closed slot-type taxonomy until an official Surface schema lands. This file is not a conformance schema.",
   "type": "object",
   "required": ["$formspecSurface", "url", "version", "appName", "targetExperience", "routes"],
   "additionalProperties": false,
   "properties": {
-    "$formspecSurface": { "const": "0.1-spike-v3" },
+    "$formspecSurface": { "const": "0.1-spike-v4" },
     "url": { "type": "string", "format": "uri" },
     "version": { "type": "string", "minLength": 1 },
     "modules": {

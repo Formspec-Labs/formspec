@@ -1,5 +1,5 @@
 {
-  "$formspecSurface": "0.1-spike-v3",
+  "$formspecSurface": "0.1-spike-v4",
   "url": "https://lexassist.example/surfaces/workbench",
   "version": "1.0.0",
   "modules": [

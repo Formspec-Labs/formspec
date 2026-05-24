@@ -664,7 +664,7 @@ export function renderApp(app: WireframeApp): string {
     <p>${esc(app.appTagline ?? "Multi-route low-fidelity wireframe generated from Definition + Experience + Response Actions + Surface.")}</p>
     <div class="wf-doc-meta">
       <span>routes: <code>${app.routes.length}</code></span>
-      <span>generated-by: <code>formspec-wireframe-generator-spike-v3</code></span>
+      <span>generated-by: <code>formspec-wireframe-generator-spike-v4</code></span>
     </div>
   </div>`;
   return `<!doctype html>

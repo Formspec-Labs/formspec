@@ -21,8 +21,8 @@
     "$module.x-formspec-document-viewer.docViewer.title": "Document viewer"
   },
   "extensions": {
-    "x-spike-v3-current-schema-gap": {
-      "reason": "Locale remains targetDefinition-scoped today; v3 uses this file as representative module-locale addressing evidence, not as an app-wide Locale schema."
+    "x-wireframe-v4-prototype-note": {
+      "reason": "Locale remains targetDefinition-scoped today; v4 uses this file as representative module-locale addressing evidence, not as an app-wide Locale schema."
     }
   }
 }

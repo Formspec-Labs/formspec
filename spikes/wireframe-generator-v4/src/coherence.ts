@@ -1,4 +1,4 @@
-/** @filedesc Spike-local app graph coherence validator for ADR-0150 v3 proof. */
+/** @filedesc Spike-local app graph coherence validator for ADR-0150 v4 proof. */
 
 import type Ajv2020 from "ajv/dist/2020.js";
 import type {
@@ -49,7 +49,7 @@ type RegistryIndex = {
 type ActionSidecarRef = {
   url: string;
   version?: string;
-  "x-spike-v3-targetDefinition"?: { url?: string };
+  targetDefinition?: { url?: string };
 };
 
 type ArtifactRef = {
@@ -182,13 +182,12 @@ function refsByUrl<T extends { url: string }>(items: T[]): Map<string, T> {
 }
 
 function actionSidecarRefs(inputs: GeneratorInputs): ActionSidecarRef[] {
-  const ext = inputs.appManifest["x-spike-v3-responseActions"];
-  if (Array.isArray(ext)) return ext.filter((ref): ref is ActionSidecarRef => !!ref && typeof ref.url === "string");
-  return inputs.appManifest.responseActions ? [inputs.appManifest.responseActions] : [];
+  const raw = inputs.appManifest.responseActions ?? [];
+  return raw.filter((ref) => !!ref && typeof ref.url === "string") as ActionSidecarRef[];
 }
 
 function actionRefTargetDefinition(ref: ActionSidecarRef): string | undefined {
-  return ref["x-spike-v3-targetDefinition"]?.url;
+  return ref.targetDefinition?.url;
 }
 
 function artifactRef(value: unknown): ArtifactRef | undefined {
@@ -345,19 +344,33 @@ function validateSiblingIndex(
       issue(issues, "error", "APP-COHERENCE-UNLISTED-DEFINITION", "$.definitions", `Definition '${def.url}' is loaded but not listed in App Manifest.`);
     }
   }
-  if (!inputs.appManifest.experience) {
-    issue(issues, "error", "APP-COHERENCE-MISSING-EXPERIENCE-REF", "$.experience", "App Manifest must reference the loaded Experience sidecar.");
+  const experienceRefs = inputs.appManifest.experiences ?? [];
+  const experienceRef = experienceRefs[0];
+  if (!experienceRef) {
+    issue(issues, "error", "APP-COHERENCE-MISSING-EXPERIENCE-REF", "$.experiences[0]", "App Manifest must reference the loaded Experience sidecar.");
   } else {
-    if (inputs.appManifest.experience.version && inputs.appManifest.experience.version !== inputs.experience.version) {
-      issue(issues, "error", "APP-COHERENCE-ARTIFACT-VERSION", "$.experience", `Experience ref pins version '${inputs.appManifest.experience.version}', but loaded document is '${inputs.experience.version}'.`);
+    validateResolvedArtifactRef(issues, artifactRef(experienceRef), inputs.experience, "$.experiences[0]", "Experience");
+    const targetDefinitions = experienceRef.targetDefinitions;
+    if (!Array.isArray(targetDefinitions) || targetDefinitions.length === 0) {
+      issue(issues, "error", "APP-COHERENCE-EXPERIENCE-TARGET-DEFINITIONS", "$.experiences[0].targetDefinitions", "Experience ref must list targetDefinitions[].");
     }
-    issue(issues, "info", "APP-COHERENCE-EXPERIENCE-SINGULAR-GAP", "$.experience", "Experience is still a singular sibling in the official App Manifest shape; v3 resolves it as the app-level Experience sidecar.");
+    for (const [targetIndex, target] of (targetDefinitions ?? []).entries()) {
+      if (!definitionsByUrl.has(target.url)) {
+        issue(issues, "error", "APP-COHERENCE-EXPERIENCE-TARGET-DEFINITION", `$.experiences[0].targetDefinitions[${targetIndex}]`, `Experience ref targets missing Definition '${target.url}'.`);
+      }
+    }
+  }
+  for (const def of inputs.definitions) {
+    if (experienceRef && !(experienceRef.targetDefinitions ?? []).some((target) => target.url === def.url)) {
+      issue(issues, "error", "APP-COHERENCE-EXPERIENCE-TARGET-OMISSION", "$.experiences[0].targetDefinitions", `Definition '${def.url}' is loaded but not listed in the Experience ref targetDefinitions[].`);
+    }
   }
   validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.surfaces)[0], inputs.surface, "$.surfaces[0]", "Surface");
   validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.registries)[0], inputs.registry, "$.registries[0]", "Registry");
-  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest["x-spike-v3-posture"]), inputs.posture, "$.x-spike-v3-posture", "Posture");
-  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest["x-spike-v3-dataSources"]), inputs.dataSources, "$.x-spike-v3-dataSources", "Data Sources");
-  validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest["x-spike-v3-screeners"])[0], inputs.screener, "$.x-spike-v3-screeners[0]", "Screener");
+  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest.posture), inputs.posture, "$.posture", "Posture");
+  validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.dataSources)[0], inputs.dataSources, "$.dataSources[0]", "Data Sources");
+  validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.screeners)[0], inputs.screener, "$.screeners[0]", "Screener");
+  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest.runtimePlan), inputs.runtimePlan, "$.runtimePlan", "Runtime Plan");
   for (const [index, locale] of (inputs.locales ?? []).entries()) {
     validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.locales)[index], locale, `$.locales[${index}]`, "Locale");
   }
@@ -366,11 +379,11 @@ function validateSiblingIndex(
   for (const [index, ref] of actionRefs.entries()) {
     const targetDefinition = actionRefTargetDefinition(ref);
     if (!targetDefinition) {
-      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-TARGET-MISSING", `$.x-spike-v3-responseActions[${index}]`, `Response Actions ref '${ref.url}' must explicitly name x-spike-v3-targetDefinition.url.`);
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-TARGET-MISSING", `$.responseActions[${index}]`, `Response Actions ref '${ref.url}' must explicitly name targetDefinition.url.`);
       continue;
     }
     if (!definitionsByUrl.has(targetDefinition)) {
-      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-TARGET", `$.x-spike-v3-responseActions[${index}]`, `Response Actions ref '${ref.url}' targets missing Definition '${targetDefinition}'.`);
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-TARGET", `$.responseActions[${index}]`, `Response Actions ref '${ref.url}' targets missing Definition '${targetDefinition}'.`);
     }
     const refs = actionRefsByDefinition.get(targetDefinition) ?? [];
     refs.push(ref);
@@ -378,7 +391,7 @@ function validateSiblingIndex(
   }
   for (const [targetDefinition, refs] of actionRefsByDefinition) {
     if (refs.length > 1) {
-      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-DUPLICATE", "$.x-spike-v3-responseActions", `Definition '${targetDefinition}' has multiple indexed Response Actions sidecars: ${refs.map((ref) => ref.url).join(", ")}.`);
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-DUPLICATE", "$.responseActions", `Definition '${targetDefinition}' has multiple indexed Response Actions sidecars: ${refs.map((ref) => ref.url).join(", ")}.`);
     }
   }
   for (const ra of inputs.responseActions) {
@@ -387,22 +400,22 @@ function validateSiblingIndex(
     }
     const refs = actionRefsByDefinition.get(ra.targetDefinition.url) ?? [];
     if (refs.length === 0) {
-      issue(issues, "error", "APP-COHERENCE-UNLISTED-ACTION-SIDECAR", "$.x-spike-v3-responseActions", `Response Actions sidecar for '${ra.targetDefinition.url}' is loaded but not listed in the spike-local sidecar index.`);
+      issue(issues, "error", "APP-COHERENCE-UNLISTED-ACTION-SIDECAR", "$.responseActions", `Response Actions sidecar for '${ra.targetDefinition.url}' is loaded but not listed in App Manifest responseActions[].`);
     }
     for (const ref of refs) {
       if (ref.version && ref.version !== ra.version) {
-        issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-VERSION", "$.x-spike-v3-responseActions", `Response Actions ref '${ref.url}' pins version '${ref.version}', but the loaded sidecar for '${ra.targetDefinition.url}' is '${ra.version}'.`);
+        issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-VERSION", "$.responseActions", `Response Actions ref '${ref.url}' pins version '${ref.version}', but the loaded sidecar for '${ra.targetDefinition.url}' is '${ra.version}'.`);
       }
     }
   }
   for (const [targetDefinition, refs] of actionRefsByDefinition) {
     if (!sidecarsByDefinition.has(targetDefinition)) {
-      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-UNLOADED", "$.x-spike-v3-responseActions", `Response Actions ref '${refs[0].url}' targets '${targetDefinition}', but no loaded sidecar binds that Definition.`);
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-UNLOADED", "$.responseActions", `Response Actions ref '${refs[0].url}' targets '${targetDefinition}', but no loaded sidecar binds that Definition.`);
     }
   }
   for (const def of inputs.definitions) {
     if (!sidecarsByDefinition.has(def.url)) {
-      issue(issues, "warning", "APP-COHERENCE-MISSING-ACTION-SIDECAR", "$.x-spike-v3-responseActions", `Definition '${def.url}' has no Response Actions sidecar.`);
+      issue(issues, "warning", "APP-COHERENCE-MISSING-ACTION-SIDECAR", "$.responseActions", `Definition '${def.url}' has no Response Actions sidecar.`);
     }
   }
 
@@ -471,8 +484,9 @@ function resolveModuleVersion(registry: RegistryIndex, id: string): string | und
 }
 
 function validateSurfaceGraph(inputs: GeneratorInputs, issues: CoherenceIssue[]): void {
-  if (inputs.surface.targetExperience.url !== inputs.appManifest.experience?.url) {
-    issue(issues, "error", "SURFACE-EXPERIENCE-MISMATCH", "$.surface.targetExperience", `Surface targets '${inputs.surface.targetExperience.url}', App Manifest lists '${inputs.appManifest.experience?.url ?? "(none)"}'.`);
+  const targetExperience = inputs.appManifest.experiences?.[0]?.url;
+  if (inputs.surface.targetExperience.url !== targetExperience) {
+    issue(issues, "error", "SURFACE-EXPERIENCE-MISMATCH", "$.surface.targetExperience", `Surface targets '${inputs.surface.targetExperience.url}', App Manifest lists '${targetExperience ?? "(none)"}'.`);
   }
   const routes = new Map(inputs.surface.routes.map((route) => [route.id, route]));
   const defaults = inputs.surface.routes.filter((route) => route.default);

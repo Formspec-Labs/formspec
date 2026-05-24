@@ -32,7 +32,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 
 | ID | Finding | v4 status | Verdict |
 |---|---|---|---|
-| F1 | App Manifest needs first-class sidecar indexes | Planned | Pending |
+| F1 | App Manifest needs first-class sidecar indexes | Passing spike-local prototype | Pending final |
 | F2 | App Graph Validator should be a production primitive | Planned | Pending |
 | F3 | Surface should become a normal contract surface | Planned | Pending |
 | F4 | Module admission needs one shared resolver | Planned | Pending |
@@ -47,7 +47,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 
 | Tier | Recommendation | v4 status |
 |---|---|---|
-| P0 | Promote App Manifest to a real app envelope with first-class sidecar indexes | Planned |
+| P0 | Promote App Manifest to a real app envelope with first-class sidecar indexes | Passing spike-local F1 proof |
 | P0 | Promote Surface to official schema/spec/conformance | Planned as spike-local proof only |
 | P0 | Build `AppGraphValidator` as a production validation layer | Planned as shared spike library |
 | P0 | Build a shared module admission and contribution resolver | Planned as shared spike library |
@@ -66,16 +66,16 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 
 | # | Preserved v3 acceptance test | v4 status |
 |---|---|---|
-| A1 | stale sidecar ref | Planned |
-| A2 | unadmitted contribution owner | Planned |
-| A3 | unresolved navigation target | Planned |
+| A1 | stale sidecar ref | Passing |
+| A2 | unadmitted contribution owner | Passing |
+| A3 | unresolved navigation target | Passing |
 | A4 | unresolved Surface route ref | Planned |
 | A5 | missing route params | Planned |
-| A6 | required-field runtime blocking | Planned |
-| A7 | duplicate durable-effect idempotency key | Planned |
-| A8 | unknown runtime command | Planned |
-| A9 | route/Definition ownership mismatch | Planned |
-| A10 | undeclared Screener terminal hop | Planned |
+| A6 | required-field runtime blocking | Passing |
+| A7 | duplicate durable-effect idempotency key | Passing |
+| A8 | unknown runtime command | Passing |
+| A9 | route/Definition ownership mismatch | Passing |
+| A10 | undeclared Screener terminal hop | Passing |
 | A11 | duplicate Response Actions action id | Planned |
 | A12 | generated Component id collision | Planned |
 | A13 | module-widget payload mismatch | Planned |
@@ -93,12 +93,43 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 
 ## Deviations
 
-None yet.
+1. The first v4 commit combined the spike scaffold and tracker document. The requested review preference was doc-first before code. The scaffold did include copied v3 spike code and fixtures; it did not change production or normative surfaces before F1. This commit shape is still a process deviation and should not be repeated.
+2. v4 keeps production changes out of `schemas/`, `specs/`, lint, conformance, and runtime packages. The F1 work is limited to spike-local fixtures, schemas, resolver loading, coherence validation, and generated spike output.
+3. The copied v3 scaffold initially retained `x-spike-v3-*` authority. F1 removed those from v4 source and fixtures. The only remaining mentions are README/history text and a schema guard that rejects `x-spike-v3-fixture`.
 
 ## Findings
 
-None yet.
+### F1 - App Manifest Sidecar Indexes
+
+The F1 candidate shape works as a spike-local App Manifest graph root. `definitions[]`, `experiences[]`, `responseActions[]`, `registries[]`, `surfaces[]`, `dataSources[]`, `posture`, `screeners[]`, `runtimePlan`, `modules[]`, `sessions[]`, and `locales[]` are all first-class manifest fields in `spikes/wireframe-generator-v4/fixtures/lexassist.app-manifest.json`.
+
+The important result is authority placement. The manifest now names the graph; local `fixture` paths only tell the harness where to load files. The resolver records fixture paths in `output/artifact-resolution-report.json`, but the coherence checks validate canonical URLs, versions, and target relationships.
+
+Response Actions lookup no longer depends on product URL convention. Each manifest `responseActions[]` ref carries `targetDefinition.url`, and the validator rejects stale, duplicate, unloaded, and unlisted sidecars by manifest path. Each `experiences[]` ref carries `targetDefinitions[]`, so the graph can validate Experience-to-Definition coverage without relying on the old singular App Manifest `experience` slot.
+
+The candidate App Manifest schema is deliberately spike-local: `fixtures/lexassist.app-manifest.v4.schema.json`. This proves buildability without promoting schema shape before prose contract review. It requires `experiences[].targetDefinitions[]` and rejects any copied `x-spike-v3-*` manifest-ref metadata so old v3 fixture authority cannot silently return.
+
+F1 boundary review found two fail-open validator paths: `runtimePlan` was loaded but not part of coherence validation, and `experiences[].targetDefinitions[]` could be omitted without failing. Both are now closed. `runtimePlan` is part of `GeneratorInputs`, the coherence validator compares the manifest ref against the loaded document URL/version, and the negative harness covers stale runtime-plan refs, missing Experience target indexes, and Definition omissions from the Experience target index. Re-review returned zero open F1 findings.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+All three passed. The spike run validated the App Manifest, Registry, Surface, Posture, Screener, Locale, Experience, five Definitions, five Response Actions sidecars, Runtime Plan, generated Components for eight routes, app coherence, and runtime behavior with zero schema, coherence, or runtime errors.
+
+### Current Suggestions
+
+1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
+2. Split the production implementation into three primitives: `ArtifactResolver` for manifest ref loading, `ModuleResolver` for admission/contribution ownership, and `AppGraphValidator` for cross-document invariants. Generated Components and runtime execution should consume their output, not define graph truth.
+3. Keep Surface input-side and Component output-side. Surface should own route graph, slots, navigation, and app shell structure. Component generation should remain a projection and should not define Surface semantics.
+4. Treat the non-form Component `targetDefinition` value as an output-only compatibility shim until Component identity is fixed. The v4 generator labels it as `x-spike-v4-output-compatibility`; production should replace the shim with route or Surface identity before serious authoring/regeneration work depends on it.
+5. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
+6. Add the missing negative cases before any production wiring: unresolved embedded Surface route, missing transition params, duplicate Response Actions action id, generated Component id collision, module-widget payload mismatch, module version conflict, and EC2/EC5/EC12/EC13/EC14.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 
-Pending.
+- ADR 0150: F1 strengthens the app-envelope model. App Manifest should be the graph root, and official prose should describe first-class sidecar indexes before schema work. Surface remains the input contract for routes; Components remain renderer artifacts.
+- ADR 0151: no normative change yet. The current Component identity gap remains real; v4 should only preserve an output compatibility marker until route/Surface-targeted Component identity is designed.
+- ADR 0152: no scope expansion. Session membership and binary `allowedActors` are enough for this spike. Fine-grained authorization remains deferred to ADR 0152.

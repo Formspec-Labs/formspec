@@ -1,4 +1,4 @@
-/** @filedesc Negative self-tests for the ADR-0150 v3 app-coherence validator. */
+/** @filedesc Negative self-tests for the ADR-0150 v4 app-coherence validator. */
 
 import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -13,7 +13,7 @@ import type { AppManifest, DataSourceCatalog, Definition, Experience, GeneratorI
 const SPIKE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURE_ROOT = join(SPIKE_ROOT, "fixtures");
 
-type LocalRef = { url: string; version?: string; "x-spike-v3-fixture"?: string };
+type LocalRef = { url: string; version?: string; fixture?: string };
 
 async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, "utf-8")) as T;
@@ -24,8 +24,8 @@ function clone<T>(value: T): T {
 }
 
 function fixturePath(ref: LocalRef): string {
-  if (!ref["x-spike-v3-fixture"]) throw new Error(`Missing x-spike-v3-fixture for ${ref.url}`);
-  return join(FIXTURE_ROOT, ref["x-spike-v3-fixture"]);
+  if (!ref.fixture) throw new Error(`Missing fixture for ${ref.url}`);
+  return join(FIXTURE_ROOT, ref.fixture);
 }
 
 function refs(value: unknown): LocalRef[] {
@@ -35,17 +35,21 @@ function refs(value: unknown): LocalRef[] {
 
 async function loadInputs(): Promise<GeneratorInputs> {
   const appManifest = await readJson<AppManifest>(join(FIXTURE_ROOT, "lexassist.app-manifest.json"));
-  const actionRefs = refs(appManifest["x-spike-v3-responseActions"]);
-  const screenerRefs = refs(appManifest["x-spike-v3-screeners"]);
+  const actionRefs = refs(appManifest.responseActions);
+  const screenerRefs = refs(appManifest.screeners);
+  const experienceRefs = refs(appManifest.experiences);
+  const dataSourceRefs = refs(appManifest.dataSources);
+  const runtimePlan = await readJson<RuntimePlan>(fixturePath(appManifest.runtimePlan as LocalRef));
   return {
     appManifest,
     definitions: await Promise.all(appManifest.definitions.map((ref) => readJson<Definition>(fixturePath(ref)))),
-    experience: await readJson<Experience>(fixturePath(appManifest.experience as LocalRef)),
+    experience: await readJson<Experience>(fixturePath(experienceRefs[0])),
     responseActions: await Promise.all(actionRefs.map((ref) => readJson<ResponseActions>(fixturePath(ref)))),
     registry: await readJson<Registry>(fixturePath((appManifest.registries ?? [])[0] as LocalRef)),
     surface: await readJson<Surface>(fixturePath((appManifest.surfaces ?? [])[0] as LocalRef)),
-    posture: await readJson<PostureDeclaration>(fixturePath(appManifest["x-spike-v3-posture"] as LocalRef)),
-    dataSources: await readJson<DataSourceCatalog>(fixturePath(appManifest["x-spike-v3-dataSources"] as LocalRef)),
+    runtimePlan,
+    posture: await readJson<PostureDeclaration>(fixturePath(appManifest.posture as LocalRef)),
+    dataSources: await readJson<DataSourceCatalog>(fixturePath(dataSourceRefs[0])),
     screener: await readJson<JsonObject>(fixturePath(screenerRefs[0])),
     locales: await Promise.all((appManifest.locales ?? []).map((ref) => readJson<JsonObject>(fixturePath(ref)))),
   };
@@ -87,7 +91,7 @@ function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
 }
 
 const base = await loadInputs();
-const baseRuntimePlan = await readJson<RuntimePlan>(fixturePath(base.appManifest["x-spike-v3-runtimePlan"] as LocalRef));
+const baseRuntimePlan = base.runtimePlan as RuntimePlan;
 
 assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone(baseRuntimePlan), (report) => {
   const newMatter = report.responses["https://lexassist.example/forms/new-matter"];
@@ -101,8 +105,27 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 
 {
   const inputs = clone(base);
-  refs(inputs.appManifest["x-spike-v3-responseActions"])[1].version = "9.9.9";
+  refs(inputs.appManifest.responseActions)[1].version = "9.9.9";
   assertIssue("stale response-actions sidecar ref", inputs, "APP-COHERENCE-ACTION-SIDECAR-VERSION");
+}
+
+{
+  const inputs = clone(base);
+  (inputs.appManifest.runtimePlan as LocalRef).version = "9.9.9";
+  assertIssue("stale runtime-plan ref", inputs, "APP-COHERENCE-ARTIFACT-VERSION");
+}
+
+{
+  const inputs = clone(base);
+  delete (refs(inputs.appManifest.experiences)[0] as { targetDefinitions?: unknown }).targetDefinitions;
+  assertIssue("missing experience targetDefinitions index", inputs, "APP-COHERENCE-EXPERIENCE-TARGET-DEFINITIONS");
+}
+
+{
+  const inputs = clone(base);
+  const experienceRef = refs(inputs.appManifest.experiences)[0] as { targetDefinitions?: Array<{ url: string }> };
+  experienceRef.targetDefinitions = experienceRef.targetDefinitions?.slice(0, -1);
+  assertIssue("experience targetDefinition omission", inputs, "APP-COHERENCE-EXPERIENCE-TARGET-OMISSION");
 }
 
 {

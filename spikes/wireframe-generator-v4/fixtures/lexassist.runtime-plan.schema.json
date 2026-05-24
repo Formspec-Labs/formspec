@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/spikes/wireframe-generator-v3/runtime-plan/0.1",
-  "title": "Wireframe Spike v3 Runtime Plan",
+  "$id": "https://formspec.org/spikes/wireframe-generator-v4/runtime-plan/0.1",
+  "title": "Wireframe Spike v4 Runtime Plan",
   "description": "Spike-local runtime plan schema. This is proof infrastructure, not an official Formspec conformance schema.",
   "type": "object",
   "required": ["$wireframeRuntimePlan", "sessionId", "actor", "commands"],
@@ -9,7 +9,7 @@
   "properties": {
     "$wireframeRuntimePlan": {
       "type": "string",
-      "const": "0.1-spike-v3"
+      "const": "0.1-spike-v4"
     },
     "url": {
       "type": "string",

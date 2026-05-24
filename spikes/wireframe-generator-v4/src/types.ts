@@ -13,7 +13,16 @@ export type ModuleRef = {
 export type SiblingRef = {
   url: string;
   version?: string;
+  fixture?: string;
   [k: string]: unknown;
+};
+
+export type ExperienceRef = SiblingRef & {
+  targetDefinitions: Array<{ url: string; compatibleVersions?: string }>;
+};
+
+export type ResponseActionsRef = SiblingRef & {
+  targetDefinition: { url: string; compatibleVersions?: string };
 };
 
 export type SessionRef = {
@@ -32,10 +41,14 @@ export type AppManifest = {
   title?: string;
   description?: string;
   definitions: SiblingRef[];
-  experience?: SiblingRef;
-  responseActions?: SiblingRef;
+  experiences: ExperienceRef[];
+  responseActions: ResponseActionsRef[];
   registries?: SiblingRef[];
   surfaces?: SiblingRef[];
+  dataSources?: SiblingRef[];
+  posture?: SiblingRef;
+  screeners?: SiblingRef[];
+  runtimePlan?: SiblingRef;
   modules?: ModuleRef[];
   sessions?: SessionRef[];
   locales?: Array<SiblingRef & { locale: string }>;
@@ -84,7 +97,7 @@ export type DataSource = {
 };
 
 export type DataSourceCatalog = {
-  $wireframeDataSources: "0.1-spike-v3";
+  $wireframeDataSources: "0.1-spike-v4";
   url?: string;
   version?: string;
   description?: string;
@@ -287,6 +300,7 @@ export type GeneratorInputs = {
   responseActions: ResponseActions[];
   registry: Registry;
   surface: Surface;
+  runtimePlan?: { url?: string; version?: string; [k: string]: unknown };
   posture?: PostureDeclaration;
   dataSources?: DataSourceCatalog;
   screener?: JsonObject;

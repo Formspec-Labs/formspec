@@ -1,4 +1,4 @@
-/** @filedesc Spike-local runtime/session executor for the ADR-0150 v3 app graph. */
+/** @filedesc Spike-local runtime/session executor for the ADR-0150 v4 app graph. */
 
 import type { Definition, GeneratorInputs, JsonObject, RaAction, ResponseActions, SurfaceRoute } from "./types.js";
 
@@ -17,7 +17,7 @@ export type RuntimeCommand =
   | { type: "transition"; route?: string; event: string; params?: Record<string, string> };
 
 export type RuntimePlan = {
-  $wireframeRuntimePlan: "0.1-spike-v3";
+  $wireframeRuntimePlan: "0.1-spike-v4";
   url?: string;
   version?: string;
   sessionId: string;
@@ -70,8 +70,8 @@ export function executeRuntimePlan(inputs: GeneratorInputs, plan: RuntimePlan): 
     issues: [],
   };
 
-  if (plan.$wireframeRuntimePlan !== "0.1-spike-v3") {
-    push(state, "error", "RUNTIME-PLAN-VERSION", "$.$wireframeRuntimePlan", "Runtime Plan must declare '$wireframeRuntimePlan': '0.1-spike-v3'.");
+  if (plan.$wireframeRuntimePlan !== "0.1-spike-v4") {
+    push(state, "error", "RUNTIME-PLAN-VERSION", "$.$wireframeRuntimePlan", "Runtime Plan must declare '$wireframeRuntimePlan': '0.1-spike-v4'.");
   }
   if (!session) {
     push(state, "error", "RUNTIME-SESSION-UNRESOLVED", "$.sessionId", `Session '${plan.sessionId}' is absent from App Manifest sessions[].`);

@@ -22,7 +22,7 @@ import type {
   SurfaceSlotType,
 } from "./types.js";
 
-const GENERATOR_ID = "formspec-wireframe-generator-spike-v3@0.1.0";
+const GENERATOR_ID = "formspec-wireframe-generator-spike-v4@0.1.0";
 const GENERATED_AT = "2026-05-23T00:00:00Z";
 const DEFAULT_MODULE_VERSION = "^0.1.0";
 
@@ -589,7 +589,7 @@ export function generateBundle(inputs: GeneratorInputs): MultiRouteBundle {
         },
         ...(usesDefinitionShim
           ? {
-              "x-spike-v3-current-schema-gap": {
+              "x-spike-v4-output-compatibility": {
                 reason: "Component 1.1 still requires targetDefinition, even for ADR-0150 non-form Surface routes.",
                 shimTargetDefinition: routeDefinition.url,
               },

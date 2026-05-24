@@ -6,29 +6,59 @@
   "title": "LexAssist Workbench",
   "description": "ADR-0150 layered UI substrate spike: multi-route app, per-view Definitions, module-aware Registry, and Surface route graph.",
   "definitions": [
-    { "url": "https://lexassist.example/forms/new-matter", "version": "1.0.0", "x-spike-v3-fixture": "definitions/new-matter.definition.json" },
-    { "url": "https://lexassist.example/forms/thread-composer", "version": "1.0.0", "x-spike-v3-fixture": "definitions/thread-composer.definition.json" },
-    { "url": "https://lexassist.example/forms/playbook-runner", "version": "1.0.0", "x-spike-v3-fixture": "definitions/playbook-runner.definition.json" },
-    { "url": "https://lexassist.example/forms/library-settings", "version": "1.0.0", "x-spike-v3-fixture": "definitions/library-settings.definition.json" },
-    { "url": "https://lexassist.example/forms/profile", "version": "1.0.0", "x-spike-v3-fixture": "definitions/profile.definition.json" }
+    { "url": "https://lexassist.example/forms/new-matter", "version": "1.0.0", "fixture": "definitions/new-matter.definition.json" },
+    { "url": "https://lexassist.example/forms/thread-composer", "version": "1.0.0", "fixture": "definitions/thread-composer.definition.json" },
+    { "url": "https://lexassist.example/forms/playbook-runner", "version": "1.0.0", "fixture": "definitions/playbook-runner.definition.json" },
+    { "url": "https://lexassist.example/forms/library-settings", "version": "1.0.0", "fixture": "definitions/library-settings.definition.json" },
+    { "url": "https://lexassist.example/forms/profile", "version": "1.0.0", "fixture": "definitions/profile.definition.json" }
   ],
-  "experience": {
-    "url": "https://lexassist.example/experiences/workbench",
-    "version": "1.0.0",
-    "x-spike-v3-fixture": "lexassist.experience.json"
-  },
-  "responseActions": {
-    "url": "https://lexassist.example/actions/new-matter",
-    "version": "1.0.0",
-    "x-spike-v3-fixture": "actions/new-matter.response-actions.json",
-    "x-spike-v3-targetDefinition": { "url": "https://lexassist.example/forms/new-matter" }
-  },
+  "experiences": [
+    {
+      "url": "https://lexassist.example/experiences/workbench",
+      "version": "1.0.0",
+      "targetDefinitions": [
+        { "url": "https://lexassist.example/forms/new-matter" },
+        { "url": "https://lexassist.example/forms/thread-composer" },
+        { "url": "https://lexassist.example/forms/playbook-runner" },
+        { "url": "https://lexassist.example/forms/library-settings" },
+        { "url": "https://lexassist.example/forms/profile" }
+      ],
+      "fixture": "lexassist.experience.json"
+    }
+  ],
+  "responseActions": [
+    { "url": "https://lexassist.example/actions/new-matter", "version": "1.0.0", "fixture": "actions/new-matter.response-actions.json", "targetDefinition": { "url": "https://lexassist.example/forms/new-matter" } },
+    { "url": "https://lexassist.example/actions/thread-composer", "version": "1.0.0", "fixture": "actions/thread-composer.response-actions.json", "targetDefinition": { "url": "https://lexassist.example/forms/thread-composer" } },
+    { "url": "https://lexassist.example/actions/playbook-runner", "version": "1.0.0", "fixture": "actions/playbook-runner.response-actions.json", "targetDefinition": { "url": "https://lexassist.example/forms/playbook-runner" } },
+    { "url": "https://lexassist.example/actions/library-settings", "version": "1.0.0", "fixture": "actions/library-settings.response-actions.json", "targetDefinition": { "url": "https://lexassist.example/forms/library-settings" } },
+    { "url": "https://lexassist.example/actions/profile", "version": "1.0.0", "fixture": "actions/profile.response-actions.json", "targetDefinition": { "url": "https://lexassist.example/forms/profile" } }
+  ],
   "registries": [
-    { "url": "https://lexassist.example/registries/workbench", "version": "1.0.0", "x-spike-v3-fixture": "lexassist.registry.json" }
+    { "url": "https://lexassist.example/registries/workbench", "version": "1.0.0", "fixture": "lexassist.registry.json" }
   ],
   "surfaces": [
-    { "url": "https://lexassist.example/surfaces/workbench", "version": "1.0.0", "x-spike-v3-fixture": "lexassist.surface.json" }
+    { "url": "https://lexassist.example/surfaces/workbench", "version": "1.0.0", "fixture": "lexassist.surface.json" }
   ],
+  "dataSources": [
+    {
+      "url": "https://lexassist.example/data-sources/workbench",
+      "version": "1.0.0",
+      "fixture": "lexassist.data-sources.json"
+    }
+  ],
+  "posture": {
+    "url": "https://lexassist.example/posture/workbench-dev",
+    "version": "1.0.0",
+    "fixture": "lexassist.posture.json"
+  },
+  "screeners": [
+    { "url": "https://lexassist.example/screeners/workbench-entry", "version": "1.0.0", "fixture": "lexassist.screener.json" }
+  ],
+  "runtimePlan": {
+    "url": "https://lexassist.example/runtime-plans/workbench-happy-path",
+    "version": "0.1.0",
+    "fixture": "lexassist.runtime-plan.json"
+  },
   "modules": [
     { "id": "x-formspec-core-task", "version": "^1.0.0" },
     { "id": "x-formspec-core-actions", "version": "^1.0.0" },
@@ -41,7 +71,7 @@
   ],
   "sessions": [
     {
-      "id": "urn:formspec:session:lexassist-spike-v3-demo",
+      "id": "urn:formspec:session:lexassist-spike-v4-demo",
       "openedAt": "2026-05-23T00:00:00Z",
       "actors": [
         "urn:formspec:actor:human:legal-user",
@@ -54,37 +84,12 @@
       "url": "https://lexassist.example/locales/workbench-en-us",
       "version": "1.0.0",
       "locale": "en-US",
-      "x-spike-v3-fixture": "locales/lexassist.en-US.locale.json"
+      "fixture": "locales/lexassist.en-US.locale.json"
     }
   ],
-  "x-spike-v3-responseActions": [
-    { "url": "https://lexassist.example/actions/new-matter", "version": "1.0.0", "x-spike-v3-fixture": "actions/new-matter.response-actions.json", "x-spike-v3-targetDefinition": { "url": "https://lexassist.example/forms/new-matter" } },
-    { "url": "https://lexassist.example/actions/thread-composer", "version": "1.0.0", "x-spike-v3-fixture": "actions/thread-composer.response-actions.json", "x-spike-v3-targetDefinition": { "url": "https://lexassist.example/forms/thread-composer" } },
-    { "url": "https://lexassist.example/actions/playbook-runner", "version": "1.0.0", "x-spike-v3-fixture": "actions/playbook-runner.response-actions.json", "x-spike-v3-targetDefinition": { "url": "https://lexassist.example/forms/playbook-runner" } },
-    { "url": "https://lexassist.example/actions/library-settings", "version": "1.0.0", "x-spike-v3-fixture": "actions/library-settings.response-actions.json", "x-spike-v3-targetDefinition": { "url": "https://lexassist.example/forms/library-settings" } },
-    { "url": "https://lexassist.example/actions/profile", "version": "1.0.0", "x-spike-v3-fixture": "actions/profile.response-actions.json", "x-spike-v3-targetDefinition": { "url": "https://lexassist.example/forms/profile" } }
-  ],
-  "x-spike-v3-dataSources": {
-    "url": "https://lexassist.example/data-sources/workbench",
-    "version": "1.0.0",
-    "x-spike-v3-fixture": "lexassist.data-sources.json"
-  },
-  "x-spike-v3-posture": {
-    "url": "https://lexassist.example/posture/workbench-dev",
-    "version": "1.0.0",
-    "x-spike-v3-fixture": "lexassist.posture.json"
-  },
-  "x-spike-v3-screeners": [
-    { "url": "https://lexassist.example/screeners/workbench-entry", "version": "1.0.0", "x-spike-v3-fixture": "lexassist.screener.json" }
-  ],
-  "x-spike-v3-runtimePlan": {
-    "url": "https://lexassist.example/runtime-plans/workbench-happy-path",
-    "version": "0.1.0",
-    "x-spike-v3-fixture": "lexassist.runtime-plan.json"
-  },
-  "x-spike-v3-current-schema-gaps": [
-    "App Manifest 2.0 still has singular experience and responseActions sibling slots, while the ADR-0150 app model needs app-wide indexing over per-view form sidecars.",
+  "v4PrototypeNotes": [
+    "App Manifest 2.0 still lacks official first-class indexes for Experience, Response Actions, Surface, Data Sources, Screeners, and Runtime Plan. This spike tests a candidate shape without changing the ratified schema.",
     "Component 1.1 still requires targetDefinition, so generated non-form route Components carry a compatibility shim.",
-    "Data sources and Screeners are referenced through spike-local extension slots until official app-level indexes exist."
+    "Data sources and Screeners are app-level references in this prototype, while the local fixture path stays harness metadata outside canonical identity."
   ]
 }

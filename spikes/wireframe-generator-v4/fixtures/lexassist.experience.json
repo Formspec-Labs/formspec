@@ -371,13 +371,13 @@
     }
   ],
   "extensions": {
-    "x-spike-v3-targetDefinitions": [
+    "x-wireframe-v4-targetDefinitions": [
       "https://lexassist.example/forms/new-matter",
       "https://lexassist.example/forms/thread-composer",
       "https://lexassist.example/forms/playbook-runner",
       "https://lexassist.example/forms/library-settings",
       "https://lexassist.example/forms/profile"
     ],
-    "x-spike-v3-current-schema-gap": "Experience 1.0 still has one targetDefinition; ADR 0150 wants per-view Definitions inside an app-level substrate."
+    "x-wireframe-v4-prototype-note": "Experience 1.0 remains Definition-scoped; the v4 App Manifest candidate carries the app-level targetDefinitions index."
   }
 }
