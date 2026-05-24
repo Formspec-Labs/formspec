@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/spikes/wireframe-generator-v4/data-sources/0.1",
+  "title": "Wireframe Spike v4 Data Sources",
+  "description": "Spike-local Data Source catalog schema. This is proof infrastructure, not an official Formspec conformance schema.",
+  "type": "object",
+  "required": ["$wireframeDataSources", "url", "version", "sources"],
+  "additionalProperties": false,
+  "properties": {
+    "$wireframeDataSources": { "const": "0.1-spike-v4" },
+    "url": { "type": "string", "format": "uri" },
+    "version": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/DataSource" }
+    }
+  },
+  "$defs": {
+    "DataSource": {
+      "type": "object",
+      "required": ["id", "kind", "owner", "scope", "runtime"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(host|response|resource|query|conversation):[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+        },
+        "kind": {
+          "enum": ["host-state", "definition-response", "document-resource", "conversation-stream", "query-result", "route-params"]
+        },
+        "definitionRef": { "type": "string", "minLength": 1 },
+        "routeRef": { "type": "string", "minLength": 1 },
+        "owner": { "enum": ["host", "formspec", "module"] },
+        "scope": { "enum": ["session", "route", "definition", "resource"] },
+        "runtime": { "$ref": "#/$defs/RuntimeBehavior" },
+        "schema": { "type": "object" },
+        "description": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "definition-response" } }, "required": ["kind"] },
+          "then": { "required": ["definitionRef"] }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["document-resource", "conversation-stream", "query-result"] } }, "required": ["kind"] },
+          "then": { "required": ["routeRef"] }
+        }
+      ]
+    },
+    "RuntimeBehavior": {
+      "type": "object",
+      "required": ["delivery", "cache", "authorizationBoundary", "failureMode", "provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "delivery": { "enum": ["snapshot", "live", "draft"] },
+        "cache": { "$ref": "#/$defs/CacheRule" },
+        "authorizationBoundary": { "enum": ["host", "formspec-session", "module"] },
+        "failureMode": { "enum": ["empty-state", "stale-ok", "block-render", "degraded-widget"] },
+        "provenance": { "$ref": "#/$defs/ProvenanceRule" }
+      }
+    },
+    "CacheRule": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["snapshot", "subscribe", "draft", "none"] },
+        "staleAfter": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ProvenanceRule": {
+      "type": "object",
+      "required": ["kind", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["host-state", "definition-response", "document-resource", "conversation-stream", "query-result", "route-params"] },
+        "source": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

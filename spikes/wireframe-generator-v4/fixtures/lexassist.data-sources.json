@@ -9,7 +9,13 @@
       "kind": "host-state",
       "owner": "host",
       "scope": "session",
-      "cache": { "mode": "subscribe", "staleAfter": "PT5M" },
+      "runtime": {
+        "delivery": "live",
+        "cache": { "mode": "subscribe", "staleAfter": "PT5M" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "host-state", "source": "openMatterStore" }
+      },
       "schema": { "type": "array", "items": { "type": "object" } }
     },
     {
@@ -17,7 +23,14 @@
       "kind": "host-state",
       "owner": "host",
       "scope": "route",
-      "cache": { "mode": "subscribe", "staleAfter": "PT2M" },
+      "routeRef": "matter",
+      "runtime": {
+        "delivery": "live",
+        "cache": { "mode": "subscribe", "staleAfter": "PT2M" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "host-state", "source": "matterThreadStore" }
+      },
       "schema": { "type": "array", "items": { "type": "object" } }
     },
     {
@@ -25,7 +38,14 @@
       "kind": "host-state",
       "owner": "host",
       "scope": "route",
-      "cache": { "mode": "subscribe", "staleAfter": "PT1M" },
+      "routeRef": "matter",
+      "runtime": {
+        "delivery": "live",
+        "cache": { "mode": "subscribe", "staleAfter": "PT1M" },
+        "authorizationBoundary": "host",
+        "failureMode": "degraded-widget",
+        "provenance": { "kind": "host-state", "source": "matterActivityStore" }
+      },
       "schema": { "type": "array", "items": { "type": "object" } }
     },
     {
@@ -33,7 +53,14 @@
       "kind": "host-state",
       "owner": "host",
       "scope": "route",
-      "cache": { "mode": "snapshot", "staleAfter": "PT10M" },
+      "routeRef": "matter",
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "PT10M" },
+        "authorizationBoundary": "host",
+        "failureMode": "stale-ok",
+        "provenance": { "kind": "host-state", "source": "matterStore" }
+      },
       "schema": { "type": "object" }
     },
     {
@@ -41,7 +68,13 @@
       "kind": "route-params",
       "owner": "formspec",
       "scope": "route",
-      "cache": { "mode": "none" },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "none" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "block-render",
+        "provenance": { "kind": "route-params", "source": "surface-route" }
+      },
       "schema": { "type": "object" }
     },
     {
@@ -49,7 +82,13 @@
       "kind": "host-state",
       "owner": "host",
       "scope": "session",
-      "cache": { "mode": "snapshot", "staleAfter": "PT30M" },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "PT30M" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "host-state", "source": "playbookCatalog" }
+      },
       "schema": { "type": "array", "items": { "type": "object" } }
     },
     {
@@ -58,7 +97,13 @@
       "definitionRef": "new-matter",
       "owner": "formspec",
       "scope": "definition",
-      "cache": { "mode": "draft" },
+      "runtime": {
+        "delivery": "draft",
+        "cache": { "mode": "draft" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "definition-response", "source": "new-matter" }
+      },
       "schema": { "type": "object" }
     },
     {
@@ -67,16 +112,28 @@
       "definitionRef": "playbook-runner",
       "owner": "formspec",
       "scope": "definition",
-      "cache": { "mode": "draft" },
+      "runtime": {
+        "delivery": "draft",
+        "cache": { "mode": "draft" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "definition-response", "source": "playbook-runner" }
+      },
       "schema": { "type": "object" }
     },
     {
-      "id": "stream:demand-response-thread",
+      "id": "conversation:demand-response-thread",
       "kind": "conversation-stream",
       "routeRef": "thread",
       "owner": "module",
       "scope": "route",
-      "cache": { "mode": "subscribe", "staleAfter": "PT30S" },
+      "runtime": {
+        "delivery": "live",
+        "cache": { "mode": "subscribe", "staleAfter": "PT30S" },
+        "authorizationBoundary": "module",
+        "failureMode": "degraded-widget",
+        "provenance": { "kind": "conversation-stream", "source": "threadTranscript" }
+      },
       "schema": { "type": "array", "items": { "type": "object" } }
     },
     {
@@ -85,7 +142,13 @@
       "routeRef": "doc-viewer",
       "owner": "host",
       "scope": "resource",
-      "cache": { "mode": "snapshot", "staleAfter": "P1D" },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "P1D" },
+        "authorizationBoundary": "host",
+        "failureMode": "block-render",
+        "provenance": { "kind": "document-resource", "source": "documentStore" }
+      },
       "schema": { "type": "object" }
     },
     {
@@ -94,8 +157,29 @@
       "routeRef": "library",
       "owner": "host",
       "scope": "resource",
-      "cache": { "mode": "snapshot", "staleAfter": "PT15M" },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "PT15M" },
+        "authorizationBoundary": "host",
+        "failureMode": "stale-ok",
+        "provenance": { "kind": "document-resource", "source": "libraryIndex" }
+      },
       "schema": { "type": "object" }
+    },
+    {
+      "id": "query:library-search",
+      "kind": "query-result",
+      "routeRef": "library",
+      "owner": "host",
+      "scope": "session",
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "PT5M" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "query-result", "source": "librarySearchIndex" }
+      },
+      "schema": { "type": "array", "items": { "type": "object" } }
     }
   ]
 }

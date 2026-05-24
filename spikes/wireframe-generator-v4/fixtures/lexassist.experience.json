@@ -191,7 +191,7 @@
                 ]
               }
             ],
-            "dataSourceRefs": ["stream:demand-response-thread", "resource:supply-agreement"],
+            "dataSourceRefs": ["conversation:demand-response-thread", "resource:supply-agreement"],
             "ai": {
               "fillable": true,
               "providerHint": "conversation-summary",
@@ -349,7 +349,7 @@
               { "icon": "*", "primary": "8 documents indexed", "secondary": "Today" },
               { "icon": "*", "primary": "2 citation conflicts flagged", "secondary": "Needs review" }
             ],
-            "dataSourceRefs": ["resource:library-index"]
+            "dataSourceRefs": ["resource:library-index", "query:library-search"]
           }
         }
       }

@@ -84,14 +84,22 @@ export type Registry = {
   [k: string]: unknown;
 };
 
+export type DataSourceKind = "host-state" | "definition-response" | "document-resource" | "conversation-stream" | "query-result" | "route-params";
+
 export type DataSource = {
   id: string;
-  kind: "host-state" | "definition-response" | "document-resource" | "conversation-stream" | "route-params";
+  kind: DataSourceKind;
   definitionRef?: string;
   routeRef?: string;
   owner: "host" | "formspec" | "module";
   scope: "session" | "route" | "definition" | "resource";
-  cache: { mode: "snapshot" | "subscribe" | "draft" | "none"; staleAfter?: string };
+  runtime: {
+    delivery: "snapshot" | "live" | "draft";
+    cache: { mode: "snapshot" | "subscribe" | "draft" | "none"; staleAfter?: string };
+    authorizationBoundary: "host" | "formspec-session" | "module";
+    failureMode: "empty-state" | "stale-ok" | "block-render" | "degraded-widget";
+    provenance: { kind: DataSourceKind; source: string };
+  };
   schema?: JsonObject;
   description?: string;
 };

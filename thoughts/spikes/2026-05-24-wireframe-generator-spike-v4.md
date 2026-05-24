@@ -38,7 +38,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F4 | Module admission needs one shared resolver | Passing spike-local prototype | Pending final |
 | F5 | Non-form Component identity must stop pretending to be a Definition | Passing spike-local prototype | Pending final |
 | F6 | Runtime state needs explicit ownership | Passing spike-local prototype | Pending final |
-| F7 | Data Sources need a spec, not widget payload folklore | Planned | Pending |
+| F7 | Data Sources need a spec, not widget payload folklore | Passing spike-local prototype | Pending final |
 | F8 | Response Actions should remain the only action executor | Planned | Pending |
 | F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Planned | Pending |
 | F10 | Authorization remains ADR 0152 work | Planned | Pending |
@@ -54,7 +54,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P0 | Remove the non-form Component `targetDefinition` shim | Quarantined as output-only compatibility |
 | P1 | Define route/session/Response/action state ownership | Passing spike-local F6 proof |
 | P1 | Specify multi-form-route behavior | Passing spike-local ambiguity checks |
-| P1 | Define Data Sources as a contract surface | Planned as spike-local contract |
+| P1 | Define Data Sources as a contract surface | Passing spike-local F7 proof |
 | P1 | Keep Response Actions as the only action executor | Planned |
 | P1 | Add fixtures for EC2, EC5, EC12, EC13, EC14 | Planned |
 | P2 | Define module-aware Locale ownership and collision behavior | Planned as negative fixture |
@@ -78,7 +78,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | A10 | undeclared Screener terminal hop | Passing |
 | A11 | duplicate Response Actions action id | Planned |
 | A12 | generated Component id collision | Passing |
-| A13 | module-widget payload mismatch | Planned |
+| A13 | module-widget payload mismatch | Passing |
 | A14 | module version conflict across sibling artifacts | Passing |
 
 ## Previously Unproven v3 Edge Cases
@@ -201,6 +201,25 @@ Verification on 2026-05-24:
 
 The negative harness now covers missing Response binding, route-param binding to an undeclared route param, runtime missing Response binding, runtime missing Response instance param, and same-Definition multi-slot ambiguity. The positive runtime check also verifies that the report keeps route, session, Response, and Response Actions ownership explicit.
 
+### F7 - Data Source Contract
+
+F7 turns the spike Data Source sidecar into a schema-validated app artifact instead of a set of widget payload strings. `lexassist.data-sources.schema.json` now requires each source to declare a kind, owner, scope, and runtime behavior. Runtime behavior names delivery, cache mode and staleness, authorization boundary, failure mode, and provenance.
+
+The fixture now covers the v3 production source families: `host:*`, `response:*`, `resource:*`, `conversation:*`, and `query:*`. The previous `stream:demand-response-thread` payload ref is now `conversation:demand-response-thread`, and the library view references a query-backed `query:library-search` source. Payloads still reference sources by id, but the app graph validates those ids against a first-class catalog rather than treating payloads as the authority.
+
+`validateAppGraph()` now includes Data Sources in source schema validation. `validateDataSources()` checks duplicate ids, Definition and route references, id prefix to source-kind alignment, live/draft cache behavior, cache staleness rules, and provenance-kind alignment. Widget payload schema mismatches remain module-widget contract failures, not Data Source authority.
+
+This is not a production Data Source spec. The production lesson is that Data Sources need their own prose contract before production schemas or runtime code. That contract must define source family semantics, cache and staleness behavior, failure behavior, provenance, and authorization boundaries without burying them in widget props.
+
+Verification on 2026-05-24:
+
+- `jq empty spikes/wireframe-generator-v4/fixtures/lexassist.data-sources.json spikes/wireframe-generator-v4/fixtures/lexassist.data-sources.schema.json spikes/wireframe-generator-v4/fixtures/lexassist.experience.json`
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers missing Data Source runtime behavior, source-kind/id-prefix mismatch, invalid live cache behavior, provenance-kind mismatch, unresolved payload source refs from earlier work, and module-widget payload schema mismatch.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
@@ -208,8 +227,9 @@ The negative harness now covers missing Response binding, route-param binding to
 3. Keep Surface input-side and Component output-side. Surface should own route graph, slots, navigation, and app shell structure. Component generation should remain a projection and should not define Surface semantics.
 4. Treat the non-form Component `targetDefinition` value as an output-only compatibility shim until Component identity is fixed. The v4 generator labels it as `x-spike-v4-output-compatibility`; production should replace the shim with route or Surface identity before serious authoring/regeneration work depends on it.
 5. Promote runtime state ownership only after the prose contract names the owners. F6 suggests four separate production surfaces: Surface route state, Session actor/navigation state, Response instance state, and Response Actions invocation/effect state. Do not keep production Response state keyed only by Definition URL.
-6. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
-7. Add the remaining negative cases before any production wiring: duplicate Response Actions action id, module-widget payload mismatch, and EC2/EC5/EC12/EC13/EC14. F3 through F6 already cover embedded Surface route refs, missing transition params, generated Component id collision, module version conflict, and ambiguous runtime Response ownership.
+6. Promote Data Sources as their own prose contract before production code. Do not let widget payloads define source semantics. The contract should name source families, cache/staleness rules, failure modes, provenance, and authorization boundary behavior.
+7. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
+8. Add the remaining negative cases before any production wiring: duplicate Response Actions action id and EC2/EC5/EC12/EC13/EC14. F3 through F7 already cover embedded Surface route refs, missing transition params, generated Component id collision, module version conflict, ambiguous runtime Response ownership, and module-widget payload mismatch.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 

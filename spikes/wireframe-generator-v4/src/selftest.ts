@@ -6,7 +6,7 @@ import { validateComponentBundle } from "./coherence.js";
 import { generateBundle } from "./generate.js";
 import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
 import { buildValidator } from "./schema-loader.js";
-import type { GeneratorInputs, MultiRouteBundle, RegistryEntry, SurfaceSlotEntry } from "./types.js";
+import type { DataSource, GeneratorInputs, MultiRouteBundle, RegistryEntry, SurfaceSlotEntry } from "./types.js";
 
 type LocalRef = { url: string; version?: string; fixture?: string };
 
@@ -88,6 +88,19 @@ function registryEntry(inputs: GeneratorInputs, name: string): RegistryEntry {
   const entry = inputs.registry.entries.find((candidate) => candidate.name === name);
   if (!entry) throw new Error(`Missing registry entry ${name}`);
   return entry;
+}
+
+function dataSource(inputs: GeneratorInputs, id: string): DataSource {
+  const source = inputs.dataSources?.sources.find((candidate) => candidate.id === id);
+  if (!source) throw new Error(`Missing data source ${id}`);
+  return source;
+}
+
+function unitWidgetPayload(inputs: GeneratorInputs, unitId: string): Record<string, unknown> {
+  const unit = inputs.experience.units?.find((candidate) => candidate.id === unitId);
+  const widget = unit?.extensions?.["x-formspec-widget"] as { payload?: Record<string, unknown> } | undefined;
+  if (!widget?.payload) throw new Error(`Missing widget payload for unit ${unitId}`);
+  return widget.payload;
 }
 
 function testModule(name: string, contributes: string[] = []): RegistryEntry {
@@ -182,6 +195,66 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 
 {
   const inputs = clone(base);
+  delete (dataSource(inputs, "host:open-matters") as { runtime?: unknown }).runtime;
+  assertIssues("schema-invalid missing data-source runtime behavior", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
+}
+
+{
+  const inputs = clone(base);
+  unitWidgetPayload(inputs, "matterGallery").dataSourceRefs = ["host:missing-source"];
+  assertIssue("payload data-source ref must resolve", inputs, "DATA-SOURCE-UNRESOLVED");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "host:matter-threads").id = "host:open-matters";
+  assertIssue("data-source id must be unique", inputs, "DATA-SOURCE-ID-COLLISION");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "conversation:demand-response-thread").kind = "document-resource";
+  assertIssue("data-source id prefix must match kind", inputs, "DATA-SOURCE-ID-PREFIX");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "response:new-matter").definitionRef = "missing-definition";
+  assertIssue("data-source Definition ref must resolve", inputs, "DATA-SOURCE-DEFINITION-REF");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "resource:supply-agreement").routeRef = "missing-route";
+  assertIssue("data-source route ref must resolve", inputs, "DATA-SOURCE-ROUTE-REF");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "host:open-matters").runtime.cache.mode = "snapshot";
+  assertIssue("live data-source must subscribe", inputs, "DATA-SOURCE-RUNTIME-CACHE");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "host:route-params").runtime.cache.staleAfter = "PT1M";
+  assertIssue("cache-none data-source cannot be stale", inputs, "DATA-SOURCE-CACHE-STALENESS");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "response:new-matter").runtime.cache.mode = "snapshot";
+  assertIssue("draft data-source must use draft cache", inputs, "DATA-SOURCE-RUNTIME-DRAFT");
+}
+
+{
+  const inputs = clone(base);
+  dataSource(inputs, "resource:supply-agreement").runtime.provenance.kind = "host-state";
+  assertIssue("data-source provenance kind must match", inputs, "DATA-SOURCE-PROVENANCE");
+}
+
+{
+  const inputs = clone(base);
   inputs.registry.entries.push(
     testModule("x-acme-rogue-widget-module", ["x-acme-rogue-widget"]),
     testWidget("x-acme-rogue-widget"),
@@ -241,6 +314,16 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const inputs = clone(base);
   inputs.surface.routes[0].slots.main.push({ type: "module-widget", widgetRef: "x-formspec-slot-static-content", payload: {} });
   assertIssue("wrong contribution category", inputs, "APP-COHERENCE-CONTRIBUTION-CATEGORY");
+}
+
+{
+  const inputs = clone(base);
+  inputs.surface.routes[0].slots.main.push({
+    type: "module-widget",
+    widgetRef: "x-formspec-presentation-gallery",
+    payload: { cards: [{ subtitle: "missing title" }] },
+  });
+  assertIssue("module-widget payload mismatch", inputs, "MODULE-PAYLOAD-SCHEMA-MISMATCH");
 }
 
 {

@@ -3,6 +3,7 @@
 import type Ajv2020 from "ajv/dist/2020.js";
 import type {
   ComponentNode,
+  DataSource,
   DataSourceCatalog,
   Definition,
   ExpUnit,
@@ -144,6 +145,26 @@ function definitionByRef(inputs: GeneratorInputs, ref: string): Definition | und
 
 function dataSourceIds(catalog: DataSourceCatalog | undefined): Set<string> {
   return new Set((catalog?.sources ?? []).map((source) => source.id));
+}
+
+function dataSourcePrefix(source: DataSource): string | undefined {
+  return source.id.includes(":") ? source.id.split(":", 1)[0] : undefined;
+}
+
+function expectedDataSourcePrefix(source: DataSource): string {
+  switch (source.kind) {
+    case "definition-response":
+      return "response";
+    case "document-resource":
+      return "resource";
+    case "conversation-stream":
+      return "conversation";
+    case "query-result":
+      return "query";
+    case "host-state":
+    case "route-params":
+      return "host";
+  }
 }
 
 function payloadDataSourceRefs(payload: unknown): string[] {
@@ -485,12 +506,33 @@ function validateDataSources(inputs: GeneratorInputs, issues: CoherenceIssue[]):
       issue(issues, "error", "DATA-SOURCE-ID-COLLISION", "$.dataSources.sources", `Data source '${source.id}' is declared more than once.`);
     }
     ids.add(source.id);
+    const expectedPrefix = expectedDataSourcePrefix(source);
+    if (dataSourcePrefix(source) !== expectedPrefix) {
+      issue(issues, "error", "DATA-SOURCE-ID-PREFIX", "$.dataSources.sources", `Data source '${source.id}' kind '${source.kind}' must use '${expectedPrefix}:' id prefix.`);
+    }
     if (source.definitionRef && !definitionByRef(inputs, source.definitionRef)) {
       issue(issues, "error", "DATA-SOURCE-DEFINITION-REF", "$.dataSources.sources", `Data source '${source.id}' references unknown Definition '${source.definitionRef}'.`);
     }
     if (source.routeRef && !inputs.surface.routes.some((route) => route.id === source.routeRef)) {
       issue(issues, "error", "DATA-SOURCE-ROUTE-REF", "$.dataSources.sources", `Data source '${source.id}' references unknown route '${source.routeRef}'.`);
     }
+    validateDataSourceRuntime(source, issues);
+  }
+}
+
+function validateDataSourceRuntime(source: DataSource, issues: CoherenceIssue[]): void {
+  const runtime = source.runtime;
+  if (runtime.cache.mode === "none" && runtime.cache.staleAfter) {
+    issue(issues, "error", "DATA-SOURCE-CACHE-STALENESS", "$.dataSources.sources", `Data source '${source.id}' cannot declare staleAfter when cache.mode is 'none'.`);
+  }
+  if (runtime.delivery === "live" && runtime.cache.mode !== "subscribe") {
+    issue(issues, "error", "DATA-SOURCE-RUNTIME-CACHE", "$.dataSources.sources", `Live data source '${source.id}' must use subscribe cache mode.`);
+  }
+  if (runtime.delivery === "draft" && (source.kind !== "definition-response" || runtime.cache.mode !== "draft")) {
+    issue(issues, "error", "DATA-SOURCE-RUNTIME-DRAFT", "$.dataSources.sources", `Draft data source '${source.id}' must be a definition-response source with draft cache mode.`);
+  }
+  if (runtime.provenance.kind !== source.kind) {
+    issue(issues, "error", "DATA-SOURCE-PROVENANCE", "$.dataSources.sources", `Data source '${source.id}' provenance kind must match source kind '${source.kind}'.`);
   }
 }
 
