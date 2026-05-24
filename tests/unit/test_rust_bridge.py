@@ -56,6 +56,7 @@ def test_formspec_rust_exports_expected_contract():
         "theme_document",
         "component_documents",
         "locale_documents",
+        "bundle_component_documents",
         "schema_only",
         "no_fel",
     ]

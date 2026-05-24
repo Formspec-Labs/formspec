@@ -70,6 +70,17 @@ pub fn lint(doc: &Value) -> LintResult {
 pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
     let mut diagnostics = Vec::new();
 
+    // Pass 3d: bundle-graph Component id-uniqueness (E605 / COMP-BUNDLE-ID-COLLISION).
+    // ADR 0150 §5.3. Runs unconditionally — the binding operates only on
+    // `bundle_component_documents` and is independent of the primary document's
+    // type. This placement also lets E605 fire when the caller hands the App
+    // Manifest as `doc` (an App Manifest is not a DocumentType the linter
+    // dispatches on; emitting E605 BEFORE the doc-type gate makes the bundle
+    // check work for that caller).
+    diagnostics.extend(pass_modules::check_bundle_component_ids(
+        &options.bundle_component_documents,
+    ));
+
     let Some(doc_type) = detect_document_type(doc) else {
         diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
             crate::LintCode::E100,

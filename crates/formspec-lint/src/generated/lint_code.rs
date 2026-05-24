@@ -381,7 +381,7 @@ impl LintCode {
             LintCode::E602 => 3,
             LintCode::E603 => 3,
             LintCode::E604 => 3,
-            LintCode::E605 => 7,
+            LintCode::E605 => 3,
             LintCode::W700 => 6,
             LintCode::W701 => 6,
             LintCode::W702 => 6,

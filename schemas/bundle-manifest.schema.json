@@ -3,6 +3,7 @@
   "$id": "https://formspec.org/schemas/bundleManifest/2.0",
   "title": "Formspec App Manifest",
   "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest; reframed per ADR 0150 §5.2/§5.3/§11.2). The author-facing composition envelope above a Formspec app. An app composes zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, and OPTIONAL substrate Modules / Sessions / Locales / Mappings / Theme / Component / References / Ontology / Experience / Response Actions. `definitions` is REQUIRED but MAY be an empty array (non-form apps — workflow viewers, registry browsers, etc. — compose surfaces without Definitions). The `$formspecBundle` const bumps to '2.0' so strict-validating consumers of the legacy '1.0' shape fail loud rather than silently mis-parse a structurally different document. See specs/bundle/app-manifest-spec.md for normative prose.",
+  "$comment": "Bundle-graph id-uniqueness invariant per ADR 0150 §5.3: every authored ComponentBase.id reachable from this App Manifest MUST be unique across all referenced Component documents (not merely per-document). JSON Schema cannot enforce cross-document uniqueness; linter rule E605 (COMP-BUNDLE-ID-COLLISION) walks the bundle graph and hard-fails on duplicates. Load-bearing for cross-document Component-tree refactors (ADR 0151).",
   "type": "object",
   "required": ["$formspecBundle", "version", "id", "definitions"],
   "additionalProperties": false,

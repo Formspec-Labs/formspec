@@ -289,15 +289,12 @@ def _check_diagnostics_against_registry(
 
 #: Codes whose lint binding is deferred but whose registry entry is required
 #: now (so the spec doc + Rust enum + Python wire codes stay coherent). The
-#: fixture exists on disk but the lint pass does not yet exercise it. Tracked
-#: per ADR 0150 §14 P0 plan Task 8 (definition) → Task 11 (binding).
-DEFERRED_BINDING_CODES = {
-    # E605 (COMP-BUNDLE-ID-COLLISION): bundle-graph walk lands in Task 11.
-    # Fixture is a directory of Component documents — lint binding will
-    # consume them as a bundle. Until then, the single-file fixture-runner
-    # below cannot exercise the rule.
-    "E605",
-}
+#: fixture exists on disk but the lint pass does not yet exercise it.
+#:
+#: As of ADR 0150 §14 P0 Task 11, E605 (COMP-BUNDLE-ID-COLLISION) is bound;
+#: the directory-fixture runner branch below loads bundle.json + sibling
+#: comp-*.json files and threads them through `bundle_component_documents`.
+DEFERRED_BINDING_CODES: set[str] = set()
 
 
 def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
@@ -338,23 +335,62 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
                 failures.append(f"{code}: fixture path does not exist: {rel_path}")
                 continue
 
-            try:
-                document = json.loads(fixture_path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError as exc:
-                failures.append(f"{code}: fixture {rel_path} is not valid JSON: {exc}")
-                continue
+            # Directory-fixture branch: ADR 0150 §5.3 (E605) and similar
+            # bundle-graph rules can't be exercised by a single document.
+            # Convention: the directory contains a `bundle.json` (App Manifest)
+            # plus sibling Component documents matched by `comp-*.json`. The
+            # App Manifest is the "document" passed to lint(); the siblings are
+            # forwarded as `bundle_component_documents`.
+            if fixture_path.is_dir():
+                bundle_path = fixture_path / "bundle.json"
+                if not bundle_path.exists():
+                    failures.append(
+                        f"{code}: directory fixture {rel_path} missing bundle.json"
+                    )
+                    continue
+                try:
+                    document = json.loads(bundle_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError as exc:
+                    failures.append(
+                        f"{code}: bundle.json in {rel_path} is not valid JSON: {exc}"
+                    )
+                    continue
+                comp_docs: list[dict] = []
+                for comp_path in sorted(fixture_path.glob("comp-*.json")):
+                    try:
+                        comp_docs.append(json.loads(comp_path.read_text(encoding="utf-8")))
+                    except json.JSONDecodeError as exc:
+                        failures.append(
+                            f"{code}: component fixture {comp_path.name} in {rel_path} "
+                            f"is not valid JSON: {exc}"
+                        )
+                paired_definition = None
+                registry_documents = None
+                theme_document = None
+                component_documents = None
+                locale_documents = None
+                bundle_component_documents: list[dict] | None = comp_docs or None
+            else:
+                try:
+                    document = json.loads(fixture_path.read_text(encoding="utf-8"))
+                except json.JSONDecodeError as exc:
+                    failures.append(f"{code}: fixture {rel_path} is not valid JSON: {exc}")
+                    continue
 
-            # Some rules (W800, W802) only fire when the linter has the paired
-            # definition. Fixtures opt in via a top-level `_pairedDefinition`
-            # key that is stripped before the document is passed to `lint()`.
-            # Extension-lifecycle rules (E600, E601, E602) additionally need a
-            # registry document; fixtures declare those under
-            # `_registryDocuments` (stripped and forwarded to lint()).
-            paired_definition = document.pop("_pairedDefinition", None)
-            registry_documents = document.pop("_registryDocuments", None)
-            theme_document = document.pop("_themeDocument", None)
-            component_documents = document.pop("_componentDocuments", None)
-            locale_documents = document.pop("_localeDocuments", None)
+                # Some rules (W800, W802) only fire when the linter has the paired
+                # definition. Fixtures opt in via a top-level `_pairedDefinition`
+                # key that is stripped before the document is passed to `lint()`.
+                # Extension-lifecycle rules (E600, E601, E602) additionally need a
+                # registry document; fixtures declare those under
+                # `_registryDocuments` (stripped and forwarded to lint()).
+                paired_definition = document.pop("_pairedDefinition", None)
+                registry_documents = document.pop("_registryDocuments", None)
+                theme_document = document.pop("_themeDocument", None)
+                component_documents = document.pop("_componentDocuments", None)
+                locale_documents = document.pop("_localeDocuments", None)
+                bundle_component_documents = document.pop(
+                    "_bundleComponentDocuments", None
+                )
 
             diagnostics = lint(
                 document,
@@ -363,6 +399,7 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
                 theme_document=theme_document,
                 component_documents=component_documents,
                 locale_documents=locale_documents,
+                bundle_component_documents=bundle_component_documents,
             )
             matching = [d for d in diagnostics if d.code == code]
             if not matching:

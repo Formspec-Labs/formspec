@@ -239,6 +239,22 @@ pub struct LintOptions {
     pub component_documents: Vec<Value>,
     /// Optional peer Locale documents for fallback-chain checks.
     pub locale_documents: Vec<Value>,
+    /// Optional sibling Component documents reachable from a single App Manifest,
+    /// for the bundle-graph id-uniqueness check (E605 / COMP-BUNDLE-ID-COLLISION,
+    /// ADR 0150 §5.3).
+    ///
+    /// The lint binding runs only when this Vec contains ≥2 documents; with 0 or
+    /// 1 it emits nothing (a single-document tree's local-uniqueness is already
+    /// guarded by JSON Schema pattern + per-document walks).
+    ///
+    /// The binding operates on caller-supplied Component documents; the caller is
+    /// responsible for excluding revision sets (e.g.
+    /// `tests/conformance/fixtures/regeneration-merge/` scenarios) that are
+    /// revisions of one Component, not bundle siblings. The Python audit's
+    /// `EXCLUDED_TREES` logic applies at the caller layer, not the lint layer.
+    /// See `tests/conformance/COMP-BUNDLE-ID-MIGRATION.md` §1 Exclusion for
+    /// rationale.
+    pub bundle_component_documents: Vec<Value>,
     /// When `true`, run only pass 1 (document type detection) and return early.
     /// Useful for fast schema-level validation without semantic analysis.
     pub schema_only: bool,

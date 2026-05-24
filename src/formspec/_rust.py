@@ -115,6 +115,7 @@ def _assert_rust_extension_contract() -> None:
         "theme_document",
         "component_documents",
         "locale_documents",
+        "bundle_component_documents",
         "schema_only",
         "no_fel",
     ]
@@ -401,6 +402,7 @@ def lint(
     theme_document: dict | None = None,
     component_documents: list[dict] | None = None,
     locale_documents: list[dict] | None = None,
+    bundle_component_documents: list[dict] | None = None,
     registry_documents: list[dict] | None = None,
 ) -> list[LintDiagnostic]:
     """Run the Rust linter on a Formspec document.
@@ -414,6 +416,9 @@ def lint(
         theme_document: Optional theme document for Locale page-key checks.
         component_documents: Optional component documents for Locale component-key checks.
         locale_documents: Optional peer locale documents for fallback-chain checks.
+        bundle_component_documents: Optional sibling Component documents reachable from a
+            single App Manifest for bundle-graph id-uniqueness (E605 / COMP-BUNDLE-ID-COLLISION,
+            ADR 0150 §5.3). Fires only when ≥2 documents are supplied.
         registry_documents: Optional list of registry documents for extension resolution.
     """
     raw = formspec_rust.lint_document(
@@ -424,6 +429,7 @@ def lint(
         theme_document=theme_document,
         component_documents=component_documents,
         locale_documents=locale_documents,
+        bundle_component_documents=bundle_component_documents,
         schema_only=schema_only,
         no_fel=no_fel,
     )

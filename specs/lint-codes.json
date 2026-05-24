@@ -185,7 +185,7 @@
     },
     {
       "code": "E605",
-      "pass": 7,
+      "pass": 3,
       "severity": "error",
       "title": "Component node id collides with another node in the bundle (COMP-BUNDLE-ID-COLLISION)",
       "specRef": "specs/component/component-spec.md#31-component-object-base-properties",

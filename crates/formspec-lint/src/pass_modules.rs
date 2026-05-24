@@ -1,7 +1,7 @@
-//! Pass 3c: Module contribution resolution (E603 / E604) — ADR 0150 §4.2/§4.3/§4.5.
+//! Pass 3c: Module contribution resolution (E603 / E604) and bundle-graph
+//! Component-id uniqueness (E605) — ADR 0150 §4.2/§4.3/§4.5/§5.3.
 //!
-//! Two cross-document invariants land here, both keyed to a document's
-//! `modules[]` declaration and a set of loaded registry documents:
+//! Three cross-document invariants land here:
 //!
 //! - **E603** — every module-extensible enum value matching the `^x-` lane
 //!   (per ADR §4.5's uniform `oneOf [closed-core, x-pattern]` convention)
@@ -19,9 +19,37 @@
 //!   `Component.component: x-...` widget admittance gates through this same
 //!   pass per ADR §4.5 (deferred from Task 5).
 //!
+//! - **E605** (COMP-BUNDLE-ID-COLLISION) — every authored `ComponentBase.id`
+//!   reachable from a single App Manifest MUST be unique across all
+//!   referenced Component documents (not merely within a single document).
+//!   The binding consumes `LintOptions.bundle_component_documents` — when ≥2
+//!   documents are present it builds an id-index keyed on every `id` string
+//!   field at any depth and emits one diagnostic per colliding id citing all
+//!   occurrences. JSON Schema cannot enforce this graph-level invariant; the
+//!   lint is the substrate enforcement. Load-bearing for ADR 0151 cross-doc
+//!   move (CRDT bidirectional map relies on no-collision in the target doc).
+//!
 //! The pass is permissive when inputs are missing: no `modules[]` and/or no
 //! registry documents → no diagnostics. This preserves the default-module-set
 //! behavior per ADR §4.9 for form-only documents.
+//!
+//! ## E605 walker semantics — Rust analogue of Python audit v3
+//!
+//! The id-walker matches the reference implementation at
+//! `tests/conformance/tools/comp_bundle_id_audit.py::walk_deep()` (v3). That
+//! script's v2 walker had a false-negative bug on non-standard nesting because
+//! it only recursed under known structural keys; v3 is the conservative
+//! posture — recurse through EVERY dict/list value at any depth and collect
+//! every `id` string field encountered. The Rust binding MUST preserve v3
+//! semantics; widening the walker to skip non-standard keys re-opens the
+//! false-negative.
+//!
+//! Excluded subtrees (e.g. `tests/conformance/fixtures/regeneration-merge/`
+//! — three-way merge fixtures whose four revisions of one Component reuse
+//! ids by design) are the caller's concern. The Python audit applies
+//! `EXCLUDED_TREES` at the bundle-resolution layer; this lint binding sees
+//! only what the caller hands it. See
+//! `tests/conformance/COMP-BUNDLE-ID-MIGRATION.md` §1 Exclusion.
 #![allow(clippy::missing_docs_in_private_items)]
 
 use std::collections::{HashMap, HashSet};
@@ -465,6 +493,140 @@ fn emit_validation_errors(
     }
 }
 
+// ── E605: COMP-BUNDLE-ID-COLLISION ───────────────────────────────
+
+/// One occurrence of an id in the bundle graph: which document (by index in
+/// the caller's Vec) and the JSON-ish nodePath inside that document.
+#[derive(Debug, Clone)]
+struct IdOccurrence {
+    doc_index: usize,
+    node_path: String,
+}
+
+/// Permissive deep walk — record every `id` string field at any depth.
+///
+/// Matches `tests/conformance/tools/comp_bundle_id_audit.py::walk_deep()` (v3).
+/// The path uses JSON-ish dot/index notation rooted at the caller-supplied
+/// `path` argument (`tree`, `root`, or a bare key under the envelope).
+fn walk_deep_ids(node: &Value, path: &str, out: &mut Vec<(String, String)>) {
+    match node {
+        Value::Object(map) => {
+            if let Some(id_str) = map.get("id").and_then(Value::as_str) {
+                let recorded_path = if path.is_empty() { "<root>" } else { path };
+                out.push((recorded_path.to_string(), id_str.to_string()));
+            }
+            for (k, v) in map {
+                let next = if path.is_empty() {
+                    k.clone()
+                } else {
+                    format!("{path}.{k}")
+                };
+                walk_deep_ids(v, &next, out);
+            }
+        }
+        Value::Array(items) => {
+            for (i, item) in items.iter().enumerate() {
+                let next = format!("{path}[{i}]");
+                walk_deep_ids(item, &next, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Extract ids from a Component document — walks under `tree`/`root` when
+/// present, else under the whole doc minus the envelope keys. Mirrors
+/// `extract_ids()` in the Python reference.
+fn extract_component_ids(doc: &Value) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    if let Some(tree) = doc.get("tree") {
+        walk_deep_ids(tree, "tree", &mut out);
+    } else if let Some(root) = doc.get("root") {
+        walk_deep_ids(root, "root", &mut out);
+    } else if let Some(map) = doc.as_object() {
+        const ENVELOPE_SKIP: &[&str] =
+            &["$formspecComponent", "version", "targetDefinition", "x-generation"];
+        for (k, v) in map {
+            if ENVELOPE_SKIP.contains(&k.as_str()) {
+                continue;
+            }
+            walk_deep_ids(v, k, &mut out);
+        }
+    }
+    out
+}
+
+/// E605 binding entry: walk every supplied Component document, build an
+/// id→occurrences index keyed only on cross-document collisions (intra-doc
+/// duplicates are the schema's concern), emit one diagnostic per colliding id.
+///
+/// Returns no diagnostics when fewer than 2 documents are supplied; a single
+/// document's local uniqueness is enforced by the schema pattern and the
+/// per-document component walker.
+pub fn check_bundle_component_ids(
+    bundle_component_documents: &[Value],
+) -> Vec<LintDiagnostic> {
+    if bundle_component_documents.len() < 2 {
+        return Vec::new();
+    }
+
+    // id → occurrences across documents.
+    let mut by_id: HashMap<String, Vec<IdOccurrence>> = HashMap::new();
+    for (doc_index, doc) in bundle_component_documents.iter().enumerate() {
+        for (node_path, id_str) in extract_component_ids(doc) {
+            by_id
+                .entry(id_str)
+                .or_default()
+                .push(IdOccurrence {
+                    doc_index,
+                    node_path,
+                });
+        }
+    }
+
+    let mut diagnostics = Vec::new();
+    // Stable ordering: sort colliding ids alphabetically for deterministic output.
+    let mut colliding_ids: Vec<&String> = by_id
+        .iter()
+        .filter(|(_, occs)| {
+            // Cross-document collision = ≥2 distinct doc_index values.
+            let mut seen = HashSet::new();
+            occs.iter().any(|o| !seen.insert(o.doc_index))
+                || occs.iter().map(|o| o.doc_index).collect::<HashSet<_>>().len() >= 2
+        })
+        .map(|(k, _)| k)
+        .collect();
+    colliding_ids.sort();
+
+    for id_str in colliding_ids {
+        let occs = &by_id[id_str];
+        // Only fire on cross-document collision (≥2 distinct docs); intra-doc
+        // dup is the schema/tree walker's concern.
+        let distinct_docs: HashSet<usize> = occs.iter().map(|o| o.doc_index).collect();
+        if distinct_docs.len() < 2 {
+            continue;
+        }
+        // Diagnostic path cites the first occurrence; message enumerates all.
+        let primary = &occs[0];
+        let occurrences = occs
+            .iter()
+            .map(|o| format!("doc[{}]::{}", o.doc_index, o.node_path))
+            .collect::<Vec<_>>()
+            .join(", ");
+        diagnostics.push(metadata::with_metadata(LintDiagnostic::error(
+            crate::LintCode::E605,
+            PASS,
+            format!("$.doc[{}].{}", primary.doc_index, primary.node_path),
+            format!(
+                "Component node id '{id_str}' collides across the bundle graph \
+                 ({} occurrences): {occurrences}",
+                occs.len()
+            ),
+        )));
+    }
+    diagnostics
+}
+
 // ── Public entry ─────────────────────────────────────────────────
 
 /// Run E603 + E604 for the given document. Always safe to call — emits
@@ -708,14 +870,168 @@ mod tests {
         assert!(e604[0].path.contains("selectors[0].apply.widgetConfig"));
     }
 
-    // ── E605 binding lands in Task 11 — sentinel test confirms the
-    //    skip mechanism the conformance suite uses, not the binding.
+    // ── E605: COMP-BUNDLE-ID-COLLISION (bundle-graph id-uniqueness) ──
+
+    fn component_doc(stem: &str, body: Value) -> Value {
+        json!({
+            "$formspecComponent": "1.0",
+            "version": "1.0.0",
+            "targetDefinition": { "url": format!("https://example.com/forms/{stem}") },
+            "tree": body
+        })
+    }
 
     #[test]
-    #[ignore = "E605 lint binding lands in Task 11 (bundle-unique id invariant)"]
-    fn e605_bundle_collision_placeholder() {
-        // Intentional: this test will be authored when Task 11 binds the
-        // COMP-BUNDLE-ID-COLLISION lint pass. Mirror of the Python skip.
-        unreachable!("Task 11 implements E605");
+    fn e605_collision_across_two_components_emits_diagnostic() {
+        // Two component documents stamp the same id `header` — invariant violated.
+        let comp_a = component_doc(
+            "a",
+            json!({ "component": "Section", "id": "header", "title": "Comp A header" }),
+        );
+        let comp_b = component_doc(
+            "b",
+            json!({ "component": "Section", "id": "header", "title": "Comp B header" }),
+        );
+        let diags = check_bundle_component_ids(&[comp_a, comp_b]);
+        let e605: Vec<_> = diags.iter().filter(|d| d.code == "E605").collect();
+        assert_eq!(e605.len(), 1, "expected exactly 1 E605, got {:?}", diags);
+        assert!(
+            e605[0].message.contains("'header'"),
+            "diagnostic should cite the colliding id: {}",
+            e605[0].message
+        );
+        // Diagnostic path points at one of the two occurrences (deterministic: first).
+        assert!(
+            e605[0].path.contains("doc[0]") || e605[0].path.contains("doc[1]"),
+            "diagnostic should cite the doc index: {}",
+            e605[0].path
+        );
+    }
+
+    #[test]
+    fn e605_no_collision_silent() {
+        let comp_a = component_doc(
+            "a",
+            json!({ "component": "Section", "id": "alpha", "title": "Alpha" }),
+        );
+        let comp_b = component_doc(
+            "b",
+            json!({ "component": "Section", "id": "beta", "title": "Beta" }),
+        );
+        let diags = check_bundle_component_ids(&[comp_a, comp_b]);
+        assert!(
+            diags.iter().all(|d| d.code != "E605"),
+            "expected no E605 in {:?}",
+            diags
+        );
+    }
+
+    #[test]
+    fn e605_single_document_silent() {
+        // Local within-doc dup is the schema's concern (per-doc pattern + the
+        // pre-existing tree walker); E605 fires only when ≥2 documents present.
+        let comp_a = component_doc(
+            "a",
+            json!({
+                "component": "Section",
+                "id": "header",
+                "children": [
+                    { "component": "Section", "id": "footer" }
+                ]
+            }),
+        );
+        let diags = check_bundle_component_ids(&[comp_a]);
+        assert!(diags.iter().all(|d| d.code != "E605"));
+    }
+
+    #[test]
+    fn e605_empty_input_silent() {
+        let diags = check_bundle_component_ids(&[]);
+        assert!(diags.is_empty());
+    }
+
+    #[test]
+    fn e605_collision_deep_in_nested_tree() {
+        // Permissive deep walk: every `id` field at any depth, regardless of
+        // structural key — matches the Python audit v3 reference semantics.
+        let comp_a = component_doc(
+            "a",
+            json!({
+                "component": "Form",
+                "id": "rootA",
+                "children": [
+                    { "component": "Section", "id": "deep_collision", "children": [] }
+                ]
+            }),
+        );
+        let comp_b = component_doc(
+            "b",
+            json!({
+                "component": "Form",
+                "id": "rootB",
+                "children": [
+                    {
+                        "component": "DataTable",
+                        "id": "tableB",
+                        "row": {
+                            "component": "Section",
+                            "id": "deep_collision"
+                        }
+                    }
+                ]
+            }),
+        );
+        let diags = check_bundle_component_ids(&[comp_a, comp_b]);
+        let e605: Vec<_> = diags.iter().filter(|d| d.code == "E605").collect();
+        assert_eq!(
+            e605.len(),
+            1,
+            "expected E605 from deep-nested collision, got {:?}",
+            diags
+        );
+        assert!(e605[0].message.contains("'deep_collision'"));
+    }
+
+    #[test]
+    fn e605_three_way_collision_reports_once() {
+        // When three docs share an id, emit a single diagnostic that names all
+        // occurrences in its message (one E605 per colliding id, not per pair).
+        let docs: Vec<Value> = (0..3)
+            .map(|i| {
+                component_doc(
+                    &format!("c{i}"),
+                    json!({ "component": "Section", "id": "shared" }),
+                )
+            })
+            .collect();
+        let diags = check_bundle_component_ids(&docs);
+        let e605: Vec<_> = diags.iter().filter(|d| d.code == "E605").collect();
+        assert_eq!(e605.len(), 1, "one E605 per colliding id");
+    }
+
+    #[test]
+    fn e605_same_doc_dup_does_not_fire() {
+        // Within-doc duplicate is the schema's concern; E605 fires only on
+        // cross-document collisions per ADR §5.3.
+        let comp_a = component_doc(
+            "a",
+            json!({
+                "component": "Form",
+                "id": "dup",
+                "children": [
+                    { "component": "Section", "id": "dup" }
+                ]
+            }),
+        );
+        let comp_b = component_doc(
+            "b",
+            json!({ "component": "Section", "id": "other" }),
+        );
+        let diags = check_bundle_component_ids(&[comp_a, comp_b]);
+        assert!(
+            diags.iter().all(|d| d.code != "E605"),
+            "intra-doc dup should not trip E605: {:?}",
+            diags
+        );
     }
 }

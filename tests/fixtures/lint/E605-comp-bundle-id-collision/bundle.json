@@ -1,5 +1,7 @@
 {
   "$formspecBundle": "2.0",
+  "version": "1.0.0",
+  "id": "https://example.com/apps/e605-fixture",
   "title": "E605 fixture — two Component documents stamping the same id `header`",
   "definitions": [],
   "registries": [],
@@ -7,5 +9,5 @@
     { "url": "./comp-a.json" },
     { "url": "./comp-b.json" }
   ],
-  "_lintNote": "Bundle-graph walk lands in Task 11; the E605 lint binding currently does NOT fire on this fixture. The Python conformance suite skips the E605 fixture test with pytest.mark.skip until Task 11 binds the pass."
+  "_lintNote": "ADR 0150 §5.3 / Task 11 bound. The directory-fixture runner in tests/unit/test_lint_rule_registry.py loads bundle.json (this file) as the document and forwards sibling comp-*.json files via `bundle_component_documents` — pass_modules::check_bundle_component_ids walks both trees and emits E605 on the colliding `header` id."
 }

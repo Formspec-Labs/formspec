@@ -63,6 +63,11 @@ struct LintDocumentWasmOptions {
     component_documents: Vec<Value>,
     #[serde(default, alias = "localeDocuments")]
     locale_documents: Vec<Value>,
+    /// Sibling Component documents reachable from a single App Manifest, for
+    /// bundle-graph id-uniqueness (E605 / COMP-BUNDLE-ID-COLLISION,
+    /// ADR 0150 §5.3). Fires only when ≥2 documents are supplied.
+    #[serde(default, alias = "bundleComponentDocuments")]
+    bundle_component_documents: Vec<Value>,
     #[serde(default, alias = "schemaOnly")]
     schema_only: bool,
     #[serde(default, alias = "noFel")]
@@ -86,6 +91,7 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
         theme_document: parsed.theme_document,
         component_documents: parsed.component_documents,
         locale_documents: parsed.locale_documents,
+        bundle_component_documents: parsed.bundle_component_documents,
         schema_only: parsed.schema_only,
         no_fel: parsed.no_fel,
     })
