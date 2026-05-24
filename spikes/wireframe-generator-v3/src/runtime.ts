@@ -13,7 +13,7 @@ export type RuntimeCommand =
   | { type: "navigate"; route: string; params?: Record<string, string> }
   | { type: "screenerHop"; target: string; params?: Record<string, string> }
   | { type: "draft"; definitionRef: string; response: JsonObject }
-  | { type: "invokeAction"; definitionRef: string; actionId: string; actor: string; idempotencyKey: string }
+  | { type: "invokeAction"; definitionRef: string; actionId: string; actor: string; invocationId: string }
   | { type: "transition"; route?: string; event: string; params?: Record<string, string> };
 
 export type RuntimePlan = {
@@ -29,11 +29,18 @@ export type RuntimeReport = {
   ok: boolean;
   sessionId: string;
   finalRoute?: { id: string; params: Record<string, string> };
-  responses: Record<string, { state: "draft" | "submitted"; requiredMissing: string[] }>;
-  hostEvents: Array<{ eventName: string; actionId: string; definitionUrl: string; idempotencyKey: string }>;
+  responses: Record<string, { state: "in-progress" | "completed"; requiredMissing: string[] }>;
+  hostEvents: Array<{ eventName: string; actionId: string; definitionUrl: string; invocationId: string }>;
+  durableEffects: Array<{ type: string; actionId: string; definitionUrl: string; idempotencyKey: string }>;
   aiEvents: Array<{ eventType: string; actionId: string; actor: string; definitionUrl: string }>;
   routeEvents: Array<{ from?: string; to: string; event: string; params: Record<string, string> }>;
   issues: RuntimeIssue[];
+};
+
+type ValidationTuple = {
+  profile: string;
+  blocking: "non-blocking" | "block-on-error";
+  persistence: "none" | "draft-checkpoint" | "complete-response";
 };
 
 type RuntimeState = {
@@ -41,8 +48,9 @@ type RuntimeState = {
   routeParams: Record<string, string>;
   sessionActors: Set<string>;
   seenIdempotencyKeys: Set<string>;
-  responses: Map<string, { state: "draft" | "submitted"; data: JsonObject; requiredMissing: string[] }>;
+  responses: Map<string, { state: "in-progress" | "completed"; data: JsonObject; requiredMissing: string[] }>;
   hostEvents: RuntimeReport["hostEvents"];
+  durableEffects: RuntimeReport["durableEffects"];
   aiEvents: RuntimeReport["aiEvents"];
   routeEvents: RuntimeReport["routeEvents"];
   issues: RuntimeIssue[];
@@ -56,11 +64,15 @@ export function executeRuntimePlan(inputs: GeneratorInputs, plan: RuntimePlan): 
     seenIdempotencyKeys: new Set(),
     responses: new Map(),
     hostEvents: [],
+    durableEffects: [],
     aiEvents: [],
     routeEvents: [],
     issues: [],
   };
 
+  if (plan.$wireframeRuntimePlan !== "0.1-spike-v3") {
+    push(state, "error", "RUNTIME-PLAN-VERSION", "$.$wireframeRuntimePlan", "Runtime Plan must declare '$wireframeRuntimePlan': '0.1-spike-v3'.");
+  }
   if (!session) {
     push(state, "error", "RUNTIME-SESSION-UNRESOLVED", "$.sessionId", `Session '${plan.sessionId}' is absent from App Manifest sessions[].`);
   } else if (!session.actors.includes(plan.actor)) {
@@ -70,7 +82,11 @@ export function executeRuntimePlan(inputs: GeneratorInputs, plan: RuntimePlan): 
     push(state, "error", "RUNTIME-ACTOR-DENIED", "$.actor", `Actor '${plan.actor}' is not admitted by posture.allowedActors[].`);
   }
 
-  plan.commands.forEach((command, index) => executeCommand(inputs, state, command, `$.commands[${index}]`));
+  if (!Array.isArray(plan.commands)) {
+    push(state, "error", "RUNTIME-PLAN-COMMANDS", "$.commands", "Runtime Plan commands must be an array.");
+  } else {
+    plan.commands.forEach((command, index) => executeCommand(inputs, state, command, `$.commands[${index}]`));
+  }
 
   const responses: RuntimeReport["responses"] = {};
   for (const [url, response] of state.responses) {
@@ -83,36 +99,48 @@ export function executeRuntimePlan(inputs: GeneratorInputs, plan: RuntimePlan): 
     finalRoute: state.currentRoute ? { id: state.currentRoute.id, params: state.routeParams } : undefined,
     responses,
     hostEvents: state.hostEvents,
+    durableEffects: state.durableEffects,
     aiEvents: state.aiEvents,
     routeEvents: state.routeEvents,
     issues: state.issues,
   };
 }
 
-function executeCommand(inputs: GeneratorInputs, state: RuntimeState, command: RuntimeCommand, path: string): void {
-  switch (command.type) {
-    case "navigate":
-      navigate(inputs, state, command.route, command.params ?? {}, path, "navigate");
+function executeCommand(inputs: GeneratorInputs, state: RuntimeState, command: unknown, path: string): void {
+  switch ((command as { type?: string }).type) {
+    case "navigate": {
+      const c = command as Extract<RuntimeCommand, { type: "navigate" }>;
+      navigate(inputs, state, c.route, c.params ?? {}, path, "navigate");
       return;
-    case "screenerHop":
-      if (!command.target.startsWith("surface:")) {
-        push(state, "error", "RUNTIME-SCREENER-TARGET", path, `Screener target '${command.target}' is not a surface route.`);
+    }
+    case "screenerHop": {
+      const c = command as Extract<RuntimeCommand, { type: "screenerHop" }>;
+      if (!c.target.startsWith("surface:")) {
+        push(state, "error", "RUNTIME-SCREENER-TARGET", path, `Screener target '${c.target}' is not a surface route.`);
         return;
       }
-      if (!screenerDeclaresTarget(inputs, command.target)) {
-        push(state, "error", "RUNTIME-SCREENER-HOP-UNDECLARED", path, `Screener target '${command.target}' is not declared by the loaded Screener.`);
+      if (!screenerDeclaresTarget(inputs, c.target)) {
+        push(state, "error", "RUNTIME-SCREENER-HOP-UNDECLARED", path, `Screener target '${c.target}' is not declared by the loaded Screener.`);
         return;
       }
-      navigate(inputs, state, command.target.slice("surface:".length), command.params ?? {}, path, "screener-hop");
+      navigate(inputs, state, c.target.slice("surface:".length), c.params ?? {}, path, "screener-hop");
       return;
-    case "draft":
-      draft(inputs, state, command.definitionRef, command.response, path);
+    }
+    case "draft": {
+      const c = command as Extract<RuntimeCommand, { type: "draft" }>;
+      draft(inputs, state, c.definitionRef, c.response, path);
       return;
-    case "invokeAction":
-      invokeAction(inputs, state, command, path);
+    }
+    case "invokeAction": {
+      invokeAction(inputs, state, command as Extract<RuntimeCommand, { type: "invokeAction" }>, path);
       return;
-    case "transition":
-      transition(inputs, state, command, path);
+    }
+    case "transition": {
+      transition(inputs, state, command as Extract<RuntimeCommand, { type: "transition" }>, path);
+      return;
+    }
+    default:
+      push(state, "error", "RUNTIME-COMMAND-UNKNOWN", path, `Runtime command type '${String((command as { type?: unknown }).type)}' is not supported.`);
       return;
   }
 }
@@ -147,7 +175,11 @@ function draft(inputs: GeneratorInputs, state: RuntimeState, definitionRef: stri
     push(state, "error", "RUNTIME-DEFINITION-UNRESOLVED", path, `Definition '${definitionRef}' does not exist.`);
     return;
   }
-  state.responses.set(def.url, { state: "draft", data: response, requiredMissing: requiredMissing(def, response) });
+  if (!currentRouteOwnsDefinition(inputs, state, def)) {
+    push(state, "error", "RUNTIME-DEFINITION-NOT-IN-ROUTE", path, `Definition '${definitionRef}' is not present in the active route '${state.currentRoute?.id ?? "(none)"}'.`);
+    return;
+  }
+  state.responses.set(def.url, { state: "in-progress", data: response, requiredMissing: requiredMissing(def, response) });
 }
 
 function invokeAction(
@@ -169,6 +201,10 @@ function invokeAction(
     push(state, "error", "RUNTIME-DEFINITION-UNRESOLVED", path, `Definition '${command.definitionRef}' does not exist.`);
     return;
   }
+  if (!currentRouteOwnsDefinition(inputs, state, def)) {
+    push(state, "error", "RUNTIME-DEFINITION-NOT-IN-ROUTE", path, `Definition '${command.definitionRef}' is not present in the active route '${state.currentRoute?.id ?? "(none)"}'.`);
+    return;
+  }
   const sidecar = findResponseActions(inputs, def.url);
   const action = sidecar?.actions.find((candidate) => candidate.id === command.actionId);
   if (!action) {
@@ -180,26 +216,42 @@ function invokeAction(
     push(state, "error", "RUNTIME-RESPONSE-MISSING", path, `Action '${command.actionId}' invoked before a draft exists for '${def.url}'.`);
     return;
   }
+  const tuple = resolveTuple(action);
+  if (!tuple) {
+    push(state, "error", "RUNTIME-ACTION-TUPLE", path, `Action '${command.actionId}' has no resolvable validation tuple.`);
+    return;
+  }
   response.requiredMissing = requiredMissing(def, response.data);
-  if (response.requiredMissing.length && blocksOnRequired(action)) {
+  if (response.requiredMissing.length && tuple.blocking === "block-on-error") {
     push(state, "error", "RUNTIME-VALIDATION-BLOCKED", path, `Action '${command.actionId}' is blocked by missing required fields: ${response.requiredMissing.join(", ")}.`);
     return;
   }
-  if (state.seenIdempotencyKeys.has(command.idempotencyKey)) {
-    push(state, "error", "RUNTIME-IDEMPOTENCY-DUPLICATE", path, `Idempotency key '${command.idempotencyKey}' was already used in this runtime plan.`);
-    return;
-  }
-  state.seenIdempotencyKeys.add(command.idempotencyKey);
-  response.state = action.intent === "save-draft" ? "draft" : "submitted";
+  if (tuple.persistence === "complete-response") response.state = "completed";
+  if (tuple.persistence === "draft-checkpoint") response.state = "in-progress";
 
-  for (const effect of action.effects) {
+  for (const [effectIndex, effect] of action.effects.entries()) {
     if (effect.type === "hostEvent" && typeof effect.eventName === "string") {
+      if (typeof effect.idempotencyKey === "string") {
+        push(state, "error", "RUNTIME-HOST-EVENT-IDEMPOTENCY", `${path}.effects[${effectIndex}]`, `hostEvent '${effect.eventName}' must not carry an idempotency key.`);
+      }
       state.hostEvents.push({
         eventName: effect.eventName,
         actionId: action.id,
         definitionUrl: def.url,
-        idempotencyKey: command.idempotencyKey,
+        invocationId: command.invocationId,
       });
+    } else if (effect.type !== "hostEvent") {
+      const idempotencyKey = effect.idempotencyKey;
+      if (typeof idempotencyKey !== "string") {
+        push(state, "error", "RUNTIME-DURABLE-EFFECT-IDEMPOTENCY", `${path}.effects[${effectIndex}]`, `Durable effect '${effect.type}' must carry an idempotency key.`);
+        continue;
+      }
+      if (state.seenIdempotencyKeys.has(idempotencyKey)) {
+        push(state, "error", "RUNTIME-IDEMPOTENCY-DUPLICATE", `${path}.effects[${effectIndex}]`, `Idempotency key '${idempotencyKey}' was already used in this runtime plan.`);
+        continue;
+      }
+      state.seenIdempotencyKeys.add(idempotencyKey);
+      state.durableEffects.push({ type: effect.type, actionId: action.id, definitionUrl: def.url, idempotencyKey });
     }
   }
   if (action.intent.startsWith("x-formspec-ai-")) {
@@ -247,9 +299,21 @@ function responseValue(state: RuntimeState, key: string): unknown {
   return undefined;
 }
 
-function blocksOnRequired(action: RaAction): boolean {
-  if (!action.validation) return true;
-  return action.validation.blocking !== "non-blocking";
+function resolveTuple(action: RaAction): ValidationTuple | undefined {
+  if (action.validation) return action.validation as ValidationTuple;
+  switch (action.intent) {
+    case "save-draft":
+    case "autosave":
+      return { profile: "off", blocking: "non-blocking", persistence: "draft-checkpoint" };
+    case "review":
+      return { profile: "on-submit", blocking: "non-blocking", persistence: "none" };
+    case "submit":
+      return { profile: "on-submit", blocking: "block-on-error", persistence: "complete-response" };
+    case "request-evidence":
+      return { profile: "on-demand", blocking: "non-blocking", persistence: "draft-checkpoint" };
+    default:
+      return undefined;
+  }
 }
 
 function requiredMissing(def: Definition, response: JsonObject): string[] {
@@ -268,7 +332,23 @@ function screenerDeclaresTarget(inputs: GeneratorInputs, target: string): boolea
   return (phases ?? []).some((phase) => (phase.routes ?? []).some((route) => route.target === target));
 }
 
+function currentRouteOwnsDefinition(inputs: GeneratorInputs, state: RuntimeState, def: Definition): boolean {
+  const route = state.currentRoute;
+  if (!route) return false;
+  return Object.values(route.slots).some((entries) =>
+    entries.some((slot) => {
+      if (slot.type !== "definition-form" || !slot.definitionRef) return false;
+      const slotDefinition = definitionByRef(inputs, slot.definitionRef);
+      return slotDefinition?.url === def.url;
+    }),
+  );
+}
+
 function findDefinition(inputs: GeneratorInputs, ref: string): Definition | undefined {
+  return definitionByRef(inputs, ref);
+}
+
+function definitionByRef(inputs: GeneratorInputs, ref: string): Definition | undefined {
   return inputs.definitions.find((def) => def.url === ref || def.name === ref);
 }
 

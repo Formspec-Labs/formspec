@@ -73,12 +73,31 @@ function assertRuntimeIssue(name: string, inputs: GeneratorInputs, plan: Runtime
   console.log(`[selftest] ok ${name} -> ${expectedCode}`);
 }
 
+function assertRuntimeOk(name: string, inputs: GeneratorInputs, plan: RuntimePlan, check: (report: ReturnType<typeof executeRuntimePlan>) => void): void {
+  const report = executeRuntimePlan(inputs, plan);
+  if (!report.ok) {
+    throw new Error(`${name}: expected ok runtime report, got ${report.issues.map((issue) => issue.code).join(", ")}`);
+  }
+  check(report);
+  console.log(`[selftest] ok ${name}`);
+}
+
 function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
   return inputs.surface.routes[0].slots.shell[0];
 }
 
 const base = await loadInputs();
 const baseRuntimePlan = await readJson<RuntimePlan>(fixturePath(base.appManifest["x-spike-v3-runtimePlan"] as LocalRef));
+
+assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone(baseRuntimePlan), (report) => {
+  const newMatter = report.responses["https://lexassist.example/forms/new-matter"];
+  const threadComposer = report.responses["https://lexassist.example/forms/thread-composer"];
+  if (newMatter?.state !== "completed") throw new Error(`new-matter state should be completed, got ${newMatter?.state}`);
+  if (threadComposer?.state !== "in-progress") throw new Error(`thread-composer state should be in-progress, got ${threadComposer?.state}`);
+  if (report.hostEvents.some((event) => Object.prototype.hasOwnProperty.call(event, "idempotencyKey"))) {
+    throw new Error("hostEvent report entries must not carry idempotencyKey");
+  }
+});
 
 {
   const inputs = clone(base);
@@ -130,10 +149,15 @@ const baseRuntimePlan = await readJson<RuntimePlan>(fixturePath(base.appManifest
 }
 
 {
-  const plan = clone(baseRuntimePlan);
-  const actions = plan.commands.filter((command): command is Extract<RuntimePlan["commands"][number], { type: "invokeAction" }> => command.type === "invokeAction");
-  actions[1].idempotencyKey = actions[0].idempotencyKey;
-  assertRuntimeIssue("runtime idempotency key reuse", clone(base), plan, "RUNTIME-IDEMPOTENCY-DUPLICATE");
+  const inputs = clone(base);
+  const sidecar = inputs.responseActions.find((candidate) => candidate.targetDefinition.url === "https://lexassist.example/forms/new-matter");
+  const action = sidecar?.actions.find((candidate) => candidate.id === "saveNewMatter");
+  if (!action) throw new Error("Missing saveNewMatter action");
+  action.effects = [
+    { type: "ledgerAppend", idempotencyKey: "idem:duplicate" },
+    { type: "ledgerAppend", idempotencyKey: "idem:duplicate" },
+  ];
+  assertRuntimeIssue("runtime durable effect idempotency key reuse", inputs, clone(baseRuntimePlan), "RUNTIME-IDEMPOTENCY-DUPLICATE");
 }
 
 {
@@ -144,4 +168,22 @@ const baseRuntimePlan = await readJson<RuntimePlan>(fixturePath(base.appManifest
     hop.params = {};
   }
   assertRuntimeIssue("runtime undeclared screener hop", clone(base), plan, "RUNTIME-SCREENER-HOP-UNDECLARED");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  plan.commands.push({ type: "unknown-command" } as unknown as RuntimePlan["commands"][number]);
+  assertRuntimeIssue("runtime unknown command", clone(base), plan, "RUNTIME-COMMAND-UNKNOWN");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  plan.commands.splice(1, 0, {
+    type: "draft",
+    definitionRef: "thread-composer",
+    response: {
+      message: "This draft is attempted before the thread route is active."
+    }
+  });
+  assertRuntimeIssue("runtime definition must be present on active route", clone(base), plan, "RUNTIME-DEFINITION-NOT-IN-ROUTE");
 }

@@ -119,6 +119,7 @@ async function buildValidator() {
     ajv.addSchema(await readJson<Record<string, unknown>>(SCHEMA(f)));
   }
   ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.surface.schema.json")));
+  ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.runtime-plan.schema.json")));
   return ajv;
 }
 
@@ -202,6 +203,7 @@ async function main() {
   for (const ra of inputs.responseActions) {
     validationFailures += await validateOne(ajv, "https://formspec.org/schemas/responseActions/1.0", `Response Actions ${ra.targetDefinition.url}`, ra);
   }
+  validationFailures += await validateOne(ajv, "https://formspec.org/spikes/wireframe-generator-v3/runtime-plan/0.1", "Runtime Plan", runtimePlan);
 
   console.log("[spike-v3] validating whole app graph coherence...");
   const coherence = validateAppCoherence(inputs, ajv);

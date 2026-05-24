@@ -25,7 +25,7 @@
       "definitionRef": "new-matter",
       "actionId": "saveNewMatter",
       "actor": "urn:formspec:actor:human:legal-user",
-      "idempotencyKey": "idem:new-matter:create:001"
+      "invocationId": "inv:new-matter:create:001"
     },
     {
       "type": "transition",
@@ -57,7 +57,7 @@
       "definitionRef": "thread-composer",
       "actionId": "sendMessage",
       "actor": "urn:formspec:actor:agent:assistant",
-      "idempotencyKey": "idem:thread:send:001"
+      "invocationId": "inv:thread:send:001"
     },
     {
       "type": "screenerHop",
