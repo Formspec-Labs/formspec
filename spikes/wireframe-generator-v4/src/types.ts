@@ -226,6 +226,13 @@ export type SurfaceSlotType =
   | "static-content"
   | "embed-route";
 
+export type ResponseBinding = {
+  owner: "response";
+  instancePolicy: "session-singleton" | "route-param-scoped";
+  routeParam?: string;
+  actionOwner: "response-actions";
+};
+
 export type SurfaceSlotEntry = {
   type: SurfaceSlotType;
   title?: string;
@@ -234,6 +241,7 @@ export type SurfaceSlotEntry = {
   widgetRef?: string;
   routeRef?: string;
   module?: ModuleRef;
+  responseBinding?: ResponseBinding;
   content?: { heading?: string; body?: string };
   payload?: JsonObject;
 };

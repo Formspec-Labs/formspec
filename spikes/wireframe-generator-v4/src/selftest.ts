@@ -58,6 +58,10 @@ function assertRuntimeOk(name: string, inputs: GeneratorInputs, plan: RuntimePla
   console.log(`[selftest] ok ${name}`);
 }
 
+function runtimeResponse(report: ReturnType<typeof executeRuntimePlan>, definitionUrl: string): ReturnType<typeof executeRuntimePlan>["responses"][string] | undefined {
+  return Object.values(report.responses).find((response) => response.definitionUrl === definitionUrl);
+}
+
 function assertComponentIssue(name: string, bundle: MultiRouteBundle, expectedCode: string): void {
   const issues = validateComponentBundle(bundle);
   if (!issues.some((issue) => issue.code === expectedCode)) {
@@ -68,6 +72,16 @@ function assertComponentIssue(name: string, bundle: MultiRouteBundle, expectedCo
 
 function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
   return inputs.surface.routes[0].slots.shell[0];
+}
+
+function definitionSlot(inputs: GeneratorInputs, routeId: string, definitionRef: string): SurfaceSlotEntry {
+  const route = inputs.surface.routes.find((candidate) => candidate.id === routeId);
+  if (!route) throw new Error(`Missing route ${routeId}`);
+  const slot = Object.values(route.slots)
+    .flat()
+    .find((candidate) => candidate.type === "definition-form" && candidate.definitionRef === definitionRef);
+  if (!slot) throw new Error(`Missing definition-form slot ${routeId}/${definitionRef}`);
+  return slot;
 }
 
 function registryEntry(inputs: GeneratorInputs, name: string): RegistryEntry {
@@ -112,10 +126,18 @@ const baseRuntimePlan = base.runtimePlan as RuntimePlan;
 }
 
 assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone(baseRuntimePlan), (report) => {
-  const newMatter = report.responses["https://lexassist.example/forms/new-matter"];
-  const threadComposer = report.responses["https://lexassist.example/forms/thread-composer"];
+  const newMatter = runtimeResponse(report, "https://lexassist.example/forms/new-matter");
+  const threadComposer = runtimeResponse(report, "https://lexassist.example/forms/thread-composer");
+  if (!newMatter || !threadComposer) throw new Error("runtime report should include new-matter and thread-composer Response instances");
   if (newMatter?.state !== "completed") throw new Error(`new-matter state should be completed, got ${newMatter?.state}`);
   if (threadComposer?.state !== "in-progress") throw new Error(`thread-composer state should be in-progress, got ${threadComposer?.state}`);
+  if (newMatter.owner !== "response" || report.ownership.session.owner !== "session" || report.ownership.route.owner !== "surface") {
+    throw new Error("runtime report must keep route, session, and Response ownership explicit");
+  }
+  const saveInvocation = report.ownership.actions.find((action) => action.actionId === "saveNewMatter");
+  if (!saveInvocation || saveInvocation.owner !== "response-actions" || saveInvocation.responseInstanceId !== Object.keys(report.responses).find((id) => report.responses[id] === newMatter)) {
+    throw new Error("runtime report must bind action invocation ownership to the Response instance");
+  }
   if (report.hostEvents.some((event) => Object.prototype.hasOwnProperty.call(event, "idempotencyKey"))) {
     throw new Error("hostEvent report entries must not carry idempotencyKey");
   }
@@ -298,6 +320,20 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 }
 
 {
+  const inputs = clone(base);
+  delete definitionSlot(inputs, "home", "new-matter").responseBinding;
+  assertIssues("schema-invalid missing Response binding", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
+}
+
+{
+  const inputs = clone(base);
+  const binding = definitionSlot(inputs, "thread", "thread-composer").responseBinding;
+  if (!binding) throw new Error("Missing thread-composer Response binding");
+  binding.routeParam = "missingParam";
+  assertIssue("Response binding route param must resolve", inputs, "SURFACE-RESPONSE-BINDING-PARAM");
+}
+
+{
   const bundle = generateBundle(clone(base));
   const nonFormRoute = bundle.routes.find((route) => route.id === "matter");
   if (!nonFormRoute) throw new Error("Missing non-form matter route");
@@ -359,6 +395,26 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const draft = plan.commands.find((command) => command.type === "draft" && command.definitionRef === "new-matter");
   if (draft?.type === "draft") delete draft.response.clientName;
   assertRuntimeIssue("runtime required field blocking", clone(base), plan, "RUNTIME-VALIDATION-BLOCKED");
+}
+
+{
+  const inputs = clone(base);
+  delete definitionSlot(inputs, "home", "new-matter").responseBinding;
+  assertRuntimeIssue("runtime Response binding required", inputs, clone(baseRuntimePlan), "RUNTIME-RESPONSE-BINDING");
+}
+
+{
+  const inputs = clone(base);
+  const binding = definitionSlot(inputs, "thread", "thread-composer").responseBinding;
+  if (!binding) throw new Error("Missing thread-composer Response binding");
+  binding.routeParam = "missingParam";
+  assertRuntimeIssue("runtime Response instance param required", inputs, clone(baseRuntimePlan), "RUNTIME-RESPONSE-INSTANCE-PARAM");
+}
+
+{
+  const inputs = clone(base);
+  inputs.surface.routes[0].slots.main.push(clone(definitionSlot(inputs, "home", "new-matter")));
+  assertRuntimeIssue("runtime duplicate form slot Response ambiguity", inputs, clone(baseRuntimePlan), "RUNTIME-RESPONSE-BINDING-AMBIGUOUS");
 }
 
 {

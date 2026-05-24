@@ -1,6 +1,6 @@
 /** @filedesc Spike-local runtime/session executor for the ADR-0150 v4 app graph. */
 
-import type { Definition, GeneratorInputs, JsonObject, RaAction, ResponseActions, SurfaceRoute } from "./types.js";
+import type { Definition, GeneratorInputs, JsonObject, RaAction, ResponseActions, ResponseBinding, SurfaceRoute, SurfaceSlotEntry } from "./types.js";
 
 export type RuntimeIssue = {
   severity: "error" | "warning" | "info";
@@ -29,7 +29,13 @@ export type RuntimeReport = {
   ok: boolean;
   sessionId: string;
   finalRoute?: { id: string; params: Record<string, string> };
-  responses: Record<string, { state: "in-progress" | "completed"; requiredMissing: string[] }>;
+  ownership: {
+    route: { owner: "surface"; currentRouteId?: string; params: Record<string, string> };
+    session: { owner: "session"; sessionId: string; actor: string; actors: string[] };
+    responses: Array<{ owner: "response"; responseInstanceId: string; definitionUrl: string; routeId: string; slotPath: string; instancePolicy: ResponseBinding["instancePolicy"]; instanceKey?: string }>;
+    actions: Array<{ owner: "response-actions"; invocationId: string; actionId: string; definitionUrl: string; responseInstanceId: string; actor: string; validation: ValidationTuple; effects: string[] }>;
+  };
+  responses: Record<string, { owner: "response"; definitionUrl: string; routeId: string; slotPath: string; state: "in-progress" | "completed"; requiredMissing: string[]; instancePolicy: ResponseBinding["instancePolicy"]; instanceKey?: string }>;
   hostEvents: Array<{ eventName: string; actionId: string; definitionUrl: string; invocationId: string }>;
   durableEffects: Array<{ type: string; actionId: string; definitionUrl: string; idempotencyKey: string }>;
   aiEvents: Array<{ eventType: string; actionId: string; actor: string; definitionUrl: string }>;
@@ -44,11 +50,14 @@ type ValidationTuple = {
 };
 
 type RuntimeState = {
+  sessionId: string;
+  actor: string;
   currentRoute?: SurfaceRoute;
   routeParams: Record<string, string>;
   sessionActors: Set<string>;
   seenIdempotencyKeys: Set<string>;
-  responses: Map<string, { state: "in-progress" | "completed"; data: JsonObject; requiredMissing: string[] }>;
+  responses: Map<string, { owner: "response"; definitionUrl: string; routeId: string; slotPath: string; state: "in-progress" | "completed"; data: JsonObject; requiredMissing: string[]; instancePolicy: ResponseBinding["instancePolicy"]; instanceKey?: string }>;
+  actionInvocations: RuntimeReport["ownership"]["actions"];
   hostEvents: RuntimeReport["hostEvents"];
   durableEffects: RuntimeReport["durableEffects"];
   aiEvents: RuntimeReport["aiEvents"];
@@ -56,13 +65,25 @@ type RuntimeState = {
   issues: RuntimeIssue[];
 };
 
+type ResponseHandle = {
+  id: string;
+  definitionUrl: string;
+  routeId: string;
+  slotPath: string;
+  binding: ResponseBinding;
+  instanceKey?: string;
+};
+
 export function executeRuntimePlan(inputs: GeneratorInputs, plan: RuntimePlan): RuntimeReport {
   const session = inputs.appManifest.sessions?.find((candidate) => candidate.id === plan.sessionId);
   const state: RuntimeState = {
+    sessionId: plan.sessionId,
+    actor: plan.actor,
     routeParams: {},
     sessionActors: new Set(session?.actors ?? []),
     seenIdempotencyKeys: new Set(),
     responses: new Map(),
+    actionInvocations: [],
     hostEvents: [],
     durableEffects: [],
     aiEvents: [],
@@ -89,14 +110,37 @@ export function executeRuntimePlan(inputs: GeneratorInputs, plan: RuntimePlan): 
   }
 
   const responses: RuntimeReport["responses"] = {};
-  for (const [url, response] of state.responses) {
-    responses[url] = { state: response.state, requiredMissing: response.requiredMissing };
+  for (const [id, response] of state.responses) {
+    responses[id] = {
+      owner: response.owner,
+      definitionUrl: response.definitionUrl,
+      routeId: response.routeId,
+      slotPath: response.slotPath,
+      state: response.state,
+      requiredMissing: response.requiredMissing,
+      instancePolicy: response.instancePolicy,
+      instanceKey: response.instanceKey,
+    };
   }
 
   return {
     ok: !state.issues.some((issue) => issue.severity === "error"),
     sessionId: plan.sessionId,
     finalRoute: state.currentRoute ? { id: state.currentRoute.id, params: state.routeParams } : undefined,
+    ownership: {
+      route: { owner: "surface", currentRouteId: state.currentRoute?.id, params: state.routeParams },
+      session: { owner: "session", sessionId: plan.sessionId, actor: plan.actor, actors: [...state.sessionActors] },
+      responses: Object.entries(responses).map(([responseInstanceId, response]) => ({
+        owner: "response",
+        responseInstanceId,
+        definitionUrl: response.definitionUrl,
+        routeId: response.routeId,
+        slotPath: response.slotPath,
+        instancePolicy: response.instancePolicy,
+        instanceKey: response.instanceKey,
+      })),
+      actions: state.actionInvocations,
+    },
     responses,
     hostEvents: state.hostEvents,
     durableEffects: state.durableEffects,
@@ -169,17 +213,27 @@ function navigate(
   state.routeEvents.push({ from, to: route.id, event, params });
 }
 
-function draft(inputs: GeneratorInputs, state: RuntimeState, definitionRef: string, response: JsonObject, path: string): void {
+function draft(inputs: GeneratorInputs, state: RuntimeState, definitionRef: string, responseData: JsonObject, path: string): void {
   const def = findDefinition(inputs, definitionRef);
   if (!def) {
     push(state, "error", "RUNTIME-DEFINITION-UNRESOLVED", path, `Definition '${definitionRef}' does not exist.`);
     return;
   }
-  if (!currentRouteOwnsDefinition(inputs, state, def)) {
-    push(state, "error", "RUNTIME-DEFINITION-NOT-IN-ROUTE", path, `Definition '${definitionRef}' is not present in the active route '${state.currentRoute?.id ?? "(none)"}'.`);
+  const responseHandle = resolveResponseHandle(inputs, state, def, path);
+  if (!responseHandle) {
     return;
   }
-  state.responses.set(def.url, { state: "in-progress", data: response, requiredMissing: requiredMissing(def, response) });
+  state.responses.set(responseHandle.id, {
+    owner: "response",
+    definitionUrl: responseHandle.definitionUrl,
+    routeId: responseHandle.routeId,
+    slotPath: responseHandle.slotPath,
+    state: "in-progress",
+    data: responseData,
+    requiredMissing: requiredMissing(def, responseData),
+    instancePolicy: responseHandle.binding.instancePolicy,
+    instanceKey: responseHandle.instanceKey,
+  });
 }
 
 function invokeAction(
@@ -201,8 +255,8 @@ function invokeAction(
     push(state, "error", "RUNTIME-DEFINITION-UNRESOLVED", path, `Definition '${command.definitionRef}' does not exist.`);
     return;
   }
-  if (!currentRouteOwnsDefinition(inputs, state, def)) {
-    push(state, "error", "RUNTIME-DEFINITION-NOT-IN-ROUTE", path, `Definition '${command.definitionRef}' is not present in the active route '${state.currentRoute?.id ?? "(none)"}'.`);
+  const responseHandle = resolveResponseHandle(inputs, state, def, path);
+  if (!responseHandle) {
     return;
   }
   const sidecar = findResponseActions(inputs, def.url);
@@ -211,9 +265,9 @@ function invokeAction(
     push(state, "error", "RUNTIME-ACTION-UNRESOLVED", path, `Action '${command.actionId}' does not exist for '${def.url}'.`);
     return;
   }
-  const response = state.responses.get(def.url);
+  const response = state.responses.get(responseHandle.id);
   if (!response) {
-    push(state, "error", "RUNTIME-RESPONSE-MISSING", path, `Action '${command.actionId}' invoked before a draft exists for '${def.url}'.`);
+    push(state, "error", "RUNTIME-RESPONSE-MISSING", path, `Action '${command.actionId}' invoked before a draft exists for Response instance '${responseHandle.id}'.`);
     return;
   }
   const tuple = resolveTuple(action);
@@ -228,6 +282,16 @@ function invokeAction(
   }
   if (tuple.persistence === "complete-response") response.state = "completed";
   if (tuple.persistence === "draft-checkpoint") response.state = "in-progress";
+  state.actionInvocations.push({
+    owner: "response-actions",
+    invocationId: command.invocationId,
+    actionId: action.id,
+    definitionUrl: def.url,
+    responseInstanceId: responseHandle.id,
+    actor: command.actor,
+    validation: tuple,
+    effects: action.effects.map((effect) => String(effect.type)),
+  });
 
   for (const [effectIndex, effect] of action.effects.entries()) {
     if (effect.type === "hostEvent" && typeof effect.eventName === "string") {
@@ -332,16 +396,68 @@ function screenerDeclaresTarget(inputs: GeneratorInputs, target: string): boolea
   return (phases ?? []).some((phase) => (phase.routes ?? []).some((route) => route.target === target));
 }
 
-function currentRouteOwnsDefinition(inputs: GeneratorInputs, state: RuntimeState, def: Definition): boolean {
+function resolveResponseHandle(inputs: GeneratorInputs, state: RuntimeState, def: Definition, path: string): ResponseHandle | undefined {
   const route = state.currentRoute;
-  if (!route) return false;
-  return Object.values(route.slots).some((entries) =>
-    entries.some((slot) => {
-      if (slot.type !== "definition-form" || !slot.definitionRef) return false;
+  if (!route) {
+    push(state, "error", "RUNTIME-DEFINITION-NOT-IN-ROUTE", path, `Definition '${def.url}' is not present in the active route '(none)'.`);
+    return undefined;
+  }
+  const matches: Array<{ slot: SurfaceSlotEntry; slotPath: string }> = [];
+  for (const [slotName, entries] of Object.entries(route.slots)) {
+    entries.forEach((slot, index) => {
+      if (slot.type !== "definition-form" || !slot.definitionRef) return;
       const slotDefinition = definitionByRef(inputs, slot.definitionRef);
-      return slotDefinition?.url === def.url;
-    }),
-  );
+      if (slotDefinition?.url === def.url) matches.push({ slot, slotPath: `surface:${route.id}.slots.${slotName}[${index}]` });
+    });
+  }
+  if (matches.length === 0) {
+    push(state, "error", "RUNTIME-DEFINITION-NOT-IN-ROUTE", path, `Definition '${def.url}' is not present in the active route '${route.id}'.`);
+    return undefined;
+  }
+  if (matches.length > 1) {
+    push(state, "error", "RUNTIME-RESPONSE-BINDING-AMBIGUOUS", path, `Definition '${def.url}' has multiple form slots on active route '${route.id}'.`);
+    return undefined;
+  }
+  const match = matches[0];
+  const binding = match.slot.responseBinding;
+  if (!binding) {
+    push(state, "error", "RUNTIME-RESPONSE-BINDING", path, `Definition '${def.url}' on route '${route.id}' has no explicit Response instance binding.`);
+    return undefined;
+  }
+  if (binding.owner !== "response" || binding.actionOwner !== "response-actions") {
+    push(state, "error", "RUNTIME-RESPONSE-BINDING-OWNER", path, `Definition '${def.url}' on route '${route.id}' must assign Response state to Response and action execution to Response Actions.`);
+    return undefined;
+  }
+  const instanceKey = responseInstanceKey(state, route, binding, path);
+  if (binding.instancePolicy === "route-param-scoped" && !instanceKey) return undefined;
+  return {
+    id: responseInstanceId(state, def.url, route.id, binding, instanceKey),
+    definitionUrl: def.url,
+    routeId: route.id,
+    slotPath: match.slotPath,
+    binding,
+    instanceKey,
+  };
+}
+
+function responseInstanceKey(state: RuntimeState, route: SurfaceRoute, binding: ResponseBinding, path: string): string | undefined {
+  if (binding.instancePolicy === "session-singleton") return state.sessionId;
+  const routeParam = binding.routeParam;
+  if (!routeParam) {
+    push(state, "error", "RUNTIME-RESPONSE-BINDING-PARAM", path, `Route '${route.id}' has route-param-scoped Response state without a routeParam.`);
+    return undefined;
+  }
+  const value = state.routeParams[routeParam];
+  if (!value) {
+    push(state, "error", "RUNTIME-RESPONSE-INSTANCE-PARAM", path, `Route '${route.id}' cannot derive Response instance state without route param '${routeParam}'.`);
+    return undefined;
+  }
+  return `${routeParam}:${value}`;
+}
+
+function responseInstanceId(state: RuntimeState, definitionUrl: string, routeId: string, binding: ResponseBinding, instanceKey?: string): string {
+  const scope = binding.instancePolicy === "session-singleton" ? `session:${state.sessionId}` : `route:${routeId}:${instanceKey ?? "missing"}`;
+  return `response:${definitionUrl}#${scope}`;
 }
 
 function findDefinition(inputs: GeneratorInputs, ref: string): Definition | undefined {

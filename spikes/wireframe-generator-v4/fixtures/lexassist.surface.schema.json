@@ -128,6 +128,7 @@
         },
         "routeRef": { "type": "string" },
         "module": { "$ref": "#/$defs/ModuleRef" },
+        "responseBinding": { "$ref": "#/$defs/ResponseBinding" },
         "content": {
           "type": "object",
           "additionalProperties": false,
@@ -143,7 +144,7 @@
       "allOf": [
         {
           "if": { "properties": { "type": { "const": "definition-form" } }, "required": ["type"] },
-          "then": { "required": ["definitionRef", "unitRef"] }
+          "then": { "required": ["definitionRef", "unitRef", "responseBinding"] }
         },
         {
           "if": { "properties": { "type": { "const": "experience-unit" } }, "required": ["type"] },
@@ -156,6 +157,23 @@
         {
           "if": { "properties": { "type": { "const": "embed-route" } }, "required": ["type"] },
           "then": { "required": ["routeRef"] }
+        }
+      ]
+    },
+    "ResponseBinding": {
+      "type": "object",
+      "required": ["owner", "instancePolicy", "actionOwner"],
+      "additionalProperties": false,
+      "properties": {
+        "owner": { "const": "response" },
+        "instancePolicy": { "enum": ["session-singleton", "route-param-scoped"] },
+        "routeParam": { "type": "string", "minLength": 1 },
+        "actionOwner": { "const": "response-actions" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "instancePolicy": { "const": "route-param-scoped" } }, "required": ["instancePolicy"] },
+          "then": { "required": ["routeParam"] }
         }
       ]
     }

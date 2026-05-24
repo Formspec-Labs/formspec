@@ -10,6 +10,7 @@ import type {
   JsonObject,
   MultiRouteBundle,
   RegistryEntry,
+  ResponseBinding,
   ResponseActions,
   SurfaceRoute,
   SurfaceSlotEntry,
@@ -328,7 +329,7 @@ function validateSlots(
       switch (slot.type) {
         case "definition-form":
           definitionSlots.push(slot);
-          validateDefinitionSlot(inputs, issues, units, sidecarsByDefinition, slot, path);
+          validateDefinitionSlot(inputs, issues, units, sidecarsByDefinition, route, slot, path);
           break;
         case "experience-unit":
           validateExperienceUnitSlot(inputs, issues, registry, admission, units, dataSources, ajv, slot, path);
@@ -341,7 +342,7 @@ function validateSlots(
           break;
       }
     });
-    if (definitionSlots.length > 1) {
+    if (definitionSlots.length > 1 && definitionSlots.some((slot) => !slot.responseBinding)) {
       issue(issues, "warning", "SURFACE-MULTI-DEFINITION-ROUTE", `$.surface.routes.${route.id}`, `Route '${route.id}' has ${definitionSlots.length} definition-form slots; v3 models independent lifecycles and rejects any implicit first-slot ownership.`);
     }
   }
@@ -352,6 +353,7 @@ function validateDefinitionSlot(
   issues: CoherenceIssue[],
   units: Map<string, ExpUnit>,
   sidecarsByDefinition: Map<string, ResponseActions>,
+  route: SurfaceRoute,
   slot: SurfaceSlotEntry,
   path: string,
 ): void {
@@ -378,6 +380,23 @@ function validateDefinitionSlot(
   for (const actionRef of unit.actionRefs ?? []) {
     if (!actions?.actions.some((action) => action.id === actionRef.id)) {
       issue(issues, "error", "SURFACE-ACTION-REF", path, `Unit '${unit.id}' actionRef '${actionRef.id}' does not resolve in Response Actions for '${def.url}'.`);
+    }
+  }
+  validateResponseBinding(issues, route, slot.responseBinding, `${path}.responseBinding`);
+}
+
+function validateResponseBinding(issues: CoherenceIssue[], route: SurfaceRoute, binding: ResponseBinding | undefined, path: string): void {
+  if (!binding) {
+    issue(issues, "error", "SURFACE-RESPONSE-BINDING", path, `definition-form slot on route '${route.id}' must declare Response instance ownership.`);
+    return;
+  }
+  if (binding.owner !== "response" || binding.actionOwner !== "response-actions") {
+    issue(issues, "error", "SURFACE-RESPONSE-BINDING-OWNER", path, `definition-form slot on route '${route.id}' must assign Response state to Response and action execution to Response Actions.`);
+  }
+  if (binding.instancePolicy === "route-param-scoped") {
+    const param = binding.routeParam;
+    if (!param || !(route.params ?? []).some((candidate) => candidate.name === param)) {
+      issue(issues, "error", "SURFACE-RESPONSE-BINDING-PARAM", path, `definition-form slot on route '${route.id}' must bind route-param-scoped Response state to a declared route param.`);
     }
   }
 }

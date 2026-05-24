@@ -64,7 +64,12 @@
           {
             "type": "definition-form",
             "definitionRef": "new-matter",
-            "unitRef": "newMatterForm"
+            "unitRef": "newMatterForm",
+            "responseBinding": {
+              "owner": "response",
+              "instancePolicy": "session-singleton",
+              "actionOwner": "response-actions"
+            }
           }
         ]
       },
@@ -165,7 +170,13 @@
           {
             "type": "definition-form",
             "definitionRef": "thread-composer",
-            "unitRef": "threadComposer"
+            "unitRef": "threadComposer",
+            "responseBinding": {
+              "owner": "response",
+              "instancePolicy": "route-param-scoped",
+              "routeParam": "threadId",
+              "actionOwner": "response-actions"
+            }
           }
         ],
         "right": [
@@ -312,7 +323,13 @@
           {
             "type": "definition-form",
             "definitionRef": "playbook-runner",
-            "unitRef": "playbookRunnerForm"
+            "unitRef": "playbookRunnerForm",
+            "responseBinding": {
+              "owner": "response",
+              "instancePolicy": "route-param-scoped",
+              "routeParam": "playbookId",
+              "actionOwner": "response-actions"
+            }
           }
         ],
         "right": [
@@ -357,7 +374,12 @@
           {
             "type": "definition-form",
             "definitionRef": "library-settings",
-            "unitRef": "librarySettingsForm"
+            "unitRef": "librarySettingsForm",
+            "responseBinding": {
+              "owner": "response",
+              "instancePolicy": "session-singleton",
+              "actionOwner": "response-actions"
+            }
           }
         ],
         "right": [
@@ -396,7 +418,12 @@
           {
             "type": "definition-form",
             "definitionRef": "profile",
-            "unitRef": "profileForm"
+            "unitRef": "profileForm",
+            "responseBinding": {
+              "owner": "response",
+              "instancePolicy": "session-singleton",
+              "actionOwner": "response-actions"
+            }
           }
         ]
       }

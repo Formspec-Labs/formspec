@@ -37,7 +37,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F3 | Surface should become a normal contract surface | Passing spike-local prototype | Pending final |
 | F4 | Module admission needs one shared resolver | Passing spike-local prototype | Pending final |
 | F5 | Non-form Component identity must stop pretending to be a Definition | Passing spike-local prototype | Pending final |
-| F6 | Runtime state needs explicit ownership | Planned | Pending |
+| F6 | Runtime state needs explicit ownership | Passing spike-local prototype | Pending final |
 | F7 | Data Sources need a spec, not widget payload folklore | Planned | Pending |
 | F8 | Response Actions should remain the only action executor | Planned | Pending |
 | F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Planned | Pending |
@@ -52,8 +52,8 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P0 | Build `AppGraphValidator` as a production validation layer | Passing spike-local F2 proof |
 | P0 | Build a shared module admission and contribution resolver | Passing spike-local F4 proof |
 | P0 | Remove the non-form Component `targetDefinition` shim | Quarantined as output-only compatibility |
-| P1 | Define route/session/Response/action state ownership | Planned |
-| P1 | Specify multi-form-route behavior | Planned |
+| P1 | Define route/session/Response/action state ownership | Passing spike-local F6 proof |
+| P1 | Specify multi-form-route behavior | Passing spike-local ambiguity checks |
 | P1 | Define Data Sources as a contract surface | Planned as spike-local contract |
 | P1 | Keep Response Actions as the only action executor | Planned |
 | P1 | Add fixtures for EC2, EC5, EC12, EC13, EC14 | Planned |
@@ -185,14 +185,31 @@ Verification on 2026-05-24:
 
 The negative harness now covers missing route Component identity, Surface identity mismatch, non-form shim quarantine failure, form-capable shim leakage, non-form shim target mismatch, and generated Component id collision.
 
+### F6 - Runtime State Ownership
+
+F6 makes state ownership visible in the spike runtime instead of leaving it implicit in a Definition-keyed response map. `definition-form` Surface slots now declare a spike-local `responseBinding` with `owner: "response"`, an instance policy, and `actionOwner: "response-actions"`. Session-scoped forms bind to the active session; route-scoped forms bind to a declared route param such as `threadId` or `playbookId`.
+
+`executeRuntimePlan()` now reports separate ownership buckets for route state, session state, Response instances, and Response Action invocations. Route state remains Surface-owned, session state records the session and actor set, Response state is keyed by derived Response instance ids, and action invocation state records the Response Actions owner, validation tuple, effects, actor, and Response instance target.
+
+This is still a spike-local runtime contract. It does not promote a production Runtime Plan schema or ADR 0152 policy model. The production lesson is that route/session/Response/action state must be separate before production runtime code grows retries, replay, collaborative sessions, or multi-form routes.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers missing Response binding, route-param binding to an undeclared route param, runtime missing Response binding, runtime missing Response instance param, and same-Definition multi-slot ambiguity. The positive runtime check also verifies that the report keeps route, session, Response, and Response Actions ownership explicit.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
 2. Split the production implementation into three primitives: `ArtifactResolver` for manifest ref loading, `ModuleResolver` for admission/contribution ownership, and `AppGraphValidator` for cross-document invariants. F2 proves the shape in the spike; production should wait for prose contracts and then promote the split into shared packages. Generated Components and runtime execution should consume their output, not define graph truth.
 3. Keep Surface input-side and Component output-side. Surface should own route graph, slots, navigation, and app shell structure. Component generation should remain a projection and should not define Surface semantics.
 4. Treat the non-form Component `targetDefinition` value as an output-only compatibility shim until Component identity is fixed. The v4 generator labels it as `x-spike-v4-output-compatibility`; production should replace the shim with route or Surface identity before serious authoring/regeneration work depends on it.
-5. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
-6. Add the remaining negative cases before any production wiring: duplicate Response Actions action id, module-widget payload mismatch, and EC2/EC5/EC12/EC13/EC14. F3 through F5 already cover embedded Surface route refs, missing transition params, generated Component id collision, and module version conflict.
+5. Promote runtime state ownership only after the prose contract names the owners. F6 suggests four separate production surfaces: Surface route state, Session actor/navigation state, Response instance state, and Response Actions invocation/effect state. Do not keep production Response state keyed only by Definition URL.
+6. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
+7. Add the remaining negative cases before any production wiring: duplicate Response Actions action id, module-widget payload mismatch, and EC2/EC5/EC12/EC13/EC14. F3 through F6 already cover embedded Surface route refs, missing transition params, generated Component id collision, module version conflict, and ambiguous runtime Response ownership.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 
