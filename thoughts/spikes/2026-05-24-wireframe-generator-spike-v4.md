@@ -1,12 +1,16 @@
 # Wireframe / Dynamic-UI Generator Spike v4
 
-**Status:** in progress - production-findings prototype, not production infrastructure
+**Status:** complete - production-findings prototype, not production infrastructure
 **Lives at:** `formspec/spikes/wireframe-generator-v4/`
 **Based on:** [`2026-05-23-wireframe-generator-spike-v3-production-findings.md`](./2026-05-23-wireframe-generator-spike-v3-production-findings.md), [`2026-05-23-wireframe-generator-spike-v3.md`](./2026-05-23-wireframe-generator-spike-v3.md), [`2026-05-23-wireframe-generator-spike-v2-gaps.md`](./2026-05-23-wireframe-generator-spike-v2-gaps.md), [`../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md`](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md)
 
 ## Verdict
 
-Pending. v4 must classify each F1-F10 production finding as `Promote-to-Spec`, `Defer-to-Production`, or `Reject-with-Reason`.
+v4 was worth doing. v3 was the right proof, but v4 shows why v3 should not become production code.
+
+The production path is to promote the contracts and shared validation boundaries, not the spike machinery. App Manifest, Surface, AppGraph validation, module admission, Component route identity, runtime ownership, Data Sources, Response Actions execution boundaries, and UI policy all need prose/spec/conformance promotion before production wiring. ADR 0152 authorization remains deferred.
+
+All preserved v3 acceptance tests pass in the v4 harness. The previously unproven v3 edge cases are now covered at spike scope: EC2, EC12, EC13, and EC14 pass as graph/runtime failures, and EC5 passes as an explicit reject-with-reason because Component 1.1 still requires a non-form `targetDefinition` shim.
 
 ## Scope Boundary
 
@@ -32,16 +36,16 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 
 | ID | Finding | v4 status | Verdict |
 |---|---|---|---|
-| F1 | App Manifest needs first-class sidecar indexes | Passing spike-local prototype | Pending final |
-| F2 | App Graph Validator should be a production primitive | Passing spike-local prototype | Pending final |
-| F3 | Surface should become a normal contract surface | Passing spike-local prototype | Pending final |
-| F4 | Module admission needs one shared resolver | Passing spike-local prototype | Pending final |
-| F5 | Non-form Component identity must stop pretending to be a Definition | Passing spike-local prototype | Pending final |
-| F6 | Runtime state needs explicit ownership | Passing spike-local prototype | Pending final |
-| F7 | Data Sources need a spec, not widget payload folklore | Passing spike-local prototype | Pending final |
-| F8 | Response Actions should remain the only action executor | Passing spike-local prototype | Pending final |
-| F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Passing spike-local prototype | Pending final |
-| F10 | Authorization remains ADR 0152 work | Passing spike-local boundary check | Pending final |
+| F1 | App Manifest needs first-class sidecar indexes | Passing spike-local prototype | Promote-to-Spec |
+| F2 | App Graph Validator should be a production primitive | Passing spike-local prototype | Promote-to-Spec |
+| F3 | Surface should become a normal contract surface | Passing spike-local prototype | Promote-to-Spec |
+| F4 | Module admission needs one shared resolver | Passing spike-local prototype | Promote-to-Spec |
+| F5 | Non-form Component identity must stop pretending to be a Definition | Passing spike-local prototype | Promote-to-Spec |
+| F6 | Runtime state needs explicit ownership | Passing spike-local prototype | Promote-to-Spec |
+| F7 | Data Sources need a spec, not widget payload folklore | Passing spike-local prototype | Promote-to-Spec |
+| F8 | Response Actions should remain the only action executor | Passing spike-local prototype | Promote-to-Spec |
+| F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Passing spike-local prototype | Promote-to-Spec |
+| F10 | Authorization remains ADR 0152 work | Passing spike-local boundary check | Defer-to-Production |
 
 ## P0/P1/P2 Tracker
 
@@ -90,6 +94,21 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | EC12 | Definition slot hidden by route policy while Response is mid-draft | Passing |
 | EC13 | Locale strings collide across modules or route instances | Passing |
 | EC14 | Theme styles widget without declared token slots | Passing |
+
+## v2 Gap Disposition
+
+| v2 gap | v4 disposition |
+|---|---|
+| App coherence validation | Addressed as spike-local `AppGraphValidator` boundary. Promote-to-Spec. |
+| Official Surface schema | Addressed as spike-local Surface contract only. Promote-to-Spec before production wiring. |
+| Multi-sidecar indexing | Addressed through first-class App Manifest refs for Definitions, Experience, Response Actions, Data Sources, UI Policy, runtime plan, Posture, Screener, Registry, Locale, modules, and sessions. Promote-to-Spec. |
+| Non-form Component identity | Partially addressed by output-only identity metadata and shim quarantine. The shim itself is rejected for promotion; real route/Surface Component identity remains ADR 0151 work. |
+| Runtime state semantics | Addressed as spike-local route/session/Response/action ownership. Promote-to-Spec before production runtime code. |
+| Module admission and trust | Addressed through one spike-local resolver for admission, contribution ownership, version/dependency checks, and payload validation. Promote-to-Spec. |
+| Data-source model for non-form slots | Addressed as spike-local Data Sources sidecar. Promote-to-Spec; do not keep widget payloads as source authority. |
+| Accessibility, responsive behavior, Locale, and Theme | Addressed as spike-local UI Policy graph checks. Promote-to-Spec. |
+| AI runtime behavior | Not expanded beyond the v3 runtime proof. Keep as a future runtime/ledger design, not v4 production scope. |
+| Screener and deep-link behavior | Partially addressed for declared Screener terminal hops and route params. Modal/nested route guards remain production design work. |
 
 ## Deviations
 
@@ -286,7 +305,7 @@ Verification on 2026-05-24:
 
 The negative harness now covers EC2, EC5, EC12, EC13, and EC14. EC5 remains a deliberate reject-with-reason until Component identity no longer requires a non-form `targetDefinition` shim.
 
-### Current Suggestions
+### Production Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
 2. Split the production implementation into three primitives: `ArtifactResolver` for manifest ref loading, `ModuleResolver` for admission/contribution ownership, and `AppGraphValidator` for cross-document invariants. F2 proves the shape in the spike; production should wait for prose contracts and then promote the split into shared packages. Generated Components and runtime execution should consume their output, not define graph truth.
@@ -301,6 +320,6 @@ The negative harness now covers EC2, EC5, EC12, EC13, and EC14. EC5 remains a de
 
 ## What This Means For ADR 0150 / 0151 / 0152
 
-- ADR 0150: F1 strengthens the app-envelope model. App Manifest should be the graph root, and official prose should describe first-class sidecar indexes before schema work. Surface remains the input contract for routes; Components remain renderer artifacts.
-- ADR 0151: no normative change yet. The current Component identity gap remains real; v4 should only preserve an output compatibility marker until route/Surface-targeted Component identity is designed.
+- ADR 0150: F1 through F4 and F7 through F9 strengthen the app-envelope model. App Manifest should be the graph root, Surface should be an input contract, AppGraph validation and module admission should be shared primitives, Data Sources and UI Policy should be graph contracts, and Components should remain renderer artifacts.
+- ADR 0151: F5 should promote real route/Surface Component identity. The current `targetDefinition` shim is output-only compatibility and must not become source truth.
 - ADR 0152: no scope expansion. Session membership and binary `allowedActors` are enough for this spike. Fine-grained authorization remains deferred to ADR 0152.
