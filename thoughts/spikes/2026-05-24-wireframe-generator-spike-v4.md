@@ -36,7 +36,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F2 | App Graph Validator should be a production primitive | Passing spike-local prototype | Pending final |
 | F3 | Surface should become a normal contract surface | Passing spike-local prototype | Pending final |
 | F4 | Module admission needs one shared resolver | Passing spike-local prototype | Pending final |
-| F5 | Non-form Component identity must stop pretending to be a Definition | Planned | Pending |
+| F5 | Non-form Component identity must stop pretending to be a Definition | Passing spike-local prototype | Pending final |
 | F6 | Runtime state needs explicit ownership | Planned | Pending |
 | F7 | Data Sources need a spec, not widget payload folklore | Planned | Pending |
 | F8 | Response Actions should remain the only action executor | Planned | Pending |
@@ -51,7 +51,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P0 | Promote Surface to official schema/spec/conformance | Passing as spike-local proof only |
 | P0 | Build `AppGraphValidator` as a production validation layer | Passing spike-local F2 proof |
 | P0 | Build a shared module admission and contribution resolver | Passing spike-local F4 proof |
-| P0 | Remove the non-form Component `targetDefinition` shim | Planned as prototype identity only |
+| P0 | Remove the non-form Component `targetDefinition` shim | Quarantined as output-only compatibility |
 | P1 | Define route/session/Response/action state ownership | Planned |
 | P1 | Specify multi-form-route behavior | Planned |
 | P1 | Define Data Sources as a contract surface | Planned as spike-local contract |
@@ -77,7 +77,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | A9 | route/Definition ownership mismatch | Passing |
 | A10 | undeclared Screener terminal hop | Passing |
 | A11 | duplicate Response Actions action id | Planned |
-| A12 | generated Component id collision | Planned |
+| A12 | generated Component id collision | Passing |
 | A13 | module-widget payload mismatch | Planned |
 | A14 | module version conflict across sibling artifacts | Passing |
 
@@ -167,6 +167,24 @@ Verification on 2026-05-24:
 
 The negative harness now covers unadmitted contribution owners, unresolved app module versions, module version conflicts across sibling artifacts, module dependency failure, registry category/name conflict, unowned contributions, duplicate contribution owners, wrong contribution categories, and posture-denied contributions. F4 review returned zero open findings; the residual module-resolver test gaps from that review were then added to the harness.
 
+### F5 - Non-Form Component Identity
+
+F5 keeps Component generation downstream and makes route identity explicit in generated output. Every generated route Component now carries `extensions.x-formspec-component-identity` with `identityKind: "surface-route"`, `targetSurface`, `targetRoute.id`, `targetRoute.path`, and the route's `definitionRefs`. `extensions.x-formspec-surface` still carries renderer-facing Surface metadata.
+
+The Component 1.1 `targetDefinition` field remains only because the current Component schema requires it. For non-form routes, the generator marks the shim under `x-spike-v4-output-compatibility` with `outputOnly: true` and `mustNotPromote: true`. `validateComponentBundle()` now rejects non-form route Components that do not quarantine the shim, shim markers that disagree with the generated `targetDefinition`, form-capable routes that carry the shim marker, and route Components that omit surface-route or Surface metadata identity.
+
+This is not the production fix. The production fix is still a Component identity contract that can target Surface routes without fake Definition binding. F5 only proves the boundary needed before that promotion: route identity must be first-class in generated output, and the `targetDefinition` compatibility value cannot be treated as source truth.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+- `npm run docs:check`
+- `git diff --check -- spikes/wireframe-generator-v4 thoughts/spikes/2026-05-24-wireframe-generator-spike-v4.md`
+
+The negative harness now covers missing route Component identity, Surface identity mismatch, non-form shim quarantine failure, form-capable shim leakage, non-form shim target mismatch, and generated Component id collision.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
@@ -174,7 +192,7 @@ The negative harness now covers unadmitted contribution owners, unresolved app m
 3. Keep Surface input-side and Component output-side. Surface should own route graph, slots, navigation, and app shell structure. Component generation should remain a projection and should not define Surface semantics.
 4. Treat the non-form Component `targetDefinition` value as an output-only compatibility shim until Component identity is fixed. The v4 generator labels it as `x-spike-v4-output-compatibility`; production should replace the shim with route or Surface identity before serious authoring/regeneration work depends on it.
 5. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
-6. Add the missing negative cases before any production wiring: unresolved embedded Surface route, missing transition params, duplicate Response Actions action id, generated Component id collision, module-widget payload mismatch, module version conflict, and EC2/EC5/EC12/EC13/EC14.
+6. Add the remaining negative cases before any production wiring: duplicate Response Actions action id, module-widget payload mismatch, and EC2/EC5/EC12/EC13/EC14. F3 through F5 already cover embedded Surface route refs, missing transition params, generated Component id collision, and module version conflict.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 

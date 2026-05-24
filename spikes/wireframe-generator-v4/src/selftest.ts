@@ -2,9 +2,11 @@
 
 import { resolveFixtureAppGraph } from "./artifact-resolver.js";
 import { validateAppGraph } from "./app-graph.js";
+import { validateComponentBundle } from "./coherence.js";
+import { generateBundle } from "./generate.js";
 import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
 import { buildValidator } from "./schema-loader.js";
-import type { GeneratorInputs, RegistryEntry, SurfaceSlotEntry } from "./types.js";
+import type { GeneratorInputs, MultiRouteBundle, RegistryEntry, SurfaceSlotEntry } from "./types.js";
 
 type LocalRef = { url: string; version?: string; fixture?: string };
 
@@ -56,6 +58,14 @@ function assertRuntimeOk(name: string, inputs: GeneratorInputs, plan: RuntimePla
   console.log(`[selftest] ok ${name}`);
 }
 
+function assertComponentIssue(name: string, bundle: MultiRouteBundle, expectedCode: string): void {
+  const issues = validateComponentBundle(bundle);
+  if (!issues.some((issue) => issue.code === expectedCode)) {
+    throw new Error(`${name}: expected ${expectedCode}, got ${issues.map((issue) => issue.code).join(", ") || "no issues"}`);
+  }
+  console.log(`[selftest] ok ${name} -> ${expectedCode}`);
+}
+
 function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
   return inputs.surface.routes[0].slots.shell[0];
 }
@@ -93,6 +103,13 @@ function testWidget(name: string): RegistryEntry {
 const base = await loadInputs();
 const ajv = await buildValidator();
 const baseRuntimePlan = base.runtimePlan as RuntimePlan;
+
+{
+  const bundle = generateBundle(clone(base));
+  const issues = validateComponentBundle(bundle);
+  if (issues.length > 0) throw new Error(`generated Component bundle should be clean, got ${issues.map((issue) => issue.code).join(", ")}`);
+  console.log("[selftest] ok generated Component bundle identity");
+}
 
 assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone(baseRuntimePlan), (report) => {
   const newMatter = report.responses["https://lexassist.example/forms/new-matter"];
@@ -278,6 +295,63 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
     },
   });
   assertIssue("unreachable route", inputs, "SURFACE-UNREACHABLE-ROUTE");
+}
+
+{
+  const bundle = generateBundle(clone(base));
+  const nonFormRoute = bundle.routes.find((route) => route.id === "matter");
+  if (!nonFormRoute) throw new Error("Missing non-form matter route");
+  const compat = nonFormRoute.doc.extensions?.["x-spike-v4-output-compatibility"] as { outputOnly?: boolean } | undefined;
+  if (!compat) throw new Error("Missing non-form compatibility marker");
+  compat.outputOnly = false;
+  assertComponentIssue("non-form Component shim quarantine", bundle, "COMP-NONFORM-SHIM-QUARANTINE");
+}
+
+{
+  const bundle = generateBundle(clone(base));
+  const route = bundle.routes[0];
+  delete route.doc.extensions?.["x-formspec-component-identity"];
+  assertComponentIssue("route Component identity required", bundle, "COMP-ROUTE-IDENTITY");
+}
+
+{
+  const bundle = generateBundle(clone(base));
+  const route = bundle.routes[0];
+  const surface = route.doc.extensions?.["x-formspec-surface"] as { path?: string } | undefined;
+  if (!surface) throw new Error("Missing Surface identity marker");
+  surface.path = "/wrong";
+  assertComponentIssue("route Component Surface identity required", bundle, "COMP-SURFACE-IDENTITY");
+}
+
+{
+  const bundle = generateBundle(clone(base));
+  const route = bundle.routes.find((route) => route.id === "home");
+  if (!route) throw new Error("Missing form-capable home route");
+  route.doc.extensions = {
+    ...(route.doc.extensions ?? {}),
+    "x-spike-v4-output-compatibility": {
+      outputOnly: true,
+      mustNotPromote: true,
+      shimTargetDefinition: route.doc.targetDefinition.url,
+    },
+  };
+  assertComponentIssue("form Component shim marker rejected", bundle, "COMP-FORM-SHIM-UNEXPECTED");
+}
+
+{
+  const bundle = generateBundle(clone(base));
+  const nonFormRoute = bundle.routes.find((route) => route.id === "matter");
+  if (!nonFormRoute) throw new Error("Missing non-form matter route");
+  const compat = nonFormRoute.doc.extensions?.["x-spike-v4-output-compatibility"] as { shimTargetDefinition?: string } | undefined;
+  if (!compat) throw new Error("Missing non-form compatibility marker");
+  compat.shimTargetDefinition = "https://lexassist.example/forms/wrong";
+  assertComponentIssue("non-form Component shim target mismatch", bundle, "COMP-NONFORM-SHIM-TARGET-MISMATCH");
+}
+
+{
+  const bundle = generateBundle(clone(base));
+  bundle.routes[1].doc.tree.id = bundle.routes[0].doc.tree.id;
+  assertComponentIssue("generated Component id collision", bundle, "COMP-BUNDLE-ID-COLLISION");
 }
 
 {

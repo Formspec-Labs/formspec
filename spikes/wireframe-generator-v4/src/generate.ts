@@ -567,6 +567,10 @@ export function generateBundle(inputs: GeneratorInputs): MultiRouteBundle {
     const firstDefinitionSlot = routeDefinitionSlot(route);
     const routeDefinition = firstDefinitionSlot?.definitionRef ? findDefinition(bag, firstDefinitionSlot.definitionRef) : defaultShimDefinition;
     const usesDefinitionShim = !firstDefinitionSlot;
+    const definitionRefs = Object.values(route.slots)
+      .flat()
+      .filter((entry) => entry.type === "definition-form" && entry.definitionRef)
+      .map((entry) => entry.definitionRef);
     const doc: ComponentDoc = {
       $formspecComponent: "1.1",
       version: "1.0.0",
@@ -577,20 +581,28 @@ export function generateBundle(inputs: GeneratorInputs): MultiRouteBundle {
         compatibleVersions: `>=${routeDefinition.version} <${nextMajor(routeDefinition.version)}`,
       },
       extensions: {
+        "x-formspec-component-identity": {
+          identityKind: "surface-route",
+          targetSurface: inputs.surface.url,
+          targetRoute: {
+            id: route.id,
+            path: route.path,
+          },
+          definitionRefs,
+        },
         "x-formspec-surface": {
           routeId: route.id,
           path: route.path,
           targetSurface: inputs.surface.url,
           formCapable: !usesDefinitionShim,
-          definitionRefs: Object.values(route.slots)
-            .flat()
-            .filter((entry) => entry.type === "definition-form" && entry.definitionRef)
-            .map((entry) => entry.definitionRef),
+          definitionRefs,
         },
         ...(usesDefinitionShim
           ? {
               "x-spike-v4-output-compatibility": {
                 reason: "Component 1.1 still requires targetDefinition, even for ADR-0150 non-form Surface routes.",
+                outputOnly: true,
+                mustNotPromote: true,
                 shimTargetDefinition: routeDefinition.url,
               },
             }

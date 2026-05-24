@@ -495,6 +495,7 @@ export function validateComponentBundle(bundle: MultiRouteBundle): CoherenceIssu
   const issues: CoherenceIssue[] = [];
   const ids = new Map<string, string>();
   for (const route of bundle.routes) {
+    validateRouteComponentIdentity(route, issues);
     walkComponent(route.doc.tree, `component:${route.id}`, (node, path) => {
       const id = node.id;
       if (typeof id !== "string") return;
@@ -507,6 +508,29 @@ export function validateComponentBundle(bundle: MultiRouteBundle): CoherenceIssu
     });
   }
   return issues;
+}
+
+function validateRouteComponentIdentity(route: MultiRouteBundle["routes"][number], issues: CoherenceIssue[]): void {
+  const extensions = route.doc.extensions ?? {};
+  const surface = extensions["x-formspec-surface"] as { targetSurface?: string; routeId?: string; path?: string; formCapable?: boolean } | undefined;
+  const identity = extensions["x-formspec-component-identity"] as { identityKind?: string; targetSurface?: string; targetRoute?: { id?: string; path?: string } } | undefined;
+  if (identity?.identityKind !== "surface-route" || !identity.targetSurface || identity.targetRoute?.id !== route.id || identity.targetRoute?.path !== route.path) {
+    issue(issues, "error", "COMP-ROUTE-IDENTITY", `component:${route.id}.extensions.x-formspec-component-identity`, `Route Component '${route.id}' must carry surface-route identity.`);
+  }
+  if (surface?.routeId !== route.id || surface.path !== route.path || !surface.targetSurface) {
+    issue(issues, "error", "COMP-SURFACE-IDENTITY", `component:${route.id}.extensions.x-formspec-surface`, `Route Component '${route.id}' must preserve Surface route identity.`);
+  }
+  const compat = extensions["x-spike-v4-output-compatibility"] as { outputOnly?: boolean; mustNotPromote?: boolean; shimTargetDefinition?: string } | undefined;
+  if (surface?.formCapable === false) {
+    if (!compat?.outputOnly || !compat.mustNotPromote || !compat.shimTargetDefinition) {
+      issue(issues, "error", "COMP-NONFORM-SHIM-QUARANTINE", `component:${route.id}.extensions.x-spike-v4-output-compatibility`, `Non-form route Component '${route.id}' must quarantine its Component 1.1 targetDefinition shim as output-only.`);
+    }
+    if (compat?.shimTargetDefinition && compat.shimTargetDefinition !== route.doc.targetDefinition.url) {
+      issue(issues, "error", "COMP-NONFORM-SHIM-TARGET-MISMATCH", `component:${route.id}.extensions.x-spike-v4-output-compatibility.shimTargetDefinition`, `Non-form route Component '${route.id}' shim marker must match the Component 1.1 targetDefinition value.`);
+    }
+  } else if (compat) {
+    issue(issues, "error", "COMP-FORM-SHIM-UNEXPECTED", `component:${route.id}.extensions.x-spike-v4-output-compatibility`, `Form-capable route Component '${route.id}' must not carry the non-form targetDefinition shim marker.`);
+  }
 }
 
 function walkComponent(node: ComponentNode, path: string, fn: (node: ComponentNode, path: string) => void): void {
