@@ -140,8 +140,8 @@ mod tests {
             "property"
         );
         assert_eq!(
-            category_str(registry_client::ExtensionCategory::Namespace),
-            "namespace"
+            category_str(registry_client::ExtensionCategory::Module),
+            "module"
         );
     }
 

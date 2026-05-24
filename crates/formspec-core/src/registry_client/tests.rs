@@ -60,11 +60,12 @@ fn sample_registry_json() -> serde_json::Value {
             },
             {
                 "name": "x-test-ns",
-                "category": "namespace",
+                "category": "module",
                 "version": "1.0.0",
                 "status": "stable",
-                "description": "Test namespace.",
-                "compatibility": { "formspecVersion": ">=1.0.0" }
+                "description": "Test module (renamed from namespace per ADR 0150 §4.1). Schema requires `contributes` on module entries; included here for spec conformance.",
+                "compatibility": { "formspecVersion": ">=1.0.0" },
+                "contributes": ["x-test-currency", "x-test-fiscal-year"]
             }
         ]
     })
@@ -403,8 +404,8 @@ fn list_by_category() {
     assert_eq!(data_types.len(), 2); // x-test-currency v1 + v2
     let functions = reg.list_by_category(ExtensionCategory::Function);
     assert_eq!(functions.len(), 1);
-    let namespaces = reg.list_by_category(ExtensionCategory::Namespace);
-    assert_eq!(namespaces.len(), 1);
+    let modules = reg.list_by_category(ExtensionCategory::Module);
+    assert_eq!(modules.len(), 1);
 }
 
 #[test]

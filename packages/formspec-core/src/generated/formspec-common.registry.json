@@ -441,13 +441,13 @@
     },
     {
       "name": "x-formspec-common",
-      "category": "namespace",
+      "category": "module",
       "version": "1.0.0",
       "status": "stable",
-      "description": "Namespace grouping the Formspec common extensions — widely useful data types, constraints, and functions that complement the core specification.",
+      "description": "Module bundling the Formspec common extensions — widely useful data types, constraints, and functions that complement the core specification. Renamed from `category: namespace` to `category: module` per ADR 0150 §4.1.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
       "license": "Apache-2.0",
-      "members": [
+      "contributes": [
         "x-formspec-email",
         "x-formspec-phone",
         "x-formspec-phone-nanp",

@@ -44,7 +44,7 @@ pub fn extension_category_to_wire(category: ExtensionCategory) -> &'static str {
         ExtensionCategory::Function => "function",
         ExtensionCategory::Constraint => "constraint",
         ExtensionCategory::Property => "property",
-        ExtensionCategory::Namespace => "namespace",
+        ExtensionCategory::Module => "module",
     }
 }
 

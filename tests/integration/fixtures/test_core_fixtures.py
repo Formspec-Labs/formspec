@@ -226,6 +226,8 @@ def test_common_registry_runtime_query_by_name_and_version() -> None:
     assert age_fn["returns"] == "integer"
 
 def test_common_registry_runtime_lists_cover_categories_and_statuses() -> None:
+    """Per ADR 0150 §4.1: `namespace` was renamed to `module` (greenfield, no
+    alias)."""
     registry_doc = _load_registry()
     entries = registry_doc["entries"]
 
@@ -234,34 +236,35 @@ def test_common_registry_runtime_lists_cover_categories_and_statuses() -> None:
     assert "dataType" in categories
     assert "function" in categories
     assert "constraint" in categories
-    assert "namespace" in categories
+    assert "module" in categories
 
     assert "stable" in statuses
 
     assert len([e for e in entries if e["category"] == "dataType"]) >= 1
     assert len([e for e in entries if e["category"] == "function"]) >= 1
     assert len([e for e in entries if e["category"] == "constraint"]) >= 1
-    assert len([e for e in entries if e["category"] == "namespace"]) >= 1
+    assert len([e for e in entries if e["category"] == "module"]) >= 1
 
     assert len([e for e in entries if e["status"] == "stable"]) >= 1
 
-def test_common_registry_runtime_namespace_metadata() -> None:
+def test_common_registry_runtime_module_metadata() -> None:
+    """Per ADR 0150 §4.1: namespace→module rename, members→contributes."""
     registry_doc = _load_registry()
 
-    namespace = find_registry_entry(registry_doc, "x-formspec-common")
-    assert namespace is not None
-    assert namespace["category"] == "namespace"
+    module = find_registry_entry(registry_doc, "x-formspec-common")
+    assert module is not None
+    assert module["category"] == "module"
 
-    # The Rust find_registry_entry doesn't return 'members' for namespace entries,
-    # so verify members from the raw registry doc instead
-    raw_ns = next(
+    # The Rust find_registry_entry doesn't return 'contributes' for module
+    # entries, so verify contributes from the raw registry doc instead.
+    raw_mod = next(
         (e for e in registry_doc["entries"]
-         if e["name"] == "x-formspec-common" and e["category"] == "namespace"),
+         if e["name"] == "x-formspec-common" and e["category"] == "module"),
         None,
     )
-    assert raw_ns is not None
-    assert "x-formspec-email" in raw_ns.get("members", [])
-    assert "x-formspec-phone" in raw_ns.get("members", [])
+    assert raw_mod is not None
+    assert "x-formspec-email" in raw_mod.get("contributes", [])
+    assert "x-formspec-phone" in raw_mod.get("contributes", [])
 
     info = parse_registry(registry_doc)
     assert info.validation_issues == []

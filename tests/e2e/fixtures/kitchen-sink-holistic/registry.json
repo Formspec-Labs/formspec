@@ -61,14 +61,14 @@
     },
     {
       "name": "x-example-finance",
-      "category": "namespace",
+      "category": "module",
       "version": "1.0.0",
       "status": "stable",
-      "description": "Finance namespace",
+      "description": "Finance module (renamed from `category: namespace` per ADR 0150 §4.1).",
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "members": [
+      "contributes": [
         "x-example-money-cents",
         "x-example-risk-score"
       ]

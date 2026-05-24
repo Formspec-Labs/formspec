@@ -4,6 +4,16 @@ use crate::extension_analysis::RegistryEntryStatus;
 use serde_json::Value;
 
 /// Extension mechanism category.
+///
+/// Per ADR 0150 §4.1/§4.2: `Namespace` was renamed to `Module` (greenfield,
+/// no alias) and six new contribution categories were added. As of P0, the
+/// Rust parser surface tracks the closed-core 5 categories that existed pre-
+/// substrate-refactor + the new `Module` aggregator. The six new contribution
+/// categories (UnitKind, Widget, ActionIntent, SlotType, ValidationMappingRow,
+/// TokenCategory) and `Concept`/`Vocabulary` (which the schema treats as
+/// first-class but the Rust parser historically didn't model) are tracked for
+/// future expansion; today's runtime path treats unknown categories as
+/// parse-rejects, which is the safe greenfield posture.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtensionCategory {
@@ -11,7 +21,7 @@ pub enum ExtensionCategory {
     Function,
     Constraint,
     Property,
-    Namespace,
+    Module,
 }
 
 /// Organization publishing a registry document.

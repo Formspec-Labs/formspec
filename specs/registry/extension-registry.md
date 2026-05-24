@@ -19,8 +19,10 @@ status: draft
 The Formspec Extension Registry specification defines a JSON document format
 for publishing, discovering, and validating Formspec extensions and semantic
 metadata. A Registry Document enumerates a set of named entries — custom data
-types, custom functions, custom constraints, extension properties, extension
-namespaces, concept identities, and vocabulary bindings — together with their
+types, custom functions, custom constraints, extension properties, substrate
+modules (with bundled contribution categories — widgets, unit-kinds,
+action-intents, slot-types, validation-mapping-rows, and token-categories per
+ADR 0150 §4.2), concept identities, and vocabulary bindings — together with their
 metadata, version history, compatibility bounds, and machine-readable schemas.
 This specification does not define a runtime service; it defines a static
 document format that MAY be served over HTTPS, bundled in a package, or checked
@@ -133,7 +135,7 @@ Each element of the `entries` array is a JSON object describing one extension.
 | Property | Type | Req | Description |
 |---|---|---|---|
 | `name` | string | REQUIRED | The `x-`-prefixed extension identifier. |
-| `category` | enum | REQUIRED | One of: `"dataType"`, `"function"`, `"constraint"`, `"property"`, `"namespace"`. |
+| `category` | enum | REQUIRED | One of: `"dataType"`, `"function"`, `"constraint"`, `"property"`, `"module"` (renamed from `"namespace"` per ADR 0150 §4.1), `"concept"`, `"vocabulary"`, or one of the six substrate contribution categories `"unit-kind"` / `"widget"` / `"action-intent"` / `"slot-type"` / `"validation-mapping-row"` / `"token-category"` (ADR 0150 §4.2). |
 | `version` | string | REQUIRED | Semver version of the extension itself. |
 | `status` | enum | REQUIRED | One of: `"draft"`, `"stable"`, `"deprecated"`, `"retired"`. See §6. |
 | `publisher` | object | OPTIONAL | Entry-level publisher override. Same schema as §2.1. |
@@ -183,11 +185,23 @@ OPTIONAL on the entry object:
 
 No additional required properties. The `schemaUrl` is RECOMMENDED.
 
-**`namespace`** — Extension namespace (§8.5):
+**`module`** — Substrate module aggregator (renamed from `namespace` per ADR 0150 §4.1; §8.5):
 
 | Property | Type | Req | Description |
 |---|---|---|---|
-| `members` | array | OPTIONAL | Array of `x-`-prefixed extension names grouped under this namespace. |
+| `contributes` | array | REQUIRED | Array of `x-`-prefixed Registry entry names this module bundles. Each MUST exist in this or a referenced registry. (Renamed from `members[]`.) |
+| `dependencies` | array | OPTIONAL | Other modules this module requires. Items use the canonical `ModuleRef` shape (`{id, version, publisher?, lockHash?}`) per ADR 0150 §4.4 / common.schema.json `ModuleRef`. |
+
+**`unit-kind` / `widget` / `action-intent` / `slot-type` / `validation-mapping-row` / `token-category`** — Substrate contribution categories (ADR 0150 §4.2):
+
+| Category | Required category-specific property |
+|---|---|
+| `unit-kind` | `semantics` — processor/renderer obligations for Experience UnitKind |
+| `widget` | `widgetShape` — widget contract (props/childrenPolicy/fallback); the `props` sub-schema validates Theme `widgetConfig` for module-supplied widgets |
+| `action-intent` | `validation` — full ValidationTuple per Validation Mapping §6.1 |
+| `slot-type` | `slotShape` — Surface slot binding contract |
+| `validation-mapping-row` | `row` — closed MappingEntry shape per VM §6 (contributes a row after the MasterTable four-constraint demotion) |
+| `token-category` | `categoryShape` — token category shape (folds Token Registry into the unified Registry as a contribution profile) |
 
 **`concept`** — Concept identity (Ontology specification):
 
@@ -229,7 +243,9 @@ This section codifies and extends the naming conventions of Formspec v1.0 §8.
 All rules in this section are **normative**.
 
 1. All extension identifiers — type names, function names, constraint names,
-   property keys, and namespace keys — MUST start with `x-`.
+   property keys, module IDs (the substrate-module aggregator renamed from
+   namespace per ADR 0150 §4.1), and contribution-category identifiers — MUST
+   start with `x-`.
 
 2. Extension identifiers MUST match the regular expression:
    ```
@@ -315,7 +331,7 @@ in Formspec v1.0 §1) that additionally implements the following behaviors:
    validate it against the schema defined in Appendix A.
 
 2. **Resolution.** When a Definition document references an extension
-   (custom data type, function, constraint, or namespace), the processor
+   (custom data type, function, constraint, or module), the processor
    SHOULD attempt to locate a matching entry in one or more configured
    Registry Documents by `name` and `category`.
 
@@ -462,7 +478,12 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
     },
     "category": {
       "type": "string",
-      "enum": ["dataType", "function", "constraint", "property", "namespace"]
+      "enum": [
+        "dataType", "function", "constraint", "property",
+        "module", "concept", "vocabulary",
+        "unit-kind", "widget", "action-intent",
+        "slot-type", "validation-mapping-row", "token-category"
+      ]
     },
     "version": {
       "type": "string",
@@ -537,13 +558,25 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
     "returns": {
       "type": "string"
     },
-    "members": {
+    "contributes": {
       "type": "array",
+      "description": "Names of Registry entries this module bundles. REQUIRED when category is 'module'. Renamed from `members[]` per ADR 0150 §4.1.",
       "items": {
         "type": "string",
         "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
       }
-    }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Modules this module requires. OPTIONAL when category is 'module'. Items use the canonical ModuleRef shape per common.schema.json.",
+      "items": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef" }
+    },
+    "semantics":      { "type": "object", "description": "REQUIRED for `unit-kind`." },
+    "widgetShape":    { "type": "object", "description": "REQUIRED for `widget`." },
+    "validation":     { "type": "object", "description": "REQUIRED for `action-intent` (full ValidationTuple per VM §6.1)." },
+    "slotShape":      { "type": "object", "description": "REQUIRED for `slot-type`." },
+    "row":            { "type": "object", "description": "REQUIRED for `validation-mapping-row` (closed MappingEntry shape per VM §6)." },
+    "categoryShape":  { "type": "object", "description": "REQUIRED for `token-category` (folds Token Registry into the unified Registry)." }
   },
   "allOf": [
     {
