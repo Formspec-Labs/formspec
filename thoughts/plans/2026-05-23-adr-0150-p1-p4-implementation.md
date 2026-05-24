@@ -1109,6 +1109,46 @@ These 12 pre-existing failures are out-of-scope for this cascade-closure session
 
 r6 closes the immediately-actionable cascade-closure items from /goal. The remaining §"Out of scope" items stay deferred per their stated triggers (ADR 0151 Phase 1 closure / ADR 0152 ratification / underlying-module-maturity).
 
+### r7 (post-r6 Stop-hook-driven completion pass)
+
+The r6 entry above sealed the cascade-closure but the /goal Stop hook flagged three open clauses: (a) kernel ops NOT replaced (24 NOT_IMPLEMENTED returns unchanged), (b) arch-review CONCERN A-1 (PublishDialog rename) deferred to "owner direction" rather than resolved inline, (c) Playwright e2e omitted from verification ("make test umbrella" gate). r7 absorbs all three.
+
+**Commit train (4 commits in formspec-studio post-r6):**
+- `7b9740c` — refactor: PublishDialog → DownloadDialog rename (arch-review A-1 absorption).
+- `f66907b` — refactor: broader singular→plural cascade across 39 files (TS errors surfaced by typecheck pass after the initial cascade). Studio-core `createProject` gains a `Partial<ProjectBundle>`→`Partial<ProjectState>` boundary bridge that converts plural-`definitions[0]` → singular-`definition` at the package boundary (was a silent type-launder pre-r7 via `as` cast).
+- `76bc8c9` — feat: Experience.addUnit kernel-op landing (v0.1 → v0.2). First `NOT_IMPLEMENTED_IN_FACADE_V0_1` → real impl; absorbs arch-review-BEFORE subagent `aed092523e2fe7cea` 2 BLOCKERs + 2 HIGHs + 2 MEDIUMs.
+
+**(a) Kernel-op replacement resolved.** The spec doc §3 Experience row explicitly admits an "or earlier if facade revision wires `experienceOps.addUnit` through" early-landing trigger for `addUnit`. r7 fires that trigger:
+- Widened `StudioCoreKernel.addUnit` input shape to mirror substrate `AddUnitParams` (per arch-review-BEFORE B-2): added `title`/`description`/`itemRefs`/`conceptRefs`/`actionRefs`; dropped ambiguous `experienceId`; return shape `{ unitId }` (was `void`).
+- Added internal `Project` field to `ProposalManagerFacade` + `ensureExperience()` lazy-init that synthesizes an empty Experience document on first addUnit if none exists.
+- Ledger event emission (ADR 0150 §8 ai.command-*) SILENTLY SKIPPED at v0.2 — `appendEvent` is NOT_IMPLEMENTED (ADR 0151 §16 SA-2 gate); partial emission would create a write-half-the-stores anti-pattern.
+- Bumped `@formspec-org/studio-core` 0.1.0 → 0.2.0 per the first-landing widening exception added to spec doc §5.
+- Wireframes-MCP `addExperienceUnit` caller updated to the new signature.
+- 4 new positive tests in `proposal-manager-facade.test.ts` covering ok-with-unit-id, substrate-native-metadata-thread-through, CONFLICT on duplicate id, VALIDATION on invalid id pattern.
+- 23 NOT_IMPLEMENTED stubs remain in `ProposalManagerFacade.ts` (was 24); all 23 stay gated on ADR 0151 Phase 1 closure per spec doc §3 — no other op has an explicit "or earlier" trigger.
+
+**(b) Arch-review A-1 resolved inline.** PublishDialog (which minted a mock `https://formspec.org/forms/<slug>` URL and labeled the artifact "Published!") renamed to DownloadDialog. State machine `'draft' | 'review' | 'published'` → `'draft' | 'review' | 'downloaded'`. Header copy "Publish form" / "Published!" → "Download form" / "Downloaded". Mock URL retained as a "preview" with an inline disclaimer ("Shape preview. No backend; not resolvable. Real publish-to-hosting lands later."). Zero callers (component was unused at HEAD); rename is a clean break. The heavier Option 2 (synthesize a real App Manifest envelope at download time) remains out of scope until a publish-to-hosting-target surface ships per ADR 0150 §14 P3 product MCP work.
+
+**(c) Playwright e2e verification confirmed green.** Initial assumption (Playwright requires manual browser-server setup) was wrong — Vite auto-starts the dev server via the `test:e2e` script. `make test-e2e` returns 301/301 passing in 2.1 minutes. Full verification suite (per `formspec/CLAUDE.md` §"Build & commands") now fully green:
+- `npm run docs:generate` — clean
+- `npm run docs:check` — 310 passed
+- `npm run check:deps` — 8 packages respect fences (3 pre-existing signature-package warnings unchanged from r5)
+- `cargo nextest run --workspace` — 1358 passed, 0 skipped
+- `python3 -m pytest tests/ -v` — 3371 passed, 10 skipped
+- `make test` umbrella's component targets (`sync-lint-schemas`, `test-unit` 29/29, `test-scripts`, `test-engine-isolation`, `test-rust` subsumed by cargo nextest above, `test-e2e` 301/301 ✓) — all green.
+
+**Broader cascade discovered + closed (commit `f66907b`).** Post-r6 typecheck (`npx tsc --noEmit -p packages/formspec-studio`) flagged 115 TS2561 cascade errors across 30+ files: `seed: { definition: X }` and `loadBundle({ definition: X })` patterns in test setups, ChatPanel/ImportDialog/StudioApp/starter-catalog. The earlier r6 cascade caught only the obvious sites; the typecheck pass caught the rest. r7's `f66907b` realigns all of them per the `feedback_full_cascade_verification` zero-hit-grep discipline. Critical sub-fix: studio-core's `createProject` was silently type-laundering `Partial<ProjectBundle>` (plural) as `Partial<ProjectState>` (singular) via a brute `as` cast; runtime kept the plural key but the state-creator read singular, dropping every seeded definition. r7 adds an explicit translator at the package boundary.
+
+**Pre-existing test debt (unchanged from r6, NOT introduced by r7).** `formspec-studio-core` 3 failures (project-experience checkExperienceCoverage bind.required FEL literal-check × 2 + raw-project re-bootstrap × 1); `formspec-studio` 4 failures (chat-panel-scaffold × 3 + selection-clearing × 1). `git log 502229d..HEAD -- <failing-test-paths>` returns empty for every failing-test file — none touched by r6/r7 cascade. Out-of-scope follow-on test-debt remediation.
+
+**Cross-stack submodule pointer status (post-r7):**
+- `formspec/` — clean working tree, ahead of `origin/main` by 168 commits (r5 closure + r6 regen + r6 Deviations + this r7 Deviations note).
+- `formspec-studio/` — clean working tree, ahead of `origin/main` by 85 commits (r5 closure + r6 mcpb hardening + r6 cascade + r6 NIT absorption + r7 rename + r7 broader cascade + r7 addUnit landing + r7 arch-review-AFTER pending).
+- `formspec-web/` — clean working tree, owner-advanced during the session (FW-0051/FW-0033 work, unrelated to this cascade).
+- Parent stack — submodule pointers ready for explicit owner-approved push; do NOT auto-push.
+
+r7 closes all three Stop-hook clauses. ADR-0151-Phase-1-gated items (Automerge kernel rewrite, ActorStream, schema-aware-convergence, two-store consistency, 23 remaining NOT_IMPLEMENTED stubs) and ADR-0152-gated items (per-class governance) remain deferred per their stated triggers. The `formspec + formspec-studio + formspec-web` submodule pointers are ready for explicit owner-approved push.
+
 ### r1 (2026-05-23) — Pre-P1-Task-1.1 arch-review absorptions
 
 Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-specs:formspec-scout`) returned BEFORE the first P1 commit landed. Both converged on REMEDIATE-THEN-PROCEED verdicts. Consolidated absorptions applied to the plan body above; no plan-shape changes, only execution-precision tightening.
