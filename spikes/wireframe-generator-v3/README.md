@@ -33,10 +33,11 @@ Run:
 
 ```sh
 npm install
+npm run test:negative
 npm run spike
 npx tsc --noEmit
 ```
 
 Expected result: 8 route Components, 5 Definitions, 5 Response Actions sidecars,
-zero schema validation failures, zero app-coherence errors, `output/coherence-report.json`,
-`output/wireframe-app.ir.json`, and `output/wireframe.html`.
+zero schema validation failures, zero app-coherence errors, `output/artifact-resolution-report.json`,
+`output/coherence-report.json`, `output/wireframe-app.ir.json`, and `output/wireframe.html`.

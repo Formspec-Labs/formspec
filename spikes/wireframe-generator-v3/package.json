@@ -5,7 +5,8 @@
   "description": "Spike v3: validate and execute an ADR-0150 app graph from App Manifest through Surface and runtime behavior",
   "type": "module",
   "scripts": {
-    "spike": "tsx src/cli.ts"
+    "spike": "tsx src/cli.ts",
+    "test:negative": "tsx src/selftest.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",

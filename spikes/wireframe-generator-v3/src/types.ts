@@ -85,6 +85,8 @@ export type DataSource = {
 
 export type DataSourceCatalog = {
   $wireframeDataSources: "0.1-spike-v3";
+  url?: string;
+  version?: string;
   description?: string;
   sources: DataSource[];
 };

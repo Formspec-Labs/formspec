@@ -46,6 +46,22 @@ type RegistryIndex = {
   contributedBy: Map<string, string[]>;
 };
 
+type ActionSidecarRef = {
+  url: string;
+  version?: string;
+  "x-spike-v3-targetDefinition"?: { url?: string };
+};
+
+type ArtifactRef = {
+  url: string;
+  version?: string;
+};
+
+type ModuleAdmission = {
+  appModulesById: Map<string, ModuleRef>;
+  allowedModules: ModuleRef[];
+};
+
 const DEFAULT_MODULES: ModuleRef[] = [
   { id: "x-formspec-core-task", version: "^1.0.0" },
   { id: "x-formspec-core-actions", version: "^1.0.0" },
@@ -165,10 +181,58 @@ function refsByUrl<T extends { url: string }>(items: T[]): Map<string, T> {
   return new Map(items.map((item) => [item.url, item]));
 }
 
-function actionSidecarRefs(inputs: GeneratorInputs): Array<{ url: string; version?: string }> {
+function actionSidecarRefs(inputs: GeneratorInputs): ActionSidecarRef[] {
   const ext = inputs.appManifest["x-spike-v3-responseActions"];
-  if (Array.isArray(ext)) return ext.filter((ref): ref is { url: string; version?: string } => !!ref && typeof ref.url === "string");
+  if (Array.isArray(ext)) return ext.filter((ref): ref is ActionSidecarRef => !!ref && typeof ref.url === "string");
   return inputs.appManifest.responseActions ? [inputs.appManifest.responseActions] : [];
+}
+
+function actionRefTargetDefinition(ref: ActionSidecarRef): string | undefined {
+  return ref["x-spike-v3-targetDefinition"]?.url;
+}
+
+function artifactRef(value: unknown): ArtifactRef | undefined {
+  if (!value || typeof value !== "object" || typeof (value as { url?: unknown }).url !== "string") return undefined;
+  const ref = value as { url: string; version?: unknown };
+  return { url: ref.url, version: typeof ref.version === "string" ? ref.version : undefined };
+}
+
+function artifactRefs(value: unknown): ArtifactRef[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(artifactRef).filter((ref): ref is ArtifactRef => !!ref);
+}
+
+function docUrl(doc: unknown): string | undefined {
+  return doc && typeof doc === "object" && typeof (doc as { url?: unknown }).url === "string"
+    ? (doc as { url: string }).url
+    : undefined;
+}
+
+function docVersion(doc: unknown): string | undefined {
+  return doc && typeof doc === "object" && typeof (doc as { version?: unknown }).version === "string"
+    ? (doc as { version: string }).version
+    : undefined;
+}
+
+function validateResolvedArtifactRef(
+  issues: CoherenceIssue[],
+  ref: ArtifactRef | undefined,
+  doc: unknown,
+  path: string,
+  label: string,
+): void {
+  if (!ref) {
+    issue(issues, "error", "APP-COHERENCE-MISSING-ARTIFACT-REF", path, `${label} must be listed in the App Manifest.`);
+    return;
+  }
+  const url = docUrl(doc);
+  if (url && url !== ref.url) {
+    issue(issues, "error", "APP-COHERENCE-ARTIFACT-URL", path, `${label} ref '${ref.url}' resolved to document '${url}'.`);
+  }
+  const version = docVersion(doc);
+  if (ref.version && version && ref.version !== version) {
+    issue(issues, "error", "APP-COHERENCE-ARTIFACT-VERSION", path, `${label} ref '${ref.url}' pins version '${ref.version}', but loaded document is '${version}'.`);
+  }
 }
 
 function definitionKey(def: Definition): string {
@@ -207,6 +271,7 @@ function slotTypeContribution(slotType: string): string {
 function assertContribution(
   issues: CoherenceIssue[],
   index: RegistryIndex,
+  admission: ModuleAdmission,
   name: string,
   category: string,
   path: string,
@@ -226,6 +291,15 @@ function assertContribution(
   if (owners.length > 1) {
     issue(issues, "error", "APP-COHERENCE-CONTRIBUTION-CONFLICT", path, `Registry entry '${name}' is contributed by multiple modules: ${owners.join(", ")}.`);
   }
+  if (owners.length === 1) {
+    const owner = owners[0];
+    const appModule = admission.appModulesById.get(owner);
+    if (!appModule) {
+      issue(issues, "error", "MODULE-CONTRIBUTION-UNADMITTED", path, `Registry entry '${name}' is contributed by module '${owner}', but the app does not admit that module.`);
+    } else if (admission.allowedModules.length > 0 && !admission.allowedModules.some((allowed) => postureAdmits(appModule, allowed))) {
+      issue(issues, "error", "MODULE-CONTRIBUTION-DENIED", path, `Registry entry '${name}' is contributed by module '${owner}', but posture does not admit '${moduleKey(appModule)}'.`);
+    }
+  }
   return entry;
 }
 
@@ -237,11 +311,15 @@ export function validateAppCoherence(inputs: GeneratorInputs, ajv: Ajv2020): Coh
   const sidecarsByDefinition = actionSidecarByDefinition(inputs);
   const dataSources = dataSourceIds(inputs.dataSources);
   const appModuleSet = appModules(inputs);
+  const admission: ModuleAdmission = {
+    appModulesById: new Map(appModuleSet.map((m) => [m.id, m])),
+    allowedModules: inputs.posture?.allowedModules ?? [],
+  };
 
   validateSiblingIndex(inputs, issues, definitionsByUrl, sidecarsByDefinition);
   validateModuleAdmission(inputs, issues, registry, appModuleSet);
   validateSurfaceGraph(inputs, issues);
-  validateSlots(inputs, issues, registry, units, sidecarsByDefinition, dataSources, ajv);
+  validateSlots(inputs, issues, registry, admission, units, sidecarsByDefinition, dataSources, ajv);
   validateDataSources(inputs, issues);
   validateScreenerTargets(inputs, issues);
 
@@ -255,8 +333,11 @@ function validateSiblingIndex(
   sidecarsByDefinition: Map<string, ResponseActions>,
 ): void {
   for (const ref of inputs.appManifest.definitions) {
-    if (!definitionsByUrl.has(ref.url)) {
+    const def = definitionsByUrl.get(ref.url);
+    if (!def) {
       issue(issues, "error", "APP-COHERENCE-MISSING-DEFINITION", "$.definitions", `App Manifest references missing Definition '${ref.url}'.`);
+    } else if (ref.version && ref.version !== def.version) {
+      issue(issues, "error", "APP-COHERENCE-ARTIFACT-VERSION", "$.definitions", `Definition ref '${ref.url}' pins version '${ref.version}', but loaded document is '${def.version}'.`);
     }
   }
   for (const def of inputs.definitions) {
@@ -267,16 +348,56 @@ function validateSiblingIndex(
   if (!inputs.appManifest.experience) {
     issue(issues, "error", "APP-COHERENCE-MISSING-EXPERIENCE-REF", "$.experience", "App Manifest must reference the loaded Experience sidecar.");
   } else {
+    if (inputs.appManifest.experience.version && inputs.appManifest.experience.version !== inputs.experience.version) {
+      issue(issues, "error", "APP-COHERENCE-ARTIFACT-VERSION", "$.experience", `Experience ref pins version '${inputs.appManifest.experience.version}', but loaded document is '${inputs.experience.version}'.`);
+    }
     issue(issues, "info", "APP-COHERENCE-EXPERIENCE-SINGULAR-GAP", "$.experience", "Experience is still a singular sibling in the official App Manifest shape; v3 resolves it as the app-level Experience sidecar.");
   }
+  validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.surfaces)[0], inputs.surface, "$.surfaces[0]", "Surface");
+  validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.registries)[0], inputs.registry, "$.registries[0]", "Registry");
+  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest["x-spike-v3-posture"]), inputs.posture, "$.x-spike-v3-posture", "Posture");
+  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest["x-spike-v3-dataSources"]), inputs.dataSources, "$.x-spike-v3-dataSources", "Data Sources");
+  validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest["x-spike-v3-screeners"])[0], inputs.screener, "$.x-spike-v3-screeners[0]", "Screener");
+  for (const [index, locale] of (inputs.locales ?? []).entries()) {
+    validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.locales)[index], locale, `$.locales[${index}]`, "Locale");
+  }
   const actionRefs = actionSidecarRefs(inputs);
+  const actionRefsByDefinition = new Map<string, ActionSidecarRef[]>();
+  for (const [index, ref] of actionRefs.entries()) {
+    const targetDefinition = actionRefTargetDefinition(ref);
+    if (!targetDefinition) {
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-TARGET-MISSING", `$.x-spike-v3-responseActions[${index}]`, `Response Actions ref '${ref.url}' must explicitly name x-spike-v3-targetDefinition.url.`);
+      continue;
+    }
+    if (!definitionsByUrl.has(targetDefinition)) {
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-TARGET", `$.x-spike-v3-responseActions[${index}]`, `Response Actions ref '${ref.url}' targets missing Definition '${targetDefinition}'.`);
+    }
+    const refs = actionRefsByDefinition.get(targetDefinition) ?? [];
+    refs.push(ref);
+    actionRefsByDefinition.set(targetDefinition, refs);
+  }
+  for (const [targetDefinition, refs] of actionRefsByDefinition) {
+    if (refs.length > 1) {
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-DUPLICATE", "$.x-spike-v3-responseActions", `Definition '${targetDefinition}' has multiple indexed Response Actions sidecars: ${refs.map((ref) => ref.url).join(", ")}.`);
+    }
+  }
   for (const ra of inputs.responseActions) {
     if (!definitionsByUrl.has(ra.targetDefinition.url)) {
       issue(issues, "error", "APP-COHERENCE-ACTION-TARGET", "$.responseActions", `Response Actions sidecar targets missing Definition '${ra.targetDefinition.url}'.`);
     }
-    const listed = actionRefs.some((ref) => ref.url === sidecarUrlForDefinition(ra.targetDefinition.url));
-    if (!listed) {
-      issue(issues, "error", "APP-COHERENCE-UNLISTED-ACTION-SIDECAR", "$.x-spike-v3-responseActions", `Response Actions sidecar for '${ra.targetDefinition.url}' is not listed in the spike-local sidecar index.`);
+    const refs = actionRefsByDefinition.get(ra.targetDefinition.url) ?? [];
+    if (refs.length === 0) {
+      issue(issues, "error", "APP-COHERENCE-UNLISTED-ACTION-SIDECAR", "$.x-spike-v3-responseActions", `Response Actions sidecar for '${ra.targetDefinition.url}' is loaded but not listed in the spike-local sidecar index.`);
+    }
+    for (const ref of refs) {
+      if (ref.version && ref.version !== ra.version) {
+        issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-VERSION", "$.x-spike-v3-responseActions", `Response Actions ref '${ref.url}' pins version '${ref.version}', but the loaded sidecar for '${ra.targetDefinition.url}' is '${ra.version}'.`);
+      }
+    }
+  }
+  for (const [targetDefinition, refs] of actionRefsByDefinition) {
+    if (!sidecarsByDefinition.has(targetDefinition)) {
+      issue(issues, "error", "APP-COHERENCE-ACTION-SIDECAR-UNLOADED", "$.x-spike-v3-responseActions", `Response Actions ref '${refs[0].url}' targets '${targetDefinition}', but no loaded sidecar binds that Definition.`);
     }
   }
   for (const def of inputs.definitions) {
@@ -296,10 +417,6 @@ function validateSiblingIndex(
       }
     }
   }
-}
-
-function sidecarUrlForDefinition(definitionUrl: string): string {
-  return definitionUrl.replace("/forms/", "/actions/");
 }
 
 function validateModuleAdmission(
@@ -362,6 +479,9 @@ function validateSurfaceGraph(inputs: GeneratorInputs, issues: CoherenceIssue[])
   if (defaults.length !== 1) {
     issue(issues, "error", "SURFACE-DEFAULT-ROUTE", "$.surface.routes", `Surface must have exactly one default route; found ${defaults.length}.`);
   }
+  for (const [navIndex, nav] of (inputs.surface.nav ?? []).entries()) {
+    validateNavPath(issues, routes, nav.path, `$.surface.nav[${navIndex}].path`);
+  }
 
   for (const [index, route] of inputs.surface.routes.entries()) {
     for (const [transitionIndex, transition] of (route.transitions ?? []).entries()) {
@@ -380,6 +500,7 @@ function validateSurfaceGraph(inputs: GeneratorInputs, issues: CoherenceIssue[])
       if (slot.type === "embed-route" && slot.routeRef && !routes.has(slot.routeRef)) {
         issue(issues, "error", "SURFACE-EMBED-TARGET", slotPath, `Embedded route '${slot.routeRef}' does not exist.`);
       }
+      validatePayloadNavTargets(issues, routes, slot.payload, `${slotPath}.payload`);
     });
   }
 
@@ -410,6 +531,32 @@ function validateSurfaceGraph(inputs: GeneratorInputs, issues: CoherenceIssue[])
   }
 }
 
+function validatePayloadNavTargets(
+  issues: CoherenceIssue[],
+  routes: Map<string, SurfaceRoute>,
+  payload: JsonObject | undefined,
+  path: string,
+): void {
+  const nav = payload?.nav;
+  if (!Array.isArray(nav)) return;
+  for (const [index, entry] of nav.entries()) {
+    if (entry && typeof entry === "object" && typeof (entry as { path?: unknown }).path === "string") {
+      validateNavPath(issues, routes, (entry as { path: string }).path, `${path}.nav[${index}].path`);
+    }
+  }
+}
+
+function validateNavPath(
+  issues: CoherenceIssue[],
+  routes: Map<string, SurfaceRoute>,
+  path: string,
+  issuePath: string,
+): void {
+  if (![...routes.values()].some((candidate) => concretePathMatches(path, candidate))) {
+    issue(issues, "error", "SURFACE-NAV-TARGET", issuePath, `Navigation path '${path}' does not resolve to any Surface route.`);
+  }
+}
+
 function concretePathMatches(path: string, route: SurfaceRoute): boolean {
   const routeParts = route.path.split("/");
   const pathParts = path.split("/");
@@ -427,6 +574,7 @@ function validateSlots(
   inputs: GeneratorInputs,
   issues: CoherenceIssue[],
   registry: RegistryIndex,
+  admission: ModuleAdmission,
   units: Map<string, ExpUnit>,
   sidecarsByDefinition: Map<string, ResponseActions>,
   dataSources: Set<string>,
@@ -435,17 +583,17 @@ function validateSlots(
   for (const route of inputs.surface.routes) {
     const definitionSlots: SurfaceSlotEntry[] = [];
     forEachSlot(route, (slot, path) => {
-      assertContribution(issues, registry, slotTypeContribution(slot.type), "slot-type", `${path}.type`);
+      assertContribution(issues, registry, admission, slotTypeContribution(slot.type), "slot-type", `${path}.type`);
       switch (slot.type) {
         case "definition-form":
           definitionSlots.push(slot);
           validateDefinitionSlot(inputs, issues, units, sidecarsByDefinition, slot, path);
           break;
         case "experience-unit":
-          validateExperienceUnitSlot(inputs, issues, registry, units, dataSources, ajv, slot, path);
+          validateExperienceUnitSlot(inputs, issues, registry, admission, units, dataSources, ajv, slot, path);
           break;
         case "module-widget":
-          validateModuleWidgetSlot(issues, registry, dataSources, ajv, slot, path);
+          validateModuleWidgetSlot(issues, registry, admission, dataSources, ajv, slot, path);
           break;
         case "embed-route":
         case "static-content":
@@ -510,6 +658,7 @@ function validateExperienceUnitSlot(
   inputs: GeneratorInputs,
   issues: CoherenceIssue[],
   registry: RegistryIndex,
+  admission: ModuleAdmission,
   units: Map<string, ExpUnit>,
   dataSources: Set<string>,
   ajv: Ajv2020,
@@ -522,11 +671,11 @@ function validateExperienceUnitSlot(
     return;
   }
   if (unit.kind.startsWith("x-")) {
-    assertContribution(issues, registry, unit.kind, "unit-kind", `${path}.unitRef`);
+    assertContribution(issues, registry, admission, unit.kind, "unit-kind", `${path}.unitRef`);
   }
   const widget = unit.extensions?.["x-formspec-widget"] as { kind?: string; payload?: JsonObject } | undefined;
   if (widget?.kind) {
-    const entry = assertContribution(issues, registry, widget.kind, "widget", `${path}.extensions.x-formspec-widget.kind`);
+    const entry = assertContribution(issues, registry, admission, widget.kind, "widget", `${path}.extensions.x-formspec-widget.kind`);
     validatePayload(issues, ajv, entry, widget.payload ?? {}, dataSources, `${path}.extensions.x-formspec-widget.payload`);
   }
 }
@@ -534,12 +683,13 @@ function validateExperienceUnitSlot(
 function validateModuleWidgetSlot(
   issues: CoherenceIssue[],
   registry: RegistryIndex,
+  admission: ModuleAdmission,
   dataSources: Set<string>,
   ajv: Ajv2020,
   slot: SurfaceSlotEntry,
   path: string,
 ): void {
-  const entry = slot.widgetRef ? assertContribution(issues, registry, slot.widgetRef, "widget", `${path}.widgetRef`) : undefined;
+  const entry = slot.widgetRef ? assertContribution(issues, registry, admission, slot.widgetRef, "widget", `${path}.widgetRef`) : undefined;
   validatePayload(issues, ajv, entry, slot.payload ?? {}, dataSources, `${path}.payload`);
 }
 
