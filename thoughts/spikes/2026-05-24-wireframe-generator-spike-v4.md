@@ -35,7 +35,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F1 | App Manifest needs first-class sidecar indexes | Passing spike-local prototype | Pending final |
 | F2 | App Graph Validator should be a production primitive | Passing spike-local prototype | Pending final |
 | F3 | Surface should become a normal contract surface | Passing spike-local prototype | Pending final |
-| F4 | Module admission needs one shared resolver | Planned | Pending |
+| F4 | Module admission needs one shared resolver | Passing spike-local prototype | Pending final |
 | F5 | Non-form Component identity must stop pretending to be a Definition | Planned | Pending |
 | F6 | Runtime state needs explicit ownership | Planned | Pending |
 | F7 | Data Sources need a spec, not widget payload folklore | Planned | Pending |
@@ -50,7 +50,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P0 | Promote App Manifest to a real app envelope with first-class sidecar indexes | Passing spike-local F1 proof |
 | P0 | Promote Surface to official schema/spec/conformance | Passing as spike-local proof only |
 | P0 | Build `AppGraphValidator` as a production validation layer | Passing spike-local F2 proof |
-| P0 | Build a shared module admission and contribution resolver | Planned as shared spike library |
+| P0 | Build a shared module admission and contribution resolver | Passing spike-local F4 proof |
 | P0 | Remove the non-form Component `targetDefinition` shim | Planned as prototype identity only |
 | P1 | Define route/session/Response/action state ownership | Planned |
 | P1 | Specify multi-form-route behavior | Planned |
@@ -79,7 +79,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | A11 | duplicate Response Actions action id | Planned |
 | A12 | generated Component id collision | Planned |
 | A13 | module-widget payload mismatch | Planned |
-| A14 | module version conflict across sibling artifacts | Planned |
+| A14 | module version conflict across sibling artifacts | Passing |
 
 ## Previously Unproven v3 Edge Cases
 
@@ -150,6 +150,22 @@ Verification on 2026-05-24:
 - `npm run spike`
 
 The negative harness now covers unresolved embedded Surface route refs, missing transition route params, duplicate route ids, zero or multiple default routes, unreachable routes, and payload nav target failures in addition to the earlier top-level nav-target case. F3 review returned zero open findings; the residual test gaps from that review were then added to the harness.
+
+### F4 - Module Admission Resolver Boundary
+
+F4 extracts module admission and contribution ownership into `src/module-resolver.ts`. The resolver now owns registry indexing, default module inclusion, module version checks, dependency checks, sibling module coherence, posture admission, contribution owner lookup, duplicate contribution detection, and admitted-module checks for contributed values.
+
+`src/coherence.ts` now consumes the resolver instead of duplicating module logic inline. Slot, Experience unit, and module-widget checks ask the resolver whether the contribution exists, has the expected category, has a single owning module, and is owned by an admitted posture-approved module. Payload shape validation still happens in the app validator because it needs the resolved widget entry plus the app data-source set.
+
+The F4 proof is still spike-local. It does not add lint codes, does not wire production lint or conformance, and does not promote resolver APIs into packages. It only proves that module admission can be one shared app-graph primitive.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers unadmitted contribution owners, unresolved app module versions, module version conflicts across sibling artifacts, module dependency failure, registry category/name conflict, unowned contributions, duplicate contribution owners, wrong contribution categories, and posture-denied contributions. F4 review returned zero open findings; the residual module-resolver test gaps from that review were then added to the harness.
 
 ### Current Suggestions
 

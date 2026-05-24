@@ -4,7 +4,7 @@ import { resolveFixtureAppGraph } from "./artifact-resolver.js";
 import { validateAppGraph } from "./app-graph.js";
 import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
 import { buildValidator } from "./schema-loader.js";
-import type { GeneratorInputs, SurfaceSlotEntry } from "./types.js";
+import type { GeneratorInputs, RegistryEntry, SurfaceSlotEntry } from "./types.js";
 
 type LocalRef = { url: string; version?: string; fixture?: string };
 
@@ -58,6 +58,36 @@ function assertRuntimeOk(name: string, inputs: GeneratorInputs, plan: RuntimePla
 
 function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
   return inputs.surface.routes[0].slots.shell[0];
+}
+
+function registryEntry(inputs: GeneratorInputs, name: string): RegistryEntry {
+  const entry = inputs.registry.entries.find((candidate) => candidate.name === name);
+  if (!entry) throw new Error(`Missing registry entry ${name}`);
+  return entry;
+}
+
+function testModule(name: string, contributes: string[] = []): RegistryEntry {
+  return {
+    name,
+    category: "module",
+    version: "0.1.0",
+    status: "stable",
+    description: `Test module ${name}.`,
+    compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
+    contributes,
+  };
+}
+
+function testWidget(name: string): RegistryEntry {
+  return {
+    name,
+    category: "widget",
+    version: "0.1.0",
+    status: "stable",
+    description: `Test widget ${name}.`,
+    compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
+    widgetShape: { props: { type: "object" } },
+  };
 }
 
 const base = await loadInputs();
@@ -114,27 +144,70 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 {
   const inputs = clone(base);
   inputs.registry.entries.push(
-    {
-      name: "x-acme-rogue-widget-module",
-      category: "module",
-      version: "0.1.0",
-      status: "stable",
-      description: "Unadmitted test module.",
-      compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
-      contributes: ["x-acme-rogue-widget"],
-    },
-    {
-      name: "x-acme-rogue-widget",
-      category: "widget",
-      version: "0.1.0",
-      status: "stable",
-      description: "Unadmitted test widget.",
-      compatibility: { formspecVersion: ">=1.0.0 <2.0.0" },
-      widgetShape: { props: { type: "object" } },
-    },
+    testModule("x-acme-rogue-widget-module", ["x-acme-rogue-widget"]),
+    testWidget("x-acme-rogue-widget"),
   );
   inputs.surface.routes[0].slots.main.push({ type: "module-widget", widgetRef: "x-acme-rogue-widget", payload: {} });
   assertIssue("unadmitted contribution owner", inputs, "MODULE-CONTRIBUTION-UNADMITTED");
+}
+
+{
+  const inputs = clone(base);
+  const appModule = inputs.appManifest.modules?.find((moduleRef) => moduleRef.id === "x-formspec-surface");
+  if (!appModule) throw new Error("Missing x-formspec-surface app module");
+  appModule.version = "^9.0.0";
+  assertIssue("unresolved app module version", inputs, "MODULE-VERSION-UNRESOLVED");
+}
+
+{
+  const inputs = clone(base);
+  const surfaceModule = inputs.surface.modules?.find((moduleRef) => moduleRef.id === "x-formspec-surface");
+  if (!surfaceModule) throw new Error("Missing x-formspec-surface Surface module");
+  surfaceModule.version = "^9.0.0";
+  assertIssue("module version conflict across sibling artifacts", inputs, "APP-COHERENCE-SIBLING-MODULE-VERSION");
+}
+
+{
+  const inputs = clone(base);
+  registryEntry(inputs, "x-formspec-surface").dependencies = [{ id: "x-acme-missing-module", version: "^1.0.0" }];
+  assertIssue("module dependency failure", inputs, "MODULE-DEPENDENCY-UNRESOLVED");
+}
+
+{
+  const inputs = clone(base);
+  inputs.registry.entries.push({
+    ...testWidget("x-formspec-surface"),
+    version: "9.0.0",
+  });
+  assertIssue("registry category name conflict", inputs, "APP-COHERENCE-REGISTRY-NAME-CONFLICT");
+}
+
+{
+  const inputs = clone(base);
+  inputs.registry.entries.push(testWidget("x-acme-unowned-widget"));
+  inputs.surface.routes[0].slots.main.push({ type: "module-widget", widgetRef: "x-acme-unowned-widget", payload: {} });
+  assertIssue("unowned contribution", inputs, "APP-COHERENCE-UNOWNED-CONTRIBUTION");
+}
+
+{
+  const inputs = clone(base);
+  (registryEntry(inputs, "x-formspec-presentation").contributes as string[]).push("x-acme-conflict-widget");
+  (registryEntry(inputs, "x-formspec-conversation").contributes as string[]).push("x-acme-conflict-widget");
+  inputs.registry.entries.push(testWidget("x-acme-conflict-widget"));
+  inputs.surface.routes[0].slots.main.push({ type: "module-widget", widgetRef: "x-acme-conflict-widget", payload: {} });
+  assertIssue("duplicate contribution owner", inputs, "APP-COHERENCE-CONTRIBUTION-CONFLICT");
+}
+
+{
+  const inputs = clone(base);
+  inputs.surface.routes[0].slots.main.push({ type: "module-widget", widgetRef: "x-formspec-slot-static-content", payload: {} });
+  assertIssue("wrong contribution category", inputs, "APP-COHERENCE-CONTRIBUTION-CATEGORY");
+}
+
+{
+  const inputs = clone(base);
+  inputs.posture!.allowedModules = inputs.posture!.allowedModules?.filter((moduleRef) => moduleRef.id !== "x-formspec-presentation");
+  assertIssue("posture-denied contribution", inputs, "MODULE-CONTRIBUTION-DENIED");
 }
 
 {
