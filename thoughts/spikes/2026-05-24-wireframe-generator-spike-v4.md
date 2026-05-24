@@ -34,7 +34,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 |---|---|---|---|
 | F1 | App Manifest needs first-class sidecar indexes | Passing spike-local prototype | Pending final |
 | F2 | App Graph Validator should be a production primitive | Passing spike-local prototype | Pending final |
-| F3 | Surface should become a normal contract surface | Planned | Pending |
+| F3 | Surface should become a normal contract surface | Passing spike-local prototype | Pending final |
 | F4 | Module admission needs one shared resolver | Planned | Pending |
 | F5 | Non-form Component identity must stop pretending to be a Definition | Planned | Pending |
 | F6 | Runtime state needs explicit ownership | Planned | Pending |
@@ -48,7 +48,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | Tier | Recommendation | v4 status |
 |---|---|---|
 | P0 | Promote App Manifest to a real app envelope with first-class sidecar indexes | Passing spike-local F1 proof |
-| P0 | Promote Surface to official schema/spec/conformance | Planned as spike-local proof only |
+| P0 | Promote Surface to official schema/spec/conformance | Passing as spike-local proof only |
 | P0 | Build `AppGraphValidator` as a production validation layer | Passing spike-local F2 proof |
 | P0 | Build a shared module admission and contribution resolver | Planned as shared spike library |
 | P0 | Remove the non-form Component `targetDefinition` shim | Planned as prototype identity only |
@@ -69,8 +69,8 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | A1 | stale sidecar ref | Passing |
 | A2 | unadmitted contribution owner | Passing |
 | A3 | unresolved navigation target | Passing |
-| A4 | unresolved Surface route ref | Planned |
-| A5 | missing route params | Planned |
+| A4 | unresolved Surface route ref | Passing |
+| A5 | missing route params | Passing |
 | A6 | required-field runtime blocking | Passing |
 | A7 | duplicate durable-effect idempotency key | Passing |
 | A8 | unknown runtime command | Passing |
@@ -134,6 +134,22 @@ Verification on 2026-05-24:
 - `npm run spike`
 
 All three passed after the extraction. The spike run now reports zero app graph schema failures, zero app coherence errors, and zero runtime errors. F2 re-review returned zero open findings.
+
+### F3 - Surface Contract Boundary
+
+F3 makes Surface-local route graph validation an explicit spike contract. `src/surface-contract.ts` now owns default-route cardinality, duplicate route ids, nav path resolution, transition targets, transition parameter supply, embedded route targets, payload nav targets, and route reachability. `src/app-graph.ts` runs this Surface contract after schema validation and before cross-artifact coherence, and the CLI reports `surface contract errors` separately from schema and app-coherence errors.
+
+This keeps the boundary cleaner than v3. Surface-local route invariants no longer live inside the App Manifest coherence block. AppGraph still owns cross-artifact checks such as `Surface.targetExperience` matching the manifest Experience ref, Definition slot references, Experience unit references, Screener terminal hops, module-widget admission, and widget payload shape.
+
+The F3 proof remains spike-local. It does not promote `schemas/surface.schema.json`, does not add conformance fixtures, and does not introduce lint codes. It only proves that Surface can be validated as a normal contract surface before projection and runtime execution.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers unresolved embedded Surface route refs, missing transition route params, duplicate route ids, zero or multiple default routes, unreachable routes, and payload nav target failures in addition to the earlier top-level nav-target case. F3 review returned zero open findings; the residual test gaps from that review were then added to the harness.
 
 ### Current Suggestions
 

@@ -4,6 +4,7 @@ import type Ajv2020 from "ajv/dist/2020.js";
 import type { ErrorObject } from "ajv";
 
 import { validateAppCoherence, type CoherenceIssue, type CoherenceReport } from "./coherence.js";
+import { validateSurfaceContract } from "./surface-contract.js";
 import type { GeneratorInputs } from "./types.js";
 
 export type SchemaValidationIssue = {
@@ -21,7 +22,7 @@ export type SchemaValidationResult = {
 };
 
 export type AppGraphIssue = {
-  phase: "schema" | "coherence";
+  phase: "schema" | "surface" | "coherence";
   label: string;
   severity: "error" | "warning" | "info";
   code: string;
@@ -33,6 +34,7 @@ export type AppGraphValidationReport = {
   ok: boolean;
   summary: {
     schemaFailures: number;
+    surfaceErrors: number;
     coherenceErrors: number;
     warnings: number;
     infos: number;
@@ -145,6 +147,17 @@ function coherenceIssue(issue: CoherenceIssue): AppGraphIssue {
   };
 }
 
+function surfaceIssue(issue: CoherenceIssue): AppGraphIssue {
+  return {
+    phase: "surface",
+    label: "Surface",
+    severity: issue.severity,
+    code: issue.code,
+    path: issue.path,
+    message: issue.message,
+  };
+}
+
 function emptyCoherenceReport(): CoherenceReport {
   return {
     ok: false,
@@ -164,6 +177,7 @@ function emptyCoherenceReport(): CoherenceReport {
 export function validateAppGraph(inputs: GeneratorInputs, ajv: Ajv2020): AppGraphValidationReport {
   const schemas = sourceArtifacts(inputs).map((artifact) => validateSchema(ajv, artifact));
   const schemaFailures = schemas.filter((result) => !result.ok).length;
+  const surfaceIssues = schemaFailures === 0 ? validateSurfaceContract(inputs.surface) : [];
   const coherence = schemaFailures === 0 ? validateAppCoherence(inputs, ajv) : emptyCoherenceReport();
   const skippedCoherence: AppGraphIssue[] = schemaFailures === 0
     ? []
@@ -175,11 +189,13 @@ export function validateAppGraph(inputs: GeneratorInputs, ajv: Ajv2020): AppGrap
         path: "$",
         message: "Coherence validation skipped because one or more source artifacts failed schema validation.",
       }];
-  const issues = [...schemaIssues(schemas), ...coherence.issues.map(coherenceIssue), ...skippedCoherence];
+  const issues = [...schemaIssues(schemas), ...surfaceIssues.map(surfaceIssue), ...coherence.issues.map(coherenceIssue), ...skippedCoherence];
+  const surfaceErrors = surfaceIssues.filter((issue) => issue.severity === "error").length;
   return {
-    ok: schemaFailures === 0 && coherence.ok,
+    ok: schemaFailures === 0 && surfaceErrors === 0 && coherence.ok,
     summary: {
       schemaFailures,
+      surfaceErrors,
       coherenceErrors: coherence.summary.errors,
       warnings: issues.filter((issue) => issue.severity === "warning").length,
       infos: issues.filter((issue) => issue.severity === "info").length,

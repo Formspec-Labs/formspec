@@ -77,7 +77,7 @@ async function main() {
   }
   await writeJson(OUT("app-graph-report.json"), graph);
   await writeJson(OUT("coherence-report.json"), graph.coherence);
-  let validationFailures = graph.summary.schemaFailures + graph.summary.coherenceErrors;
+  let validationFailures = graph.summary.schemaFailures + graph.summary.surfaceErrors + graph.summary.coherenceErrors;
 
   console.log("[spike-v4] projecting Surface + Experience + Definitions into route Components...");
   const bundle = generateBundle(inputs);
@@ -115,6 +115,7 @@ async function main() {
   console.log(`[spike-v4]   definitions: ${inputs.definitions.length}`);
   console.log(`[spike-v4]   response action sidecars: ${inputs.responseActions.length}`);
   console.log(`[spike-v4]   app graph schema failures: ${graph.summary.schemaFailures}`);
+  console.log(`[spike-v4]   surface contract errors: ${graph.summary.surfaceErrors}`);
   console.log(`[spike-v4]   app coherence errors: ${graph.summary.coherenceErrors}`);
   console.log(`[spike-v4]   runtime errors: ${runtimeErrors}`);
   console.log(`[spike-v4]   output/components/*.json (${bundle.routes.length} files)`);

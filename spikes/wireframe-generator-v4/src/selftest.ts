@@ -148,7 +148,63 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const slot = firstShellSlot(inputs);
   const nav = (slot.payload?.nav ?? []) as Array<{ path: string }>;
   nav[0].path = "/missing";
-  assertIssue("widget nav target", inputs, "SURFACE-NAV-TARGET");
+  assertIssue("payload nav target", inputs, "SURFACE-NAV-TARGET");
+}
+
+{
+  const inputs = clone(base);
+  inputs.surface.routes[1].id = inputs.surface.routes[0].id;
+  assertIssue("duplicate route id", inputs, "SURFACE-ROUTE-ID-DUPLICATE");
+}
+
+{
+  const inputs = clone(base);
+  inputs.surface.routes[1].default = true;
+  assertIssue("multiple default routes", inputs, "SURFACE-DEFAULT-ROUTE");
+}
+
+{
+  const inputs = clone(base);
+  for (const route of inputs.surface.routes) route.default = false;
+  assertIssue("missing default route", inputs, "SURFACE-DEFAULT-ROUTE");
+}
+
+{
+  const inputs = clone(base);
+  const docViewer = inputs.surface.routes.find((route) => route.id === "doc-viewer");
+  const embed = docViewer?.slots.right.find((slot) => slot.type === "embed-route");
+  if (!embed || embed.type !== "embed-route") throw new Error("Missing doc-viewer embed-route slot");
+  embed.routeRef = "missing-route";
+  assertIssue("unresolved embedded Surface route", inputs, "SURFACE-EMBED-TARGET");
+}
+
+{
+  const inputs = clone(base);
+  const transition = inputs.surface.routes[0].transitions?.[0];
+  if (!transition?.params) throw new Error("Missing home transition params");
+  delete transition.params.matterId;
+  assertIssue("transition missing route params", inputs, "SURFACE-TRANSITION-PARAM");
+}
+
+{
+  const inputs = clone(base);
+  inputs.surface.routes.push({
+    id: "orphan",
+    path: "/orphan",
+    label: "Orphan",
+    slots: {
+      main: [
+        {
+          type: "static-content",
+          content: {
+            heading: "Orphan",
+            body: "This route is not reachable from nav, transition, or embed graph.",
+          },
+        },
+      ],
+    },
+  });
+  assertIssue("unreachable route", inputs, "SURFACE-UNREACHABLE-ROUTE");
 }
 
 {
