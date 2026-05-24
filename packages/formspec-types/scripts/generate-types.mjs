@@ -18,6 +18,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = resolve(__dirname, '../../../schemas');
 const OUT_DIR = resolve(__dirname, '../src/generated');
+const VM_MASTER_TABLE_FIXTURE = resolve(
+  __dirname,
+  '../../../tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json',
+);
 
 /**
  * Map formspec.org $id URIs to local schema files.
@@ -688,21 +692,19 @@ async function main() {
     writeFileSync(resolve(OUT_DIR, `${mod.name}.ts`), mod.source);
   }
 
-  // Phase 5a: emit schema-pinned runtime constants.
-  // VM master table is load-bearing for response-actions runtime intent
-  // resolution — must equal schemas/validation-mapping.schema.json
-  // #/$defs/MasterTable/const row-for-row. Generating it here removes the
-  // hand-authored duplicate in packages/formspec-engine/src/response-actions.ts.
-  const vmSchemaPath = URI_TO_LOCAL['https://formspec.org/schemas/validationMapping/1.0'];
-  const vmSchema = JSON.parse(readFileSync(vmSchemaPath, 'utf-8'));
-  const vmMasterTable = vmSchema?.$defs?.MasterTable?.const;
+  // Phase 5a: emit fixture-pinned runtime constants.
+  // ADR 0150 §4.2/§10 moved the closed-core VM master rows out of
+  // schemas/validation-mapping.schema.json#/$defs/MasterTable/const and into
+  // the JCS byte-equality fixture. Runtime resolution still needs a generated
+  // const so packages do not hand-author duplicate intent defaults.
+  const vmMasterTable = JSON.parse(readFileSync(VM_MASTER_TABLE_FIXTURE, 'utf-8'));
   if (!Array.isArray(vmMasterTable) || vmMasterTable.length === 0) {
-    throw new Error('VM schema MasterTable const missing or empty — cannot emit runtime const');
+    throw new Error('VM MasterTable JCS fixture missing or empty — cannot emit runtime const');
   }
   const masterTableSource = `${FILE_BANNER}import type { MappingEntry } from './validation-mapping.js';
 
 /**
- * Frozen mirror of schemas/validation-mapping.schema.json#/$defs/MasterTable/const.
+ * Frozen mirror of tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json.
  * Runtime consumers (Response Actions intent->validation-tuple resolution)
  * MUST consult this generated const, never a hand-authored copy.
  */

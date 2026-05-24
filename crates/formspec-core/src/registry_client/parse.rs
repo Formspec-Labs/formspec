@@ -252,6 +252,26 @@ pub(super) fn parse_entry(val: &Value, index: usize) -> Result<RegistryEntry, Re
         .and_then(|v| v.as_str())
         .map(String::from);
 
+    // ADR 0150 §4.1/§4.2 module + contribution payloads. Stored as raw
+    // serde_json::Value at the parse boundary; consumers ship typed-shape
+    // deserializers as needed (parity with how registry.schema.json treats
+    // these fields — `type: object` for the typed payload slots, list-of-string
+    // for `contributes`, `^x-` patterned for `extensions`).
+    let contributes = obj.get("contributes").and_then(|v| {
+        v.as_array().map(|arr| {
+            arr.iter()
+                .filter_map(|item| item.as_str().map(String::from))
+                .collect::<Vec<_>>()
+        })
+    });
+    let extensions = obj.get("extensions").cloned();
+    let semantics = obj.get("semantics").cloned();
+    let widget_shape = obj.get("widgetShape").cloned();
+    let validation = obj.get("validation").cloned();
+    let slot_shape = obj.get("slotShape").cloned();
+    let row = obj.get("row").cloned();
+    let category_shape = obj.get("categoryShape").cloned();
+
     Ok(RegistryEntry {
         name,
         category,
@@ -262,5 +282,13 @@ pub(super) fn parse_entry(val: &Value, index: usize) -> Result<RegistryEntry, Re
         base_type,
         parameters,
         returns,
+        contributes,
+        extensions,
+        semantics,
+        widget_shape,
+        validation,
+        slot_shape,
+        row,
+        category_shape,
     })
 }

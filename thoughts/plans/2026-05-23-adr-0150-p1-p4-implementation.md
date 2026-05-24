@@ -329,7 +329,7 @@ git commit \
 - **`ChangeSetEntry.valueClass` closed-core (7 values)** at `respondent-ledger-event.schema.json:444-450`: `user-input`, `prepopulated`, `calculated`, `imported`, `attachment`, `system-derived`, `migration-derived`.
 - **Excluded from P1:** the `^x-` extension lane and the `^(ai|user)\.` authoring-namespace lane (P0 Task 6 Deviations §EventType-ai-user-lane). The latter is P4's domain (`x-formspec-ai-runtime`).
 
-**Total: 20 + 7 = 27 contribution entries floor.**
+**Total: 20 + 7 = 27 contribution entries floor at r1; execution-time re-probe per Task 1.5 Step 1 returned 27 EventType (not 20 — schema gained 7 values between r1-write and Task 1.5 execution: `response.migrated`, `response.correction-recorded`, `field.edit-recorded`, `action.invoked`, `action.failed`, `action.deferred`, `action.replayed`). Actual shipped: 27 + 7 = 34 contribution entries.**
 
 **Naming translation for dotted values (load-bearing — pinned r1 per H-4 scout + Task 1.1 Step 5 convention).** EventType values use `.` as a sub-namespace separator (`session.started`, `response.amendment-opened`); the Registry name regex forbids dots. Translation: dots → hyphens in the Registry name; preserve the original dotted value verbatim in the contribution payload's `kindValue` field.
 
@@ -878,6 +878,24 @@ P1 closed 6 commits (`77635138..4d5b588a`) with one mid-phase remediation commit
 
 **Phase summary.** All 5 P1 modules shipped; 109 new Registry contribution entries + 5 module entries + 1 cascade-fix commit. Total formspec-common.registry.json entries = 132 (was 18 pre-P1). Total conformance tests = 2598 passing (was 2229 pre-P1; +369 tests across the 5 module test files). Workspace cargo nextest = 1341 passing. npm doc gate, dep fence, html-docs: clean. No new lint codes (P0 Task 8's E603/E604/E605 cover P1 needs).
 
+### r3 (P1 boundary-review absorption)
+
+The P1→P2 boundary architecture review (spec-expert) returned REMEDIATE-THEN-P2 with 1 BLOCKER + 3 HIGH + 2 MEDIUM. Resolution:
+
+**BLOCKER — `RegistryEntry` Rust struct missing payload fields.** Closed. The struct at `crates/formspec-core/src/registry_client/types.rs` now carries `contributes: Option<Vec<String>>`, `extensions: Option<Value>`, `semantics`, `widget_shape`, `validation`, `slot_shape`, `row`, `category_shape` (all `Option<serde_json::Value>` at the parse boundary; typed deserializers ship in consumers as needed). `parse_entry` reads each field from JSON; 6 new Rust tests pin the surfacing (`registry_entry_module_carries_contributes`, `registry_entry_unit_kind_carries_semantics`, `_widget_carries_widget_shape`, `_action_intent_carries_validation`, `_validation_mapping_row_carries_row`, `_property_carries_x_formspec_kind_value_extension`). This unblocks any Rust-side consumer (P2 Surface lint pass; P4 lint; posture admission).
+
+**HIGH — Plan §H-4 cardinality stale (said 20 EventType, actual 27).** Closed inline above in this r3 entry and in r1 Deviations §H-4 prose. Cardinality assertion test catches future drift.
+
+**HIGH — `contributes`/`semantics` gap not in Deviations log.** Closed by this r3 entry + the BLOCKER resolution above (the gap is now closed, not just documented).
+
+**HIGH — `ExtensionCategory` variant-count discrepancy in review prompt.** N/A — the discrepancy was in the review prompt I authored (said "8 variants gained in Task 1.1"), not in the code. Code is correct (4 original + Module rename + 2 first-class previously-unsurfaced + 6 new contribution categories = 13 total). No remediation needed; tracked here for transparency.
+
+**MEDIUM — `widgetShape.fallback` inconsistently REQUIRED.** Pinned r3: `fallback` is REQUIRED for **non-terminal widgets only** (widgets that degrade per `specs/ui-policy.json:fallbackPolicy.components`); the 17 Core-conformant terminal primitives (Stack, Section, TextInput, Heading, Card, etc. — they ARE the core) omit the field. Plan Task 1.3 Step 5 prose said "REQUIRED" without the non-terminal qualifier; r3 clarification: the v1 convention is "REQUIRED for any widget that names a fallback in ui-policy.json:fallbackPolicy.components, OMITTED otherwise." This matches the actual shipped state (16 of 33 widgets carry fallback; 17 omit it). Tests `test_widget_shape_fallback_matches_ui_policy` already pin this exact rule (present-vs-omitted matches ui-policy.json directly). Spec prose in `extension-registry.md` is generic ("widget contract (props/childrenPolicy/fallback)") so no surgery needed there; the Component spec progressive-to-core section is the canonical owner of the chain semantics (deferred — not in P1 scope).
+
+**MEDIUM — Property entries lack machine-readable `kindValue`.** Closed. Each Trace + Ledger property entry now carries `extensions["x-formspec-kind-value"]: <original value>` at the top level (using the existing `^x-` extensions slot on `RegistryEntry` per `registry.schema.json:475`). 59 property entries patched (25 Trace + 34 Ledger). The Rust test `registry_entry_property_carries_x_formspec_kind_value_extension` exercises this for the Ledger `session.started → session-started` translation case. AI tooling resolving `eventType: 'session.started'` now has a direct programmatic path: enumerate `property` entries, match on `extensions["x-formspec-kind-value"]`.
+
+**Net effect of r3.** P1 → P2 phase boundary fully closed. Zero open BLOCKER/HIGH findings. The 2 MEDIUM findings are resolved structurally (not deferred). Verification: pytest tests/conformance/ → 2598 passed; cargo nextest run -p formspec-core → 381 passed (6 new module-payload tests).
+
 ### r1 (2026-05-23) — Pre-P1-Task-1.1 arch-review absorptions
 
 Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-specs:formspec-scout`) returned BEFORE the first P1 commit landed. Both converged on REMEDIATE-THEN-PROCEED verdicts. Consolidated absorptions applied to the plan body above; no plan-shape changes, only execution-precision tightening.
@@ -892,7 +910,7 @@ Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-sp
 
 **HIGH H-3 (spec-expert) — `widgetShape.fallback` undefined + `category`-placement framing error.** Plan now pins `fallback` as v1 single-fallback string (not chain); marks it advisory-only if Component §progressive-to-core isn't yet authored. `category` placement clarified: ship inside `widgetShape` as sibling of `childrenPolicy` (NOT in `widgetShape.props` which validates Theme config; NOT in a non-existent `tag` field). Decision-point pinned to Task 1.3 Step 1 arch review.
 
-**HIGH H-4 (scout) — Ledger enumeration + dotted-translation.** Plan's handwaved closed-core list replaced with full enumeration: 20 EventType + 7 valueClass = **27 Ledger contribution entries**. Dotted-translation rule (`session.started` → `x-formspec-core-ledger-event-type-session-started`, preserve dotted value in `kindValue`) pinned in Task 1.1 Step 5 and applied in Task 1.5 prose.
+**HIGH H-4 (scout) — Ledger enumeration + dotted-translation.** Plan's handwaved closed-core list replaced with explicit enumeration: 20 EventType + 7 valueClass = **27 Ledger contribution entries at r1 floor**. Execution-time re-probe (Task 1.5 Step 1) returned 27 EventType (drift: r1 was based on a 2026-05-23 morning probe; live schema had grown to 27 by Task 1.5 execution). Actual shipped: 27 + 7 = **34 contribution entries**. Dotted-translation rule (`session.started` → `x-formspec-core-ledger-event-type-session-started`, preserve dotted value in `extensions["x-formspec-kind-value"]` for machine-readability per P1 boundary review MEDIUM absorption) pinned in Task 1.1 Step 5 and applied in Task 1.5 prose.
 
 **MEDIUM M-1 (scout) — `ui-policy.json` consumer set.** Plan's "~5 consumers" replaced with verified set (6 formspec consumers + 1 studio test-side + multiple test files). Plan recommends mitigation (a) for P1: lint pass continues reading `ui-policy.json`; Registry contributions are descriptive metadata only — same enforcement-boundary discipline as B-1. Generator extension (mitigation (b)) deferred to P2+ if drift surfaces.
 

@@ -71,18 +71,15 @@ export type MappingEntry = ValidationTuplePredicate & {
   persistence: PersistencePolicy;
 };
 /**
- * Frozen master mapping table. MUST equal specs/core/validation-mapping.md §6 row-for-row. The const constrains any document carrying this property to the canonical table; documents that override individual entries do so per Action, not by replacing the master table.
- *
- * @minItems 5
- * @maxItems 5
+ * Master mapping table that reconciles Action Intent with Validation Profile, Blocking Policy, and Persistence Policy. Per ADR 0150 §4.2/§10, this $def carries ONLY the row-shape contract (items → MappingEntry, which itself carries the §6.3 ValidationTuplePredicate). The four pre-ADR-0150 constraints — `const`, `minItems: 5`, `maxItems: 5`, `uniqueItems: true` — were demoted. Table cardinality opens at the schema layer; closed-core membership (the 5 §6 rows) is enforced at the conformance layer via Registry's `validation-mapping-row` contribution category on the `x-formspec-core-actions` module. The closed-core 5 rows remain authoritative as a JCS (RFC 8785) byte-equality fixture at tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json — byte-equality authority moved from schema to fixture.
  *
  * This interface was referenced by `ValidationMappingDocument`'s JSON-Schema
  * via the `definition` "MasterTable".
  */
-export type MasterTable = [MappingEntry, MappingEntry, MappingEntry, MappingEntry, MappingEntry];
+export type MasterTable = MappingEntry[];
 
 /**
- * Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. This schema's MasterTable const MUST equal the prose §6 row-for-row; conformance is pinned by tests/conformance/spec/test_validation_mapping_table.py.
+ * Closed vocabularies and the master mapping table that reconciles Action Intent, Validation Profile, Blocking Policy, and Persistence Policy across Formspec Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle. See specs/core/validation-mapping.md for the normative prose. Per ADR 0150 §4.2/§10, the MasterTable four-constraint pin (const/minItems/maxItems/uniqueItems) was demoted: schema-layer carries only the row-shape contract; the closed-core 5 rows live as a JCS (RFC 8785) byte-equality fixture at tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json; row membership closes at the conformance layer via Registry's `validation-mapping-row` contribution category on the `x-formspec-core-actions` module. Conformance pin: tests/conformance/test_validation_mapping_master_table_demotion.py.
  */
 export interface ValidationMappingDocument {
   /**

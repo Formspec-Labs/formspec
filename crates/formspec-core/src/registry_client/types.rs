@@ -71,6 +71,21 @@ pub enum RegistryWarning {
 }
 
 /// A single extension record with full metadata.
+///
+/// Carries the registry-shape payloads for ADR 0150 §4.1/§4.2 module
+/// aggregator + contribution categories: `contributes[]` for module entries,
+/// and the typed payload slots for `unit-kind` (`semantics`), `widget`
+/// (`widget_shape`), `action-intent` (`validation`), `validation-mapping-row`
+/// (`row`), `slot-type` (`slot_shape`), and `token-category`
+/// (`category_shape`). The `extensions` slot holds `^x-` keys (the
+/// substrate uses `x-formspec-kind-value` here for `property` contributions
+/// that republish closed-core enum values without a typed payload — see
+/// `specs/registry/extension-registry.md` §4.1 Rule 1 dotted-translation
+/// convention).
+///
+/// Payload fields are typed as `serde_json::Value` at the parse boundary;
+/// callers that need typed access ship their own typed-shape deserializers
+/// (parity with how JSON Schema treats these fields per `registry.schema.json`).
 #[allow(missing_docs)]
 #[derive(Debug, Clone)]
 pub struct RegistryEntry {
@@ -83,6 +98,38 @@ pub struct RegistryEntry {
     pub base_type: Option<String>,
     pub parameters: Option<Vec<Parameter>>,
     pub returns: Option<String>,
+
+    /// `module` aggregator: names of Registry entries this module bundles.
+    /// REQUIRED on `module` entries per `registry.schema.json` `category`
+    /// allOf gate; absent on all other categories.
+    pub contributes: Option<Vec<String>>,
+
+    /// Top-level `extensions` slot (admits `^x-` keys per `registry.schema.json`).
+    /// The substrate uses `x-formspec-kind-value` on `property` contributions
+    /// to carry the original closed-core enum value (e.g. `session.started`)
+    /// when the Registry name has had to translate it (e.g.
+    /// `x-formspec-core-ledger-event-type-session-started`). Plain
+    /// `serde_json::Value` payload — typed deserializers live in consumers.
+    pub extensions: Option<serde_json::Value>,
+
+    /// `unit-kind` contribution payload: REQUIRED on `unit-kind` entries.
+    pub semantics: Option<serde_json::Value>,
+
+    /// `widget` contribution payload: REQUIRED on `widget` entries.
+    pub widget_shape: Option<serde_json::Value>,
+
+    /// `action-intent` contribution payload: REQUIRED on `action-intent` entries.
+    pub validation: Option<serde_json::Value>,
+
+    /// `slot-type` contribution payload: REQUIRED on `slot-type` entries.
+    pub slot_shape: Option<serde_json::Value>,
+
+    /// `validation-mapping-row` contribution payload: REQUIRED on
+    /// `validation-mapping-row` entries.
+    pub row: Option<serde_json::Value>,
+
+    /// `token-category` contribution payload: REQUIRED on `token-category` entries.
+    pub category_shape: Option<serde_json::Value>,
 }
 
 /// Function/constraint parameter declaration.

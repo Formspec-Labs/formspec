@@ -1042,7 +1042,7 @@ export interface ResponsiveOverrides {
  */
 export interface ComponentBase {
   /**
-   * Optional unique identifier for this node within the component tree. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. When present, MUST be unique across the entire component tree document. Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id.
+   * Optional unique identifier for this node. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. **Uniqueness scope is bundle-graph-wide when present** per ADR 0150 §5.3 — every authored `id` MUST be unique across every Component document reachable from a single App Manifest, not merely unique within its own tree. JSON Schema cannot enforce graph-level uniqueness across multiple documents; the invariant is upheld by linter rule E605 (COMP-BUNDLE-ID-COLLISION) which walks the bundle graph and hard-fails on duplicates. **Load-bearing for ADR 0151's cross-document-move bidirectional map** (CRDT precondition: target doc has no collision). Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id, which counts as a single id occurrence for collision purposes.
    */
   id?: string;
   /**

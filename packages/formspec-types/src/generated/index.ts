@@ -11,7 +11,7 @@ export type { BuiltInWidgetName, CustomWidgetName, WidgetName, ThemeWidgetName, 
 export type { IssuerDocument, LogoVariant } from './issuer.js';
 export type { Item, Shape, FELExpression, Instance, OptionSet, FormDefinition, Bind, Variable, OptionEntry, Migrations, MigrationDescriptor, Presentation, FormspecIssuerDocument } from './definition.js';
 export type { AnyComponent, Section, Stack, Grid, GridTrack, Card, Panel, ChildrenArray, ComponentDocument, CustomComponentDef, TextInput, NumberInput, DatePicker, Select, CheckboxGroup, Toggle, FileUpload, Heading, Text, Divider, Collapsible, ConditionalGroup, Tabs, ActionButton, Accordion, RadioGroup, MoneyInput, Slider, Rating, Signature, Alert, Badge, ProgressBar, Summary, ValidationSummary, DataTable, Modal, Popover, CustomComponentName, CustomComponentRef, ResponsiveOverrides, ComponentBase, ComponentLayout } from './component.js';
-export type { PresentationBlock, SelectorMatch, ThemeDocument, Selector, PageLayout, Region, Category, TokenEntry } from './theme.js';
+export type { PresentationBlock, SelectorMatch, TokenType, ThemeDocument, Selector, PageLayout, Region, Category, TokenEntry } from './theme.js';
 export type { TargetSchema, FieldRule, InnerRule, MappingDocument, Coerce, ValueMap, ReverseOverride, ArrayDescriptor, ProjectionHint, JsonAdapter, XmlAdapter, CsvAdapter } from './mapping.js';
 export type { Publisher, RegistryEntry, RegistryDocument, ConceptEquivalent, VocabularyFilter } from './registry.js';
 export type { OntologyDocument, ConceptBinding, VocabularyBinding, Alignment } from './ontology.js';

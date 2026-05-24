@@ -1649,7 +1649,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "definition"
+      }
     },
     {
       "name": "x-formspec-core-trace-source-kind-experience",
@@ -1660,7 +1663,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "experience"
+      }
     },
     {
       "name": "x-formspec-core-trace-source-kind-response-actions",
@@ -1671,7 +1677,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "responseActions"
+      }
     },
     {
       "name": "x-formspec-core-trace-source-kind-component",
@@ -1682,7 +1691,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "component"
+      }
     },
     {
       "name": "x-formspec-core-trace-source-kind-ontology",
@@ -1693,7 +1705,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ontology"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-component-renders-item",
@@ -1704,7 +1719,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "component-renders-item"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-unit-collects-item",
@@ -1715,7 +1733,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "unit-collects-item"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-trigger-invokes-action",
@@ -1726,7 +1747,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "trigger-invokes-action"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-item-depends-on-item",
@@ -1737,7 +1761,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "item-depends-on-item"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-unit-serves-task",
@@ -1748,7 +1775,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "unit-serves-task"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-task-involves-actor",
@@ -1759,7 +1789,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "task-involves-actor"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-action-emits-effect",
@@ -1770,7 +1803,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action-emits-effect"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-action-has-precondition",
@@ -1781,7 +1817,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action-has-precondition"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-concept-refs-item",
@@ -1792,7 +1831,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "concept-refs-item"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-concept-refs-component-node",
@@ -1803,7 +1845,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "concept-refs-component-node"
+      }
     },
     {
       "name": "x-formspec-core-trace-edge-kind-node-visibility-references-item",
@@ -1814,7 +1859,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "node-visibility-references-item"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-item",
@@ -1825,7 +1873,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "item"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-unit",
@@ -1836,7 +1887,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "unit"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-task",
@@ -1847,7 +1901,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "task"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-actor",
@@ -1858,7 +1915,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "actor"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-action",
@@ -1869,7 +1929,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-concept",
@@ -1880,7 +1943,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "concept"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-effect",
@@ -1891,7 +1957,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "effect"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-precondition",
@@ -1902,7 +1971,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "precondition"
+      }
     },
     {
       "name": "x-formspec-core-trace-endpoint-prefix-component-node-path",
@@ -1913,7 +1985,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "componentNodePath"
+      }
     },
     {
       "name": "x-formspec-core-ledger",
@@ -1971,7 +2046,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "session.started"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-draft-saved",
@@ -1982,7 +2060,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "draft.saved"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-draft-resumed",
@@ -1993,7 +2074,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "draft.resumed"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-completed",
@@ -2004,7 +2088,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.completed"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-amendment-opened",
@@ -2015,7 +2102,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.amendment-opened"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-amended",
@@ -2026,7 +2116,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.amended"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-stopped",
@@ -2037,7 +2130,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.stopped"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-attachment-added",
@@ -2048,7 +2144,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment.added"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-attachment-replaced",
@@ -2059,7 +2158,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment.replaced"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-attachment-removed",
@@ -2070,7 +2172,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment.removed"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-prepopulation-applied",
@@ -2081,7 +2186,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "prepopulation.applied"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-system-merge-resolved",
@@ -2092,7 +2200,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "system.merge-resolved"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-validation-snapshot-recorded",
@@ -2103,7 +2214,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "validation.snapshot-recorded"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-calculation-material-change",
@@ -2114,7 +2228,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "calculation.material-change"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-nonrelevant-pruned",
@@ -2125,7 +2242,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "nonrelevant.pruned"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-autosave-coalesced",
@@ -2136,7 +2256,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "autosave.coalesced"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-device-linked",
@@ -2147,7 +2270,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "device-linked"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-identity-verified",
@@ -2158,7 +2284,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "identity-verified"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-attestation-captured",
@@ -2169,7 +2298,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attestation.captured"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-submit-attempted",
@@ -2180,7 +2312,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.submit-attempted"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-migrated",
@@ -2191,7 +2326,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.migrated"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-response-correction-recorded",
@@ -2202,7 +2340,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.correction-recorded"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-field-edit-recorded",
@@ -2213,7 +2354,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "field.edit-recorded"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-action-invoked",
@@ -2224,7 +2368,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.invoked"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-action-failed",
@@ -2235,7 +2382,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.failed"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-action-deferred",
@@ -2246,7 +2396,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.deferred"
+      }
     },
     {
       "name": "x-formspec-core-ledger-event-type-action-replayed",
@@ -2257,7 +2410,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.replayed"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-user-input",
@@ -2268,7 +2424,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "user-input"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-prepopulated",
@@ -2279,7 +2438,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "prepopulated"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-calculated",
@@ -2290,7 +2452,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "calculated"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-imported",
@@ -2301,7 +2466,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "imported"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-attachment",
@@ -2312,7 +2480,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-system-derived",
@@ -2323,7 +2494,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "system-derived"
+      }
     },
     {
       "name": "x-formspec-core-ledger-value-class-migration-derived",
@@ -2334,7 +2508,10 @@
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "migration-derived"
+      }
     }
   ]
 }

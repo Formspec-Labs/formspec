@@ -832,6 +832,127 @@ fn parse_real_formspec_common_registry() {
     assert_eq!(url.status, RegistryEntryStatus::Active);
 }
 
+// ── ADR 0150 §4.1/§4.2 module + contribution payload surfaces ────────────
+//
+// Per P1 boundary review (BLOCKER): the Rust RegistryEntry struct now
+// carries contributes[] + the typed payload slots (semantics, widget_shape,
+// validation, slot_shape, row, category_shape) + the ^x- extensions slot.
+// These tests pin that the parser actually surfaces them — the silent-drop
+// risk flagged at Task 1.1 AFTER review is closed by these assertions.
+//
+// Use `find_one(name, None)` rather than `lookup(name)`: the former returns
+// the full `&RegistryEntry` (with the new payload slots), the latter
+// projects to `RegistryEntryInfo` (summary shape for extension-analysis
+// consumers, no payload surface).
+
+#[test]
+fn registry_entry_module_carries_contributes() {
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let task_mod = reg.find_one("x-formspec-core-task", None).unwrap();
+    assert_eq!(task_mod.category, ExtensionCategory::Module);
+    let contributes = task_mod
+        .contributes
+        .as_ref()
+        .expect("module entry MUST surface contributes[] on the Rust struct (ADR §4.1)");
+    assert_eq!(
+        contributes.len(),
+        7,
+        "x-formspec-core-task should bundle 7 unit-kind contributions"
+    );
+    assert!(contributes.iter().any(|n| n == "x-formspec-core-task-data-entry"));
+}
+
+#[test]
+fn registry_entry_unit_kind_carries_semantics() {
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let entry = reg.find_one("x-formspec-core-task-data-entry", None).unwrap();
+    assert_eq!(entry.category, ExtensionCategory::UnitKind);
+    let sem = entry
+        .semantics
+        .as_ref()
+        .expect("unit-kind entry MUST surface semantics on the Rust struct (ADR §4.2)");
+    assert_eq!(
+        sem.get("kindValue").and_then(|v| v.as_str()),
+        Some("data-entry"),
+        "semantics.kindValue MUST equal the closed-core enum value"
+    );
+}
+
+#[test]
+fn registry_entry_widget_carries_widget_shape() {
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let entry = reg.find_one("x-formspec-core-component-textinput", None).unwrap();
+    assert_eq!(entry.category, ExtensionCategory::Widget);
+    let shape = entry
+        .widget_shape
+        .as_ref()
+        .expect("widget entry MUST surface widget_shape on the Rust struct (ADR §4.2)");
+    assert_eq!(
+        shape.get("widgetName").and_then(|v| v.as_str()),
+        Some("TextInput"),
+        "widgetShape.widgetName MUST carry the PascalCase widget name"
+    );
+}
+
+#[test]
+fn registry_entry_action_intent_carries_validation() {
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let entry = reg.find_one("x-formspec-core-actions-intent-submit", None).unwrap();
+    assert_eq!(entry.category, ExtensionCategory::ActionIntent);
+    let v = entry
+        .validation
+        .as_ref()
+        .expect("action-intent entry MUST surface validation on the Rust struct (ADR §4.2)");
+    assert_eq!(v.get("intent").and_then(|x| x.as_str()), Some("submit"));
+}
+
+#[test]
+fn registry_entry_validation_mapping_row_carries_row() {
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let entry = reg.find_one("x-formspec-core-actions-row-submit", None).unwrap();
+    assert_eq!(entry.category, ExtensionCategory::ValidationMappingRow);
+    let r = entry
+        .row
+        .as_ref()
+        .expect("validation-mapping-row entry MUST surface row on the Rust struct (ADR §4.2)");
+    assert_eq!(r.get("intent").and_then(|x| x.as_str()), Some("submit"));
+}
+
+#[test]
+fn registry_entry_property_carries_x_formspec_kind_value_extension() {
+    // Per P1 boundary review MEDIUM: property entries (Trace/Ledger
+    // republishing) need a machine-readable carrier for the original
+    // closed-core enum value when the Registry name has translated it
+    // (e.g. dotted EventType values → hyphenated Registry names). The
+    // substrate uses extensions["x-formspec-kind-value"] as that carrier.
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let entry = reg
+        .find_one("x-formspec-core-ledger-event-type-session-started", None)
+        .unwrap();
+    assert_eq!(entry.category, ExtensionCategory::Property);
+    let ext = entry
+        .extensions
+        .as_ref()
+        .expect("property entry with dotted-translated name MUST carry extensions[\"x-formspec-kind-value\"]");
+    assert_eq!(
+        ext.get("x-formspec-kind-value").and_then(|v| v.as_str()),
+        Some("session.started"),
+        "extensions.x-formspec-kind-value MUST carry the original dotted value verbatim"
+    );
+}
+
 // ── Findings 28-30: structural parse errors and conditional requirements ──
 
 /// Spec: registry/extension-registry.md §2, schemas/registry.schema.json "type":"object"

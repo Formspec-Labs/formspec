@@ -9,40 +9,40 @@
 import type { MappingEntry } from './validation-mapping.js';
 
 /**
- * Frozen mirror of schemas/validation-mapping.schema.json#/$defs/MasterTable/const.
+ * Frozen mirror of tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json.
  * Runtime consumers (Response Actions intent->validation-tuple resolution)
  * MUST consult this generated const, never a hand-authored copy.
  */
 export const VALIDATION_MAPPING_MASTER_TABLE: readonly MappingEntry[] =
   [
     {
+      "blocking": "non-blocking",
       "intent": "save-draft",
-      "profile": "off",
-      "blocking": "non-blocking",
-      "persistence": "draft-checkpoint"
+      "persistence": "draft-checkpoint",
+      "profile": "off"
     },
     {
+      "blocking": "non-blocking",
       "intent": "autosave",
-      "profile": "off",
-      "blocking": "non-blocking",
-      "persistence": "draft-checkpoint"
+      "persistence": "draft-checkpoint",
+      "profile": "off"
     },
     {
+      "blocking": "non-blocking",
       "intent": "review",
-      "profile": "on-submit",
-      "blocking": "non-blocking",
-      "persistence": "none"
+      "persistence": "none",
+      "profile": "on-submit"
     },
     {
-      "intent": "submit",
-      "profile": "on-submit",
       "blocking": "block-on-error",
-      "persistence": "complete-response"
+      "intent": "submit",
+      "persistence": "complete-response",
+      "profile": "on-submit"
     },
     {
-      "intent": "request-evidence",
-      "profile": "on-demand",
       "blocking": "non-blocking",
-      "persistence": "draft-checkpoint"
+      "intent": "request-evidence",
+      "persistence": "draft-checkpoint",
+      "profile": "on-demand"
     }
   ] as const;
