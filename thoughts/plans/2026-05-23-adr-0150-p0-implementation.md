@@ -865,6 +865,28 @@ This Deviation flags the cross-stack work; the actual coordination commits are s
 
 ### r1 follow-ups (open)
 
+### Cadence-review (post-Task-5) — formspec-studio registry-hints.ts stale filter
+
+The `bd0ea0bd` cascade-fix completed the namespace→module rename across formspec/ but missed a sibling-submodule consumer at `formspec-studio/packages/formspec-chat/src/registry-hints.ts:28`. The filter `entries.filter(e => e.category !== 'namespace')` is now a no-op after the rename — module entries (still aggregators, just renamed) silently pass through to downstream `dataTypes`/`constraints`/`functions` whitelists which won't match them. Function still works (downstream is positive-whitelist), but intent ("drop aggregators from hints") is lost and a future module-aware extension compounds the silent-divergence.
+
+**Resolution.** Lands as part of the post-P0 formspec-studio cascade already enumerated in §Cross-stack coordination. Fix: change to `e.category !== 'module'` OR rewrite as positive-whitelist of `{dataType, constraint, function}`. Not blocking P0.
+
+### Cadence-review (post-Task-5) — stale rustdoc-md
+
+`crates/formspec-core/docs/rustdoc-md/API.md:1645` still lists `Namespace` as an `ExtensionCategory` variant after the Task 2 cascade-fix. Rust source is correctly renamed; the generated rustdoc-md was not regenerated because `make api-docs` fails on an unrelated `packages/formspec-chat/tsconfig.json` not-found error. Doc-gate (`npm run docs:check`) passes — `API.md` is not gated.
+
+**Resolution.** Track for P1 cleanup: fix the api-docs build (or remove the missing-tsconfig step), regenerate `rustdoc-md/`, verify no other stale `Namespace` references remain in generated docs.
+
+### Cadence-review (post-Task-5) — Task 4/5 verification skipped `cargo nextest --workspace`
+
+Both Tasks 4 + 5 ran `cargo nextest -p formspec-lint` (and Task 5 added `-p formspec-core`) but not the full workspace. The schemas touched (`changelog`, `screener`, `trace-index`, `respondent-ledger-event`, `mapping`) feed multiple crates beyond formspec-lint.
+
+**Resolution.** Running `cargo nextest run --workspace` as a follow-up before Task 6 lands. Expected clean (changes are oneOf-additive on pre-existing closed enums). Rigor pinned in `feedback_full_cascade_verification` memory.
+
+### Task 8 — cross-link to Task 5 deviation
+
+Task 8's E604 (MODULE-PAYLOAD-SCHEMA-MISMATCH) lint code is the unblocking work for the Component.component deferral. Add a one-line note in Task 8 step prose at execution time naming this future-binding intent — keeps the deferral discoverable via the unblocking work.
+
 ### Task 5 execution — `Component.component` deferred from §4.5 enum sweep
 
 The ADR §4.5 table lists `Component.component` (component.schema.json:297) under the uniform `oneOf [closed-core, x-pattern]` convention, target "closed-core + module-`widget`." Reading the actual schema during Task 5 execution: `component` is NOT a flat enum today — it's pinned to a specific value via `const` in each of 33 sub-defs (32 built-ins + `CustomComponentRef`), and `AnyComponent.oneOf` dispatches on which sub-def matches. The property declaration at line 297 is `{type: string, minLength: 1}` — intentionally open at the property level, structurally narrowed by the parent `AnyComponent.oneOf`.
