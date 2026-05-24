@@ -3034,6 +3034,75 @@
         "childrenPolicy": "list-of-children",
         "widgetCategory": "display"
       }
+    },
+    {
+      "name": "x-formspec-ai-runtime",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI authoring runtime per ADR 0150 \u00a78 + \u00a714 P4. Substrate-supports AI-driven authoring by republishing the 9 baseline ai.* event values (command, suggestion, proposal families \u2014 3 events each) and pinning the runtime contract over P0's substrate carry-points: AuthorActor on every event payload (\u00a75.4 + P0 Task 6 authoredBy field), ChangeSetEntry.valueClass admits 'ai-generated' (\u00a74.5), x-generation provenance carries module + actor (\u00a75.3 + \u00a75.4). The 9 events flow through the EventType `^(ai|user)\\.` lane (P0 Task 6 Deviation log); they are NOT in the closed-core enum and do NOT trigger E603 (E603 fires only on `^x-` values). Registry contributions are descriptive metadata for posture admission, AI tooling, and audit consumers \u2014 schema validation flows through the EventType `^(ai|user)\\.` lane directly. This commit ships the module + command family (3 events); suggestion + proposal families ship in follow-on commits per the \u00a714 P4 one-family-per-commit cadence.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "specUrl": "https://formspec.org/specs/ai-runtime/0.1",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-ledger",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-actions",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-ai-runtime-ai-command-issued",
+        "x-formspec-ai-runtime-ai-command-completed",
+        "x-formspec-ai-runtime-ai-command-failed"
+      ]
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-command-issued",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.command-issued` per ADR 0150 \u00a78 (command family). An AI agent has issued a kernel command. Recorded synchronously when the agent invokes any kernel operation. Forms the issued-side of the command-completed/command-failed pairing. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.command-issued` preserved verbatim in extensions['x-formspec-kind-value'] for AI-tooling resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.command-issued"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-command-completed",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.command-completed` per ADR 0150 \u00a78 (command family). A previously-issued AI command has completed successfully. Payload carries replyToEventId pointing at the ai.command-issued event. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.command-completed` preserved verbatim in extensions['x-formspec-kind-value'] for AI-tooling resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.command-completed"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-command-failed",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.command-failed` per ADR 0150 \u00a78 (command family). A previously-issued AI command has failed. Payload carries replyToEventId + an error structure (code, message, optional details). Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.command-failed` preserved verbatim in extensions['x-formspec-kind-value'] for AI-tooling resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.command-failed"
+      }
     }
   ]
 }
