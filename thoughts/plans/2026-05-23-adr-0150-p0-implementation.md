@@ -865,7 +865,22 @@ This Deviation flags the cross-stack work; the actual coordination commits are s
 
 ### r1 follow-ups (open)
 
-- *(none at plan-write — populated during execution)*
+### Task 5 execution — `Component.component` deferred from §4.5 enum sweep
+
+The ADR §4.5 table lists `Component.component` (component.schema.json:297) under the uniform `oneOf [closed-core, x-pattern]` convention, target "closed-core + module-`widget`." Reading the actual schema during Task 5 execution: `component` is NOT a flat enum today — it's pinned to a specific value via `const` in each of 33 sub-defs (32 built-ins + `CustomComponentRef`), and `AnyComponent.oneOf` dispatches on which sub-def matches. The property declaration at line 297 is `{type: string, minLength: 1}` — intentionally open at the property level, structurally narrowed by the parent `AnyComponent.oneOf`.
+
+A mechanical `oneOf [enum, x-pattern]` wrap on the property would:
+1. Conflict with the parent `AnyComponent.oneOf` (the inner property wrap would constrain what the outer dispatcher already constrains).
+2. Require inventing a flat closed-core enum (the 32 built-in names) that doesn't exist today as a single enum site.
+3. Break `CustomComponentRef`, which accepts ANY PascalCase name not in the built-in list — itself a 3rd category (closed-core built-ins / custom PascalCase / module-contributed `x-`).
+
+The proper refactor target ("closed-core + module-`widget`" per ADR §4.5) is structurally richer than a mechanical enum wrap — it wires `component: x-foo-bar` admittance to a declared `widget`-contributing module's payload-shape gate (the `widget` contribution category Task 2 added). That binding is the domain of the lint E604 pass (Task 8) which cross-validates against contributing module schemas, not a schema-level mechanical refactor.
+
+**Resolution.** Task 5 ships the 8 enums that ARE mechanically wrappable. `Component.component` is excluded from this commit's scope with a test-skip note. Re-scope as a P1 task: either as part of the core vocabularies module republishing (`x-formspec-core-component` per ADR §4.9) or as its own dedicated AnyComponent refactor. This matches the structural reality of the schema — what the ADR table called a 9th "mechanical-identical" refactor is actually a different shape of work.
+
+### Task 5 execution — Response Actions `actions: minItems: 1` discovered during fixture authoring
+
+Not a deviation, an observation: `response-actions.schema.json` requires `actions: minItems: 1` (line 57 in the post-Task-4 file). Test fixtures must include at least one valid Action with at least one valid effect. Recorded here so the future agent authoring downstream RA fixtures doesn't repeat the same trial-and-error.
 
 ---
 
