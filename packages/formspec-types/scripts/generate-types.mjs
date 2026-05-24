@@ -25,11 +25,12 @@ const OUT_DIR = resolve(__dirname, '../src/generated');
  * and $ref each other by those URIs. This map resolves them locally.
  */
 const URI_TO_LOCAL = {};
+// token-registry retired per ADR 0150 §2.3/§4.2/§10 row 9 — Category/TokenEntry/
+// TokenType $defs inlined into theme.schema.json. No standalone schema to load.
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
   'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
-  'fel-functions', 'screener', 'determination', 'verification-receipt',
-  'token-registry']) {
+  'fel-functions', 'screener', 'determination', 'verification-receipt']) {
   const filePath = resolve(SCHEMAS_DIR, `${f}.schema.json`);
   if (existsSync(filePath)) {
     const s = JSON.parse(readFileSync(filePath, 'utf-8'));

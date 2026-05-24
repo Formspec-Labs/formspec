@@ -3,7 +3,14 @@
  * @filedesc Generate default-theme.json and CSS token fallbacks from token-registry.json.
  *
  * The token registry (schemas/token-registry.json) is the single source of truth for
- * token names, defaults, and dark-mode overrides. This script reads it and generates:
+ * token names, defaults, and dark-mode overrides. Each category in the document
+ * conforms to theme.schema.json#/$defs/Category (Category/TokenEntry/TokenType
+ * inlined per ADR 0150 §2.3/§4.2/§10 row 9 — standalone token-registry.schema.json
+ * retired, structural shape preserved in theme.schema.json so theme.tokenMeta and
+ * the runtime token registry share the same Category contract). Structural
+ * validation of the runtime document lives in tests/conformance/
+ * test_token_registry_retirement.py; this script trusts the validated input and
+ * generates:
  *
  *   1. packages/formspec-layout/src/default-theme.json  — tokens section from registry defaults
  *   2. packages/formspec-layout/src/styles/default.tokens.css — patched var() fallbacks

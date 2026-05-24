@@ -11,11 +11,12 @@ const SCHEMAS_DIR = resolve(__dirname, '../../../schemas');
 
 // ─── Schema loading & $ref resolution ────────────────────────────────
 
+// token-registry retired per ADR 0150 §2.3/§4.2/§10 row 9 — Category/TokenEntry/
+// TokenType $defs inlined into theme.schema.json. No standalone schema to fuzz.
 const SCHEMA_FILES = [
   'issuer', 'definition', 'component', 'theme', 'mapping', 'registry', 'ontology',
   'references', 'validation-mapping', 'response-actions', 'experience', 'changelog',
   'response', 'intake-handoff', 'locale', 'verification-receipt', 'validation-report', 'validation-result', 'fel-functions',
-  'token-registry',
 ];
 const REF_SCHEMA_FILES = ['common', ...SCHEMA_FILES];
 

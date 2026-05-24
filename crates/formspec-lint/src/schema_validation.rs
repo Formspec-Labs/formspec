@@ -41,7 +41,10 @@ const VERIFICATION_RECEIPT_SCHEMA: &str =
     include_str!("../schemas/verification-receipt.schema.json");
 const SCREENER_SCHEMA: &str = include_str!("../schemas/screener.schema.json");
 const DETERMINATION_SCHEMA: &str = include_str!("../schemas/determination.schema.json");
-const TOKEN_REGISTRY_SCHEMA: &str = include_str!("../schemas/token-registry.schema.json");
+// token-registry.schema.json retired per ADR 0150 §2.3/§4.2/§10 row 9 — the
+// Category/TokenEntry/TokenType $defs inlined into theme.schema.json; the
+// runtime canonical token document at packages/formspec-layout/src/
+// token-registry.json conforms to theme.schema.json#/$defs/Category.
 
 // ── Schema text + $id pairs for cross-file $ref resolution ───────
 
@@ -61,10 +64,6 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
     (
         DEFINITION_SCHEMA,
         "https://formspec.org/schemas/definition/1.0",
-    ),
-    (
-        TOKEN_REGISTRY_SCHEMA,
-        "https://formspec.org/schemas/token-registry/1.0",
     ),
     (
         VERIFICATION_RECEIPT_SCHEMA,

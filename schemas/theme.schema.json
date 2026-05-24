@@ -287,9 +287,9 @@
         "categories": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "https://formspec.org/schemas/token-registry/1.0#/$defs/Category"
+            "$ref": "#/$defs/Category"
           },
-          "description": "Custom token categories keyed by category prefix. Each category follows the Token Registry Category schema."
+          "description": "Custom token categories keyed by category prefix. Each category follows the Token Registry Category shape (Category/TokenEntry/TokenType $defs inlined per ADR 0150 §2.3/§4.2/§10 row 9 — standalone token-registry.schema.json retired; Category shape preserved here for theme.tokenMeta validation. The runtime canonical token document at packages/formspec-layout/src/token-registry.json also conforms to this same Category shape per category)."
         }
       },
       "examples": [
@@ -316,6 +316,87 @@
     },
     "Tokens": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Tokens"
+    },
+    "Category": {
+      "type": "object",
+      "required": ["type", "tokens"],
+      "additionalProperties": false,
+      "description": "A group of tokens sharing a category prefix and default type. Inlined from the retired token-registry.schema.json#/$defs/Category per ADR 0150 §2.3/§4.2/§10 row 9 — token-registry as a standalone schema folds into the unified Registry as a `token-category` contribution; the structural Category/TokenEntry/TokenType shape is preserved here so theme.tokenMeta validation and the runtime token-registry.json document continue to share the same shape.",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the category."
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType",
+          "description": "Default token type for entries in this category. Entries may override with their own type."
+        },
+        "darkPrefix": {
+          "type": "string",
+          "description": "Prefix for dark-mode counterpart tokens. When present, each token's 'dark' field holds the default dark-mode value. The derived dark key is '<darkPrefix>.<suffix>' where suffix is the token key with the category prefix and its trailing dot removed. Only categories whose type is 'color' SHOULD declare darkPrefix."
+        },
+        "tokens": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/TokenEntry"
+          },
+          "description": "Token entries keyed by their full dot-delimited key. Each key MUST start with the category key followed by a dot."
+        }
+      }
+    },
+    "TokenEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Metadata for a single design token. Inlined from the retired token-registry.schema.json#/$defs/TokenEntry per ADR 0150 §2.3/§4.2/§10 row 9.",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the token's purpose."
+        },
+        "type": {
+          "$ref": "#/$defs/TokenType",
+          "description": "Token type, overriding the category default."
+        },
+        "default": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" }
+          ],
+          "description": "Default value shipped with the platform theme."
+        },
+        "dark": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" }
+          ],
+          "description": "Default dark-mode value. Only meaningful when the containing category declares a darkPrefix. Processors MUST ignore this field when darkPrefix is absent and SHOULD emit a warning."
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" }
+            ]
+          },
+          "description": "Example token values for documentation and tooling hints."
+        }
+      }
+    },
+    "TokenType": {
+      "type": "string",
+      "enum": [
+        "color",
+        "dimension",
+        "fontFamily",
+        "fontWeight",
+        "duration",
+        "opacity",
+        "shadow",
+        "number"
+      ],
+      "description": "Semantic token type. Tooling uses types to select appropriate editors and validate values. Types do not affect CSS custom property emission. Inlined from the retired token-registry.schema.json#/$defs/TokenType per ADR 0150 §2.3/§4.2/§10 row 9."
     },
     "PresentationBlock": {
       "type": "object",
