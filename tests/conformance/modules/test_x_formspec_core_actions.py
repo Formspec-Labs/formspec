@@ -21,6 +21,7 @@ import json
 from pathlib import Path
 
 import pytest
+import rfc8785
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
@@ -76,10 +77,20 @@ def _get_entry(doc: dict, name: str) -> dict | None:
     return None
 
 
-def _jcs_canonicalize(obj) -> str:
-    """JCS-canonicalize a JSON object per RFC 8785: keys alphabetically
-    sorted at every level; no whitespace; no escaped slashes; UTF-8 output."""
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+def _jcs_canonicalize(obj) -> bytes:
+    """JCS-canonicalize a JSON object per RFC 8785, using the `rfc8785`
+    library (covers ECMAScript number-to-string normalization + UTF-8 key
+    ordering that stdlib `json.dumps(sort_keys=True, ...)` does NOT).
+
+    Note (Task 1.1+1.2 code review M-2 absorption): the original
+    implementation used `json.dumps(sort_keys=True, separators=(",", ":"),
+    ensure_ascii=False)`, which happens to produce byte-equal output for
+    flat string-only payloads (the only shape the current MasterTable
+    carries) but silently diverges from RFC 8785 the moment a payload
+    contains numbers (e.g. `1.0` vs `1`) or non-ASCII strings. Swapping
+    to `rfc8785.dumps` makes the JCS claim honest now and forward-safe
+    for any future MasterTable row that grows past flat strings."""
+    return rfc8785.dumps(obj)
 
 
 # ─── Module entry shape ──────────────────────────────────────────────────────

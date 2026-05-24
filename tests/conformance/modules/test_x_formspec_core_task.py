@@ -216,3 +216,45 @@ def test_modules_declaration_does_not_change_validation_outcome():
     errors_without = list(validator.iter_errors(without_mod))
     assert errors_with == [], f"unexpected errors with modules declared: {errors_with}"
     assert errors_without == [], f"unexpected errors without modules declared: {errors_without}"
+
+
+def test_extension_unit_kind_requires_module_declaration_path_invariant():
+    """**Equivalence discriminator** (per Task 1.1 + 1.2 code review HIGH H-2
+    absorption). The closed-core equivalence test above is necessary but not
+    sufficient: it would pass trivially if the closed-core lane were silently
+    coupled to module presence (in that case both fixtures would still validate
+    clean because the same closed-core value is used in both).
+
+    The discriminator: mutate `unit.kind` to a module-only `^x-` extension
+    value. The closed-core lane CANNOT admit it (the lane is a literal
+    enum); only the `^x-pattern` lane can. The schema admits the value
+    structurally in BOTH cases (the pattern is enum-independent), so both
+    fixtures pass the schema — confirming that the schema lane carries no
+    module-declaration dependency. The `^x-` value's actual *resolution* to
+    a declared module is the domain of lint code E603, not the schema. This
+    test pins the schema-vs-lint enforcement-boundary discipline (spec §4.1
+    Rule 2) more strongly than the equivalence test alone.
+
+    Without this test, a regression where the schema gains a silent
+    "module-must-be-declared-for-x-value" gate would pass the equivalence
+    test (both fixtures use closed-core) and would slip through."""
+    base_with = json.loads((FIXTURES_DIR / "experience-with-module.json").read_text())
+    base_without = json.loads((FIXTURES_DIR / "experience-without-module.json").read_text())
+
+    mutated_with = json.loads(json.dumps(base_with))
+    mutated_with["units"][0]["kind"] = "x-acme-custom-kind"
+    mutated_without = json.loads(json.dumps(base_without))
+    mutated_without["units"][0]["kind"] = "x-acme-custom-kind"
+
+    validator = _experience_validator()
+    errors_with = list(validator.iter_errors(mutated_with))
+    errors_without = list(validator.iter_errors(mutated_without))
+
+    assert errors_with == [], (
+        "Schema should admit an ^x- kind regardless of module declaration; "
+        f"got errors with modules declared: {errors_with}"
+    )
+    assert errors_without == [], (
+        "Schema should admit an ^x- kind regardless of module declaration; "
+        f"got errors without modules declared: {errors_without}"
+    )

@@ -292,9 +292,9 @@ and AI tooling auditable. Three conventions govern this republishing:
    dotted value is preserved verbatim in the contribution payload's
    `kindValue` (or equivalent) field for tool-side resolution.
 
-2. **Enforcement boundary (LOAD-BEARING).** Validation of closed-core enum
-   values in documents flows through the `oneOf [closed-core, x-pattern]`
-   schema lane ([§4.5 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#45-uniform-enum-extensibility-convention)).
+2. **Enforcement boundary.** Validation of closed-core enum values in
+   documents flows through the `oneOf [closed-core, x-pattern]` schema
+   lane ([§4.5 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#45-uniform-enum-extensibility-convention)).
    It is **NOT gated** on the presence of the corresponding
    `x-formspec-core-*` Registry entry. A document writing
    `unit.kind: 'data-entry'` validates against the closed-core lane
@@ -307,26 +307,31 @@ and AI tooling auditable. Three conventions govern this republishing:
    values only — closed-core values bypass `E603` because the enum lane
    handles them directly), and AI authoring tooling. ADR §4.9's "no
    semantic change" guarantee is preserved by the schema lane, not by the
-   Registry.
+   Registry. This rule governs the §4.9 guarantee — without it, future
+   maintainers may wonder why adding a `unit.kind` value to the Registry
+   does not affect validation.
 
 3. **`semantics` payload key convention (also applies where structurally
    appropriate to `widgetShape`, `validation`, `slotShape`, and `row`
-   payloads).** Free-form per schema, but pinned at this revision:
+   payloads).** Closed shape pinned at this revision:
    - `kindValue` — REQUIRED string; the unprefixed closed-core enum value
      (e.g. `"data-entry"`). Load-bearing: AI authoring tools resolve
      `unit.kind: 'data-entry'` to this contribution entry by matching
      `kindValue`. MUST equal the contribution-entry's name suffix after
      `x-formspec-<module>-` (no drift; conformance suites assert this).
    - `summary` — REQUIRED string; human-readable description.
-   - `processorObligation` — OPTIONAL string; free-form vocabulary at v1
-     (matches the example wording in `registry.schema.json`).
-   - `rendererObligation` — OPTIONAL string; same posture.
-   - `additionalProperties: true` for module-specific extension keys
-     (e.g. `^x-...`).
 
-   Modules that need richer typed validation than free-form strings ship
-   their own `schemaUrl`-linked sub-schema (per §3 of this document) for
-   the contribution-payload validation phase ([§9 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#9-conformance-partitioning)).
+   Free-form additional keys are NOT pinned at v1. Earlier drafts of this
+   section proposed `processorObligation` / `rendererObligation` as
+   advisory OPTIONAL strings; those were dropped after the Task 1.1+1.2
+   code review surfaced that AI-hallucinated free vocabulary is the exact
+   anti-pattern ADR §4.5 warns about (enum lanes that are not actually
+   enums). When a module needs richer typed validation than `kindValue` +
+   `summary`, it ships its own `schemaUrl`-linked sub-schema (per §3 of
+   this document) for the contribution-payload validation phase
+   ([§9 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#9-conformance-partitioning)) —
+   that route makes the new vocabulary explicit, versioned, and conformance-testable
+   instead of decorative.
 
 This section is the single source of truth for the convention; closed-core
 modules published under [ADR 0150 §14 P1](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#14-implementation-order)

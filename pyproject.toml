@@ -33,6 +33,7 @@ test = [
     "pytest>=9.0",
     "hypothesis>=6.0",
     "referencing>=0.30",
+    "rfc8785>=0.1",
 ]
 docs = [
     "pdoc>=15.0",

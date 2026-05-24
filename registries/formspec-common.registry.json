@@ -594,9 +594,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "data-entry",
-        "summary": "User provides or revises data.",
-        "processorObligation": "value-binding",
-        "rendererObligation": "form-input"
+        "summary": "User provides or revises data."
       }
     },
     {
@@ -611,9 +609,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "review",
-        "summary": "Read-only display of captured data.",
-        "processorObligation": "read-only",
-        "rendererObligation": "review-pane"
+        "summary": "Read-only display of captured data."
       }
     },
     {
@@ -628,9 +624,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "confirmation",
-        "summary": "User affirms accuracy before a transition.",
-        "processorObligation": "affirmation",
-        "rendererObligation": "confirmation-pane"
+        "summary": "User affirms accuracy before a transition."
       }
     },
     {
@@ -645,9 +639,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "evidence-collection",
-        "summary": "User supplies evidence \u2014 attachments, attestations.",
-        "processorObligation": "evidence-binding",
-        "rendererObligation": "evidence-collector"
+        "summary": "User supplies evidence \u2014 attachments, attestations."
       }
     },
     {
@@ -662,9 +654,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "attestation",
-        "summary": "User certifies a statement under accountability.",
-        "processorObligation": "attestation-binding",
-        "rendererObligation": "attestation-pane"
+        "summary": "User certifies a statement under accountability."
       }
     },
     {
@@ -679,9 +669,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "error-resolution",
-        "summary": "User resolves a validation finding.",
-        "processorObligation": "value-binding",
-        "rendererObligation": "error-resolution-pane"
+        "summary": "User resolves a validation finding."
       }
     },
     {
@@ -696,9 +684,7 @@
       "license": "Apache-2.0",
       "semantics": {
         "kindValue": "assistance",
-        "summary": "User receives help.",
-        "processorObligation": "advisory",
-        "rendererObligation": "assistance-pane"
+        "summary": "User receives help."
       }
     },
     {
