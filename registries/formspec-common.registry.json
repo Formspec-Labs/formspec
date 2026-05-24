@@ -700,6 +700,199 @@
         "processorObligation": "advisory",
         "rendererObligation": "assistance-pane"
       }
+    },
+    {
+      "name": "x-formspec-core-actions",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Response Actions intent vocabulary (5 values) + closed-core ValidationMapping MasterTable rows (5 rows) republished as a Registry module per ADR 0150 \u00a74.9. Documents using closed-core intents (`save-draft`, `autosave`, `review`, `submit`, `request-evidence`) validate identically with or without declaring this module \u2014 the schema-side `oneOf [closed-core, x-pattern]` lane handles validation directly (ADR \u00a74.5). The 5 row payloads reproduce the canonical MasterTable rows byte-for-byte under JCS RFC 8785 (P0 Task 9 invariant pinned at `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json`).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-actions-intent-save-draft",
+        "x-formspec-core-actions-intent-autosave",
+        "x-formspec-core-actions-intent-review",
+        "x-formspec-core-actions-intent-submit",
+        "x-formspec-core-actions-intent-request-evidence",
+        "x-formspec-core-actions-row-save-draft",
+        "x-formspec-core-actions-row-autosave",
+        "x-formspec-core-actions-row-review",
+        "x-formspec-core-actions-row-submit",
+        "x-formspec-core-actions-row-request-evidence"
+      ]
+    },
+    {
+      "name": "x-formspec-core-actions-intent-save-draft",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Persist current Response as a draft; validation findings ignored. Closed-core Response Actions intent (`save-draft`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "save-draft",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-autosave",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Background or periodic save; identical mapping to save-draft. Closed-core Response Actions intent (`autosave`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "autosave",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-review",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Read-only validation pass; no persistence transition. Closed-core Response Actions intent (`review`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "review",
+        "persistence": "none",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-submit",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Attempt transition to Response status 'completed'. Closed-core Response Actions intent (`submit`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "block-on-error",
+        "intent": "submit",
+        "persistence": "complete-response",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-request-evidence",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Invoke evidence-collection flow; persists current draft. Closed-core Response Actions intent (`request-evidence`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "request-evidence",
+        "persistence": "draft-checkpoint",
+        "profile": "on-demand"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-save-draft",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `save-draft`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'save-draft' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "save-draft",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-autosave",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `autosave`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'autosave' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "autosave",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-review",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `review`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'review' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "review",
+        "persistence": "none",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-submit",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `submit`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'submit' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "block-on-error",
+        "intent": "submit",
+        "persistence": "complete-response",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-request-evidence",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `request-evidence`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'request-evidence' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "request-evidence",
+        "persistence": "draft-checkpoint",
+        "profile": "on-demand"
+      }
     }
   ]
 }
