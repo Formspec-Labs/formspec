@@ -3,6 +3,7 @@
 **Status:** implemented spike - whole-app graph proof, not production infrastructure
 **Lives at:** `formspec/spikes/wireframe-generator-v3/`
 **Based on:** [`2026-05-23-wireframe-generator-spike-v2.md`](./2026-05-23-wireframe-generator-spike-v2.md), [`2026-05-23-wireframe-generator-spike-v2-gaps.md`](./2026-05-23-wireframe-generator-spike-v2-gaps.md), [`../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md`](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md)
+**Production handoff:** [`2026-05-23-wireframe-generator-spike-v3-production-findings.md`](./2026-05-23-wireframe-generator-spike-v3-production-findings.md)
 **Command:** `cd formspec/spikes/wireframe-generator-v3 && npm run test:negative && npm run spike && npx tsc --noEmit`
 
 ## Verdict
@@ -123,4 +124,9 @@ External review gates closed with no open findings:
 - Architecture review after the App Manifest/module-admission remediation: **ACCEPT**.
 - Code review after the runtime Response Actions remediation: **ACCEPT**.
 
-Repo-wide verification status is separate from the spike proof. `npm run docs:generate`, `npm run docs:check`, `npm run check:deps`, and `cargo nextest run --workspace` passed after the v3 commits. `make test` and `python3 -m pytest tests/ -v` are blocked in the current checkout by non-v3 environment/tooling issues recorded during closeout: the generated-types path still expects the pre-demotion Validation Mapping `MasterTable` const, and the Python environments used by the commands lack required JCS/RFC 8785 test dependencies.
+Repo-wide verification passed after review remediation. The child repo closed clean with:
+
+- `make test` passed, including Playwright `301 passed`.
+- `cargo nextest run --workspace` passed with `1358 passed`.
+- `PATH=.venv/bin:$PATH python3 -m pytest tests/ -v` passed with `3337 passed, 10 skipped`.
+- `npm run docs:generate`, `npm run docs:check`, `npm run check:deps`, `git diff --check`, and the focused v3 gates passed.
