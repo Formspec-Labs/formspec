@@ -1,0 +1,10 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/e605" },
+  "tree": {
+    "component": "Section",
+    "id": "header",
+    "title": "Comp A header"
+  }
+}

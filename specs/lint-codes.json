@@ -160,6 +160,42 @@
       "state": "tested"
     },
     {
+      "code": "E603",
+      "pass": 3,
+      "severity": "error",
+      "title": "Module-extensible enum value resolves no closed-core OR declared-module contribution",
+      "specRef": "specs/registry/extension-registry.md#4-naming-rules",
+      "suggestedFix": "add the contributing module to the document's `modules[]` declaration, or change the value to a closed-core member of the enum",
+      "fixtures": [
+        "tests/fixtures/lint/E603-module-enum-unresolved.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E604",
+      "pass": 3,
+      "severity": "error",
+      "title": "Module contribution payload mismatches the contributing module's declared payload schema (MODULE-PAYLOAD-SCHEMA-MISMATCH)",
+      "specRef": "specs/registry/extension-registry.md#32-category-specific-properties",
+      "suggestedFix": "align the consuming-document value to the contributing module's payload schema (widget.widgetShape.props, slot-type.slotShape, unit-kind.semantics, validation-mapping-row.row, or token-category.categoryShape); future module-contributed `Component.component: x-...` widget admittance gates through this pass per ADR 0150 §4.5 (deferred from Task 5)",
+      "fixtures": [
+        "tests/fixtures/lint/E604-module-payload-schema-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E605",
+      "pass": 7,
+      "severity": "error",
+      "title": "Component node id collides with another node in the bundle (COMP-BUNDLE-ID-COLLISION)",
+      "specRef": "specs/component/component-spec.md#31-component-object-base-properties",
+      "suggestedFix": "stamp bundle-unique ids by prefixing colliding ids with the owning Component document's stem (e.g. `headerLogo` in `dashboard.component.json` -> `dashboard.headerLogo`)",
+      "fixtures": [
+        "tests/fixtures/lint/E605-comp-bundle-id-collision/"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W700",
       "pass": 6,
       "severity": "warning",

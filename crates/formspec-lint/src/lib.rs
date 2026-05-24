@@ -5,6 +5,7 @@
 //! Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
+//! Pass 3c (E603/E604): Module contribution resolution + payload-schema validation (ADR 0150 §4.2/§4.3)
 //! Pass 4 (E400): FEL expression compilation
 //! Pass 5 (E500): Dependency cycle detection
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
@@ -27,6 +28,7 @@ mod pass_experience;
 mod pass_issuer;
 mod pass_locale;
 pub mod pass_mapping;
+pub mod pass_modules;
 pub mod pass_ontology;
 mod pass_references_doc;
 mod pass_response_actions;
@@ -87,6 +89,15 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
     if options.schema_only {
         return finalize_lint_result(doc_type, diagnostics, options);
     }
+
+    // Pass 3c: module contribution resolution (E603) + payload-schema validation (E604).
+    // Safe for any doc type — emits nothing when modules[] or registry_documents is absent.
+    let doc_type_name = doc_type_name_for_pass_modules(doc_type);
+    diagnostics.extend(pass_modules::check_module_contributions(
+        doc,
+        doc_type_name,
+        &options.registry_documents,
+    ));
 
     match doc_type {
         DocumentType::Definition => {
@@ -202,6 +213,23 @@ fn lint_component_doc(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<
         options.definition_document.as_ref(),
         options.theme_document.as_ref(),
     ));
+}
+
+/// Map [`DocumentType`] to the string identifier used by
+/// [`pass_modules::check_module_contributions`].
+fn doc_type_name_for_pass_modules(doc_type: DocumentType) -> &'static str {
+    match doc_type {
+        DocumentType::Experience => "experience",
+        DocumentType::Theme => "theme",
+        DocumentType::Mapping => "mapping",
+        DocumentType::Screener => "screener",
+        DocumentType::Changelog => "changelog",
+        // respondent-ledger-event isn't a top-level DocumentType today; the
+        // dispatch surface widens as P1 binds module-extensible enums on more
+        // documents. Leaving "" routes the document past the pass with no
+        // diagnostics (matches the default-module-set behavior).
+        _ => "",
+    }
 }
 
 fn finalize_lint_result(

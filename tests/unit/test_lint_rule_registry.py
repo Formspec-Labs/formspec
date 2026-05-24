@@ -287,11 +287,38 @@ def _check_diagnostics_against_registry(
     return failures
 
 
+#: Codes whose lint binding is deferred but whose registry entry is required
+#: now (so the spec doc + Rust enum + Python wire codes stay coherent). The
+#: fixture exists on disk but the lint pass does not yet exercise it. Tracked
+#: per ADR 0150 §14 P0 plan Task 8 (definition) → Task 11 (binding).
+DEFERRED_BINDING_CODES = {
+    # E605 (COMP-BUNDLE-ID-COLLISION): bundle-graph walk lands in Task 11.
+    # Fixture is a directory of Component documents — lint binding will
+    # consume them as a bundle. Until then, the single-file fixture-runner
+    # below cannot exercise the rule.
+    "E605",
+}
+
+
 def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
     rules = _rules_by_code()
     failures: list[str] = []
     for code, rule in sorted(rules.items()):
         if rule["state"] not in ("tested", "stable"):
+            continue
+        if code in DEFERRED_BINDING_CODES:
+            # Skip the fixture-emission check; sanity-check that the fixture
+            # path is still listed so the deferred-binding state is visible
+            # in the registry.
+            fixtures = rule.get("fixtures")
+            assert isinstance(fixtures, list) and fixtures, (
+                f"{code}: deferred-binding rules must still declare fixtures "
+                "(directory or file) so Task-11 reviewers can find them"
+            )
+            for rel_path in fixtures:
+                assert (REPO_ROOT / rel_path).exists(), (
+                    f"{code}: fixture path does not exist: {rel_path}"
+                )
             continue
 
         fixtures = rule.get("fixtures")

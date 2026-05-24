@@ -1,0 +1,53 @@
+{
+  "$formspecTheme": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/e604" },
+  "modules": [
+    { "id": "x-formspec-presentation", "version": "^0.1.0" }
+  ],
+  "defaults": {
+    "widget": "x-pres-slider",
+    "fallback": ["Slider"],
+    "widgetConfig": {
+      "min": "not-a-number",
+      "max": 10
+    }
+  },
+  "_registryDocuments": [
+    {
+      "$formspecRegistry": "1.0",
+      "publisher": { "name": "Acme" },
+      "entries": [
+        {
+          "name": "x-formspec-presentation",
+          "version": "0.1.0",
+          "status": "stable",
+          "category": "module",
+          "description": "Presentation module — contributes the x-pres-slider widget.",
+          "compatibility": { "formspecVersion": ">=1.0.0" },
+          "contributes": ["x-pres-slider"]
+        },
+        {
+          "name": "x-pres-slider",
+          "version": "0.1.0",
+          "status": "stable",
+          "category": "widget",
+          "description": "Slider widget with numeric min/max/step.",
+          "compatibility": { "formspecVersion": ">=1.0.0" },
+          "widgetShape": {
+            "props": {
+              "type": "object",
+              "properties": {
+                "min": { "type": "number" },
+                "max": { "type": "number" },
+                "step": { "type": "number" }
+              },
+              "additionalProperties": false
+            },
+            "childrenPolicy": "no-children"
+          }
+        }
+      ]
+    }
+  ]
+}

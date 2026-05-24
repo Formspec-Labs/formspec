@@ -1,0 +1,33 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/e603" },
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" }
+  ],
+  "units": [
+    {
+      "id": "u1",
+      "kind": "x-foo-bar",
+      "itemRefs": [{ "path": "name" }]
+    }
+  ],
+  "tasks": [],
+  "_registryDocuments": [
+    {
+      "$formspecRegistry": "1.0",
+      "publisher": { "name": "Acme" },
+      "entries": [
+        {
+          "name": "x-formspec-core-task",
+          "version": "1.0.0",
+          "status": "stable",
+          "category": "module",
+          "description": "Core task module — does not contribute unit-kind 'x-foo-bar'.",
+          "compatibility": { "formspecVersion": ">=1.0.0" },
+          "contributes": ["x-formspec-core-task-noop"]
+        }
+      ]
+    }
+  ]
+}

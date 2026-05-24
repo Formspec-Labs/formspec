@@ -1,0 +1,11 @@
+{
+  "$formspecBundle": "2.0",
+  "title": "E605 fixture — two Component documents stamping the same id `header`",
+  "definitions": [],
+  "registries": [],
+  "components": [
+    { "url": "./comp-a.json" },
+    { "url": "./comp-b.json" }
+  ],
+  "_lintNote": "Bundle-graph walk lands in Task 11; the E605 lint binding currently does NOT fire on this fixture. The Python conformance suite skips the E605 fixture test with pytest.mark.skip until Task 11 binds the pass."
+}
