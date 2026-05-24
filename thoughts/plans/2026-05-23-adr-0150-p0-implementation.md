@@ -14,6 +14,7 @@
 
 - **2026-05-23 r0** — initial plan.
 - **2026-05-23 r1** — applied Round-1 remediations from 4 parallel reviews (`spec-expert` normative-fidelity / `formspec-scout` codebase-grounding / `solutions-architect-validator` architecture-sequencing / `cross-stack-scout` cross-stack-seam-impact). Renumbered tasks to put `modules[]` carry-points + uniform `oneOf` enum convention + ledger identity slots BEFORE the bundle-manifest BREAKING; split old Task 5 into MasterTable / token-registry-retirement / lint-code-definitions; fixed `Generation` $def as a superset of existing `x-generation`; corrected `ModuleRef.id` terminology; un-gated old Task 4 from Task 0; expanded token-registry retirement to acknowledge production-runtime consumers; added Deviations for BREAKING-count, cross-stack coordination, formspec-studio cascade, `$formspecBundle` 2.0 bump; added plugin reference-map regen + stack-level filemap regen to the verification gate; added lint-mirror seeding step.
+- **2026-05-23 r2** — applied Round-2 remediations. (i) Task 6 authoring-identity field renamed `actor` → `authoredBy: AuthorActor` to avoid name collision with the envelope's existing `actor: Actor` (respondent-identity) — verified against `formspec/schemas/respondent-ledger-event.schema.json` line 65 + existing Trellis fixture `trellis/fixtures/vectors/append/018-attachment-bound/input-formspec-respondent-ledger-event.json`. (ii) Task 8 lint-code shape corrected — `pass` is INT (3 for E603/E604 extension-family, 7 for E605 component-family), `state` is `"tested"` not `"stable"` (verified against `formspec/specs/lint-codes.json` rules[0]). (iii) Task 7 adds explicit step to align `packages/formspec-core/src/project.ts` `export()` return shape with `definitions[]` (Pass 2 silent-divergence finding). (iv) Task 12 token-registry consumer enumeration expanded to include `crates/formspec-lint/src/schema_validation.rs`, `scripts/copy-layout-css-assets.mjs`, `scripts/sync-lint-schemas.mjs`, `packages/formspec-layout/{package.json,src/platform-defaults.ts,src/default-theme.json}`. (v) Task 8 uses `pytest.mark.skip(reason="binding lands in Task 11")` on the E605 fixture so the test suite stays green between Task 8 and Task 11 (Pass 3 finding). (vi) Task 4 Surface-exclusion rationale noted (Surface schema doesn't exist at P0; P2 work). (vii) Task 6 notes locale.schema.json double-touch with Task 4. (viii) BREAKING-count Deviation reframed lead-with-merit. (ix) formspec-studio-mcp vendored `lib/schemas/token-registry.schema.json` enumerated in Deviations §Cross-stack coordination. (x) Generation $def preserves the existing `anchors` pattern enforcement. (xi) formspec/ submodule-pointer held-hostage flag added to Task 13 + formspec/TODO.md (Pass 3 finding). (xii) Verification-gate reference-map list adds `mapping-theme-registry.md` (Pass 4 NIT).
 
 ---
 
@@ -145,7 +146,12 @@ ADR §5.3 fixture-audit gate. Zero residual collisions across 53 in-scope Compon
     "source":       { "type": "string", "description": "Existing field: free-form source label (preserved for migration compatibility)." },
     "strategy":     { "type": "string", "description": "Existing field: generation strategy label (preserved)." },
     "generatedAt":  { "type": "string", "format": "date-time", "description": "Existing field: stamping timestamp (preserved)." },
-    "anchors":      { "type": "object", "description": "Existing field: anchor map (see ADR §5.3 anchor-uniqueness invariant). Preserved." },
+    "anchors":      {
+      "type": "object",
+      "description": "Existing field: anchor map (see ADR §5.3 anchor-uniqueness invariant). Preserved with original pattern enforcement.",
+      "additionalProperties": { "type": "string" },
+      "propertyNames": { "pattern": "^(item|unit|task|action|concept):.+$" }
+    },
     "generatedBy": {
       "oneOf": [
         { "type": "string" },
@@ -305,8 +311,10 @@ git commit \
 
 **Files:**
 - Modify: `formspec/schemas/definition.schema.json`, `experience.schema.json`, `component.schema.json`, `response-actions.schema.json`, `theme.schema.json`, `locale.schema.json`, `mapping.schema.json` — add top-level `modules: { type: 'array', items: { $ref: 'common.schema.json#/$defs/ModuleRef' } }` property (NOT required).
-- Mirror to `formspec/crates/formspec-lint/schemas/` for files that have a mirror; for non-mirrored files, do not invent a mirror (see §F12 in Deviations).
+- Mirror to `formspec/crates/formspec-lint/schemas/` for files that have a mirror; for non-mirrored files, do not invent a mirror (see Deviations §Lint-mirror seeding).
 - Update spec prose pointing to the new optional field.
+
+**Surface excluded from this sweep.** ADR §4.3 names Surface among the substrate-consuming documents that gain `modules[]`. `formspec/schemas/surface.schema.json` does not exist at P0 — the Surface module ships at P2 (ADR §14 P2). When Surface lands, the P2 task adds `modules[]` to its schema; not in scope here.
 
 - [ ] **Step 1: Failing fixtures.** Each consuming-doc schema gains a fixture with `modules: [{ id: 'x-formspec-core-task', version: '^1.0.0' }]` that validates; existing form-only fixtures (no `modules`) continue to validate identically (the default-module-set proof per ADR §4.9).
 
@@ -387,30 +395,34 @@ git commit \
 
 ## Task 6 — Ledger identity carrier + Locale module addressing
 
-**ADR refs:** §5.4 (ledger event `actor: AuthorActor`), §5.5 (`respondent-ledger.sessionRefs[]` URN formalization), §4.10 (Locale `$module.<modId>.<nodeId>.<prop>` prefix), §8 (AI carry-points).
+**ADR refs:** §5.4 (ledger event authoring identity), §5.5 (`respondent-ledger.sessionRefs[]` URN formalization), §4.10 (Locale `$module.<modId>.<nodeId>.<prop>` prefix), §8 (AI carry-points).
 
 **Why standalone:** These were "cross-cuts" in r0; reviewers correctly flagged that they need explicit-step coverage, not hand-off to Task 7. Three logically-coupled identity/addressing rewrites in one commit.
 
+**Field-name resolution (r2 — addresses Pass 4 R2 Trellis-fixture concern).** ADR §5.4 prose literally says "Ledger event payloads carry `actor: AuthorActor`," but the envelope's existing top-level `actor: { $ref: Actor }` field (`respondent-ledger-event.schema.json:65`) already holds respondent-identity (`kind: respondent|delegate|system|support-agent|unknown`). The existing Trellis fixture `trellis/fixtures/vectors/append/018-attachment-bound/input-formspec-respondent-ledger-event.json` uses this envelope `actor` with `kind: "respondent"` — naming the new authoring-identity field `actor` too would collide and break the fixture corpus + every Trellis consumer of the schema. Resolving on merit (the ADR's *intent* is "authoring events carry their authoring actor"), this plan adds a new envelope-level top-level field `authoredBy: { $ref: AuthorActor }` rather than overloading `actor`. The existing envelope `actor` (respondent-identity) is unchanged; `authoredBy` is required when `eventType` matches `^(ai\.|user\.)` and optional/absent otherwise. The ADR's prose is interpreted, not edited.
+
 **Files:**
-- Modify: `formspec/schemas/respondent-ledger-event.schema.json` — every event payload gains `actor: { $ref: 'common.schema.json#/$defs/AuthorActor' }` per §5.4. Distinct from the existing envelope-level `Actor` $def at §328 (respondent-identity); the new field rides on the payload.
+- Modify: `formspec/schemas/respondent-ledger-event.schema.json` — add new envelope-level top-level optional field `authoredBy: { $ref: 'common.schema.json#/$defs/AuthorActor' }`. Add an `if/then` conditional that requires `authoredBy` when `eventType` matches the authoring-event pattern (`^(ai\.|user\.)` or any `^x-` event published as an authoring event by an `^x-`-contributing module). Envelope-level existing `actor: { $ref: Actor }` (respondent-identity per §328) is untouched.
 - Modify: `formspec/schemas/respondent-ledger.schema.json` — `sessionRefs[]` formalized from `string[]` to URN references resolving against App Manifest `sessions[]` (§5.5). Update item shape to `{ type: 'string', pattern: '^urn:formspec:session:.+' }` and update field description to pin the cross-ref contract.
-- Modify: `formspec/schemas/locale.schema.json` — key-pattern surgery to admit `$module.<modId>.<nodeId>.<prop>` as a sixth prefix alongside the existing five (`$form.` / `$shape.` / `$page.` / `$optionSet.` / `$component.<id>.<prop>` per locale.schema.json §126–128).
+- Modify: `formspec/schemas/locale.schema.json` — key-pattern surgery to admit `$module.<modId>.<nodeId>.<prop>` as a sixth prefix alongside the existing five (`$form.` / `$shape.` / `$page.` / `$optionSet.` / `$component.<id>.<prop>` per locale.schema.json:125–128 `propertyNames.pattern` mechanism). **Note: locale.schema.json was also modified in Task 4 (top-level `modules[]` addition); this commit extends it further — work from the Task 4 state.**
 - Mirror per existing mirror set.
 
-- [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:spec-expert` verifies the three carrier shapes against §5.4/§5.5/§4.10.
+- [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:spec-expert` verifies the three carrier shapes against §5.4/§5.5/§4.10 AND the `authoredBy` rename rationale; cross-check the Trellis fixture corpus stays valid (envelope `actor` unchanged means `kind: 'respondent'` still validates).
 
 - [ ] **Step 2: Failing fixtures.**
-  - Ledger event with payload missing `actor` → was valid, should now fail (greenfield posture).
-  - Ledger event with payload `actor: { id: 'urn:formspec:actor:human:alice', kind: 'human', actChannel: 'human' }` → validates.
+  - Authoring event (`eventType: 'ai.command-issued'`) without `authoredBy` → fails.
+  - Authoring event with `authoredBy: { id: 'urn:formspec:actor:ai-agent:wireframes-mcp', kind: 'ai-agent', actChannel: 'mcp' }` → validates.
+  - Non-authoring event (`eventType: 'attachment.added'`) without `authoredBy` → validates (field optional).
+  - Existing Trellis-shape envelope (`actor.kind: 'respondent'`, no `authoredBy`, `eventType: 'attachment.added'`) → validates (regression-proof against the Trellis fixture corpus).
   - Ledger with `sessionRefs: ['urn:formspec:session:abc']` validates; with `sessionRefs: ['plain-string']` rejects.
   - Locale doc with `'$module.x-formspec-conversation.chatThread.label': 'Threads'` validates; with `'$bogus.foo.bar': 'x'` still rejects.
 
 - [ ] **Step 3: Run** — fail.
 
 - [ ] **Step 4: Implement.**
-  - respondent-ledger-event: add `actor: { $ref: 'common.schema.json#/$defs/AuthorActor' }` as required on the payload object for closed-core `ai.*` and `user.*` events and for `^x-`-contributed types (uniform). Spec prose notes the envelope's existing `Actor` $def remains respondent-identity; the new `actor` is authoring-identity per §5.4.
+  - respondent-ledger-event: add envelope-level `authoredBy: { $ref: 'common.schema.json#/$defs/AuthorActor' }`. Add an `if/then` block at root: `if: { properties: { eventType: { pattern: '^(ai\\.|user\\.)' } } }, then: { required: ['authoredBy'] }`. Spec prose distinguishes the two identities: envelope `actor` answers "in what respondent context did this event happen?" (envelope-level Actor, respondent-identity); envelope `authoredBy` answers "who issued the authoring op?" (AuthorActor, authoring-identity).
   - respondent-ledger.sessionRefs: tighten items to URN pattern; update description.
-  - locale: extend the key-pattern (whichever mechanism today's locale.schema.json uses — `propertyNames.pattern` likely) to include the `$module.<modId>.<nodeId>.<prop>` form. modId follows §4.8 `^x-` regex; nodeId and prop are free-form identifiers.
+  - locale: extend `propertyNames.pattern` to include the `$module.<modId>.<nodeId>.<prop>` form. modId follows §4.8 `^x-` regex; nodeId and prop are free-form identifiers.
 
 - [ ] **Step 5: Run** — green.
 
@@ -426,10 +438,10 @@ git commit \
   formspec/crates/formspec-lint/schemas/ \
   formspec/specs/ formspec/tests/ \
   $(git diff --name-only formspec/specs formspec/filemap.json) \
-  -m "feat(adr-0150): ledger event actor + sessionRefs URN + Locale \$module prefix (§5.4/§5.5/§4.10)"
+  -m "feat(adr-0150): ledger event authoredBy: AuthorActor + sessionRefs URN + Locale \$module prefix (§5.4/§5.5/§4.10)"
 ```
 
-- [ ] **Step 8: Code review** — `formspec-specs:formspec-scout` runs `semi-formal-code-review` (cross-stack-sensitive: ledger schemas are consumed by Trellis prose + formspec-web; see Deviations §Cross-stack coordination).
+- [ ] **Step 8: Code review** — `formspec-specs:formspec-scout` runs `semi-formal-code-review` (cross-stack-sensitive: ledger schemas are consumed by Trellis fixture corpus + formspec-web; see Deviations §Cross-stack coordination). The `authoredBy` rename keeps the Trellis fixture corpus valid by construction — the schema-conformance test exercises this directly via the regression fixture in Step 2.
 
 ---
 
@@ -446,6 +458,7 @@ git commit \
   - `formspec/tests/conformance/schemas/test_bundle_manifest_schema.py` (Python schema-conformance test).
   - `formspec/tests/conformance/fixtures/bundle/` (if present) + `tests/e2e/fixtures/kitchen-sink-holistic/bundle.json` (one existing fixture).
   - `formspec/tests/conformance/fixtures/regeneration-merge/` (paused plan, no active dependency).
+  - **Parallel `project.export()` shape** at `formspec/packages/formspec-core/src/project.ts` returns `{ definition, component, theme, mappings }` (SINGULAR `definition`) consumed by `packages/formspec-core/tests/queries.test.ts:1442-1456`, `e2e.test.ts:53`, `export-schema-validity.test.ts:26`. This is a TypeScript export shape that mirrors the OLD bundle-manifest design without schema validation — Pass 2 (R2 HIGH-2) flagged this as silent-divergence risk per formspec `CLAUDE.md` §Development Philosophy ("silent disagreement between layers is architectural debt"). Task 7 includes a step to align this return type with the new `definitions[]` shape (see Step 6 below).
   - Studio-side bundle export at `formspec-studio/packages/formspec-studio/src/lib/export-zip.ts` — out of scope per Deviations §formspec-studio cascade.
 
 - [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:formspec-scout` walks the actual consumer surface (grep `BundleManifest`/`bundle.definition`/`manifest.definition` across `formspec/crates`, `formspec/packages`, `formspec/src/formspec`). Confirm scope; surface anything missed.
@@ -458,7 +471,9 @@ git commit \
 
 - [ ] **Step 5: Update Python conformance test.** `tests/conformance/schemas/test_bundle_manifest_schema.py` follows the new shape. Migrate existing fixtures to the new shape (or add new ones; existing single-`definition` fixtures need to become `definitions[]: [...]`).
 
-- [ ] **Step 6: Spec rename.** `mv formspec/specs/bundle/bundle-manifest-spec.md formspec/specs/bundle/app-manifest-spec.md`; update internal references; update doc-generation pointers if any.
+- [ ] **Step 6: Align `project.export()` return type** in `formspec/packages/formspec-core/src/project.ts` from singular `{ definition, component, theme, mappings }` to `{ definitions, component, theme, mappings }`. Update consumer tests at `packages/formspec-core/tests/queries.test.ts:1442-1456`, `e2e.test.ts:53`, `export-schema-validity.test.ts:26` to follow the new shape. This closes the silent-divergence risk Pass 2 (R2 HIGH-2) flagged; the in-memory shape now mirrors the schema's `definitions[]`.
+
+- [ ] **Step 6b: Spec rename.** `mv formspec/specs/bundle/bundle-manifest-spec.md formspec/specs/bundle/app-manifest-spec.md`; update internal references; update doc-generation pointers if any.
 
 - [ ] **Step 7: Run** — green.
 
@@ -505,44 +520,47 @@ EOF
 - Modify (auto-regenerated): `formspec/crates/formspec-lint/src/generated/lint_code.rs` — regenerated by `scripts/generate-lint-codes.mjs` (wired into `docs:generate` per Pass 2).
 - Implement lint passes for `E603` (module-enum value resolution: walk every enum-extensible enum value in a document, verify resolution against closed-core OR a declared module's contributions) and `MODULE-PAYLOAD-SCHEMA-MISMATCH` (cross-validate consuming-document values against the contributing module's payload shape — Theme `widgetConfig` against `widgetShape.props`, Surface slot bindings against `slotShape`, etc.). `COMP-BUNDLE-ID-COLLISION` lint pass binds in Task 11.
 
-**Numeric codes (max existing E-code is E1803 per Pass 2; E600/E601/E602 are extension-family codes, so E603 fits the family):**
+**Numeric codes + pass + state (verified against `specs/lint-codes.json` at HEAD — `pass` is INT 1–9; `state` is `"tested"` uniformly; E600–E602 extension-family codes use `pass: 3`).** The three new codes:
+- E603 — extension/registry resolution family → `pass: 3` (same family as E600/E601/E602).
+- E604 — extension/registry payload validation family → `pass: 3`.
+- E605 — bundle-aware component invariant → `pass: 7` (component pass, extended to bundle-graph scope).
 
 ```jsonc
 // specs/lint-codes.json additions
 
 {
   "code": "E603",
-  "pass": "registry",
+  "pass": 3,
   "severity": "error",
   "title": "Module-extensible enum value resolves no closed-core OR declared-module contribution",
   "specRef": "thoughts/adr/0150-formspec-as-layered-ui-substrate.md#43-document-level-modules-declaration",
-  "suggestedFix": "Either change the value to a closed-core member of the enum, or declare a module in the document's `modules[]` that contributes the value.",
+  "suggestedFix": "add the contributing module to the document's `modules[]` declaration, or change the value to a closed-core member of the enum",
   "fixtures": ["tests/fixtures/lint/E603-module-enum-unresolved.json"],
-  "state": "stable"
+  "state": "tested"
 },
 {
   "code": "E604",
-  "pass": "registry",
+  "pass": 3,
   "severity": "error",
   "title": "Module contribution payload mismatches the contributing module's declared payload schema (MODULE-PAYLOAD-SCHEMA-MISMATCH)",
   "specRef": "thoughts/adr/0150-formspec-as-layered-ui-substrate.md#42-new-contribution-categories",
-  "suggestedFix": "Inspect the contributing module's payload schema (widget.widgetShape.props, slot-type.slotShape, unit-kind.semantics, validation-mapping-row.row, or token-category.categoryShape) and align the consuming-document value to it.",
+  "suggestedFix": "align the consuming-document value to the contributing module's payload schema (widget.widgetShape.props, slot-type.slotShape, unit-kind.semantics, validation-mapping-row.row, or token-category.categoryShape)",
   "fixtures": ["tests/fixtures/lint/E604-module-payload-schema-mismatch.json"],
-  "state": "stable"
+  "state": "tested"
 },
 {
   "code": "E605",
-  "pass": "bundle",
+  "pass": 7,
   "severity": "error",
   "title": "Component node id collides with another node in the bundle (COMP-BUNDLE-ID-COLLISION)",
   "specRef": "thoughts/adr/0150-formspec-as-layered-ui-substrate.md#53-anchor-and-id-uniqueness-under-per-view-grain",
-  "suggestedFix": "Stamp bundle-unique ids by prefixing colliding ids with the owning Component document's stem (e.g. `headerLogo` in `dashboard.component.json` → `dashboard.headerLogo`).",
-  "fixtures": ["tests/fixtures/lint/E605-comp-bundle-id-collision.json"],
-  "state": "stable"
+  "suggestedFix": "stamp bundle-unique ids by prefixing colliding ids with the owning Component document's stem (e.g. `headerLogo` in `dashboard.component.json` → `dashboard.headerLogo`)",
+  "fixtures": ["tests/fixtures/lint/E605-comp-bundle-id-collision/"],
+  "state": "tested"
 }
 ```
 
-Aliases `MODULE-PAYLOAD-SCHEMA-MISMATCH` (E604) and `COMP-BUNDLE-ID-COLLISION` (E605) are retained in titles + spec refs so prose citations resolve unambiguously.
+Aliases `MODULE-PAYLOAD-SCHEMA-MISMATCH` (E604) and `COMP-BUNDLE-ID-COLLISION` (E605) are retained in titles + spec refs so prose citations resolve unambiguously. The E605 fixture is a directory because bundle-graph collision requires ≥2 Component documents.
 
 - [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:spec-expert` cross-checks lint code numbering + spec-ref pins.
 
@@ -555,9 +573,11 @@ Aliases `MODULE-PAYLOAD-SCHEMA-MISMATCH` (E604) and `COMP-BUNDLE-ID-COLLISION` (
 
 - [ ] **Step 4: Implement E603 + E604 lint passes** in `formspec/crates/formspec-lint/src/`. E605 implementation is in Task 11.
 
+- [ ] **Step 4a: Skip the E605 fixture until Task 11 binds the lint.** Mark the E605 fixture test with `@pytest.mark.skip(reason="E605 lint binding lands in Task 11 (bundle-unique id invariant)")` in the Python conformance suite and the Rust equivalent (`#[ignore = "..."]` on the test fn) so the test suite stays green between this commit and Task 11. Task 11 Step 4 removes the skip when the binding lands.
+
 - [ ] **Step 5: Regenerate generated lint code** — `npm run docs:generate` (calls `scripts/generate-lint-codes.mjs` which writes `crates/formspec-lint/src/generated/lint_code.rs`).
 
-- [ ] **Step 6: Run** — green for E603/E604; E605 fixture stays failing until Task 11.
+- [ ] **Step 6: Run** — green for E603/E604; E605 fixture skipped until Task 11 (test suite stays green).
 
 - [ ] **Step 7: Regenerate docs.**
 
@@ -682,7 +702,7 @@ git commit \
 
 - [ ] **Step 3: Run** — expect lint failure (binding not yet plumbed).
 
-- [ ] **Step 4: Implement lint binding.** Bundle-graph walk in `formspec-lint`: load App Manifest, resolve every `SiblingRef` to a Component document, parse nodes, build `(id → [doc, nodePath])` index, emit `E605` per duplicate. Re-use the Task 0 vendored script's walker logic as a reference (`tests/conformance/tools/comp_bundle_id_audit.py`) — the lint binding is the Rust analogue.
+- [ ] **Step 4: Implement lint binding + un-skip the E605 fixture.** Bundle-graph walk in `formspec-lint`: load App Manifest, resolve every `SiblingRef` to a Component document, parse nodes, build `(id → [doc, nodePath])` index, emit `E605` per duplicate. Re-use the Task 0 vendored script's walker logic as a reference (`tests/conformance/tools/comp_bundle_id_audit.py`) — the lint binding is the Rust analogue. Remove the `pytest.mark.skip` (and Rust `#[ignore]`) on the E605 fixture added in Task 8 Step 4a so the test now actually runs and validates the binding.
 
 - [ ] **Step 5: Update `ComponentBase.id` description** — per §5.3, the schema can't enforce graph uniqueness; the documented invariant + lint do.
 
@@ -720,13 +740,15 @@ EOF
 
 **Why standalone + late in the order:** Pass 2 codebase grounding revealed `schemas/token-registry.json` is a **production-runtime document**, not a fixture, consumed across the codebase: `scripts/generate-theme-from-registry.mjs` (in `npm run docs:generate`), `packages/formspec-layout/src/token-registry.json` + `dist/`, `packages/formspec-webcomponent/dist/`, `crates/formspec-lint/src/pass_theme/token_registry.rs`. The retirement is the schema's retirement; the runtime canonical document survives at `packages/formspec-layout/src/token-registry.json`.
 
-**Files:**
+**Files (expanded per Pass 2 R2 HIGH-3 — earlier list missed 4–6 consumers):**
 - Delete: `formspec/schemas/token-registry.schema.json`.
 - Delete: `formspec/crates/formspec-lint/schemas/token-registry.schema.json` (mirror).
-- Modify: `formspec/scripts/generate-theme-from-registry.mjs` — when validating the token registry document, validate it against the unified Registry's `token-category` contribution shape (Task 2) instead of the retired schema. The runtime canonical document at `packages/formspec-layout/src/token-registry.json` continues to be the read source.
+- Modify: `formspec/scripts/generate-theme-from-registry.mjs` — re-route to unified Registry's `token-category` contribution shape (Task 2). Runtime canonical document at `packages/formspec-layout/src/token-registry.json` continues to be the read source.
 - Modify: `formspec/crates/formspec-lint/src/pass_theme/token_registry.rs` — re-route the lint pass to validate against the unified Registry shape.
-- Modify: any in-repo reference to `token-registry.schema.json` — `grep -rln 'token-registry.schema.json' formspec/` and migrate references to point at the Registry-resolved equivalent.
+- Modify (newly enumerated per Pass 2 R2): `formspec/crates/formspec-lint/src/schema_validation.rs` (refs the retired schema), `formspec/scripts/copy-layout-css-assets.mjs` (may ref schema or document — verify which), `formspec/scripts/sync-lint-schemas.mjs` (refs schema in mirror sync list), `formspec/packages/formspec-layout/package.json` (may declare schema-export), `formspec/packages/formspec-layout/src/platform-defaults.ts` (may ref schema for type), `formspec/packages/formspec-layout/src/default-theme.json` (may ref schema for validation hint).
+- Modify: any other in-repo reference to `token-registry.schema.json` — final sweep: `grep -rln 'token-registry.schema.json' formspec/` and migrate references to point at the Registry-resolved equivalent.
 - Preserve `formspec/schemas/token-registry.json` AS-IS — that's the production-runtime canonical document; it doesn't retire.
+- Preserve vendored copies (out of P0 scope, post-P0 cascade per Deviations): `formspec-web/src/theme/upstream/layout/token-registry.json`, `formspec-webcomponent/dist/token-registry.json`, **`formspec-studio/packages/formspec-mcp/lib/schemas/token-registry.schema.json`** (the studio-MCP vendored schema copy flagged by Pass 4 R2 — ships as a stale schema post-P0 until studio cascade lands).
 
 - [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:spec-expert` confirms the migration path: schema retires, document survives, lint pass + theme generator re-target unified Registry. Cross-reference §4.2 prose about "folds into the unified Registry as a contribution profile".
 
@@ -789,10 +811,11 @@ EOF
 - [ ] `python3 -m pytest tests/ -v` — green.
 - [ ] `make test` — green (umbrella incl. Playwright E2E + sync-lint-schemas pre-step).
 - [ ] **Stack-level filemap regen** — `node /Users/mikewolfd/Work/formspec-stack/scripts/generate-filemap.mjs` from stack root; commit if it produces changes.
-- [ ] **Plugin reference-map regen** — invoke `formspec-specs:update-spec-nav` skill from parent stack to refresh `.claude-plugin/skills/formspec-specs/references/schemas/*.md` and `SKILL.md`. Affected maps: `common.md`, `registry.md`, `component.md`, `experience.md`, `response-actions.md`, `validation-mapping.md`, `trace-index.md`, `respondent-ledger.md`, `respondent-ledger-event.md`, `posture-declaration.md`, `bundle-manifest.md` (→ `app-manifest.md` rename), `locale.md`. Token-registry map (`references/schemas/token-registry.md`) deletes per Task 12.
+- [ ] **Plugin reference-map regen** — invoke `formspec-specs:update-spec-nav` skill from parent stack to refresh `.claude-plugin/skills/formspec-specs/references/schemas/*.md` and `SKILL.md`. Affected maps: `common.md`, `registry.md`, `component.md`, `experience.md`, `response-actions.md`, `validation-mapping.md`, `trace-index.md`, `respondent-ledger.md`, `respondent-ledger-event.md`, `posture-declaration.md`, `bundle-manifest.md` (→ `app-manifest.md` rename), `locale.md`, **`mapping-theme-registry.md`** (cross-cites token-registry per Pass 4 R2 NIT — verify auto-regen covers cross-citations or update manually). Token-registry map (`references/schemas/token-registry.md`) deletes per Task 12.
 - [ ] Two scout/expert reviewers (cross-stack-scout + spec-expert, OR formspec-scout + spec-expert) both return zero open findings on the entire P0 work.
-- [ ] Submodule pointer in parent ready for owner-approved push.
-- [ ] `formspec/TODO.md` updated with P1 carry-over (republish core vocabularies as modules; AI-runtime module; Surface module v0.1; per-class governance for module widgets [ADR 0152]; cross-stack coordination commits per Deviations).
+- [ ] **Submodule-pointer held-hostage flag.** Between Task 6 (ledger schema changes) and the post-P0 cross-stack coordination commits (formspec-web, trellis, work-spec, formspec-studio), the parent-stack submodule pointer for `formspec/` cannot be pushed without breaking downstream sibling repos at HEAD. Flag explicitly in `formspec/TODO.md` so a future agent doesn't blind-bump the parent pointer. Per stack `CLAUDE.md` §Submodule discipline, "a change crossing N submodules takes N+1 commits."
+- [ ] Submodule pointer in parent ready for **owner-approved** push (NOT auto-bumped — hold per the held-hostage flag above).
+- [ ] `formspec/TODO.md` updated with P1 carry-over (republish core vocabularies as modules; AI-runtime module; Surface module v0.1; per-class governance for module widgets [ADR 0152]; cross-stack coordination commits per Deviations; lint-mirror seeding for bundle-manifest/posture-declaration/respondent-ledger-event/trace-index).
 
 ---
 
@@ -802,7 +825,7 @@ EOF
 
 ### r1 (2026-05-23) — Round-1 review remediations
 
-**BREAKING-count clarification.** The /goal directive says "three BREAKINGs per ADR §11.2." Two independent reviewers (Pass 1 normative-fidelity + Pass 3 architecture-sequencing) observed ADR §11.2 enumerates exactly **two** explicit BREAKINGs: bundle-manifest reframe (Task 7) and `ComponentBase.id` uplift (Task 11). This plan ships **four** BREAKING-marked commits total: those two + token-registry.schema.json retirement (Task 12) + MasterTable four-constraint demotion (Task 9). Rationale on merit (not "ADR omission" or "/goal miscount"): each is a real API contract change for downstream consumers, and fail-loud BREAKING markers in the commit log serve the consumer (they signal "re-validate against this version"). Suppressing the marker to match a stated count would mis-serve the consumer. The four-count stands.
+**BREAKING-count clarification.** This plan ships **four** BREAKING-marked commits: bundle-manifest reframe (Task 7), MasterTable four-constraint demotion (Task 9), `ComponentBase.id` uplift (Task 11), token-registry.schema.json retirement (Task 12). Justification on merit: each is a real API contract change for downstream consumers; fail-loud BREAKING markers in the commit log serve the consumer (they signal "re-validate against this version") and serve future code archaeology. Suppressing markers to match a stated count mis-serves the consumer. Confirming data points: ADR §11.2 enumerates two of these four (bundle-manifest reframe + `ComponentBase.id` uplift); the /goal directive states "three BREAKINGs per ADR §11.2." Both are snapshots, neither binding — the consumer-clarity argument decides.
 
 **`$formspecBundle` const bump to "2.0".** ADR §5.2 leaves the bump optional ("appropriate if the audit prefers a hard version pin"). This plan bumps `$formspecBundle` from `"1.0"` → `"2.0"` on the App Manifest reframe (Task 7) because the structural change is non-trivial and a hard version pin is the cheapest way to make strict-validating consumers fail-loud rather than silently mis-parse.
 
@@ -816,6 +839,7 @@ EOF
 - `work-spec/crates/wos-formspec-binding/src/lib.rs:2641` — emits literal `ledgerHeadRef` URN; URN scheme unchanged by P0; safe.
 - `work-spec/CLAUDE.md:117` notes the in-flight Trellis rename `respondent-ledger-spec.md → case-ledger-spec.md`; coordinate post-P0.
 - `formspec-studio/packages/formspec-studio-core/` (project.ts, preview-documents.ts, export-zip.ts, token-registry.ts) — every BREAKING in this plan cascades into formspec-studio. ADR 0151 §10 explicitly retires `proposal-manager.ts` as a P1+ formspec-studio refactor. Studio breakage post-P0 is intentional and expected; the parent-stack submodule-pointer bump for formspec-studio is post-P0.
+- `formspec-studio/packages/formspec-mcp/lib/schemas/token-registry.schema.json` (vendored schema copy) — Pass 4 R2 flagged: ships as a stale schema copy post-P0 until studio cascade migrates it. Either deletes (preferred) or migrates to the unified Registry shape during the studio cascade. Out of P0 scope.
 - `formspec-web/src/theme/upstream/layout/token-registry.json` (vendored copy) — Task 12 doesn't touch the document, only the schema; vendored copy stays valid as runtime canonical.
 
 This Deviation flags the cross-stack work; the actual coordination commits are scheduled post-P0 per stack `CLAUDE.md` §Submodule discipline (one commit per affected submodule + a parent commit bumping pointers).
