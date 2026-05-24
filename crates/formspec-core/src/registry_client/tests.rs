@@ -861,7 +861,11 @@ fn registry_entry_module_carries_contributes() {
         7,
         "x-formspec-core-task should bundle 7 unit-kind contributions"
     );
-    assert!(contributes.iter().any(|n| n == "x-formspec-core-task-data-entry"));
+    assert!(
+        contributes
+            .iter()
+            .any(|n| n == "x-formspec-core-task-data-entry")
+    );
 }
 
 #[test]
@@ -869,7 +873,9 @@ fn registry_entry_unit_kind_carries_semantics() {
     let json_str = include_str!("../../../../registries/formspec-common.registry.json");
     let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
     let reg = Registry::from_json(&val).unwrap();
-    let entry = reg.find_one("x-formspec-core-task-data-entry", None).unwrap();
+    let entry = reg
+        .find_one("x-formspec-core-task-data-entry", None)
+        .unwrap();
     assert_eq!(entry.category, ExtensionCategory::UnitKind);
     let sem = entry
         .semantics
@@ -887,7 +893,9 @@ fn registry_entry_widget_carries_widget_shape() {
     let json_str = include_str!("../../../../registries/formspec-common.registry.json");
     let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
     let reg = Registry::from_json(&val).unwrap();
-    let entry = reg.find_one("x-formspec-core-component-textinput", None).unwrap();
+    let entry = reg
+        .find_one("x-formspec-core-component-textinput", None)
+        .unwrap();
     assert_eq!(entry.category, ExtensionCategory::Widget);
     let shape = entry
         .widget_shape
@@ -905,7 +913,9 @@ fn registry_entry_action_intent_carries_validation() {
     let json_str = include_str!("../../../../registries/formspec-common.registry.json");
     let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
     let reg = Registry::from_json(&val).unwrap();
-    let entry = reg.find_one("x-formspec-core-actions-intent-submit", None).unwrap();
+    let entry = reg
+        .find_one("x-formspec-core-actions-intent-submit", None)
+        .unwrap();
     assert_eq!(entry.category, ExtensionCategory::ActionIntent);
     let v = entry
         .validation
@@ -919,7 +929,9 @@ fn registry_entry_validation_mapping_row_carries_row() {
     let json_str = include_str!("../../../../registries/formspec-common.registry.json");
     let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
     let reg = Registry::from_json(&val).unwrap();
-    let entry = reg.find_one("x-formspec-core-actions-row-submit", None).unwrap();
+    let entry = reg
+        .find_one("x-formspec-core-actions-row-submit", None)
+        .unwrap();
     assert_eq!(entry.category, ExtensionCategory::ValidationMappingRow);
     let r = entry
         .row

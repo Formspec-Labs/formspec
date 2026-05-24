@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/surface/0.1",
+  "title": "Formspec Surface (v0.1)",
+  "description": "A Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition.",
+  "type": "object",
+  "required": ["$formspecSurface", "id", "entry", "routes"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecSurface": {
+      "type": "string",
+      "const": "0.1",
+      "description": "Surface specification version. MUST be '0.1'.",
+      "examples": ["0.1"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for surface document compatibility"
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "description": "Stable identifier for this Surface document. Unique within the bundle."
+    },
+    "modules": {
+      "type": "array",
+      "description": "OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash). Per ADR 0150 §4.3. Default-module-set behavior preserves form-only documents (omitting modules[] is identical to declaring the core module set).",
+      "items": {
+        "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
+      },
+      "examples": [
+        [
+          { "id": "x-formspec-surface", "version": "^0.1.0" },
+          { "id": "x-formspec-core-task", "version": "^1.0.0" }
+        ]
+      ]
+    },
+    "entry": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "description": "ID of the entry route. MUST resolve to a routes[].id in this document. The route-graph connectedness lint (E606) walks the graph from this entry to verify reachability."
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Route" },
+      "description": "Routes defined by this Surface. Each route names a path, binds slots, and optionally declares transitions."
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title for this Surface."
+    },
+    "description": {
+      "type": "string"
+    },
+    "extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Route": {
+      "type": "object",
+      "required": ["id", "path", "slots"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Route ID. Unique within this Surface's routes[]. Targeted by surface:<route-id> URI scheme from Screener terminal-hops (ADR §7) and by embed-route slot bindings (§6.2)."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "URL-style path for this route. SHOULD start with '/'. v0.1 admits any non-empty string; future revs MAY pin RFC 6570 URI Template semantics if path parameters are formalized.",
+          "examples": ["/", "/home", "/matter/:matterId", "/admin/users"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable route title (for navigation chrome, breadcrumbs, etc.)."
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Slot" },
+          "description": "Slots bound on this route. Each slot has a typed binding per §6.2 closed taxonomy. v0.1 does NOT pin slot positions in the schema — `position` is an optional renderer hint. Each slot has exactly one slotType discriminator."
+        },
+        "transitions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Transition" },
+          "description": "OPTIONAL outgoing transitions from this route. Each transition names a trigger, target route, and optional when-condition. Used by the lint route-graph walker to compute reachability."
+        }
+      }
+    },
+    "Slot": {
+      "type": "object",
+      "required": ["id", "slotType", "binding"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Slot ID. Unique within the enclosing route."
+        },
+        "slotType": {
+          "type": "string",
+          "enum": [
+            "definition-form",
+            "experience-unit",
+            "module-widget",
+            "static-content",
+            "embed-route"
+          ],
+          "description": "Closed v0.1 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Closed at v0.1 — extensions land via the module Registry's `slot-type` contribution category in a future rev.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Closed slot-type discriminator pinning binding shape per ADR 0150 §6.2"
+          }
+        },
+        "position": {
+          "type": "string",
+          "description": "OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.1 carries no normative position vocabulary."
+        },
+        "title": {
+          "type": "string"
+        },
+        "binding": {
+          "type": "object",
+          "description": "Typed binding payload. Shape determined by slotType per the allOf gates."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "slotType": { "const": "definition-form" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["definitionRef"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "definitionRef": {
+                    "type": "string",
+                    "description": "Reference to a Definition. Resolves to a bundle-manifest definitions[] entry by URL or to an in-bundle Definition by id."
+                  },
+                  "presentation": {
+                    "type": "string",
+                    "description": "OPTIONAL presentation hint (e.g. 'inline', 'wizard', 'modal'). Renderer-defined vocabulary at v0.1."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "experience-unit" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["unitRef"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "experienceRef": {
+                    "type": "string",
+                    "description": "OPTIONAL reference to a specific Experience document (by URL or in-bundle id). Disambiguates when the bundle has multiple Experiences."
+                  },
+                  "unitRef": {
+                    "type": "string",
+                    "description": "ID of the Experience unit this slot binds. MUST resolve to a units[].id in the resolved Experience document."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "module-widget" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["moduleId", "widgetName"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "moduleId": {
+                    "type": "string",
+                    "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+                    "description": "ID of the module supplying the widget. MUST appear in the document's modules[] declaration (lint E603 enforces resolution at lint time)."
+                  },
+                  "widgetName": {
+                    "type": "string",
+                    "description": "Widget name supplied by the module (matches widgetShape.widgetName per the widget contribution payload convention)."
+                  },
+                  "config": {
+                    "type": "object",
+                    "description": "OPTIONAL widget configuration. Validated against the widget contribution's widgetShape.props by lint E604."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "static-content" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["kind", "content"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": ["heading", "text", "image", "divider"],
+                    "description": "Static content kind. Closed at v0.1 — these are the four shapes Surface guarantees renderers know how to display without consulting a module."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Inline literal content. For 'heading'/'text': the text. For 'image': a URL or asset ref. For 'divider': may be empty."
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6,
+                    "description": "OPTIONAL heading level (1-6). Only meaningful when kind='heading'."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slotType": { "const": "embed-route" } },
+            "required": ["slotType"]
+          },
+          "then": {
+            "properties": {
+              "binding": {
+                "type": "object",
+                "required": ["routeRef"],
+                "additionalProperties": false,
+                "patternProperties": { "^x-": {} },
+                "properties": {
+                  "routeRef": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+                    "description": "ID of another route within this Surface. The route-graph lint (E606) treats embed-route bindings as edges in the reachability graph (same as transitions)."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "description": "OPTIONAL embed mode hint (e.g. 'modal', 'panel', 'dialog'). Renderer-defined vocabulary at v0.1."
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Transition": {
+      "type": "object",
+      "required": ["trigger", "to"],
+      "additionalProperties": false,
+      "patternProperties": { "^x-": {} },
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "description": "Transition trigger. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a Response Actions intent value (per x-formspec-core-actions). The trigger fires the transition when the action runs to completion.",
+          "examples": ["submit", "actionRef:nextStep", "review"]
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Target route id within this Surface. Edge in the route-graph for E606 reachability."
+        },
+        "when": {
+          "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/FELExpression",
+          "description": "OPTIONAL FEL condition gating this transition. Renderer evaluates against current bundle state."
+        }
+      }
+    }
+  }
+}

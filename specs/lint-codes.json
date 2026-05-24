@@ -196,6 +196,30 @@
       "state": "tested"
     },
     {
+      "code": "E606",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface route is not reachable from the entry route (SURFACE-ROUTE-UNREACHABLE)",
+      "specRef": "specs/surface/surface-spec.md#route-graph-reachability",
+      "suggestedFix": "add a transition from a reachable route, embed the unreachable route via an embed-route slot, or remove the unreachable route declaration",
+      "fixtures": [
+        "tests/fixtures/lint/E606-surface-route-unreachable.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E607",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface embed-route slot binding references a route that does not exist in this surface (SURFACE-SLOT-BINDING-UNRESOLVED)",
+      "specRef": "specs/surface/surface-spec.md#slot-binding-validity",
+      "suggestedFix": "change binding.routeRef to an existing route id in this surface's routes[], or add the missing route declaration",
+      "fixtures": [
+        "tests/fixtures/lint/E607-surface-slot-binding-unresolved.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W700",
       "pass": 6,
       "severity": "warning",

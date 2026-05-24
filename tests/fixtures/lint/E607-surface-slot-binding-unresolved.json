@@ -1,0 +1,20 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "caseDashboard",
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "missingEmbed",
+          "slotType": "embed-route",
+          "binding": {
+            "routeRef": "missingRoute"
+          }
+        }
+      ]
+    }
+  ]
+}

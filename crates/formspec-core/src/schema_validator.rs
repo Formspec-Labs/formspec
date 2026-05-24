@@ -33,6 +33,10 @@ pub enum DocumentType {
     FelFunctions,
     Screener,
     Determination,
+    /// Surface document per ADR 0150 §6 — composition primitive that names
+    /// routes and binds slots (definition-form, experience-unit, module-widget,
+    /// static-content, embed-route). Marker field `$formspecSurface`.
+    Surface,
 }
 
 impl DocumentType {
@@ -59,6 +63,7 @@ impl DocumentType {
             DocumentType::FelFunctions => "fel_functions",
             DocumentType::Screener => "screener",
             DocumentType::Determination => "determination",
+            DocumentType::Surface => "surface",
         }
     }
 
@@ -91,6 +96,7 @@ impl DocumentType {
             "fel_functions" | "fel-functions" => Some(DocumentType::FelFunctions),
             "screener" => Some(DocumentType::Screener),
             "determination" => Some(DocumentType::Determination),
+            "surface" => Some(DocumentType::Surface),
             _ => None,
         }
     }
@@ -187,6 +193,7 @@ const MARKER_FIELDS: &[(&str, DocumentType)] = &[
     ("$formspecFelFunctions", DocumentType::FelFunctions),
     ("$formspecScreener", DocumentType::Screener),
     ("$formspecDetermination", DocumentType::Determination),
+    ("$formspecSurface", DocumentType::Surface),
 ];
 
 /// Detect the document type from a JSON value by examining marker fields.

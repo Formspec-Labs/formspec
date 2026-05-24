@@ -502,8 +502,9 @@ class TestEvaluatorErrors:
 
     def test_wrong_arity(self):
         r = evaluate('length("a", "b")')
-        assert r.value == FelNumber(Decimal('1'))
-        assert r.diagnostics == []
+        assert is_null(r.value)
+        assert len(r.diagnostics) >= 1
+        assert "requires exactly 1 argument" in r.diagnostics[0].message
 
     def test_countWhere_non_array(self):
         r = evaluate('countWhere(42, $ > 0)')

@@ -14,7 +14,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "Email address with RFC 5321 simplified validation. Extends string with a pattern that covers the vast majority of real-world addresses without rejecting uncommon but valid ones.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -32,7 +34,9 @@
           "key": "contactEmail",
           "dataType": "string",
           "label": "Contact email",
-          "extensions": { "x-formspec-email": true }
+          "extensions": {
+            "x-formspec-email": true
+          }
         }
       ]
     },
@@ -42,7 +46,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "International phone number in E.164 format (e.g. +14155551234). Stored as a string to preserve the leading plus sign and any leading zeros in country codes.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -59,7 +65,9 @@
           "key": "phone",
           "dataType": "string",
           "label": "Phone number",
-          "extensions": { "x-formspec-phone": true }
+          "extensions": {
+            "x-formspec-phone": true
+          }
         }
       ]
     },
@@ -69,7 +77,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "North American phone number in (###) ###-#### display format. For US/Canada/Caribbean forms where E.164 is unnecessarily strict. Stored with punctuation for human readability.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -87,7 +97,9 @@
           "key": "officePhone",
           "dataType": "string",
           "label": "Office phone",
-          "extensions": { "x-formspec-phone-nanp": true }
+          "extensions": {
+            "x-formspec-phone-nanp": true
+          }
         }
       ]
     },
@@ -97,7 +109,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "US ZIP code in 5-digit or ZIP+4 format. Stored as string to preserve leading zeros (e.g. 01234).",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -114,7 +128,9 @@
           "key": "zipCode",
           "dataType": "string",
           "label": "ZIP code",
-          "extensions": { "x-formspec-postal-code-us": true }
+          "extensions": {
+            "x-formspec-postal-code-us": true
+          }
         }
       ]
     },
@@ -123,8 +139,10 @@
       "category": "dataType",
       "version": "1.0.0",
       "status": "stable",
-      "description": "Percentage value stored as a decimal number 0–100 (not 0–1). Renderers should display a '%' suffix. Precision defaults to 2 decimal places.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "description": "Percentage value stored as a decimal number 0\u2013100 (not 0\u20131). Renderers should display a '%' suffix. Precision defaults to 2 decimal places.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "decimal",
       "constraints": {
@@ -142,7 +160,9 @@
           "key": "indirectRate",
           "dataType": "decimal",
           "label": "Indirect cost rate",
-          "extensions": { "x-formspec-percentage": true }
+          "extensions": {
+            "x-formspec-percentage": true
+          }
         }
       ]
     },
@@ -152,7 +172,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "US Dollar amount stored as a non-negative decimal with 2-digit precision. For forms that always use USD and don't need the full money composite type.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "decimal",
       "constraints": {
@@ -171,7 +193,9 @@
           "key": "salary",
           "dataType": "decimal",
           "label": "Annual salary",
-          "extensions": { "x-formspec-currency-usd": true }
+          "extensions": {
+            "x-formspec-currency-usd": true
+          }
         }
       ]
     },
@@ -181,7 +205,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "US Social Security Number in ###-##-#### format. Renderers should mask display (showing only last 4 digits) for privacy. Stored with hyphens.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -200,7 +226,9 @@
           "key": "ssn",
           "dataType": "string",
           "label": "Social Security Number",
-          "extensions": { "x-formspec-ssn": true }
+          "extensions": {
+            "x-formspec-ssn": true
+          }
         }
       ]
     },
@@ -210,7 +238,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "US Employer Identification Number in ##-####### format.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -226,7 +256,9 @@
           "key": "ein",
           "dataType": "string",
           "label": "Employer Identification Number",
-          "extensions": { "x-formspec-ein": true }
+          "extensions": {
+            "x-formspec-ein": true
+          }
         }
       ]
     },
@@ -235,8 +267,10 @@
       "category": "dataType",
       "version": "1.0.0",
       "status": "stable",
-      "description": "Credit/debit card number stored as digits only (no spaces or hyphens). Renderers should format with spaces for readability. Validated by length (13–19 digits) and Luhn checksum.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "description": "Credit/debit card number stored as digits only (no spaces or hyphens). Renderers should format with spaces for readability. Validated by length (13\u201319 digits) and Luhn checksum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -255,7 +289,9 @@
           "key": "cardNumber",
           "dataType": "string",
           "label": "Card number",
-          "extensions": { "x-formspec-credit-card": true }
+          "extensions": {
+            "x-formspec-credit-card": true
+          }
         }
       ]
     },
@@ -265,7 +301,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "Hex color code in #RRGGBB or #RGB format. Renderers may present a color picker.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -281,7 +319,9 @@
           "key": "brandColor",
           "dataType": "string",
           "label": "Brand color",
-          "extensions": { "x-formspec-color-hex": true }
+          "extensions": {
+            "x-formspec-color-hex": true
+          }
         }
       ]
     },
@@ -291,7 +331,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "URL-safe slug: lowercase ASCII letters, digits, and hyphens. Must start and end with a letter or digit. Useful for identifiers, usernames, and URL paths.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -307,7 +349,9 @@
           "key": "projectSlug",
           "dataType": "string",
           "label": "Project URL slug",
-          "extensions": { "x-formspec-slug": true }
+          "extensions": {
+            "x-formspec-slug": true
+          }
         }
       ]
     },
@@ -317,7 +361,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "IPv4 address in dotted-decimal notation (e.g. 192.168.1.1). Pattern validates format; does not restrict to routable addresses.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -332,7 +378,9 @@
           "key": "serverIp",
           "dataType": "string",
           "label": "Server IP address",
-          "extensions": { "x-formspec-ipv4": true }
+          "extensions": {
+            "x-formspec-ipv4": true
+          }
         }
       ]
     },
@@ -342,7 +390,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "HTTPS URL with domain validation. Pattern enforces https:// scheme, valid hostname labels, optional port, and optional path. Use a manual constraint with matches() if http:// is also needed.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "baseType": "string",
       "constraints": {
@@ -359,7 +409,9 @@
           "key": "projectWebsite",
           "dataType": "string",
           "label": "Project website",
-          "extensions": { "x-formspec-url": true }
+          "extensions": {
+            "x-formspec-url": true
+          }
         }
       ]
     },
@@ -369,7 +421,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "Validates that a numeric string passes the Luhn checksum algorithm. Used for credit card numbers, IMEI numbers, Canadian SINs, and other identifiers that embed a check digit.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "parameters": [
         {
@@ -388,7 +442,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "Calculates age in whole years from a birth date to today (or an optional reference date). Returns null if the birth date is in the future.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "parameters": [
         {
@@ -414,7 +470,9 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "Masks a string value for display, revealing only the last N characters and replacing the rest with a mask character. Useful for displaying partial SSNs, account numbers, etc.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "parameters": [
         {
@@ -436,7 +494,7 @@
       "returns": "string",
       "examples": [
         "x-formspec-mask($ssn, 4)",
-        "x-formspec-mask($accountNumber, 4, '•')"
+        "x-formspec-mask($accountNumber, 4, '\u2022')"
       ]
     },
     {
@@ -444,8 +502,10 @@
       "category": "module",
       "version": "1.0.0",
       "status": "stable",
-      "description": "Module bundling the Formspec common extensions — widely useful data types, constraints, and functions that complement the core specification. Renamed from `category: namespace` to `category: module` per ADR 0150 §4.1.",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "description": "Module bundling the Formspec common extensions \u2014 widely useful data types, constraints, and functions that complement the core specification. Renamed from `category: namespace` to `category: module` per ADR 0150 \u00a74.1.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "contributes": [
         "x-formspec-email",
@@ -473,16 +533,2089 @@
       "version": "1.0.0",
       "status": "stable",
       "description": "CLDR cardinal plural category function. Returns 'zero', 'one', 'two', 'few', 'many', or 'other' based on CLDR plural rules for the given count and locale. Required for languages with non-trivial plural forms (Arabic, Polish, Czech, etc.).",
-      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
       "license": "Apache-2.0",
       "parameters": [
-        { "name": "count", "type": "number", "description": "The numeric value to classify into a plural category." },
-        { "name": "locale", "type": "string", "description": "Optional BCP 47 locale code. When omitted, uses the active locale." }
+        {
+          "name": "count",
+          "type": "number",
+          "description": "The numeric value to classify into a plural category."
+        },
+        {
+          "name": "locale",
+          "type": "string",
+          "description": "Optional BCP 47 locale code. When omitted, uses the active locale."
+        }
       ],
       "returns": "string",
       "metadata": {
         "displayName": "Plural Category",
-        "categories": ["zero", "one", "two", "few", "many", "other"]
+        "categories": [
+          "zero",
+          "one",
+          "two",
+          "few",
+          "many",
+          "other"
+        ]
+      }
+    },
+    {
+      "name": "x-formspec-core-task",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Experience UnitKind vocabulary republished as a Registry module per ADR 0150 \u00a74.9. Documents using the closed-core values (data-entry, review, confirmation, evidence-collection, attestation, error-resolution, assistance) validate identically with or without declaring this module; the schema-side `oneOf [closed-core, x-pattern]` lane handles validation directly (ADR \u00a74.5). Module declaration is authoring-intent metadata consumed by posture admission (\u00a74.4), lint E603 (`^x-` extension resolution), and AI tooling.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-task-data-entry",
+        "x-formspec-core-task-review",
+        "x-formspec-core-task-confirmation",
+        "x-formspec-core-task-evidence-collection",
+        "x-formspec-core-task-attestation",
+        "x-formspec-core-task-error-resolution",
+        "x-formspec-core-task-assistance"
+      ]
+    },
+    {
+      "name": "x-formspec-core-task-data-entry",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "User provides or revises data. Closed-core Experience UnitKind value (`data-entry`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "data-entry",
+        "summary": "User provides or revises data."
+      }
+    },
+    {
+      "name": "x-formspec-core-task-review",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Read-only display of captured data. Closed-core Experience UnitKind value (`review`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "review",
+        "summary": "Read-only display of captured data."
+      }
+    },
+    {
+      "name": "x-formspec-core-task-confirmation",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "User affirms accuracy before a transition. Closed-core Experience UnitKind value (`confirmation`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "confirmation",
+        "summary": "User affirms accuracy before a transition."
+      }
+    },
+    {
+      "name": "x-formspec-core-task-evidence-collection",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "User supplies evidence \u2014 attachments, attestations. Closed-core Experience UnitKind value (`evidence-collection`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "evidence-collection",
+        "summary": "User supplies evidence \u2014 attachments, attestations."
+      }
+    },
+    {
+      "name": "x-formspec-core-task-attestation",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "User certifies a statement under accountability. Closed-core Experience UnitKind value (`attestation`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "attestation",
+        "summary": "User certifies a statement under accountability."
+      }
+    },
+    {
+      "name": "x-formspec-core-task-error-resolution",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "User resolves a validation finding. Closed-core Experience UnitKind value (`error-resolution`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "error-resolution",
+        "summary": "User resolves a validation finding."
+      }
+    },
+    {
+      "name": "x-formspec-core-task-assistance",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "User receives help. Closed-core Experience UnitKind value (`assistance`) republished as Registry contribution per ADR 0150 \u00a74.9. Validation flows through the closed-core enum lane in `schemas/experience.schema.json` `$defs.UnitKind` \u2014 this entry is descriptive metadata, not a validation gate.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "assistance",
+        "summary": "User receives help."
+      }
+    },
+    {
+      "name": "x-formspec-core-actions",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Response Actions intent vocabulary (5 values) + closed-core ValidationMapping MasterTable rows (5 rows) republished as a Registry module per ADR 0150 \u00a74.9. Documents using closed-core intents (`save-draft`, `autosave`, `review`, `submit`, `request-evidence`) validate identically with or without declaring this module \u2014 the schema-side `oneOf [closed-core, x-pattern]` lane handles validation directly (ADR \u00a74.5). The 5 row payloads reproduce the canonical MasterTable rows byte-for-byte under JCS RFC 8785 (P0 Task 9 invariant pinned at `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json`).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-actions-intent-save-draft",
+        "x-formspec-core-actions-intent-autosave",
+        "x-formspec-core-actions-intent-review",
+        "x-formspec-core-actions-intent-submit",
+        "x-formspec-core-actions-intent-request-evidence",
+        "x-formspec-core-actions-row-save-draft",
+        "x-formspec-core-actions-row-autosave",
+        "x-formspec-core-actions-row-review",
+        "x-formspec-core-actions-row-submit",
+        "x-formspec-core-actions-row-request-evidence"
+      ]
+    },
+    {
+      "name": "x-formspec-core-actions-intent-save-draft",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Persist current Response as a draft; validation findings ignored. Closed-core Response Actions intent (`save-draft`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "save-draft",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-autosave",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Background or periodic save; identical mapping to save-draft. Closed-core Response Actions intent (`autosave`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "autosave",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-review",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Read-only validation pass; no persistence transition. Closed-core Response Actions intent (`review`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "review",
+        "persistence": "none",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-submit",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Attempt transition to Response status 'completed'. Closed-core Response Actions intent (`submit`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "block-on-error",
+        "intent": "submit",
+        "persistence": "complete-response",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-intent-request-evidence",
+      "category": "action-intent",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Invoke evidence-collection flow; persists current draft. Closed-core Response Actions intent (`request-evidence`) republished as Registry `action-intent` contribution per ADR 0150 \u00a74.9. Validation payload is the canonical ValidationTuple for this intent (VM \u00a76.1); JCS-canonical bytes match the canonical 5-row fixture by construction.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "validation": {
+        "blocking": "non-blocking",
+        "intent": "request-evidence",
+        "persistence": "draft-checkpoint",
+        "profile": "on-demand"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-save-draft",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `save-draft`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'save-draft' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "save-draft",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-autosave",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `autosave`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'autosave' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "autosave",
+        "persistence": "draft-checkpoint",
+        "profile": "off"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-review",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `review`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'review' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "review",
+        "persistence": "none",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-submit",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `submit`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'submit' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "block-on-error",
+        "intent": "submit",
+        "persistence": "complete-response",
+        "profile": "on-submit"
+      }
+    },
+    {
+      "name": "x-formspec-core-actions-row-request-evidence",
+      "category": "validation-mapping-row",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Canonical MasterTable row for intent `request-evidence`. Republished as Registry `validation-mapping-row` contribution per ADR 0150 \u00a74.2/\u00a74.9. Row payload JCS-canonical bytes match `tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` element 'request-evidence' by construction (loaded directly from the fixture at author time).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "row": {
+        "blocking": "non-blocking",
+        "intent": "request-evidence",
+        "persistence": "draft-checkpoint",
+        "profile": "on-demand"
+      }
+    },
+    {
+      "name": "x-formspec-core-component",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component built-in widget catalog (33 widgets across layout/input/display/container categories) republished as a Registry module per ADR 0150 \u00a74.9. Source-of-truth for widget validity remains `specs/ui-policy.json`, consumed by the formspec-lint widget-catalog pass; Registry contributions are descriptive metadata for posture admission, AI authoring tooling, and the contribution-payload validation phase (ADR \u00a79). The widgetShape.props field on each contribution is a permissive v1 default (`{type: object, additionalProperties: true}`) \u2014 closed-core widgets bypass lint code E604 (which only gates ^x- module-contributed widgets), so the props schema is documentation/AI-tooling metadata, not lint-enforced. Per-widget prop schemas tighten over time as Theme audit surfaces consumed prop sets.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-component-section",
+        "x-formspec-core-component-stack",
+        "x-formspec-core-component-grid",
+        "x-formspec-core-component-textinput",
+        "x-formspec-core-component-numberinput",
+        "x-formspec-core-component-datepicker",
+        "x-formspec-core-component-select",
+        "x-formspec-core-component-checkboxgroup",
+        "x-formspec-core-component-toggle",
+        "x-formspec-core-component-fileupload",
+        "x-formspec-core-component-heading",
+        "x-formspec-core-component-text",
+        "x-formspec-core-component-divider",
+        "x-formspec-core-component-card",
+        "x-formspec-core-component-collapsible",
+        "x-formspec-core-component-conditionalgroup",
+        "x-formspec-core-component-tabs",
+        "x-formspec-core-component-actionbutton",
+        "x-formspec-core-component-accordion",
+        "x-formspec-core-component-radiogroup",
+        "x-formspec-core-component-moneyinput",
+        "x-formspec-core-component-slider",
+        "x-formspec-core-component-rating",
+        "x-formspec-core-component-signature",
+        "x-formspec-core-component-alert",
+        "x-formspec-core-component-badge",
+        "x-formspec-core-component-progressbar",
+        "x-formspec-core-component-summary",
+        "x-formspec-core-component-validationsummary",
+        "x-formspec-core-component-datatable",
+        "x-formspec-core-component-panel",
+        "x-formspec-core-component-modal",
+        "x-formspec-core-component-popover"
+      ]
+    },
+    {
+      "name": "x-formspec-core-component-section",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Section` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Section",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-stack",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Stack` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Stack",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-grid",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Grid` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Grid",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-textinput",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `TextInput` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "TextInput",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-numberinput",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `NumberInput` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "NumberInput",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-datepicker",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `DatePicker` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "DatePicker",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-select",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Select` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Select",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-checkboxgroup",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `CheckboxGroup` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "CheckboxGroup",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-toggle",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Toggle` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Toggle",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-fileupload",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `FileUpload` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "FileUpload",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-heading",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Heading` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Heading",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-text",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Text` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Text",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-divider",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Divider` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Divider",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-card",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Card` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Card",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-collapsible",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Collapsible` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Collapsible",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-conditionalgroup",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ConditionalGroup` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ConditionalGroup",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-tabs",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Tabs` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Tabs",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-actionbutton",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ActionButton` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ActionButton",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-accordion",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Accordion` (layout category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Accordion",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-radiogroup",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `RadioGroup` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "RadioGroup",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "Select"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-moneyinput",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `MoneyInput` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MoneyInput",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "NumberInput"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-slider",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Slider` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Slider",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "NumberInput"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-rating",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Rating` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Rating",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "NumberInput"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-signature",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Signature` (input category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Signature",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input",
+        "fallback": "FileUpload"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-alert",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Alert` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Alert",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Text"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-badge",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Badge` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Badge",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Text"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-progressbar",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ProgressBar` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ProgressBar",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Text"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-summary",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Summary` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Summary",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-validationsummary",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `ValidationSummary` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ValidationSummary",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Alert"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-datatable",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `DataTable` (display category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "DataTable",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display",
+        "fallback": "Stack"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-panel",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Panel` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Panel",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-modal",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Modal` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Modal",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container",
+        "fallback": "Collapsible"
+      }
+    },
+    {
+      "name": "x-formspec-core-component-popover",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Component widget `Popover` (container category) republished as Registry contribution per ADR 0150 \u00a74.9. Source-of-truth is `specs/ui-policy.json` (consumed by formspec-lint widget-catalog pass at `crates/formspec-lint/src/ui_policy.rs`); this Registry entry is descriptive metadata.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Popover",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container",
+        "fallback": "Collapsible"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Trace closed-cores (5 SourceEntry.kind + 11 EdgeEntry.kind + 9 TypedEndpoint prefixes) republished as Registry property contributions per ADR 0150 \u00a74.9. Validation flows through schemas/trace-index.schema.json `oneOf [closed-core, x-pattern]` lanes (post-P0 Task 5); Registry contributions are descriptive metadata for posture admission and AI tooling.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-trace-source-kind-definition",
+        "x-formspec-core-trace-source-kind-experience",
+        "x-formspec-core-trace-source-kind-response-actions",
+        "x-formspec-core-trace-source-kind-component",
+        "x-formspec-core-trace-source-kind-ontology",
+        "x-formspec-core-trace-edge-kind-component-renders-item",
+        "x-formspec-core-trace-edge-kind-unit-collects-item",
+        "x-formspec-core-trace-edge-kind-trigger-invokes-action",
+        "x-formspec-core-trace-edge-kind-item-depends-on-item",
+        "x-formspec-core-trace-edge-kind-unit-serves-task",
+        "x-formspec-core-trace-edge-kind-task-involves-actor",
+        "x-formspec-core-trace-edge-kind-action-emits-effect",
+        "x-formspec-core-trace-edge-kind-action-has-precondition",
+        "x-formspec-core-trace-edge-kind-concept-refs-item",
+        "x-formspec-core-trace-edge-kind-concept-refs-component-node",
+        "x-formspec-core-trace-edge-kind-node-visibility-references-item",
+        "x-formspec-core-trace-endpoint-prefix-item",
+        "x-formspec-core-trace-endpoint-prefix-unit",
+        "x-formspec-core-trace-endpoint-prefix-task",
+        "x-formspec-core-trace-endpoint-prefix-actor",
+        "x-formspec-core-trace-endpoint-prefix-action",
+        "x-formspec-core-trace-endpoint-prefix-concept",
+        "x-formspec-core-trace-endpoint-prefix-effect",
+        "x-formspec-core-trace-endpoint-prefix-precondition",
+        "x-formspec-core-trace-endpoint-prefix-component-node-path"
+      ]
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-definition",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `definition` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "definition"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-experience",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `experience` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "experience"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-response-actions",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `responseActions` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "responseActions"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-component",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `component` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "component"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-source-kind-ontology",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace SourceEntry.kind closed-core value `ontology` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.SourceEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ontology"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-component-renders-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `component-renders-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "component-renders-item"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-unit-collects-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `unit-collects-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "unit-collects-item"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-trigger-invokes-action",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `trigger-invokes-action` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "trigger-invokes-action"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-item-depends-on-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `item-depends-on-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "item-depends-on-item"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-unit-serves-task",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `unit-serves-task` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "unit-serves-task"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-task-involves-actor",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `task-involves-actor` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "task-involves-actor"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-action-emits-effect",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `action-emits-effect` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action-emits-effect"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-action-has-precondition",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `action-has-precondition` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action-has-precondition"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-concept-refs-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `concept-refs-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "concept-refs-item"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-concept-refs-component-node",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `concept-refs-component-node` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "concept-refs-component-node"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-edge-kind-node-visibility-references-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace EdgeEntry.kind closed-core value `node-visibility-references-item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.EdgeEntry.properties.kind oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "node-visibility-references-item"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-item",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `item` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "item"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-unit",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `unit` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "unit"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-task",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `task` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "task"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-actor",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `actor` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "actor"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-action",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `action` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-concept",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `concept` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "concept"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-effect",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `effect` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "effect"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-precondition",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `precondition` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "precondition"
+      }
+    },
+    {
+      "name": "x-formspec-core-trace-endpoint-prefix-component-node-path",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Trace TypedEndpoint closed-core prefix `componentNodePath` republished as Registry property per ADR 0150 \u00a74.9. Source schema: trace-index.schema.json $defs.TypedEndpoint (regex pattern; closed-core prefixes pre-the `x-` lane).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "componentNodePath"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Respondent-Ledger closed-cores (27 EventType + 7 ChangeSetEntry.valueClass) republished as Registry property contributions per ADR 0150 \u00a74.9. EXCLUDED: the ^x- and ^(ai|user)\\. extension lanes (P4 ships those \u2014 `x-formspec-ai-runtime`). Validation flows through schemas/respondent-ledger-event.schema.json `oneOf [closed-core, x-pattern]` lanes; Registry contributions are descriptive metadata. EventType values use `.` separators (session.started); the Registry name regex translates dots to hyphens (x-formspec-core-ledger-event-type-session-started), with the original dotted value preserved verbatim in each entry's description for tool-side resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-ledger-event-type-session-started",
+        "x-formspec-core-ledger-event-type-draft-saved",
+        "x-formspec-core-ledger-event-type-draft-resumed",
+        "x-formspec-core-ledger-event-type-response-completed",
+        "x-formspec-core-ledger-event-type-response-amendment-opened",
+        "x-formspec-core-ledger-event-type-response-amended",
+        "x-formspec-core-ledger-event-type-response-stopped",
+        "x-formspec-core-ledger-event-type-attachment-added",
+        "x-formspec-core-ledger-event-type-attachment-replaced",
+        "x-formspec-core-ledger-event-type-attachment-removed",
+        "x-formspec-core-ledger-event-type-prepopulation-applied",
+        "x-formspec-core-ledger-event-type-system-merge-resolved",
+        "x-formspec-core-ledger-event-type-validation-snapshot-recorded",
+        "x-formspec-core-ledger-event-type-calculation-material-change",
+        "x-formspec-core-ledger-event-type-nonrelevant-pruned",
+        "x-formspec-core-ledger-event-type-autosave-coalesced",
+        "x-formspec-core-ledger-event-type-device-linked",
+        "x-formspec-core-ledger-event-type-identity-verified",
+        "x-formspec-core-ledger-event-type-attestation-captured",
+        "x-formspec-core-ledger-event-type-response-submit-attempted",
+        "x-formspec-core-ledger-event-type-response-migrated",
+        "x-formspec-core-ledger-event-type-response-correction-recorded",
+        "x-formspec-core-ledger-event-type-field-edit-recorded",
+        "x-formspec-core-ledger-event-type-action-invoked",
+        "x-formspec-core-ledger-event-type-action-failed",
+        "x-formspec-core-ledger-event-type-action-deferred",
+        "x-formspec-core-ledger-event-type-action-replayed",
+        "x-formspec-core-ledger-value-class-user-input",
+        "x-formspec-core-ledger-value-class-prepopulated",
+        "x-formspec-core-ledger-value-class-calculated",
+        "x-formspec-core-ledger-value-class-imported",
+        "x-formspec-core-ledger-value-class-attachment",
+        "x-formspec-core-ledger-value-class-system-derived",
+        "x-formspec-core-ledger-value-class-migration-derived"
+      ]
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-session-started",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `session.started` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `session.started` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "session.started"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-draft-saved",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `draft.saved` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `draft.saved` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "draft.saved"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-draft-resumed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `draft.resumed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `draft.resumed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "draft.resumed"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-completed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.completed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.completed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.completed"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-amendment-opened",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.amendment-opened` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.amendment-opened` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.amendment-opened"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-amended",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.amended` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.amended` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.amended"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-stopped",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.stopped` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.stopped` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.stopped"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attachment-added",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attachment.added` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attachment.added` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment.added"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attachment-replaced",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attachment.replaced` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attachment.replaced` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment.replaced"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attachment-removed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attachment.removed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attachment.removed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment.removed"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-prepopulation-applied",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `prepopulation.applied` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `prepopulation.applied` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "prepopulation.applied"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-system-merge-resolved",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `system.merge-resolved` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `system.merge-resolved` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "system.merge-resolved"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-validation-snapshot-recorded",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `validation.snapshot-recorded` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `validation.snapshot-recorded` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "validation.snapshot-recorded"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-calculation-material-change",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `calculation.material-change` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `calculation.material-change` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "calculation.material-change"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-nonrelevant-pruned",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `nonrelevant.pruned` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `nonrelevant.pruned` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "nonrelevant.pruned"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-autosave-coalesced",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `autosave.coalesced` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `autosave.coalesced` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "autosave.coalesced"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-device-linked",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `device-linked` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `device-linked` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "device-linked"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-identity-verified",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `identity-verified` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `identity-verified` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "identity-verified"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attestation-captured",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attestation.captured` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attestation.captured` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attestation.captured"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-submit-attempted",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.submit-attempted` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.submit-attempted` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.submit-attempted"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-migrated",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.migrated` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.migrated` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.migrated"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-correction-recorded",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.correction-recorded` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.correction-recorded` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.correction-recorded"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-field-edit-recorded",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `field.edit-recorded` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `field.edit-recorded` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "field.edit-recorded"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-invoked",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.invoked` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.invoked` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.invoked"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-failed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.failed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.failed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.failed"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-deferred",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.deferred` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.deferred` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.deferred"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-replayed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.replayed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.replayed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "action.replayed"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-user-input",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `user-input` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "user-input"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-prepopulated",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `prepopulated` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "prepopulated"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-calculated",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `calculated` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "calculated"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-imported",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `imported` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "imported"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-attachment",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `attachment` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "attachment"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-system-derived",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `system-derived` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "system-derived"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-migration-derived",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `migration-derived` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "migration-derived"
+      }
+    },
+    {
+      "name": "x-formspec-surface",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface composition primitive per ADR 0150 \u00a76 \u2014 names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Closed slot-type taxonomy at v0.1 (5 types per \u00a76.2): definition-form, experience-unit, module-widget, static-content, embed-route. Surface is orthogonal to Screener (\u00a77) \u2014 Surface is steady-state inward composition; Screener is one-shot outward routing. Cross-seam: the surface:<route-id> URI scheme in Screener terminal-hops lands inside Surface composition (screener.schema.json:Route.target). Surface document shape lives at schemas/surface.schema.json; semantic lint at crates/formspec-lint/src/pass_surface.rs (E606 SURFACE-ROUTE-UNREACHABLE; E607 SURFACE-SLOT-BINDING-UNRESOLVED).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "schemaUrl": "https://formspec.org/schemas/surface/0.1",
+      "specUrl": "https://formspec.org/specs/surface/0.1",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-actions",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-surface-slot-type-definition-form",
+        "x-formspec-surface-slot-type-experience-unit",
+        "x-formspec-surface-slot-type-module-widget",
+        "x-formspec-surface-slot-type-static-content",
+        "x-formspec-surface-slot-type-embed-route"
+      ]
+    },
+    {
+      "name": "x-formspec-surface-slot-type-definition-form",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `definition-form` per ADR 0150 \u00a76.2. Slot binds a Definition form (binding.definitionRef references a bundle Definition by url or in-bundle id). Renders the bound form using the Component+Theme stack.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "definition-form",
+        "summary": "Slot binds a Definition form (binding.definitionRef references a bundle Definition by url or in-bundle id). Renders the bound form using the Component+Theme stack."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-experience-unit",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `experience-unit` per ADR 0150 \u00a76.2. Slot binds an Experience unit (binding.unitRef references a units[].id in an Experience document; optional binding.experienceRef disambiguates across multi-Experience bundles).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "experience-unit",
+        "summary": "Slot binds an Experience unit (binding.unitRef references a units[].id in an Experience document; optional binding.experienceRef disambiguates across multi-Experience bundles)."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-module-widget",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `module-widget` per ADR 0150 \u00a76.2. Slot binds a module-supplied widget (binding.moduleId + binding.widgetName + optional binding.config). The module MUST appear in the document's modules[] declaration; widget config is lint-validated against the contributing module's widgetShape.props via E604.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "module-widget",
+        "summary": "Slot binds a module-supplied widget (binding.moduleId + binding.widgetName + optional binding.config). The module MUST appear in the document's modules[] declaration; widget config is lint-validated against the contributing module's widgetShape.props via E604."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-static-content",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `static-content` per ADR 0150 \u00a76.2. Slot binds inline literal content (binding.kind \u2208 {heading, text, image, divider}, binding.content). The four kinds are the v0.1 closed primitives renderers guarantee without consulting a module.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "static-content",
+        "summary": "Slot binds inline literal content (binding.kind \u2208 {heading, text, image, divider}, binding.content). The four kinds are the v0.1 closed primitives renderers guarantee without consulting a module."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-embed-route",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `embed-route` per ADR 0150 \u00a76.2. Slot embeds another route within the same Surface (binding.routeRef references a routes[].id; optional binding.mode names presentation: modal, panel, dialog). Edges in the route-graph for E606 reachability.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "embed-route",
+        "summary": "Slot embeds another route within the same Surface (binding.routeRef references a routes[].id; optional binding.mode names presentation: modal, panel, dialog). Edges in the route-graph for E606 reachability."
       }
     }
   ]

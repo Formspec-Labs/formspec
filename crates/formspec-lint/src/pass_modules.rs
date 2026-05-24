@@ -138,7 +138,9 @@ impl ModuleContributions {
     }
 
     fn module_owning(&self, contribution_name: &str) -> Option<&str> {
-        self.owning_module.get(contribution_name).map(String::as_str)
+        self.owning_module
+            .get(contribution_name)
+            .map(String::as_str)
     }
 
     fn entry_for(&self, contribution_name: &str) -> Option<&Value> {
@@ -265,21 +267,13 @@ fn walk_ledger_event(
     }
 }
 
-fn walk_screener(
-    doc: &Value,
-    admitted: &HashSet<String>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
+fn walk_screener(doc: &Value, admitted: &HashSet<String>, diagnostics: &mut Vec<LintDiagnostic>) {
     if let Some(strategy) = doc.get("strategy").and_then(Value::as_str) {
         check_x_value_admitted(strategy, "$.strategy", admitted, diagnostics);
     }
 }
 
-fn walk_changelog(
-    doc: &Value,
-    admitted: &HashSet<String>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
+fn walk_changelog(doc: &Value, admitted: &HashSet<String>, diagnostics: &mut Vec<LintDiagnostic>) {
     if let Some(changes) = doc.get("changes").and_then(Value::as_array) {
         for (i, change) in changes.iter().enumerate() {
             if let Some(target) = change.get("target").and_then(Value::as_str) {
@@ -294,22 +288,13 @@ fn walk_changelog(
     }
 }
 
-fn walk_mapping(
-    doc: &Value,
-    admitted: &HashSet<String>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
+fn walk_mapping(doc: &Value, admitted: &HashSet<String>, diagnostics: &mut Vec<LintDiagnostic>) {
     let Some(rules) = doc.get("rules").and_then(Value::as_array) else {
         return;
     };
     for (i, rule) in rules.iter().enumerate() {
         if let Some(t) = rule.get("transform").and_then(Value::as_str) {
-            check_x_value_admitted(
-                t,
-                format!("$.rules[{i}].transform"),
-                admitted,
-                diagnostics,
-            );
+            check_x_value_admitted(t, format!("$.rules[{i}].transform"), admitted, diagnostics);
         }
         if let Some(rev) = rule.get("reverse")
             && let Some(t) = rev.get("transform").and_then(Value::as_str)
@@ -332,24 +317,14 @@ fn walk_trace_index(
     if let Some(sources) = doc.get("sources").and_then(Value::as_array) {
         for (i, source) in sources.iter().enumerate() {
             if let Some(k) = source.get("kind").and_then(Value::as_str) {
-                check_x_value_admitted(
-                    k,
-                    format!("$.sources[{i}].kind"),
-                    admitted,
-                    diagnostics,
-                );
+                check_x_value_admitted(k, format!("$.sources[{i}].kind"), admitted, diagnostics);
             }
         }
     }
     if let Some(edges) = doc.get("edges").and_then(Value::as_array) {
         for (i, edge) in edges.iter().enumerate() {
             if let Some(k) = edge.get("kind").and_then(Value::as_str) {
-                check_x_value_admitted(
-                    k,
-                    format!("$.edges[{i}].kind"),
-                    admitted,
-                    diagnostics,
-                );
+                check_x_value_admitted(k, format!("$.edges[{i}].kind"), admitted, diagnostics);
             }
         }
     }
@@ -544,8 +519,12 @@ fn extract_component_ids(doc: &Value) -> Vec<(String, String)> {
     } else if let Some(root) = doc.get("root") {
         walk_deep_ids(root, "root", &mut out);
     } else if let Some(map) = doc.as_object() {
-        const ENVELOPE_SKIP: &[&str] =
-            &["$formspecComponent", "version", "targetDefinition", "x-generation"];
+        const ENVELOPE_SKIP: &[&str] = &[
+            "$formspecComponent",
+            "version",
+            "targetDefinition",
+            "x-generation",
+        ];
         for (k, v) in map {
             if ENVELOPE_SKIP.contains(&k.as_str()) {
                 continue;
@@ -563,9 +542,7 @@ fn extract_component_ids(doc: &Value) -> Vec<(String, String)> {
 /// Returns no diagnostics when fewer than 2 documents are supplied; a single
 /// document's local uniqueness is enforced by the schema pattern and the
 /// per-document component walker.
-pub fn check_bundle_component_ids(
-    bundle_component_documents: &[Value],
-) -> Vec<LintDiagnostic> {
+pub fn check_bundle_component_ids(bundle_component_documents: &[Value]) -> Vec<LintDiagnostic> {
     if bundle_component_documents.len() < 2 {
         return Vec::new();
     }
@@ -574,13 +551,10 @@ pub fn check_bundle_component_ids(
     let mut by_id: HashMap<String, Vec<IdOccurrence>> = HashMap::new();
     for (doc_index, doc) in bundle_component_documents.iter().enumerate() {
         for (node_path, id_str) in extract_component_ids(doc) {
-            by_id
-                .entry(id_str)
-                .or_default()
-                .push(IdOccurrence {
-                    doc_index,
-                    node_path,
-                });
+            by_id.entry(id_str).or_default().push(IdOccurrence {
+                doc_index,
+                node_path,
+            });
         }
     }
 
@@ -592,7 +566,12 @@ pub fn check_bundle_component_ids(
             // Cross-document collision = ≥2 distinct doc_index values.
             let mut seen = HashSet::new();
             occs.iter().any(|o| !seen.insert(o.doc_index))
-                || occs.iter().map(|o| o.doc_index).collect::<HashSet<_>>().len() >= 2
+                || occs
+                    .iter()
+                    .map(|o| o.doc_index)
+                    .collect::<HashSet<_>>()
+                    .len()
+                    >= 2
         })
         .map(|(k, _)| k)
         .collect();
@@ -866,7 +845,11 @@ mod tests {
         let reg = widget_registry_with_module();
         let diags = check_module_contributions(&doc, "theme", &[reg]);
         let e604: Vec<_> = diags.iter().filter(|d| d.code == "E604").collect();
-        assert!(!e604.is_empty(), "expected E604 at selectors path: {:?}", diags);
+        assert!(
+            !e604.is_empty(),
+            "expected E604 at selectors path: {:?}",
+            diags
+        );
         assert!(e604[0].path.contains("selectors[0].apply.widgetConfig"));
     }
 
@@ -1023,10 +1006,7 @@ mod tests {
                 ]
             }),
         );
-        let comp_b = component_doc(
-            "b",
-            json!({ "component": "Section", "id": "other" }),
-        );
+        let comp_b = component_doc("b", json!({ "component": "Section", "id": "other" }));
         let diags = check_bundle_component_ids(&[comp_a, comp_b]);
         assert!(
             diags.iter().all(|d| d.code != "E605"),

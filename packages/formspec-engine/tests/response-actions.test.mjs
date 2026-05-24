@@ -643,10 +643,10 @@ test('invokeResponseAction warns only when idempotencyKey expression contains no
   );
 });
 
-test('engine MASTER_TABLE matches generated VM schema const row-for-row', () => {
-  // VALIDATION_MAPPING_MASTER_TABLE is generated from
-  // schemas/validation-mapping.schema.json#/$defs/MasterTable/const.
-  // The engine's intent->tuple lookup must reflect that const exactly.
+test('engine MASTER_TABLE matches generated VM fixture rows row-for-row', () => {
+  // VALIDATION_MAPPING_MASTER_TABLE is generated from the closed-core VM JCS
+  // fixture. The engine's intent->tuple lookup must reflect that fixture
+  // exactly.
   for (const row of VALIDATION_MAPPING_MASTER_TABLE) {
     const tuple = resolveResponseActionValidationTuple({
       id: `probe-${row.intent}`,
@@ -657,7 +657,7 @@ test('engine MASTER_TABLE matches generated VM schema const row-for-row', () => 
       profile: row.profile,
       blocking: row.blocking,
       persistence: row.persistence,
-    }, `intent ${row.intent} should resolve to VM schema row`);
+    }, `intent ${row.intent} should resolve to VM fixture row`);
   }
 });
 
@@ -713,15 +713,14 @@ test('RESPONSE_ACTIONS_EFFECT_TIME_BINDINGS adds @effects and keeps §4.1 set', 
   }
 });
 
-test('engine MASTER_TABLE matches raw VM schema const (defense-in-depth)', () => {
-  const schemaPath = resolve(
+test('engine MASTER_TABLE matches VM JCS fixture rows (defense-in-depth)', () => {
+  const fixturePath = resolve(
     __dirname,
-    '../../../schemas/validation-mapping.schema.json',
+    '../../../tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json',
   );
-  const schema = JSON.parse(readFileSync(schemaPath, 'utf-8'));
-  const schemaRows = schema.$defs.MasterTable.const;
-  // Re-derive the engine's tuple map by probing every schema row.
-  for (const row of schemaRows) {
+  const fixtureRows = JSON.parse(readFileSync(fixturePath, 'utf-8'));
+  // Re-derive the engine's tuple map by probing every fixture row.
+  for (const row of fixtureRows) {
     const tuple = resolveResponseActionValidationTuple({
       id: `probe-${row.intent}`,
       intent: row.intent,
@@ -731,7 +730,7 @@ test('engine MASTER_TABLE matches raw VM schema const (defense-in-depth)', () =>
       profile: row.profile,
       blocking: row.blocking,
       persistence: row.persistence,
-    }, `intent ${row.intent} (raw schema) should resolve to VM schema row`);
+    }, `intent ${row.intent} should resolve to VM fixture row`);
   }
 });
 

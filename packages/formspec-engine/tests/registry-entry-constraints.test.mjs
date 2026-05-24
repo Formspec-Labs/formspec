@@ -528,19 +528,31 @@ test('x-formspec-mask: engine does not crash with mask extension declared', () =
   assert.ok(report, 'Validation report should be returned without error');
 });
 
-// ── Module entry: x-formspec-common ──────────────────────────────────
+// ── Module entries ───────────────────────────────────────────────────
 // Per ADR 0150 §4.1: `namespace` was renamed to `module` (greenfield, no
-// alias); `members[]` was renamed to `contributes[]`.
-test('x-formspec-common module lists all entries via contributes[]', () => {
-  const mod = findEntry('x-formspec-common');
+// alias); `members[]` was renamed to `contributes[]`. Closed-core entries now
+// live in their owning x-formspec-core-* modules, not in x-formspec-common.
+test('modules list every non-module entry exactly once via contributes[]', () => {
+  const modules = entries.filter(e => e.category === 'module');
   const nonModuleEntries = entries.filter(e => e.category !== 'module');
+  const byName = new Map(entries.map(e => [e.name, e]));
+  const contributionCounts = new Map();
+
+  for (const mod of modules) {
+    assert.ok(Array.isArray(mod.contributes), `Module ${mod.name} must declare contributes[]`);
+    for (const name of mod.contributes) {
+      const target = byName.get(name);
+      assert.ok(target, `Module ${mod.name} contributes unknown entry "${name}"`);
+      assert.notEqual(target.category, 'module', `Module ${mod.name} must not contribute module "${name}"`);
+      contributionCounts.set(name, (contributionCounts.get(name) ?? 0) + 1);
+    }
+  }
 
   for (const entry of nonModuleEntries) {
-    assert.ok(
-      mod.contributes.includes(entry.name),
-      `Module missing contribution "${entry.name}"`
+    assert.equal(
+      contributionCounts.get(entry.name),
+      1,
+      `Entry "${entry.name}" should be contributed by exactly one module`
     );
   }
-  assert.equal(mod.contributes.length, nonModuleEntries.length,
-    'Module contributes count should match non-module entry count');
 });

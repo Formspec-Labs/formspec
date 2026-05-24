@@ -33,6 +33,7 @@ const ONTOLOGY_SCHEMA: &str = include_str!("../schemas/ontology.schema.json");
 const REFERENCES_SCHEMA: &str = include_str!("../schemas/references.schema.json");
 const LOCALE_SCHEMA: &str = include_str!("../schemas/locale.schema.json");
 const EXPERIENCE_SCHEMA: &str = include_str!("../schemas/experience.schema.json");
+const SURFACE_SCHEMA: &str = include_str!("../schemas/surface.schema.json");
 const CHANGELOG_SCHEMA: &str = include_str!("../schemas/changelog.schema.json");
 const REGISTRY_SCHEMA: &str = include_str!("../schemas/registry.schema.json");
 const VALIDATION_REPORT_SCHEMA: &str = include_str!("../schemas/validation-report.schema.json");
@@ -99,6 +100,7 @@ struct SchemaSet {
     references: Validator,
     locale: Validator,
     experience: Validator,
+    surface: Validator,
     changelog: Validator,
     registry: Validator,
     validation_report: Validator,
@@ -123,6 +125,7 @@ fn schema_set() -> &'static SchemaSet {
         references: build_validator(REFERENCES_SCHEMA),
         locale: build_validator(LOCALE_SCHEMA),
         experience: build_validator(EXPERIENCE_SCHEMA),
+        surface: build_validator(SURFACE_SCHEMA),
         changelog: build_validator(CHANGELOG_SCHEMA),
         registry: build_validator(REGISTRY_SCHEMA),
         validation_report: build_validator(VALIDATION_REPORT_SCHEMA),
@@ -267,6 +270,7 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         DocumentType::References => &set.references,
         DocumentType::Locale => &set.locale,
         DocumentType::Experience => &set.experience,
+        DocumentType::Surface => &set.surface,
         DocumentType::Changelog => &set.changelog,
         DocumentType::Registry => &set.registry,
         DocumentType::ValidationReport => &set.validation_report,
@@ -1090,6 +1094,73 @@ mod tests {
         assert!(
             diags.iter().any(|d| d.code == crate::LintCode::E101),
             "Invalid experience should produce E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn valid_surface_produces_no_e101() {
+        let surface = json!({
+            "$formspecSurface": "0.1",
+            "id": "main",
+            "entry": "home",
+            "routes": [
+                {
+                    "id": "home",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "id": "intro",
+                            "slotType": "static-content",
+                            "binding": {
+                                "kind": "text",
+                                "content": "Welcome"
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+        let diags = validate_schema(&surface, DocumentType::Surface);
+        assert!(
+            diags.is_empty(),
+            "Valid surface should produce no E101, got: {:?}",
+            diags
+                .iter()
+                .map(|d| (&d.code, &d.path, &d.message))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn invalid_surface_routes_to_e101() {
+        let surface = json!({
+            "$formspecSurface": "0.1",
+            "id": "main",
+            "entry": "home",
+            "routes": [
+                {
+                    "id": "home",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "id": "intro",
+                            "slotType": "static-content",
+                            "binding": {
+                                "kind": "text"
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+        let diags = validate_schema(&surface, DocumentType::Surface);
+        assert!(
+            diags.iter().any(|d| d.code == crate::LintCode::E101),
+            "Invalid surface should produce E101, got: {:?}",
             diags
                 .iter()
                 .map(|d| (&d.code, &d.path, &d.message))

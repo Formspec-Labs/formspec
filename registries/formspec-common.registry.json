@@ -2512,6 +2512,111 @@
       "extensions": {
         "x-formspec-kind-value": "migration-derived"
       }
+    },
+    {
+      "name": "x-formspec-surface",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface composition primitive per ADR 0150 \u00a76 \u2014 names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Closed slot-type taxonomy at v0.1 (5 types per \u00a76.2): definition-form, experience-unit, module-widget, static-content, embed-route. Surface is orthogonal to Screener (\u00a77) \u2014 Surface is steady-state inward composition; Screener is one-shot outward routing. Cross-seam: the surface:<route-id> URI scheme in Screener terminal-hops lands inside Surface composition (screener.schema.json:Route.target). Surface document shape lives at schemas/surface.schema.json; semantic lint at crates/formspec-lint/src/pass_surface.rs (E606 SURFACE-ROUTE-UNREACHABLE; E607 SURFACE-SLOT-BINDING-UNRESOLVED).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "schemaUrl": "https://formspec.org/schemas/surface/0.1",
+      "specUrl": "https://formspec.org/specs/surface/0.1",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-actions",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-surface-slot-type-definition-form",
+        "x-formspec-surface-slot-type-experience-unit",
+        "x-formspec-surface-slot-type-module-widget",
+        "x-formspec-surface-slot-type-static-content",
+        "x-formspec-surface-slot-type-embed-route"
+      ]
+    },
+    {
+      "name": "x-formspec-surface-slot-type-definition-form",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `definition-form` per ADR 0150 \u00a76.2. Slot binds a Definition form (binding.definitionRef references a bundle Definition by url or in-bundle id). Renders the bound form using the Component+Theme stack.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "definition-form",
+        "summary": "Slot binds a Definition form (binding.definitionRef references a bundle Definition by url or in-bundle id). Renders the bound form using the Component+Theme stack."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-experience-unit",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `experience-unit` per ADR 0150 \u00a76.2. Slot binds an Experience unit (binding.unitRef references a units[].id in an Experience document; optional binding.experienceRef disambiguates across multi-Experience bundles).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "experience-unit",
+        "summary": "Slot binds an Experience unit (binding.unitRef references a units[].id in an Experience document; optional binding.experienceRef disambiguates across multi-Experience bundles)."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-module-widget",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `module-widget` per ADR 0150 \u00a76.2. Slot binds a module-supplied widget (binding.moduleId + binding.widgetName + optional binding.config). The module MUST appear in the document's modules[] declaration; widget config is lint-validated against the contributing module's widgetShape.props via E604.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "module-widget",
+        "summary": "Slot binds a module-supplied widget (binding.moduleId + binding.widgetName + optional binding.config). The module MUST appear in the document's modules[] declaration; widget config is lint-validated against the contributing module's widgetShape.props via E604."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-static-content",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `static-content` per ADR 0150 \u00a76.2. Slot binds inline literal content (binding.kind \u2208 {heading, text, image, divider}, binding.content). The four kinds are the v0.1 closed primitives renderers guarantee without consulting a module.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "static-content",
+        "summary": "Slot binds inline literal content (binding.kind \u2208 {heading, text, image, divider}, binding.content). The four kinds are the v0.1 closed primitives renderers guarantee without consulting a module."
+      }
+    },
+    {
+      "name": "x-formspec-surface-slot-type-embed-route",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot-type `embed-route` per ADR 0150 \u00a76.2. Slot embeds another route within the same Surface (binding.routeRef references a routes[].id; optional binding.mode names presentation: modal, panel, dialog). Edges in the route-graph for E606 reachability.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "slotShape": {
+        "kindValue": "embed-route",
+        "summary": "Slot embeds another route within the same Surface (binding.routeRef references a routes[].id; optional binding.mode names presentation: modal, panel, dialog). Edges in the route-graph for E606 reachability."
+      }
     }
   ]
 }

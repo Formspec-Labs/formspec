@@ -187,9 +187,8 @@ export interface ResponseActionInvocationResult<TDetail> {
 /**
  * Validation tuple lookup keyed by StandardResponseActionIntent.
  * Built from the generated VM master-table const so the engine's intent
- * resolution is a projection of the schema, not a parallel literal. The
- * schema's MasterTable const is the single source of truth for this map
- * (schemas/validation-mapping.schema.json#/$defs/MasterTable/const).
+ * resolution is a projection of the closed-core VM fixture, not a parallel
+ * literal. The JCS fixture is the single source of truth for these rows.
  */
 const MASTER_TABLE: Record<StandardResponseActionIntent, ValidationOverride> =
     (() => {

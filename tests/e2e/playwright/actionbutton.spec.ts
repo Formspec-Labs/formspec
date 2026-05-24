@@ -61,7 +61,9 @@ function loadSchema(name: string): any {
 }
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });
-// Pre-register cross-referenced schemas; ValidationOverride $refs VM ValidationTuple.
+// Pre-register cross-referenced schemas; modules[] refs Common ModuleRef and
+// ValidationOverride refs VM ValidationTuple.
+ajv.addSchema(loadSchema('common.schema.json'));
 ajv.addSchema(loadSchema('validation-mapping.schema.json'));
 const validateResponseActions = ajv.compile(loadSchema('response-actions.schema.json'));
 

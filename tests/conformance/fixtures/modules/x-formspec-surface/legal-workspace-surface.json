@@ -1,0 +1,60 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "legal-workspace",
+  "title": "Legal research workspace",
+  "modules": [
+    { "id": "x-formspec-surface",       "version": "^0.1.0" },
+    { "id": "x-formspec-core-task",     "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions",  "version": "^1.0.0" }
+  ],
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "title": "Home",
+      "slots": [
+        { "id": "title",   "slotType": "static-content", "position": "header", "binding": { "kind": "heading", "content": "Legal Workspace", "level": 1 } },
+        { "id": "chatNew", "slotType": "embed-route", "position": "main", "binding": { "routeRef": "chat-thread", "mode": "panel" } }
+      ],
+      "transitions": [
+        { "trigger": "openMatter",     "to": "matter-shell" },
+        { "trigger": "openDocViewer",  "to": "doc-viewer" },
+        { "trigger": "openGallery",    "to": "gallery" }
+      ]
+    },
+    {
+      "id": "chat-thread",
+      "path": "/chat",
+      "title": "Conversation",
+      "slots": [
+        { "id": "main", "slotType": "experience-unit", "position": "main", "binding": { "unitRef": "chatThread" } }
+      ]
+    },
+    {
+      "id": "matter-shell",
+      "path": "/matter",
+      "title": "Matter",
+      "slots": [
+        { "id": "intake", "slotType": "definition-form", "position": "left", "binding": { "definitionRef": "matter-intake", "presentation": "inline" } },
+        { "id": "review", "slotType": "definition-form", "position": "main", "binding": { "definitionRef": "matter-review", "presentation": "wizard" } }
+      ]
+    },
+    {
+      "id": "doc-viewer",
+      "path": "/doc/:docId",
+      "title": "Document",
+      "slots": [
+        { "id": "main", "slotType": "experience-unit", "position": "main", "binding": { "unitRef": "documentReview" } }
+      ]
+    },
+    {
+      "id": "gallery",
+      "path": "/gallery",
+      "title": "Document gallery",
+      "slots": [
+        { "id": "main", "slotType": "experience-unit", "position": "main", "binding": { "unitRef": "documentGallery" } }
+      ]
+    }
+  ]
+}

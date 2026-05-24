@@ -33,6 +33,7 @@ pub mod pass_ontology;
 mod pass_references_doc;
 mod pass_response_actions;
 mod pass_screener;
+mod pass_surface;
 mod schema_validation;
 mod semantic_helpers;
 mod types;
@@ -146,6 +147,9 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
                 doc,
                 options.definition_document.as_ref(),
             ));
+        }
+        DocumentType::Surface => {
+            diagnostics.extend(pass_surface::lint_surface(doc));
         }
         DocumentType::Theme => lint_theme_doc(doc, options, &mut diagnostics),
         DocumentType::Component => lint_component_doc(doc, options, &mut diagnostics),
