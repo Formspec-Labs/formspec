@@ -211,6 +211,9 @@
       "status": "stable",
       "description": "Gallery widget contract.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "themeTokenSlots": ["card.background", "card.accent", "card.text"]
+      },
       "widgetShape": {
         "props": {
           "type": "object",
@@ -244,6 +247,9 @@
       "status": "stable",
       "description": "Result-list widget contract.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "themeTokenSlots": ["row.background", "row.accent", "row.text"]
+      },
       "widgetShape": {
         "props": {
           "type": "object",
@@ -277,6 +283,9 @@
       "status": "stable",
       "description": "Helper-panel widget contract.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "themeTokenSlots": ["panel.background", "panel.accent", "panel.text"]
+      },
       "widgetShape": {
         "props": {
           "type": "object",
@@ -309,6 +318,9 @@
       "status": "stable",
       "description": "Application shell marker widget contract.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "themeTokenSlots": ["nav.background", "nav.text", "nav.focusRing"]
+      },
       "widgetShape": {
         "props": {
           "type": "object",
@@ -343,6 +355,9 @@
       "status": "stable",
       "description": "Conversation thread widget contract.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "themeTokenSlots": ["message.userBackground", "message.assistantBackground", "message.text"]
+      },
       "widgetShape": {
         "props": {
           "type": "object",
@@ -396,6 +411,9 @@
       "status": "stable",
       "description": "Document viewer widget contract.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "themeTokenSlots": ["document.background", "document.highlight", "document.text"]
+      },
       "widgetShape": {
         "props": {
           "type": "object",

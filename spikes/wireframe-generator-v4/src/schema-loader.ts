@@ -40,6 +40,7 @@ export async function buildValidator(): Promise<Ajv2020> {
   ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.app-manifest.v4.schema.json")));
   ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.surface.schema.json")));
   ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.data-sources.schema.json")));
+  ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.ui-policy.schema.json")));
   ajv.addSchema(await readJson<Record<string, unknown>>(FIX("lexassist.runtime-plan.schema.json")));
   return ajv;
 }

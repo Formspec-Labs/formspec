@@ -40,7 +40,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F6 | Runtime state needs explicit ownership | Passing spike-local prototype | Pending final |
 | F7 | Data Sources need a spec, not widget payload folklore | Passing spike-local prototype | Pending final |
 | F8 | Response Actions should remain the only action executor | Passing spike-local prototype | Pending final |
-| F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Planned | Pending |
+| F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Passing spike-local prototype | Pending final |
 | F10 | Authorization remains ADR 0152 work | Planned | Pending |
 
 ## P0/P1/P2 Tracker
@@ -57,9 +57,9 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P1 | Define Data Sources as a contract surface | Passing spike-local F7 proof |
 | P1 | Keep Response Actions as the only action executor | Passing spike-local F8 proof |
 | P1 | Add fixtures for EC2, EC5, EC12, EC13, EC14 | Planned |
-| P2 | Define module-aware Locale ownership and collision behavior | Planned as negative fixture |
-| P2 | Define responsive and a11y route policy | Planned as spike-local contract |
-| P2 | Define Theme token-slot contracts for module widgets | Planned as negative fixture |
+| P2 | Define module-aware Locale ownership and collision behavior | Passing spike-local F9 proof |
+| P2 | Define responsive and a11y route policy | Passing spike-local F9 proof |
+| P2 | Define Theme token-slot contracts for module widgets | Passing spike-local F9 proof |
 | P2 | Carry ADR 0152 authorization into the graph only after ratification | Planned as boundary check |
 
 ## Acceptance Test Tracker
@@ -88,8 +88,8 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | EC2 | One Experience unit reused across routes but points at different Definitions | Planned |
 | EC5 | Non-form app has zero Definitions | Planned |
 | EC12 | Definition slot hidden by route policy while Response is mid-draft | Planned |
-| EC13 | Locale strings collide across modules or route instances | Planned |
-| EC14 | Theme styles widget without declared token slots | Planned |
+| EC13 | Locale strings collide across modules or route instances | Passing |
+| EC14 | Theme styles widget without declared token slots | Passing |
 
 ## Deviations
 
@@ -237,6 +237,23 @@ Verification on 2026-05-24:
 
 The negative harness now covers duplicate Response Actions action ids, unresolved Surface transition action refs, runtime transition attempts before the referenced Response Action executes, and route-scoped Response instance mismatches. The positive generated-Component check also verifies that `ActionButton` nodes delegate execution to Response Actions.
 
+### F9 - Locale, Responsive, A11y, And Theme Policy
+
+F9 adds a spike-local UI Policy sidecar to make presentation policy part of the app graph. `lexassist.ui-policy.json` targets the loaded Surface and declares module Locale key owners, per-route a11y and responsive policy, and Theme token assignments for module widgets. `validateAppGraph()` schema-validates the sidecar as a source artifact.
+
+Locale remains on the existing Locale schema. The new policy does not promote an app-wide Locale contract; it proves the missing graph rule: module Locale keys need explicit ownership so module-provided strings cannot collide silently. Route policy likewise stays spike-local, but every Surface route now needs a policy that names keyboard navigation and responsive collapse order. Theme token assignments are checked against token slots declared by widget registry entries.
+
+This is not a production Theme, Locale, or a11y spec. The production lesson is that these rules are not renderer polish. They affect whether a module-composed UI can be localized, navigated, collapsed, and themed without hidden assumptions.
+
+Verification on 2026-05-24:
+
+- `jq empty spikes/wireframe-generator-v4/fixtures/lexassist.app-manifest.json spikes/wireframe-generator-v4/fixtures/lexassist.app-manifest.v4.schema.json spikes/wireframe-generator-v4/fixtures/lexassist.registry.json spikes/wireframe-generator-v4/fixtures/lexassist.ui-policy.json spikes/wireframe-generator-v4/fixtures/lexassist.ui-policy.schema.json`
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers schema-invalid UI policy, UI Policy targeting the wrong Surface, missing module Locale key ownership, module Locale key owner collision, missing route policy coverage, responsive collapse references to missing slots, and Theme assignments to undeclared widget token slots.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
@@ -246,8 +263,9 @@ The negative harness now covers duplicate Response Actions action ids, unresolve
 5. Promote runtime state ownership only after the prose contract names the owners. F6 suggests four separate production surfaces: Surface route state, Session actor/navigation state, Response instance state, and Response Actions invocation/effect state. Do not keep production Response state keyed only by Definition URL.
 6. Promote Data Sources as their own prose contract before production code. Do not let widget payloads define source semantics. The contract should name source families, cache/staleness rules, failure modes, provenance, and authorization boundary behavior.
 7. Keep Response Actions as the only executor. Surface and Component contracts should name triggers and targets; they should not own validation, blocking, effects, durable idempotency, replay, retry, or terminal state.
-8. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
-9. Add the remaining negative cases before any production wiring: EC2/EC5/EC12/EC13/EC14. F3 through F8 already cover embedded Surface route refs, missing transition params, duplicate Response Actions action ids, generated Component id collision, module version conflict, ambiguous runtime Response ownership, and module-widget payload mismatch.
+8. Treat Locale ownership, route a11y/responsive policy, and Theme token slots as graph contracts. Production should not leave module Locale collisions, keyboard navigation, responsive collapse behavior, or widget token-slot targeting to renderer convention.
+9. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
+10. Add the remaining negative cases before any production wiring: EC2/EC5/EC12. F3 through F9 already cover embedded Surface route refs, missing transition params, duplicate Response Actions action ids, generated Component id collision, module version conflict, ambiguous runtime Response ownership, module-widget payload mismatch, module Locale ownership collision, and undeclared Theme token slots.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 

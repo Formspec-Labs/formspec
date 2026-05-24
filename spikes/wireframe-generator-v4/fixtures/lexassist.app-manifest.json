@@ -46,6 +46,11 @@
       "fixture": "lexassist.data-sources.json"
     }
   ],
+  "uiPolicy": {
+    "url": "https://lexassist.example/ui-policy/workbench",
+    "version": "0.1.0",
+    "fixture": "lexassist.ui-policy.json"
+  },
   "posture": {
     "url": "https://lexassist.example/posture/workbench-dev",
     "version": "1.0.0",

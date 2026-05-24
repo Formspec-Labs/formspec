@@ -62,6 +62,7 @@ const IDS = {
   definition: "https://formspec.org/schemas/definition/1.0",
   responseActions: "https://formspec.org/schemas/responseActions/1.0",
   dataSources: "https://formspec.org/spikes/wireframe-generator-v4/data-sources/0.1",
+  uiPolicy: "https://formspec.org/spikes/wireframe-generator-v4/ui-policy/0.1",
   runtimePlan: "https://formspec.org/spikes/wireframe-generator-v4/runtime-plan/0.1",
 };
 
@@ -77,6 +78,7 @@ function sourceArtifacts(inputs: GeneratorInputs): SourceArtifact[] {
     ...inputs.definitions.map((def, index) => ({ label: labelFor(def, "Definition", index, ["name", "url"]), schemaId: IDS.definition, doc: def })),
     ...inputs.responseActions.map((ra, index) => ({ label: labelForResponseActions(ra, index), schemaId: IDS.responseActions, doc: ra })),
     { label: "Data Sources", schemaId: IDS.dataSources, doc: inputs.dataSources },
+    { label: "UI Policy", schemaId: IDS.uiPolicy, doc: inputs.uiPolicy },
     { label: "Runtime Plan", schemaId: IDS.runtimePlan, doc: inputs.runtimePlan },
   ];
 }

@@ -1,0 +1,75 @@
+{
+  "$wireframeUiPolicy": "0.1-spike-v4",
+  "url": "https://lexassist.example/ui-policy/workbench",
+  "version": "0.1.0",
+  "description": "Spike-local UI graph policy for Locale ownership, route a11y/responsive policy, and module widget theme token slots.",
+  "targetSurface": {
+    "url": "https://lexassist.example/surfaces/workbench",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "localeKeyOwners": [
+    {
+      "keyPrefix": "$module.x-formspec-presentation.",
+      "moduleId": "x-formspec-presentation"
+    },
+    {
+      "keyPrefix": "$module.x-formspec-conversation.",
+      "moduleId": "x-formspec-conversation"
+    },
+    {
+      "keyPrefix": "$module.x-formspec-document-viewer.",
+      "moduleId": "x-formspec-document-viewer"
+    }
+  ],
+  "routePolicies": [
+    {
+      "routeId": "home",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "main"] }
+    },
+    {
+      "routeId": "matter",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "left", "main", "right"] }
+    },
+    {
+      "routeId": "thread",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "left", "main", "right"] }
+    },
+    {
+      "routeId": "doc-viewer",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "left", "main", "right"] }
+    },
+    {
+      "routeId": "playbooks",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "main"] }
+    },
+    {
+      "routeId": "playbook-runner",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "left", "main", "right"] }
+    },
+    {
+      "routeId": "library",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "left", "main", "right"] }
+    },
+    {
+      "routeId": "profile",
+      "a11y": { "landmark": "main", "keyboardNavigation": "required" },
+      "responsive": { "minColumns": 1, "collapseOrder": ["shell", "main"] }
+    }
+  ],
+  "theme": {
+    "assignments": [
+      { "widgetRef": "x-formspec-presentation-shell", "slot": "nav.focusRing", "token": "color.focus" },
+      { "widgetRef": "x-formspec-presentation-gallery", "slot": "card.accent", "token": "color.accent" },
+      { "widgetRef": "x-formspec-presentation-result-list", "slot": "row.accent", "token": "color.accent" },
+      { "widgetRef": "x-formspec-conversation-thread", "slot": "message.assistantBackground", "token": "color.assistant" },
+      { "widgetRef": "x-formspec-document-viewer-document", "slot": "document.highlight", "token": "color.highlight" }
+    ]
+  }
+}

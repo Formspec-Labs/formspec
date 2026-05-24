@@ -6,7 +6,7 @@ import { validateComponentBundle } from "./coherence.js";
 import { generateBundle } from "./generate.js";
 import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
 import { buildValidator } from "./schema-loader.js";
-import type { DataSource, GeneratorInputs, MultiRouteBundle, RegistryEntry, SurfaceSlotEntry } from "./types.js";
+import type { DataSource, GeneratorInputs, MultiRouteBundle, RegistryEntry, SurfaceSlotEntry, UiPolicy } from "./types.js";
 
 type LocalRef = { url: string; version?: string; fixture?: string };
 
@@ -100,6 +100,11 @@ function dataSource(inputs: GeneratorInputs, id: string): DataSource {
   const source = inputs.dataSources?.sources.find((candidate) => candidate.id === id);
   if (!source) throw new Error(`Missing data source ${id}`);
   return source;
+}
+
+function uiPolicy(inputs: GeneratorInputs): UiPolicy {
+  if (!inputs.uiPolicy) throw new Error("Missing UI Policy");
+  return inputs.uiPolicy;
 }
 
 function unitWidgetPayload(inputs: GeneratorInputs, unitId: string): Record<string, unknown> {
@@ -212,6 +217,12 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 
 {
   const inputs = clone(base);
+  delete (uiPolicy(inputs) as { routePolicies?: unknown }).routePolicies;
+  assertIssues("schema-invalid missing UI policy route policies", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
+}
+
+{
+  const inputs = clone(base);
   unitWidgetPayload(inputs, "matterGallery").dataSourceRefs = ["host:missing-source"];
   assertIssue("payload data-source ref must resolve", inputs, "DATA-SOURCE-UNRESOLVED");
 }
@@ -262,6 +273,45 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const inputs = clone(base);
   dataSource(inputs, "resource:supply-agreement").runtime.provenance.kind = "host-state";
   assertIssue("data-source provenance kind must match", inputs, "DATA-SOURCE-PROVENANCE");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).targetSurface.url = "https://lexassist.example/surfaces/missing";
+  assertIssue("UI Policy Surface target must match", inputs, "UI-POLICY-SURFACE-TARGET");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).localeKeyOwners = uiPolicy(inputs).localeKeyOwners.filter((owner) => owner.moduleId !== "x-formspec-conversation");
+  assertIssue("module Locale key owner required", inputs, "LOCALE-KEY-OWNER");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).localeKeyOwners.push({
+    keyPrefix: "$module.x-formspec-presentation.",
+    moduleId: "x-formspec-conversation",
+  });
+  assertIssue("module Locale key owner collision", inputs, "LOCALE-KEY-OWNER-COLLISION");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).routePolicies = uiPolicy(inputs).routePolicies.filter((policy) => policy.routeId !== "profile");
+  assertIssue("UI Policy must cover every route", inputs, "UI-POLICY-ROUTE-MISSING");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).routePolicies[0].responsive.collapseOrder.push("missing-slot");
+  assertIssue("responsive policy slot must resolve", inputs, "UI-POLICY-RESPONSIVE-SLOT");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).theme.assignments[0].slot = "missing.slot";
+  assertIssue("Theme assignment must target declared token slot", inputs, "THEME-TOKEN-SLOT");
 }
 
 {

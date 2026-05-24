@@ -16,6 +16,7 @@ import type {
   ResponseActions,
   SiblingRef,
   Surface,
+  UiPolicy,
 } from "./types.js";
 import type { RuntimePlan } from "./runtime.js";
 
@@ -88,6 +89,7 @@ export async function resolveFixtureAppGraph(manifestName = "lexassist.app-manif
   const experienceRefs = asRefs(appManifest.experiences, "experiences");
   const responseActionRefs = asRefs(appManifest.responseActions, "responseActions");
   const dataSourceRefs = asRefs(appManifest.dataSources, "dataSources");
+  const uiPolicyRef = asRef(appManifest.uiPolicy, "uiPolicy");
   const postureRef = asRef(appManifest.posture, "posture");
   const screenerRefs = asRefs(appManifest.screeners, "screeners");
   const runtimePlanRef = asRef(appManifest.runtimePlan, "runtimePlan");
@@ -102,6 +104,7 @@ export async function resolveFixtureAppGraph(manifestName = "lexassist.app-manif
     runtimePlan,
     posture: await readManifestArtifact<PostureDeclaration>(postureRef, "posture"),
     dataSources: await readManifestArtifact<DataSourceCatalog>(oneRef(dataSourceRefs, "dataSources"), "dataSources[0]"),
+    uiPolicy: await readManifestArtifact<UiPolicy>(uiPolicyRef, "uiPolicy"),
     screener: await readManifestArtifact<JsonObject>(oneRef(screenerRefs, "screeners"), "screeners[0]"),
     locales: await Promise.all((appManifest.locales ?? []).map((ref, index) => readManifestArtifact<JsonObject>(ref, `locales[${index}]`))),
   };
@@ -116,6 +119,7 @@ export async function resolveFixtureAppGraph(manifestName = "lexassist.app-manif
       registries: (inputs.appManifest.registries ?? []).map((ref, index) => artifactResolution(`registries[${index}]`, ref)),
       surfaces: (inputs.appManifest.surfaces ?? []).map((ref, index) => artifactResolution(`surfaces[${index}]`, ref)),
       dataSources: dataSourceRefs.map((ref, index) => artifactResolution(`dataSources[${index}]`, ref)),
+      uiPolicy: artifactResolution("uiPolicy", uiPolicyRef),
       posture: artifactResolution("posture", postureRef),
       screeners: screenerRefs.map((ref, index) => artifactResolution(`screeners[${index}]`, ref)),
       runtimePlan: artifactResolution("runtimePlan", runtimePlanRef),

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/spikes/wireframe-generator-v4/ui-policy/0.1",
+  "title": "Wireframe Spike v4 UI Policy",
+  "description": "Spike-local UI policy schema. This is proof infrastructure, not an official Formspec conformance schema.",
+  "type": "object",
+  "required": ["$wireframeUiPolicy", "url", "version", "targetSurface", "localeKeyOwners", "routePolicies", "theme"],
+  "additionalProperties": false,
+  "properties": {
+    "$wireframeUiPolicy": { "const": "0.1-spike-v4" },
+    "url": { "type": "string", "format": "uri" },
+    "version": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "targetSurface": { "$ref": "#/$defs/TargetSurface" },
+    "localeKeyOwners": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/LocaleKeyOwner" }
+    },
+    "routePolicies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/RoutePolicy" }
+    },
+    "theme": {
+      "type": "object",
+      "required": ["assignments"],
+      "additionalProperties": false,
+      "properties": {
+        "assignments": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ThemeAssignment" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "TargetSurface": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "compatibleVersions": { "type": "string" }
+      }
+    },
+    "LocaleKeyOwner": {
+      "type": "object",
+      "required": ["keyPrefix", "moduleId"],
+      "additionalProperties": false,
+      "properties": {
+        "keyPrefix": { "type": "string", "pattern": "^\\$module\\.x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*\\." },
+        "moduleId": { "type": "string", "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$" }
+      }
+    },
+    "RoutePolicy": {
+      "type": "object",
+      "required": ["routeId", "a11y", "responsive"],
+      "additionalProperties": false,
+      "properties": {
+        "routeId": { "type": "string", "minLength": 1 },
+        "a11y": {
+          "type": "object",
+          "required": ["landmark", "keyboardNavigation"],
+          "additionalProperties": false,
+          "properties": {
+            "landmark": { "enum": ["main", "complementary", "navigation", "region"] },
+            "keyboardNavigation": { "const": "required" }
+          }
+        },
+        "responsive": {
+          "type": "object",
+          "required": ["minColumns", "collapseOrder"],
+          "additionalProperties": false,
+          "properties": {
+            "minColumns": { "type": "integer", "minimum": 1 },
+            "collapseOrder": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "ThemeAssignment": {
+      "type": "object",
+      "required": ["widgetRef", "slot", "token"],
+      "additionalProperties": false,
+      "properties": {
+        "widgetRef": { "type": "string", "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$" },
+        "slot": { "type": "string", "minLength": 1 },
+        "token": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$" }
+      }
+    }
+  }
+}

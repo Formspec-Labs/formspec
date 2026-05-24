@@ -46,6 +46,7 @@ export type AppManifest = {
   registries?: SiblingRef[];
   surfaces?: SiblingRef[];
   dataSources?: SiblingRef[];
+  uiPolicy?: SiblingRef;
   posture?: SiblingRef;
   screeners?: SiblingRef[];
   runtimePlan?: SiblingRef;
@@ -110,6 +111,22 @@ export type DataSourceCatalog = {
   version?: string;
   description?: string;
   sources: DataSource[];
+};
+
+export type UiPolicy = {
+  $wireframeUiPolicy: "0.1-spike-v4";
+  url?: string;
+  version?: string;
+  targetSurface: { url: string; compatibleVersions?: string };
+  localeKeyOwners: Array<{ keyPrefix: string; moduleId: string }>;
+  routePolicies: Array<{
+    routeId: string;
+    a11y: { landmark: string; keyboardNavigation: "required" };
+    responsive: { minColumns: number; collapseOrder: string[] };
+  }>;
+  theme: {
+    assignments: Array<{ widgetRef: string; slot: string; token: string }>;
+  };
 };
 
 // ---------- Formspec Definition subset ----------
@@ -319,6 +336,7 @@ export type GeneratorInputs = {
   runtimePlan?: { url?: string; version?: string; [k: string]: unknown };
   posture?: PostureDeclaration;
   dataSources?: DataSourceCatalog;
+  uiPolicy?: UiPolicy;
   screener?: JsonObject;
   locales?: JsonObject[];
 };

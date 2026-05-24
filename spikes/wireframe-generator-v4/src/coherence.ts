@@ -15,6 +15,7 @@ import type {
   ResponseActions,
   SurfaceRoute,
   SurfaceSlotEntry,
+  UiPolicy,
 } from "./types.js";
 import {
   appModules,
@@ -209,6 +210,7 @@ export function validateAppCoherence(inputs: GeneratorInputs, ajv: Ajv2020): Coh
   validateSlots(inputs, issues, registry, admission, units, sidecarsByDefinition, dataSources, ajv);
   validateTransitionActionRefs(inputs, issues, sidecarsByDefinition);
   validateDataSources(inputs, issues);
+  validateUiPolicy(inputs, issues, registry);
   validateScreenerTargets(inputs, issues);
 
   return report(inputs, issues);
@@ -258,6 +260,7 @@ function validateSiblingIndex(
   validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.registries)[0], inputs.registry, "$.registries[0]", "Registry");
   validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest.posture), inputs.posture, "$.posture", "Posture");
   validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.dataSources)[0], inputs.dataSources, "$.dataSources[0]", "Data Sources");
+  validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest.uiPolicy), inputs.uiPolicy, "$.uiPolicy", "UI Policy");
   validateResolvedArtifactRef(issues, artifactRefs(inputs.appManifest.screeners)[0], inputs.screener, "$.screeners[0]", "Screener");
   validateResolvedArtifactRef(issues, artifactRef(inputs.appManifest.runtimePlan), inputs.runtimePlan, "$.runtimePlan", "Runtime Plan");
   for (const [index, locale] of (inputs.locales ?? []).entries()) {
@@ -557,6 +560,82 @@ function validateDataSourceRuntime(source: DataSource, issues: CoherenceIssue[])
   }
   if (runtime.provenance.kind !== source.kind) {
     issue(issues, "error", "DATA-SOURCE-PROVENANCE", "$.dataSources.sources", `Data source '${source.id}' provenance kind must match source kind '${source.kind}'.`);
+  }
+}
+
+function validateUiPolicy(inputs: GeneratorInputs, issues: CoherenceIssue[], registry: RegistryIndex): void {
+  const policy = inputs.uiPolicy;
+  if (!policy) return;
+  if (policy.targetSurface.url !== inputs.surface.url) {
+    issue(issues, "error", "UI-POLICY-SURFACE-TARGET", "$.uiPolicy.targetSurface", `UI Policy targets '${policy.targetSurface.url}', but loaded Surface is '${inputs.surface.url}'.`);
+  }
+  validateLocaleKeyOwners(inputs, issues, policy);
+  validateRoutePolicies(inputs, issues, policy);
+  validateThemeTokenAssignments(issues, registry, policy);
+}
+
+function validateLocaleKeyOwners(inputs: GeneratorInputs, issues: CoherenceIssue[], policy: UiPolicy): void {
+  const owners = new Map<string, string>();
+  for (const owner of policy.localeKeyOwners) {
+    const prior = owners.get(owner.keyPrefix);
+    if (prior && prior !== owner.moduleId) {
+      issue(issues, "error", "LOCALE-KEY-OWNER-COLLISION", "$.uiPolicy.localeKeyOwners", `Locale key prefix '${owner.keyPrefix}' is owned by both '${prior}' and '${owner.moduleId}'.`);
+    }
+    owners.set(owner.keyPrefix, owner.moduleId);
+  }
+  for (const [localeIndex, locale] of (inputs.locales ?? []).entries()) {
+    const strings = (locale as { strings?: unknown }).strings;
+    if (!strings || typeof strings !== "object") continue;
+    for (const key of Object.keys(strings)) {
+      if (!key.startsWith("$module.")) continue;
+      const owner = policy.localeKeyOwners.find((candidate) => key.startsWith(candidate.keyPrefix));
+      if (!owner) {
+        issue(issues, "error", "LOCALE-KEY-OWNER", `$.locales[${localeIndex}].strings.${key}`, `Module Locale key '${key}' has no UI Policy owner.`);
+      }
+    }
+  }
+}
+
+function validateRoutePolicies(inputs: GeneratorInputs, issues: CoherenceIssue[], policy: UiPolicy): void {
+  const routeIds = new Set(inputs.surface.routes.map((route) => route.id));
+  const policyRouteIds = new Set<string>();
+  for (const routePolicy of policy.routePolicies) {
+    if (policyRouteIds.has(routePolicy.routeId)) {
+      issue(issues, "error", "UI-POLICY-ROUTE-COLLISION", "$.uiPolicy.routePolicies", `UI Policy declares route '${routePolicy.routeId}' more than once.`);
+    }
+    policyRouteIds.add(routePolicy.routeId);
+    if (!routeIds.has(routePolicy.routeId)) {
+      issue(issues, "error", "UI-POLICY-ROUTE-REF", "$.uiPolicy.routePolicies", `UI Policy references missing route '${routePolicy.routeId}'.`);
+    }
+    const route = inputs.surface.routes.find((candidate) => candidate.id === routePolicy.routeId);
+    if (route) {
+      const slotNames = new Set(Object.keys(route.slots));
+      for (const slotName of routePolicy.responsive.collapseOrder) {
+        if (!slotNames.has(slotName)) {
+          issue(issues, "error", "UI-POLICY-RESPONSIVE-SLOT", "$.uiPolicy.routePolicies", `Route policy '${routePolicy.routeId}' collapseOrder references missing slot '${slotName}'.`);
+        }
+      }
+    }
+  }
+  for (const route of inputs.surface.routes) {
+    if (!policyRouteIds.has(route.id)) {
+      issue(issues, "error", "UI-POLICY-ROUTE-MISSING", "$.uiPolicy.routePolicies", `UI Policy omits route '${route.id}'.`);
+    }
+  }
+}
+
+function validateThemeTokenAssignments(issues: CoherenceIssue[], registry: RegistryIndex, policy: UiPolicy): void {
+  for (const assignment of policy.theme.assignments) {
+    const widget = registry.latestByName.get(assignment.widgetRef);
+    if (!widget || widget.category !== "widget") {
+      issue(issues, "error", "THEME-TOKEN-WIDGET", "$.uiPolicy.theme.assignments", `Theme assignment references missing widget '${assignment.widgetRef}'.`);
+      continue;
+    }
+    const slots = widget.semantics?.themeTokenSlots;
+    const declaredSlots = Array.isArray(slots) ? slots.filter((slot): slot is string => typeof slot === "string") : [];
+    if (!declaredSlots.includes(assignment.slot)) {
+      issue(issues, "error", "THEME-TOKEN-SLOT", "$.uiPolicy.theme.assignments", `Theme assignment targets undeclared token slot '${assignment.slot}' on widget '${assignment.widgetRef}'.`);
+    }
   }
 }
 
