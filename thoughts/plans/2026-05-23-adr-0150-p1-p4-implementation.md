@@ -72,7 +72,13 @@ Run 1–6 after every commit touching schemas/specs/source. Run 7+8 at each phas
 
 **Why this lands first:** P2 modules cite `x-formspec-core-task` (Experience UnitKind closed-core) and `x-formspec-core-actions` (Response Actions intent closed-core) as `dependencies[]`. Surface specifically depends on `x-formspec-core-task` per ADR §6.1. Without P1 republishing those modules, P2's `dependencies[]` declarations would dangle.
 
-**Naming convention discovery (execution TBD — flag at first commit):** The Registry `name` pattern (`^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$`, per `registry.schema.json` line 246 area) requires `x-`-prefixed names. The closed-core enum values like `data-entry` are *unprefixed*. A module `contributes[]` array lists **registry entry names** (per ADR §4.1: "Names of registry entries this module bundles"), so the contribution entries for the closed-core members are named `x-formspec-core-task-data-entry`, `x-formspec-core-task-review`, etc. The closed-core enum lane in `oneOf` continues to admit the unprefixed value — the registry entry is metadata describing the closed-core value, NOT a rename of it. ADR §4.9 "no semantic change" remains true: documents continue to write `unit.kind: 'data-entry'` and the closed-core lane validates without consulting the Registry. Pin this convention in Task 1.1 prose; reuse across all P1 modules.
+**Naming convention discovery (pinned r1 — Task 1.1 Step 5 spec-prose):** The Registry `name` pattern (`^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$`, `registry.schema.json:231`) requires `x-`-prefixed names. Closed-core enum values like `data-entry` are *unprefixed*. A module `contributes[]` array lists **Registry entry names** (per ADR §4.1: "Names of registry entries this module bundles"; confirmed at `registry.schema.json:453`), so the contribution entries for closed-core members are named `x-formspec-core-task-data-entry`, `x-formspec-core-task-review`, etc.
+
+**Enforcement-boundary pin (load-bearing — addresses BLOCKER B-1 from spec-expert arch-review-BEFORE).** Validation of closed-core enum values in documents is performed by the `oneOf [closed-core, x-pattern]` schema lane (ADR §4.5) and is **NOT gated** on the presence of the corresponding `x-formspec-core-*` Registry entry. Registry entries are **authoring-intent metadata** consumed by posture admission (§4.4) and lint E603 — not by schema validation. A document writing `unit.kind: 'data-entry'` validates against the closed-core lane regardless of whether `x-formspec-core-task-data-entry` exists in the Registry; conversely, adding a Registry entry for a closed-core value does NOT change schema-validation outcomes for documents using that value. ADR §4.9 "no semantic change" is preserved by the schema lane, not by the Registry.
+
+**Naming-translation rule for dotted closed-core values** (Task 1.5 needs this for Ledger `EventType`; Task 1.4 Trace closed-cores are already hyphen-clean): closed-core values containing `.` (e.g. `session.started`) translate to `x-formspec-core-<module>-<value-with-dots-as-hyphens>` (e.g. `x-formspec-core-ledger-session-started`) since the Registry `name` regex forbids dots. The contribution payload carries the original dotted value verbatim (e.g. `kindValue: 'session.started'`) for tool-side resolution.
+
+Pin all three sub-rules in Task 1.1 Step 5 spec prose (Naming + Enforcement-boundary + Dotted-translation); reuse across all P1 modules.
 
 ## Task 1.1 — `x-formspec-core-task` module (first commit, sets the shape pattern)
 
@@ -88,9 +94,11 @@ Run 1–6 after every commit touching schemas/specs/source. Run 7+8 at each phas
 
 - [ ] **Step 2: Write failing fixtures.**
   - Module-loading fixture: Experience doc with `modules: [{id: 'x-formspec-core-task', version: '1.0.0'}]` AND `unit.kind: 'data-entry'` → validates.
-  - Default-set-equivalence fixture: Experience doc WITHOUT `modules[]` AND `unit.kind: 'data-entry'` → also validates (the §4.9 default rule).
-  - Module entry shape: `x-formspec-core-task` registry entry with `category: 'module'`, `contributes: ['x-formspec-core-task-data-entry', ...]` → validates against Registry shape.
-  - Contribution payload shape: each `x-formspec-core-task-<kind>` entry with `category: 'unit-kind'` and a `semantics` payload → validates.
+  - **Module-declaration-is-metadata fixture (reframed per L-4 scout finding):** Experience doc WITHOUT `modules[]` AND `unit.kind: 'data-entry'` → also validates. Test purpose: verify the closed-core `oneOf` lane handles validation directly; the module declaration is authoring-intent metadata, NOT a default-set lookup mechanism. The two fixtures (with-modules and without-modules) produce **identical** validation outcomes for closed-core enum values — that's the substantive proof, not a "default-set rule" inference.
+  - Module entry shape: `x-formspec-core-task` registry entry with `category: 'module'`, `contributes: ['x-formspec-core-task-data-entry', ...]` (7 names — full list in Step 4) → validates against Registry shape.
+  - Contribution payload shape: each `x-formspec-core-task-<kind>` entry with `category: 'unit-kind'` and a `semantics: {kindValue, summary, ...}` payload → validates.
+  - **`kindValue` ↔ name-suffix consistency fixture:** for each of the 7 contribution entries, the entry's `semantics.kindValue` MUST equal `name.replace(/^x-formspec-core-task-/, '')`. Prevents silent drift between Registry name and the unprefixed enum value tools resolve against.
+  - **`contributes[]` ↔ entry existence fixture:** every name listed in the module's `contributes[]` MUST exist as a sibling Registry entry in the same document (per `registry.schema.json:453`).
 
 - [ ] **Step 3: Verify fixtures fail** — `python3 -m pytest tests/test_p1_module_x_formspec_core_task.py -v` (module entries don't exist yet).
 
@@ -129,16 +137,31 @@ Each `unit-kind` contribution entry shape (one per closed-core value):
   "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
   "semantics": {
     "kindValue": "data-entry",
-    "processor": "value-binding",
-    "renderer": "form-input",
-    "summary": "User provides or revises data."
+    "summary": "User provides or revises data.",
+    "processorObligation": "value-binding",
+    "rendererObligation": "form-input"
   }
 }
 ```
 
-Where `semantics` is the closed shape ADR §4.2 calls for ("object describing processor/renderer obligations"). The `kindValue` field carries the unprefixed closed-core value so consuming tools resolve `unit.kind: 'data-entry'` to this contribution entry.
+**`semantics` payload key convention (r1 — pinned across all P1 + P2 modules; addresses H-1 from both reviewers).** `semantics` is `type: object` per `registry.schema.json:472-478` with schema example `{"processorObligation": "render-as-gallery", "rendererObligation": "media-grid"}`. ADR §4.2 calls for "object describing processor/renderer obligations" without pinning key names. To prevent cross-module vocabulary drift (P2's `x-formspec-presentation` ships `gallery`/`dashboard`/`viewer`/`chat-shell` unit-kinds; without a shared key convention, AI tooling consuming `semantics` gets a moving target), this plan **pins the v1 convention as:**
+- `kindValue` — REQUIRED. The unprefixed closed-core enum value (e.g. `"data-entry"`). Load-bearing: consuming tools resolve `unit.kind: 'data-entry'` to this contribution entry by matching `kindValue`. MUST equal the contribution-entry's name suffix after `x-formspec-<module>-` (no drift).
+- `summary` — REQUIRED. Human-readable description of the kind's semantics.
+- `processorObligation` — OPTIONAL string. Free-form v1; vocabulary captured per module. Matches the registry.schema.json example wording.
+- `rendererObligation` — OPTIONAL string. Same posture.
+- `additionalProperties: true` for module-specific extensions (e.g. `x-...` extension keys).
 
-- [ ] **Step 5: Pin naming convention in spec prose** — `formspec/specs/registry/extension-registry.md` gains a paragraph: "Closed-core values that pre-date the Registry rev (e.g. Experience UnitKind `data-entry`, `review`, ...) are republished as contribution entries whose Registry `name` carries the `x-formspec-core-<module>-<value>` prefix per the Registry naming regex (§4.8). The closed-core enum lane in `oneOf [closed-core, x-pattern]` continues to admit the unprefixed value — the contribution entry is metadata describing the value, not a rename of it."
+Task 1.1 commit ships this convention pinned in `formspec/specs/registry/extension-registry.md` alongside the closed-core naming rule. Tasks 1.2–1.5 + every P2 module conform. If a future module needs richer typed validation than free-form strings, it ships its own `schemaUrl`-linked sub-schema per `registry.schema.json:474` ("module ships canonical sub-schema referenced from `schemaUrl` for richer validation").
+
+- [ ] **Step 5: Pin three convention rules in spec prose** — `formspec/specs/registry/extension-registry.md` gains a "Closed-core republishing" section covering all three rules (named to address BLOCKER B-1 + the dotted-translation gap):
+
+  > **Closed-core republishing (ADR 0150 §4.9).** The substrate's closed-core enum values that pre-date the Registry rev (Experience UnitKind `data-entry` etc., Response Actions intent `save-draft` etc., Trace edge/source kinds, Respondent-ledger EventType values, ChangeSetEntry.valueClass values, Component built-in widgets) are republished as Registry contribution entries to make module authorship, posture admission (§4.4), and AI tooling auditable. **Three conventions govern this republishing:**
+  >
+  > 1. **Naming.** Closed-core contribution entries follow `x-formspec-core-<module>-<value>` (e.g. `x-formspec-core-task-data-entry`). The `<module>` segment matches the parent module's `<modId>` after the `x-formspec-core-` prefix. Values with `.` separators (Ledger `session.started`) translate to hyphens in the Registry name (`x-formspec-core-ledger-session-started`); the original dotted value is preserved verbatim in the contribution payload's `kindValue` (or equivalent) field for tool-side resolution.
+  > 2. **Enforcement boundary.** Schema validation of closed-core enum values in documents flows through the `oneOf [closed-core, x-pattern]` schema lane (§4.5). It is **NOT gated on Registry contribution-entry presence.** A document writing `unit.kind: 'data-entry'` validates against the closed-core lane regardless of whether `x-formspec-core-task-data-entry` exists in any registry. Registry entries are **authoring-intent metadata** consumed by: posture admission (`posture.allowedModules[]` per §4.4), lint E603 (module-extensible enum resolution for `^x-` extension values), AI tooling. Closed-core values bypass E603 entirely (the lint resolves only `^x-` values against declared modules).
+  > 3. **`semantics` payload convention (also applies to `widgetShape`, `validation`, `slotShape`, `row` payloads where structurally appropriate).** Free-form per schema, but pinned at this revision: `kindValue` (REQUIRED, unprefixed closed-core value), `summary` (REQUIRED, human description), plus payload-category-specific optional fields documented in the module's prose. Cross-module vocabulary stability: every P1 module's contribution entries conform; P2 + later modules follow unless they ship a `schemaUrl`-linked sub-schema for stricter typing.
+
+  This section is the single source of truth for the convention; subsequent P1/P2 modules cite it rather than reauthoring.
 
 - [ ] **Step 6: Verify fixtures pass** — `python3 -m pytest tests/test_p1_module_x_formspec_core_task.py -v` (green; default-set-equivalence + module-loaded both pass).
 
@@ -170,9 +193,11 @@ git commit \
 - Create: `formspec/tests/test_p1_module_x_formspec_core_actions.py`.
 
 - [ ] **Step 1: Failing fixtures.**
-  - Module entry validates with both contribution category lists.
+  - Module entry validates with both contribution category lists (5 `action-intent` + 5 `validation-mapping-row` = 10 contributions).
   - Each `action-intent` entry validates with its `validation` payload (full ValidationTuple per VM §6.1).
-  - Each `validation-mapping-row` entry's `row` field, when JCS-canonicalized, matches byte-for-byte against the canonical 5-row fixture from P0 Task 9 (`formspec/tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json`).
+  - **Per-row JCS membership** (clarified r1 per M3 scout finding): the P0 Task 9 canonical fixture at `formspec/tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` is a **bare array of 5 row objects** (verified: keys alphabetically-ordered per JCS RFC 8785, 4 keys per row: `blocking`, `intent`, `persistence`, `profile`). Each Registry `validation-mapping-row` contribution entry carries **ONE** row object in its `row` field. The test: for each of the 5 contribution entries, JCS-canonicalize its `row` payload and assert the canonical bytes appear as an element of the canonical 5-row fixture set. NOT array-to-array equality.
+
+**Closed-core ActionIntent list (verified at probe time, from `validation-mapping.schema.json:180-194` MasterTable + the 5-row JCS fixture):** `save-draft`, `autosave`, `review`, `submit`, `request-evidence`. This matches the ADR §4.9 expectation; P1 Task 1.2 ships exactly 5 contributions per category.
 
 - [ ] **Step 2: Run** — fail.
 
@@ -204,23 +229,36 @@ git commit \
 **Open question** for execution: does `Component.component` get the `oneOf [closed-core, x-pattern]` enum convention now (deferred from P0 Task 5 per its Deviation), OR does this P1 commit just publish the module and leave the schema as today? **Plan recommendation:** publish the module here; the `Component.component` schema convention is a separate Task 1.3b that DOES NOT need to land for P2/P3/P4 to proceed. Defer 1.3b to be picked up alongside P2 Surface module work if natural; otherwise file to a follow-on. Per ADR §4.5 the schema convention is the contract; the lint binding (E604) is what enforces "unknown widget value resolves against a declared module's widget contribution." E604 ships in P0 Task 8 — the lint is ready; only the schema-side enum wrap is deferred.
 
 **Files:**
-- Modify: `formspec/registries/formspec-common.registry.json` — add `x-formspec-core-component` module + N `widget` contribution entries (N = current `ui-policy.json` widget count; ~25–32).
-- Modify: `formspec/specs/registry/extension-registry.md` — note the `ui-policy.json`/Registry coupling.
+- Modify: `formspec/registries/formspec-common.registry.json` — add `x-formspec-core-component` module + **33** `widget` contribution entries (one per `ui-policy.json:components[]` entry; count pinned r1 per H-2 scout finding).
+- Modify: `formspec/specs/registry/extension-registry.md` — note the `ui-policy.json` ↔ Registry coupling.
 - Create: `formspec/tests/conformance/fixtures/modules/x-formspec-core-component/` — fixtures.
 - Create: `formspec/tests/test_p1_module_x_formspec_core_component.py`.
 
-- [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:spec-expert` cross-checks: (a) the `widgetShape.props` field on each contribution validates Theme's `widgetConfig` payloads per ADR §4.2 lines on Theme; (b) the fallback chain per Component §progressive-to-core is captured per widget; (c) the ui-policy.json/Registry coupling choice doesn't break existing consumers (the 5 consumers Pass B R3 grep-verified in P0 Task 12 Deviations — `sync-lint-schemas.mjs`, `copy-layout-css-assets.mjs`, `formspec-layout/package.json`, `platform-defaults.ts`, `default-theme.json` — those consume `token-registry.json`, not `ui-policy.json`, but `ui-policy.json` has its own consumer set worth enumerating before the commit).
+**`ui-policy.json` consumer set (verified r1 per M-1 scout + M-2 spec-expert findings).** The plan's earlier "Pass B R3 grep-verified 5 consumers" parenthetical referenced `token-registry.json` consumers (P0 Task 12) — those have **zero overlap** with the `ui-policy.json` set. The actual `ui-policy.json` consumer set is:
 
-- [ ] **Step 2: Enumerate `ui-policy.json` consumers** — `grep -rn 'ui-policy\.json\|ui-policy"' formspec/ formspec-studio/` to catalog. Likely consumers: schema validators, the formspec-lint widget-catalog pass, the formspec-engine widget registry. Verify NONE break under the Registry-coupled posture.
+- **Authoritative (formspec):** `crates/formspec-lint/src/ui_policy.rs` (lint pass), `crates/formspec-lint/src/component_matrix.rs`, `packages/formspec-types/src/ui-policy.ts` (generated TS module), `packages/formspec-types/scripts/generate-ui-policy.mjs` (generator), `packages/formspec-types/src/widget-vocabulary.ts` (transitive), `packages/formspec-types/src/index.ts` (re-export surface).
+- **Studio (test-side contract):** `formspec-studio/packages/formspec-studio/tests/lib/field-helpers.test.ts`.
+- **Test coverage:** `packages/formspec-types/tests/widget-vocabulary.test.ts`, `tests/conformance/schemas/test_component_schema.py`, `tests/integration/fixtures/test_core_fixtures.py`.
+
+**Widget-validity dual-authority risk (spec-expert M-2).** After P1 Task 1.3, `ui-policy.json` and the Registry `x-formspec-core-component` contributions both describe the same 33 widgets. The formspec-lint widget-catalog pass (`crates/formspec-lint/src/ui_policy.rs`) currently resolves widget validity from `ui-policy.json`; posture admission (when wired) resolves from the Registry. **These two views MUST agree** or posture admission can admit a widget the lint rejects (or vice versa). Mitigation choices: (a) v1: lint pass continues reading `ui-policy.json`; the Registry contributions are descriptive metadata only — same enforcement-boundary discipline as the closed-core/Registry rule (Task 1.1 Step 5 prose); (b) v2 (post-P1, if drift surfaces): extend `generate-ui-policy.mjs` to emit Registry-contribution stubs in the same pass, single-source-of-truth. **This plan ships (a)** for P1; (b) lands as a P2+ generator-extension task IF dual-maintenance friction surfaces.
+
+- [ ] **Step 1: Architecture review BEFORE** — `formspec-specs:spec-expert` cross-checks: (a) the `widgetShape.props` field on each contribution validates Theme's `widgetConfig` payloads per ADR §4.2; (b) the `widgetShape.fallback` field's contract (chain? single fallback widget name? — see Step 5 below); (c) the dual-authority mitigation choice (a) above doesn't conflict with E604 lint expectations; (d) the 33-widget cardinality matches `ui-policy.json` exactly.
+
+- [ ] **Step 2: Re-verify `ui-policy.json` consumer set** — `grep -rln 'ui-policy\.json\|ui-policy"' formspec/ formspec-studio/` confirms the set above is current at execution time. Verify NONE break under the Registry-coupled posture (per mitigation (a), they shouldn't: lint continues reading the JSON document; Registry is metadata).
 
 - [ ] **Step 3: Failing fixtures.**
-  - Module entry with N `widget` contribution names → validates.
-  - Per-widget contribution validates with `widgetShape.props` (closed schema for that widget's props) + `widgetShape.children` (children policy) + `widgetShape.fallback` (per Component §progressive-to-core).
-  - Theme document configuring a module-supplied widget via `widgetConfig: { ... }` → validates against the contributing module's `widgetShape.props`. Note: this exercises the E604 (MODULE-PAYLOAD-SCHEMA-MISMATCH) lint pass landed in P0 Task 8.
+  - Module entry with **33** `widget` contribution names → validates.
+  - **Cardinality assertion fixture:** assert `len(module.contributes) == 33` to catch drift if `ui-policy.json` grows or shrinks under maintenance.
+  - Per-widget contribution validates with `widgetShape.props` (closed schema for that widget's props) + `widgetShape.childrenPolicy` (note: `childrenPolicy`, not `children` — per schema example at `registry.schema.json:483`; r1 fix per L-3 scout) + `widgetShape.fallback`.
+  - Theme document configuring a module-supplied widget via `widgetConfig: { ... }` → validates against the contributing module's `widgetShape.props`. Exercises E604 (MODULE-PAYLOAD-SCHEMA-MISMATCH) lint pass landed in P0 Task 8.
 
 - [ ] **Step 4: Run** — fail.
 
-- [ ] **Step 5: Author module + contribution entries** for every widget in `ui-policy.json`. Reuse the `category` field already in `ui-policy.json` (layout/input/display/container) as part of `widgetShape.props` or as a top-level Registry-entry `tag`.
+- [ ] **Step 5: Author module + 33 contribution entries** for every widget in `ui-policy.json`. **Per-widget `widgetShape` payload shape (pinned r1; addresses H-3 spec-expert):**
+  - `props` — REQUIRED JSON Schema validating Theme `widgetConfig` for this widget. v1 default: `{ "type": "object", "additionalProperties": true }` (permissive — tighten per-widget as Theme audit surfaces the consumed prop sets).
+  - `childrenPolicy` — REQUIRED. One of `"no-children" | "single-child" | "list-of-children"`. Matches `registry.schema.json:483` example.
+  - `fallback` — REQUIRED. **String widget-name** (e.g. `"Stack"`, `"Text"`) naming the Core-conformant fallback this widget degrades to when a renderer doesn't support it. v1 single-fallback (not a chain) — the chain semantics from Component §progressive-to-core are spec-side prose; the Registry contribution carries the single immediate-next-rung fallback. If Component §progressive-to-core is not yet authored (verify at Step 1), document the `fallback` field as **advisory-only for P1** in the spec prose.
+  - **`ui-policy.json` `category` placement** (corrected r1 per H-3 spec-expert): `ui-policy.json` has a `category` field per widget (`layout`/`input`/`display`/`container`). It goes on the **top-level Registry entry** (NOT inside `widgetShape.props` which validates Theme config, and NOT in a non-existent `tag` field). Options: (i) use the top-level `description` field with a category prefix (`"[layout] Section component for vertical grouping"`); (ii) use the top-level `metadata` object if Registry schema admits one (verify at Step 1); (iii) ship `category` inside `widgetShape` as a sibling of `childrenPolicy` (consistent with the schema's "free-form per module" posture). **Plan recommendation: (iii)** — keeps the category visible at the widget-shape level for AI tooling without inventing a top-level field. Pin in Step 1 arch review.
 
 - [ ] **Step 6: Run** — green.
 
@@ -244,10 +282,15 @@ git commit \
 
 **ADR refs:** §4.9, §4.5 (Trace closed-cores: Source.kind, EdgeEntry.kind, TypedEndpoint), §10 (refactor row 7).
 
-**Closed-cores to republish** (verified against `trace-index.schema.json` from P0 Task 5 — uniform `oneOf [closed-core, x-pattern]` already in place):
-- `Source.kind` closed-core
-- `EdgeEntry.kind` closed-core
-- `TypedEndpoint` kinds (the `^x-` lane already admits extensions)
+**Closed-cores to republish** (enumerated r1 per H-3 scout finding; verified against `trace-index.schema.json` post-P0 Task 5):
+
+- **`SourceEntry.kind` closed-core (5 values)** at `trace-index.schema.json:73-74`: `definition`, `experience`, `responseActions`, `component`, `ontology`.
+- **`EdgeEntry.kind` closed-core (11 values)** at `trace-index.schema.json:163-175`: `component-renders-item`, `unit-collects-item`, `trigger-invokes-action`, `item-depends-on-item`, `unit-serves-task`, `task-involves-actor`, `action-emits-effect`, `action-has-precondition`, `concept-refs-item`, `concept-refs-component-node`, `node-visibility-references-item`.
+- **`TypedEndpoint` closed-core prefixes (9 prefixes)** at `trace-index.schema.json:144-148`: `item`, `unit`, `task`, `actor`, `action`, `concept`, `effect`, `precondition`, `componentNodePath`. (Note: `TypedEndpoint` is currently a **single regex** mixing closed-core prefixes and the `^x-` extension lane — NOT a `oneOf [enum, x-pattern]` shape. Per spec-expert L-2 finding, the implicit closed-core list is now made explicit by republishing.)
+
+**Total: 5 + 11 + 9 = 25 contribution entries.**
+
+**Optional Task 1.4a (deferred per scope discipline).** Refactor `TypedEndpoint` from a single regex to `oneOf [enum-of-9-prefixes, x-pattern]` for consistency with the uniform §4.5 convention applied elsewhere in P0 Task 5. **Plan recommendation: defer to P2 OR a P0 follow-on.** The republishing in Task 1.4 makes the closed-core list explicit (in the Registry) regardless; the schema-side refactor is a separate concern that doesn't block P1 closure.
 
 **Contribution category:** No matching category exists today for "trace kinds." Three options:
 1. Use the `property` category (no payload required, simplest).
@@ -256,12 +299,14 @@ git commit \
 
 **Plan recommendation: option 1 (`property`)** for the lowest-friction shipping — these are enum members, not nodes that need processor/renderer obligations. The ADR's contribution-category list (§4.2) is targeted at enums where consuming documents need typed payload validation (widget props, slot bindings, etc.). Trace edge-kinds are enum values consumed by audit tooling; the contribution metadata is descriptive, not validating. Document the choice in spec prose; pin in Deviations if reviewer pushes back.
 
+**`property` contribution naming convention (pinned r1 per L-2 spec-expert):** for Trace, names follow `x-formspec-core-trace-<bucket>-<value>` where `<bucket>` is `source-kind` | `edge-kind` | `endpoint-prefix`. Examples: `x-formspec-core-trace-source-kind-definition`, `x-formspec-core-trace-edge-kind-component-renders-item`, `x-formspec-core-trace-endpoint-prefix-item`. The bucket disambiguates names across the three different enum sites (without it, `x-formspec-core-trace-component` would be ambiguous: a source kind, an endpoint prefix, or neither). Same translation pattern applies to Task 1.5 Ledger entries.
+
 **Files:**
-- Modify: `formspec/registries/formspec-common.registry.json` — module + property contributions per Trace closed-core enum.
+- Modify: `formspec/registries/formspec-common.registry.json` — module + 25 property contributions.
 - Create: `formspec/tests/conformance/fixtures/modules/x-formspec-core-trace/`.
 - Create: `formspec/tests/test_p1_module_x_formspec_core_trace.py`.
 
-- [ ] **Step 1: Failing fixtures + run + author + run-green + regen + commit + code review** (compressed checklist; pattern established by Tasks 1.1–1.3).
+- [ ] **Step 1: Failing fixtures + run + author 25 entries + cardinality assertion + run-green + regen + commit + code review** (pattern established by Tasks 1.1–1.3; cardinality + bucket-naming pinned above).
 
 ```bash
 git commit \
@@ -276,18 +321,36 @@ git commit \
 
 **ADR refs:** §4.9, §4.5 (Ledger closed-cores: EventType + ChangeSetEntry.valueClass), §8 (carry-points), §10 (refactor row 8).
 
-**Closed-cores to republish** (verified post-P0 Task 5 — uniform convention applied; post-Task 6 — EventType has third lane `^(ai|user)\.` per Deviations log):
-- `EventType` closed-core (the pre-existing values, excluding the `^x-` and `^(ai|user)\.` extension lanes which P4 fills).
-- `ChangeSetEntry.valueClass` closed-core.
+**Closed-cores to republish** (enumerated r1 per H-4 scout finding; verified post-P0 Task 5 + Task 6):
 
-**Why this is the last P1 module.** The P4 `x-formspec-ai-runtime` module depends on the ledger carry-points (event payloads carry `authoredBy: AuthorActor` per §5.4; EventType admits `ai.*` lane per Deviations). Publishing `x-formspec-core-ledger` first makes the dependency explicit when P4 declares `dependencies: [{id: 'x-formspec-core-ledger', ...}]`.
+- **`EventType` closed-core (20 values)** at `respondent-ledger-event.schema.json:313-341`: `session.started`, `draft.saved`, `draft.resumed`, `response.completed`, `response.amendment-opened`, `response.amended`, `response.stopped`, `attachment.added`, `attachment.replaced`, `attachment.removed`, `prepopulation.applied`, `system.merge-resolved`, `validation.snapshot-recorded`, `calculation.material-change`, `nonrelevant.pruned`, `autosave.coalesced`, `device-linked`, `identity-verified`, `attestation.captured`, `response.submit-attempted`.
+
+  (Probe at execution time may surface additional values added between r1-write and Task 1.5 execution; treat 20 as the floor — cardinality assertion in Step 3 catches drift.)
+- **`ChangeSetEntry.valueClass` closed-core (7 values)** at `respondent-ledger-event.schema.json:444-450`: `user-input`, `prepopulated`, `calculated`, `imported`, `attachment`, `system-derived`, `migration-derived`.
+- **Excluded from P1:** the `^x-` extension lane and the `^(ai|user)\.` authoring-namespace lane (P0 Task 6 Deviations §EventType-ai-user-lane). The latter is P4's domain (`x-formspec-ai-runtime`).
+
+**Total: 20 + 7 = 27 contribution entries floor.**
+
+**Naming translation for dotted values (load-bearing — pinned r1 per H-4 scout + Task 1.1 Step 5 convention).** EventType values use `.` as a sub-namespace separator (`session.started`, `response.amendment-opened`); the Registry name regex forbids dots. Translation: dots → hyphens in the Registry name; preserve the original dotted value verbatim in the contribution payload's `kindValue` field.
+
+| Closed-core value | Registry name |
+|---|---|
+| `session.started` | `x-formspec-core-ledger-event-type-session-started` |
+| `response.amendment-opened` | `x-formspec-core-ledger-event-type-response-amendment-opened` |
+| ... | ... |
+
+Bucket prefix `event-type` vs `value-class` disambiguates the two enum sites (same convention as Trace Task 1.4).
+
+**Why this is the last P1 module.** The P4 `x-formspec-ai-runtime` module depends on the ledger carry-points (event payloads carry `authoredBy: AuthorActor` per §5.4; EventType admits `^(ai|user)\.` lane per P0 Task 6 Deviations). Publishing `x-formspec-core-ledger` first makes the dependency explicit when P4 declares `dependencies: [{id: 'x-formspec-core-ledger', ...}]`.
 
 **Files (same shape as 1.4):**
-- Modify: `formspec/registries/formspec-common.registry.json` — module + property contributions per Ledger closed-core enum values.
+- Modify: `formspec/registries/formspec-common.registry.json` — module + 27 property contributions.
 - Create: `formspec/tests/conformance/fixtures/modules/x-formspec-core-ledger/`.
 - Create: `formspec/tests/test_p1_module_x_formspec_core_ledger.py`.
 
-- [ ] **Step 1: Failing + author + run + regen + commit + code review** (pattern established).
+- [ ] **Step 1: Re-probe at execution time** — `python3 -c "import json; d=json.load(open('schemas/respondent-ledger-event.schema.json')); ..."` to enumerate exact closed-core values at Task 1.5 execution moment (catches any drift since r1 write).
+
+- [ ] **Step 2: Failing fixtures + cardinality assertion (27 contributions) + dotted-translation assertion (every `kindValue` matches `name.replace('x-formspec-core-ledger-event-type-', '').replace(/-/g, '.')` for EventType bucket) + author + run + regen + commit + code review** (pattern established).
 
 ```bash
 git commit \
@@ -300,7 +363,12 @@ git commit \
 
 ## P1 → P2 phase boundary
 
-- [ ] **Architecture review AFTER** — `formspec-specs:spec-expert` running `semi-formal-architecture-review` reads all 5 P1 modules + cross-checks: (a) all five `dependencies[]` graphs are intra-substrate-only (no module depends on a non-existent module); (b) default-set-equivalence holds across the Experience / Component / Response Actions / Trace / Ledger sample fixtures; (c) the naming convention from Task 1.1 holds uniformly.
+- [ ] **Architecture review AFTER** — `formspec-specs:spec-expert` running `semi-formal-architecture-review` reads all 5 P1 modules + cross-checks (sharpened r1 per M-3 spec-expert finding):
+  - (a) All five `contributes[]` arrays match their declared cardinality (Task 1.1: 7 unit-kind; Task 1.2: 5 action-intent + 5 validation-mapping-row; Task 1.3: 33 widget; Task 1.4: 25 property; Task 1.5: 27 property).
+  - (b) **Module-declaration-is-metadata equivalence** holds across the Experience / Response Actions / Trace / Ledger sample fixtures: same `unit.kind`/`intent`/`kind`/`eventType` value produces identical validation outcomes WITH and WITHOUT the `modules[]` declaration. For Component: the per-widget closed-core enum convention is **deferred per P0 Task 5 Deviation** (`Component.component` schema-side `oneOf [closed-core, x-pattern]` wrap is not in P1 scope); the Component default-set equivalence check applies only to the documented built-in component names (`AnyComponent.oneOf` already handles this without Registry consultation), NOT to module-contributed widget values which require the deferred schema-side convention to be testable.
+  - (c) The naming convention from Task 1.1 Step 5 spec prose (Naming + Enforcement-boundary + Dotted-translation) holds uniformly across all 5 modules.
+  - (d) `kindValue` ↔ name-suffix consistency holds across every contribution entry (Tasks 1.1, 1.4, 1.5 carry this rule).
+  - (e) No P1 commit introduced a lint-rule binding (lint passes E603/E604/E605 from P0 Task 8 are sufficient; no P1 lint work).
 - [ ] Run full verification suite (1–6).
 - [ ] Plugin reference-map regen.
 
@@ -781,6 +849,48 @@ git commit \
 ### r0 follow-ups (open)
 
 - Reviewer-converged Deviations append here as P1→P4 execution surfaces them.
+
+### r1 (2026-05-23) — Pre-P1-Task-1.1 arch-review absorptions
+
+Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-specs:formspec-scout`) returned BEFORE the first P1 commit landed. Both converged on REMEDIATE-THEN-PROCEED verdicts. Consolidated absorptions applied to the plan body above; no plan-shape changes, only execution-precision tightening.
+
+**BLOCKER B-1 (spec-expert) — Enforcement-boundary spec-prose gap.** Closed-core enum validation flows through the `oneOf` schema lane, NOT Registry contribution presence. **Absorbed** into the Naming-convention-discovery paragraph (lines ~75–80) and Task 1.1 Step 5 spec-prose pin. The fix becomes a load-bearing rule cited by every subsequent P1 module.
+
+**HIGH H-1 (both reviewers) — `semantics` payload key convention.** Plan now pins `kindValue` (REQUIRED), `summary` (REQUIRED), `processorObligation`/`rendererObligation` (OPTIONAL, matching `registry.schema.json:476` example). Cross-module vocabulary stability secured before Task 1.1 commits; P2 modules inherit the convention.
+
+**HIGH H-2 (scout) — Widget count.** Plan's "~25–32" replaced with **33** (verified at probe time via `python3 -c "len(json.load(...)['components'])"`). Cardinality assertion added to Task 1.3 Step 3 failing fixtures.
+
+**HIGH H-3 (scout) — Trace enumeration.** Plan's handwaved closed-core list replaced with full enumeration: 5 + 11 + 9 = **25 Trace contribution entries** with bucket-naming convention pinned (`source-kind` / `edge-kind` / `endpoint-prefix`). Optional Task 1.4a (schema-side `TypedEndpoint` regex → `oneOf [enum, x-pattern]` refactor) noted as deferred.
+
+**HIGH H-3 (spec-expert) — `widgetShape.fallback` undefined + `category`-placement framing error.** Plan now pins `fallback` as v1 single-fallback string (not chain); marks it advisory-only if Component §progressive-to-core isn't yet authored. `category` placement clarified: ship inside `widgetShape` as sibling of `childrenPolicy` (NOT in `widgetShape.props` which validates Theme config; NOT in a non-existent `tag` field). Decision-point pinned to Task 1.3 Step 1 arch review.
+
+**HIGH H-4 (scout) — Ledger enumeration + dotted-translation.** Plan's handwaved closed-core list replaced with full enumeration: 20 EventType + 7 valueClass = **27 Ledger contribution entries**. Dotted-translation rule (`session.started` → `x-formspec-core-ledger-event-type-session-started`, preserve dotted value in `kindValue`) pinned in Task 1.1 Step 5 and applied in Task 1.5 prose.
+
+**MEDIUM M-1 (scout) — `ui-policy.json` consumer set.** Plan's "~5 consumers" replaced with verified set (6 formspec consumers + 1 studio test-side + multiple test files). Plan recommends mitigation (a) for P1: lint pass continues reading `ui-policy.json`; Registry contributions are descriptive metadata only — same enforcement-boundary discipline as B-1. Generator extension (mitigation (b)) deferred to P2+ if drift surfaces.
+
+**MEDIUM M-2 (scout) — Misleading Task 1.3 parenthetical.** "Pass B R3 grep-verified 5 consumers" pointed at `token-registry.json` consumers (P0 Task 12), not `ui-policy.json`. Parenthetical cut and replaced with the correct `ui-policy.json` consumer enumeration.
+
+**MEDIUM M-2 (spec-expert) — Widget-validity dual-authority risk.** Plan now documents the risk explicitly + names the v1 mitigation (lint pass continues authoritative for widget-validity; Registry is metadata). Same posture as B-1's enforcement-boundary pin.
+
+**MEDIUM M-3 (scout) — JCS per-row membership semantics.** Plan's array-equality framing in Task 1.2 Step 1 replaced with per-row JCS canonicalization + membership-in-canonical-set assertion. Matches the actual fixture shape (bare array of 5 row objects per inspection).
+
+**MEDIUM M-3 (spec-expert) — P1→P2 boundary review wording.** Plan's "default-set-equivalence holds across Experience / Component / ..." sharpened to "Module-declaration-is-metadata equivalence holds across Experience / Response Actions / Trace / Ledger ... Component default-set equivalence applies only to documented built-in component names; module-contributed widget values require the deferred schema-side convention to be testable."
+
+**MEDIUM M-1 (spec-expert) — Tasks 1.4/1.5 enumeration timing.** Plan now enumerates exact contribution counts + names in r1 prose (above) so the cardinality is fixed at plan-time, not Task 1.4/1.5-execution-time. Task 1.5 retains a Step 1 "re-probe at execution time" to catch any schema drift between r1-write and Task 1.5 execution.
+
+**LOW L-1 (spec-expert) — Vocabulary consistency.** Where the plan oscillated between "contribution entries" and "Registry entries," r1 standardizes on "Registry entry names" for what `contributes[]` holds and "contribution entries" for what those names refer to (Registry entries with `category: <contribution-category>` like `unit-kind`/`widget`/`property`).
+
+**LOW L-2 (spec-expert) — `property` contribution naming for Trace/Ledger.** Bucket-naming convention pinned in Tasks 1.4 + 1.5 prose (`<bucket>-<value>` form).
+
+**LOW L-3 (scout) — `childrenPolicy` not `children`.** Plan corrected; matches `registry.schema.json:483` example exactly.
+
+**LOW L-4 (scout) — Default-set-equivalence reframe.** Task 1.1 Step 2 fixture description reframed: the substantive proof is "module declaration is metadata, not validation behavior" (the two fixtures produce identical outcomes), not a default-set lookup-mechanism inference.
+
+**LOW H-2 (spec-expert) — JCS fixture path confirmed.** Path `formspec/tests/conformance/fixtures/validation-mapping/closed-core-5-rows-jcs.json` exists with correct shape. No plan change needed; this is a confirming finding rather than a remediation.
+
+**LOW H-4 (spec-expert) — ActionIntent list verification.** Plan's "5 values: `save-draft`, `autosave`, `review`, `submit`, `request-evidence`" probe-verified at r1-write time against `validation-mapping.schema.json:180-194`. Task 1.2 Step 3 retains an at-execution-time grep as defense-in-depth.
+
+**Net effect.** Plan body tightened with explicit cardinalities, naming conventions, payload key conventions, and enforcement-boundary semantics. No phase reordering, no task split, no task removal. Two reviewers' worth of pre-execution work absorbed; r1 commit closes the BEFORE gate for Task 1.1.
 
 ---
 
