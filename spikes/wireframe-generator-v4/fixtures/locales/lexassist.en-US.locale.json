@@ -1,0 +1,28 @@
+{
+  "$formspecLocale": "1.0",
+  "modules": [
+    { "id": "x-formspec-presentation", "version": "^0.1.0" },
+    { "id": "x-formspec-conversation", "version": "^0.1.0" },
+    { "id": "x-formspec-document-viewer", "version": "^0.1.0" }
+  ],
+  "url": "https://lexassist.example/locales/workbench-en-us",
+  "version": "1.0.0",
+  "locale": "en-US",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/new-matter",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "strings": {
+    "$form.title": "New matter intake",
+    "matterTitle.label": "Matter title",
+    "clientName.label": "Client name",
+    "$module.x-formspec-presentation.matterGallery.title": "Open matters",
+    "$module.x-formspec-conversation.conversationHistory.title": "Demand response thread",
+    "$module.x-formspec-document-viewer.docViewer.title": "Document viewer"
+  },
+  "extensions": {
+    "x-spike-v3-current-schema-gap": {
+      "reason": "Locale remains targetDefinition-scoped today; v3 uses this file as representative module-locale addressing evidence, not as an app-wide Locale schema."
+    }
+  }
+}

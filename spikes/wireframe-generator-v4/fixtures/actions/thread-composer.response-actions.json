@@ -1,0 +1,32 @@
+{
+  "$formspecResponseActions": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-conversation", "version": "^0.1.0" },
+    { "id": "x-formspec-ai-runtime", "version": "^0.1.0" }
+  ],
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/thread-composer",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "sendMessage",
+      "intent": "x-formspec-ai-compose",
+      "label": { "literal": "Send" },
+      "validation": {
+        "profile": "on-demand",
+        "blocking": "non-blocking",
+        "persistence": "draft-checkpoint"
+      },
+      "effects": [
+        {
+          "type": "hostEvent",
+          "eventName": "lexassist.thread.message.send",
+          "detailRef": "{message: $message, requireCitation: $requestCitation}"
+        }
+      ]
+    }
+  ]
+}

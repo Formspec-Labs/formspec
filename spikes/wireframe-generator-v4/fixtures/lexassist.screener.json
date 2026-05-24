@@ -1,0 +1,48 @@
+{
+  "$formspecScreener": "1.0",
+  "url": "https://lexassist.example/screeners/workbench-entry",
+  "version": "1.0.0",
+  "title": "LexAssist Workbench Entry Screener",
+  "description": "Spike-local Screener that routes terminal hops into Surface routes via the surface:<route-id> scheme.",
+  "items": [
+    {
+      "type": "field",
+      "key": "entryPoint",
+      "label": "Where should the workspace open?",
+      "dataType": "choice",
+      "options": [
+        { "value": "home", "label": "Home" },
+        { "value": "playbook", "label": "Run a playbook" },
+        { "value": "thread", "label": "Open a thread" }
+      ]
+    }
+  ],
+  "evaluation": [
+    {
+      "id": "surface-entry",
+      "strategy": "first-match",
+      "routes": [
+        {
+          "condition": "$entryPoint = 'playbook'",
+          "target": "surface:playbook-runner",
+          "label": "Run playbook",
+          "metadata": { "routeParams": { "playbookId": "demand-response" } },
+          "terminal": true
+        },
+        {
+          "condition": "$entryPoint = 'thread'",
+          "target": "surface:thread",
+          "label": "Demand response thread",
+          "metadata": { "routeParams": { "matterId": "acme", "threadId": "demand-response" } },
+          "terminal": true
+        },
+        {
+          "condition": "true",
+          "target": "surface:home",
+          "label": "Home",
+          "terminal": true
+        }
+      ]
+    }
+  ]
+}

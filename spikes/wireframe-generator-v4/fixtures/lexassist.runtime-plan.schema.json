@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/spikes/wireframe-generator-v3/runtime-plan/0.1",
+  "title": "Wireframe Spike v3 Runtime Plan",
+  "description": "Spike-local runtime plan schema. This is proof infrastructure, not an official Formspec conformance schema.",
+  "type": "object",
+  "required": ["$wireframeRuntimePlan", "sessionId", "actor", "commands"],
+  "additionalProperties": false,
+  "properties": {
+    "$wireframeRuntimePlan": {
+      "type": "string",
+      "const": "0.1-spike-v3"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/NavigateCommand" },
+          { "$ref": "#/$defs/ScreenerHopCommand" },
+          { "$ref": "#/$defs/DraftCommand" },
+          { "$ref": "#/$defs/InvokeActionCommand" },
+          { "$ref": "#/$defs/TransitionCommand" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "Params": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "NavigateCommand": {
+      "type": "object",
+      "required": ["type", "route"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "navigate" },
+        "route": { "type": "string", "minLength": 1 },
+        "params": { "$ref": "#/$defs/Params" }
+      }
+    },
+    "ScreenerHopCommand": {
+      "type": "object",
+      "required": ["type", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "screenerHop" },
+        "target": { "type": "string", "minLength": 1 },
+        "params": { "$ref": "#/$defs/Params" }
+      }
+    },
+    "DraftCommand": {
+      "type": "object",
+      "required": ["type", "definitionRef", "response"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "draft" },
+        "definitionRef": { "type": "string", "minLength": 1 },
+        "response": { "type": "object" }
+      }
+    },
+    "InvokeActionCommand": {
+      "type": "object",
+      "required": ["type", "definitionRef", "actionId", "actor", "invocationId"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "invokeAction" },
+        "definitionRef": { "type": "string", "minLength": 1 },
+        "actionId": { "type": "string", "minLength": 1 },
+        "actor": { "type": "string", "minLength": 1 },
+        "invocationId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "TransitionCommand": {
+      "type": "object",
+      "required": ["type", "event"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "transition" },
+        "route": { "type": "string", "minLength": 1 },
+        "event": { "type": "string", "minLength": 1 },
+        "params": { "$ref": "#/$defs/Params" }
+      }
+    }
+  }
+}

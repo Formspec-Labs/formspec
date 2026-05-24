@@ -1,0 +1,20 @@
+{
+  "name": "formspec-wireframe-generator-spike-v4",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Spike v4: prototype v3 production findings through shared app graph resolver and validator",
+  "type": "module",
+  "scripts": {
+    "spike": "tsx src/cli.ts",
+    "test:negative": "tsx src/selftest.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

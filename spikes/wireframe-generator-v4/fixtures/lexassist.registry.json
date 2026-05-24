@@ -1,0 +1,461 @@
+{
+  "$formspecRegistry": "1.0",
+  "publisher": {
+    "name": "LexAssist Spike",
+    "homepage": "https://lexassist.example"
+  },
+  "published": "2026-05-23T00:00:00Z",
+  "entries": [
+    {
+      "name": "x-formspec-core-task",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Core task, actor, unit, and item-reference semantics.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "contributes": []
+    },
+    {
+      "name": "x-formspec-core-actions",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Core Response Actions intent and effect semantics.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "contributes": []
+    },
+    {
+      "name": "x-formspec-core-component",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Core Component widget catalog and generated Component identity semantics.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "contributes": []
+    },
+    {
+      "name": "x-formspec-surface",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "ADR-0150 Surface route graph and slot composition module.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "dependencies": [
+        { "id": "x-formspec-core-task", "version": "^1.0.0" },
+        { "id": "x-formspec-core-actions", "version": "^1.0.0" }
+      ],
+      "contributes": [
+        "x-formspec-slot-definition-form",
+        "x-formspec-slot-experience-unit",
+        "x-formspec-slot-module-widget",
+        "x-formspec-slot-static-content",
+        "x-formspec-slot-embed-route",
+        "x-formspec-surface-embed"
+      ]
+    },
+    {
+      "name": "x-formspec-presentation",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Presentation-oriented units and widgets used by non-form app routes.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "dependencies": [
+        { "id": "x-formspec-core-component", "version": "^1.0.0" }
+      ],
+      "contributes": [
+        "x-formspec-presentation-gallery-unit",
+        "x-formspec-presentation-list-unit",
+        "x-formspec-presentation-helper-unit",
+        "x-formspec-presentation-gallery",
+        "x-formspec-presentation-result-list",
+        "x-formspec-presentation-helper",
+        "x-formspec-presentation-shell"
+      ]
+    },
+    {
+      "name": "x-formspec-conversation",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation thread units and widgets.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "dependencies": [
+        { "id": "x-formspec-core-component", "version": "^1.0.0" }
+      ],
+      "contributes": [
+        "x-formspec-conversation-thread-unit",
+        "x-formspec-conversation-thread"
+      ]
+    },
+    {
+      "name": "x-formspec-document-viewer",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document viewer units and widgets.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "dependencies": [
+        { "id": "x-formspec-core-component", "version": "^1.0.0" }
+      ],
+      "contributes": [
+        "x-formspec-document-viewer-unit",
+        "x-formspec-document-viewer-document"
+      ]
+    },
+    {
+      "name": "x-formspec-ai-runtime",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI runtime carry-points and action intents.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "contributes": [
+        "x-formspec-ai-compose"
+      ]
+    },
+    {
+      "name": "x-formspec-slot-definition-form",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot entry that binds a route region to a Definition form view.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "slotShape": { "type": "definition-form", "binds": "definition", "compositionRule": "zero-or-more-per-route" }
+    },
+    {
+      "name": "x-formspec-slot-experience-unit",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot entry that renders an Experience unit.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "slotShape": { "type": "experience-unit", "binds": "experience-unit", "compositionRule": "ordered-list" }
+    },
+    {
+      "name": "x-formspec-slot-module-widget",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot entry that renders a module-contributed widget directly.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "slotShape": { "type": "module-widget", "binds": "widget", "compositionRule": "ordered-list" }
+    },
+    {
+      "name": "x-formspec-slot-static-content",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot entry that renders authored static text.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "slotShape": { "type": "static-content", "binds": "literal-content", "compositionRule": "ordered-list" }
+    },
+    {
+      "name": "x-formspec-slot-embed-route",
+      "category": "slot-type",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Surface slot entry that embeds or links another route.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "slotShape": { "type": "embed-route", "binds": "surface-route", "compositionRule": "one-route-per-entry" }
+    },
+    {
+      "name": "x-formspec-presentation-gallery-unit",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Experience unit for a gallery-style presentation surface.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": { "rendererObligation": "render-gallery-widget" }
+    },
+    {
+      "name": "x-formspec-presentation-list-unit",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Experience unit for list or activity presentation surfaces.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": { "rendererObligation": "render-result-list-widget" }
+    },
+    {
+      "name": "x-formspec-presentation-helper-unit",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Experience unit for helper or assistive panels.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": { "rendererObligation": "render-helper-panel" }
+    },
+    {
+      "name": "x-formspec-conversation-thread-unit",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Experience unit for conversational transcript display.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": { "rendererObligation": "render-conversation-thread" }
+    },
+    {
+      "name": "x-formspec-document-viewer-unit",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Experience unit for document inspection.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": { "rendererObligation": "render-document-viewer" }
+    },
+    {
+      "name": "x-formspec-presentation-gallery",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Gallery widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["cards"],
+          "additionalProperties": false,
+          "properties": {
+            "cards": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["title"],
+                "additionalProperties": false,
+                "properties": {
+                  "title": { "type": "string" },
+                  "subtitle": { "type": "string" },
+                  "badge": { "type": "string" }
+                }
+              }
+            },
+            "dataSourceRefs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-result-list",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Result-list widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["rows"],
+          "additionalProperties": false,
+          "properties": {
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["primary"],
+                "additionalProperties": false,
+                "properties": {
+                  "icon": { "type": "string" },
+                  "primary": { "type": "string" },
+                  "secondary": { "type": "string" }
+                }
+              }
+            },
+            "dataSourceRefs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-helper",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Helper-panel widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["helper"],
+          "additionalProperties": false,
+          "properties": {
+            "helper": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["kind", "label"],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": { "enum": ["ai-prompt", "shortcut"] },
+                  "label": { "type": "string" }
+                }
+              }
+            },
+            "dataSourceRefs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Panel"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-shell",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Application shell marker widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["appName", "nav"],
+          "additionalProperties": false,
+          "properties": {
+            "appName": { "type": "string" },
+            "appTagline": { "type": "string" },
+            "nav": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["label", "path"],
+                "additionalProperties": false,
+                "properties": {
+                  "label": { "type": "string" },
+                  "path": { "type": "string" }
+                }
+              }
+            },
+            "dataSourceRefs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-conversation-thread",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation thread widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["messages"],
+          "additionalProperties": false,
+          "properties": {
+            "messages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["role", "text"],
+                "additionalProperties": false,
+                "properties": {
+                  "role": { "enum": ["user", "assistant", "system"] },
+                  "text": { "type": "string" },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["label"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "label": { "type": "string" },
+                        "score": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "dataSourceRefs": { "type": "array", "items": { "type": "string" } },
+            "ai": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "fillable": { "type": "boolean" },
+                "providerHint": { "type": "string" },
+                "prompt": { "type": "string" }
+              }
+            }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-document",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document viewer widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["docTitle", "pages"],
+          "additionalProperties": false,
+          "properties": {
+            "docTitle": { "type": "string" },
+            "pages": { "type": "integer", "minimum": 0 },
+            "annotations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["pageRange", "label", "by"],
+                "additionalProperties": false,
+                "properties": {
+                  "pageRange": { "type": "string" },
+                  "label": { "type": "string" },
+                  "by": { "type": "string" }
+                }
+              }
+            },
+            "dataSourceRefs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-surface-embed",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Embedded route placeholder widget contract.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "widgetShape": {
+        "props": {
+          "type": "object",
+          "required": ["routeRef"],
+          "additionalProperties": false,
+          "properties": {
+            "routeRef": { "type": "string" }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "fallback": "Card"
+      }
+    },
+    {
+      "name": "x-formspec-ai-compose",
+      "category": "action-intent",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-assisted composition action intent for conversation messages.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "validation": {
+        "profile": "on-demand",
+        "blocking": "non-blocking",
+        "persistence": "draft-checkpoint"
+      }
+    }
+  ]
+}

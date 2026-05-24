@@ -1,0 +1,25 @@
+{
+  "$formspecResponseActions": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" }
+  ],
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/new-matter",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "saveNewMatter",
+      "intent": "submit",
+      "label": { "literal": "Create matter" },
+      "effects": [
+        {
+          "type": "hostEvent",
+          "eventName": "lexassist.matter.create",
+          "detailRef": "{matterTitle: $matterTitle, clientName: $clientName}"
+        }
+      ]
+    }
+  ]
+}

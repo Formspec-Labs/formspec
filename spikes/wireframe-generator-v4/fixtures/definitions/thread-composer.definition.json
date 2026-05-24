@@ -1,0 +1,42 @@
+{
+  "$formspec": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-conversation", "version": "^0.1.0" },
+    { "id": "x-formspec-ai-runtime", "version": "^0.1.0" }
+  ],
+  "url": "https://lexassist.example/forms/thread-composer",
+  "version": "1.0.0",
+  "status": "draft",
+  "name": "thread-composer",
+  "title": "Thread composer",
+  "description": "Captures a message submission inside a conversation route.",
+  "date": "2026-05-23",
+  "items": [
+    {
+      "key": "message",
+      "type": "field",
+      "label": "Message",
+      "dataType": "text",
+      "hint": "Ask a question or request a draft."
+    },
+    {
+      "key": "attachAuthorities",
+      "type": "field",
+      "label": "Attach authorities",
+      "dataType": "attachment"
+    },
+    {
+      "key": "requestCitation",
+      "type": "field",
+      "label": "Require cited answer",
+      "dataType": "boolean",
+      "initialValue": true
+    }
+  ],
+  "binds": [
+    { "path": "message", "required": "true" },
+    { "path": "requestCitation", "required": "true" }
+  ]
+}

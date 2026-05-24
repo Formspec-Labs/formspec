@@ -1,0 +1,26 @@
+{
+  "$formspecResponseActions": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-presentation", "version": "^0.1.0" }
+  ],
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/playbook-runner",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "startPlaybook",
+      "intent": "submit",
+      "label": { "literal": "Start playbook" },
+      "effects": [
+        {
+          "type": "hostEvent",
+          "eventName": "lexassist.playbook.start",
+          "detailRef": "{goal: $playbookGoal, deadline: $targetDeadline}"
+        }
+      ]
+    }
+  ]
+}
