@@ -7,6 +7,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 import { validateAppCoherence } from "./coherence.js";
+import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
 import type { AppManifest, DataSourceCatalog, Definition, Experience, GeneratorInputs, JsonObject, PostureDeclaration, Registry, ResponseActions, Surface, SurfaceSlotEntry } from "./types.js";
 
 const SPIKE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -64,11 +65,20 @@ function assertIssue(name: string, inputs: GeneratorInputs, expectedCode: string
   console.log(`[selftest] ok ${name} -> ${expectedCode}`);
 }
 
+function assertRuntimeIssue(name: string, inputs: GeneratorInputs, plan: RuntimePlan, expectedCode: string): void {
+  const report = executeRuntimePlan(inputs, plan);
+  if (!report.issues.some((issue) => issue.code === expectedCode)) {
+    throw new Error(`${name}: expected ${expectedCode}, got ${report.issues.map((issue) => issue.code).join(", ") || "no issues"}`);
+  }
+  console.log(`[selftest] ok ${name} -> ${expectedCode}`);
+}
+
 function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
   return inputs.surface.routes[0].slots.shell[0];
 }
 
 const base = await loadInputs();
+const baseRuntimePlan = await readJson<RuntimePlan>(fixturePath(base.appManifest["x-spike-v3-runtimePlan"] as LocalRef));
 
 {
   const inputs = clone(base);
@@ -110,4 +120,28 @@ const base = await loadInputs();
   const nav = (slot.payload?.nav ?? []) as Array<{ path: string }>;
   nav[0].path = "/missing";
   assertIssue("widget nav target", inputs, "SURFACE-NAV-TARGET");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  const draft = plan.commands.find((command) => command.type === "draft" && command.definitionRef === "new-matter");
+  if (draft?.type === "draft") delete draft.response.clientName;
+  assertRuntimeIssue("runtime required field blocking", clone(base), plan, "RUNTIME-VALIDATION-BLOCKED");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  const actions = plan.commands.filter((command): command is Extract<RuntimePlan["commands"][number], { type: "invokeAction" }> => command.type === "invokeAction");
+  actions[1].idempotencyKey = actions[0].idempotencyKey;
+  assertRuntimeIssue("runtime idempotency key reuse", clone(base), plan, "RUNTIME-IDEMPOTENCY-DUPLICATE");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  const hop = plan.commands.find((command) => command.type === "screenerHop");
+  if (hop?.type === "screenerHop") {
+    hop.target = "surface:library";
+    hop.params = {};
+  }
+  assertRuntimeIssue("runtime undeclared screener hop", clone(base), plan, "RUNTIME-SCREENER-HOP-UNDECLARED");
 }

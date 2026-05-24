@@ -1,0 +1,70 @@
+{
+  "$wireframeRuntimePlan": "0.1-spike-v3",
+  "url": "https://lexassist.example/runtime-plans/workbench-happy-path",
+  "version": "0.1.0",
+  "sessionId": "urn:formspec:session:lexassist-spike-v3-demo",
+  "actor": "urn:formspec:actor:human:legal-user",
+  "commands": [
+    {
+      "type": "navigate",
+      "route": "home"
+    },
+    {
+      "type": "draft",
+      "definitionRef": "new-matter",
+      "response": {
+        "matterTitle": "Acme supply agreement",
+        "clientName": "Acme Corp",
+        "jurisdiction": "tx",
+        "matterType": "contract",
+        "intakeSummary": "Review limitation-of-liability position before sending demand response."
+      }
+    },
+    {
+      "type": "invokeAction",
+      "definitionRef": "new-matter",
+      "actionId": "saveNewMatter",
+      "actor": "urn:formspec:actor:human:legal-user",
+      "idempotencyKey": "idem:new-matter:create:001"
+    },
+    {
+      "type": "transition",
+      "route": "home",
+      "event": "saveNewMatter",
+      "params": {
+        "createdMatterId": "acme"
+      }
+    },
+    {
+      "type": "navigate",
+      "route": "thread",
+      "params": {
+        "matterId": "acme",
+        "threadId": "demand-response"
+      }
+    },
+    {
+      "type": "draft",
+      "definitionRef": "thread-composer",
+      "response": {
+        "message": "Draft the limitation-of-liability reply with cited carve-out analysis.",
+        "attachAuthorities": true,
+        "requestCitation": true
+      }
+    },
+    {
+      "type": "invokeAction",
+      "definitionRef": "thread-composer",
+      "actionId": "sendMessage",
+      "actor": "urn:formspec:actor:agent:assistant",
+      "idempotencyKey": "idem:thread:send:001"
+    },
+    {
+      "type": "screenerHop",
+      "target": "surface:playbook-runner",
+      "params": {
+        "playbookId": "demand-response"
+      }
+    }
+  ]
+}

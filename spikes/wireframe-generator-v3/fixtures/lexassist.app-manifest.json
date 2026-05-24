@@ -77,6 +77,11 @@
   "x-spike-v3-screeners": [
     { "url": "https://lexassist.example/screeners/workbench-entry", "version": "1.0.0", "x-spike-v3-fixture": "lexassist.screener.json" }
   ],
+  "x-spike-v3-runtimePlan": {
+    "url": "https://lexassist.example/runtime-plans/workbench-happy-path",
+    "version": "0.1.0",
+    "x-spike-v3-fixture": "lexassist.runtime-plan.json"
+  },
   "x-spike-v3-current-schema-gaps": [
     "App Manifest 2.0 still has singular experience and responseActions sibling slots, while the ADR-0150 app model needs app-wide indexing over per-view form sidecars.",
     "Component 1.1 still requires targetDefinition, so generated non-form route Components carry a compatibility shim.",

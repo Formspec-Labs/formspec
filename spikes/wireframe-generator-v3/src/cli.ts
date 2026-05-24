@@ -24,6 +24,7 @@ import { validateAppCoherence, validateComponentBundle } from "./coherence.js";
 import { generateBundle } from "./generate.js";
 import { bundleToApp } from "./ir.js";
 import { renderApp } from "./render.js";
+import { executeRuntimePlan, type RuntimePlan } from "./runtime.js";
 
 const SPIKE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FORMSPEC_ROOT = resolve(SPIKE_ROOT, "..", "..");
@@ -156,6 +157,7 @@ async function main() {
   const dataSourceRef = asRef(appManifest["x-spike-v3-dataSources"], "x-spike-v3-dataSources");
   const postureRef = asRef(appManifest["x-spike-v3-posture"], "x-spike-v3-posture");
   const screenerRefs = asRefs(appManifest["x-spike-v3-screeners"], "x-spike-v3-screeners");
+  const runtimePlanRef = asRef(appManifest["x-spike-v3-runtimePlan"], "x-spike-v3-runtimePlan");
   const inputs: GeneratorInputs = {
     appManifest,
     definitions: await Promise.all(appManifest.definitions.map((ref, index) => readManifestArtifact<Definition>(ref, `definitions[${index}]`))),
@@ -168,6 +170,7 @@ async function main() {
     screener: await readManifestArtifact<JsonObject>(oneRef(screenerRefs, "x-spike-v3-screeners"), "x-spike-v3-screeners[0]"),
     locales: await Promise.all((appManifest.locales ?? []).map((ref, index) => readManifestArtifact<JsonObject>(ref, `locales[${index}]`))),
   };
+  const runtimePlan = await readManifestArtifact<RuntimePlan>(runtimePlanRef, "x-spike-v3-runtimePlan");
   await writeJson(OUT("artifact-resolution-report.json"), {
     definitions: inputs.appManifest.definitions.map((ref, index) => artifactResolution(`definitions[${index}]`, ref)),
     experience: artifactResolution("experience", asRef(inputs.appManifest.experience, "experience")),
@@ -177,6 +180,7 @@ async function main() {
     dataSources: artifactResolution("x-spike-v3-dataSources", dataSourceRef),
     posture: artifactResolution("x-spike-v3-posture", postureRef),
     screeners: screenerRefs.map((ref, index) => artifactResolution(`x-spike-v3-screeners[${index}]`, ref)),
+    runtimePlan: artifactResolution("x-spike-v3-runtimePlan", runtimePlanRef),
     locales: (inputs.appManifest.locales ?? []).map((ref, index) => artifactResolution(`locales[${index}]`, ref)),
   });
 
@@ -223,6 +227,16 @@ async function main() {
   }
   if (componentIssues.length > 0) validationFailures += componentIssues.length;
 
+  console.log("[spike-v3] executing route/session/runtime behavior...");
+  const runtime = executeRuntimePlan(inputs, runtimePlan);
+  for (const entry of runtime.issues) {
+    const prefix = entry.severity === "error" ? "x" : entry.severity === "warning" ? "!" : "i";
+    console.log(`[spike-v3]   ${prefix} ${entry.code} ${entry.path}: ${entry.message}`);
+  }
+  await writeJson(OUT("runtime-report.json"), runtime);
+  const runtimeErrors = runtime.issues.filter((entry) => entry.severity === "error").length;
+  if (runtimeErrors > 0) validationFailures += runtimeErrors;
+
   console.log("[spike-v3] projecting Components into renderer-neutral IR and HTML...");
   const app = bundleToApp(bundle);
   await writeJson(OUT("wireframe-app.ir.json"), app);
@@ -234,8 +248,11 @@ async function main() {
   console.log(`[spike-v3]   definitions: ${inputs.definitions.length}`);
   console.log(`[spike-v3]   response action sidecars: ${inputs.responseActions.length}`);
   console.log(`[spike-v3]   app coherence errors: ${coherence.summary.errors}`);
+  console.log(`[spike-v3]   runtime errors: ${runtimeErrors}`);
   console.log(`[spike-v3]   output/components/*.json (${bundle.routes.length} files)`);
+  console.log("[spike-v3]   output/artifact-resolution-report.json");
   console.log("[spike-v3]   output/coherence-report.json");
+  console.log("[spike-v3]   output/runtime-report.json");
   console.log("[spike-v3]   output/wireframe-app.ir.json");
   console.log("[spike-v3]   output/wireframe.html");
   console.log(`[spike-v3]   schema validation failures: ${validationFailures}`);
