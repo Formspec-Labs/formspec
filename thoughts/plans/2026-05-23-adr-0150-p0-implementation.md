@@ -904,6 +904,18 @@ The proper refactor target ("closed-core + module-`widget`" per ADR §4.5) is st
 
 Not a deviation, an observation: `response-actions.schema.json` requires `actions: minItems: 1` (line 57 in the post-Task-4 file). Test fixtures must include at least one valid Action with at least one valid effect. Recorded here so the future agent authoring downstream RA fixtures doesn't repeat the same trial-and-error.
 
+### Task 6 execution — `EventType` gains an `^(ai|user)\.` authoring-namespace lane
+
+ADR §5.4 + §8.5 stipulate that authoring events use the `ai.command-issued` / `user.*` naming convention, with the nine baseline `ai.*` values shipped by `x-formspec-ai-runtime`. Task 5 mechanically wrapped `EventType` as `oneOf [closed-core, ^x- pattern]` — neither lane admits `ai.command-issued` etc. (the value isn't in closed-core, and it doesn't match `^x-`). Task 6's if/then trigger `eventType ~ ^(ai\.|user\.)` would be dormant at P0 because no such shape can validate as an EventType.
+
+Resolution on merit: Task 6 extends `EventType.oneOf` with a third lane `^(ai|user)\.[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` so the §5.4 carry-point is real at P0, not dead-on-arrival. The schema admits the shape; lint E603 (Task 8) resolves the specific value against the document's declared modules at lint time. This is a one-line addition that makes the carry-point genuinely usable — without it, the §5.4 `authoredBy` trigger has no path to fire and the carry-point's value at P0 is illusory.
+
+Task 5 didn't catch this because its mandate was the mechanical `oneOf [closed-core, x-pattern]` sweep across §4.5 enums; it didn't cross-check §8.5's stated authoring-event naming against the resulting EventType lane. Recorded here because the change semantically belongs to §5.4/§8.5 (Task 6's domain), not §4.5 (Task 5's).
+
+### Task 6 execution — `respondent-ledger.schema.json` was not lint-mirrored; no mirror added
+
+Per Task 6 step 6 (sync lint mirror): `respondent-ledger-event.schema.json` and `respondent-ledger.schema.json` are NOT in the lint-mirror set today (confirmed via `ls crates/formspec-lint/schemas/`). Per §Lint-mirror seeding deviation, this commit does not introduce new mirrors. Only `locale.schema.json` is mirrored among the three Task 6 files; its mirror was synced via `make sync-lint-schemas` after the edit. No regression in `cargo nextest run -p formspec-lint -p formspec-core` (765 tests pass).
+
 ---
 
 ## Out of scope for P0 (lives in P1+)
