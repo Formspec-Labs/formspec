@@ -277,6 +277,8 @@ function emitActionButton(
     extensions: {
       "x-formspec-action": {
         role: ref.role ?? "primary",
+        executor: "response-actions",
+        actionId: ref.id,
         intent: action?.intent ?? "(unresolved)",
         labelText: text,
         targetDefinition: def.url,

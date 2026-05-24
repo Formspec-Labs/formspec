@@ -262,7 +262,7 @@ export type SurfaceRoute = {
   layout?: "shell-with-main" | "shell-with-three-pane";
   params?: { name: string; type: string; example?: string }[];
   slots: Record<string, SurfaceSlotEntry[]>;
-  transitions?: { on: string; to: string; params?: Record<string, string> }[];
+  transitions?: { on: string; to: string; params?: Record<string, string>; actionRef?: { definitionRef: string; actionId: string } }[];
 };
 
 export type Surface = {

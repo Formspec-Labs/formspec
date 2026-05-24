@@ -105,7 +105,8 @@
               "params": {
                 "type": "object",
                 "additionalProperties": { "type": "string" }
-              }
+              },
+              "actionRef": { "$ref": "#/$defs/TransitionActionRef" }
             }
           }
         }
@@ -159,6 +160,15 @@
           "then": { "required": ["routeRef"] }
         }
       ]
+    },
+    "TransitionActionRef": {
+      "type": "object",
+      "required": ["definitionRef", "actionId"],
+      "additionalProperties": false,
+      "properties": {
+        "definitionRef": { "type": "string", "minLength": 1 },
+        "actionId": { "type": "string", "minLength": 1 }
+      }
     },
     "ResponseBinding": {
       "type": "object",

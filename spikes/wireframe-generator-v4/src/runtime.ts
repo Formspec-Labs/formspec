@@ -347,6 +347,13 @@ function transition(
     push(state, "error", "RUNTIME-TRANSITION-TARGET", path, `Transition '${command.event}' targets missing route '${transition.to}'.`);
     return;
   }
+  const transitionActionRef = transition.actionRef;
+  const transitionActionInvoked = transitionActionRef ? transitionActionWasInvoked(inputs, state, transitionActionRef, path) : true;
+  if (transitionActionInvoked === undefined) return;
+  if (!transitionActionInvoked) {
+    push(state, "error", "RUNTIME-TRANSITION-ACTION-MISSING", path, `Transition '${command.event}' requires Response Action '${transitionActionRef?.actionId ?? "(missing)"}' before navigation.`);
+    return;
+  }
   const params: Record<string, string> = {};
   for (const param of target.params ?? []) {
     const binding = transition.params?.[param.name] ?? param.name;
@@ -354,6 +361,26 @@ function transition(
     if (value != null) params[param.name] = String(value);
   }
   navigate(inputs, state, target.id, params, path, command.event);
+}
+
+function transitionActionWasInvoked(
+  inputs: GeneratorInputs,
+  state: RuntimeState,
+  ref: { definitionRef: string; actionId: string },
+  path: string,
+): boolean | undefined {
+  const def = findDefinition(inputs, ref.definitionRef);
+  if (!def) {
+    push(state, "error", "RUNTIME-TRANSITION-ACTION-REF", path, `Transition references unknown action Definition '${ref.definitionRef}'.`);
+    return undefined;
+  }
+  const response = resolveResponseHandle(inputs, state, def, path);
+  if (!response) return undefined;
+  return state.actionInvocations.some((invocation) =>
+    invocation.definitionUrl === def.url &&
+    invocation.actionId === ref.actionId &&
+    invocation.responseInstanceId === response.id,
+  );
 }
 
 function responseValue(state: RuntimeState, key: string): unknown {

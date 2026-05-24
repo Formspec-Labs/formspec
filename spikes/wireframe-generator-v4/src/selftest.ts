@@ -70,6 +70,12 @@ function assertComponentIssue(name: string, bundle: MultiRouteBundle, expectedCo
   console.log(`[selftest] ok ${name} -> ${expectedCode}`);
 }
 
+function actionNodes(node: { component?: unknown; extensions?: Record<string, unknown>; children?: unknown }): Array<{ extensions?: Record<string, unknown> }> {
+  const current = node.component === "ActionButton" ? [node] : [];
+  const children = Array.isArray(node.children) ? node.children as Array<{ component?: unknown; extensions?: Record<string, unknown>; children?: unknown }> : [];
+  return [...current, ...children.flatMap(actionNodes)];
+}
+
 function firstShellSlot(inputs: GeneratorInputs): SurfaceSlotEntry {
   return inputs.surface.routes[0].slots.shell[0];
 }
@@ -135,6 +141,11 @@ const baseRuntimePlan = base.runtimePlan as RuntimePlan;
   const bundle = generateBundle(clone(base));
   const issues = validateComponentBundle(bundle);
   if (issues.length > 0) throw new Error(`generated Component bundle should be clean, got ${issues.map((issue) => issue.code).join(", ")}`);
+  const actions = bundle.routes.flatMap((route) => actionNodes(route.doc.tree));
+  if (actions.length === 0) throw new Error("generated Component bundle should include ActionButton nodes");
+  if (!actions.every((node) => (node.extensions?.["x-formspec-action"] as { executor?: string } | undefined)?.executor === "response-actions")) {
+    throw new Error("generated ActionButton nodes must delegate execution to Response Actions");
+  }
   console.log("[selftest] ok generated Component bundle identity");
 }
 
@@ -251,6 +262,12 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const inputs = clone(base);
   dataSource(inputs, "resource:supply-agreement").runtime.provenance.kind = "host-state";
   assertIssue("data-source provenance kind must match", inputs, "DATA-SOURCE-PROVENANCE");
+}
+
+{
+  const inputs = clone(base);
+  inputs.responseActions[1].actions[0].id = inputs.responseActions[0].actions[0].id;
+  assertIssue("duplicate Response Actions action id", inputs, "RESPONSE-ACTIONS-ACTION-ID-COLLISION");
 }
 
 {
@@ -417,6 +434,14 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 }
 
 {
+  const inputs = clone(base);
+  const transition = inputs.surface.routes[0].transitions?.[0];
+  if (!transition?.actionRef) throw new Error("Missing home transition actionRef");
+  transition.actionRef.actionId = "missingAction";
+  assertIssue("Surface transition actionRef must resolve", inputs, "SURFACE-TRANSITION-ACTION-REF");
+}
+
+{
   const bundle = generateBundle(clone(base));
   const nonFormRoute = bundle.routes.find((route) => route.id === "matter");
   if (!nonFormRoute) throw new Error("Missing non-form matter route");
@@ -478,6 +503,39 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const draft = plan.commands.find((command) => command.type === "draft" && command.definitionRef === "new-matter");
   if (draft?.type === "draft") delete draft.response.clientName;
   assertRuntimeIssue("runtime required field blocking", clone(base), plan, "RUNTIME-VALIDATION-BLOCKED");
+}
+
+{
+  const plan = clone(baseRuntimePlan);
+  const actionIndex = plan.commands.findIndex((command) => command.type === "invokeAction" && command.definitionRef === "new-matter");
+  if (actionIndex < 0) throw new Error("Missing new-matter invokeAction command");
+  plan.commands.splice(actionIndex, 1);
+  assertRuntimeIssue("runtime transition requires Response Action", clone(base), plan, "RUNTIME-TRANSITION-ACTION-MISSING");
+}
+
+{
+  const inputs = clone(base);
+  const thread = inputs.surface.routes.find((route) => route.id === "thread");
+  if (!thread) throw new Error("Missing thread route");
+  thread.transitions = [
+    ...(thread.transitions ?? []),
+    {
+      on: "sendMessage",
+      to: "matter",
+      params: { matterId: "matterId" },
+      actionRef: { definitionRef: "thread-composer", actionId: "sendMessage" },
+    },
+  ];
+  const plan = clone(baseRuntimePlan);
+  const sendIndex = plan.commands.findIndex((command) => command.type === "invokeAction" && command.definitionRef === "thread-composer");
+  if (sendIndex < 0) throw new Error("Missing thread-composer invokeAction command");
+  plan.commands.splice(
+    sendIndex + 1,
+    0,
+    { type: "navigate", route: "thread", params: { matterId: "acme", threadId: "other-thread" } },
+    { type: "transition", event: "sendMessage" },
+  );
+  assertRuntimeIssue("runtime transition action must match Response instance", inputs, plan, "RUNTIME-TRANSITION-ACTION-MISSING");
 }
 
 {

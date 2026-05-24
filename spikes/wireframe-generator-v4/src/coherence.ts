@@ -207,6 +207,7 @@ export function validateAppCoherence(inputs: GeneratorInputs, ajv: Ajv2020): Coh
   issues.push(...validateModuleAdmission(inputs, registry, appModuleSet));
   validateSurfaceGraph(inputs, issues);
   validateSlots(inputs, issues, registry, admission, units, sidecarsByDefinition, dataSources, ajv);
+  validateTransitionActionRefs(inputs, issues, sidecarsByDefinition);
   validateDataSources(inputs, issues);
   validateScreenerTargets(inputs, issues);
 
@@ -312,7 +313,7 @@ function validateSiblingIndex(
     for (const action of ra.actions) {
       const owner = seenActions.get(action.id);
       if (owner) {
-        issue(issues, "error", "COMP-BUNDLE-ACTION-ID-COLLISION", "$.responseActions", `Action id '${action.id}' appears in both '${owner}' and '${ra.targetDefinition.url}'.`);
+        issue(issues, "error", "RESPONSE-ACTIONS-ACTION-ID-COLLISION", "$.responseActions", `Action id '${action.id}' appears in both '${owner}' and '${ra.targetDefinition.url}'.`);
       } else {
         seenActions.set(action.id, ra.targetDefinition.url);
       }
@@ -324,6 +325,29 @@ function validateSurfaceGraph(inputs: GeneratorInputs, issues: CoherenceIssue[])
   const targetExperience = inputs.appManifest.experiences?.[0]?.url;
   if (inputs.surface.targetExperience.url !== targetExperience) {
     issue(issues, "error", "SURFACE-EXPERIENCE-MISMATCH", "$.surface.targetExperience", `Surface targets '${inputs.surface.targetExperience.url}', App Manifest lists '${targetExperience ?? "(none)"}'.`);
+  }
+}
+
+function validateTransitionActionRefs(
+  inputs: GeneratorInputs,
+  issues: CoherenceIssue[],
+  sidecarsByDefinition: Map<string, ResponseActions>,
+): void {
+  for (const route of inputs.surface.routes) {
+    for (const [index, transition] of (route.transitions ?? []).entries()) {
+      const ref = transition.actionRef;
+      if (!ref) continue;
+      const def = definitionByRef(inputs, ref.definitionRef);
+      const path = `$.surface.routes.${route.id}.transitions[${index}].actionRef`;
+      if (!def) {
+        issue(issues, "error", "SURFACE-TRANSITION-ACTION-REF", path, `Transition '${transition.on}' references unknown action Definition '${ref.definitionRef}'.`);
+        continue;
+      }
+      const sidecar = sidecarsByDefinition.get(def.url);
+      if (!sidecar?.actions.some((action) => action.id === ref.actionId)) {
+        issue(issues, "error", "SURFACE-TRANSITION-ACTION-REF", path, `Transition '${transition.on}' references missing Response Action '${ref.actionId}' for '${def.url}'.`);
+      }
+    }
   }
 }
 

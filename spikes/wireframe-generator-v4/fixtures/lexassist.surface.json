@@ -74,7 +74,12 @@
         ]
       },
       "transitions": [
-        { "on": "saveNewMatter", "to": "matter", "params": { "matterId": "createdMatterId" } }
+        {
+          "on": "saveNewMatter",
+          "to": "matter",
+          "params": { "matterId": "createdMatterId" },
+          "actionRef": { "definitionRef": "new-matter", "actionId": "saveNewMatter" }
+        }
       ]
     },
     {

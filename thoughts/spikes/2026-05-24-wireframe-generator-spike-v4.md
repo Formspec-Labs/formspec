@@ -39,7 +39,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | F5 | Non-form Component identity must stop pretending to be a Definition | Passing spike-local prototype | Pending final |
 | F6 | Runtime state needs explicit ownership | Passing spike-local prototype | Pending final |
 | F7 | Data Sources need a spec, not widget payload folklore | Passing spike-local prototype | Pending final |
-| F8 | Response Actions should remain the only action executor | Planned | Pending |
+| F8 | Response Actions should remain the only action executor | Passing spike-local prototype | Pending final |
 | F9 | Locale, Theme, a11y, and responsive policy are part of the graph | Planned | Pending |
 | F10 | Authorization remains ADR 0152 work | Planned | Pending |
 
@@ -55,7 +55,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P1 | Define route/session/Response/action state ownership | Passing spike-local F6 proof |
 | P1 | Specify multi-form-route behavior | Passing spike-local ambiguity checks |
 | P1 | Define Data Sources as a contract surface | Passing spike-local F7 proof |
-| P1 | Keep Response Actions as the only action executor | Planned |
+| P1 | Keep Response Actions as the only action executor | Passing spike-local F8 proof |
 | P1 | Add fixtures for EC2, EC5, EC12, EC13, EC14 | Planned |
 | P2 | Define module-aware Locale ownership and collision behavior | Planned as negative fixture |
 | P2 | Define responsive and a11y route policy | Planned as spike-local contract |
@@ -76,7 +76,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | A8 | unknown runtime command | Passing |
 | A9 | route/Definition ownership mismatch | Passing |
 | A10 | undeclared Screener terminal hop | Passing |
-| A11 | duplicate Response Actions action id | Planned |
+| A11 | duplicate Response Actions action id | Passing |
 | A12 | generated Component id collision | Passing |
 | A13 | module-widget payload mismatch | Passing |
 | A14 | module version conflict across sibling artifacts | Passing |
@@ -220,6 +220,23 @@ Verification on 2026-05-24:
 
 The negative harness now covers missing Data Source runtime behavior, source-kind/id-prefix mismatch, invalid live cache behavior, provenance-kind mismatch, unresolved payload source refs from earlier work, and module-widget payload schema mismatch.
 
+### F8 - Response Actions As Executor
+
+F8 makes action-backed transitions explicit without moving execution behavior into Surface or Component output. Surface transitions may now carry `actionRef` with a Definition ref and Response Action id. The home route's `saveNewMatter` transition uses that link; pure navigation transitions remain navigation-only.
+
+The app graph validates transition action refs against the loaded Response Actions sidecars. Runtime now rejects an action-backed transition unless the referenced Response Action has already executed. Generated `ActionButton` nodes also mark `executor: "response-actions"` in `x-formspec-action`, so Components expose the trigger target but do not define validation, effects, idempotency, or terminal state.
+
+This is not production action orchestration. The production lesson is narrower: Surface and Components may declare or render triggers, but Response Actions must remain the executor for preconditions, validation tuple selection, blocking, effects, durable idempotency, replay, retry, and terminal state.
+
+Verification on 2026-05-24:
+
+- `jq empty spikes/wireframe-generator-v4/fixtures/lexassist.surface.json spikes/wireframe-generator-v4/fixtures/lexassist.surface.schema.json`
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers duplicate Response Actions action ids, unresolved Surface transition action refs, runtime transition attempts before the referenced Response Action executes, and route-scoped Response instance mismatches. The positive generated-Component check also verifies that `ActionButton` nodes delegate execution to Response Actions.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
@@ -228,8 +245,9 @@ The negative harness now covers missing Data Source runtime behavior, source-kin
 4. Treat the non-form Component `targetDefinition` value as an output-only compatibility shim until Component identity is fixed. The v4 generator labels it as `x-spike-v4-output-compatibility`; production should replace the shim with route or Surface identity before serious authoring/regeneration work depends on it.
 5. Promote runtime state ownership only after the prose contract names the owners. F6 suggests four separate production surfaces: Surface route state, Session actor/navigation state, Response instance state, and Response Actions invocation/effect state. Do not keep production Response state keyed only by Definition URL.
 6. Promote Data Sources as their own prose contract before production code. Do not let widget payloads define source semantics. The contract should name source families, cache/staleness rules, failure modes, provenance, and authorization boundary behavior.
-7. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
-8. Add the remaining negative cases before any production wiring: duplicate Response Actions action id and EC2/EC5/EC12/EC13/EC14. F3 through F7 already cover embedded Surface route refs, missing transition params, generated Component id collision, module version conflict, ambiguous runtime Response ownership, and module-widget payload mismatch.
+7. Keep Response Actions as the only executor. Surface and Component contracts should name triggers and targets; they should not own validation, blocking, effects, durable idempotency, replay, retry, or terminal state.
+8. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 can pressure-test `sessions[]` and `posture.allowedActors[]`; it should not invent per-route, per-widget, or per-action policy.
+9. Add the remaining negative cases before any production wiring: EC2/EC5/EC12/EC13/EC14. F3 through F8 already cover embedded Surface route refs, missing transition params, duplicate Response Actions action ids, generated Component id collision, module version conflict, ambiguous runtime Response ownership, and module-widget payload mismatch.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 
