@@ -887,6 +887,18 @@ Both Tasks 4 + 5 ran `cargo nextest -p formspec-lint` (and Task 5 added `-p form
 
 Task 8's E604 (MODULE-PAYLOAD-SCHEMA-MISMATCH) lint code is the unblocking work for the Component.component deferral. Add a one-line note in Task 8 step prose at execution time naming this future-binding intent — keeps the deferral discoverable via the unblocking work.
 
+### Task 11 AFTER-review NITs — resolved-or-justified inline
+
+Cross-stack-scout + spec-expert both returned **CLEAN-FOR-FINAL-GATE** on Task 11 (`b99bab42`). Three LOW NITs surfaced — resolved or justified inline per the goal directive's "warnings + nits resolved or justified inline" rule.
+
+- **NIT-1 (cross-stack-scout) — directory-fixture runner hardcodes `bundle.json` + `comp-*.json`.** At `tests/unit/test_lint_rule_registry.py:344-403`. **Justified:** YAGNI until a second cross-document rule needs the pattern. When it does (e.g. Locale-fallback chain), generalize via a fixture-side `_fixtureSlots` manifest. Deferred to P1 lint-runner cleanup.
+- **NIT-2 (both reviewers) — collision-filter dead predicate** at `crates/formspec-lint/src/pass_modules.rs:589-598`. The first condition is functionally redundant with the secondary filter at `:605-608`. Behavior is correct (proven by `e605_no_collision_silent` + `e605_same_doc_dup_does_not_fire` tests). **Justified:** pure code-quality; churning Task 11 to simplify is process-theatre. Deferred to P1 lint-code cleanup.
+- **NIT-3 (cross-stack-scout) — ComponentBase.id description didn't pin ADR 0151 cross-ref.** **Fixed inline** (`schemas/component.schema.json:213`): added "Load-bearing for ADR 0151's cross-document-move bidirectional map (CRDT precondition: target doc has no collision)" so integrators reading the schema cold see the cross-ADR dependency. Lands in Task 13 commit.
+
+Spec-expert also flagged a LOW about `LintOptions.bundle_component_documents` carrying only positional-index doc identity (not filename). The craftsman's existing `types.rs:242-256` doc-comment already documents the caller-responsibility contract; the `$.doc[{doc_index}].{node_path}` diagnostic format is the natural `Vec<Value>` contract. Justified as-is.
+
+Pace-by-signal from cross-stack-scout: "Single final review pass is sufficient — process-theatre, not value-add." Both AFTER reviews converged; Task 13 gate runs the verification suite + applies these NIT resolutions without a third reviewer round.
+
 ### Task 5 execution — `Component.component` deferred from §4.5 enum sweep
 
 The ADR §4.5 table lists `Component.component` (component.schema.json:297) under the uniform `oneOf [closed-core, x-pattern]` convention, target "closed-core + module-`widget`." Reading the actual schema during Task 5 execution: `component` is NOT a flat enum today — it's pinned to a specific value via `const` in each of 33 sub-defs (32 built-ins + `CustomComponentRef`), and `AnyComponent.oneOf` dispatches on which sub-def matches. The property declaration at line 297 is `{type: string, minLength: 1}` — intentionally open at the property level, structurally narrowed by the parent `AnyComponent.oneOf`.
