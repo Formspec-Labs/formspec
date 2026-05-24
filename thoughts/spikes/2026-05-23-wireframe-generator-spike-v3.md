@@ -1,13 +1,22 @@
 # Wireframe / Dynamic-UI Generator Spike v3
 
-**Status:** in progress spike - whole-app graph proof, not production infrastructure  
-**Lives at:** `formspec/spikes/wireframe-generator-v3/`  
-**Based on:** [`2026-05-23-wireframe-generator-spike-v2.md`](./2026-05-23-wireframe-generator-spike-v2.md), [`2026-05-23-wireframe-generator-spike-v2-gaps.md`](./2026-05-23-wireframe-generator-spike-v2-gaps.md), [`../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md`](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md)  
+**Status:** implemented spike - whole-app graph proof, not production infrastructure
+**Lives at:** `formspec/spikes/wireframe-generator-v3/`
+**Based on:** [`2026-05-23-wireframe-generator-spike-v2.md`](./2026-05-23-wireframe-generator-spike-v2.md), [`2026-05-23-wireframe-generator-spike-v2-gaps.md`](./2026-05-23-wireframe-generator-spike-v2-gaps.md), [`../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md`](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md)
 **Command:** `cd formspec/spikes/wireframe-generator-v3 && npm run test:negative && npm run spike && npx tsc --noEmit`
 
 ## Verdict
 
-Pending. v3 is the "Next Test" from the v2 gaps note: can Formspec validate and execute an app graph from App Manifest through runtime behavior without product-specific assumptions?
+ADR 0150's operating model holds for this spike's proof scope: the extended legal-workspace fixture validates and executes the Next Test graph from App Manifest through route/session/runtime behavior without product-specific assumptions in the validator or runtime.
+
+This is not a conformance claim. The remaining ADR/spec-level work is explicit:
+
+- **ADR 0150 / Surface:** promote a real Surface schema and app-level sidecar indexes for Response Actions, Data Sources, Posture, Screeners, Runtime Plan, and multi-Experience composition. v3 uses spike-local extension slots until those indexes exist.
+- **ADR 0151 / Component identity:** remove the Component 1.1 `targetDefinition` shim for non-form routes and make non-form route Component identity first-class.
+- **ADR 0150 / Locale, A11y, Theme:** define app-wide Locale/module-key collision rules, responsive/a11y route policy, and Theme token slot contracts for module widgets.
+- **ADR 0152:** keep fine-grained per-actor/per-artifact/per-widget authorization out of this spike. v3 only proves session membership and binary `allowedActors`.
+
+The remaining unproven edge cases are EC2, EC5, EC12, EC13, and EC14. They are tracked below as future proof fixtures, not hidden assumptions.
 
 This spike is explicitly non-normative. It does not publish an official Surface schema, conformance suite, module contract, runtime policy, or ADR 0152 authorization shape.
 
@@ -99,3 +108,19 @@ An external review then found two proof-boundary weaknesses: Response Actions we
 - **ADR 0150:** The operating model is strengthened for app coherence, module admission, contribution payload validation, and route/session runtime execution. Surface, Runtime Plan, Data Sources, and App Manifest sidecar indexes still need official schema work before this becomes conformance.
 - **ADR 0151:** Bundle-unique Component IDs are checkable at generated-bundle time. M4 must close before non-form route Components stop relying on `targetDefinition` shims.
 - **ADR 0152:** v3 deliberately does not define fine-grained actor or widget-class policy. Runtime checks are limited to session membership and binary `allowedActors`; canonical scope semantics remain deferred.
+
+## Verification
+
+Focused spike gates passed on the committed v3 fixture:
+
+- `cd spikes/wireframe-generator-v3 && jq empty fixtures/lexassist.app-manifest.json fixtures/lexassist.data-sources.json fixtures/lexassist.runtime-plan.json fixtures/lexassist.runtime-plan.schema.json`
+- `cd spikes/wireframe-generator-v3 && npx tsc --noEmit`
+- `cd spikes/wireframe-generator-v3 && npm run test:negative`
+- `cd spikes/wireframe-generator-v3 && npm run spike`
+
+External review gates closed with no open findings:
+
+- Architecture review after the App Manifest/module-admission remediation: **ACCEPT**.
+- Code review after the runtime Response Actions remediation: **ACCEPT**.
+
+Repo-wide verification status is separate from the spike proof. `npm run docs:generate`, `npm run docs:check`, `npm run check:deps`, and `cargo nextest run --workspace` passed after the v3 commits. `make test` and `python3 -m pytest tests/ -v` are blocked in the current checkout by non-v3 environment/tooling issues recorded during closeout: the generated-types path still expects the pre-demotion Validation Mapping `MasterTable` const, and the Python environments used by the commands lack required JCS/RFC 8785 test dependencies.
