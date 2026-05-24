@@ -486,28 +486,31 @@ SHOULD normalize to lowercase language with title-case region (e.g.,
 ‘fr-CA’).</td>
 </tr>
 <tr>
-<td><code>#/properties/name</code></td>
-<td><code>name</code></td>
-<td><code>string</code></td>
+<td><code>#/properties/modules</code></td>
+<td><code>modules</code></td>
+<td><code>array</code></td>
 <td>no</td>
 <td>—</td>
-<td>Machine-friendly short identifier for programmatic use.</td>
-</tr>
-<tr>
-<td><code>#/properties/strings</code></td>
-<td><code>strings</code></td>
-<td><code>object</code></td>
-<td>yes</td>
-<td>critical</td>
-<td>Map of string keys to localized values. Keys follow the
+<td>OPTIONAL declaration of substrate modules this document depends on.
+Each entry is a canonical ModuleRef (id + version, with optional
+publisher + lockHash for posture admission). Default-module-set behavior
+per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is
+identical to declaring the core module set. Module-contributed Locale
+string keys use the <span
+class="math inline">$module.&lt;modId&gt;.&lt;nodeId&gt;.&lt;prop&gt;
+prefix per ADR §4.10 (Task 6). Per ADR 0150 §4.3. |
+| `#/properties/name` | `name` | &lt;code&gt;string&lt;/code&gt; | no |
+— | Machine-friendly short identifier for programmatic use. |
+| `#/properties/strings` | `strings` | &lt;code&gt;object&lt;/code&gt; |
+yes | critical | Map of string keys to localized values. Keys follow the
 dot-delimited path format defined in the Locale Specification §3.1.
 Values are strings, optionally containing FEL interpolation via
 {{expression}} syntax. Keys address item properties (key.label,
 key.description, key.hint), context labels (key.label@context,
 key.hint@context), choice options (key.options.value.label), shared
-option sets (<span
-class="math inline"><em>o</em><em>p</em><em>t</em><em>i</em><em>o</em><em>n</em><em>S</em><em>e</em><em>t</em>.<em>s</em><em>e</em><em>t</em><em>N</em><em>a</em><em>m</em><em>e</em>.<em>v</em><em>a</em><em>l</em><em>u</em><em>e</em>.<em>l</em><em>a</em><em>b</em><em>e</em><em>l</em>), <em>v</em><em>a</em><em>l</em><em>i</em><em>d</em><em>a</em><em>t</em><em>i</em><em>o</em><em>n</em><em>m</em><em>e</em><em>s</em><em>s</em><em>a</em><em>g</em><em>e</em><em>s</em>(<em>k</em><em>e</em><em>y</em>.<em>e</em><em>r</em><em>r</em><em>o</em><em>r</em><em>s</em>.<em>C</em><em>O</em><em>D</em><em>E</em>, <em>k</em><em>e</em><em>y</em>.<em>c</em><em>o</em><em>n</em><em>s</em><em>t</em><em>r</em><em>a</em><em>i</em><em>n</em><em>t</em><em>M</em><em>e</em><em>s</em><em>s</em><em>a</em><em>g</em><em>e</em>, <em>k</em><em>e</em><em>y</em>.<em>r</em><em>e</em><em>q</em><em>u</em><em>i</em><em>r</em><em>e</em><em>d</em><em>M</em><em>e</em><em>s</em><em>s</em><em>a</em><em>g</em><em>e</em>), <em>f</em><em>o</em><em>r</em><em>m</em> − <em>l</em><em>e</em><em>v</em><em>e</em><em>l</em><em>s</em><em>t</em><em>r</em><em>i</em><em>n</em><em>g</em><em>s</em>(</span>form.title,
-<span
+option sets ($</span>optionSet.setName.value.label), validation messages
+(key.errors.CODE, key.constraintMessage, key.requiredMessage),
+form-level strings ($form.title, <span
 class="math inline"><em>f</em><em>o</em><em>r</em><em>m</em>.<em>d</em><em>e</em><em>s</em><em>c</em><em>r</em><em>i</em><em>p</em><em>t</em><em>i</em><em>o</em><em>n</em>), <em>s</em><em>h</em><em>a</em><em>p</em><em>e</em><em>m</em><em>e</em><em>s</em><em>s</em><em>a</em><em>g</em><em>e</em><em>s</em>(</span>shape.id.message),
 theme page strings ($page.pageId.title, <span
 class="math inline"><em>p</em><em>a</em><em>g</em><em>e</em>.<em>p</em><em>a</em><em>g</em><em>e</em><em>I</em><em>d</em>.<em>d</em><em>e</em><em>s</em><em>c</em><em>r</em><em>i</em><em>p</em><em>t</em><em>i</em><em>o</em><em>n</em>), <em>a</em><em>n</em><em>d</em><em>c</em><em>o</em><em>m</em><em>p</em><em>o</em><em>n</em><em>e</em><em>n</em><em>t</em><em>n</em><em>o</em><em>d</em><em>e</em><em>s</em><em>t</em><em>r</em><em>i</em><em>n</em><em>g</em><em>s</em>(</span>component.nodeId.property).</td>

@@ -988,6 +988,18 @@ override.</td>
 ‘x-’.</td>
 </tr>
 <tr>
+<td><code>#/properties/modules</code></td>
+<td><code>modules</code></td>
+<td><code>array</code></td>
+<td>no</td>
+<td>—</td>
+<td>OPTIONAL declaration of substrate modules this document depends on.
+Each entry is a canonical ModuleRef (id + version, with optional
+publisher + lockHash for posture admission). Default-module-set behavior
+per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is
+identical to declaring the core module set. Per ADR 0150 §4.3.</td>
+</tr>
+<tr>
 <td><code>#/properties/rules</code></td>
 <td><code>rules</code></td>
 <td><code>array</code></td>

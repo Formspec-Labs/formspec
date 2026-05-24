@@ -438,6 +438,7 @@ A conformant **Experience Coverage-Aware** processor MUST:
 | `#/properties/applicability` | `applicability` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Applicability</code> | — |
 | `#/properties/description` | `description` | <code>string</code> | no | — | — |
 | `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
+| `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
 | `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9_\-]*&#36;</code> | — |
 | `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Definition document. Same shape as Theme / Component / Locale. |
 | `#/properties/tasks` | `tasks` | <code>array</code> | no | — | — |

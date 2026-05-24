@@ -210,12 +210,15 @@ class TestDefinitionTopLevel:
             assert field not in DEF_S["required"], f"{field} should not be required"
 
     def test_s4_1__closed_world_property_set(self):
+        """Per ADR 0150 §4.3: substrate-consuming documents gain top-level
+        `modules: ModuleRef[]` carrier."""
         expected = {
             "$formspec", "url", "version", "versionAlgorithm", "status",
             "derivedFrom", "name", "title", "description", "date",
             "items", "binds", "shapes", "instances", "variables",
             "nonRelevantBehavior", "optionSets", "migrations", "issuer",
             "extensions", "formPresentation",
+            "modules",
         }
         assert _prop_keys(DEF_S) == expected
 
@@ -634,10 +637,13 @@ class TestMappingTopLevel:
         assert pn == "^x-", "mapping extensions property missing propertyNames ^x-"
 
     def test_ms3_1__closed_world_property_set(self):
+        """Per ADR 0150 §4.3: substrate-consuming documents gain top-level
+        `modules: ModuleRef[]` carrier."""
         expected = {
             "$formspecMapping", "version", "$schema", "definitionRef", "definitionVersion",
             "targetSchema", "direction", "autoMap", "defaults", "rules",
             "adapters", "conformanceLevel", "extensions",
+            "modules",
         }
         assert _prop_keys(MAP_S) == expected
 

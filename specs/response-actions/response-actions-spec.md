@@ -93,6 +93,7 @@ Out of scope:
 |---|---|---|---|---|---|
 | `#/properties/$formspecResponseActions` | `$formspecResponseActions` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Response Actions document version. MUST be '1.0'. |
 | `#/properties/actions` | `actions` | <code>array</code> | yes | — | Named actions. Order is documentation-only; resolution is by Action.id. Each id MUST be unique within the document. |
+| `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
 | `#/properties/targetDefinition` | `targetDefinition` | <code>object</code> | yes | — | The Definition this Response Actions document binds to. Identical role to Experience.targetDefinition. |
 | `#/properties/version` | `version` | <code>string</code> | yes | — | Version of this Response Actions document. SemVer RECOMMENDED. |
 <!-- schema-ref:end -->
