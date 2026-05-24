@@ -2911,6 +2911,129 @@
         "childrenPolicy": "no-children",
         "widgetCategory": "input"
       }
+    },
+    {
+      "name": "x-formspec-document-viewer",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer primitives per ADR 0150 \u00a714 P2. Ships one unit-kind (document-review) for document-shaped Experience units and four widgets (DocumentViewer, PDFPane, Annotations, MetadataPanel) that compose into a viewer surface. Module-contributed values extend Experience.UnitKind / Component widget catalog via the \u00a74.5 oneOf [closed-core, x-pattern] lanes.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-component",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-document-viewer-kind-document-review",
+        "x-formspec-document-viewer-widget-documentviewer",
+        "x-formspec-document-viewer-widget-pdfpane",
+        "x-formspec-document-viewer-widget-annotations",
+        "x-formspec-document-viewer-widget-metadatapanel"
+      ]
+    },
+    {
+      "name": "x-formspec-document-viewer-kind-document-review",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer Experience UnitKind `document-review` per ADR 0150 \u00a714 P2. Document-review experience (read, annotate, accept/reject).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "document-review",
+        "summary": "Document-review experience (read, annotate, accept/reject)."
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-documentviewer",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `DocumentViewer` (container category) per ADR 0150 \u00a714 P2. Document rendering surface (PDF/image/HTML).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "DocumentViewer",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-pdfpane",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `PDFPane` (display category) per ADR 0150 \u00a714 P2. PDF-specific pane with paging + zoom controls.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "PDFPane",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-annotations",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `Annotations` (container category) per ADR 0150 \u00a714 P2. Inline annotation overlay.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Annotations",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-metadatapanel",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `MetadataPanel` (display category) per ADR 0150 \u00a714 P2. Document metadata side-panel.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MetadataPanel",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "display"
+      }
     }
   ]
 }
