@@ -4,6 +4,7 @@
   "title": "Legal research workspace",
   "modules": [
     { "id": "x-formspec-surface",       "version": "^0.1.0" },
+    { "id": "x-formspec-core-component","version": "^1.0.0" },
     { "id": "x-formspec-core-task",     "version": "^1.0.0" },
     { "id": "x-formspec-core-actions",  "version": "^1.0.0" }
   ],
@@ -53,7 +54,8 @@
       "path": "/gallery",
       "title": "Document gallery",
       "slots": [
-        { "id": "main", "slotType": "experience-unit", "position": "main", "binding": { "unitRef": "documentGallery" } }
+        { "id": "main", "slotType": "experience-unit", "position": "main", "binding": { "unitRef": "documentGallery" } },
+        { "id": "filters", "slotType": "module-widget", "position": "right", "binding": { "moduleId": "x-formspec-core-component", "widgetName": "Section", "config": { "variant": "filters" } } }
       ]
     }
   ]

@@ -13,9 +13,10 @@
 //!   contributing module's payload shape (e.g. Theme `widgetConfig` against
 //!   the contributing widget's `widgetShape.props`), the value MUST validate
 //!   against that schema. P0 scope: Theme `defaults.widgetConfig` keyed by
-//!   `widget: x-...`. The remaining sites (Surface slot bindings, Experience
-//!   unit payloads, validation-mapping-row, token-category) light up as the
-//!   consuming schemas land in P1+. Future module-contributed
+//!   `widget: x-...`. Surface `module-widget` slot configs are checked against
+//!   the bound module widget's `widgetShape.props`. The remaining sites
+//!   (Experience unit payloads, validation-mapping-row, token-category) light up
+//!   as the consuming schemas land in P1+. Future module-contributed
 //!   `Component.component: x-...` widget admittance gates through this same
 //!   pass per ADR §4.5 (deferred from Task 5).
 //!
@@ -146,6 +147,26 @@ impl ModuleContributions {
     fn entry_for(&self, contribution_name: &str) -> Option<&Value> {
         self.contribution_entry.get(contribution_name)
     }
+
+    fn widget_entry_for(&self, module_id: &str, widget_name: &str) -> Option<(&str, &Value)> {
+        let contributed = self.by_module.get(module_id)?;
+        for contribution_name in contributed {
+            let Some(entry) = self.entry_for(contribution_name) else {
+                continue;
+            };
+            if entry.get("category").and_then(Value::as_str) != Some("widget") {
+                continue;
+            }
+            if entry
+                .pointer("/widgetShape/widgetName")
+                .and_then(Value::as_str)
+                == Some(widget_name)
+            {
+                return Some((contribution_name.as_str(), entry));
+            }
+        }
+        None
+    }
 }
 
 fn declared_modules(doc: &Value) -> HashSet<String> {
@@ -174,6 +195,7 @@ fn is_x_extension(value: &str) -> bool {
 /// - changelog: `target`
 /// - mapping: `rules[].transform`, `rules[].reverse.transform`
 /// - trace-index: `sources[].kind`, `edges[].kind`
+/// - Surface: `routes[].slots[].binding.moduleId` for `module-widget` slots
 fn check_e603(
     doc: &Value,
     doc_type_name: &str,
@@ -181,6 +203,9 @@ fn check_e603(
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
     let declared = declared_modules(doc);
+    if doc_type_name == "surface" {
+        walk_surface_module_widget_modules(doc, &declared, diagnostics);
+    }
     if declared.is_empty() {
         // No modules[] declared → nothing to resolve against.
         // (Default-module-set per ADR §4.9 covers closed-core; x- values without
@@ -199,6 +224,7 @@ fn check_e603(
         "changelog" => walk_changelog(doc, &admitted, diagnostics),
         "mapping" => walk_mapping(doc, &admitted, diagnostics),
         "trace-index" => walk_trace_index(doc, &admitted, diagnostics),
+        "surface" => walk_surface_module_widget_names(doc, &declared, contributions, diagnostics),
         _ => {}
     }
 }
@@ -211,6 +237,35 @@ fn emit_e603(path: String, value: &str, diagnostics: &mut Vec<LintDiagnostic>) {
         format!(
             "Module-extensible value '{value}' resolves no declared-module contribution \
              — add the contributing module to the document's modules[] declaration"
+        ),
+    )));
+}
+
+fn emit_e603_module(path: String, module_id: &str, diagnostics: &mut Vec<LintDiagnostic>) {
+    diagnostics.push(metadata::with_metadata(LintDiagnostic::error(
+        crate::LintCode::E603,
+        PASS,
+        path,
+        format!(
+            "Surface module-widget moduleId '{module_id}' is not declared in \
+             this document's modules[] declaration"
+        ),
+    )));
+}
+
+fn emit_e603_surface_widget(
+    path: String,
+    module_id: &str,
+    widget_name: &str,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    diagnostics.push(metadata::with_metadata(LintDiagnostic::error(
+        crate::LintCode::E603,
+        PASS,
+        path,
+        format!(
+            "Surface module-widget widgetName '{widget_name}' resolves no widget contribution \
+             from declared module '{module_id}'"
         ),
     )));
 }
@@ -330,6 +385,84 @@ fn walk_trace_index(
     }
 }
 
+fn walk_surface_module_widget_modules(
+    doc: &Value,
+    declared: &HashSet<String>,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    let Some(routes) = doc.get("routes").and_then(Value::as_array) else {
+        return;
+    };
+    for (route_idx, route) in routes.iter().enumerate() {
+        let Some(slots) = route.get("slots").and_then(Value::as_array) else {
+            continue;
+        };
+        for (slot_idx, slot) in slots.iter().enumerate() {
+            if slot.get("slotType").and_then(Value::as_str) != Some("module-widget") {
+                continue;
+            }
+            let Some(module_id) = slot
+                .get("binding")
+                .and_then(|b| b.get("moduleId"))
+                .and_then(Value::as_str)
+            else {
+                continue;
+            };
+            if is_x_extension(module_id) && !declared.contains(module_id) {
+                emit_e603_module(
+                    format!("$.routes[{route_idx}].slots[{slot_idx}].binding.moduleId"),
+                    module_id,
+                    diagnostics,
+                );
+            }
+        }
+    }
+}
+
+fn walk_surface_module_widget_names(
+    doc: &Value,
+    declared: &HashSet<String>,
+    contributions: &ModuleContributions,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    let Some(routes) = doc.get("routes").and_then(Value::as_array) else {
+        return;
+    };
+    for (route_idx, route) in routes.iter().enumerate() {
+        let Some(slots) = route.get("slots").and_then(Value::as_array) else {
+            continue;
+        };
+        for (slot_idx, slot) in slots.iter().enumerate() {
+            if slot.get("slotType").and_then(Value::as_str) != Some("module-widget") {
+                continue;
+            }
+            let Some(binding) = slot.get("binding") else {
+                continue;
+            };
+            let Some(module_id) = binding.get("moduleId").and_then(Value::as_str) else {
+                continue;
+            };
+            if !declared.contains(module_id) {
+                continue; // moduleId diagnostic already owns this failure.
+            }
+            let Some(widget_name) = binding.get("widgetName").and_then(Value::as_str) else {
+                continue;
+            };
+            if contributions
+                .widget_entry_for(module_id, widget_name)
+                .is_none()
+            {
+                emit_e603_surface_widget(
+                    format!("$.routes[{route_idx}].slots[{slot_idx}].binding.widgetName"),
+                    module_id,
+                    widget_name,
+                    diagnostics,
+                );
+            }
+        }
+    }
+}
+
 // ── E604: MODULE-PAYLOAD-SCHEMA-MISMATCH ─────────────────────────
 
 /// Walk a document's module-payload sites and emit E604 for any value that
@@ -337,8 +470,9 @@ fn walk_trace_index(
 ///
 /// P0 scope: Theme `defaults.widgetConfig` against `widget.widgetShape.props`.
 /// Selector- and item-level `widgetConfig` slots follow the same shape and
-/// are checked too. Other consuming surfaces (Surface slot bindings,
-/// Experience unit payloads, validation-mapping-row, token-category) attach
+/// are checked too. Surface `module-widget.binding.config` is checked against
+/// the module widget's `widgetShape.props`. Other consuming surfaces
+/// (Experience unit payloads, validation-mapping-row, token-category) attach
 /// as their owning P1+ shapes land.
 fn check_e604(
     doc: &Value,
@@ -346,14 +480,20 @@ fn check_e604(
     contributions: &ModuleContributions,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
-    if doc_type_name != "theme" {
-        return;
-    }
     let declared = declared_modules(doc);
     if declared.is_empty() {
         return;
     }
     let admitted = contributions.admitted_for(&declared);
+
+    if doc_type_name == "surface" {
+        check_surface_module_widget_configs(doc, &declared, contributions, diagnostics);
+        return;
+    }
+
+    if doc_type_name != "theme" {
+        return;
+    }
 
     // defaults (cascade level 1)
     if let Some(defaults) = doc.get("defaults") {
@@ -437,6 +577,62 @@ fn check_widget_config_site(
         contributions,
         diagnostics,
     );
+}
+
+fn check_surface_module_widget_configs(
+    doc: &Value,
+    declared: &HashSet<String>,
+    contributions: &ModuleContributions,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    let Some(routes) = doc.get("routes").and_then(Value::as_array) else {
+        return;
+    };
+    for (route_idx, route) in routes.iter().enumerate() {
+        let Some(slots) = route.get("slots").and_then(Value::as_array) else {
+            continue;
+        };
+        for (slot_idx, slot) in slots.iter().enumerate() {
+            if slot.get("slotType").and_then(Value::as_str) != Some("module-widget") {
+                continue;
+            }
+            let Some(binding) = slot.get("binding") else {
+                continue;
+            };
+            let Some(config) = binding.get("config") else {
+                continue;
+            };
+            let Some(module_id) = binding.get("moduleId").and_then(Value::as_str) else {
+                continue;
+            };
+            if !declared.contains(module_id) {
+                continue; // E603 owns undeclared moduleId.
+            }
+            let Some(widget_name) = binding.get("widgetName").and_then(Value::as_str) else {
+                continue;
+            };
+            let Some((contribution_name, entry)) =
+                contributions.widget_entry_for(module_id, widget_name)
+            else {
+                continue;
+            };
+            let Some(props_schema) = entry.pointer("/widgetShape/props") else {
+                continue;
+            };
+            let Ok(validator) = jsonschema::options().build(props_schema) else {
+                continue;
+            };
+
+            emit_validation_errors(
+                &validator,
+                config,
+                &format!("$.routes[{route_idx}].slots[{slot_idx}].binding.config"),
+                contribution_name,
+                contributions,
+                diagnostics,
+            );
+        }
+    }
 }
 
 fn emit_validation_errors(
@@ -617,7 +813,12 @@ pub fn check_module_contributions(
     registry_documents: &[Value],
 ) -> Vec<LintDiagnostic> {
     if registry_documents.is_empty() {
-        return Vec::new();
+        let mut diagnostics = Vec::new();
+        if doc_type_name == "surface" {
+            let declared = declared_modules(doc);
+            walk_surface_module_widget_modules(doc, &declared, &mut diagnostics);
+        }
+        return diagnostics;
     }
     let contributions = ModuleContributions::build(registry_documents);
     let mut diagnostics = Vec::new();
@@ -672,6 +873,7 @@ mod tests {
                     "description": "slider widget",
                     "compatibility": { "formspecVersion": ">=1.0.0" },
                     "widgetShape": {
+                        "widgetName": "Slider",
                         "props": {
                             "type": "object",
                             "properties": {
@@ -766,6 +968,74 @@ mod tests {
         assert!(e603[0].path.contains("eventType"));
     }
 
+    #[test]
+    fn e603_surface_module_widget_requires_declared_module() {
+        let doc = json!({
+            "$formspecSurface": "0.1",
+            "id": "dashboard",
+            "entry": "home",
+            "modules": [{ "id": "x-other-mod", "version": "1.0.0" }],
+            "routes": [{
+                "id": "home",
+                "path": "/",
+                "slots": [{
+                    "id": "viewer",
+                    "slotType": "module-widget",
+                    "binding": {
+                        "moduleId": "x-test-mod",
+                        "widgetName": "Slider"
+                    }
+                }]
+            }]
+        });
+        let reg = widget_registry_with_module();
+        let diags = check_module_contributions(&doc, "surface", &[reg]);
+        let e603: Vec<_> = diags.iter().filter(|d| d.code == "E603").collect();
+        assert_eq!(
+            e603.len(),
+            1,
+            "expected surface module-widget E603, got {diags:?}"
+        );
+        assert!(e603[0].path.contains("routes[0].slots[0].binding.moduleId"));
+    }
+
+    #[test]
+    fn e603_surface_module_widget_requires_known_widget_name() {
+        let doc = json!({
+            "$formspecSurface": "0.1",
+            "id": "dashboard",
+            "entry": "home",
+            "modules": [{ "id": "x-test-mod", "version": "1.0.0" }],
+            "routes": [{
+                "id": "home",
+                "path": "/",
+                "slots": [{
+                    "id": "viewer",
+                    "slotType": "module-widget",
+                    "binding": {
+                        "moduleId": "x-test-mod",
+                        "widgetName": "TypoWidget",
+                        "config": { "min": "bad", "max": 10 }
+                    }
+                }]
+            }]
+        });
+        let reg = widget_registry_with_module();
+        let diags = check_module_contributions(&doc, "surface", &[reg]);
+        let e603: Vec<_> = diags.iter().filter(|d| d.code == "E603").collect();
+        assert_eq!(
+            e603.len(),
+            1,
+            "expected unresolved surface widgetName E603, got {diags:?}"
+        );
+        assert!(
+            e603[0]
+                .path
+                .contains("routes[0].slots[0].binding.widgetName")
+        );
+        assert!(e603[0].message.contains("TypoWidget"));
+    }
+
     // ── E604 ──
 
     #[test]
@@ -851,6 +1121,39 @@ mod tests {
             diags
         );
         assert!(e604[0].path.contains("selectors[0].apply.widgetConfig"));
+    }
+
+    #[test]
+    fn e604_surface_module_widget_config_checked() {
+        let doc = json!({
+            "$formspecSurface": "0.1",
+            "id": "dashboard",
+            "entry": "home",
+            "modules": [{ "id": "x-test-mod", "version": "1.0.0" }],
+            "routes": [{
+                "id": "home",
+                "path": "/",
+                "slots": [{
+                    "id": "viewer",
+                    "slotType": "module-widget",
+                    "binding": {
+                        "moduleId": "x-test-mod",
+                        "widgetName": "Slider",
+                        "config": { "min": "bad", "max": 10 }
+                    }
+                }]
+            }]
+        });
+        let reg = widget_registry_with_module();
+        let diags = check_module_contributions(&doc, "surface", &[reg]);
+        let e604: Vec<_> = diags.iter().filter(|d| d.code == "E604").collect();
+        assert!(
+            !e604.is_empty(),
+            "expected surface module-widget E604, got {:?}",
+            diags
+        );
+        assert!(e604[0].path.contains("routes[0].slots[0].binding.config"));
+        assert!(e604[0].message.contains("x-test-slider"));
     }
 
     // ── E605: COMP-BUNDLE-ID-COLLISION (bundle-graph id-uniqueness) ──

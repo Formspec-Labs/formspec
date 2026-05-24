@@ -144,7 +144,7 @@ export interface Route {
    */
   threshold?: number;
   /**
-   * Route destination URI. May be a Formspec Definition reference (url|version), an external URI, or a named outcome (outcome:name).
+   * Route destination URI. Four categories: (1) a Formspec Definition reference (url|version), (2) an external URI, (3) a named outcome (outcome:name), (4) a Surface route reference (surface:<route-id>) per ADR 0150 §7 — when the bundle includes a Surface document, a Screener terminal-hop with this scheme lands the respondent inside that Surface's route composition. The <route-id> after `surface:` MUST resolve to a route id in the bundle's Surface document.
    */
   target: string;
   /**

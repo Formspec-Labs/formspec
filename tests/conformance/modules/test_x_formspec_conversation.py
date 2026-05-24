@@ -61,7 +61,8 @@ def test_module_entry_validates():
 
 def test_chat_thread_unit_kind_contribution():
     doc = _common_registry_doc()
-    entry = _get_entry(doc, f"{MODULE_ID}-kind-chat-thread")
+    # Per P2 boundary-review B-1: entry name = doc-level x- value (no -kind- infix).
+    entry = _get_entry(doc, f"{MODULE_ID}-chat-thread")
     assert entry is not None
     assert entry["category"] == "unit-kind"
     assert entry["semantics"]["kindValue"] == "chat-thread"

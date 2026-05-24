@@ -2617,6 +2617,423 @@
         "kindValue": "embed-route",
         "summary": "Slot embeds another route within the same Surface (binding.routeRef references a routes[].id; optional binding.mode names presentation: modal, panel, dialog). Edges in the route-graph for E606 reachability."
       }
+    },
+    {
+      "name": "x-formspec-presentation",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Non-form presentation primitives per ADR 0150 \u00a714 P2 \u2014 closes wireframe-generator spike gaps F1-F8 (gallery, viewer, dashboard, chat container) and the narrow Component widget vocabulary for non-form surfaces. Ships 4 unit-kind contributions (gallery, dashboard, viewer, chat-shell) and 5 widget contributions (Shell, Sidebar, Breadcrumb, RouteList, Chip). Schema-side validation flows through the existing oneOf [closed-core, x-pattern] lanes (Experience.UnitKind, Component.component); E603 enforces module-presence when these ^x- values are used.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-component",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-presentation-gallery",
+        "x-formspec-presentation-dashboard",
+        "x-formspec-presentation-viewer",
+        "x-formspec-presentation-chat-shell",
+        "x-formspec-presentation-widget-shell",
+        "x-formspec-presentation-widget-sidebar",
+        "x-formspec-presentation-widget-breadcrumb",
+        "x-formspec-presentation-widget-routelist",
+        "x-formspec-presentation-widget-chip"
+      ]
+    },
+    {
+      "name": "x-formspec-presentation-gallery",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Non-form Experience UnitKind `gallery` per ADR 0150 \u00a714 P2. Multi-asset gallery display. Module-contributed per the \u00a74.5 oneOf [closed-core, x-pattern] convention; resolves to this contribution entry when used as `unit.kind: 'x-formspec-presentation-gallery'` (lint E603 verifies module declaration).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "gallery",
+        "summary": "Multi-asset gallery display."
+      }
+    },
+    {
+      "name": "x-formspec-presentation-dashboard",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Non-form Experience UnitKind `dashboard` per ADR 0150 \u00a714 P2. Multi-widget overview surface. Module-contributed per the \u00a74.5 oneOf [closed-core, x-pattern] convention; resolves to this contribution entry when used as `unit.kind: 'x-formspec-presentation-dashboard'` (lint E603 verifies module declaration).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "dashboard",
+        "summary": "Multi-widget overview surface."
+      }
+    },
+    {
+      "name": "x-formspec-presentation-viewer",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Non-form Experience UnitKind `viewer` per ADR 0150 \u00a714 P2. Single-asset display surface. Module-contributed per the \u00a74.5 oneOf [closed-core, x-pattern] convention; resolves to this contribution entry when used as `unit.kind: 'x-formspec-presentation-viewer'` (lint E603 verifies module declaration).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "viewer",
+        "summary": "Single-asset display surface."
+      }
+    },
+    {
+      "name": "x-formspec-presentation-chat-shell",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Non-form Experience UnitKind `chat-shell` per ADR 0150 \u00a714 P2. Conversation container shell. Module-contributed per the \u00a74.5 oneOf [closed-core, x-pattern] convention; resolves to this contribution entry when used as `unit.kind: 'x-formspec-presentation-chat-shell'` (lint E603 verifies module declaration).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "chat-shell",
+        "summary": "Conversation container shell."
+      }
+    },
+    {
+      "name": "x-formspec-presentation-widget-shell",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Presentation widget `Shell` (layout category) per ADR 0150 \u00a714 P2. App frame chrome (header/sidebar/content slots).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Shell",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-widget-sidebar",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Presentation widget `Sidebar` (layout category) per ADR 0150 \u00a714 P2. Vertical navigation pane.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Sidebar",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "layout"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-widget-breadcrumb",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Presentation widget `Breadcrumb` (display category) per ADR 0150 \u00a714 P2. Hierarchical navigation indicator.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Breadcrumb",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-widget-routelist",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Presentation widget `RouteList` (display category) per ADR 0150 \u00a714 P2. List of routes for navigation chrome.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "RouteList",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-presentation-widget-chip",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Presentation widget `Chip` (display category) per ADR 0150 \u00a714 P2. Compact tag/badge element (deprecated alias of Badge in core-component; v0.1 ships own).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Chip",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-conversation",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Chat / conversation primitives per ADR 0150 \u00a714 P2. Ships one unit-kind (chat-thread) for conversation-shaped Experience units and three widgets (ChatThread, MessageList, MessageComposer) that compose into a chat surface. Module-contributed values extend Experience.UnitKind / Component widget catalog via the \u00a74.5 oneOf [closed-core, x-pattern] lanes; declarative-only (no behavioral commitment about messaging transport or state).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-component",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-conversation-chat-thread",
+        "x-formspec-conversation-widget-chatthread",
+        "x-formspec-conversation-widget-messagelist",
+        "x-formspec-conversation-widget-messagecomposer"
+      ]
+    },
+    {
+      "name": "x-formspec-conversation-chat-thread",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation Experience UnitKind `chat-thread` per ADR 0150 \u00a714 P2. Conversation thread / messaging container.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "chat-thread",
+        "summary": "Conversation thread / messaging container."
+      }
+    },
+    {
+      "name": "x-formspec-conversation-widget-chatthread",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation widget `ChatThread` (container category) per ADR 0150 \u00a714 P2. Threaded conversation list with scrollback.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ChatThread",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-conversation-widget-messagelist",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation widget `MessageList` (display category) per ADR 0150 \u00a714 P2. Linear list of messages within a thread.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MessageList",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-conversation-widget-messagecomposer",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation widget `MessageComposer` (input category) per ADR 0150 \u00a714 P2. Message-composing input with attachment + send action.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MessageComposer",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer primitives per ADR 0150 \u00a714 P2. Ships one unit-kind (document-review) for document-shaped Experience units and four widgets (DocumentViewer, PDFPane, Annotations, MetadataPanel) that compose into a viewer surface. Module-contributed values extend Experience.UnitKind / Component widget catalog via the \u00a74.5 oneOf [closed-core, x-pattern] lanes.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-component",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-document-viewer-document-review",
+        "x-formspec-document-viewer-widget-documentviewer",
+        "x-formspec-document-viewer-widget-pdfpane",
+        "x-formspec-document-viewer-widget-annotations",
+        "x-formspec-document-viewer-widget-metadatapanel"
+      ]
+    },
+    {
+      "name": "x-formspec-document-viewer-document-review",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer Experience UnitKind `document-review` per ADR 0150 \u00a714 P2. Document-review experience (read, annotate, accept/reject).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "document-review",
+        "summary": "Document-review experience (read, annotate, accept/reject)."
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-documentviewer",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `DocumentViewer` (container category) per ADR 0150 \u00a714 P2. Document rendering surface (PDF/image/HTML).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "DocumentViewer",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-pdfpane",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `PDFPane` (display category) per ADR 0150 \u00a714 P2. PDF-specific pane with paging + zoom controls.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "PDFPane",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-annotations",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `Annotations` (container category) per ADR 0150 \u00a714 P2. Inline annotation overlay.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "Annotations",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-document-viewer-widget-metadatapanel",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Document-viewer widget `MetadataPanel` (display category) per ADR 0150 \u00a714 P2. Document metadata side-panel.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MetadataPanel",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "display"
+      }
     }
   ]
 }

@@ -669,6 +669,9 @@ mod tests {
         assert_eq!(DocumentType::Registry.schema_key(), "registry");
         assert_eq!(DocumentType::Changelog.schema_key(), "changelog");
         assert_eq!(DocumentType::FelFunctions.schema_key(), "fel_functions");
+        assert_eq!(DocumentType::Screener.schema_key(), "screener");
+        assert_eq!(DocumentType::Determination.schema_key(), "determination");
+        assert_eq!(DocumentType::Surface.schema_key(), "surface");
     }
 
     #[test]

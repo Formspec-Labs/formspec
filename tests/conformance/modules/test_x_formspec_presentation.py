@@ -79,8 +79,13 @@ def test_module_contributes_cardinality():
 @pytest.mark.parametrize("kind", UNIT_KINDS)
 def test_unit_kind_contribution(kind):
     doc = _common_registry_doc()
-    entry = _get_entry(doc, f"{MODULE_ID}-kind-{kind}")
-    assert entry is not None
+    # Per P2 boundary-review B-1: module-contributed unit-kind entry names
+    # MUST equal the doc-level x- value (no `-kind-` infix). Documents write
+    # e.g. `unit.kind: "x-formspec-presentation-gallery"` and the lint
+    # E603 path matches that value against the admitted set built from
+    # contributes[].
+    entry = _get_entry(doc, f"{MODULE_ID}-{kind}")
+    assert entry is not None, f"expected entry {MODULE_ID}-{kind}"
     assert entry["category"] == "unit-kind"
     assert entry["semantics"]["kindValue"] == kind
     _entry_validator().validate(entry)

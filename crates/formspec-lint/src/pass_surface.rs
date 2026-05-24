@@ -106,7 +106,15 @@ fn check_route_reachability(
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
     if !route_ids.contains(entry_id) {
-        // Schema or another pass will catch the dangling entry — don't double-report here.
+        diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+            crate::LintCode::E606,
+            PASS,
+            "$.entry",
+            format!(
+                "Surface entry route {entry_id:?} does not resolve to any routes[].id \
+                 (SURFACE-ROUTE-UNREACHABLE)."
+            ),
+        )));
         return;
     }
 
@@ -195,6 +203,43 @@ mod tests {
             codes.contains(&"E606"),
             "expected E606 SURFACE-ROUTE-UNREACHABLE; got {codes:?}"
         );
+    }
+
+    #[test]
+    fn e606_fires_on_dangling_entry_route() {
+        let doc: Value = serde_json::json!({
+            "$formspecSurface": "0.1",
+            "id": "caseDashboard",
+            "entry": "missingRoute",
+            "routes": [
+                {
+                    "id": "home",
+                    "path": "/",
+                    "slots": [
+                        {
+                            "id": "intro",
+                            "slotType": "static-content",
+                            "binding": {
+                                "kind": "text",
+                                "content": "Home"
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
+        let result = lint(&doc);
+        let e606: Vec<_> = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == crate::LintCode::E606)
+            .collect();
+        assert_eq!(
+            e606.len(),
+            1,
+            "expected dangling entry E606; got {result:?}"
+        );
+        assert_eq!(e606[0].path, "$.entry");
     }
 
     #[test]

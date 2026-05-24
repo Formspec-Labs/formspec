@@ -56,6 +56,38 @@ Cross-document slot bindings, such as `definition-form.binding.definitionRef`
 and `experience-unit.binding.unitRef`, are resolved by the app/bundle graph and
 are outside this Surface-local rule.
 
+### Module-contributed Slot bindings (E603 admission rule)
+
+When a slot binds via `slotType: "module-widget"`, the binding's `moduleId`
+MUST appear in the enclosing document's `modules[]` declaration. Lint code
+E603 (`MODULE-ENUM-UNRESOLVED`) walks the substrate for `^x-`-prefixed
+values that resolve against module `contributes[]`.
+
+The same rule applies to Experience documents using module-contributed
+UnitKind values (e.g. `unit.kind: "x-formspec-presentation-gallery"`): the
+declared module's `contributes[]` array MUST include the doc-level value
+verbatim. **Convention:** module-contributed Registry entry names for
+`^x-` doc-level values are EQUAL TO the doc-level value (no bucket infixes
+like `-kind-`); this is the structural-correctness requirement for E603
+admission. Bucket infixes (e.g. `-slot-type-`, `-widget-`) are only used
+for Registry entry names that are NOT consumed as `^x-` doc-level values
+(`slot-type` contributions are looked up by `slotShape.kindValue` not
+entry-name; `widget` contributions are looked up by `widgetShape.widgetName`).
+
+### Transition trigger semantics
+
+Per `schemas/surface.schema.json:$defs.Transition.trigger`, a transition's
+`trigger` is either: (1) a Response Actions action ID (resolved against
+the bundle's response-actions document), or (2) a closed-core Response
+Actions intent value (`submit`, `save-draft`, `autosave`, `review`,
+`request-evidence` per `x-formspec-core-actions`). When the named action
+or intent fires successfully, the transition advances the surface to
+`to`. If `when` is present, it is an FEL boolean expression evaluated
+against current bundle state — the transition fires only when `when`
+evaluates true. Resolution: the renderer/router inspects the trigger
+string and routes to the bundle's response-actions document for action-ID
+match first, falling back to the intent enum if no action ID matches.
+
 ## 4. Closed slot-type taxonomy (v0.1)
 
 [ADR 0150 §6.2](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#62-closed-slot-type-taxonomy)

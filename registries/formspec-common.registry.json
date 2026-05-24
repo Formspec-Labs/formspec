@@ -2639,10 +2639,10 @@
         }
       ],
       "contributes": [
-        "x-formspec-presentation-kind-gallery",
-        "x-formspec-presentation-kind-dashboard",
-        "x-formspec-presentation-kind-viewer",
-        "x-formspec-presentation-kind-chat-shell",
+        "x-formspec-presentation-gallery",
+        "x-formspec-presentation-dashboard",
+        "x-formspec-presentation-viewer",
+        "x-formspec-presentation-chat-shell",
         "x-formspec-presentation-widget-shell",
         "x-formspec-presentation-widget-sidebar",
         "x-formspec-presentation-widget-breadcrumb",
@@ -2651,7 +2651,7 @@
       ]
     },
     {
-      "name": "x-formspec-presentation-kind-gallery",
+      "name": "x-formspec-presentation-gallery",
       "category": "unit-kind",
       "version": "0.1.0",
       "status": "stable",
@@ -2666,7 +2666,7 @@
       }
     },
     {
-      "name": "x-formspec-presentation-kind-dashboard",
+      "name": "x-formspec-presentation-dashboard",
       "category": "unit-kind",
       "version": "0.1.0",
       "status": "stable",
@@ -2681,7 +2681,7 @@
       }
     },
     {
-      "name": "x-formspec-presentation-kind-viewer",
+      "name": "x-formspec-presentation-viewer",
       "category": "unit-kind",
       "version": "0.1.0",
       "status": "stable",
@@ -2696,7 +2696,7 @@
       }
     },
     {
-      "name": "x-formspec-presentation-kind-chat-shell",
+      "name": "x-formspec-presentation-chat-shell",
       "category": "unit-kind",
       "version": "0.1.0",
       "status": "stable",
@@ -2795,7 +2795,7 @@
       "category": "widget",
       "version": "0.1.0",
       "status": "stable",
-      "description": "Presentation widget `Chip` (display category) per ADR 0150 \u00a714 P2. Compact tag/badge element (deprecated alias of Badge in core-component; v0.1 ships own).",
+      "description": "Presentation widget `Chip` (display category) per ADR 0150 \u00a714 P2. Compact inline tag (e.g. category, status, filter). Semantically distinct from x-formspec-core-component's `Badge` widget (status indicator) and `Pill` (selectable chip-shaped control) \u2014 Chip is the lightweight tag form.",
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
@@ -2831,14 +2831,14 @@
         }
       ],
       "contributes": [
-        "x-formspec-conversation-kind-chat-thread",
+        "x-formspec-conversation-chat-thread",
         "x-formspec-conversation-widget-chatthread",
         "x-formspec-conversation-widget-messagelist",
         "x-formspec-conversation-widget-messagecomposer"
       ]
     },
     {
-      "name": "x-formspec-conversation-kind-chat-thread",
+      "name": "x-formspec-conversation-chat-thread",
       "category": "unit-kind",
       "version": "0.1.0",
       "status": "stable",
@@ -2933,7 +2933,7 @@
         }
       ],
       "contributes": [
-        "x-formspec-document-viewer-kind-document-review",
+        "x-formspec-document-viewer-document-review",
         "x-formspec-document-viewer-widget-documentviewer",
         "x-formspec-document-viewer-widget-pdfpane",
         "x-formspec-document-viewer-widget-annotations",
@@ -2941,7 +2941,7 @@
       ]
     },
     {
-      "name": "x-formspec-document-viewer-kind-document-review",
+      "name": "x-formspec-document-viewer-document-review",
       "category": "unit-kind",
       "version": "0.1.0",
       "status": "stable",

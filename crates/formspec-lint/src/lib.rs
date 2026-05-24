@@ -10,7 +10,7 @@
 //! Pass 5 (E500): Dependency cycle detection
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
 //! Pass 7 (E800-E807/W800-W807): Components — tree validation, type compatibility, bind resolution
-//! Pass 8 (E900-E902): Response — cross-field signed-payload pin invariants
+//! Pass 8 (E900-E902, E606-E607): Response cross-field invariants + Surface route-graph (ADR 0150 §6)
 //! Pass 9 (E1100-E1802/W1100-W1800): Companion document semantic lint
 //!
 //! ## Documentation
@@ -239,6 +239,7 @@ fn doc_type_name_for_pass_modules(doc_type: DocumentType) -> &'static str {
         DocumentType::Mapping => "mapping",
         DocumentType::Screener => "screener",
         DocumentType::Changelog => "changelog",
+        DocumentType::Surface => "surface",
         // respondent-ledger-event isn't a top-level DocumentType today; the
         // dispatch surface widens as P1 binds module-extensible enums on more
         // documents. Leaving "" routes the document past the pass with no

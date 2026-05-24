@@ -134,7 +134,8 @@ export type DocumentType =
     | 'fel_functions'
     | 'locale'
     | 'screener'
-    | 'determination';
+    | 'determination'
+    | 'surface';
 
 export interface SchemaValidationError {
     path: string;
@@ -168,6 +169,7 @@ export interface SchemaValidatorSchemas {
     locale?: object;
     screener?: object;
     determination?: object;
+    surface?: object;
 }
 
 export interface SchemaValidator {

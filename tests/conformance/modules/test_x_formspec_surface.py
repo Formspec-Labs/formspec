@@ -137,6 +137,16 @@ def test_legal_workspace_surface_fixture_validates():
     assert errors == [], f"unexpected schema errors: {errors}"
 
 
+def test_legal_workspace_surface_fixture_exercises_all_slot_types():
+    doc = json.loads((FIXTURES_DIR / "legal-workspace-surface.json").read_text())
+    seen = {
+        slot["slotType"]
+        for route in doc["routes"]
+        for slot in route["slots"]
+    }
+    assert seen == set(CLOSED_SLOT_TYPES)
+
+
 def test_surface_route_with_invalid_slot_type_fails():
     doc = {
         "$formspecSurface": "0.1",
@@ -176,6 +186,17 @@ def test_slot_binding_shape_enforced_per_slot_type(slot_type, bad_binding):
     }
     with pytest.raises(ValidationError):
         _surface_validator().validate(doc)
+
+
+def test_p2_module_widget_binding_fixture_validates():
+    """Per H-2 boundary-review absorption: a Surface fixture exercising
+    a P2 module-widget slot binding (x-formspec-presentation / Shell;
+    x-formspec-conversation / ChatThread) MUST validate. Closes the
+    spike-fidelity gap where the legal-workspace fixture only used a P1
+    Section widget for the module-widget slot."""
+    doc = json.loads((FIXTURES_DIR / "p2-module-widget-binding.json").read_text())
+    errors = list(_surface_validator().iter_errors(doc))
+    assert errors == [], f"unexpected schema errors: {errors}"
 
 
 def test_static_content_kind_is_closed_enum():

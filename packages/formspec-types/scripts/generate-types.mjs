@@ -34,7 +34,7 @@ const URI_TO_LOCAL = {};
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
   'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
-  'fel-functions', 'screener', 'determination', 'verification-receipt']) {
+  'fel-functions', 'screener', 'determination', 'surface', 'verification-receipt']) {
   const filePath = resolve(SCHEMAS_DIR, `${f}.schema.json`);
   if (existsSync(filePath)) {
     const s = JSON.parse(readFileSync(filePath, 'utf-8'));
@@ -144,6 +144,7 @@ const SCHEMA_SOURCES = [
   { file: 'fel-functions.schema.json', title: 'FELFunctionCatalog' },
   { file: 'screener.schema.json', title: 'ScreenerDocument' },
   { file: 'determination.schema.json', title: 'DeterminationRecord' },
+  { file: 'surface.schema.json', title: 'SurfaceDocument' },
 ];
 
 const FILE_BANNER = `/**

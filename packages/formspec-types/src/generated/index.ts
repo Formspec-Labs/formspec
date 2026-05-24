@@ -29,4 +29,5 @@ export type { LocaleDocument } from './locale.js';
 export type { FELType, FELFunctionCatalog, FunctionEntry, Parameter } from './fel-functions.js';
 export type { ScreenerDocument, Availability, Phase, Route } from './screener.js';
 export type { DeterminationRecord, RouteResult, PhaseResult, InputEntry } from './determination.js';
+export type { Slot, SurfaceDocument, Transition } from './surface.js';
 export { VALIDATION_MAPPING_MASTER_TABLE } from './validation-mapping-master-table.js';
