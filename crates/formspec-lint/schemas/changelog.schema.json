@@ -123,13 +123,22 @@
           }
         },
         "target": {
-          "type": "string",
-          "enum": ["item", "bind", "shape", "optionSet", "dataSource", "screener", "migration", "metadata"],
-          "description": "Category of affected definition element. 'item': field, group, or display node. 'bind': reactive behavioral declaration (calculate, relevant, required, readonly, constraint). 'shape': composable validation rule. 'optionSet': named reusable option list. 'dataSource': secondary instance declaration. 'screener': routing rule. 'migration': version migration map. 'metadata': top-level properties (title, description, status, formPresentation).",
-          "examples": ["item", "bind", "shape"],
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["item", "bind", "shape", "optionSet", "dataSource", "screener", "migration", "metadata"]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+              "description": "Module-contributed change target per ADR 0150 §4.5/§4.9."
+            }
+          ],
+          "description": "Category of affected definition element. Closed-core: 'item' (field, group, or display node), 'bind' (reactive behavioral declaration — calculate, relevant, required, readonly, constraint), 'shape' (composable validation rule), 'optionSet' (named reusable option list), 'dataSource' (secondary instance declaration), 'screener' (routing rule), 'migration' (version migration map), 'metadata' (top-level properties — title, description, status, formPresentation). Module-extensible via `x-` prefix following the canonical regex (ADR 0150 §4.5).",
+          "examples": ["item", "bind", "shape", "x-publisher-custom-target"],
           "x-lm": {
             "critical": true,
-            "intent": "Scopes the change to a definition subsystem so tooling can route to the appropriate diff handler."
+            "intent": "Scopes the change to a definition subsystem so tooling can route to the appropriate diff handler. Closed-core + module-extensible per ADR 0150 §4.5."
           }
         },
         "path": {

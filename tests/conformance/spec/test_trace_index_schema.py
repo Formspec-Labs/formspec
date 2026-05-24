@@ -121,10 +121,24 @@ def test_schema_is_draft_2020_12(schema: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _closed_core_enum(kind_schema: dict) -> set:
+    """Extract the closed-core enum from a uniform `oneOf [closed-core, x-pattern]`
+    shape (ADR 0150 §4.5). The closed-core branch is the `enum` branch."""
+    if "enum" in kind_schema:
+        return set(kind_schema["enum"])
+    # oneOf [closed-core enum branch, x-pattern branch]
+    for branch in kind_schema.get("oneOf", []):
+        if "enum" in branch:
+            return set(branch["enum"])
+    raise AssertionError(f"no closed-core enum found in schema fragment: {kind_schema}")
+
+
 def test_edge_kind_enum_pins_eleven_v1_kinds(schema: dict) -> None:
     """Edge-kind enum MUST be exactly the closed v1 set of 11 kinds (§5.1).
 
-    Adding or removing a kind is a spec change. This test fails on drift.
+    Adding or removing a closed-core kind is a spec change. This test fails on
+    drift to the CLOSED-CORE branch; the `x-` module-extension branch (ADR 0150
+    §4.5) is orthogonal and does not affect closed-core membership.
     """
     expected = {
         "component-renders-item",
@@ -140,7 +154,7 @@ def test_edge_kind_enum_pins_eleven_v1_kinds(schema: dict) -> None:
         "node-visibility-references-item",
     }
     edge_entry = schema["$defs"]["EdgeEntry"]
-    actual = set(edge_entry["properties"]["kind"]["enum"])
+    actual = _closed_core_enum(edge_entry["properties"]["kind"])
     assert actual == expected, (
         f"edge-kind enum drift: missing={expected - actual}, "
         f"extra={actual - expected}"
@@ -148,10 +162,14 @@ def test_edge_kind_enum_pins_eleven_v1_kinds(schema: dict) -> None:
 
 
 def test_source_kind_enum_pins_five_v1_kinds(schema: dict) -> None:
-    """Source-kind enum MUST be exactly the closed v1 set of 5 kinds (§3.2)."""
+    """Source-kind enum MUST be exactly the closed v1 set of 5 kinds (§3.2).
+
+    Asserts the CLOSED-CORE branch only; the `x-` module-extension branch
+    (ADR 0150 §4.5) is orthogonal.
+    """
     expected = {"definition", "experience", "responseActions", "component", "ontology"}
     source_entry = schema["$defs"]["SourceEntry"]
-    actual = set(source_entry["properties"]["kind"]["enum"])
+    actual = _closed_core_enum(source_entry["properties"]["kind"])
     assert actual == expected, (
         f"source-kind enum drift: missing={expected - actual}, "
         f"extra={actual - expected}"

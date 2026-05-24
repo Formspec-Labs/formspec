@@ -257,17 +257,26 @@
           ]
         },
         "transform": {
-          "type": "string",
-          "enum": [
-            "preserve", "drop", "expression", "coerce",
-            "valueMap", "flatten", "nest", "constant",
-            "concat", "split"
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "preserve", "drop", "expression", "coerce",
+                "valueMap", "flatten", "nest", "constant",
+                "concat", "split"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+              "description": "Module-contributed transform per ADR 0150 §4.5/§4.9. Author MUST supply requirement payload alongside (lint E604 cross-validates against contributing module's payload schema)."
+            }
           ],
-          "description": "Transform type determining how the source value is converted to the target value. 'preserve': identity copy, auto-reversible. 'drop': discard field from output, never reversible. 'expression': evaluate a FEL expression (requires 'expression' property), not auto-reversible — supply explicit reverse block for bidirectional. 'coerce': type conversion (requires 'coerce' property), auto-reversible only for lossless pairs (string<->integer, string<->number, string<->boolean, date<->string with ISO format). 'valueMap': lookup-table substitution (requires 'valueMap' property), auto-reversible only when forward map is bijective (one-to-one). 'flatten': collapse nested/array structure to flat representation per mapping spec §4.7; 'expression' optional for structural modes, required only for non-trivial projection; auto-reversible (pairs with nest). 'nest': expand flat structure to nested form per mapping spec §4.8; 'expression' optional for structural modes; auto-reversible (pairs with flatten). 'constant': fixed value injection (requires 'expression'), sourcePath ignored, never reversible. 'concat': join multiple source values into one string (requires 'expression'), not auto-reversible. 'split': decompose single value into multiple targets (requires 'expression'), not auto-reversible.",
-          "examples": ["preserve", "expression", "coerce", "valueMap", "drop"],
+          "description": "Transform type determining how the source value is converted to the target value. Closed-core: 'preserve' (identity copy, auto-reversible); 'drop' (discard field, never reversible); 'expression' (evaluate FEL, requires `expression`); 'coerce' (type conversion, requires `coerce`); 'valueMap' (lookup substitution, requires `valueMap`); 'flatten' / 'nest' (structural collapse/expand per mapping spec §4.7/§4.8); 'constant' (fixed value, requires `expression`); 'concat' / 'split' (join/decompose, require `expression`). Module-contributed: `x-` extension following the canonical regex (ADR 0150 §4.5).",
+          "examples": ["preserve", "expression", "coerce", "valueMap", "drop", "x-publisher-custom-transform"],
           "x-lm": {
             "critical": true,
-            "intent": "Core discriminator that determines which properties are required and how the value flows from source to target."
+            "intent": "Core discriminator: closed-core enum + module-extensible x- branch per ADR 0150 §4.5"
           }
         },
         "expression": {
@@ -614,13 +623,21 @@
           "examples": ["label", "value", "medication_1"]
         },
         "transform": {
-          "type": "string",
-          "enum": [
-            "preserve", "drop", "expression", "coerce",
-            "valueMap", "flatten", "nest", "constant",
-            "concat", "split"
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "preserve", "drop", "expression", "coerce",
+                "valueMap", "flatten", "nest", "constant",
+                "concat", "split"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+            }
           ],
-          "description": "Transform type. Same semantics as FieldRule.transform."
+          "description": "Transform type. Same semantics as FieldRule.transform — closed-core enum + module-extensible `x-` branch per ADR 0150 §4.5."
         },
         "expression": {
           "type": "string",
@@ -713,13 +730,21 @@
       "description": "Explicit override configuration applied when a Field Rule is executed in the reverse direction. sourcePath and targetPath are swapped automatically — the reverse block MUST NOT re-specify them. A conformant processor MUST report a validation error if sourcePath, targetPath, reverse, or projection appears inside this object. Use this to provide a reverse FEL expression for non-invertible transforms, override the coercion direction, or supply a reverse value map.",
       "properties": {
         "transform": {
-          "type": "string",
-          "enum": [
-            "preserve", "drop", "expression", "coerce",
-            "valueMap", "flatten", "nest", "constant",
-            "concat", "split"
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "preserve", "drop", "expression", "coerce",
+                "valueMap", "flatten", "nest", "constant",
+                "concat", "split"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+            }
           ],
-          "description": "Reverse transform type. If omitted, uses the forward rule's transform type."
+          "description": "Reverse transform type — closed-core enum + module-extensible `x-` branch per ADR 0150 §4.5. If omitted, uses the forward rule's transform type."
         },
         "expression": {
           "type": "string",

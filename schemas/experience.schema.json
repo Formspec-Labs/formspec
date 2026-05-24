@@ -183,21 +183,30 @@
       }
     },
     "UnitKind": {
-      "type": "string",
-      "enum": [
-        "data-entry",
-        "review",
-        "confirmation",
-        "evidence-collection",
-        "attestation",
-        "error-resolution",
-        "assistance"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "data-entry",
+            "review",
+            "confirmation",
+            "evidence-collection",
+            "attestation",
+            "error-resolution",
+            "assistance"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Module-contributed UnitKind extension per ADR 0150 §4.5/§4.9. MUST resolve against a declared `unit-kind` contribution from a module in the document's `modules[]` (lint E603 enforces resolution)."
+        }
       ],
-      "description": "Closed, abstract, task-oriented unit kind. data-entry: user provides or revises data. review: read-only display of captured data. confirmation: user affirms accuracy before a transition. evidence-collection: user supplies evidence (attachments, attestations). attestation: user certifies a statement under accountability. error-resolution: user resolves a validation finding. assistance: user receives help.",
-      "examples": ["data-entry", "review", "confirmation"],
+      "description": "Closed-core task-oriented unit kind OR a module-contributed `x-` extension (ADR 0150 §4.5). Closed-core values: data-entry (user provides or revises data), review (read-only display of captured data), confirmation (user affirms accuracy before a transition), evidence-collection (user supplies evidence — attachments, attestations), attestation (user certifies a statement under accountability), error-resolution (user resolves a validation finding), assistance (user receives help). Extension values follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8).",
+      "examples": ["data-entry", "review", "confirmation", "x-publisher-custom-kind"],
       "x-lm": {
         "critical": true,
-        "intent": "Closed task-oriented enum; closure prevents layout-container drift"
+        "intent": "Closed-core enum + module-extensible x- branch per ADR 0150 §4.5"
       }
     },
     "ItemRef": {

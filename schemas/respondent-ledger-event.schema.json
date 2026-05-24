@@ -293,37 +293,46 @@
   ],
   "$defs": {
     "EventType": {
-      "type": "string",
-      "enum": [
-        "session.started",
-        "draft.saved",
-        "draft.resumed",
-        "response.completed",
-        "response.amendment-opened",
-        "response.amended",
-        "response.stopped",
-        "attachment.added",
-        "attachment.replaced",
-        "attachment.removed",
-        "prepopulation.applied",
-        "system.merge-resolved",
-        "validation.snapshot-recorded",
-        "calculation.material-change",
-        "nonrelevant.pruned",
-        "autosave.coalesced",
-        "device-linked",
-        "identity-verified",
-        "attestation.captured",
-        "response.submit-attempted",
-        "response.migrated",
-        "response.correction-recorded",
-        "field.edit-recorded",
-        "action.invoked",
-        "action.failed",
-        "action.deferred",
-        "action.replayed"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "session.started",
+            "draft.saved",
+            "draft.resumed",
+            "response.completed",
+            "response.amendment-opened",
+            "response.amended",
+            "response.stopped",
+            "attachment.added",
+            "attachment.replaced",
+            "attachment.removed",
+            "prepopulation.applied",
+            "system.merge-resolved",
+            "validation.snapshot-recorded",
+            "calculation.material-change",
+            "nonrelevant.pruned",
+            "autosave.coalesced",
+            "device-linked",
+            "identity-verified",
+            "attestation.captured",
+            "response.submit-attempted",
+            "response.migrated",
+            "response.correction-recorded",
+            "field.edit-recorded",
+            "action.invoked",
+            "action.failed",
+            "action.deferred",
+            "action.replayed"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Module-contributed event type per ADR 0150 §4.5/§4.9. Lint E603 enforces module-declaration resolution."
+        }
       ],
-      "description": "Canonical event classifications defined by the Respondent Ledger add-on. The first thirteen values are required event types; the remaining values are optional but standardized extension points — including the optional action.* kinds in §8.5 which record Response Actions invocation lifecycle when a processor implements the Response Actions companion (specs/response-actions/response-actions-spec.md §6)."
+      "description": "Canonical event classifications defined by the Respondent Ledger add-on OR an `x-` module-contributed extension (ADR 0150 §4.5). The first thirteen closed-core values are required event types; the remaining closed-core values are optional but standardized extension points — including the optional action.* kinds in §8.5 which record Response Actions invocation lifecycle when a processor implements the Response Actions companion (specs/response-actions/response-actions-spec.md §6). Extension event types follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8)."
     },
     "Actor": {
       "type": "object",
@@ -414,9 +423,18 @@
           "description": "Logical Formspec response path identifying the changed node."
         },
         "valueClass": {
-          "type": "string",
-          "enum": ["user-input", "prepopulated", "calculated", "imported", "attachment", "system-derived", "migration-derived"],
-          "description": "Origin class of the changed value."
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["user-input", "prepopulated", "calculated", "imported", "attachment", "system-derived", "migration-derived"]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+              "description": "Module-contributed valueClass per ADR 0150 §4.5/§4.9 (e.g. `x-ai-generated`). Lint E603 enforces module-declaration resolution."
+            }
+          ],
+          "description": "Origin class of the changed value: closed-core (user-input, prepopulated, calculated, imported, attachment, system-derived, migration-derived) OR an `x-` module-contributed extension (ADR 0150 §4.5)."
         },
         "itemKey": {
           "type": "string",

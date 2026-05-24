@@ -41,7 +41,11 @@ def test_action_event_fixtures_are_schema_valid(fixture_name: str, event_type: s
 
 
 def test_action_event_kinds_are_published_in_event_type_enum():
-    event_types = set(EVENT_SCHEMA["$defs"]["EventType"]["enum"])
+    # EventType is `oneOf [closed-core enum, x-pattern]` per ADR 0150 §4.5;
+    # the closed-core branch carries the canonical event-type set.
+    event_type_def = EVENT_SCHEMA["$defs"]["EventType"]
+    closed_branch = next(b for b in event_type_def["oneOf"] if "enum" in b)
+    event_types = set(closed_branch["enum"])
 
     assert {
         "action.invoked",

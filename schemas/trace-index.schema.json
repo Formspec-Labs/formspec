@@ -70,7 +70,15 @@
       "required": ["kind", "identity", "digest"],
       "properties": {
         "kind": {
-          "enum": ["definition", "experience", "responseActions", "component", "ontology"]
+          "oneOf": [
+            { "enum": ["definition", "experience", "responseActions", "component", "ontology"] },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+              "description": "Module-contributed source kind per ADR 0150 §4.5/§4.9. Identity shape is module-defined."
+            }
+          ],
+          "description": "Closed-core source artifact kind OR an `x-` module-contributed extension (ADR 0150 §4.5)."
         },
         "identity": { "type": "object" },
         "digest": { "$ref": "#/$defs/Sha256Digest" }
@@ -135,7 +143,8 @@
     },
     "TypedEndpoint": {
       "type": "string",
-      "pattern": "^(item|unit|task|actor|action|concept|effect|precondition|componentNodePath):.+$"
+      "pattern": "^(item|unit|task|actor|action|concept|effect|precondition|componentNodePath|x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*):.+$",
+      "description": "Endpoint reference with a closed-core kind prefix (item|unit|task|actor|action|concept|effect|precondition|componentNodePath) OR a module-contributed `x-` prefix following the canonical extension regex (ADR 0150 §4.5/§4.8). Suffix is colon-delimited free identifier."
     },
     "EndpointPair": {
       "type": "array",
@@ -149,19 +158,29 @@
       "required": ["kind", "endpoints"],
       "properties": {
         "kind": {
-          "enum": [
-            "component-renders-item",
-            "unit-collects-item",
-            "trigger-invokes-action",
-            "item-depends-on-item",
-            "unit-serves-task",
-            "task-involves-actor",
-            "action-emits-effect",
-            "action-has-precondition",
-            "concept-refs-item",
-            "concept-refs-component-node",
-            "node-visibility-references-item"
-          ]
+          "oneOf": [
+            {
+              "enum": [
+                "component-renders-item",
+                "unit-collects-item",
+                "trigger-invokes-action",
+                "item-depends-on-item",
+                "unit-serves-task",
+                "task-involves-actor",
+                "action-emits-effect",
+                "action-has-precondition",
+                "concept-refs-item",
+                "concept-refs-component-node",
+                "node-visibility-references-item"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+              "description": "Module-contributed edge kind per ADR 0150 §4.5/§4.9. Endpoint patterns fall through to base TypedEndpoint (no kind-specific gate)."
+            }
+          ],
+          "description": "Closed-core relationship kind OR an `x-` module-contributed extension (ADR 0150 §4.5)."
         },
         "endpoints": { "$ref": "#/$defs/EndpointPair" }
       },

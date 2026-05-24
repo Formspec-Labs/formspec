@@ -690,7 +690,12 @@ class TestMappingFieldRule:
         assert "transform" in self.FR["required"]
 
     def test_ms3_3__transform_enum_10_values(self):
-        assert self.FR["properties"]["transform"]["enum"] == [
+        # `transform` is `oneOf [closed-core enum, x-pattern]` per ADR 0150 §4.5.
+        # Closed-core branch carries the canonical 10-value list; the `x-`
+        # branch is orthogonal.
+        transform = self.FR["properties"]["transform"]
+        closed_branch = next(b for b in transform["oneOf"] if "enum" in b)
+        assert closed_branch["enum"] == [
             "preserve", "drop", "expression", "coerce", "valueMap",
             "flatten", "nest", "constant", "concat", "split",
         ]
@@ -777,8 +782,13 @@ class TestMappingInnerRuleAndReverseOverride:
         assert self.IR["properties"]["index"]["type"] == "integer"
 
     def test_ms4_12__inner_rule_mirrors_field_rule_transform_enum(self):
-        fr_enum = _def(MAP_S, "FieldRule")["properties"]["transform"]["enum"]
-        assert self.IR["properties"]["transform"]["enum"] == fr_enum
+        # Per ADR 0150 §4.5, both FieldRule.transform and InnerRule.transform
+        # use `oneOf [closed-core enum, x-pattern]`. The closed-core enum MUST mirror.
+        def _closed(prop):
+            return next(b for b in prop["oneOf"] if "enum" in b)["enum"]
+        fr_enum = _closed(_def(MAP_S, "FieldRule")["properties"]["transform"])
+        ir_enum = _closed(self.IR["properties"]["transform"])
+        assert ir_enum == fr_enum
 
     def test_ms4_12__inner_rule_has_same_3_conditionals(self):
         fr_allof = _def(MAP_S, "FieldRule")["allOf"]
@@ -786,8 +796,12 @@ class TestMappingInnerRuleAndReverseOverride:
         assert len(ir_allof) == len(fr_allof) == 3
 
     def test_ms5_3__reverse_override_has_transform_enum(self):
-        fr_enum = _def(MAP_S, "FieldRule")["properties"]["transform"]["enum"]
-        assert self.RO["properties"]["transform"]["enum"] == fr_enum
+        # Per ADR 0150 §4.5: closed-core enum mirrors across FieldRule + ReverseOverride.
+        def _closed(prop):
+            return next(b for b in prop["oneOf"] if "enum" in b)["enum"]
+        fr_enum = _closed(_def(MAP_S, "FieldRule")["properties"]["transform"])
+        ro_enum = _closed(self.RO["properties"]["transform"])
+        assert ro_enum == fr_enum
 
     def test_ms5_3__reverse_override_additional_properties_false(self):
         assert self.RO["additionalProperties"] is False

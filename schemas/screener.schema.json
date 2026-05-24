@@ -161,13 +161,22 @@
           "description": "Description of this phase's purpose."
         },
         "strategy": {
-          "type": "string",
-          "pattern": "^(first-match|fan-out|score-threshold|x-.+)$",
-          "description": "Evaluation strategy. Normative values: 'first-match', 'fan-out', 'score-threshold'. Extension strategies MUST use the 'x-' prefix.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["first-match", "fan-out", "score-threshold"]
+            },
+            {
+              "type": "string",
+              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+              "description": "Module-contributed strategy per ADR 0150 §4.5/§4.9 (tightened from previous `x-.+` form to the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex)."
+            }
+          ],
+          "description": "Evaluation strategy. Normative closed-core values: 'first-match', 'fan-out', 'score-threshold'. Module extension strategies follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (ADR 0150 §4.5/§4.8).",
           "examples": ["first-match", "fan-out", "score-threshold", "x-constraint-satisfaction"],
           "x-lm": {
             "critical": true,
-            "intent": "Determines how routes in this phase are evaluated. Core conformance requires 'first-match'. Complete conformance requires all three normative strategies."
+            "intent": "Determines how routes in this phase are evaluated. Core conformance requires 'first-match'. Complete conformance requires all three normative strategies. Module-extensible per ADR 0150 §4.5."
           }
         },
         "routes": {

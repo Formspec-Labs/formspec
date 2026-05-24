@@ -6,6 +6,9 @@
   "type": "object",
   "required": ["$formspecResponseActions", "version", "targetDefinition", "actions"],
   "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
   "properties": {
     "$formspecResponseActions": {
       "type": "string",
