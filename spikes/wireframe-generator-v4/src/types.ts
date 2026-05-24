@@ -123,6 +123,7 @@ export type UiPolicy = {
     routeId: string;
     a11y: { landmark: string; keyboardNavigation: "required" };
     responsive: { minColumns: number; collapseOrder: string[] };
+    definitionVisibility?: { hiddenDefinitionRefs: string[] };
   }>;
   theme: {
     assignments: Array<{ widgetRef: string; slot: string; token: string }>;

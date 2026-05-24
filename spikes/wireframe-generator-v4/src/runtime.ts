@@ -446,6 +446,10 @@ function resolveResponseHandle(inputs: GeneratorInputs, state: RuntimeState, def
     return undefined;
   }
   const match = matches[0];
+  if (isDefinitionHiddenByRoutePolicy(inputs, route.id, def.url)) {
+    push(state, "error", "RUNTIME-DEFINITION-HIDDEN-BY-POLICY", path, `Definition '${def.url}' is hidden by route policy on route '${route.id}' and cannot receive draft or action state.`);
+    return undefined;
+  }
   const binding = match.slot.responseBinding;
   if (!binding) {
     push(state, "error", "RUNTIME-RESPONSE-BINDING", path, `Definition '${def.url}' on route '${route.id}' has no explicit Response instance binding.`);
@@ -497,6 +501,14 @@ function definitionByRef(inputs: GeneratorInputs, ref: string): Definition | und
 
 function findResponseActions(inputs: GeneratorInputs, definitionUrl: string): ResponseActions | undefined {
   return inputs.responseActions.find((sidecar) => sidecar.targetDefinition.url === definitionUrl);
+}
+
+function isDefinitionHiddenByRoutePolicy(inputs: GeneratorInputs, routeId: string, definitionUrl: string): boolean {
+  const routePolicy = inputs.uiPolicy?.routePolicies.find((policy) => policy.routeId === routeId);
+  return (routePolicy?.definitionVisibility?.hiddenDefinitionRefs ?? []).some((ref) => {
+    const def = definitionByRef(inputs, ref);
+    return def?.url === definitionUrl || ref === definitionUrl;
+  });
 }
 
 function push(state: RuntimeState, severity: RuntimeIssue["severity"], code: string, path: string, message: string): void {

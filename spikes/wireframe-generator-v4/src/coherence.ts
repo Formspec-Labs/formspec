@@ -248,6 +248,7 @@ export function validateAppCoherence(inputs: GeneratorInputs, ajv: Ajv2020): Coh
   validateSiblingIndex(inputs, issues, definitionsByUrl, sidecarsByDefinition);
   issues.push(...validateModuleAdmission(inputs, registry, appModuleSet));
   validateSurfaceGraph(inputs, issues);
+  validateComponentGenerationBoundary(inputs, issues);
   validateSlots(inputs, issues, registry, admission, units, sidecarsByDefinition, dataSources, ajv);
   validateTransitionActionRefs(inputs, issues, sidecarsByDefinition);
   validateDataSources(inputs, issues);
@@ -284,8 +285,8 @@ function validateSiblingIndex(
   } else {
     validateResolvedArtifactRef(issues, artifactRef(experienceRef), inputs.experience, "$.experiences[0]", "Experience");
     const targetDefinitions = experienceRef.targetDefinitions;
-    if (!Array.isArray(targetDefinitions) || targetDefinitions.length === 0) {
-      issue(issues, "error", "APP-COHERENCE-EXPERIENCE-TARGET-DEFINITIONS", "$.experiences[0].targetDefinitions", "Experience ref must list targetDefinitions[].");
+    if (!Array.isArray(targetDefinitions) || (inputs.definitions.length > 0 && targetDefinitions.length === 0)) {
+      issue(issues, "error", "APP-COHERENCE-EXPERIENCE-TARGET-DEFINITIONS", "$.experiences[0].targetDefinitions", "Experience ref must list targetDefinitions[] when the app loads Definitions.");
     }
     for (const [targetIndex, target] of (targetDefinitions ?? []).entries()) {
       if (!definitionsByUrl.has(target.url)) {
@@ -373,6 +374,21 @@ function validateSurfaceGraph(inputs: GeneratorInputs, issues: CoherenceIssue[])
   }
 }
 
+function validateComponentGenerationBoundary(inputs: GeneratorInputs, issues: CoherenceIssue[]): void {
+  const hasDefinitionSlot = inputs.surface.routes.some((route) =>
+    Object.values(route.slots).some((entries) => entries.some((slot) => slot.type === "definition-form")),
+  );
+  if (inputs.definitions.length === 0 && !hasDefinitionSlot) {
+    issue(
+      issues,
+      "error",
+      "COMP-NONFORM-ZERO-DEFINITION-SHIM",
+      "$.definitions",
+      "A zero-Definition non-form app cannot be projected to Component 1.1 in this spike because the output schema still requires targetDefinition.",
+    );
+  }
+}
+
 function validateTransitionActionRefs(
   inputs: GeneratorInputs,
   issues: CoherenceIssue[],
@@ -412,6 +428,7 @@ function validateSlots(
   dataSources: Set<string>,
   ajv: Ajv2020,
 ): void {
+  const unitDefinitionOwners = new Map<string, { definitionUrl: string; path: string; routeId: string }>();
   for (const route of inputs.surface.routes) {
     const definitionSlots: SurfaceSlotEntry[] = [];
     forEachSlot(route, (slot, path) => {
@@ -420,6 +437,7 @@ function validateSlots(
         case "definition-form":
           definitionSlots.push(slot);
           validateDefinitionSlot(inputs, issues, units, sidecarsByDefinition, route, slot, path);
+          validateDefinitionUnitOwner(inputs, issues, unitDefinitionOwners, route, slot, path);
           break;
         case "experience-unit":
           validateExperienceUnitSlot(inputs, issues, registry, admission, units, dataSources, ajv, slot, path);
@@ -436,6 +454,31 @@ function validateSlots(
       issue(issues, "warning", "SURFACE-MULTI-DEFINITION-ROUTE", `$.surface.routes.${route.id}`, `Route '${route.id}' has ${definitionSlots.length} definition-form slots; v3 models independent lifecycles and rejects any implicit first-slot ownership.`);
     }
   }
+}
+
+function validateDefinitionUnitOwner(
+  inputs: GeneratorInputs,
+  issues: CoherenceIssue[],
+  owners: Map<string, { definitionUrl: string; path: string; routeId: string }>,
+  route: SurfaceRoute,
+  slot: SurfaceSlotEntry,
+  path: string,
+): void {
+  if (!slot.definitionRef || !slot.unitRef) return;
+  const def = definitionByRef(inputs, slot.definitionRef);
+  if (!def) return;
+  const prior = owners.get(slot.unitRef);
+  if (prior && prior.definitionUrl !== def.url) {
+    issue(
+      issues,
+      "error",
+      "EXPERIENCE-UNIT-DEFINITION-CONFLICT",
+      path,
+      `Experience unit '${slot.unitRef}' is bound to both '${prior.definitionUrl}' on route '${prior.routeId}' and '${def.url}' on route '${route.id}'.`,
+    );
+    return;
+  }
+  owners.set(slot.unitRef, { definitionUrl: def.url, path, routeId: route.id });
 }
 
 function validateDefinitionSlot(
@@ -655,6 +698,15 @@ function validateRoutePolicies(inputs: GeneratorInputs, issues: CoherenceIssue[]
       for (const slotName of routePolicy.responsive.collapseOrder) {
         if (!slotNames.has(slotName)) {
           issue(issues, "error", "UI-POLICY-RESPONSIVE-SLOT", "$.uiPolicy.routePolicies", `Route policy '${routePolicy.routeId}' collapseOrder references missing slot '${slotName}'.`);
+        }
+      }
+      for (const definitionRef of routePolicy.definitionVisibility?.hiddenDefinitionRefs ?? []) {
+        const def = definitionByRef(inputs, definitionRef);
+        const routeOwnsDefinition = def && Object.values(route.slots)
+          .flat()
+          .some((slot) => slot.type === "definition-form" && slot.definitionRef && definitionByRef(inputs, slot.definitionRef)?.url === def.url);
+        if (!def || !routeOwnsDefinition) {
+          issue(issues, "error", "UI-POLICY-HIDDEN-DEFINITION-REF", "$.uiPolicy.routePolicies", `Route policy '${routePolicy.routeId}' hides Definition '${definitionRef}', but that Definition is not present as a form slot on the route.`);
         }
       }
     }

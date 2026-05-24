@@ -56,7 +56,7 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 | P1 | Specify multi-form-route behavior | Passing spike-local ambiguity checks |
 | P1 | Define Data Sources as a contract surface | Passing spike-local F7 proof |
 | P1 | Keep Response Actions as the only action executor | Passing spike-local F8 proof |
-| P1 | Add fixtures for EC2, EC5, EC12, EC13, EC14 | Planned |
+| P1 | Add fixtures for EC2, EC5, EC12, EC13, EC14 | Passing spike-local edge-case checks |
 | P2 | Define module-aware Locale ownership and collision behavior | Passing spike-local F9 proof |
 | P2 | Define responsive and a11y route policy | Passing spike-local F9 proof |
 | P2 | Define Theme token-slot contracts for module widgets | Passing spike-local F9 proof |
@@ -85,9 +85,9 @@ v4 stops before production lint wiring, conformance promotion, or production pro
 
 | EC | Edge case | v4 status |
 |---|---|---|
-| EC2 | One Experience unit reused across routes but points at different Definitions | Planned |
-| EC5 | Non-form app has zero Definitions | Planned |
-| EC12 | Definition slot hidden by route policy while Response is mid-draft | Planned |
+| EC2 | One Experience unit reused across routes but points at different Definitions | Passing |
+| EC5 | Non-form app has zero Definitions | Passing as explicit v4 reject-with-reason |
+| EC12 | Definition slot hidden by route policy while Response is mid-draft | Passing |
 | EC13 | Locale strings collide across modules or route instances | Passing |
 | EC14 | Theme styles widget without declared token slots | Passing |
 
@@ -270,6 +270,22 @@ Verification on 2026-05-24:
 
 The negative harness now covers Surface, Response Actions, Posture, and Component attempts to introduce fine-grained authorization fields. Runtime coverage includes actor-not-in-session, posture-denied plan actor, and action actor not in session.
 
+### Edge-Case Closure - EC2, EC5, EC12
+
+EC2 is now an app-graph error. A `data-entry` Experience unit cannot be reused by `definition-form` slots that bind it to different Definitions, even if each individual slot would otherwise have enough shape to validate. The production lesson is that Experience unit ownership cannot be inferred only from local item refs; the app graph must know which Definition a form unit belongs to.
+
+EC5 is intentionally not papered over. v4 now allows an app manifest Experience ref to carry an empty `targetDefinitions[]` when the app loads zero Definitions, but the app graph rejects a zero-Definition non-form app with `COMP-NONFORM-ZERO-DEFINITION-SHIM` because Component 1.1 still requires `targetDefinition`. The production fix is not a placeholder Definition; it is the ADR 0151 route/Surface Component identity work called out by F5.
+
+EC12 is now both a graph and runtime boundary. UI Policy may name route-local hidden Definition refs, the graph rejects hidden Definition refs that are not actually form slots on that route, and runtime rejects attempts to draft or invoke action state for a hidden Definition slot with `RUNTIME-DEFINITION-HIDDEN-BY-POLICY`.
+
+Verification on 2026-05-24:
+
+- `npx tsc --noEmit`
+- `npm run test:negative`
+- `npm run spike`
+
+The negative harness now covers EC2, EC5, EC12, EC13, and EC14. EC5 remains a deliberate reject-with-reason until Component identity no longer requires a non-form `targetDefinition` shim.
+
 ### Current Suggestions
 
 1. Promote the first-class App Manifest indexes as a prose contract candidate, not as production schema yet. The production shape should keep canonical artifact identity in `url`, `version`, compatibility fields, and typed targets. It must not include local fixture paths.
@@ -281,7 +297,7 @@ The negative harness now covers Surface, Response Actions, Posture, and Componen
 7. Keep Response Actions as the only executor. Surface and Component contracts should name triggers and targets; they should not own validation, blocking, effects, durable idempotency, replay, retry, or terminal state.
 8. Treat Locale ownership, route a11y/responsive policy, and Theme token slots as graph contracts. Production should not leave module Locale collisions, keyboard navigation, responsive collapse behavior, or widget token-slot targeting to renderer convention.
 9. Keep ADR 0152 authorization out of this spike except binary actor admission. v4 proves that fine-grained policy fields should fail in Surface, Response Actions, Posture, and generated Components until ADR 0152 supplies the contract.
-10. Add the remaining negative cases before any production wiring: EC2/EC5/EC12. F3 through F10 already cover embedded Surface route refs, missing transition params, duplicate Response Actions action ids, generated Component id collision, module version conflict, ambiguous runtime Response ownership, module-widget payload mismatch, module Locale ownership collision, undeclared Theme token slots, and fine-grained authorization boundary violations.
+10. Treat the remaining v3 edge cases as closed at spike scope, not as production readiness. EC2, EC12, EC13, and EC14 are now graph/runtime failures; EC5 is an explicit reject-with-reason until Component route identity replaces the non-form `targetDefinition` shim. No production wiring should start from the spike-local schemas without the prose contracts and conformance fixtures.
 
 ## What This Means For ADR 0150 / 0151 / 0152
 

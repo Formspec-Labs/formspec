@@ -142,6 +142,33 @@ const base = await loadInputs();
 const ajv = await buildValidator();
 const baseRuntimePlan = base.runtimePlan as RuntimePlan;
 
+function zeroDefinitionNonFormInputs(): GeneratorInputs {
+  const inputs = clone(base);
+  inputs.definitions = [];
+  inputs.responseActions = [];
+  refs(inputs.appManifest.definitions).splice(0);
+  refs(inputs.appManifest.responseActions).splice(0);
+  (refs(inputs.appManifest.experiences)[0] as LocalRef & { targetDefinitions: unknown[] }).targetDefinitions = [];
+  for (const route of inputs.surface.routes) {
+    for (const [slotName, entries] of Object.entries(route.slots)) {
+      route.slots[slotName] = entries.filter((slot) => slot.type !== "definition-form");
+    }
+    for (const transition of route.transitions ?? []) {
+      delete transition.actionRef;
+    }
+  }
+  if (inputs.dataSources) {
+    inputs.dataSources.sources = inputs.dataSources.sources.filter((source) => source.kind !== "definition-response");
+  }
+  for (const unit of inputs.experience.units ?? []) {
+    const widget = unit.extensions?.["x-formspec-widget"] as { payload?: { dataSourceRefs?: unknown } } | undefined;
+    if (Array.isArray(widget?.payload?.dataSourceRefs)) {
+      widget.payload.dataSourceRefs = widget.payload.dataSourceRefs.filter((ref) => typeof ref !== "string" || !ref.startsWith("response:"));
+    }
+  }
+  return inputs;
+}
+
 {
   const bundle = generateBundle(clone(base));
   const issues = validateComponentBundle(bundle);
@@ -199,6 +226,12 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
 
 {
   const inputs = clone(base);
+  definitionSlot(inputs, "thread", "thread-composer").unitRef = "newMatterForm";
+  assertIssue("Experience unit reused across Definitions", inputs, "EXPERIENCE-UNIT-DEFINITION-CONFLICT");
+}
+
+{
+  const inputs = clone(base);
   delete (inputs.responseActions[0] as { targetDefinition?: unknown }).targetDefinition;
   assertIssues("schema-invalid response-actions sidecar returns graph report", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
 }
@@ -219,6 +252,18 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const inputs = clone(base);
   delete (uiPolicy(inputs) as { routePolicies?: unknown }).routePolicies;
   assertIssues("schema-invalid missing UI policy route policies", inputs, ["APP-GRAPH-SCHEMA", "APP-GRAPH-COHERENCE-SKIPPED"]);
+}
+
+{
+  const inputs = zeroDefinitionNonFormInputs();
+  assertIssue("non-form app zero Definitions remains blocked by Component identity shim", inputs, "COMP-NONFORM-ZERO-DEFINITION-SHIM");
+  try {
+    generateBundle(inputs);
+    throw new Error("zero-Definition Component generation should have failed");
+  } catch (err) {
+    if (!(err instanceof Error) || !err.message.includes("zero-Definition app")) throw err;
+    console.log("[selftest] ok zero-Definition generation guard");
+  }
 }
 
 {
@@ -306,6 +351,14 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const inputs = clone(base);
   uiPolicy(inputs).routePolicies[0].responsive.collapseOrder.push("missing-slot");
   assertIssue("responsive policy slot must resolve", inputs, "UI-POLICY-RESPONSIVE-SLOT");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).routePolicies.find((policy) => policy.routeId === "home")!.definitionVisibility = {
+    hiddenDefinitionRefs: ["thread-composer"],
+  };
+  assertIssue("hidden Definition route policy must target route-local form slot", inputs, "UI-POLICY-HIDDEN-DEFINITION-REF");
 }
 
 {
@@ -583,6 +636,19 @@ assertRuntimeOk("runtime persistence and hostEvent boundary", clone(base), clone
   const draft = plan.commands.find((command) => command.type === "draft" && command.definitionRef === "new-matter");
   if (draft?.type === "draft") delete draft.response.clientName;
   assertRuntimeIssue("runtime required field blocking", clone(base), plan, "RUNTIME-VALIDATION-BLOCKED");
+}
+
+{
+  const inputs = clone(base);
+  uiPolicy(inputs).routePolicies.find((policy) => policy.routeId === "thread")!.definitionVisibility = {
+    hiddenDefinitionRefs: ["thread-composer"],
+  };
+  const plan = clone(baseRuntimePlan);
+  plan.commands = [
+    { type: "navigate", route: "thread", params: { matterId: "acme", threadId: "thread-1" } },
+    { type: "draft", definitionRef: "thread-composer", response: { message: "Draft while hidden." } },
+  ];
+  assertRuntimeIssue("runtime rejects hidden Definition slot while Response is mid-draft", inputs, plan, "RUNTIME-DEFINITION-HIDDEN-BY-POLICY");
 }
 
 {

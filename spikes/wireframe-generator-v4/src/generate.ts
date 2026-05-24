@@ -568,6 +568,9 @@ export function generateBundle(inputs: GeneratorInputs): MultiRouteBundle {
     const tree = emitRouteTree(route, inputs.surface, bag, inputs.experience, actionsByDefinition);
     const firstDefinitionSlot = routeDefinitionSlot(route);
     const routeDefinition = firstDefinitionSlot?.definitionRef ? findDefinition(bag, firstDefinitionSlot.definitionRef) : defaultShimDefinition;
+    if (!routeDefinition) {
+      throw new Error("Cannot generate Component 1.1 route bundle for a zero-Definition app; the non-form targetDefinition shim has no source.");
+    }
     const usesDefinitionShim = !firstDefinitionSlot;
     const definitionRefs = Object.values(route.slots)
       .flat()
