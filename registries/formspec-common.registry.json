@@ -2809,6 +2809,108 @@
         "childrenPolicy": "no-children",
         "widgetCategory": "display"
       }
+    },
+    {
+      "name": "x-formspec-conversation",
+      "category": "module",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Chat / conversation primitives per ADR 0150 \u00a714 P2. Ships one unit-kind (chat-thread) for conversation-shaped Experience units and three widgets (ChatThread, MessageList, MessageComposer) that compose into a chat surface. Module-contributed values extend Experience.UnitKind / Component widget catalog via the \u00a74.5 oneOf [closed-core, x-pattern] lanes; declarative-only (no behavioral commitment about messaging transport or state).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "dependencies": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
+        {
+          "id": "x-formspec-core-component",
+          "version": "^1.0.0"
+        }
+      ],
+      "contributes": [
+        "x-formspec-conversation-kind-chat-thread",
+        "x-formspec-conversation-widget-chatthread",
+        "x-formspec-conversation-widget-messagelist",
+        "x-formspec-conversation-widget-messagecomposer"
+      ]
+    },
+    {
+      "name": "x-formspec-conversation-kind-chat-thread",
+      "category": "unit-kind",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation Experience UnitKind `chat-thread` per ADR 0150 \u00a714 P2. Conversation thread / messaging container.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "semantics": {
+        "kindValue": "chat-thread",
+        "summary": "Conversation thread / messaging container."
+      }
+    },
+    {
+      "name": "x-formspec-conversation-widget-chatthread",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation widget `ChatThread` (container category) per ADR 0150 \u00a714 P2. Threaded conversation list with scrollback.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "ChatThread",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "container"
+      }
+    },
+    {
+      "name": "x-formspec-conversation-widget-messagelist",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation widget `MessageList` (display category) per ADR 0150 \u00a714 P2. Linear list of messages within a thread.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MessageList",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "list-of-children",
+        "widgetCategory": "display"
+      }
+    },
+    {
+      "name": "x-formspec-conversation-widget-messagecomposer",
+      "category": "widget",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "Conversation widget `MessageComposer` (input category) per ADR 0150 \u00a714 P2. Message-composing input with attachment + send action.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "widgetShape": {
+        "widgetName": "MessageComposer",
+        "props": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "input"
+      }
     }
   ]
 }
