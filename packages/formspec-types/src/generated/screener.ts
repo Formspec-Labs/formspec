@@ -90,9 +90,9 @@ export interface Phase {
    */
   description?: string;
   /**
-   * Evaluation strategy. Normative values: 'first-match', 'fan-out', 'score-threshold'. Extension strategies MUST use the 'x-' prefix.
+   * Evaluation strategy. Normative closed-core values: 'first-match', 'fan-out', 'score-threshold'. Module extension strategies follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (ADR 0150 §4.5/§4.8).
    */
-  strategy: string;
+  strategy: ('first-match' | 'fan-out' | 'score-threshold') | string;
   /**
    * Routes to evaluate using this phase's strategy.
    */

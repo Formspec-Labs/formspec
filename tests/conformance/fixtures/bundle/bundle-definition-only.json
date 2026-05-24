@@ -1,16 +1,18 @@
 {
   "fixture": "bundle-definition-only",
-  "purpose": "Minimum valid Bundle Manifest: only Definition is referenced. Per concept §6.2 and §4 of this spec, no Experience is synthesized; the renderer falls back to Definition's existing widget defaults.",
+  "purpose": "Minimum valid App Manifest: only a single Definition is referenced. Per concept §6.2 and §4 of this spec, no Experience is synthesized; the renderer falls back to Definition's existing widget defaults.",
   "expected": { "valid": true },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "1.0.0",
-    "id": "https://example.gov/forms/minimal-intake-2026",
+    "id": "https://example.gov/apps/minimal-intake-2026",
     "name": "minimalIntake",
     "title": "Minimal Intake",
-    "definition": {
-      "url": "https://example.gov/forms/minimal-intake/definition",
-      "version": "1.0.0"
-    }
+    "definitions": [
+      {
+        "url": "https://example.gov/apps/minimal-intake/definition",
+        "version": "1.0.0"
+      }
+    ]
   }
 }

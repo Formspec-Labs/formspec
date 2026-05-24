@@ -20,8 +20,13 @@ export const projectHandlers = {
   'project.import': (state, payload) => {
     const p = payload as Partial<ProjectBundle>;
 
-    if (p.definition) {
-      const def = p.definition as typeof state.definition;
+    // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; the import
+    // handler consumes only the first Definition at P0 (single-definition
+    // authoring). Multi-definition import lands at P1+ with the multi-Definition
+    // authoring surface.
+    const importedDefinition = p.definitions?.[0];
+    if (importedDefinition) {
+      const def = importedDefinition as typeof state.definition;
       state.definition = {
         ...def,
         binds: normalizeBindsFromUnknown(def.binds),
@@ -29,7 +34,7 @@ export const projectHandlers = {
     }
     if (p.component) {
       state.component = normalizeComponentState(p.component, state.definition.url);
-    } else if (p.definition) {
+    } else if (importedDefinition) {
       state.component = normalizeComponentState(state.component, state.definition.url);
     }
     if (p.theme) {
@@ -77,7 +82,7 @@ export const projectHandlers = {
     if (!state.theme.targetDefinition) state.theme.targetDefinition = { url };
     else state.theme.targetDefinition.url = url;
 
-    const needsTreeRebuild = !!p.definition || !!p.component;
+    const needsTreeRebuild = !!importedDefinition || !!p.component;
     return { rebuildComponentTree: needsTreeRebuild, clearHistory: false };
   },
 

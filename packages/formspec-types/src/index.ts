@@ -152,7 +152,10 @@ export type FormDefinition = FormDefinitionKnownFields & {
 };
 
 // ─── ProjectBundle ──────────────────────────────────────────────────
-// The four exportable artifacts as a single bundle.
+// The exportable artifacts an authoring project produces, shaped to mirror
+// the App Manifest envelope (ADR 0150 §5.2/§5.3/§11.2 — formerly Bundle Manifest):
+// `definitions` is a plural array (MAY be empty for non-form apps; single-element
+// for form-only authoring; multi-element when multi-form authoring lands at P1+).
 // Used across chat, studio-core, and core for serialization and snapshots.
 
 import type { ComponentDocument } from './generated/component.js';
@@ -163,8 +166,12 @@ import type { ExperienceDocument } from './generated/experience.js';
 import type { ResponseActionsDocument } from './generated/response-actions.js';
 
 export interface ProjectBundle {
-  /** The form definition artifact. */
-  definition: FormDefinition;
+  /**
+   * The form definition artifacts. Plural per ADR 0150 §5.2 App Manifest reframe;
+   * at P0 the authoring project still exports a single Definition, so this array
+   * carries exactly one element. Multi-Definition authoring lands at P1+.
+   */
+  definitions: FormDefinition[];
   /** The component (UI tree) artifact. */
   component: ComponentDocument;
   /** The theme (presentation) artifact. */

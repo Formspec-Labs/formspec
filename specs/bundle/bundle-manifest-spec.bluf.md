@@ -1,5 +1,0 @@
-- This document defines the Bundle Manifest -- a single authored JSON artifact that names a Formspec form by composing its Definition (REQUIRED) and optional siblings (Experience, Response Actions, Component, Theme, References, Ontology, Registry, locales[], mappings[]) at coherent versions.
-- A valid Bundle Manifest requires `$formspecBundle: "1.0"`, a strict SemVer `version`, a stable form-identity `id` URL distinct from every sibling URL, and exactly one `definition` reference.
-- Bundle Manifest is a pure composition envelope: no inline sidecars, no synthesis on absence, no shims on existing primary specs. Sibling absence is honored; each sibling spec's existing defaults apply (Definition-only bundles render via Definition's existing widget defaults).
-- Bundle Manifest adds a forward-composition graph alongside the existing back-reference graph (each sibling's `targetDefinition` is unchanged). Reverse-discovery continues to work; bundles add discovery-without-scanning for tools that hold one.
-- This BLUF is governed by `schemas/bundle-manifest.schema.json`, the canonical structural contract.

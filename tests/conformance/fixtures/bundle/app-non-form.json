@@ -1,0 +1,15 @@
+{
+  "fixture": "app-non-form",
+  "purpose": "Positive: Non-form App Manifest — empty definitions[] (N=0) proves the App Manifest envelope is not form-bound per ADR 0150 §5.2/§5.3. Non-form apps (e.g. workflow viewers, registry browsers) compose surfaces + modules without Definitions.",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://example.gov/apps/workflow-viewer-2026",
+    "title": "Workflow Viewer (non-form)",
+    "definitions": [],
+    "surfaces": [
+      { "url": "https://example.gov/apps/workflow-viewer/surface-home", "version": "1.0.0" }
+    ]
+  }
+}

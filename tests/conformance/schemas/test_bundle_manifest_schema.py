@@ -1,4 +1,12 @@
-"""Schema acceptance tests for the Bundle Manifest companion spec."""
+"""Schema acceptance tests for the App Manifest (formerly Bundle Manifest) spec.
+
+Per ADR 0150 §5.2/§5.3/§11.2: the Bundle Manifest reframes as the App Manifest
+— singular `definition` becomes `definitions[]` (MAY be empty for non-form apps);
+singular `registry` becomes `registries[]`; `surfaces[]` and `modules[]` and
+`sessions[]` arrive. `$formspecBundle` bumps "1.0" → "2.0" so strict-validating
+consumers fail-loud rather than silently mis-parse the structurally different
+document.
+"""
 
 from __future__ import annotations
 
@@ -8,17 +16,22 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
-from tests.unit.support.schema_fixtures import load_schema
+from tests.unit.support.schema_fixtures import build_schema_registry, load_schema
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES_DIR = ROOT / "tests" / "conformance" / "fixtures" / "bundle"
 BUNDLE_SCHEMA = load_schema("bundle-manifest.schema.json")
+COMMON_SCHEMA = load_schema("common.schema.json")
 
 
 def _validator() -> Draft202012Validator:
+    # App Manifest's modules[] / sessions[] $ref common.schema; the registry
+    # makes those cross-schema references resolvable.
+    registry = build_schema_registry(BUNDLE_SCHEMA, COMMON_SCHEMA)
     return Draft202012Validator(
         BUNDLE_SCHEMA,
         format_checker=Draft202012Validator.FORMAT_CHECKER,
+        registry=registry,
     )
 
 
@@ -27,23 +40,52 @@ def _fixture_bundle(name: str) -> dict:
         return json.load(handle)["bundle"]
 
 
-class TestBundleManifestSchemaShape:
+class TestAppManifestSchemaShape:
     def test_schema_is_well_formed(self) -> None:
         Draft202012Validator.check_schema(BUNDLE_SCHEMA)
 
+    def test_title_reframed_as_app_manifest(self) -> None:
+        assert "App Manifest" in BUNDLE_SCHEMA["title"]
+
     def test_required_top_level_properties(self) -> None:
+        # `definitions` is REQUIRED (MAY be empty array for non-form apps);
+        # singular `definition` is retired per ADR §5.2.
         assert set(BUNDLE_SCHEMA["required"]) == {
             "$formspecBundle",
             "version",
             "id",
-            "definition",
+            "definitions",
         }
+
+    def test_formspec_bundle_const_is_two_zero(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["const"] == "2.0"
+
+    def test_singular_definition_property_retired(self) -> None:
+        assert "definition" not in BUNDLE_SCHEMA["properties"]
+
+    def test_singular_registry_property_retired(self) -> None:
+        assert "registry" not in BUNDLE_SCHEMA["properties"]
+
+    def test_definitions_is_an_array(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["definitions"]["type"] == "array"
+
+    def test_registries_is_an_array(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["registries"]["type"] == "array"
+
+    def test_surfaces_is_an_array(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["surfaces"]["type"] == "array"
+
+    def test_modules_field_present(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["modules"]["type"] == "array"
+
+    def test_sessions_field_present(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["sessions"]["type"] == "array"
 
     def test_additional_properties_false(self) -> None:
         assert BUNDLE_SCHEMA["additionalProperties"] is False
 
 
-class TestBundleManifestPositiveFixtures:
+class TestAppManifestPositiveFixtures:
     def test_definition_only_validates(self) -> None:
         _validator().validate(_fixture_bundle("bundle-definition-only.json"))
 
@@ -53,19 +95,39 @@ class TestBundleManifestPositiveFixtures:
     def test_locales_and_mappings_validate(self) -> None:
         _validator().validate(_fixture_bundle("bundle-with-locales-and-mappings.json"))
 
+    def test_multi_definition_app_validates(self) -> None:
+        """ADR §5.2: definitions[] MAY hold more than one Definition."""
+        _validator().validate(_fixture_bundle("app-multi-definition.json"))
 
-class TestBundleManifestNegativeFixtures:
-    def test_missing_definition_rejected(self) -> None:
+    def test_non_form_app_validates(self) -> None:
+        """ADR §5.2/§5.3: non-form apps carry definitions: []."""
+        _validator().validate(_fixture_bundle("app-non-form.json"))
+
+    def test_app_with_modules_and_sessions_validates(self) -> None:
+        """ADR §5.2/§5.5: modules[] (ModuleRef) and sessions[] (SessionRef)."""
+        _validator().validate(_fixture_bundle("app-with-modules-and-sessions.json"))
+
+
+class TestAppManifestNegativeFixtures:
+    def test_missing_definitions_rejected(self) -> None:
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-missing-definition.json"))
-        assert "definition" in str(excinfo.value)
+        assert "definitions" in str(excinfo.value)
 
     def test_unknown_property_rejected(self) -> None:
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-unknown-property.json"))
-        assert "screener" in str(excinfo.value) or "additional propert" in str(excinfo.value).lower()
+        msg = str(excinfo.value).lower()
+        assert "additional propert" in msg or "screener" in msg
 
     def test_bad_version_rejected(self) -> None:
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-bad-version.json"))
         assert "version" in str(excinfo.value).lower() or "pattern" in str(excinfo.value).lower()
+
+    def test_formspec_bundle_1_0_rejected(self) -> None:
+        """ADR §11.2: $formspecBundle const bumps 1.0 → 2.0 so strict-validating
+        consumers fail-loud rather than silently mis-parse."""
+        with pytest.raises(ValidationError) as excinfo:
+            _validator().validate(_fixture_bundle("invalid-formspec-bundle-1-0.json"))
+        assert "formspecBundle" in str(excinfo.value) or "2.0" in str(excinfo.value)

@@ -339,7 +339,8 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
         fs.mkdirSync(outDir, { recursive: true });
         const exported = project.export();
 
-        fs.writeFileSync(path.join(outDir, 'definition.json'), JSON.stringify(exported.definition, null, 2));
+        // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; P0 single-element.
+        fs.writeFileSync(path.join(outDir, 'definition.json'), JSON.stringify(exported.definitions[0], null, 2));
         fs.writeFileSync(path.join(outDir, 'theme.json'), JSON.stringify(exported.theme, null, 2));
         fs.writeFileSync(path.join(outDir, 'component.json'), JSON.stringify(exported.component, null, 2));
         const defaultMapping = exported.mappings?.default ?? project.mapping;

@@ -210,3 +210,116 @@ export interface VisualSurfaceProps {
    */
   elevation?: string | number;
 }
+/**
+ * Canonical module reference per ADR 0150 §4.4. Used by document `modules[]` (§4.3), `posture.allowedModules[]` (§4.4), `bundle-manifest.modules[]` (§5.2), and `module.dependencies[]` (§4.1).
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "ModuleRef".
+ */
+export interface ModuleRef {
+  /**
+   * Module ID following the Registry naming pattern per ADR 0150 §4.8. Despite §4.4 prose calling this a 'URN', §4.3 examples and §4.8 regex are bare `^x-` prefix (e.g. 'x-formspec-core-task'). This pattern matches the canonical regex.
+   */
+  id: string;
+  /**
+   * Strict SemVer string or range expression (e.g. '1.0.0', '^1.0.0', '>=1.0.0 <2.0.0').
+   */
+  version: string;
+  /**
+   * OPTIONAL provenance assertion (the document asserts; posture admission checks).
+   */
+  publisher?: string;
+  /**
+   * OPTIONAL digest pin (e.g. 'sha256:...'). Pins hostile-substitution risk when paired with posture.allowedModules[].
+   */
+  lockHash?: string;
+  extensions?: Extensions;
+}
+/**
+ * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "AuthorActor".
+ */
+export interface AuthorActor {
+  /**
+   * Stable actor URN (urn:formspec:actor:... scheme). Product nuance rides URN-encoded (e.g. urn:formspec:actor:mcp:wireframes:agent-7).
+   */
+  id: string;
+  /**
+   * Terminal-closed per §5.4 (NOT §4.5-extensible). Answers 'what kind of authoring entity'.
+   */
+  kind: 'human' | 'ai-agent' | 'service';
+  /**
+   * Terminal-closed per §5.4. Orthogonal to kind. Answers 'through what channel'. An ai-agent MAY have actChannel:'mcp' (mediated via MCP) OR 'agent' (autonomous). A human MAY have actChannel:'human' (direct editor) OR 'mcp' (CLI-driven MCP).
+   */
+  actChannel: 'human' | 'mcp' | 'agent' | 'service';
+  /**
+   * Optional human-readable label for timeline/support views.
+   */
+  display?: string;
+  extensions?: Extensions;
+}
+/**
+ * App Manifest session index entry per ADR 0150 §5.5. App Manifest carries `sessions: SessionRef[]` as the durable list of sessions held against the app; each entry is a temporal grouping with the act-record in the ledger via `respondent-ledger.sessionRefs[]` referencing this URN.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "SessionRef".
+ */
+export interface SessionRef {
+  /**
+   * Stable session URN.
+   */
+  id: string;
+  openedAt: string;
+  /**
+   * Absent = currently open.
+   */
+  closedAt?: string;
+  /**
+   * URN refs into the App Manifest's actor list.
+   *
+   * @minItems 1
+   */
+  actors: [string, ...string[]];
+  extensions?: Extensions;
+}
+/**
+ * Generalized x-generation provenance carrier per ADR 0150 §5.3/§5.4. SUPERSET of the existing inline x-generation shape at component.schema.json:240-282 — every pre-existing field (source, strategy, generatedBy, generatedAt, anchors) remains valid; new fields (sourceModule, movedFrom, copiedFrom) layered on top. `generatedBy` migrates from free-form string to `oneOf [string, AuthorActor]` for backward compatibility while enabling structured authoring identity. `additionalProperties` stays open (no false) so tool-layer use is unconstrained beyond the documented superset.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "Generation".
+ */
+export interface Generation {
+  /**
+   * Existing field (component.schema.json:256-259): generator source label, such as an Experience Unit, prompt, template, or generator input bundle. Preserved as-is.
+   */
+  source?: string;
+  /**
+   * Existing field (component.schema.json:260-263): generator strategy identifier, such as unit-to-section or a host-defined strategy name. Preserved as-is.
+   */
+  strategy?: string;
+  /**
+   * Existing field (component.schema.json:268-271): generation timestamp. Authors SHOULD use an RFC 3339 date-time string. Preserved as-is.
+   */
+  generatedAt?: string;
+  /**
+   * Existing field (component.schema.json:272-279): source anchors with a standard prefix and source-layer-owned suffix. Preserves original `^(item|unit|task|action|concept):.+$` items pattern enforcement.
+   */
+  anchors?: string[];
+  /**
+   * Actor attribution per §5.4. Migration-friendly: pre-existing free-form string values (e.g. 'component-generator/1.0.0') continue to validate; new authoring stamps the full AuthorActor inline.
+   */
+  generatedBy?: string | AuthorActor;
+  sourceModule?: ModuleRef;
+  movedFrom?: CrossComponentRef;
+  copiedFrom?: CrossComponentRef;
+  extensions?: Extensions;
+}
+/**
+ * Set by tooling on cross-Component move per §5.3.
+ */
+export interface CrossComponentRef {
+  route: string;
+  nodePath: string;
+}

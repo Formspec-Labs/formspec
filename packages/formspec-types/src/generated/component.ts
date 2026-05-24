@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { TargetDefinition, Tokens, Breakpoints, StyleMap, AccessibilityBlock, Extensions, VisualSurfaceProps } from './common.js';
+import type { ModuleRef, TargetDefinition, Tokens, Breakpoints, StyleMap, AccessibilityBlock, Extensions, VisualSurfaceProps } from './common.js';
 import type { ConceptRef } from './experience.js';
 /**
  * Component subtree instantiated when this custom component is used.
@@ -249,6 +249,10 @@ export interface ComponentDocument {
    * Component specification version. MUST be '1.0' or '1.1'.
    */
   $formspecComponent: '1.0' | '1.1';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
   /**
    * Canonical URI identifier for this Component Document.
    */
@@ -1053,6 +1057,7 @@ export interface ComponentBase {
    * Optional concept references using the Experience ConceptRef shape. Host-policy metadata; does not execute validation or mapping logic.
    */
   conceptRefs?: ConceptRef[];
+  extensions?: Extensions;
   /**
    * Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.
    */

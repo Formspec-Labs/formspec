@@ -10,6 +10,7 @@ export const COMPONENT_BASE_PROP_NAMES = [
   'component',
   'conceptRefs',
   'cssClass',
+  'extensions',
   'id',
   'layout',
   'responsive',

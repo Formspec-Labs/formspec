@@ -7,7 +7,7 @@
 
 /* eslint-disable */
 
-export type { BuiltInWidgetName, CustomWidgetName, WidgetName, ThemeWidgetName, CommonSchema, TargetDefinition, Tokens, Breakpoints, ContactPoint, LangMap, Party, StyleMap, Extensions, AccessibilityBlock, VisualSurfaceProps } from './common.js';
+export type { BuiltInWidgetName, CustomWidgetName, WidgetName, ThemeWidgetName, CommonSchema, TargetDefinition, Tokens, Breakpoints, ContactPoint, LangMap, Party, StyleMap, Extensions, AccessibilityBlock, VisualSurfaceProps, ModuleRef, AuthorActor, SessionRef, Generation, CrossComponentRef } from './common.js';
 export type { IssuerDocument, LogoVariant } from './issuer.js';
 export type { Item, Shape, FELExpression, Instance, OptionSet, FormDefinition, Bind, Variable, OptionEntry, Migrations, MigrationDescriptor, Presentation, FormspecIssuerDocument } from './definition.js';
 export type { AnyComponent, Section, Stack, Grid, GridTrack, Card, Panel, ChildrenArray, ComponentDocument, CustomComponentDef, TextInput, NumberInput, DatePicker, Select, CheckboxGroup, Toggle, FileUpload, Heading, Text, Divider, Collapsible, ConditionalGroup, Tabs, ActionButton, Accordion, RadioGroup, MoneyInput, Slider, Rating, Signature, Alert, Badge, ProgressBar, Summary, ValidationSummary, DataTable, Modal, Popover, CustomComponentName, CustomComponentRef, ResponsiveOverrides, ComponentBase, ComponentLayout } from './component.js';

@@ -1,8 +1,13 @@
-"""Spec-semantics tests for Bundle Manifest beyond schema acceptance.
+"""Spec-semantics tests for the App Manifest (formerly Bundle Manifest)
+beyond schema acceptance.
 
 Schema validates structural shape. This file enforces semantics that
 JSON Schema cannot express: per-array uniqueness keys (locale tag,
-mapping handle) and sibling-URL distinctness from bundle.id.
+mapping handle) and sibling-URL distinctness from app `id`.
+
+Per ADR 0150 §5.2/§5.3/§11.2 the singular `definition`/`registry`
+slots reframe as `definitions[]`/`registries[]`; the URL-collection
+helper iterates the array slots accordingly.
 """
 
 from __future__ import annotations
@@ -53,25 +58,29 @@ class TestBundleArrayUniqueness:
 
 def _all_sibling_urls(bundle: dict) -> list[str]:
     urls: list[str] = []
-    for key in ("definition", "experience", "responseActions", "component",
-                "theme", "references", "ontology", "registry"):
+    # Single-cardinality slots (unchanged by the reframe).
+    for key in ("experience", "responseActions", "component",
+                "theme", "references", "ontology"):
         if key in bundle:
             urls.append(bundle[key]["url"])
-    for key in ("locales", "mappings"):
+    # Array-cardinality slots — includes the pluralized definitions[] /
+    # registries[] / surfaces[] per ADR 0150 §5.2, alongside the existing
+    # locales[] / mappings[].
+    for key in ("definitions", "registries", "surfaces", "locales", "mappings"):
         for entry in bundle.get(key, []):
             urls.append(entry["url"])
     return urls
 
 
-class TestBundleIdDistinctness:
-    def test_bundle_id_distinct_from_sibling_urls(self) -> None:
+class TestAppManifestIdDistinctness:
+    def test_app_id_distinct_from_sibling_urls(self) -> None:
         bundle = _bundle("bundle-full-singles.json")
         assert bundle["id"] not in _all_sibling_urls(bundle), (
-            "Bundle `id` MUST be distinct from any sibling URL"
+            "App Manifest `id` MUST be distinct from any sibling URL"
         )
 
-    def test_bundle_id_collision_with_sibling_url_rejected(self) -> None:
+    def test_app_id_collision_with_sibling_url_rejected(self) -> None:
         bundle = _bundle("invalid-id-equals-sibling-url.json")
         assert bundle["id"] in _all_sibling_urls(bundle), (
-            "fixture must collide bundle `id` with a sibling URL"
+            "fixture must collide app `id` with a sibling URL"
         )

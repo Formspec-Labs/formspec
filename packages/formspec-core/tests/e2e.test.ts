@@ -50,7 +50,8 @@ describe('Formspec Studio Core E2E Validation', { timeout: 60_000 }, () => {
     const compPath = path.join(tmpDir, 'component.json');
     const mapPath = path.join(tmpDir, 'mapping.json');
 
-    fs.writeFileSync(defPath, JSON.stringify(bundle.definition, null, 2));
+    // ADR 0150 §5.2 App Manifest reframe: definitions[] is plural; P0 single-element.
+    fs.writeFileSync(defPath, JSON.stringify(bundle.definitions[0], null, 2));
     fs.writeFileSync(themePath, JSON.stringify(bundle.theme, null, 2));
     // Only write component when a tree has been authored (null tree = no authored tree)
     if (bundle.component.tree) {

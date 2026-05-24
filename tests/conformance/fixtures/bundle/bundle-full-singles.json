@@ -1,21 +1,28 @@
 {
   "fixture": "bundle-full-singles",
-  "purpose": "Positive: every optional single-cardinality sibling populated alongside Definition. Proves all single-cardinality slots accept SiblingRef and coexist.",
+  "purpose": "Positive: every optional single-cardinality sibling populated alongside the Definition. Proves all single-cardinality slots accept SiblingRef and coexist with the pluralized definitions[] / registries[] / surfaces[] slots.",
   "expected": { "valid": true },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "1.0.0",
-    "id": "https://example.gov/forms/full-stack-2026",
+    "id": "https://example.gov/apps/full-stack-2026",
     "name": "fullStack",
-    "title": "Full Stack Bundle",
+    "title": "Full Stack App",
     "description": "Exercises every optional single-cardinality sibling.",
-    "definition":      { "url": "https://example.gov/forms/full-stack/definition",      "version": "1.0.0" },
-    "experience":      { "url": "https://example.gov/forms/full-stack/experience",      "version": "1.0.0" },
-    "responseActions": { "url": "https://example.gov/forms/full-stack/response-actions","version": "1.0.0" },
-    "component":       { "url": "https://example.gov/forms/full-stack/component",       "version": "1.0.0" },
-    "theme":           { "url": "https://example.gov/forms/full-stack/theme",           "version": "1.0.0" },
-    "references":      { "url": "https://example.gov/forms/full-stack/references",      "version": "1.0.0" },
-    "ontology":        { "url": "https://example.gov/forms/full-stack/ontology",        "version": "1.0.0" },
-    "registry":        { "url": "https://example.gov/forms/full-stack/registry",        "version": "1.0.0" }
+    "definitions": [
+      { "url": "https://example.gov/apps/full-stack/definition", "version": "1.0.0" }
+    ],
+    "experience":      { "url": "https://example.gov/apps/full-stack/experience",      "version": "1.0.0" },
+    "responseActions": { "url": "https://example.gov/apps/full-stack/response-actions","version": "1.0.0" },
+    "component":       { "url": "https://example.gov/apps/full-stack/component",       "version": "1.0.0" },
+    "theme":           { "url": "https://example.gov/apps/full-stack/theme",           "version": "1.0.0" },
+    "references":      { "url": "https://example.gov/apps/full-stack/references",      "version": "1.0.0" },
+    "ontology":        { "url": "https://example.gov/apps/full-stack/ontology",        "version": "1.0.0" },
+    "registries": [
+      { "url": "https://example.gov/apps/full-stack/registry",        "version": "1.0.0" }
+    ],
+    "surfaces": [
+      { "url": "https://example.gov/apps/full-stack/surface-respondent", "version": "1.0.0" }
+    ]
   }
 }

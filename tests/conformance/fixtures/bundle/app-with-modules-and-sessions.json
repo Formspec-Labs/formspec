@@ -1,0 +1,25 @@
+{
+  "fixture": "app-with-modules-and-sessions",
+  "purpose": "Positive: App Manifest declaring modules[] (ModuleRef per common.schema) and sessions[] (SessionRef per common.schema) per ADR 0150 §5.2/§5.5.",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "2.0",
+    "version": "1.2.0",
+    "id": "https://example.gov/apps/governed-intake-2026",
+    "title": "Governed Intake App",
+    "definitions": [
+      { "url": "https://example.gov/apps/governed-intake/definition", "version": "1.0.0" }
+    ],
+    "modules": [
+      { "id": "x-formspec-core-task", "version": "^1.0.0" },
+      { "id": "x-formspec-ai-runtime", "version": "1.0.0", "lockHash": "sha256:Zm9vYmFy" }
+    ],
+    "sessions": [
+      {
+        "id": "urn:formspec:session:intake-2026-cohort-a",
+        "openedAt": "2026-01-15T09:00:00Z",
+        "actors": ["urn:formspec:actor:human:caseworker-7"]
+      }
+    ]
+  }
+}

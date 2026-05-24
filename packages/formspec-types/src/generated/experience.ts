@@ -6,21 +6,24 @@
  */
 
 /* eslint-disable */
-import type { TargetDefinition, Extensions } from './common.js';
+import type { ModuleRef, TargetDefinition, Extensions } from './common.js';
 /**
- * Closed, abstract, task-oriented unit kind. data-entry: user provides or revises data. review: read-only display of captured data. confirmation: user affirms accuracy before a transition. evidence-collection: user supplies evidence (attachments, attestations). attestation: user certifies a statement under accountability. error-resolution: user resolves a validation finding. assistance: user receives help.
+ * Closed-core task-oriented unit kind OR a module-contributed `x-` extension (ADR 0150 §4.5). Closed-core values: data-entry (user provides or revises data), review (read-only display of captured data), confirmation (user affirms accuracy before a transition), evidence-collection (user supplies evidence — attachments, attestations), attestation (user certifies a statement under accountability), error-resolution (user resolves a validation finding), assistance (user receives help). Extension values follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8).
  *
  * This interface was referenced by `ExperienceDocument`'s JSON-Schema
  * via the `definition` "UnitKind".
  */
 export type UnitKind =
-  | 'data-entry'
-  | 'review'
-  | 'confirmation'
-  | 'evidence-collection'
-  | 'attestation'
-  | 'error-resolution'
-  | 'assistance';
+  | (
+      | 'data-entry'
+      | 'review'
+      | 'confirmation'
+      | 'evidence-collection'
+      | 'attestation'
+      | 'error-resolution'
+      | 'assistance'
+    )
+  | string;
 
 /**
  * A Formspec Experience Document per the Experience specification. A standalone sidecar that names abstract task intent for a Formspec Definition: actors, tasks, units, applicability, and typed references to items, concepts, and actions. Like Theme, Component, Locale, and References documents, an Experience Document targets a Definition but lives alongside it. Multiple Experience Documents MAY target the same Definition (e.g., different actor populations, platforms, or postures). Experience metadata MUST NOT alter core behavioral semantics (required, relevant, readonly, calculate, validation).
@@ -30,6 +33,10 @@ export interface ExperienceDocument {
    * Experience specification version. MUST be '1.0'.
    */
   $formspecExperience: '1.0';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
   /**
    * Version of this Experience Document. SemVer is RECOMMENDED.
    */

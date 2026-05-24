@@ -1,10 +1,10 @@
 {
-  "fixture": "invalid-missing-definition",
-  "purpose": "Bundle without required `definition`. Schema MUST reject.",
-  "expected": { "valid": false, "errorContains": "definition" },
+  "fixture": "invalid-missing-definitions",
+  "purpose": "App Manifest without required `definitions[]`. Schema MUST reject (the array MAY be empty for non-form apps but the property itself is REQUIRED).",
+  "expected": { "valid": false, "errorContains": "definitions" },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "1.0.0",
-    "id": "https://example.gov/forms/broken"
+    "id": "https://example.gov/apps/broken"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "fixture": "app-multi-definition",
+  "purpose": "Positive: App Manifest with two Definition references — proves definitions[] plurality per ADR 0150 §5.2.",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://example.gov/apps/multi-form-2026",
+    "name": "multiForm",
+    "title": "Multi-Definition App",
+    "definitions": [
+      { "url": "https://example.gov/apps/multi-form/definition-a", "version": "1.0.0" },
+      { "url": "https://example.gov/apps/multi-form/definition-b", "version": "1.0.0" }
+    ]
+  }
+}

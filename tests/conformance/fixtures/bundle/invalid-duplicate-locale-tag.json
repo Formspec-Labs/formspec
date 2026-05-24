@@ -3,13 +3,15 @@
   "purpose": "Two `locales[]` entries share the same `locale` BCP47 tag. Spec semantics test MUST reject (schema alone does not).",
   "expected": { "valid": false, "errorContains": "locale" },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "1.0.0",
-    "id": "https://example.gov/forms/dup-locale",
-    "definition": { "url": "https://example.gov/forms/dup-locale/definition", "version": "1.0.0" },
+    "id": "https://example.gov/apps/dup-locale",
+    "definitions": [
+      { "url": "https://example.gov/apps/dup-locale/definition", "version": "1.0.0" }
+    ],
     "locales": [
-      { "url": "https://example.gov/forms/dup-locale/locale-en-1", "locale": "en-US" },
-      { "url": "https://example.gov/forms/dup-locale/locale-en-2", "locale": "en-US" }
+      { "url": "https://example.gov/apps/dup-locale/locale-en-1", "locale": "en-US" },
+      { "url": "https://example.gov/apps/dup-locale/locale-en-2", "locale": "en-US" }
     ]
   }
 }

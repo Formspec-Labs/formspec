@@ -1,11 +1,13 @@
 {
   "fixture": "invalid-id-equals-sibling-url",
-  "purpose": "Bundle `id` equals a sibling `url`. Spec semantics test MUST reject (§2.1 / §6.1 rule 3: `id` MUST be distinct from every sibling URL).",
+  "purpose": "App Manifest `id` equals a sibling `url`. Spec semantics test MUST reject (§2.1 / §6.1 rule 3: `id` MUST be distinct from every sibling URL).",
   "expected": { "valid": false, "errorContains": "id" },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "1.0.0",
-    "id": "https://example.gov/forms/collision/definition",
-    "definition": { "url": "https://example.gov/forms/collision/definition", "version": "1.0.0" }
+    "id": "https://example.gov/apps/collision/definition",
+    "definitions": [
+      { "url": "https://example.gov/apps/collision/definition", "version": "1.0.0" }
+    ]
   }
 }

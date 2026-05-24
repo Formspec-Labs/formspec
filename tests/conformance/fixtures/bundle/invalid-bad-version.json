@@ -1,11 +1,13 @@
 {
   "fixture": "invalid-bad-version",
-  "purpose": "Bundle `version` is not a SemVer 2.0.0 string. Schema MUST reject.",
+  "purpose": "App Manifest `version` is not a SemVer 2.0.0 string. Schema MUST reject.",
   "expected": { "valid": false, "errorContains": "version" },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "v1",
-    "id": "https://example.gov/forms/bad-version",
-    "definition": { "url": "https://example.gov/forms/bad-version/definition", "version": "1.0.0" }
+    "id": "https://example.gov/apps/bad-version",
+    "definitions": [
+      { "url": "https://example.gov/apps/bad-version/definition", "version": "1.0.0" }
+    ]
   }
 }

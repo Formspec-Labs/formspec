@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { Extensions, TargetDefinition, Tokens, AccessibilityBlock, Breakpoints, ThemeWidgetName } from './common.js';
+import type { ModuleRef, Extensions, TargetDefinition, Tokens, AccessibilityBlock, Breakpoints, ThemeWidgetName } from './common.js';
 /**
  * Cascade level 1 (lowest theme specificity): baseline PresentationBlock applied to every item before selectors or per-item overrides. Sets the form-wide visual baseline. Overrides Tier 1 inline presentation hints (level 0) and formPresentation globals (level -1). Overridden by selectors (level 2) and items (level 3). Merge is shallow per-property — nested objects (widgetConfig, style, accessibility) are replaced as a whole, not deep-merged. Exception: cssClass uses union semantics across all levels.
  */
@@ -113,6 +113,10 @@ export interface ThemeDocument {
    * Theme specification version. MUST be '1.0'.
    */
   $formspecTheme: '1.0';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
   /**
    * Canonical identifier for this theme. Stable across theme versions — the pair (url, version) SHOULD be globally unique.
    */

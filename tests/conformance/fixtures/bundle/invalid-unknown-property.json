@@ -1,12 +1,14 @@
 {
   "fixture": "invalid-unknown-property",
-  "purpose": "Bundle with unknown top-level property `screener`. Schema MUST reject (closed surface; new siblings require schema version bump).",
+  "purpose": "App Manifest with unknown top-level property `screener`. Schema MUST reject (closed surface; new siblings require schema version bump).",
   "expected": { "valid": false, "errorContains": "screener" },
   "bundle": {
-    "$formspecBundle": "1.0",
+    "$formspecBundle": "2.0",
     "version": "1.0.0",
-    "id": "https://example.gov/forms/unknown-prop",
-    "definition": { "url": "https://example.gov/forms/unknown-prop/definition", "version": "1.0.0" },
-    "screener": { "url": "https://example.gov/forms/unknown-prop/screener", "version": "1.0.0" }
+    "id": "https://example.gov/apps/unknown-prop",
+    "definitions": [
+      { "url": "https://example.gov/apps/unknown-prop/definition", "version": "1.0.0" }
+    ],
+    "screener": { "url": "https://example.gov/apps/unknown-prop/screener", "version": "1.0.0" }
   }
 }

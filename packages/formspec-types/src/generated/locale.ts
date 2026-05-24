@@ -6,6 +6,7 @@
  */
 
 /* eslint-disable */
+import type { ModuleRef } from './common.js';
 /**
  * A Formspec Locale Document — a sidecar JSON artifact that provides internationalized strings for a Formspec Definition. A Locale Document binds to a Definition by URL, maps item paths to localized strings via a flat key-value structure, supports FEL interpolation for dynamic content via {{expression}} syntax, and composes via a fallback cascade (regional → base language → inline defaults). Multiple Locale Documents MAY target the same Definition, one per locale. A Locale Document MUST NOT affect data collection, validation logic, or behavioral semantics — it controls only the display strings presented to the user.
  */
@@ -14,6 +15,10 @@ export interface LocaleDocument {
    * Locale specification version. MUST be '1.0'.
    */
   $formspecLocale: '1.0';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Module-contributed Locale string keys use the $module.<modId>.<nodeId>.<prop> prefix per ADR §4.10 (Task 6). Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
   /**
    * Canonical identifier for this Locale Document. Stable across versions — the tuple (url, version) SHOULD be globally unique.
    */
@@ -54,6 +59,10 @@ export interface LocaleDocument {
    */
   extensions?: {};
 }
+/**
+ * Extension object whose keys must be prefixed with x-.
+ */
+export interface Extensions {}
 /**
  * Binding to the target Formspec Definition and compatible version range. The locale will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to inline strings only. The processor MUST NOT fail on a version mismatch.
  */

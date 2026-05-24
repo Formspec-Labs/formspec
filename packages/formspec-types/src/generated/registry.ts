@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { Party, LangMap, ContactPoint } from './common.js';
+import type { Party, LangMap, ContactPoint, ModuleRef } from './common.js';
 /**
  * Organization publishing this registry document. Provides provenance and contact information for all entries unless overridden at the entry level.
  */
@@ -40,9 +40,22 @@ export type RegistryEntry = {
    */
   name: string;
   /**
-   * The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; property and namespace have no additional required properties.
+   * The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; module requires contributes; unit-kind requires semantics; widget requires widgetShape; action-intent requires validation; slot-type requires slotShape; validation-mapping-row requires row; token-category requires categoryShape. property has no additional required properties. `namespace` was renamed to `module` per ADR 0150 §4.1 (greenfield rename, no alias).
    */
-  category: 'dataType' | 'function' | 'constraint' | 'property' | 'namespace' | 'concept' | 'vocabulary';
+  category:
+    | 'dataType'
+    | 'function'
+    | 'constraint'
+    | 'property'
+    | 'module'
+    | 'concept'
+    | 'vocabulary'
+    | 'unit-kind'
+    | 'widget'
+    | 'action-intent'
+    | 'slot-type'
+    | 'validation-mapping-row'
+    | 'token-category';
   /**
    * Semver version of the extension itself (not the Formspec version). Within a registry document, the (name, version) tuple MUST be unique. A new major version MAY re-enter draft status.
    */
@@ -127,9 +140,37 @@ export type RegistryEntry = {
    */
   returns?: string;
   /**
-   * Array of x-prefixed extension names grouped under this namespace. Only meaningful when category is 'namespace'. Members should be other entries in the same or a referenced registry.
+   * Array of x-prefixed Registry entry names this module bundles. REQUIRED when category is 'module'. Each MUST exist in this or a referenced registry. Replaces the old `members[]` per ADR 0150 §4.1.
    */
-  members?: string[];
+  contributes?: string[];
+  /**
+   * Other modules this module requires. OPTIONAL when category is 'module'. Uses the canonical `ModuleRef` $def for shape parity with document `modules[]` and `posture.allowedModules[]`.
+   */
+  dependencies?: ModuleRef[];
+  /**
+   * Processor/renderer obligations describing the unit-kind's behavioral semantics. REQUIRED when category is 'unit-kind'. Free-form per module; module ships canonical sub-schema referenced from `schemaUrl` for richer validation. Per ADR 0150 §4.2.
+   */
+  semantics?: {};
+  /**
+   * Widget contract (props, children policy, fallback chain). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. Per ADR 0150 §4.2 / Component §progressive-to-core.
+   */
+  widgetShape?: {};
+  /**
+   * Full ValidationTuple per VM §6.1. REQUIRED when category is 'action-intent'. Per ADR 0150 §4.2.
+   */
+  validation?: {};
+  /**
+   * What the slot binds to + composition rules. REQUIRED when category is 'slot-type'. Per ADR 0150 §4.2.
+   */
+  slotShape?: {};
+  /**
+   * Closed MappingEntry shape per VM §6. REQUIRED when category is 'validation-mapping-row'. Contributes a row to the `validation-mapping.MasterTable` after the §4.2 four-constraint demotion. Per ADR 0150 §4.2.
+   */
+  row?: {};
+  /**
+   * Token category shape (mirrors today's token-registry.schema.json `Category` shape). REQUIRED when category is 'token-category'. Folds Token Registry into the unified Registry as a contribution profile per ADR 0150 §2.3/§4.2.
+   */
+  categoryShape?: {};
   /**
    * The concept IRI in the external ontology or standard. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents.
    */
@@ -182,6 +223,10 @@ export interface RegistryDocument {
    */
   extensions?: {};
 }
+/**
+ * Extension object whose keys must be prefixed with x-.
+ */
+export interface Extensions {}
 /**
  * Declares that the bound concept is equivalent to a concept in another system. Relationship types follow SKOS (Simple Knowledge Organization System) semantics.
  *

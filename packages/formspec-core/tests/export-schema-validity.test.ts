@@ -23,7 +23,8 @@ describe('BUG-12: definition status field', () => {
   it('exported definition includes status field', () => {
     const project = createRawProject();
     const bundle = project.export();
-    expect(bundle.definition.status).toBe('draft');
+    // ADR 0150 §5.2: definitions[] is plural; P0 single-element array.
+    expect(bundle.definitions[0].status).toBe('draft');
   });
 
   it('seeded definition preserves provided status', () => {

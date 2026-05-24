@@ -6,6 +6,7 @@
  */
 
 /* eslint-disable */
+import type { ModuleRef } from './common.js';
 /**
  * Descriptor for the external system schema targeted by this mapping. Determines the adapter used for serialization and the path syntax rules for targetPath values.
  */
@@ -64,19 +65,22 @@ export type FieldRule = {
      */
     targetPath?: string | null;
     /**
-     * Transform type determining how the source value is converted to the target value. 'preserve': identity copy, auto-reversible. 'drop': discard field from output, never reversible. 'expression': evaluate a FEL expression (requires 'expression' property), not auto-reversible — supply explicit reverse block for bidirectional. 'coerce': type conversion (requires 'coerce' property), auto-reversible only for lossless pairs (string<->integer, string<->number, string<->boolean, date<->string with ISO format). 'valueMap': lookup-table substitution (requires 'valueMap' property), auto-reversible only when forward map is bijective (one-to-one). 'flatten': collapse nested/array structure to flat representation per mapping spec §4.7; 'expression' optional for structural modes, required only for non-trivial projection; auto-reversible (pairs with nest). 'nest': expand flat structure to nested form per mapping spec §4.8; 'expression' optional for structural modes; auto-reversible (pairs with flatten). 'constant': fixed value injection (requires 'expression'), sourcePath ignored, never reversible. 'concat': join multiple source values into one string (requires 'expression'), not auto-reversible. 'split': decompose single value into multiple targets (requires 'expression'), not auto-reversible.
+     * Transform type determining how the source value is converted to the target value. Closed-core: 'preserve' (identity copy, auto-reversible); 'drop' (discard field, never reversible); 'expression' (evaluate FEL, requires `expression`); 'coerce' (type conversion, requires `coerce`); 'valueMap' (lookup substitution, requires `valueMap`); 'flatten' / 'nest' (structural collapse/expand per mapping spec §4.7/§4.8); 'constant' (fixed value, requires `expression`); 'concat' / 'split' (join/decompose, require `expression`). Module-contributed: `x-` extension following the canonical regex (ADR 0150 §4.5).
      */
     transform:
-      | 'preserve'
-      | 'drop'
-      | 'expression'
-      | 'coerce'
-      | 'valueMap'
-      | 'flatten'
-      | 'nest'
-      | 'constant'
-      | 'concat'
-      | 'split';
+      | (
+          | 'preserve'
+          | 'drop'
+          | 'expression'
+          | 'coerce'
+          | 'valueMap'
+          | 'flatten'
+          | 'nest'
+          | 'constant'
+          | 'concat'
+          | 'split'
+        )
+      | string;
     /**
      * FEL expression evaluated to produce the target value. Within the expression: '$' binds to the resolved source value at sourcePath (or null if absent); '@source' binds to the entire source document root. REQUIRED when transform is 'expression', 'constant', 'concat', or 'split'. For 'flatten' and 'nest', OPTIONAL when using only the structural modes in the mapping spec (delimited/positional/dot-prefix); REQUIRED when the spec calls for non-trivial projection. For 'constant', the expression SHOULD be a FEL literal or deterministic expression. For 'concat', MUST evaluate to a string. For 'split', MUST return an array or object.
      */
@@ -148,19 +152,22 @@ export type InnerRule = {
      */
     targetPath?: string | null;
     /**
-     * Transform type. Same semantics as FieldRule.transform.
+     * Transform type. Same semantics as FieldRule.transform — closed-core enum + module-extensible `x-` branch per ADR 0150 §4.5.
      */
     transform:
-      | 'preserve'
-      | 'drop'
-      | 'expression'
-      | 'coerce'
-      | 'valueMap'
-      | 'flatten'
-      | 'nest'
-      | 'constant'
-      | 'concat'
-      | 'split';
+      | (
+          | 'preserve'
+          | 'drop'
+          | 'expression'
+          | 'coerce'
+          | 'valueMap'
+          | 'flatten'
+          | 'nest'
+          | 'constant'
+          | 'concat'
+          | 'split'
+        )
+      | string;
     /**
      * FEL expression. $ = current element's sourcePath value; @source = full source document.
      */
@@ -227,6 +234,10 @@ export interface MappingDocument {
    */
   $formspecMapping: '1.0';
   /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
+  /**
    * URI identifying the version of the Mapping DSL specification this document conforms to.
    */
   $schema?: string;
@@ -289,6 +300,10 @@ export interface MappingDocument {
   [k: `x-${string}`]: unknown;
 }
 /**
+ * Extension object whose keys must be prefixed with x-.
+ */
+export interface Extensions {}
+/**
  * Type conversion descriptor specifying source type, target type, and optional format pattern. Supported conversions: string<->number, string<->integer, string<->boolean, string<->date, string<->datetime, number<->integer, number<->boolean, integer<->boolean, date<->datetime, money->string, money->number (lossy), money->integer (lossy). Unsupported pairs MUST be rejected at validation time.
  *
  * This interface was referenced by `MappingDocument`'s JSON-Schema
@@ -336,19 +351,22 @@ export interface ValueMap {
  */
 export interface ReverseOverride {
   /**
-   * Reverse transform type. If omitted, uses the forward rule's transform type.
+   * Reverse transform type — closed-core enum + module-extensible `x-` branch per ADR 0150 §4.5. If omitted, uses the forward rule's transform type.
    */
   transform?:
-    | 'preserve'
-    | 'drop'
-    | 'expression'
-    | 'coerce'
-    | 'valueMap'
-    | 'flatten'
-    | 'nest'
-    | 'constant'
-    | 'concat'
-    | 'split';
+    | (
+        | 'preserve'
+        | 'drop'
+        | 'expression'
+        | 'coerce'
+        | 'valueMap'
+        | 'flatten'
+        | 'nest'
+        | 'constant'
+        | 'concat'
+        | 'split'
+      )
+    | string;
   /**
    * FEL expression for the reverse direction. $ = the external value; @source = the full external document.
    */

@@ -1441,8 +1441,11 @@ describe('export', () => {
 
     const bundle = project.export();
 
-    expect(bundle.definition).toBeDefined();
-    expect(bundle.definition.title).toBe('Export Test');
+    // ADR 0150 §5.2 App Manifest reframe: `definitions` is plural; P0 authoring
+    // exports a single-element array.
+    expect(bundle.definitions).toBeDefined();
+    expect(bundle.definitions).toHaveLength(1);
+    expect(bundle.definitions[0].title).toBe('Export Test');
     expect(bundle.component).toBeDefined();
     expect(bundle.theme).toBeDefined();
     expect(bundle.mappings).toBeDefined();
@@ -1452,7 +1455,7 @@ describe('export', () => {
     const project = createRawProject();
     const bundle = project.export();
 
-    bundle.definition.title = 'Mutated';
+    bundle.definitions[0].title = 'Mutated';
     expect(project.definition.title).not.toBe('Mutated');
   });
 

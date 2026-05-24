@@ -450,7 +450,10 @@ export class RawProject implements IProjectCore {
     }
 
     const bundle: ProjectBundle = {
-      definition: this._state.definition,
+      // ADR 0150 §5.2 App Manifest reframe: `definitions` is plural. P0 authoring
+      // still owns a single Definition, so this array is single-element; multi-
+      // definition authoring lands at P1+.
+      definitions: [this._state.definition],
       component: {
         ...withComponentEnvelope(
           { ...restComponent, tree: cleanedTree ?? undefined },

@@ -6,8 +6,8 @@
  */
 
 /* eslint-disable */
+import type { ModuleRef, Extensions, WidgetName } from './common.js';
 import type { IssuerDocument as FormspecIssuerDocument } from './issuer.js';
-import type { Extensions, WidgetName } from './common.js';
 export type { FormspecIssuerDocument };
 /**
  * A node in the form's structural tree. Every Item has a key (stable machine identifier unique across the entire Definition), a type ('field', 'group', or 'display'), and a label (human-readable). The type determines which additional properties apply. Items form a tree via the 'children' property on groups. The item tree determines the shape of the Instance (form data): fields produce values, groups produce JSON objects (or arrays if repeatable), display items produce nothing.
@@ -244,6 +244,10 @@ export interface FormDefinition {
    * Definition specification version. MUST be '1.0'.
    */
   $formspec: '1.0';
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   */
+  modules?: ModuleRef[];
   /**
    * Canonical URI identifier of the logical form. Stable across versions — all versions of the same form share this URL. Combined with 'version' to form the immutable identity tuple. Referenced by Responses via definitionUrl.
    */

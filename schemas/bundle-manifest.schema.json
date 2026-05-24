@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/bundleManifest/1.0",
-  "title": "Formspec Bundle Manifest",
-  "description": "A Formspec Bundle Manifest per the Bundle Manifest specification. The author-facing composition envelope that names a Formspec form by referencing its Definition and optional sibling artifacts at coherent versions. Definition is the only required sibling; every other sibling is optional and absent siblings invoke their own spec's existing defaults (no synthesis). See specs/bundle/bundle-manifest-spec.md for normative prose.",
+  "$id": "https://formspec.org/schemas/bundleManifest/2.0",
+  "title": "Formspec App Manifest",
+  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest; reframed per ADR 0150 §5.2/§5.3/§11.2). The author-facing composition envelope above a Formspec app. An app composes zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, and OPTIONAL substrate Modules / Sessions / Locales / Mappings / Theme / Component / References / Ontology / Experience / Response Actions. `definitions` is REQUIRED but MAY be an empty array (non-form apps — workflow viewers, registry browsers, etc. — compose surfaces without Definitions). The `$formspecBundle` const bumps to '2.0' so strict-validating consumers of the legacy '1.0' shape fail loud rather than silently mis-parse a structurally different document. See specs/bundle/app-manifest-spec.md for normative prose.",
   "type": "object",
-  "required": ["$formspecBundle", "version", "id", "definition"],
+  "required": ["$formspecBundle", "version", "id", "definitions"],
   "additionalProperties": false,
   "patternProperties": {
     "^x-": {}
@@ -12,33 +12,33 @@
   "properties": {
     "$formspecBundle": {
       "type": "string",
-      "const": "1.0",
-      "description": "Bundle Manifest specification version. MUST be '1.0'.",
-      "examples": ["1.0"],
+      "const": "2.0",
+      "description": "App Manifest specification version. MUST be '2.0'. Bumped from '1.0' per ADR 0150 §5.2/§11.2 — the singular→plural shape change is structural; the const bump makes strict-validating consumers of the legacy shape fail loud rather than silently mis-parse.",
+      "examples": ["2.0"],
       "x-lm": {
         "critical": true,
-        "intent": "Version pin for Bundle Manifest document compatibility"
+        "intent": "Version pin for App Manifest document compatibility"
       }
     },
     "version": {
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-      "description": "Version of this Bundle Manifest. MUST be a strict SemVer 2.0.0 string (no leading zeros in numeric identifiers, no empty pre-release identifiers, no leading-zero numeric pre-release identifiers). The bundle's published version pins a coherent snapshot of sibling versions; bumping any sibling version SHOULD bump the bundle version.",
+      "description": "Version of this App Manifest. MUST be a strict SemVer 2.0.0 string (no leading zeros in numeric identifiers, no empty pre-release identifiers, no leading-zero numeric pre-release identifiers). The app's published version pins a coherent snapshot of sibling versions; bumping any sibling version SHOULD bump the app version.",
       "examples": ["1.0.0", "1.2.0-draft.1"],
       "x-lm": {
         "critical": true,
-        "intent": "SemVer-strict published-form version"
+        "intent": "SemVer-strict published-app version"
       }
     },
     "id": {
       "type": "string",
       "format": "uri",
-      "description": "Stable canonical identity URL for this form. Distinct from any sibling URL. Two Bundle Manifests with the same `id` SHOULD be different versions of the same form.",
-      "$comment": "Cross-property distinctness (id != any sibling url) is a semantic invariant the schema cannot express; processors enforce it per spec §2.1 / §6.1 rule 3.",
-      "examples": ["https://example.gov/forms/intake-2026"],
+      "description": "Stable canonical identity URL for this app. Distinct from any sibling URL. Two App Manifests with the same `id` SHOULD be different versions of the same app.",
+      "$comment": "Cross-property distinctness (id != any sibling url) is a semantic invariant the schema cannot express; processors enforce it per app-manifest-spec §2.1 / §6.1 rule 3.",
+      "examples": ["https://example.gov/apps/intake-2026"],
       "x-lm": {
         "critical": true,
-        "intent": "Stable form identity URL"
+        "intent": "Stable app identity URL"
       }
     },
     "name": {
@@ -47,15 +47,16 @@
     },
     "title": { "type": "string" },
     "description": { "type": "string" },
-    "definition": {
-      "$ref": "#/$defs/SiblingRef",
-      "description": "REQUIRED. The Definition this bundle composes. Exactly one Definition per bundle.",
+    "definitions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "REQUIRED. Zero-or-more Definitions this app composes. An empty array (`[]`) is valid and identifies a non-form app (e.g. workflow viewer, registry browser) that composes surfaces or modules without Definitions. A single-element array is the form-only common case. Multiple Definitions support multi-form apps (e.g. an intake suite composing several screening forms). Per ADR 0150 §5.2/§5.3.",
       "examples": [
-        { "url": "https://example.gov/forms/intake/definition", "version": "1.2.0" }
+        [{ "url": "https://example.gov/apps/intake/definition", "version": "1.2.0" }]
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Required core artifact reference"
+        "intent": "Composed Definition artifacts (plural; MAY be empty)"
       }
     },
     "experience": {
@@ -82,9 +83,45 @@
       "$ref": "#/$defs/SiblingRef",
       "description": "Optional Ontology document (concept metadata for items and choices)."
     },
-    "registry": {
-      "$ref": "#/$defs/SiblingRef",
-      "description": "Optional Registry document (option-set / token registry enrichment)."
+    "registries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "Optional list of Registry documents (option-set / module / token registry enrichment). Plural per ADR 0150 §5.2 — an app MAY compose multiple registries (e.g. a tenant-local registry overlaid on a stack-shared registry).",
+      "examples": [
+        [{ "url": "https://example.gov/apps/intake/registry", "version": "1.0.0" }]
+      ]
+    },
+    "surfaces": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "Optional list of Surface documents (presentation/layout shells; the Surface spec lands at ADR 0150 §14 P2). Plural so an app MAY compose multiple surfaces (e.g. a respondent surface and a reviewer surface).",
+      "examples": [
+        [{ "url": "https://example.gov/apps/intake/surface-respondent", "version": "1.0.0" }]
+      ]
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
+      },
+      "description": "Optional declaration of substrate modules this app depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only apps — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §5.2 the App Manifest is the canonical declaration site; document-level `modules[]` on individual sibling documents remain valid scoping declarations. Coherence rule (§5.2): every module declared by a sibling document MUST resolve against the App Manifest's modules[] declaration or the default module set.",
+      "examples": [
+        [{ "id": "x-formspec-core-task", "version": "^1.0.0" }]
+      ]
+    },
+    "sessions": {
+      "type": "array",
+      "items": {
+        "$ref": "https://formspec.org/schemas/common/1.0#/$defs/SessionRef"
+      },
+      "description": "Optional list of Sessions held against the app. Each entry is a canonical SessionRef (id + openedAt + actors). The durable session index — respondent-ledger.sessionRefs[] entries reference these URNs (ADR 0150 §5.5).",
+      "examples": [
+        [{
+          "id": "urn:formspec:session:intake-2026-cohort-a",
+          "openedAt": "2026-01-15T09:00:00Z",
+          "actors": ["urn:formspec:actor:human:caseworker-7"]
+        }]
+      ]
     },
     "locales": {
       "type": "array",
@@ -93,8 +130,8 @@
       "description": "Optional array of Locale references, one per BCP47 locale tag. Each entry's `locale` MUST be unique within the array.",
       "examples": [
         [
-          { "url": "https://example.gov/forms/intake/locale-en-us", "version": "1.0.0", "locale": "en-US" },
-          { "url": "https://example.gov/forms/intake/locale-es-us", "version": "1.0.0", "locale": "es-US" }
+          { "url": "https://example.gov/apps/intake/locale-en-us", "version": "1.0.0", "locale": "en-US" },
+          { "url": "https://example.gov/apps/intake/locale-es-us", "version": "1.0.0", "locale": "es-US" }
         ]
       ],
       "x-lm": {
@@ -109,7 +146,7 @@
       "description": "Optional array of Mapping references, one per named mapping handle. Each entry's `handle` MUST be unique within the array.",
       "examples": [
         [
-          { "url": "https://example.gov/forms/intake/mapping-application", "version": "1.0.0", "handle": "applicationPayload" }
+          { "url": "https://example.gov/apps/intake/mapping-application", "version": "1.0.0", "handle": "applicationPayload" }
         ]
       ],
       "x-lm": {

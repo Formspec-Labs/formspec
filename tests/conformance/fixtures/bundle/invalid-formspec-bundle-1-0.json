@@ -1,0 +1,13 @@
+{
+  "fixture": "invalid-formspec-bundle-1-0",
+  "purpose": "Negative: App Manifest with the retired `$formspecBundle: \"1.0\"` constant MUST be rejected — the 1.0 → 2.0 bump (ADR 0150 §5.2/§11.2) makes strict-validating consumers fail-loud rather than silently mis-parse a structurally different document.",
+  "expected": { "valid": false, "errorContains": "$formspecBundle" },
+  "bundle": {
+    "$formspecBundle": "1.0",
+    "version": "1.0.0",
+    "id": "https://example.gov/apps/stale-bundle",
+    "definitions": [
+      { "url": "https://example.gov/apps/stale-bundle/definition", "version": "1.0.0" }
+    ]
+  }
+}

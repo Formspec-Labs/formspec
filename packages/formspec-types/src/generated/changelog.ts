@@ -56,9 +56,9 @@ export interface Change {
    */
   type: 'added' | 'removed' | 'modified' | 'moved' | 'renamed';
   /**
-   * Category of affected definition element. 'item': field, group, or display node. 'bind': reactive behavioral declaration (calculate, relevant, required, readonly, constraint). 'shape': composable validation rule. 'optionSet': named reusable option list. 'dataSource': secondary instance declaration. 'screener': routing rule. 'migration': version migration map. 'metadata': top-level properties (title, description, status, formPresentation).
+   * Category of affected definition element. Closed-core: 'item' (field, group, or display node), 'bind' (reactive behavioral declaration — calculate, relevant, required, readonly, constraint), 'shape' (composable validation rule), 'optionSet' (named reusable option list), 'dataSource' (secondary instance declaration), 'screener' (routing rule), 'migration' (version migration map), 'metadata' (top-level properties — title, description, status, formPresentation). Module-extensible via `x-` prefix following the canonical regex (ADR 0150 §4.5).
    */
-  target: 'item' | 'bind' | 'shape' | 'optionSet' | 'dataSource' | 'screener' | 'migration' | 'metadata';
+  target: ('item' | 'bind' | 'shape' | 'optionSet' | 'dataSource' | 'screener' | 'migration' | 'metadata') | string;
   /**
    * Dot-path to the affected element within the definition. For items: 'items.' prefix followed by group nesting (e.g., 'items.budget.personnel'). For binds: the bind's target path (e.g., 'budget.totalCost'). For shapes: 'shapes.' + shape id. For optionSets: 'optionSets.' + set name. For metadata: the property name (e.g., 'title', 'status').
    */

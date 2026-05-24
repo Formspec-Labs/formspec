@@ -7,7 +7,7 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:binds',
           version: '1.0.0',
@@ -17,7 +17,7 @@ describe('project.import', () => {
             a: { required: 'true' },
             b: { relevant: "$x = 'y'" },
           },
-        },
+        }],
       },
     });
     const binds = project.definition.binds;
@@ -36,14 +36,14 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:bad-binds',
           version: '1.0.0',
           title: 'Bad',
           items: [],
           binds: 'not-valid' as never,
-        },
+        }],
       },
     });
     expect(project.definition.binds).toBeUndefined();
@@ -56,13 +56,13 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:imported',
           version: '1.0.0',
           title: 'Imported',
           items: [],
-        },
+        }],
       },
     });
 
@@ -76,13 +76,13 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:imported',
           version: '1.0.0',
           title: 'Imported',
           items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
-        },
+        }],
         mappings: {
           default: {
             $formspecMapping: '1.0',
@@ -122,14 +122,14 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0', url: 'urn:test', version: '1.0.0', title: 'Test',
           items: [
             { key: 'name', type: 'text' },
             { key: 'age', type: 'number' },
             { key: 'deleted_field', type: 'text' },
           ],
-        },
+        }],
         theme: {
           pages: [
             { title: 'Valid', regions: [{ key: 'name' }, { key: 'age' }] },
@@ -141,13 +141,13 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0', url: 'urn:test', version: '2.0.0', title: 'Updated',
           items: [
             { key: 'name', type: 'text' },
             { key: 'age', type: 'number' },
           ],
-        },
+        }],
       },
     });
     const pages = (project.state.theme as any).pages;
@@ -160,10 +160,10 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0', url: 'urn:test', version: '1.0.0', title: 'Test',
           items: [{ key: 'old_field', type: 'text' }],
-        },
+        }],
         theme: {
           pages: [{ title: 'Page1', regions: [{ key: 'old_field' }] }],
         },
@@ -172,10 +172,10 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0', url: 'urn:test', version: '2.0.0', title: 'New',
           items: [{ key: 'new_field', type: 'text' }],
-        },
+        }],
       },
     });
     const pages = (project.state.theme as any).pages;
@@ -187,13 +187,13 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:imported',
           version: '1.0.0',
           title: 'Imported',
           items: [],
-        },
+        }],
         locales: {
           'fr-ca': {
             locale: 'fr-ca',
@@ -214,13 +214,13 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:before',
           version: '1.0.0',
           title: 'Before',
           items: [],
-        },
+        }],
         locales: {
           fr: {
             locale: 'fr',
@@ -237,13 +237,13 @@ describe('project.import', () => {
     project.dispatch({
       type: 'project.import',
       payload: {
-        definition: {
+        definitions: [{
           $formspec: '1.0',
           url: 'urn:formspec:after',
           version: '1.0.0',
           title: 'After',
           items: [],
-        },
+        }],
         locales: {
           de: {
             locale: 'de',
