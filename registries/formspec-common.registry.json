@@ -1914,6 +1914,427 @@
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
       "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Respondent-Ledger closed-cores (27 EventType + 7 ChangeSetEntry.valueClass) republished as Registry property contributions per ADR 0150 \u00a74.9. EXCLUDED: the ^x- and ^(ai|user)\\. extension lanes (P4 ships those \u2014 `x-formspec-ai-runtime`). Validation flows through schemas/respondent-ledger-event.schema.json `oneOf [closed-core, x-pattern]` lanes; Registry contributions are descriptive metadata. EventType values use `.` separators (session.started); the Registry name regex translates dots to hyphens (x-formspec-core-ledger-event-type-session-started), with the original dotted value preserved verbatim in each entry's description for tool-side resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-ledger-event-type-session-started",
+        "x-formspec-core-ledger-event-type-draft-saved",
+        "x-formspec-core-ledger-event-type-draft-resumed",
+        "x-formspec-core-ledger-event-type-response-completed",
+        "x-formspec-core-ledger-event-type-response-amendment-opened",
+        "x-formspec-core-ledger-event-type-response-amended",
+        "x-formspec-core-ledger-event-type-response-stopped",
+        "x-formspec-core-ledger-event-type-attachment-added",
+        "x-formspec-core-ledger-event-type-attachment-replaced",
+        "x-formspec-core-ledger-event-type-attachment-removed",
+        "x-formspec-core-ledger-event-type-prepopulation-applied",
+        "x-formspec-core-ledger-event-type-system-merge-resolved",
+        "x-formspec-core-ledger-event-type-validation-snapshot-recorded",
+        "x-formspec-core-ledger-event-type-calculation-material-change",
+        "x-formspec-core-ledger-event-type-nonrelevant-pruned",
+        "x-formspec-core-ledger-event-type-autosave-coalesced",
+        "x-formspec-core-ledger-event-type-device-linked",
+        "x-formspec-core-ledger-event-type-identity-verified",
+        "x-formspec-core-ledger-event-type-attestation-captured",
+        "x-formspec-core-ledger-event-type-response-submit-attempted",
+        "x-formspec-core-ledger-event-type-response-migrated",
+        "x-formspec-core-ledger-event-type-response-correction-recorded",
+        "x-formspec-core-ledger-event-type-field-edit-recorded",
+        "x-formspec-core-ledger-event-type-action-invoked",
+        "x-formspec-core-ledger-event-type-action-failed",
+        "x-formspec-core-ledger-event-type-action-deferred",
+        "x-formspec-core-ledger-event-type-action-replayed",
+        "x-formspec-core-ledger-value-class-user-input",
+        "x-formspec-core-ledger-value-class-prepopulated",
+        "x-formspec-core-ledger-value-class-calculated",
+        "x-formspec-core-ledger-value-class-imported",
+        "x-formspec-core-ledger-value-class-attachment",
+        "x-formspec-core-ledger-value-class-system-derived",
+        "x-formspec-core-ledger-value-class-migration-derived"
+      ]
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-session-started",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `session.started` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `session.started` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-draft-saved",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `draft.saved` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `draft.saved` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-draft-resumed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `draft.resumed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `draft.resumed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-completed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.completed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.completed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-amendment-opened",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.amendment-opened` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.amendment-opened` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-amended",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.amended` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.amended` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-stopped",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.stopped` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.stopped` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attachment-added",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attachment.added` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attachment.added` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attachment-replaced",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attachment.replaced` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attachment.replaced` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attachment-removed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attachment.removed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attachment.removed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-prepopulation-applied",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `prepopulation.applied` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `prepopulation.applied` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-system-merge-resolved",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `system.merge-resolved` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `system.merge-resolved` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-validation-snapshot-recorded",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `validation.snapshot-recorded` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `validation.snapshot-recorded` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-calculation-material-change",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `calculation.material-change` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `calculation.material-change` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-nonrelevant-pruned",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `nonrelevant.pruned` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `nonrelevant.pruned` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-autosave-coalesced",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `autosave.coalesced` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `autosave.coalesced` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-device-linked",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `device-linked` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `device-linked` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-identity-verified",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `identity-verified` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `identity-verified` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-attestation-captured",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `attestation.captured` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `attestation.captured` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-submit-attempted",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.submit-attempted` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.submit-attempted` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-migrated",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.migrated` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.migrated` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-correction-recorded",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.correction-recorded` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.correction-recorded` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-field-edit-recorded",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `field.edit-recorded` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `field.edit-recorded` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-invoked",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.invoked` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.invoked` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-failed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.failed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.failed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-deferred",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.deferred` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.deferred` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-action-replayed",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `action.replayed` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `action.replayed` (kept verbatim in this description) translates to the hyphenated Registry name.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-user-input",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `user-input` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-prepopulated",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `prepopulated` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-calculated",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `calculated` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-imported",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `imported` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-attachment",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `attachment` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-system-derived",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `system-derived` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "x-formspec-core-ledger-value-class-migration-derived",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger ChangeSetEntry.valueClass closed-core value `migration-derived` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.ChangeSetEntry.properties.valueClass.oneOf[0].enum.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0"
     }
   ]
 }
