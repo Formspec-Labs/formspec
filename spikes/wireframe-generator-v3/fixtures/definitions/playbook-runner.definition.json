@@ -1,0 +1,45 @@
+{
+  "$formspec": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-presentation", "version": "^0.1.0" }
+  ],
+  "url": "https://lexassist.example/forms/playbook-runner",
+  "version": "1.0.0",
+  "status": "draft",
+  "name": "playbook-runner",
+  "title": "Playbook runner",
+  "description": "Captures run parameters for an authored legal workflow.",
+  "date": "2026-05-23",
+  "items": [
+    {
+      "key": "playbookGoal",
+      "type": "field",
+      "label": "Goal",
+      "dataType": "text"
+    },
+    {
+      "key": "targetDeadline",
+      "type": "field",
+      "label": "Target deadline",
+      "dataType": "date"
+    },
+    {
+      "key": "riskTolerance",
+      "type": "field",
+      "label": "Risk tolerance",
+      "dataType": "choice",
+      "options": [
+        { "value": "low", "label": "Low" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "high", "label": "High" }
+      ]
+    }
+  ],
+  "binds": [
+    { "path": "playbookGoal", "required": "true" },
+    { "path": "targetDeadline", "required": "true" },
+    { "path": "riskTolerance", "required": "true" }
+  ]
+}

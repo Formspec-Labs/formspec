@@ -1,0 +1,99 @@
+{
+  "$wireframeDataSources": "0.1-spike-v3",
+  "description": "Spike-local data-source catalog for non-form Surface slots. This is proof infrastructure, not an ADR 0150 schema.",
+  "sources": [
+    {
+      "id": "host:open-matters",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "session",
+      "cache": { "mode": "subscribe", "staleAfter": "PT5M" },
+      "schema": { "type": "array", "items": { "type": "object" } }
+    },
+    {
+      "id": "host:matter-threads",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "route",
+      "cache": { "mode": "subscribe", "staleAfter": "PT2M" },
+      "schema": { "type": "array", "items": { "type": "object" } }
+    },
+    {
+      "id": "host:matter-activity",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "route",
+      "cache": { "mode": "subscribe", "staleAfter": "PT1M" },
+      "schema": { "type": "array", "items": { "type": "object" } }
+    },
+    {
+      "id": "host:matter-state",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "route",
+      "cache": { "mode": "snapshot", "staleAfter": "PT10M" },
+      "schema": { "type": "object" }
+    },
+    {
+      "id": "host:route-params",
+      "kind": "route-params",
+      "owner": "formspec",
+      "scope": "route",
+      "cache": { "mode": "none" },
+      "schema": { "type": "object" }
+    },
+    {
+      "id": "host:playbook-catalog",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "session",
+      "cache": { "mode": "snapshot", "staleAfter": "PT30M" },
+      "schema": { "type": "array", "items": { "type": "object" } }
+    },
+    {
+      "id": "response:new-matter",
+      "kind": "definition-response",
+      "definitionRef": "new-matter",
+      "owner": "formspec",
+      "scope": "definition",
+      "cache": { "mode": "draft" },
+      "schema": { "type": "object" }
+    },
+    {
+      "id": "response:playbook-runner",
+      "kind": "definition-response",
+      "definitionRef": "playbook-runner",
+      "owner": "formspec",
+      "scope": "definition",
+      "cache": { "mode": "draft" },
+      "schema": { "type": "object" }
+    },
+    {
+      "id": "stream:demand-response-thread",
+      "kind": "conversation-stream",
+      "routeRef": "thread",
+      "owner": "module",
+      "scope": "route",
+      "cache": { "mode": "subscribe", "staleAfter": "PT30S" },
+      "schema": { "type": "array", "items": { "type": "object" } }
+    },
+    {
+      "id": "resource:supply-agreement",
+      "kind": "document-resource",
+      "routeRef": "doc-viewer",
+      "owner": "host",
+      "scope": "resource",
+      "cache": { "mode": "snapshot", "staleAfter": "P1D" },
+      "schema": { "type": "object" }
+    },
+    {
+      "id": "resource:library-index",
+      "kind": "document-resource",
+      "routeRef": "library",
+      "owner": "host",
+      "scope": "resource",
+      "cache": { "mode": "snapshot", "staleAfter": "PT15M" },
+      "schema": { "type": "object" }
+    }
+  ]
+}

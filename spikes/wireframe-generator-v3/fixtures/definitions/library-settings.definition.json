@@ -1,0 +1,47 @@
+{
+  "$formspec": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-document-viewer", "version": "^0.1.0" }
+  ],
+  "url": "https://lexassist.example/forms/library-settings",
+  "version": "1.0.0",
+  "status": "draft",
+  "name": "library-settings",
+  "title": "Library settings",
+  "description": "Captures user-controlled library configuration.",
+  "date": "2026-05-23",
+  "items": [
+    {
+      "key": "defaultJurisdiction",
+      "type": "field",
+      "label": "Default jurisdiction",
+      "dataType": "choice",
+      "options": [
+        { "value": "us-federal", "label": "US federal" },
+        { "value": "ca", "label": "California" },
+        { "value": "ny", "label": "New York" },
+        { "value": "tx", "label": "Texas" }
+      ]
+    },
+    {
+      "key": "watchTerms",
+      "type": "field",
+      "label": "Watch terms",
+      "dataType": "text",
+      "hint": "Terms that should create review alerts."
+    },
+    {
+      "key": "autoSummarize",
+      "type": "field",
+      "label": "Auto-summarize uploads",
+      "dataType": "boolean",
+      "initialValue": true
+    }
+  ],
+  "binds": [
+    { "path": "defaultJurisdiction", "required": "true" },
+    { "path": "watchTerms", "required": "true" }
+  ]
+}

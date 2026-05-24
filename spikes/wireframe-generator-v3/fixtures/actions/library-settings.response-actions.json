@@ -1,0 +1,26 @@
+{
+  "$formspecResponseActions": "1.0",
+  "modules": [
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" }
+  ],
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://lexassist.example/forms/library-settings",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actions": [
+    {
+      "id": "saveLibrarySettings",
+      "intent": "save-draft",
+      "label": { "literal": "Save settings" },
+      "effects": [
+        {
+          "type": "hostEvent",
+          "eventName": "lexassist.library.settings.save",
+          "detailRef": "{jurisdiction: $defaultJurisdiction, watchTerms: $watchTerms}"
+        }
+      ]
+    }
+  ]
+}
+

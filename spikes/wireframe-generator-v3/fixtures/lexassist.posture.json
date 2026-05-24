@@ -1,0 +1,24 @@
+{
+  "$postureDeclaration": "1.0",
+  "url": "https://lexassist.example/posture/workbench-dev",
+  "version": "1.0.0",
+  "signaturePolicy": {
+    "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+    "minimumPrimitiveVerification": "verified",
+    "receiptSigningRequired": false
+  },
+  "allowedModules": [
+    { "id": "x-formspec-core-task", "version": "^1.0.0" },
+    { "id": "x-formspec-core-actions", "version": "^1.0.0" },
+    { "id": "x-formspec-core-component", "version": "^1.0.0" },
+    { "id": "x-formspec-surface", "version": "^0.1.0" },
+    { "id": "x-formspec-presentation", "version": "^0.1.0" },
+    { "id": "x-formspec-conversation", "version": "^0.1.0" },
+    { "id": "x-formspec-document-viewer", "version": "^0.1.0" },
+    { "id": "x-formspec-ai-runtime", "version": "^0.1.0" }
+  ],
+  "allowedActors": [
+    "urn:formspec:actor:human:legal-user",
+    "urn:formspec:actor:agent:assistant"
+  ]
+}
