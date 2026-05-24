@@ -528,17 +528,19 @@ test('x-formspec-mask: engine does not crash with mask extension declared', () =
   assert.ok(report, 'Validation report should be returned without error');
 });
 
-// ── Namespace entry: x-formspec-common ──────────────────────────────
-test('x-formspec-common namespace lists all entries', () => {
-  const ns = findEntry('x-formspec-common');
-  const nonNamespaceEntries = entries.filter(e => e.category !== 'namespace');
+// ── Module entry: x-formspec-common ──────────────────────────────────
+// Per ADR 0150 §4.1: `namespace` was renamed to `module` (greenfield, no
+// alias); `members[]` was renamed to `contributes[]`.
+test('x-formspec-common module lists all entries via contributes[]', () => {
+  const mod = findEntry('x-formspec-common');
+  const nonModuleEntries = entries.filter(e => e.category !== 'module');
 
-  for (const entry of nonNamespaceEntries) {
+  for (const entry of nonModuleEntries) {
     assert.ok(
-      ns.members.includes(entry.name),
-      `Namespace missing member "${entry.name}"`
+      mod.contributes.includes(entry.name),
+      `Module missing contribution "${entry.name}"`
     );
   }
-  assert.equal(ns.members.length, nonNamespaceEntries.length,
-    'Namespace member count should match non-namespace entry count');
+  assert.equal(mod.contributes.length, nonModuleEntries.length,
+    'Module contributes count should match non-module entry count');
 });
