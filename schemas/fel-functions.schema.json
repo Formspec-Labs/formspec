@@ -450,13 +450,14 @@
       "parameters": [
         {
           "name": "values",
-          "type": "array",
-          "description": "Array of numbers."
+          "type": "any",
+          "description": "Either a single array argument or two or more scalar arguments (variadic scalar form).",
+          "variadic": true
         }
       ],
       "returns": "number",
-      "description": "Returns the smallest finite numeric value in the array.",
-      "nullHandling": "Null/non-numeric elements skipped. Empty array returns 0.",
+      "description": "Returns the smallest finite numeric value. Accepts either `min([...])` (single array) or `min(a, b, ...)` (variadic scalars).",
+      "nullHandling": "Null/non-numeric elements skipped. Empty array returns null.",
       "examples": [
         {
           "expression": "min([5, 2, 8])",
@@ -465,6 +466,11 @@
         {
           "expression": "min($items[*].amount)",
           "result": 100
+        },
+        {
+          "expression": "min(5, 2, 8)",
+          "result": 2,
+          "note": "Variadic scalar form"
         }
       ]
     },
@@ -474,17 +480,23 @@
       "parameters": [
         {
           "name": "values",
-          "type": "array",
-          "description": "Array of numbers."
+          "type": "any",
+          "description": "Either a single array argument or two or more scalar arguments (variadic scalar form).",
+          "variadic": true
         }
       ],
       "returns": "number",
-      "description": "Returns the largest finite numeric value in the array.",
-      "nullHandling": "Null/non-numeric elements skipped. Empty array returns 0.",
+      "description": "Returns the largest finite numeric value. Accepts either `max([...])` (single array) or `max(a, b, ...)` (variadic scalars).",
+      "nullHandling": "Null/non-numeric elements skipped. Empty array returns null.",
       "examples": [
         {
           "expression": "max([5, 2, 8])",
           "result": 8
+        },
+        {
+          "expression": "max(5, 2, 8)",
+          "result": 8,
+          "note": "Variadic scalar form"
         }
       ]
     },
@@ -2018,17 +2030,18 @@
         {
           "name": "fieldName",
           "type": "string",
-          "description": "Name of the sibling field to read from the previous repeat instance."
+          "description": "Reserved for the future field-projection form. Currently ignored; bare `prev()` returns the previous repeat item.",
+          "required": false
         }
       ],
       "returns": "any",
-      "description": "Returns the value of the named field from the previous repeat instance (index - 1). Must be called within a repeat context. Returns null if at the first instance or not inside a repeat.",
+      "description": "Returns the previous repeat instance's value. Must be called within a repeat context. Returns null if at the first instance or not inside a repeat. The optional `fieldName` argument is reserved and not yet honored.",
       "nullHandling": "Returns null when no previous instance exists.",
       "examples": [
         {
-          "expression": "prev('runningTotal')",
+          "expression": "prev()",
           "result": 500,
-          "note": "Value from previous row"
+          "note": "Value of the previous repeat item"
         }
       ]
     },
@@ -2039,17 +2052,18 @@
         {
           "name": "fieldName",
           "type": "string",
-          "description": "Name of the sibling field to read from the next repeat instance."
+          "description": "Reserved for the future field-projection form. Currently ignored; bare `next()` returns the next repeat item.",
+          "required": false
         }
       ],
       "returns": "any",
-      "description": "Returns the value of the named field from the next repeat instance (index + 1). Must be called within a repeat context. Returns null if at the last instance or not inside a repeat.",
+      "description": "Returns the next repeat instance's value. Must be called within a repeat context. Returns null if at the last instance or not inside a repeat. The optional `fieldName` argument is reserved and not yet honored.",
       "nullHandling": "Returns null when no next instance exists.",
       "examples": [
         {
-          "expression": "next('amount')",
+          "expression": "next()",
           "result": 200,
-          "note": "Peek at next row's value"
+          "note": "Value of the next repeat item"
         }
       ]
     },
@@ -2060,16 +2074,18 @@
         {
           "name": "fieldName",
           "type": "string",
-          "description": "Name of the ancestor field to find."
+          "description": "Reserved for the future field-projection form. Currently ignored; bare `parent()` returns the parent repeat item.",
+          "required": false
         }
       ],
       "returns": "any",
-      "description": "Walks up the path hierarchy from the current item and returns the value of the first ancestor field matching the given name. Useful for accessing enclosing group data from within nested repeats.",
-      "nullHandling": "Returns null if no ancestor field with that name is found.",
+      "description": "Returns the parent repeat instance's value when called from within a nested repeat. Returns null if no parent exists. The optional `fieldName` argument is reserved and not yet honored.",
+      "nullHandling": "Returns null if no parent repeat exists.",
       "examples": [
         {
-          "expression": "parent('projectName')",
-          "result": "Infrastructure Upgrade"
+          "expression": "parent()",
+          "result": "Infrastructure Upgrade",
+          "note": "Value of the enclosing repeat item"
         }
       ]
     },
