@@ -3062,7 +3062,10 @@
         "x-formspec-ai-runtime-ai-command-failed",
         "x-formspec-ai-runtime-ai-suggestion-offered",
         "x-formspec-ai-runtime-ai-suggestion-accepted",
-        "x-formspec-ai-runtime-ai-suggestion-rejected"
+        "x-formspec-ai-runtime-ai-suggestion-rejected",
+        "x-formspec-ai-runtime-ai-proposal-opened",
+        "x-formspec-ai-runtime-ai-proposal-closed",
+        "x-formspec-ai-runtime-ai-proposal-accepted"
       ]
     },
     {
@@ -3147,6 +3150,48 @@
       "license": "Apache-2.0",
       "extensions": {
         "x-formspec-kind-value": "ai.suggestion-rejected"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-proposal-opened",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.proposal-opened` per ADR 0150 \u00a78 (proposal family). An AI agent has opened a multi-suggestion proposal \u2014 a session-bounded grouping of related suggestions presented to the user as a unit. Forms the opened-side of the proposal lifecycle. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.proposal-opened` preserved verbatim in extensions['x-formspec-kind-value'].",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.proposal-opened"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-proposal-closed",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.proposal-closed` per ADR 0150 \u00a78 (proposal family). The user has closed a previously-opened proposal without accepting it. Payload carries replyToEventId; any unaccepted suggestions within the proposal are discarded. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.proposal-closed` preserved verbatim in extensions['x-formspec-kind-value'].",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.proposal-closed"
+      }
+    },
+    {
+      "name": "x-formspec-ai-runtime-ai-proposal-accepted",
+      "category": "property",
+      "version": "0.1.0",
+      "status": "stable",
+      "description": "AI-runtime baseline event `ai.proposal-accepted` per ADR 0150 \u00a78 (proposal family). The user has accepted a previously-opened proposal. Payload carries replyToEventId; triggers materialization of every accepted suggestion within the proposal. Source lane: respondent-ledger-event.schema.json $defs.EventType.oneOf \u2014 the `^(ai|user)\\.` lane (P0 Task 6 Deviation). Per spec \u00a74.1 Rule 1 dotted-translation: original value `ai.proposal-accepted` preserved verbatim in extensions['x-formspec-kind-value'].",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "ai.proposal-accepted"
       }
     }
   ]

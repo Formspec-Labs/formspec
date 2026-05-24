@@ -36,6 +36,8 @@ LEDGER_EVENT_SCHEMA = json.loads((SCHEMAS_DIR / "respondent-ledger-event.schema.
 MODULE_ID = "x-formspec-ai-runtime"
 COMMAND_EVENTS = ("ai.command-issued", "ai.command-completed", "ai.command-failed")
 SUGGESTION_EVENTS = ("ai.suggestion-offered", "ai.suggestion-accepted", "ai.suggestion-rejected")
+PROPOSAL_EVENTS = ("ai.proposal-opened", "ai.proposal-closed", "ai.proposal-accepted")
+BASELINE_AI_EVENTS = COMMAND_EVENTS + SUGGESTION_EVENTS + PROPOSAL_EVENTS  # 9 per ADR §8
 
 # The EventType third lane MUST admit ai.* values.
 EVENTTYPE_AI_USER_LANE_PATTERN = None
@@ -185,3 +187,57 @@ def test_suggestion_event_value_matches_ai_lane_pattern(event):
     assert re.match(EVENTTYPE_AI_USER_LANE_PATTERN, event), (
         f"Event {event!r} does not match the EventType ^(ai|user)\\. lane pattern"
     )
+
+
+# ── Proposal family (Task 4.3) ───────────────────────────────────────
+
+
+def test_proposal_family_cardinality_matches_baseline():
+    """Per ADR §8: proposal family ships exactly 3 events."""
+    doc = _common_registry_doc()
+    entry = _get_entry(doc, MODULE_ID)
+    proposal_contributions = [
+        c for c in entry["contributes"] if c.startswith(f"{MODULE_ID}-ai-proposal-")
+    ]
+    assert len(proposal_contributions) == 3
+
+
+@pytest.mark.parametrize("event", PROPOSAL_EVENTS)
+def test_proposal_event_contribution_validates(event):
+    doc = _common_registry_doc()
+    name = f"{MODULE_ID}-{event.replace('.', '-')}"
+    entry = _get_entry(doc, name)
+    assert entry is not None, f"missing {name}"
+    assert entry["category"] == "property"
+    _entry_validator().validate(entry)
+
+
+@pytest.mark.parametrize("event", PROPOSAL_EVENTS)
+def test_proposal_event_carries_dotted_kind_value(event):
+    doc = _common_registry_doc()
+    name = f"{MODULE_ID}-{event.replace('.', '-')}"
+    entry = _get_entry(doc, name)
+    ext = entry.get("extensions", {})
+    assert ext.get("x-formspec-kind-value") == event
+
+
+@pytest.mark.parametrize("event", PROPOSAL_EVENTS)
+def test_proposal_event_value_matches_ai_lane_pattern(event):
+    assert EVENTTYPE_AI_USER_LANE_PATTERN is not None
+    assert re.match(EVENTTYPE_AI_USER_LANE_PATTERN, event), (
+        f"Event {event!r} does not match the EventType ^(ai|user)\\. lane pattern"
+    )
+
+
+# ── Full §8 baseline closure (Task 4.3 phase exit) ───────────────────
+
+
+def test_module_contributes_full_9_baseline_per_adr_section_8():
+    """ADR §8 names the 9 baseline ai.* events x-formspec-ai-runtime ships:
+    command (3) + suggestion (3) + proposal (3). With Task 4.3 landed, the
+    module's contributes[] MUST equal exactly the 9 names."""
+    doc = _common_registry_doc()
+    entry = _get_entry(doc, MODULE_ID)
+    expected = {f"{MODULE_ID}-{e.replace('.', '-')}" for e in BASELINE_AI_EVENTS}
+    assert set(entry["contributes"]) == expected
+    assert len(entry["contributes"]) == 9
