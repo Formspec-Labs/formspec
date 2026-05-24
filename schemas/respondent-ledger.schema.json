@@ -96,10 +96,10 @@
     },
     "sessionRefs": {
       "type": "array",
-      "description": "Identifiers for known session segments that contributed events to this ledger.",
+      "description": "URN references for known session segments that contributed events to this ledger, per ADR 0150 §5.5. Each entry is a `urn:formspec:session:...` URN resolving against the App Manifest `sessions: SessionRef[]` index (Task 7 lands `sessions` on bundle-manifest). The ledger stores the URN ref; the App Manifest owns the SessionRef payload (id, openedAt, closedAt, actors[]). Pre-§5.5 free-form identifiers are not accepted — strict-validating consumers fail-loud on plain strings rather than silently mis-parsing.",
       "items": {
         "type": "string",
-        "minLength": 1
+        "pattern": "^urn:formspec:session:.+"
       },
       "uniqueItems": true
     },

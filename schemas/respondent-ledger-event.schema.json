@@ -65,6 +65,10 @@
     "actor": {
       "$ref": "#/$defs/Actor"
     },
+    "authoredBy": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AuthorActor",
+      "description": "Authoring identity for the actor that issued this event per ADR 0150 §5.4. Distinct from envelope `actor` (respondent-identity): `actor` answers 'in what respondent context did this event happen?' (local Actor $def, kind: respondent|delegate|system|support-agent|unknown); `authoredBy` answers 'who issued the authoring op?' (common AuthorActor $def, kind: human|ai-agent|service, actChannel: human|mcp|agent|service). REQUIRED when eventType matches `^(ai\\.|user\\.)`; optional otherwise. Module-contributed authoring events MAY layer their own require-rule via E603 lint / module contracts."
+    },
     "source": {
       "$ref": "#/$defs/Source"
     },
@@ -289,6 +293,16 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "pattern": "^(ai\\.|user\\.)" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["authoredBy"],
+        "description": "ADR 0150 §5.4: authoring events (eventType matching `^(ai\\.|user\\.)`) MUST carry envelope-level `authoredBy: AuthorActor`. Module-contributed authoring events under the `^x-` extension space MAY layer their own require-rule via module contracts or E603 lint."
+      }
     }
   ],
   "$defs": {
@@ -330,9 +344,14 @@
           "type": "string",
           "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
           "description": "Module-contributed event type per ADR 0150 §4.5/§4.9. Lint E603 enforces module-declaration resolution."
+        },
+        {
+          "type": "string",
+          "pattern": "^(ai|user)\\.[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Authoring-namespace event type per ADR 0150 §5.4/§8.5. The `x-formspec-ai-runtime` module ships nine baseline `ai.*` values (ai.command-issued, ai.command-completed, ai.command-failed, ai.suggestion-offered, ai.suggestion-accepted, ai.suggestion-rejected, ai.proposal-opened, ai.proposal-closed, ai.proposal-accepted); product MCPs contribute additional `ai.*` values through their declared module. `user.*` covers human-issued authoring acts. Events under this lane MUST carry envelope-level `authoredBy: AuthorActor` (enforced by the if/then at schema root). Lint E603 resolves the specific value against the document's declared modules."
         }
       ],
-      "description": "Canonical event classifications defined by the Respondent Ledger add-on OR an `x-` module-contributed extension (ADR 0150 §4.5). The first thirteen closed-core values are required event types; the remaining closed-core values are optional but standardized extension points — including the optional action.* kinds in §8.5 which record Response Actions invocation lifecycle when a processor implements the Response Actions companion (specs/response-actions/response-actions-spec.md §6). Extension event types follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8)."
+      "description": "Canonical event classifications defined by the Respondent Ledger add-on OR an `x-` module-contributed extension (ADR 0150 §4.5) OR an `ai.*` / `user.*` authoring-namespace event (ADR 0150 §5.4/§8.5). The first thirteen closed-core values are required event types; the remaining closed-core values are optional but standardized extension points — including the optional action.* kinds in §8.5 which record Response Actions invocation lifecycle when a processor implements the Response Actions companion (specs/response-actions/response-actions-spec.md §6). Extension event types follow the canonical `^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` regex (§4.8). Authoring events follow `^(ai|user)\\.[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$` and MUST carry `authoredBy: AuthorActor`."
     },
     "Actor": {
       "type": "object",
