@@ -273,6 +273,68 @@ All rules in this section are **normative**.
    extension entries by convention. This is advisory; the naming regex is
    unchanged.
 
+### 4.1 Closed-core republishing (ADR 0150 §4.9)
+
+The substrate's closed-core enum values that pre-date the Registry rev
+(Experience UnitKind `data-entry` etc., Response Actions intent `save-draft`
+etc., Trace edge/source/endpoint kinds, Respondent-ledger `EventType` /
+`ChangeSetEntry.valueClass`, Component built-in widgets) are republished as
+Registry contribution entries to make module authorship, posture admission
+([§4.4 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#44-deployment-allowlist-on-posture)),
+and AI tooling auditable. Three conventions govern this republishing:
+
+1. **Naming.** Closed-core contribution entries follow
+   `x-formspec-core-<module>-<value>` (e.g. `x-formspec-core-task-data-entry`).
+   The `<module>` segment matches the parent module's `<modId>` after the
+   `x-formspec-core-` prefix. Values with `.` separators (Ledger
+   `session.started`) translate to hyphens in the Registry name
+   (`x-formspec-core-ledger-event-type-session-started`); the original
+   dotted value is preserved verbatim in the contribution payload's
+   `kindValue` (or equivalent) field for tool-side resolution.
+
+2. **Enforcement boundary (LOAD-BEARING).** Validation of closed-core enum
+   values in documents flows through the `oneOf [closed-core, x-pattern]`
+   schema lane ([§4.5 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#45-uniform-enum-extensibility-convention)).
+   It is **NOT gated** on the presence of the corresponding
+   `x-formspec-core-*` Registry entry. A document writing
+   `unit.kind: 'data-entry'` validates against the closed-core lane
+   regardless of whether `x-formspec-core-task-data-entry` exists in any
+   registry; conversely, adding a Registry entry for a closed-core value
+   does NOT change schema-validation outcomes for documents using that
+   value. Registry entries are **authoring-intent metadata** consumed by:
+   posture admission (`posture.allowedModules[]` per §4.4 of ADR 0150),
+   lint code `E603` (module-extensible enum resolution for `^x-` extension
+   values only — closed-core values bypass `E603` because the enum lane
+   handles them directly), and AI authoring tooling. ADR §4.9's "no
+   semantic change" guarantee is preserved by the schema lane, not by the
+   Registry.
+
+3. **`semantics` payload key convention (also applies where structurally
+   appropriate to `widgetShape`, `validation`, `slotShape`, and `row`
+   payloads).** Free-form per schema, but pinned at this revision:
+   - `kindValue` — REQUIRED string; the unprefixed closed-core enum value
+     (e.g. `"data-entry"`). Load-bearing: AI authoring tools resolve
+     `unit.kind: 'data-entry'` to this contribution entry by matching
+     `kindValue`. MUST equal the contribution-entry's name suffix after
+     `x-formspec-<module>-` (no drift; conformance suites assert this).
+   - `summary` — REQUIRED string; human-readable description.
+   - `processorObligation` — OPTIONAL string; free-form vocabulary at v1
+     (matches the example wording in `registry.schema.json`).
+   - `rendererObligation` — OPTIONAL string; same posture.
+   - `additionalProperties: true` for module-specific extension keys
+     (e.g. `^x-...`).
+
+   Modules that need richer typed validation than free-form strings ship
+   their own `schemaUrl`-linked sub-schema (per §3 of this document) for
+   the contribution-payload validation phase ([§9 of ADR 0150](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#9-conformance-partitioning)).
+
+This section is the single source of truth for the convention; closed-core
+modules published under [ADR 0150 §14 P1](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#14-implementation-order)
+conform to it (`x-formspec-core-task`, `x-formspec-core-actions`,
+`x-formspec-core-component`, `x-formspec-core-trace`,
+`x-formspec-core-ledger`). Subsequent non-core modules (P2+) cite this
+section rather than reauthoring the rules.
+
 ---
 
 ## 5. Discovery

@@ -159,18 +159,24 @@ pub(super) fn parse_status(s: &str) -> Option<RegistryEntryStatus> {
 
 pub(super) fn parse_category(s: &str) -> Option<ExtensionCategory> {
     // Per ADR 0150 §4.1/§4.2: `namespace` was renamed to `module` (greenfield,
-    // no alias). The six new contribution categories (`unit-kind`, `widget`,
-    // `action-intent`, `slot-type`, `validation-mapping-row`, `token-category`)
-    // + `concept`/`vocabulary` are accepted at the schema layer but not yet
-    // surfaced on the Rust enum — entries with those categories currently
-    // parse-reject. Adding full Rust support is P1 (republish core vocabularies
-    // as modules + expose each contribution shape).
+    // no alias). The six new contribution categories + `concept`/`vocabulary`
+    // are now surfaced on the Rust enum per P1 — see `ExtensionCategory` for
+    // the full list. Parse-rejection remains the policy for genuinely unknown
+    // categories (greenfield posture).
     match s {
         "dataType" => Some(ExtensionCategory::DataType),
         "function" => Some(ExtensionCategory::Function),
         "constraint" => Some(ExtensionCategory::Constraint),
         "property" => Some(ExtensionCategory::Property),
         "module" => Some(ExtensionCategory::Module),
+        "concept" => Some(ExtensionCategory::Concept),
+        "vocabulary" => Some(ExtensionCategory::Vocabulary),
+        "unit-kind" => Some(ExtensionCategory::UnitKind),
+        "widget" => Some(ExtensionCategory::Widget),
+        "action-intent" => Some(ExtensionCategory::ActionIntent),
+        "slot-type" => Some(ExtensionCategory::SlotType),
+        "validation-mapping-row" => Some(ExtensionCategory::ValidationMappingRow),
+        "token-category" => Some(ExtensionCategory::TokenCategory),
         _ => None,
     }
 }

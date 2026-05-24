@@ -45,6 +45,14 @@ pub fn extension_category_to_wire(category: ExtensionCategory) -> &'static str {
         ExtensionCategory::Constraint => "constraint",
         ExtensionCategory::Property => "property",
         ExtensionCategory::Module => "module",
+        ExtensionCategory::Concept => "concept",
+        ExtensionCategory::Vocabulary => "vocabulary",
+        ExtensionCategory::UnitKind => "unit-kind",
+        ExtensionCategory::Widget => "widget",
+        ExtensionCategory::ActionIntent => "action-intent",
+        ExtensionCategory::SlotType => "slot-type",
+        ExtensionCategory::ValidationMappingRow => "validation-mapping-row",
+        ExtensionCategory::TokenCategory => "token-category",
     }
 }
 

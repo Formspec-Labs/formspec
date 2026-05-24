@@ -532,24 +532,50 @@ class TestPatternMismatchMessage:
         assert "URL" in err[0]["message"], f"Expected displayName in message, got: {err[0]['message']}"
 
 
-# ── Namespace integrity ──────────────────────────────────────────────
+# ── Module integrity ─────────────────────────────────────────────────
+#
+# r-2026-05-23 (ADR 0150 §14 P1 absorption): the original "all non-module
+# entries MUST be in x-formspec-common.contributes[]" invariant assumed a
+# single module aggregator. P1 introduces 5 sibling modules
+# (x-formspec-core-{task,actions,component,trace,ledger}), each with its own
+# contributes[]. The invariant generalizes: every non-module entry is covered
+# by exactly one module's contributes[]; every name in any contributes[]
+# resolves to an entry in the same document.
 
 class TestModuleIntegrity:
-    """x-formspec-common module must list every non-module entry under contributes[]
-    (per ADR 0150 §4.1 — `namespace`/`members[]` renamed to `module`/`contributes[]`)."""
+    """Every non-module entry is contributed by exactly one module, and every
+    contributes[] name resolves to a sibling entry (ADR 0150 §4.1)."""
 
-    def test_all_entries_listed(self):
-        # Use raw JSON since find_registry_entry doesn't return 'contributes'
-        mod_raw = next(
-            (e for e in REGISTRY_DOC["entries"] if e["name"] == "x-formspec-common"),
-            None,
-        )
-        assert mod_raw is not None
-        non_mod = [e for e in REGISTRY_DOC["entries"] if e.get("category") != "module"]
-        contributes = mod_raw.get("contributes", [])
-        for entry in non_mod:
-            assert entry["name"] in contributes, f"Module missing contribution '{entry['name']}'"
-        assert len(contributes) == len(non_mod)
+    def test_every_non_module_entry_is_contributed_by_exactly_one_module(self):
+        all_entries = REGISTRY_DOC["entries"]
+        modules = [e for e in all_entries if e.get("category") == "module"]
+        non_module_entries = [e for e in all_entries if e.get("category") != "module"]
+
+        # Collect (entry_name, [modules_that_contribute_it])
+        coverage: dict[str, list[str]] = {}
+        for mod in modules:
+            for name in mod.get("contributes", []):
+                coverage.setdefault(name, []).append(mod["name"])
+
+        for entry in non_module_entries:
+            modules_for_entry = coverage.get(entry["name"], [])
+            assert modules_for_entry, (
+                f"Entry {entry['name']!r} ({entry['category']}) is not contributed by any module."
+            )
+            assert len(modules_for_entry) == 1, (
+                f"Entry {entry['name']!r} contributed by multiple modules "
+                f"{modules_for_entry}; cross-module conflict (ADR §4.6)."
+            )
+
+    def test_every_contributes_name_resolves_within_document(self):
+        all_names = {e["name"] for e in REGISTRY_DOC["entries"]}
+        modules = [e for e in REGISTRY_DOC["entries"] if e.get("category") == "module"]
+        for mod in modules:
+            for name in mod.get("contributes", []):
+                assert name in all_names, (
+                    f"Module {mod['name']!r} contributes {name!r} which does not "
+                    "exist as a sibling entry in the registry document."
+                )
 
 
 # ── §7.3 Compatibility check ─────────────────────────────────────────

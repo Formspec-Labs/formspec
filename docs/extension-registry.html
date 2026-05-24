@@ -61,8 +61,12 @@ Compatibility Object</a></li>
 id="toc-category-specific-properties">3.2 Category-Specific
 Properties</a></li>
 </ul></li>
-<li><a href="#naming-rules" id="toc-naming-rules">4. Naming
-Rules</a></li>
+<li><a href="#naming-rules" id="toc-naming-rules">4. Naming Rules</a>
+<ul>
+<li><a href="#closed-core-republishing-adr-0150-4.9"
+id="toc-closed-core-republishing-adr-0150-4.9">4.1 Closed-core
+republishing (ADR 0150 §4.9)</a></li>
+</ul></li>
 <li><a href="#discovery" id="toc-discovery">5. Discovery</a></li>
 <li><a href="#extension-lifecycle" id="toc-extension-lifecycle">6.
 Extension Lifecycle</a></li>
@@ -807,6 +811,86 @@ entries SHOULD use <code>x-vocab-</code> (e.g.,
 distinguish them from extension entries by convention. This is advisory;
 the naming regex is unchanged.</p></li>
 </ol>
+<h3 id="closed-core-republishing-adr-0150-4.9">4.1 Closed-core
+republishing (ADR 0150 §4.9)</h3>
+<p>The substrate’s closed-core enum values that pre-date the Registry
+rev (Experience UnitKind <code>data-entry</code> etc., Response Actions
+intent <code>save-draft</code> etc., Trace edge/source/endpoint kinds,
+Respondent-ledger <code>EventType</code> /
+<code>ChangeSetEntry.valueClass</code>, Component built-in widgets) are
+republished as Registry contribution entries to make module authorship,
+posture admission (<a
+href="../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#44-deployment-allowlist-on-posture">§4.4
+of ADR 0150</a>), and AI tooling auditable. Three conventions govern
+this republishing:</p>
+<ol type="1">
+<li><p><strong>Naming.</strong> Closed-core contribution entries follow
+<code>x-formspec-core-&lt;module&gt;-&lt;value&gt;</code>
+(e.g. <code>x-formspec-core-task-data-entry</code>). The
+<code>&lt;module&gt;</code> segment matches the parent module’s
+<code>&lt;modId&gt;</code> after the <code>x-formspec-core-</code>
+prefix. Values with <code>.</code> separators (Ledger
+<code>session.started</code>) translate to hyphens in the Registry name
+(<code>x-formspec-core-ledger-event-type-session-started</code>); the
+original dotted value is preserved verbatim in the contribution
+payload’s <code>kindValue</code> (or equivalent) field for tool-side
+resolution.</p></li>
+<li><p><strong>Enforcement boundary (LOAD-BEARING).</strong> Validation
+of closed-core enum values in documents flows through the
+<code>oneOf [closed-core, x-pattern]</code> schema lane (<a
+href="../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#45-uniform-enum-extensibility-convention">§4.5
+of ADR 0150</a>). It is <strong>NOT gated</strong> on the presence of
+the corresponding <code>x-formspec-core-*</code> Registry entry. A
+document writing <code>unit.kind: 'data-entry'</code> validates against
+the closed-core lane regardless of whether
+<code>x-formspec-core-task-data-entry</code> exists in any registry;
+conversely, adding a Registry entry for a closed-core value does NOT
+change schema-validation outcomes for documents using that value.
+Registry entries are <strong>authoring-intent metadata</strong> consumed
+by: posture admission (<code>posture.allowedModules[]</code> per §4.4 of
+ADR 0150), lint code <code>E603</code> (module-extensible enum
+resolution for <code>^x-</code> extension values only — closed-core
+values bypass <code>E603</code> because the enum lane handles them
+directly), and AI authoring tooling. ADR §4.9’s “no semantic change”
+guarantee is preserved by the schema lane, not by the Registry.</p></li>
+<li><p><strong><code>semantics</code> payload key convention (also
+applies where structurally appropriate to <code>widgetShape</code>,
+<code>validation</code>, <code>slotShape</code>, and <code>row</code>
+payloads).</strong> Free-form per schema, but pinned at this
+revision:</p>
+<ul>
+<li><code>kindValue</code> — REQUIRED string; the unprefixed closed-core
+enum value (e.g. <code>"data-entry"</code>). Load-bearing: AI authoring
+tools resolve <code>unit.kind: 'data-entry'</code> to this contribution
+entry by matching <code>kindValue</code>. MUST equal the
+contribution-entry’s name suffix after
+<code>x-formspec-&lt;module&gt;-</code> (no drift; conformance suites
+assert this).</li>
+<li><code>summary</code> — REQUIRED string; human-readable
+description.</li>
+<li><code>processorObligation</code> — OPTIONAL string; free-form
+vocabulary at v1 (matches the example wording in
+<code>registry.schema.json</code>).</li>
+<li><code>rendererObligation</code> — OPTIONAL string; same
+posture.</li>
+<li><code>additionalProperties: true</code> for module-specific
+extension keys (e.g. <code>^x-...</code>).</li>
+</ul>
+<p>Modules that need richer typed validation than free-form strings ship
+their own <code>schemaUrl</code>-linked sub-schema (per §3 of this
+document) for the contribution-payload validation phase (<a
+href="../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#9-conformance-partitioning">§9
+of ADR 0150</a>).</p></li>
+</ol>
+<p>This section is the single source of truth for the convention;
+closed-core modules published under <a
+href="../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#14-implementation-order">ADR
+0150 §14 P1</a> conform to it (<code>x-formspec-core-task</code>,
+<code>x-formspec-core-actions</code>,
+<code>x-formspec-core-component</code>,
+<code>x-formspec-core-trace</code>,
+<code>x-formspec-core-ledger</code>). Subsequent non-core modules (P2+)
+cite this section rather than reauthoring the rules.</p>
 <hr />
 <h2 id="discovery">5. Discovery</h2>
 <p>To support automated discovery, organizations publishing Formspec

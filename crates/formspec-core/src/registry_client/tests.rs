@@ -298,12 +298,18 @@ fn parse_missing_entries_errors() {
 
 #[test]
 fn parse_entry_unknown_category_errors() {
+    // r-2026-05-23 (ADR 0150 §14 P1 absorption): the original test used
+    // `"widget"` as the "unknown" category, but P1 surfaces `widget` (and the
+    // other 5 contribution categories from P0 Task 2 + `concept`/`vocabulary`)
+    // on the Rust enum. Use a string that's genuinely outside the closed
+    // category enum so the rejection path is exercised against actually-unknown
+    // input.
     let val = json!({
         "publisher": { "name": "X", "url": "https://x.com" },
         "published": "2026-01-01T00:00:00Z",
         "entries": [{
             "name": "x-bad",
-            "category": "widget",
+            "category": "genuinely-unknown-category",
             "version": "1.0.0",
             "status": "stable",
             "description": "bad",

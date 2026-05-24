@@ -6,14 +6,17 @@ use serde_json::Value;
 /// Extension mechanism category.
 ///
 /// Per ADR 0150 §4.1/§4.2: `Namespace` was renamed to `Module` (greenfield,
-/// no alias) and six new contribution categories were added. As of P0, the
-/// Rust parser surface tracks the closed-core 5 categories that existed pre-
-/// substrate-refactor + the new `Module` aggregator. The six new contribution
-/// categories (UnitKind, Widget, ActionIntent, SlotType, ValidationMappingRow,
-/// TokenCategory) and `Concept`/`Vocabulary` (which the schema treats as
-/// first-class but the Rust parser historically didn't model) are tracked for
-/// future expansion; today's runtime path treats unknown categories as
-/// parse-rejects, which is the safe greenfield posture.
+/// no alias) and six new contribution categories were added. The Rust parser
+/// surface tracks all categories the schema admits — the originals
+/// (`DataType` / `Function` / `Constraint` / `Property`), the rename target
+/// (`Module`), the two schema-first-class categories that pre-dated the
+/// substrate refactor but weren't yet surfaced (`Concept` / `Vocabulary`),
+/// and the six new contribution categories the substrate refactor added
+/// (`UnitKind` / `Widget` / `ActionIntent` / `SlotType` /
+/// `ValidationMappingRow` / `TokenCategory`). Adding parser surface for the
+/// six is required by P1 because P1 republishes core vocabularies as
+/// modules and the first published contribution category (`UnitKind` from
+/// `x-formspec-core-task`) would otherwise parse-reject.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtensionCategory {
@@ -22,6 +25,14 @@ pub enum ExtensionCategory {
     Constraint,
     Property,
     Module,
+    Concept,
+    Vocabulary,
+    UnitKind,
+    Widget,
+    ActionIntent,
+    SlotType,
+    ValidationMappingRow,
+    TokenCategory,
 }
 
 /// Organization publishing a registry document.

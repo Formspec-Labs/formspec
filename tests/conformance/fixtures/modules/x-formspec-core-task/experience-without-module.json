@@ -1,0 +1,22 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://formspec.org/fixtures/x-formspec-core-task/task-fixture.definition.json",
+    "compatibleVersions": ">=1.0.0 <2.0.0"
+  },
+  "actors": [
+    { "id": "primary" }
+  ],
+  "tasks": [
+    { "id": "task1" }
+  ],
+  "units": [
+    {
+      "id": "u1",
+      "kind": "data-entry",
+      "actorRef": "primary",
+      "taskRefs": ["task1"]
+    }
+  ]
+}
