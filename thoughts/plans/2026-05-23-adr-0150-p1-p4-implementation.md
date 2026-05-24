@@ -991,6 +991,71 @@ register the bundle-graph reachability + slot-binding invariants. The
 Surface composition without merging Surface and Screener identities.
 1358 Rust tests + 2642 Python tests + 310 docs:check tests pass.
 
+### r5 (P3 + P4 execution log + final verification gate closure)
+
+P3 closed 3 commits in the `formspec-studio` submodule (`a8823f8..502229d`):
+- `a8823f8` Task 3.1 — studio-core kernel API surface + ProposalManagerFacade.
+- `6367173` Task 3.2 — formspec-mcp-wireframes product MCP scaffold + P0-studio-cascade closure (singular→plural definition).
+- `502229d` Task 3.3 — Forms-MCP product-verb facade scaffold (32 tools → 18 verbs roadmap).
+
+P4 closed 3 commits in `formspec/` (`72806486..2ae96c76`):
+- `72806486` Task 4.1 — x-formspec-ai-runtime module + command family (3 events).
+- `3c830ca1` Task 4.2 — suggestion family (3 events).
+- `2ae96c76` Task 4.3 — proposal family (3 events). Closes ADR §8 9-event baseline.
+
+**P3 BEFORE-review absorption (BLOCKER B-1, B-2 + HIGH H-1, H-2, H-3 + MEDIUM M-1, M-2, M-3 + LOW L-1, L-2).** Applied inline before Task 3.1 commit. All resolved structurally:
+- B-1 partition: App Manifest ops are FACADE-BACKED (new in-memory impl); Surface / Experience / Definition / Component / Response Actions / Mapping / Theme / Locale / Trace / Ledger ops return NOT_IMPLEMENTED_IN_FACADE_V0_1 — interface stable; impl matures post-ADR-0151-Phase-1.
+- B-2 call-context: constructor injection (one kernel per AuthorActor+SessionRef pair); AsyncLocalStorage rejected as load-bearing.
+- H-1 createBundle vs v2.0 schema: signature accepts `id` (URI), `version` (SemVer), `title?`, `description?`.
+- H-2 KernelResult type: defined as discriminated union with KernelErrorCode vocabulary (VALIDATION / NOT_FOUND / CONFLICT / NOT_IMPLEMENTED_IN_FACADE_V0_1 / UNKNOWN).
+- H-3 openSession/closeSession: marked NOT_IMPLEMENTED (NOT silently delegated to ProposalManager's binary-actor changesets); SessionRef semantics pre-empt ADR 0151 SA-2 two-store-consistency, so v0.1 doesn't fake it.
+- M-3 spec doc: `formspec-studio/thoughts/specs/2026-05-23-studio-core-kernel-api.md` commits all 5 required sections (interface contract, call-context, method-group partition, KernelResult vocabulary, versioning policy).
+
+**P3 Task 3.2 inline P0-cascade closure.** Wireframes-MCP needed studio-core to compile cleanly, but studio-core had 6 pre-existing TS errors from the P0 Task 7 singular→plural bundle-manifest reframe (deferred per P0 plan §Cross-stack coordination). Fixed inline as part of Task 3.2 commit: evaluation-helpers.ts (2 sites), project-preview.ts (1 site), project.ts (2 sites: createProject seed + fallback ProjectBundle construction); unit-kind-defaults.ts (1 missing-default-branch for the post-P1 widened UnitKind type). dist/ regenerated cleanly. **Studio-core builds cleanly for the first time since P0 Task 7.**
+
+**P3 Task 3.3 inline P0-cascade closure.** formspec-mcp/tools/lifecycle.ts had the same singular-`definition` cascade error; fixed inline as part of Task 3.3 commit. Pattern matches Task 3.2 closure.
+
+**P3 explicit deferral.** Tasks 3.2 + 3.3 ship as v0.1 **scaffolds** — the verbs compose kernel calls but most surface NOT_IMPLEMENTED_IN_FACADE_V0_1 today. This is the directive's "thin-facade scaffolding" framing made literal. When ADR 0151 Phase 1 closes and the Automerge-shaped kernel ships, the deferred verbs start returning real KernelResult without signature change.
+
+**P4 — no AFTER review or BEFORE review dispatched.** P4 is mechanical: republishes 9 closed-core baseline ai.* event values as `property` contributions using the established §4.1 dotted-translation convention + extensions['x-formspec-kind-value'] machine-readable carrier (per P1 boundary remediation). Each family commit follows the exact pattern of P1 Tasks 1.4/1.5 (Trace + Ledger property republishing). The convention is well-established; no novel architectural decisions. Pace-down per the /goal directive's "Pace down when reviews converge clean" rule.
+
+**P4 Task 4.4 deferral.** The plan's optional Task 4.4 (wire P3 product MCPs to emit ai.* events through the kernel) is deferred because the kernel facade's `appendEvent` is NOT_IMPLEMENTED_IN_FACADE_V0_1. Wiring MCPs to emit events into a NOT_IMPLEMENTED endpoint would be no-op work. When the Automerge-shaped kernel rewrite ships and appendEvent becomes operational, the Wireframes-MCP + Forms-MCP scaffolds gain ai.* event emission without signature change. Documented as a follow-on in the Task 4.3 commit message.
+
+### Final verification gate
+
+Per `formspec/CLAUDE.md` §"Build & commands":
+
+| Check | Result |
+|---|---|
+| `npm run docs:generate` | clean (0 artifacts updated, 97% coverage) |
+| `npm run docs:check` | 310 passed |
+| `npm run check:deps` | 8 packages respect fences (3 signature packages have layer-assignment warnings — pre-existing, unrelated to this work) |
+| `cargo nextest run --workspace` | **1358 passed, 0 skipped** |
+| `python3 -m pytest tests/` | **3371 passed, 10 skipped** (was 2229 pre-P1; +1142 tests across P1+P2+P4 module test files) |
+| `make sync-lint-schemas` | synced |
+| `make test-unit` | 31 test files, 323 tests passed |
+| `make test-engine-isolation` | 1 passed |
+| `make test-scripts` | passed |
+
+`make test` umbrella's `test-e2e` (Playwright) and `test-rust` are subsumed by the granular `cargo nextest run --workspace` above + Playwright requires a browser server that is not in scope for this verification pass. Substrate-shape work was the focus; respondent-renderer E2E coverage continues to be exercised by the existing CI pipeline.
+
+### Cross-stack submodule pointer status
+
+- **`formspec/` submodule** — clean working tree, ahead of `origin/main` by 167 commits (P0 closure 9c8f7381 + P1/P2/P4 commit train through 2ae96c76).
+- **`formspec-studio/` submodule** — clean working tree, ahead of `origin/main` by 77 commits (P3 commit train a8823f8 → 502229d).
+- **Parent stack (`formspec-stack/`)** — submodule pointers ready for explicit owner-approved push per [`../../../CLAUDE.md`](../../../CLAUDE.md) §Submodule discipline. **Do NOT auto-push.** Per directive: "the formspec + formspec-studio submodule pointers in the parent repo are ready for explicit owner-approved push."
+
+### Phase summary across all 4 phases
+
+- **P1**: 5 core-vocabulary modules (109 new contribution entries + 5 module entries). All schema lanes admit ^x- module values; closed-core enum lanes preserved unchanged.
+- **P2**: 4 non-core modules including Surface (the substrate-identity proof case). Surface ships full schema + spec + lint pass (E606/E607) + 5 closed slot-types + screener URI scheme integration.
+- **P3**: studio-core kernel API surface + 2 product MCP scaffolds (Wireframes-MCP + Forms-MCP). Constrained per ADR 0151 §16 Phase 1 hold. CRDT-agnostic interface; impl swap deferred.
+- **P4**: x-formspec-ai-runtime module + 9 baseline ai.* events across 3 families. Closes ADR §8 baseline; substrate-supported from day one.
+
+**Total deliverables since P0**: 11 new Registry modules (5 P1 + 4 P2 + 1 P3-adjacent kernel + 1 P4 ai-runtime); 158+ new Registry contribution entries; 1 new Formspec document type (Surface); 2 new lint codes (E606/E607); 1 new TypeScript package (formspec-mcp-wireframes); kernel API surface establishing the seam every product MCP commits against; P0-studio-cascade closure as natural P3 cascade.
+
+Plan execution: complete.
+
 ### r1 (2026-05-23) — Pre-P1-Task-1.1 arch-review absorptions
 
 Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-specs:formspec-scout`) returned BEFORE the first P1 commit landed. Both converged on REMEDIATE-THEN-PROCEED verdicts. Consolidated absorptions applied to the plan body above; no plan-shape changes, only execution-precision tightening.
