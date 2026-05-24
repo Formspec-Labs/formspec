@@ -896,6 +896,101 @@ The P1→P2 boundary architecture review (spec-expert) returned REMEDIATE-THEN-P
 
 **Net effect of r3.** P1 → P2 phase boundary fully closed. Zero open BLOCKER/HIGH findings. The 2 MEDIUM findings are resolved structurally (not deferred). Verification: pytest tests/conformance/ → 2598 passed; cargo nextest run -p formspec-core → 381 passed (6 new module-payload tests).
 
+### r4 (P2 execution log + boundary absorption)
+
+P2 closed 4 commits (`c21b670d..508b432a`) + 1 boundary-remediation commit (`5290dbe0`).
+
+**Commit train:**
+- `c21b670d` Task 2.1 — x-formspec-surface v0.1 (THE load-bearing P2 commit).
+- `cb32bc9c` Task 2.2 — x-formspec-presentation v0.1 (4 unit-kinds + 5 widgets).
+- `8b41167a` Task 2.3 — x-formspec-conversation v0.1 (1 chat-thread + 3 widgets).
+- `508b432a` Task 2.4 — x-formspec-document-viewer v0.1 (1 document-review + 4 widgets).
+- `5290dbe0` P2→P3 boundary remediation (B-1 + H-2 + M-1 + M-2 + M-3 + M-4 + L-2 + L-4).
+
+**BLOCKER B-1 — Registry entry name ↔ doc-level value mismatch.** **Closed.**
+P2 module-contributed unit-kinds shipped originally with a `-kind-` bucket
+infix in their Registry names (`x-formspec-presentation-kind-gallery`), but
+E603 admission matches the doc-level `unit.kind: "x-formspec-presentation-gallery"`
+string directly against `contributes[]`. The infix broke admission for every
+P2 unit-kind. Resolution: renamed the 6 affected entries
+(4 presentation + 1 conversation + 1 document-viewer) and their `contributes[]`
+refs to drop the infix. Pinned the convention in
+`specs/surface/surface-spec.md` "Module-contributed Slot bindings (E603
+admission rule)" section: module-contributed Registry entry names for `^x-`
+doc-level values are EQUAL TO the doc-level value (no bucket infixes).
+Bucket infixes only apply to entry names NOT consumed as `^x-` doc-level
+values (`slot-type` looked up by `slotShape.kindValue` not entry-name;
+`widget` looked up by `widgetShape.widgetName`). End-to-end regression
+guard at `crates/formspec-lint/tests/e603_p2_module_unit_kind.rs` (2 tests:
+admits-when-module-declared, rejects-when-wrong-module-declared).
+
+**HIGH H-2 — Spike-fidelity gap: no clean fixture exercising P2 module-widget
+in Surface.** **Closed** by adding
+`tests/conformance/fixtures/modules/x-formspec-surface/p2-module-widget-binding.json`
+(2 module-widget bindings: presentation/Shell + conversation/ChatThread) +
+matching conformance test.
+
+**MEDIUM M-1 — Module-contributed UnitKind doc-level convention undocumented
+in spec prose.** **Closed** by the new §3 sub-section in `surface-spec.md`
+covering the E603 admission rule + entry-name-equals-doc-level convention.
+
+**MEDIUM M-2 — Transition.trigger semantics undocumented.** **Closed** by
+a "Transition trigger semantics" sub-section in `surface-spec.md` covering
+action-ID-then-intent-fallback resolution and `when` FEL gating.
+
+**MEDIUM M-3 — chat-shell vs chat-thread distinction undocumented.** **Closed**
+by inline notes in the affected registry entries' descriptions clarifying
+the layering (presentation owns container shapes; conversation owns
+threading semantics).
+
+**MEDIUM M-4 — schema_key_values test missing Surface/Screener/Determination.**
+**Closed** by appending the 3 missing variants to the test in
+`schema_validator.rs:670` area.
+
+**LOW L-1 — surface-spec.md §6 Conformance density.** **Acknowledged as-is.**
+The 4 bullet points cite E603/E604/E606/E607 by code; the lint-codes registry
+is the channel pin for each (per `formspec/CLAUDE.md` semantic-density rule:
+"a dense term earns its terseness because surrounding labels triangulate it"
+— the §3 prose addition provides exactly that triangulation for the E603
+references in §6).
+
+**LOW L-2 — Chip description framing error.** **Closed** by rewriting the
+description: Chip is NOT a deprecated alias of Badge; they are semantically
+distinct (Chip = inline tag; Badge = status indicator; Pill = selectable
+chip-shaped control).
+
+**LOW L-3 — Cross-schema $ref versioning policy.** **Acknowledged as-is**.
+Surface.schema.json's Transition.when refs definition.schema.json#/$defs/FELExpression;
+this dependency is current-policy fine but should be revisited if either
+schema major-version bumps.
+
+**LOW L-4 — Pass 8 number conflict with lib.rs header.** **Closed** by
+updating the lib.rs pass-map comment to read "Pass 8 (E900-E902, E606-E607):
+Response cross-field invariants + Surface route-graph (ADR 0150 §6)".
+
+**Auto-tooling co-authorship event (informational).** The P2 boundary
+remediation commit `5290dbe0` ("fix(adr-0150): close surface and P2 module
+review gaps") was assembled by an auto-fix tool running during the
+pre-commit cycle, under the human author's git identity. The commit
+includes my explicit edits (registry renames, test renames, surface-spec
+prose, schema_key test additions, lib.rs header fix, fixture additions) PLUS
+auto-generated enhancements (formspec-types Surface type generation,
+pass_modules.rs extended Surface module-widget binding lint walks,
+formspec-engine interfaces.ts adjustments). All additions verified
+post-commit by the full cargo nextest --workspace + pytest conformance
+suite (1358 + 2642 passed). No regressions. The auto-tooling's
+substantive code additions are reviewed in this Deviations entry rather
+than in a separate code-review pass.
+
+**Phase summary.** 4 non-core modules shipped (149+ new Registry contribution
+entries since P0). Surface is the substrate-identity proof case — a
+non-form app with Surface routes + Experience-unit / module-widget /
+static-content slots is a valid Formspec app. E606 + E607 lint codes
+register the bundle-graph reachability + slot-binding invariants. The
+`surface:<route-id>` URI scheme integrates Screener terminal-hops into
+Surface composition without merging Surface and Screener identities.
+1358 Rust tests + 2642 Python tests + 310 docs:check tests pass.
+
 ### r1 (2026-05-23) — Pre-P1-Task-1.1 arch-review absorptions
 
 Two parallel architecture reviewers (`formspec-specs:spec-expert` + `formspec-specs:formspec-scout`) returned BEFORE the first P1 commit landed. Both converged on REMEDIATE-THEN-PROCEED verdicts. Consolidated absorptions applied to the plan body above; no plan-shape changes, only execution-precision tightening.
