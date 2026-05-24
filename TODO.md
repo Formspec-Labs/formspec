@@ -1170,3 +1170,26 @@ Migrated to stack-root tk ticket `fs-45e3` (see `tk show fs-45e3`). Conformance 
 ### 21. Response Actions runtime — Python harness re-implements TS state machine
 
 Migrated to stack-root tk ticket `fs-joq5` (see `tk show fs-joq5`). Linked to `fs-nw0g` (§6.4 effect-time catalog runtime gate) — both blocked on the same wasm bridge expansion.
+
+### 22. ADR 0150 P0 — completed; P1+ carry-over
+
+ADR 0150 §14 P0 (the layered-UI-substrate refactor — module-aware Registry, App Manifest reframe, common-schema multi-actor + provenance + module $defs, posture admission, MasterTable demotion, Token Registry retirement, bundle-unique id invariant + lint binding) landed across commits `2a178047..b99bab42`. Plan at [`thoughts/plans/2026-05-23-adr-0150-p0-implementation.md`](thoughts/plans/2026-05-23-adr-0150-p0-implementation.md) (revisions r0→r2.2; Deviations log captures execution-time merit decisions).
+
+**P1+ carry-over** (not blocking P0 ship; addressed in subsequent waves per ADR §14):
+
+- **P1 — Republish core vocabularies as `x-formspec-core-*` modules** (§4.9): `x-formspec-core-task`, `x-formspec-core-actions`, `x-formspec-core-component`, `x-formspec-core-trace`, `x-formspec-core-ledger`. No semantic changes; rebrand only.
+- **P1 — `Component.component` enum extension** (Task 5 deviation, commit `62e3eca6`): wire module-`widget` admittance through E604 payload-shape gating (Task 8 E604 already implemented). 33-sub-def dispatcher refactor; see plan §Deviations.
+- **P1 — Lint-mirror seeding** for `bundle-manifest.schema.json` / `posture-declaration.schema.json` / `respondent-ledger-event.schema.json` / `trace-index.schema.json` (Pass 2 R2 finding; deferred per plan §Deviations §Lint-mirror seeding). Either widen the `scripts/sync-lint-schemas.mjs:17` filter OR seed empty mirror files.
+- **P1 — Posture runtime admission** (`for-n8c4` tk ticket): the schema-side fields exist (Task 10) but the field-equality admission rule needs a runtime/lint pass (cross-document join between posture + document `modules[]`).
+- **P1 — Stale rustdoc-md** at `crates/formspec-core/docs/rustdoc-md/API.md:1645` still lists `Namespace` variant after Task 2 cascade-fix. Fix `make api-docs` (currently failing on unrelated `packages/formspec-chat/tsconfig.json` missing) + regenerate.
+- **Post-P0 cross-stack cascade** (per plan §Deviations §Cross-stack coordination):
+  - `formspec-studio/packages/formspec-chat/src/registry-hints.ts:28` — `category !== 'namespace'` is now a no-op (cadence-review HIGH finding).
+  - `formspec-studio/packages/formspec-studio-core/` consumers of `bundle.definition` singular + `ProjectBundle` type — cascade for Task 7 BREAKING (raw-project.ts → studio-core wrapper layer).
+  - `formspec-studio/packages/formspec-mcp/lib/schemas/token-registry.schema.json` — vendored stale schema after Task 12 retirement.
+  - `formspec-web/src/ports/identity-provider.ts:21` + `formspec-web/PLANNING.md` (FW-0034/FW-0044/FW-0063/FW-0065) — verify post-Task-5 oneOf refactor + post-Task-6 ledger schema changes don't break port contracts.
+  - `trellis/specs/trellis-core.md:2580` — section-number citations may shift post-Task-6 ledger prose edits; verify.
+  - `work-spec/CLAUDE.md:117` in-flight Trellis rename coordination.
+- **P1 — Surface module v0.1** (§14 P2): first non-core module proving the substrate-identity pattern. Module-spec authoring + conformance suite.
+- **Deferred to [ADR 0152](../thoughts/adr/0152-multi-actor-authorization-scope.md)** — per-class governance rules for module-supplied widgets (§13.1).
+
+**Parent-stack submodule pointer for formspec/ is HELD** between this P0 ship and the post-P0 cross-stack coordination commits — pushing the pointer without sibling-repo updates would break downstream consumers at HEAD. See plan §Deviations §Cross-stack coordination for the coordination order.
