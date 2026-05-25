@@ -54,6 +54,27 @@ function surfaceDocument(partial: Record<string, unknown> = {}) {
   };
 }
 
+function surfaceWithDefinitionForm(definitionRef = DEFINITION_URL) {
+  return surfaceDocument({
+    routes: [{
+      id: 'review',
+      path: '/review',
+      slots: [
+        {
+          id: 'main',
+          slotType: 'static-content',
+          binding: { kind: 'text', content: 'Review workspace' },
+        },
+        {
+          id: 'form',
+          slotType: 'definition-form',
+          binding: { definitionRef },
+        },
+      ],
+    }],
+  });
+}
+
 function routeComponentDocument(partial: Record<string, unknown> = {}) {
   return {
     $formspecComponent: '1.2',
@@ -67,6 +88,17 @@ function routeComponentDocument(partial: Record<string, unknown> = {}) {
     tree: { component: 'Stack', children: [] },
     ...partial,
   };
+}
+
+function boundRouteComponentDocument(partial: Record<string, unknown> = {}) {
+  return routeComponentDocument({
+    targetDefinition: { url: DEFINITION_URL },
+    tree: {
+      component: 'Stack',
+      children: [{ component: 'TextInput', bind: 'applicantName' }],
+    },
+    ...partial,
+  });
 }
 
 function validSchema() {
@@ -105,6 +137,16 @@ function baseArtifacts(componentDoc: unknown, componentRef: Record<string, unkno
   };
 }
 
+function definitionHandle(): ResolvedArtifactHandle {
+  return loadedHandle({
+    slot: 'definitions[0]',
+    artifactKind: 'definition',
+    ref: { url: DEFINITION_URL, version: '1.0.0' },
+    document: { $formspec: '1.0', url: DEFINITION_URL },
+    identity: { url: DEFINITION_URL, version: '1.0.0' },
+  });
+}
+
 describe('built-in Component route target validation', () => {
   it('runs without injected cross-artifact validators after schema-valid loaded inputs', () => {
     const report = validateWith(manifestDocument(), baseArtifacts(routeComponentDocument()));
@@ -112,6 +154,156 @@ describe('built-in Component route target validation', () => {
     expect(report.ok).toBe(true);
     expect(report.diagnostics).toEqual([]);
     expect(report.phases).toContainEqual({ phase: 'cross-artifact', status: 'completed' });
+  });
+
+  it('accepts route-bound Components with bound controls when the route references the same Definition', () => {
+    const report = validateWith(
+      manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
+      {
+        ...baseArtifacts(boundRouteComponentDocument()),
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          ref: { url: SURFACE_URL, version: '1.0.0' },
+          document: surfaceWithDefinitionForm(),
+        })],
+        definitions: [definitionHandle()],
+      },
+    );
+
+    expect(report.ok).toBe(true);
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it('requires targetDefinition for route-bound Components with bound controls', () => {
+    const report = validateWith(
+      manifestDocument(),
+      baseArtifacts(boundRouteComponentDocument({ targetDefinition: undefined })),
+    );
+
+    const missingTarget = report.diagnostics.find((entry) =>
+      entry.code === 'APP-GRAPH-COMPONENT-BOUND-CONTROLS-TARGET-DEFINITION'
+    );
+    expect(missingTarget).toBeDefined();
+    expect(missingTarget?.primarySource).toMatchObject({ artifactSlot: 'components[0]', jsonPointer: '/targetDefinition' });
+    expect(missingTarget?.relatedSources).toEqual([
+      expect.objectContaining({ artifactSlot: 'components[0]', jsonPointer: '/tree/children/0/bind' }),
+    ]);
+  });
+
+  it('requires resolved target routes to contain a matching definition-form slot for bound controls', () => {
+    const noDefinitionForm = validateWith(
+      manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
+      {
+        ...baseArtifacts(boundRouteComponentDocument()),
+        definitions: [definitionHandle()],
+      },
+    );
+    expect(noDefinitionForm.diagnostics.map((entry) => entry.code))
+      .toContain('APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION');
+
+    const mismatchedDefinitionForm = validateWith(
+      manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
+      {
+        ...baseArtifacts(boundRouteComponentDocument()),
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          ref: { url: SURFACE_URL, version: '1.0.0' },
+          document: surfaceWithDefinitionForm('https://example.gov/forms/other'),
+        })],
+        definitions: [definitionHandle()],
+      },
+    );
+    const mismatch = mismatchedDefinitionForm.diagnostics.find((entry) =>
+      entry.code === 'APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION'
+    );
+    expect(mismatch?.relatedSources).toEqual([
+      expect.objectContaining({ artifactSlot: 'components[0]', jsonPointer: '/targetDefinition/url' }),
+      expect.objectContaining({ artifactSlot: 'components[0]', jsonPointer: '/tree/children/0/bind' }),
+      expect.objectContaining({ artifactSlot: 'surfaces[0]', jsonPointer: '/routes/0/slots/1/binding/definitionRef' }),
+    ]);
+  });
+
+  it('ignores bind-like fields outside document.tree for route-bound control checks', () => {
+    const report = validateWith(
+      manifestDocument(),
+      baseArtifacts(routeComponentDocument({
+        components: {
+          customTemplate: {
+            tree: { component: 'TextInput', bind: 'applicantName' },
+          },
+        },
+      })),
+    );
+
+    expect(report.ok).toBe(true);
+    expect(report.diagnostics.map((entry) => entry.code))
+      .not.toContain('APP-GRAPH-COMPONENT-BOUND-CONTROLS-TARGET-DEFINITION');
+  });
+
+  it('checks definition-form context for each resolved route target independently', () => {
+    const report = validateWith(
+      manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
+      {
+        ...baseArtifacts(boundRouteComponentDocument({
+          targetSurfaceRoutes: [
+            {
+              surface: { url: SURFACE_URL, version: '1.0.0' },
+              route: 'review',
+              slot: 'main',
+              role: 'slot',
+            },
+            {
+              surface: { url: SURFACE_URL, version: '1.0.0' },
+              route: 'details',
+              slot: 'main',
+              role: 'slot',
+            },
+          ],
+        })),
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          ref: { url: SURFACE_URL, version: '1.0.0' },
+          document: surfaceDocument({
+            routes: [
+              {
+                id: 'review',
+                path: '/review',
+                slots: [
+                  {
+                    id: 'main',
+                    slotType: 'definition-form',
+                    binding: { definitionRef: DEFINITION_URL },
+                  },
+                ],
+              },
+              {
+                id: 'details',
+                path: '/details',
+                slots: [
+                  {
+                    id: 'main',
+                    slotType: 'static-content',
+                    binding: { kind: 'text', content: 'Details' },
+                  },
+                ],
+              },
+            ],
+          }),
+        })],
+        definitions: [definitionHandle()],
+      },
+    );
+
+    expect(report.diagnostics.map((entry) => entry.code)).toEqual([
+      'APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION',
+    ]);
+    expect(report.diagnostics[0]?.primarySource).toMatchObject({
+      artifactSlot: 'components[0]',
+      jsonPointer: '/targetSurfaceRoutes/1',
+    });
   });
 
   it('rejects unresolved Surface routes and route slots', () => {
@@ -254,6 +446,13 @@ describe('built-in Component route target validation', () => {
     );
     expect(fake.diagnostics.map((entry) => entry.code)).toContain('APP-GRAPH-COMPONENT-FAKE-TARGET-DEFINITION');
 
+    const boundFake = validateWith(
+      manifestDocument({ definitions: [] }),
+      baseArtifacts(boundRouteComponentDocument()),
+    );
+    expect(boundFake.diagnostics.map((entry) => entry.code)).toContain('APP-GRAPH-COMPONENT-FAKE-TARGET-DEFINITION');
+    expect(boundFake.diagnostics.map((entry) => entry.code)).not.toContain('APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION');
+
     const mixed = validateWith(
       manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
       {
@@ -279,17 +478,21 @@ describe('built-in Component route target validation', () => {
       manifestDocument({ definitions: [{ url: 'https://example.gov/forms/other', version: '1.0.0' }] }),
       baseArtifacts(routeComponentDocument({
         targetDefinition: { url: DEFINITION_URL },
+        tree: { component: 'Stack', children: [{ component: 'TextInput', bind: 'applicantName' }] },
       })),
     );
     expect(unmanifested.diagnostics.map((entry) => entry.code)).toContain('APP-GRAPH-COMPONENT-TARGET-DEFINITION-UNMANIFESTED');
+    expect(unmanifested.diagnostics.map((entry) => entry.code)).not.toContain('APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION');
 
     const unloaded = validateWith(
       manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
       baseArtifacts(routeComponentDocument({
         targetDefinition: { url: DEFINITION_URL },
+        tree: { component: 'Stack', children: [{ component: 'TextInput', bind: 'applicantName' }] },
       })),
     );
     expect(unloaded.diagnostics.map((entry) => entry.code)).toContain('APP-GRAPH-COMPONENT-TARGET-DEFINITION-UNLOADED');
+    expect(unloaded.diagnostics.map((entry) => entry.code)).not.toContain('APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION');
   });
 
   it('keeps Surface version checks exact-only until a shared range policy exists', () => {

@@ -258,7 +258,7 @@ app-graph report.
 | UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme widget refs/token slots | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary and `ui-graph-policy` is an admitted report origin. The shared kernel currently enforces host-evidence-backed Surface/route, policy-local Locale-owner, Locale-owner module-id resolution against completed ModuleResolver evidence, hidden Definition reference diagnostics, and Theme widgetRef resolution against completed ModuleResolver widget contribution evidence; Theme token-slot, Registry token-slot evidence, runtime hidden-state, and consumer checks remain later gates. |
 | Fine-grained actor, route, operation, widget, field, or source authorization | Future authorization contract | `authorization-boundary` | Until a dedicated authorization contract lands, such fields fail closed rather than receiving semantics. |
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
-| Component Surface/route target resolution, duplicate route claims, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | Validator-owned only after Component spec/schema/fixture gates land. This v0.1 prose does not close that enforcement. |
+| Component Surface/route target resolution, duplicate route claims, route-bound control Definition context, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | The shared kernel currently enforces loaded Component membership, Surface/route/slot target resolution, duplicate route claims, exact-only Surface version mismatch, ref-less Component handle rejection, evidence-limited fake `targetDefinition` rejection, and URL-based `definition-form` route context for route-bound Components with bound controls. Full graph-wide node identity disambiguation remains a later gate. |
 | Component projection output and renderer fallback | Projection/runtime/renderer gates | not validator-owned | The validator may check future Component graph identity, but it must not render Components or choose fallback behavior. |
 
 ## 8. Unsupported Features and Authorization
@@ -279,15 +279,16 @@ or per-source authorization semantics.
 
 This v0.1 draft defines the prose validator contract, the shared report
 schema/generation evidence, and source conformance for the initial Component
-route-target, UI Graph Policy Surface/route, UI Graph Policy Locale-owner, hidden
-Definition, and Theme widgetRef validator families. A conforming future
-implementation will need later gates to
+route-target plus route-bound-control Definition-context checks, UI Graph Policy
+Surface/route, UI Graph Policy Locale-owner, hidden Definition, and Theme
+widgetRef validator families. A conforming future implementation will need later
+gates to
 provide:
 
-1. broader fixture-backed conformance beyond the Component route-target, UI
-   Graph Policy Surface/route, UI Graph Policy Locale-owner, hidden Definition,
-   Theme widgetRef families, and typed `ModuleResolutionReport` diagnostic
-   handoff,
+1. broader fixture-backed conformance beyond the Component route-target /
+   route-bound-control, UI Graph Policy Surface/route, UI Graph Policy
+   Locale-owner, hidden Definition, Theme widgetRef families, and typed
+   `ModuleResolutionReport` diagnostic handoff,
 2. broader extraction from lint, studio-core, and spike-local lessons without fixture
    assumptions, and
 3. production consumers wired to shared validator output.

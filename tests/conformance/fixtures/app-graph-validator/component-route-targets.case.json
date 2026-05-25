@@ -222,6 +222,82 @@
         ]
       }
     },
+    "surface.definition-form": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/definition-form",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review workspace"
+                }
+              },
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.definition-form-mismatch": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/definition-form-mismatch",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review workspace"
+                }
+              },
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/other"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
     "surface.respondent-duplicate": {
       "slot": "surfaces[1]",
       "artifactKind": "surface",
@@ -341,6 +417,113 @@
         "tree": {
           "component": "Stack",
           "children": []
+        }
+      }
+    },
+    "component.bound-route": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/bound-route",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": [
+            {
+              "component": "TextInput",
+              "bind": "applicantName"
+            }
+          ]
+        }
+      }
+    },
+    "component.bound-no-target-definition": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/bound-no-target-definition",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": [
+            {
+              "component": "TextInput",
+              "bind": "applicantName"
+            }
+          ]
+        }
+      }
+    },
+    "component.bound-missing-route": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/bound-missing-route",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "missing",
+            "role": "route"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": [
+            {
+              "component": "TextInput",
+              "bind": "applicantName"
+            }
+          ]
         }
       }
     },
@@ -659,6 +842,343 @@
           "skippedPhases": 0
         },
         "diagnostics": []
+      }
+    },
+    {
+      "id": "valid-bound-route-definition-form",
+      "description": "A route-bound Component with bound controls is valid when targetDefinition resolves and the route references the same Definition through a definition-form slot.",
+      "request": {
+        "manifest": "manifest.definition-present",
+        "artifacts": {
+          "surfaces": [
+            "surface.definition-form"
+          ],
+          "components": [
+            "component.bound-route"
+          ],
+          "definitions": [
+            "definition.intake"
+          ]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "bound-controls-missing-target-definition",
+      "description": "A route-bound Component with bound controls must declare targetDefinition instead of relying on route identity alone.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.bound-no-target-definition"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-BOUND-CONTROLS-TARGET-DEFINITION",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/bound-no-target-definition",
+              "jsonPointer": "/targetDefinition",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/bound-no-target-definition",
+                "jsonPointer": "/tree/children/0/bind",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "bind": "applicantName"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bound-controls-route-missing-definition-form",
+      "description": "A route-bound Component with bound controls must mount on a route that contains a definition-form slot for its targetDefinition.",
+      "request": {
+        "manifest": "manifest.definition-present",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.bound-route"
+          ],
+          "definitions": [
+            "definition.intake"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/bound-route",
+              "jsonPointer": "/targetSurfaceRoutes/0",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/bound-route",
+                "jsonPointer": "/targetDefinition/url",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/bound-route",
+                "jsonPointer": "/tree/children/0/bind",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes/0/slots",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "route": "review",
+              "targetDefinition": "https://example.gov/forms/intake"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bound-controls-route-definition-mismatch",
+      "description": "A route-bound Component with bound controls must match the route-local definition-form definitionRef by URL.",
+      "request": {
+        "manifest": "manifest.definition-present",
+        "artifacts": {
+          "surfaces": [
+            "surface.definition-form-mismatch"
+          ],
+          "components": [
+            "component.bound-route"
+          ],
+          "definitions": [
+            "definition.intake"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/bound-route",
+              "jsonPointer": "/targetSurfaceRoutes/0",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/bound-route",
+                "jsonPointer": "/targetDefinition/url",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/bound-route",
+                "jsonPointer": "/tree/children/0/bind",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/definition-form-mismatch",
+                "jsonPointer": "/routes/0/slots/1/binding/definitionRef",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "route": "review",
+              "targetDefinition": "https://example.gov/forms/intake"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bound-route-unresolved-skips-definition-form",
+      "description": "A bound route Component does not emit definition-form diagnostics when the target route itself is unresolved.",
+      "request": {
+        "manifest": "manifest.definition-present",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.bound-missing-route"
+          ],
+          "definitions": [
+            "definition.intake"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-ROUTE-UNRESOLVED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/bound-missing-route",
+              "jsonPointer": "/targetSurfaceRoutes/0/route",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "route": "missing"
+            }
+          }
+        ]
       }
     },
     {
@@ -1175,7 +1695,7 @@
             "surface.respondent"
           ],
           "components": [
-            "component.fake-target-definition"
+            "component.bound-route"
           ]
         }
       },
@@ -1200,7 +1720,7 @@
             "primarySource": {
               "artifactSlot": "components[0]",
               "artifactKind": "component",
-              "source": "memory://component/fake-target-definition",
+          "source": "memory://component/bound-route",
               "jsonPointer": "/targetDefinition/url",
               "ref": {
                 "url": "https://example.gov/apps/component-route-conformance/components/review-route",
@@ -1225,7 +1745,7 @@
             "surface.respondent"
           ],
           "components": [
-            "component.fake-target-definition"
+            "component.bound-route"
           ]
         }
       },
@@ -1250,7 +1770,7 @@
             "primarySource": {
               "artifactSlot": "components[0]",
               "artifactKind": "component",
-              "source": "memory://component/fake-target-definition",
+          "source": "memory://component/bound-route",
               "jsonPointer": "/targetDefinition/url",
               "ref": {
                 "url": "https://example.gov/apps/component-route-conformance/components/review-route",

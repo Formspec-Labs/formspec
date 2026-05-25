@@ -36,6 +36,15 @@ assert diagnostics, source pointers, related sources, details, summary counts,
 and completed cross-artifact phase status; keep `componentNodeIdentityKey()` as
 helper-unit coverage, not report conformance.
 
+A follow-on architecture checkpoint approved ADR 0154 rule 9 as the next strict
+slice and rejected graph-wide node identity as premature executable validation.
+Boundary: detect authored `bind` fields in `document.tree` only; require
+`targetDefinition` for route-bound Components with bound controls; require each
+resolved target route to contain a URL-matching `definition-form` slot; skip
+cascade diagnostics when the target Definition or route is unresolved; defer
+explicit graph binding, Definition id aliases, bind-key validation, TraceIndex,
+runtime, Studio/kernel identity, and provenance.
+
 ## Completed
 
 - `validateAppGraph()` now always runs the built-in Component route-target
@@ -52,10 +61,14 @@ helper-unit coverage, not report conformance.
   are exact SemVer values.
 - Fake `targetDefinition` rejection is limited to non-form graph evidence,
   unmanifested target Definitions, or unloaded target Definitions.
+- Route-bound Components with bound controls now require `targetDefinition`, and
+  resolved target routes must carry a `definition-form` slot whose
+  `binding.definitionRef` exactly matches `targetDefinition.url`.
 - `componentNodeIdentityKey()` and graph-wide node identity types are exported
   as preparatory API only.
 - Source conformance fixtures now exercise the existing Component route-target
-  validator against already-loaded, schema-valid graph handles.
+  validator plus URL-based route-bound-control Definition context against
+  already-loaded, schema-valid graph handles.
 
 ## Still Open
 
@@ -76,9 +89,13 @@ helper-unit coverage, not report conformance.
 - No resolver extraction was introduced. Tests pass explicit
   `ResolvedArtifactHandle` inputs that model the resolver output needed by this
   validator slice.
-- Source conformance fixtures are added for the existing route-target validator
-  only. They do not claim Studio/kernel identity, provenance, production
-  consumers, or ADR 0154 gate closure.
+- Source conformance fixtures cover route-target resolution and the URL-based
+  route-bound-control Definition-context rule only. They do not claim
+  Studio/kernel identity, provenance, production consumers, or ADR 0154 gate
+  closure.
+- Explicit graph binding and in-bundle Definition id alias matching are deferred.
+  This slice compares route-local `definition-form.binding.definitionRef` against
+  `targetDefinition.url` only.
 
 ## Closure Evidence
 
@@ -94,9 +111,16 @@ helper-unit coverage, not report conformance.
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`.
 - Fixture integrity:
   `tests/conformance/test_app_graph_component_route_fixture_corpus.py`.
+- Specs:
+  `specs/component/component-spec.md` and
+  `specs/app-graph/app-graph-validator-spec.md`.
 
 ## Verification
 
-- `npm run --workspace @formspec-org/app-graph test`
 - `npm run --workspace @formspec-org/app-graph build`
-- `python -m pytest tests/conformance/test_app_graph_component_route_fixture_corpus.py -q`
+- `npm run --workspace @formspec-org/app-graph test -- component-route-validator.test.ts component-route-conformance.test.ts`
+- `npm run --workspace @formspec-org/app-graph test`
+- `python -m pytest tests/conformance/test_app_graph_component_route_fixture_corpus.py tests/conformance/schemas/test_app_graph_validation_report_schema.py tests/unit/test_contract_surface_coverage.py -q`
+- `node scripts/generate-spec-artifacts.mjs --check`
+- `npm run docs:check`
+- `git diff --check`

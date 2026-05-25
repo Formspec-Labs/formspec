@@ -33,6 +33,7 @@ Source schema: `schemas/component.schema.json`
 - Slot binding links input components to definition item keys while preserving core behavioral semantics from the definition.
 - Tier 3 components take precedence over theme and inline hints for layout/widget selection, with fallback rendering for unbound items.
 - Core processors must substitute progressive components with declared fallbacks while preserving structure and applicable base props.
+- Component 1.2 route-bound trees with bound controls must carry targetDefinition and rely on a route-local definition-form slot for URL-based Definition context.
 
 ## Semantic Capsule
 
@@ -60,3 +61,4 @@ Source schema: `schemas/component.schema.json`
 - Component 1.0/1.1 documents must include $formspecComponent, version, targetDefinition, and tree; Component 1.2 documents must include $formspecComponent, version, tree, and targetDefinition or targetSurfaceRoutes[].
 - Processors must reject unsupported component-document versions and unknown non-x top-level properties.
 - Renderable trees must satisfy component-category constraints, bind compatibility, and declared structural limits.
+- AppGraphValidator source conformance covers Component 1.2 route target resolution, duplicate claims, fake targetDefinition rejection, and URL-matched definition-form context for route-bound controls.

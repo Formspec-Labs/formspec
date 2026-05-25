@@ -348,6 +348,13 @@ the route or slot. AppGraph validation resolves `targetSurfaceRoutes[]` against
 the loaded App Manifest and Surface artifacts; the schema only validates the
 route target structure.
 
+A route-bound Component that contains Definition-bound controls MUST declare
+`targetDefinition`. The resolved Surface route MUST contain a `definition-form`
+slot whose `binding.definitionRef` exactly equals `targetDefinition.url`, unless
+a future graph-binding contract explicitly supplies the same Definition context.
+This v1.2 rule is URL-based only; in-bundle Definition id alias resolution and
+explicit graph bindings are deferred to later contracts.
+
 Source documents MUST NOT fabricate a fake `targetDefinition` to make non-form
 route UI validate as a form Component. Exporters MAY emit output-only legacy
 compatibility shims for older tools, but graph validators MUST NOT treat those
@@ -3357,7 +3364,13 @@ integrity:
    document's `routes[].id`, and every `slot` MUST resolve to a slot key on
    that route.
 
-8. **Fake Definition shims:** A non-form source Component MUST NOT satisfy
+8. **Bound route Components (Component 1.2):** A route-bound Component with
+   bound controls MUST declare `targetDefinition`. Each resolved target route
+   MUST contain a `definition-form` slot with `binding.definitionRef` exactly
+   equal to `targetDefinition.url`, unless a future explicit graph-binding
+   contract supplies the same Definition context.
+
+9. **Fake Definition shims:** A non-form source Component MUST NOT satisfy
    identity by inventing `targetDefinition`. Output-only compatibility shims
    MAY be reported by exporters, but graph validators MUST ignore them as
    source identity.

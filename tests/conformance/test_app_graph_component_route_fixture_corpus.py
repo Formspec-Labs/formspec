@@ -19,6 +19,11 @@ FIXTURE_PATH = (
 
 REQUIRED_CASES = {
     "valid-route-target",
+    "valid-bound-route-definition-form",
+    "bound-controls-missing-target-definition",
+    "bound-controls-route-missing-definition-form",
+    "bound-controls-route-definition-mismatch",
+    "bound-route-unresolved-skips-definition-form",
     "route-unresolved",
     "slot-unresolved",
     "duplicate-route-claim",

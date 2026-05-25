@@ -38,6 +38,16 @@ interface ComponentClaim {
   source: AppGraphSourcePointer;
 }
 
+interface BindEvidence {
+  value: string;
+  pointer: string;
+}
+
+interface ResolvedRoute {
+  route: Record<string, unknown>;
+  index: number;
+}
+
 const EXACT_SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -140,6 +150,10 @@ function hasRouteTargets(document: unknown): boolean {
   return Array.isArray(record(document)?.targetSurfaceRoutes);
 }
 
+function componentVersion(document: unknown): string | undefined {
+  return stringProp(record(document), '$formspecComponent');
+}
+
 function routeTargets(document: unknown): RouteTarget[] {
   const targets = record(document)?.targetSurfaceRoutes;
   if (!Array.isArray(targets)) return [];
@@ -162,19 +176,81 @@ function targetDefinitionUrl(document: unknown): string | undefined {
   return stringProp(record(record(document)?.targetDefinition), 'url');
 }
 
-function routeById(surfaceDocument: unknown, routeId: string): Record<string, unknown> | undefined {
-  const routes = record(surfaceDocument)?.routes;
-  if (!Array.isArray(routes)) return undefined;
-  return routes
-    .map(record)
-    .find((route) => stringProp(route, 'id') === routeId);
+function jsonPointerSegment(value: string): string {
+  return value.replace(/~/g, '~0').replace(/\//g, '~1');
 }
 
-function routeHasSlot(route: Record<string, unknown>, slotId: string): boolean {
-  const slots = route.slots;
+function firstBindEvidence(value: unknown, pointer: string): BindEvidence | undefined {
+  if (Array.isArray(value)) {
+    for (const [index, child] of value.entries()) {
+      const evidence = firstBindEvidence(child, `${pointer}/${index}`);
+      if (evidence) return evidence;
+    }
+    return undefined;
+  }
+  const valueRecord = record(value);
+  if (!valueRecord) return undefined;
+  const bind = valueRecord.bind;
+  if (typeof bind === 'string') return { value: bind, pointer: `${pointer}/bind` };
+  for (const [key, child] of Object.entries(valueRecord)) {
+    const evidence = firstBindEvidence(child, `${pointer}/${jsonPointerSegment(key)}`);
+    if (evidence) return evidence;
+  }
+  return undefined;
+}
+
+function componentTreeBindEvidence(document: unknown): BindEvidence | undefined {
+  const tree = record(document)?.tree;
+  return firstBindEvidence(tree, '/tree');
+}
+
+function routeById(surfaceDocument: unknown, routeId: string): ResolvedRoute | undefined {
+  const routes = record(surfaceDocument)?.routes;
+  if (!Array.isArray(routes)) return undefined;
+  for (const [index, routeValue] of routes.entries()) {
+    const route = record(routeValue);
+    if (stringProp(route, 'id') === routeId && route) return { route, index };
+  }
+  return undefined;
+}
+
+function routeHasSlot(route: ResolvedRoute, slotId: string): boolean {
+  const slots = route.route.slots;
   return Array.isArray(slots) && slots
     .map(record)
     .some((slot) => stringProp(slot, 'id') === slotId);
+}
+
+function routeDefinitionFormSources(
+  surfaceHandle: ResolvedArtifactHandle,
+  route: ResolvedRoute,
+  targetDefinition: string,
+): { matched: boolean; sources: AppGraphSourcePointer[] } {
+  const slots = route.route.slots;
+  if (!Array.isArray(slots)) {
+    return {
+      matched: false,
+      sources: [diagnosticSourceForHandle(surfaceHandle, `/routes/${route.index}/slots`)],
+    };
+  }
+
+  const definitionFormSources: AppGraphSourcePointer[] = [];
+  for (const [slotIndex, slot] of slots.map(record).entries()) {
+    if (stringProp(slot, 'slotType') !== 'definition-form') continue;
+    const definitionRef = stringProp(record(slot?.binding), 'definitionRef');
+    const source = diagnosticSourceForHandle(surfaceHandle, `/routes/${route.index}/slots/${slotIndex}/binding/definitionRef`);
+    if (definitionRef === targetDefinition) {
+      return { matched: true, sources: [source] };
+    }
+    definitionFormSources.push(source);
+  }
+
+  return {
+    matched: false,
+    sources: definitionFormSources.length > 0
+      ? definitionFormSources
+      : [diagnosticSourceForHandle(surfaceHandle, `/routes/${route.index}/slots`)],
+  };
 }
 
 function isExactVersion(value: string | undefined): value is string {
@@ -279,6 +355,10 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
     }
 
     const targetDefinition = targetDefinitionUrl(document);
+    const bindEvidence = componentVersion(document) === '1.2' && hasRouteTargets(document)
+      ? componentTreeBindEvidence(document)
+      : undefined;
+    let targetDefinitionResolves = false;
     if (targetDefinition) {
       const targetSource = sourceForTargetDefinition(handle);
       if (hasRouteTargets(document) && manifestDefinitionUrls.size === 0) {
@@ -305,7 +385,17 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
           undefined,
           { componentHandle: membership.handle, targetDefinition },
         ));
+      } else {
+        targetDefinitionResolves = true;
       }
+    } else if (bindEvidence) {
+      diagnostics.push(diagnostic(
+        'APP-GRAPH-COMPONENT-BOUND-CONTROLS-TARGET-DEFINITION',
+        `Route-bound Component '${membership.handle}' contains bound controls but does not declare targetDefinition.`,
+        diagnosticSourceForHandle(handle, '/targetDefinition'),
+        [diagnosticSourceForHandle(handle, bindEvidence.pointer)],
+        { componentHandle: membership.handle, bind: bindEvidence.value },
+      ));
     }
 
     routeTargets(document).forEach((target, index) => {
@@ -385,6 +475,23 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
           { componentHandle: membership.handle, surfaceUrl, route: target.route, slot: target.slot },
         ));
         return;
+      }
+
+      if (bindEvidence && targetDefinition && targetDefinitionResolves) {
+        const definitionForm = routeDefinitionFormSources(surfaceHandle, route, targetDefinition);
+        if (!definitionForm.matched) {
+          diagnostics.push(diagnostic(
+            'APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION',
+            `Route-bound Component '${membership.handle}' contains bound controls for Definition '${targetDefinition}', but route '${target.route}' does not reference that Definition through a definition-form slot.`,
+            targetSource,
+            [
+              diagnosticSourceForHandle(handle, '/targetDefinition/url'),
+              diagnosticSourceForHandle(handle, bindEvidence.pointer),
+              ...definitionForm.sources,
+            ],
+            { componentHandle: membership.handle, surfaceUrl, route: target.route, targetDefinition },
+          ));
+        }
       }
 
       const key = routeClaimKey(surfaceUrl, manifestSurface?.version ?? target.surface?.version, target);

@@ -326,6 +326,7 @@
       "conformance": [
         "tests/conformance/schemas/test_component_schema.py",
         "tests/conformance/spec/test_actionbutton_binding.py",
+        "tests/conformance/test_app_graph_component_route_fixture_corpus.py",
         "tests/unit/test_validator_component_semantics.py"
       ],
       "crates": [
@@ -348,6 +349,10 @@
         "layout": [
           "packages/formspec-layout/tests/planner.test.ts"
         ],
+        "app-graph": [
+          "packages/formspec-app-graph/tests/component-route-validator.test.ts",
+          "packages/formspec-app-graph/tests/component-route-conformance.test.ts"
+        ],
         "react": [
           "packages/formspec-react/tests/button-parity.test.ts",
           "packages/formspec-react/tests/choice-control-parity.test.ts",
@@ -357,6 +362,7 @@
       },
       "checks": [
         "component schema, ActionButton actionRef binding, and semantic lint behavior are covered",
+        "AppGraphValidator fixtures cover Component 1.2 route target resolution, duplicate claims, evidence-limited targetDefinition failures, and URL-matched definition-form context for route-bound controls",
         "Rust component tree and compatibility lint surfaces are covered",
         "core, layout, webcomponent, and React packages cover component authoring, ActionButton insertion, and rendering parity"
       ]
