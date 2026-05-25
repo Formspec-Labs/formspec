@@ -1296,7 +1296,7 @@
       "title": "Response Actions duplicate durable-effect idempotency key",
       "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
       "suggestedFix": "make every durable effect idempotencyKey unique within the action; include effect-specific material such as @invocation.id & '/<effect-name>'",
-      "fixtures": ["tests/conformance/fixtures/response-actions/duplicate-durable-idempotency-key.json"],
+      "fixtures": ["tests/fixtures/lint/E1804-response-actions-duplicate-durable-idempotency-key.json"],
       "state": "tested"
     },
     {

@@ -1,0 +1,30 @@
+{
+  "$formspecResponseActions": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.gov/forms/intake",
+    "compatibleVersions": ">=1.0.0"
+  },
+  "actions": [
+    {
+      "id": "submit-duplicate-durable-key",
+      "intent": "submit",
+      "effects": [
+        {
+          "type": "mappingExecution",
+          "mappingRef": "applicationPayload",
+          "idempotencyKey": "@invocation.id & '/durable'"
+        },
+        {
+          "type": "hostEvent",
+          "eventName": "formspec-submit"
+        },
+        {
+          "type": "ledgerAppend",
+          "eventKind": "response.submit-attempted",
+          "idempotencyKey": "@invocation.id & '/durable'"
+        }
+      ]
+    }
+  ]
+}
