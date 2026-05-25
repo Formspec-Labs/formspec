@@ -37,6 +37,9 @@ REQUIRED_CASES = {
     "target-definition-unloaded",
     "surface-version-mismatch",
     "surface-range-deferred",
+    "node-path-missing-segment",
+    "node-path-ambiguous-sibling-segment",
+    "node-identity-duplicate-key",
 }
 
 FORBIDDEN_KEYS = {

@@ -85,7 +85,7 @@ function routeComponentDocument(partial: Record<string, unknown> = {}) {
       slot: 'main',
       role: 'slot',
     }],
-    tree: { component: 'Stack', children: [] },
+    tree: { component: 'Stack', id: 'reviewLayout', children: [] },
     ...partial,
   };
 }
@@ -95,6 +95,7 @@ function boundRouteComponentDocument(partial: Record<string, unknown> = {}) {
     targetDefinition: { url: DEFINITION_URL },
     tree: {
       component: 'Stack',
+      id: 'reviewLayout',
       children: [{ component: 'TextInput', bind: 'applicantName' }],
     },
     ...partial,
@@ -530,6 +531,87 @@ describe('built-in Component route target validation', () => {
       },
     );
     expect(rangeDeferred.diagnostics.map((entry) => entry.code)).not.toContain('APP-GRAPH-COMPONENT-SURFACE-VERSION');
+  });
+
+  it('requires stable route-scoped nodePath segments for graph-wide Component identity', () => {
+    const report = validateWith(
+      manifestDocument(),
+      baseArtifacts(routeComponentDocument({
+        tree: { component: 'Stack', children: [] },
+      })),
+    );
+
+    const missing = report.diagnostics.find((entry) =>
+      entry.code === 'APP-GRAPH-COMPONENT-NODE-PATH-MISSING'
+    );
+    expect(missing).toBeDefined();
+    expect(missing?.primarySource).toMatchObject({ artifactSlot: 'components[0]', jsonPointer: '/tree' });
+    expect(missing?.details).toMatchObject({ componentHandle: 'reviewRoute' });
+  });
+
+  it('rejects ambiguous sibling nodePath segments', () => {
+    const report = validateWith(
+      manifestDocument(),
+      baseArtifacts(routeComponentDocument({
+        tree: {
+          component: 'Stack',
+          id: 'reviewLayout',
+          children: [
+            { component: 'Text', id: 'duplicateLabel' },
+            { component: 'Text', id: 'duplicateLabel' },
+          ],
+        },
+      })),
+    );
+
+    const ambiguous = report.diagnostics.find((entry) =>
+      entry.code === 'APP-GRAPH-COMPONENT-NODE-PATH-AMBIGUOUS'
+    );
+    expect(ambiguous).toBeDefined();
+    expect(ambiguous?.primarySource).toMatchObject({
+      artifactSlot: 'components[0]',
+      jsonPointer: '/tree/children/1/id',
+    });
+    expect(ambiguous?.relatedSources).toEqual([
+      expect.objectContaining({ artifactSlot: 'components[0]', jsonPointer: '/tree/children/0/id' }),
+    ]);
+  });
+
+  it('rejects duplicate constructed graph-wide Component node identity keys', () => {
+    const report = validateWith(
+      manifestDocument(),
+      baseArtifacts(routeComponentDocument({
+        targetSurfaceRoutes: [
+          {
+            surface: { url: SURFACE_URL, version: '1.0.0' },
+            route: 'review',
+            role: 'primary',
+          },
+          {
+            surface: { url: SURFACE_URL, version: '1.0.0' },
+            route: 'review',
+            role: 'secondary',
+          },
+        ],
+      })),
+    );
+
+    const duplicate = report.diagnostics.find((entry) =>
+      entry.code === 'APP-GRAPH-COMPONENT-NODE-IDENTITY-DUPLICATE'
+    );
+    expect(duplicate).toBeDefined();
+    expect(duplicate?.primarySource).toMatchObject({
+      artifactSlot: 'components[0]',
+      jsonPointer: '/targetSurfaceRoutes/1',
+    });
+    expect(duplicate?.details).toMatchObject({
+      componentHandle: 'reviewRoute',
+      surfaceUrl: SURFACE_URL,
+      surfaceVersion: '1.0.0',
+      route: 'review',
+      nodePath: '/reviewLayout',
+      id: 'reviewLayout',
+    });
   });
 });
 

@@ -416,7 +416,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -453,7 +454,8 @@
               "component": "TextInput",
               "bind": "applicantName"
             }
-          ]
+          ],
+          "id": "reviewLayout"
         }
       }
     },
@@ -487,7 +489,8 @@
               "component": "TextInput",
               "bind": "applicantName"
             }
-          ]
+          ],
+          "id": "reviewLayout"
         }
       }
     },
@@ -523,7 +526,8 @@
               "component": "TextInput",
               "bind": "applicantName"
             }
-          ]
+          ],
+          "id": "reviewLayout"
         }
       }
     },
@@ -551,7 +555,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -580,7 +585,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -609,7 +615,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "defaultLayout"
         }
       }
     },
@@ -638,7 +645,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewAltLayout"
         }
       }
     },
@@ -665,7 +673,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -694,7 +703,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -726,7 +736,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -755,7 +766,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -784,7 +796,8 @@
         ],
         "tree": {
           "component": "Stack",
-          "children": []
+          "children": [],
+          "id": "reviewLayout"
         }
       }
     },
@@ -808,6 +821,111 @@
       "identity": {
         "url": "https://example.gov/forms/intake",
         "version": "1.0.0"
+      }
+    },
+    "component.node-path-missing": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/node-path-missing",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.ambiguous-node-path": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/ambiguous-node-path",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "id": "reviewLayout",
+          "children": [
+            {
+              "component": "Text",
+              "id": "duplicateLabel"
+            },
+            {
+              "component": "Text",
+              "id": "duplicateLabel"
+            }
+          ]
+        }
+      }
+    },
+    "component.duplicate-node-identity": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/duplicate-node-identity",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "role": "primary"
+          },
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "role": "secondary"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "id": "reviewLayout",
+          "children": []
+        }
       }
     }
   },
@@ -1720,7 +1838,7 @@
             "primarySource": {
               "artifactSlot": "components[0]",
               "artifactKind": "component",
-          "source": "memory://component/bound-route",
+              "source": "memory://component/bound-route",
               "jsonPointer": "/targetDefinition/url",
               "ref": {
                 "url": "https://example.gov/apps/component-route-conformance/components/review-route",
@@ -1770,7 +1888,7 @@
             "primarySource": {
               "artifactSlot": "components[0]",
               "artifactKind": "component",
-          "source": "memory://component/bound-route",
+              "source": "memory://component/bound-route",
               "jsonPointer": "/targetDefinition/url",
               "ref": {
                 "url": "https://example.gov/apps/component-route-conformance/components/review-route",
@@ -1882,6 +2000,195 @@
           "skippedPhases": 0
         },
         "diagnostics": []
+      }
+    },
+    {
+      "id": "node-path-missing-segment",
+      "description": "Route-bound Component tree nodes without nodeId, bind, or id cannot produce graph-wide node identity.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.node-path-missing"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-NODE-PATH-MISSING",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/node-path-missing",
+              "jsonPointer": "/tree",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "componentHandle": "reviewRoute"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "node-path-ambiguous-sibling-segment",
+      "description": "Sibling Component nodes with the same stable path segment are ambiguous in graph-wide identity.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.ambiguous-node-path"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-NODE-PATH-AMBIGUOUS",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/ambiguous-node-path",
+              "jsonPointer": "/tree/children/1/id",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/ambiguous-node-path",
+                "jsonPointer": "/tree/children/0/id",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "segment": "duplicateLabel",
+              "priorSegmentKind": "id",
+              "duplicateSegmentKind": "id"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "node-identity-duplicate-key",
+      "description": "Constructed graph-wide Component node identity keys must be unique across resolved route targets.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.duplicate-node-identity"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-NODE-IDENTITY-DUPLICATE",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/duplicate-node-identity",
+              "jsonPointer": "/targetSurfaceRoutes/1",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/duplicate-node-identity",
+                "jsonPointer": "/targetSurfaceRoutes/0",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "components[0]",
+                "artifactKind": "component",
+                "source": "memory://component/duplicate-node-identity",
+                "jsonPointer": "/tree",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "surfaceVersion": "1.0.0",
+              "route": "review",
+              "nodePath": "/reviewLayout",
+              "id": "reviewLayout"
+            }
+          }
+        ]
       }
     }
   ]

@@ -45,6 +45,15 @@ cascade diagnostics when the target Definition or route is unresolved; defer
 explicit graph binding, Definition id aliases, bind-key validation, TraceIndex,
 runtime, Studio/kernel identity, and provenance.
 
+A later semi-formal architecture checkpoint approved the narrowed graph-wide
+node identity slice once route-target and route-bound Definition-context checks
+had landed. Boundary: keep the work validator-owned; derive route-scoped
+`nodePath` from loaded, schema-valid Component trees using `nodeId`, then
+`bind`, then `id`; use JSON Pointers only as diagnostic sources; emit missing
+segment, ambiguous sibling segment, and duplicate constructed graph-wide
+identity diagnostics; keep Studio/kernel graph identity, provenance, runtime,
+and consumer wiring out of scope.
+
 ## Completed
 
 - `validateAppGraph()` now always runs the built-in Component route-target
@@ -64,26 +73,30 @@ runtime, Studio/kernel identity, and provenance.
 - Route-bound Components with bound controls now require `targetDefinition`, and
   resolved target routes must carry a `definition-form` slot whose
   `binding.definitionRef` exactly matches `targetDefinition.url`.
+- Component node identity diagnostics now require stable route-scoped nodePath
+  segments (`nodeId`, then `bind`, then `id`), reject ambiguous sibling
+  segments, and reject duplicate constructed graph-wide identity keys across
+  resolved route targets.
 - `componentNodeIdentityKey()` and graph-wide node identity types are exported
-  as preparatory API only.
+  and used by the validator-owned duplicate identity check.
 - Source conformance fixtures now exercise the existing Component route-target
-  validator plus URL-based route-bound-control Definition context against
-  already-loaded, schema-valid graph handles.
+  validator, URL-based route-bound-control Definition context, and Component
+  node identity diagnostics against already-loaded, schema-valid graph handles.
 
 ## Still Open
 
-- Full graph-wide Component node identity disambiguation.
 - Studio/kernel operations using graph-wide identity for multi-Surface and
   multi-Component apps.
 - `x-generation.copiedFrom` / `movedFrom` provenance using graph-wide node
   identity.
-- Full node identity and graph-wide copy provenance fixtures.
+- Graph-wide copy provenance fixtures.
 - Consumer wiring for lint, Studio, MCPs, runtime, and projection.
 
 ## Deviations
 
-- Gate 5 is Partial, not Closed. This slice closes the route-target core but not
-  full node identity disambiguation.
+- ADR 0154 remains Partial even though the shared validator now covers
+  route-target, route-bound Definition-context, and node-identity diagnostics.
+  Studio/kernel graph-wide operations and provenance remain separate open gates.
 - No SemVer range evaluator was introduced. Exact SemVer mismatches fail closed;
   range compatibility remains deferred rather than guessed.
 - No resolver extraction was introduced. Tests pass explicit

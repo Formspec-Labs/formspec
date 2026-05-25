@@ -7,6 +7,7 @@ import {
   type ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { componentNodeIdentityKey, type AppGraphComponentNodeIdentity } from './component-identity.js';
 
 interface ManifestRef {
   url: string;
@@ -36,6 +37,24 @@ interface ComponentClaim {
   key: string;
   owner: string;
   source: AppGraphSourcePointer;
+}
+
+interface ComponentNodeLabel {
+  value: string;
+  kind: 'nodeId' | 'bind' | 'id';
+  sourcePointer: string;
+}
+
+interface ComponentNodeIdentityCandidate {
+  nodePath: string;
+  id?: string;
+  nodeId?: string;
+  source: AppGraphSourcePointer;
+}
+
+interface ComponentNodeIdentityClaim {
+  nodeSource: AppGraphSourcePointer;
+  targetSource: AppGraphSourcePointer;
 }
 
 interface BindEvidence {
@@ -178,6 +197,138 @@ function targetDefinitionUrl(document: unknown): string | undefined {
 
 function jsonPointerSegment(value: string): string {
   return value.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+
+function sourceIdentity(source: AppGraphSourcePointer): string {
+  return [
+    source.artifactSlot ?? '',
+    source.artifactKind ?? '',
+    source.source ?? '',
+    source.jsonPointer ?? '',
+    source.ref?.url ?? '',
+    source.ref?.version ?? '',
+  ].join('\u0000');
+}
+
+function uniqueSources(sources: readonly AppGraphSourcePointer[]): AppGraphSourcePointer[] {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    const key = sourceIdentity(source);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function stableNodeLabel(node: Record<string, unknown>, pointer: string): ComponentNodeLabel | undefined {
+  const nodeId = stringProp(node, 'nodeId');
+  if (nodeId) return { value: nodeId, kind: 'nodeId', sourcePointer: `${pointer}/nodeId` };
+  const bind = stringProp(node, 'bind');
+  if (bind) return { value: bind, kind: 'bind', sourcePointer: `${pointer}/bind` };
+  const id = stringProp(node, 'id');
+  if (id) return { value: id, kind: 'id', sourcePointer: `${pointer}/id` };
+  return undefined;
+}
+
+function appendSiblingAmbiguityDiagnostics(
+  diagnostics: AppGraphDiagnostic[],
+  handle: ResolvedArtifactHandle,
+  componentHandle: string,
+  siblings: readonly unknown[],
+  pointer: string,
+): Set<number> {
+  const bySegment = new Map<string, { index: number; label: ComponentNodeLabel }[]>();
+  siblings.forEach((child, index) => {
+    const childRecord = record(child);
+    if (!childRecord) return;
+    const label = stableNodeLabel(childRecord, `${pointer}/${index}`);
+    if (!label) return;
+    const matches = bySegment.get(label.value) ?? [];
+    matches.push({ index, label });
+    bySegment.set(label.value, matches);
+  });
+
+  const ambiguous = new Set<number>();
+  for (const [segment, matches] of bySegment.entries()) {
+    if (matches.length < 2) continue;
+    const prior = matches[0];
+    for (const match of matches) ambiguous.add(match.index);
+    for (const match of matches.slice(1)) {
+      diagnostics.push(diagnostic(
+        'APP-GRAPH-COMPONENT-NODE-PATH-AMBIGUOUS',
+        `Component '${componentHandle}' has sibling nodes with the same stable nodePath segment '${segment}'.`,
+        diagnosticSourceForHandle(handle, match.label.sourcePointer),
+        [diagnosticSourceForHandle(handle, prior.label.sourcePointer)],
+        {
+          componentHandle,
+          segment,
+          priorSegmentKind: prior.label.kind,
+          duplicateSegmentKind: match.label.kind,
+        },
+      ));
+    }
+  }
+  return ambiguous;
+}
+
+function collectComponentNodeIdentityCandidates(
+  handle: ResolvedArtifactHandle,
+  componentHandle: string,
+  value: unknown,
+  pointer: string,
+  parentNodePath: string,
+  parentPathUsable: boolean,
+  segmentAmbiguous: boolean,
+  diagnostics: AppGraphDiagnostic[],
+): ComponentNodeIdentityCandidate[] {
+  const node = record(value);
+  if (!node) return [];
+
+  const label = stableNodeLabel(node, pointer);
+  const candidates: ComponentNodeIdentityCandidate[] = [];
+  let nodePath: string | undefined;
+  const pathUsable = parentPathUsable && label !== undefined && !segmentAmbiguous;
+
+  if (!label) {
+    diagnostics.push(diagnostic(
+      'APP-GRAPH-COMPONENT-NODE-PATH-MISSING',
+      `Component '${componentHandle}' contains a route-scoped node without nodeId, bind, or id; graph-wide node identity cannot be constructed for this node.`,
+      diagnosticSourceForHandle(handle, pointer),
+      undefined,
+      { componentHandle },
+    ));
+  } else if (pathUsable) {
+    nodePath = `${parentNodePath}/${label.value}`;
+    candidates.push({
+      nodePath,
+      id: stringProp(node, 'id'),
+      nodeId: stringProp(node, 'nodeId'),
+      source: diagnosticSourceForHandle(handle, pointer),
+    });
+  }
+
+  const children = node.children;
+  if (!Array.isArray(children)) return candidates;
+  const ambiguousChildren = appendSiblingAmbiguityDiagnostics(
+    diagnostics,
+    handle,
+    componentHandle,
+    children,
+    `${pointer}/children`,
+  );
+  children.forEach((child, index) => {
+    candidates.push(...collectComponentNodeIdentityCandidates(
+      handle,
+      componentHandle,
+      child,
+      `${pointer}/children/${index}`,
+      nodePath ?? parentNodePath,
+      pathUsable,
+      ambiguousChildren.has(index),
+      diagnostics,
+    ));
+  });
+  return candidates;
 }
 
 function firstBindEvidence(value: unknown, pointer: string): BindEvidence | undefined {
@@ -331,6 +482,7 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
   const memberships = componentMemberships(manifestDocument);
   const componentHandles = handlesByKind(context.handles, 'component');
   const claims = new Map<string, ComponentClaim>();
+  const nodeIdentityClaims = new Map<string, ComponentNodeIdentityClaim>();
   const diagnostics: AppGraphDiagnostic[] = [];
 
   for (const handle of componentHandles) {
@@ -358,6 +510,18 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
     const bindEvidence = componentVersion(document) === '1.2' && hasRouteTargets(document)
       ? componentTreeBindEvidence(document)
       : undefined;
+    const nodeIdentityCandidates = componentVersion(document) === '1.2' && hasRouteTargets(document)
+      ? collectComponentNodeIdentityCandidates(
+        handle,
+        membership.handle,
+        record(document)?.tree,
+        '/tree',
+        '',
+        true,
+        false,
+        diagnostics,
+      )
+      : [];
     let targetDefinitionResolves = false;
     if (targetDefinition) {
       const targetSource = sourceForTargetDefinition(handle);
@@ -475,6 +639,46 @@ export function validateComponentRouteTargets(context: AppGraphContext): AppGrap
           { componentHandle: membership.handle, surfaceUrl, route: target.route, slot: target.slot },
         ));
         return;
+      }
+
+      const surfaceVersion = manifestSurface?.version ?? target.surface?.version ?? stringProp(record(surfaceHandle.ref), 'version');
+      for (const node of nodeIdentityCandidates) {
+        const identity: AppGraphComponentNodeIdentity = {
+          component: {
+            handle: membership.handle,
+            url: stringProp(record(handle.ref), 'url') ?? membership.url,
+            version: refVersion(record(handle.ref)) ?? membership.version,
+          },
+          surface: {
+            url: surfaceUrl,
+            version: surfaceVersion,
+          },
+          route: target.route,
+          nodePath: node.nodePath,
+          id: node.id,
+          nodeId: node.nodeId,
+        };
+        const identityKey = componentNodeIdentityKey(identity);
+        const prior = nodeIdentityClaims.get(identityKey);
+        if (prior) {
+          diagnostics.push(diagnostic(
+            'APP-GRAPH-COMPONENT-NODE-IDENTITY-DUPLICATE',
+            `Component '${membership.handle}' produces duplicate graph-wide node identity for route '${target.route}' nodePath '${node.nodePath}'.`,
+            targetSource,
+            uniqueSources([prior.targetSource, prior.nodeSource, node.source]),
+            {
+              componentHandle: membership.handle,
+              surfaceUrl,
+              surfaceVersion,
+              route: target.route,
+              nodePath: node.nodePath,
+              id: node.id,
+              nodeId: node.nodeId,
+            },
+          ));
+        } else {
+          nodeIdentityClaims.set(identityKey, { nodeSource: node.source, targetSource });
+        }
       }
 
       if (bindEvidence && targetDefinition && targetDefinitionResolves) {
