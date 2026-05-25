@@ -35,6 +35,9 @@ or fine-grained authorization semantics.
 - 2026-05-25 architecture review scout `019e6132-4468-7141-8892-1c9a146c0778`
   found EC2 belongs in AppGraphValidator cross-artifact validation when scoped
   to URL-exact Surface `experience-unit` route-local Definition context.
+- 2026-05-25 architecture review scout `019e6147-95d5-7290-b780-003ae1d42248`
+  found A10 must stay Held/Open until a real Screener-to-app association source
+  exists; ad hoc host evidence would invent a public validator contract.
 
 ## Evidence Map
 
@@ -49,7 +52,7 @@ or fine-grained authorization semantics.
 | A7 duplicate durable-effect idempotency key | Source conformance fixture plus Rust lint `E1804` check | Covered |
 | A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held out of first slice |
 | A9 route/Definition ownership mismatch | Component route `bound-controls-route-definition-mismatch` fixture | Covered |
-| A10 undeclared Screener terminal hop | Surface schema documents `surface:<route-id>` but no app-graph source fixture | Open |
+| A10 undeclared Screener terminal hop | Surface/Screener syntax is documented, but app-graph validation is blocked until a Screener-to-app association source exists | Held/Open |
 | A11 duplicate Response Actions action id | Source conformance fixture plus Rust lint `E1801` check | Covered |
 | A12 generated Component id collision | Component route `node-identity-duplicate-key` fixture | Covered |
 | A13 module-widget payload mismatch | `module-resolver/payload-mismatch.case.json` | Covered |
@@ -84,8 +87,9 @@ or fine-grained authorization semantics.
 ### Phase 3 - Route / Screener / Experience Gaps
 
 - [ ] Decide A5 route-params posture after Surface path-parameter prose exists.
-- [ ] Decide A10 Screener terminal-hop app-graph scope without promoting the
-  deprecated embedded-screener model.
+- [x] Hold A10; do not implement AppGraphValidator Screener validation until the
+  Screener association source is specified. Do not close via TraceIndex, Runtime
+  Plan, embedded Definition screener, filename discovery, or ad hoc hostEvidence.
 - [x] Promote EC2 into Surface `experience-unit` source conformance fixtures and
   pin route-local Definition context in AppGraphValidator.
 - [ ] Split EC12 runtime hidden-state behavior from existing graph hidden-Definition
@@ -112,6 +116,9 @@ or fine-grained authorization semantics.
 - 2026-05-25: EC2 is URL-exact only. It does not claim Definition `id` alias
   closure, TraceIndex behavior, runtime routing, hidden-state handling, submit
   ownership, or authorization semantics.
+- 2026-05-25: A10 cannot count as conformance closure from Surface/Screener
+  prose alone. Current evidence proves target syntax only, not graph-associated
+  Screener route resolution.
 
 ## Closure Evidence
 
@@ -151,6 +158,7 @@ Partial evidence after the first slice:
 
 Still open:
 
-- A5, A10, and EC12 runtime behavior need dedicated slices.
+- A5 and EC12 runtime behavior need dedicated slices; A10 remains Held/Open
+  behind a Screener-to-app association source.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.

@@ -661,12 +661,13 @@ Override routes use the same properties as regular routes (§4.3), plus:
 
 ### 7.1 Target Syntax
 
-The `target` property on a route is a URI string. Targets fall into three
+The `target` property on a route is a URI string. Targets fall into four
 categories:
 
 | Category | Format | Example | Description |
 |----------|--------|---------|-------------|
 | **Formspec Definition** | `url\|version` | `"https://grants.gov/forms/sf-425\|2.1.0"` | Routes to a specific version of a Formspec Definition. Uses the same canonical reference syntax as core §4.7. |
+| **Surface route** | `surface:<route-id>` | `"surface:intake"` | Routes to an app Surface route after an explicit association contract binds the Screener to the app graph. |
 | **External URI** | Any valid URI | `"https://agency.gov/applications-closed"` | Routes to an external resource. The Screener does not interpret the URI; it is passed through to the consuming application. |
 | **Named outcome** | `outcome:name` | `"outcome:ineligible"` | Routes to a named outcome defined by the consuming application. See §7.2. |
 
@@ -688,12 +689,20 @@ not a Definition URI." **Conformance Rule (SC-19):** Conforming processors
 MUST pass named outcomes through to the consuming application without
 interpretation.
 
-### 7.3 Formspec Definition References
+### 7.3 Definition and Surface Resolution
 
 When a route target uses the `url|version` syntax, the consuming application
 is responsible for resolving the referenced Definition. The Screener
 processor produces the reference; it does not load or validate the target
 Definition.
+
+When a route target uses `surface:<route-id>`, AppGraphValidator route
+resolution applies only after a Screener is explicitly associated with the app
+graph by an explicit association contract, such as an App Manifest slot,
+project binding, or host-evidence contract defined by its owning spec.
+Processors MUST NOT infer that association from filenames, loaded Definitions,
+TraceIndex, Runtime Plan, embedded Definition screeners, or ad hoc
+`hostEvidence`.
 
 A route MAY use a bare URL without a version (e.g., `"https://grants.gov/forms/sf-425"`),
 in which case the consuming application SHOULD resolve to the latest

@@ -190,6 +190,13 @@ inside the Screener document itself; the Screener emits a destination URI
 string. Surface picks the URI up by scheme inspection at the renderer or
 gateway layer.
 
+AppGraphValidator resolution of Screener `surface:<route-id>` targets applies
+only when a Screener is explicitly associated with the app graph by an explicit
+association contract, such as an App Manifest slot, project binding, or
+host-evidence contract defined by its owning spec. Processors MUST NOT infer
+that association from filenames, loaded Definitions, TraceIndex, Runtime Plan,
+embedded Definition screeners, or ad hoc `hostEvidence`.
+
 ## 7. Conformance
 
 A Surface document is conformance-coherent when:
