@@ -44,6 +44,7 @@ describe('createAppGraphReport', () => {
       diagnostics: [
         diagnostic({ code: 'Z-INFO', severity: 'info', phase: 'unsupported', message: 'z' }),
         diagnostic({ code: 'A-ERROR', severity: 'error', phase: 'schema', message: 'a' }),
+        diagnostic({ code: 'UI-POLICY-ROUTE-REF', origin: 'ui-graph-policy', message: 'policy route' }),
         diagnostic({ code: 'M-WARN', severity: 'warning', phase: 'module-resolution', origin: 'module-resolver', message: 'm' }),
       ],
       phases: [
@@ -54,9 +55,9 @@ describe('createAppGraphReport', () => {
     });
 
     expect(report.ok).toBe(false);
-    expect(report.diagnostics.map((entry) => entry.code)).toEqual(['A-ERROR', 'M-WARN', 'Z-INFO']);
+    expect(report.diagnostics.map((entry) => entry.code)).toEqual(['A-ERROR', 'UI-POLICY-ROUTE-REF', 'M-WARN', 'Z-INFO']);
     expect(report.summary).toMatchObject({
-      errors: 1,
+      errors: 2,
       warnings: 1,
       infos: 1,
       unvalidatedArtifacts: 0,
@@ -206,18 +207,42 @@ describe('validateAppGraph', () => {
   });
 
   it('validates UI Graph Policy host evidence with explicit evidence validators', () => {
+    const policyDocument = {
+      $formspecUiGraphPolicy: '0.1',
+      version: '1.0.0',
+      targetSurface: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
+      routePolicies: [{ routeId: 'review' }],
+    };
     const evidenceSchemaValidator = vi.fn(() => ({ ok: true }));
     const crossArtifact = vi.fn(() => []);
     const report = validateAppGraph({
       manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      artifacts: {
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          schemaId: 'surface',
+          ref: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
+          document: {
+            $formspecSurface: '0.1',
+            id: 'respondent',
+            entry: 'review',
+            routes: [{
+              id: 'review',
+              path: '/review',
+              slots: [{ id: 'main', slotType: 'static-content', binding: { kind: 'text', content: 'Review' } }],
+            }],
+          },
+        })],
+      },
       hostEvidence: {
         uiGraphPolicies: [{
           schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
           source: 'host://policy/respondent-ui-policy',
-          document: { uiGraphPolicy: '0.1', families: [] },
+          document: policyDocument,
         }],
       },
-      schemaValidators: { 'app-manifest': () => ({ ok: true }) },
+      schemaValidators: () => ({ ok: true }),
       evidenceSchemaValidators: { [UI_GRAPH_POLICY_SCHEMA_ID]: evidenceSchemaValidator },
       crossArtifactValidators: [crossArtifact],
     });
@@ -227,7 +252,7 @@ describe('validateAppGraph', () => {
       evidenceKind: 'uiGraphPolicy',
       schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
       source: 'host://policy/respondent-ui-policy',
-      document: { uiGraphPolicy: '0.1', families: [] },
+      document: policyDocument,
     });
     expect(crossArtifact).toHaveBeenCalledWith(expect.objectContaining({
       evidenceResults: [expect.objectContaining({
@@ -239,8 +264,8 @@ describe('validateAppGraph', () => {
         uiGraphPolicies: expect.any(Array),
       }),
     }));
-    expect(report.schemaResults).toHaveLength(1);
-    expect(report.schemaResults[0]).toMatchObject({ slot: 'app', artifactKind: 'appManifest' });
+    expect(report.schemaResults).toHaveLength(2);
+    expect(report.schemaResults).toContainEqual(expect.objectContaining({ slot: 'app', artifactKind: 'appManifest' }));
     expect(report.evidenceResults[0]).toEqual(expect.not.objectContaining({ artifactKind: expect.anything() }));
     expect(report.phases).toContainEqual({ phase: 'cross-artifact', status: 'completed' });
   });
@@ -434,6 +459,51 @@ describe('validateAppGraph', () => {
       phase: 'cross-artifact',
       status: 'skipped',
       reason: 'missing-schema-validators',
+    });
+  });
+
+  it('skips UI Graph Policy semantics when policy evidence schema validation fails', () => {
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      artifacts: {
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          ref: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
+          document: { routes: [{ id: 'review', slots: [] }] },
+        })],
+      },
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+          source: 'host://policy/respondent-ui-policy',
+          document: {
+            $formspecUiGraphPolicy: '0.1',
+            version: '1.0.0',
+            targetSurface: { url: 'https://example.gov/apps/intake/surfaces/admin' },
+            routePolicies: [{ routeId: 'review' }],
+          },
+        }],
+      },
+      schemaValidators: () => ({ ok: true }),
+      evidenceSchemaValidators: {
+        [UI_GRAPH_POLICY_SCHEMA_ID]: () => ({
+          ok: false,
+          issues: [{ path: '/routePolicies', message: 'schema failed before semantics' }],
+        }),
+      },
+    });
+
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('UI-POLICY-SURFACE-TARGET');
+    expect(report.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'APP-GRAPH-SCHEMA',
+      phase: 'schema',
+      origin: 'schema-validator',
+    }));
+    expect(report.phases).toContainEqual({
+      phase: 'cross-artifact',
+      status: 'skipped',
+      reason: 'schema-errors',
     });
   });
 });

@@ -92,6 +92,12 @@ function countDiagnostics(
   return diagnostics.filter((diagnostic) => diagnostic.severity === severity).length;
 }
 
+function isNativeDiagnosticOrigin(origin: AppGraphDiagnostic['origin']): boolean {
+  return origin === 'app-graph-validator'
+    || origin === 'schema-validator'
+    || origin === 'ui-graph-policy';
+}
+
 export interface CreateAppGraphReportInput {
   artifactCount: number;
   loadedArtifactCount: number;
@@ -123,9 +129,7 @@ export function createAppGraphReport(input: CreateAppGraphReportInput): AppGraph
     errors: countDiagnostics(diagnostics, 'error'),
     warnings: countDiagnostics(diagnostics, 'warning'),
     infos: countDiagnostics(diagnostics, 'info'),
-    importedDiagnostics: diagnostics.filter((diagnostic) =>
-      diagnostic.origin !== 'app-graph-validator' && diagnostic.origin !== 'schema-validator'
-    ).length,
+    importedDiagnostics: diagnostics.filter((diagnostic) => !isNativeDiagnosticOrigin(diagnostic.origin)).length,
     unsupportedFeatures: diagnostics.filter((diagnostic) => diagnostic.phase === 'unsupported').length,
     skippedPhases: phases.filter((phase) => phase.status === 'skipped').length,
   };

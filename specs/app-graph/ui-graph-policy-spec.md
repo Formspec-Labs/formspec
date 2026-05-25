@@ -26,18 +26,18 @@ The structural source contract is governed by
 `schemas/ui-graph-policy.schema.json`
 (`https://formspec.org/schemas/uiGraphPolicy/0.1`). This document intentionally
 does not define an App Manifest slot, runtime responsive behavior, renderer
-behavior, Studio wiring, ModuleResolver token-slot enforcement, or semantic UI
-Graph Policy enforcement. The shared AppGraphValidator kernel can validate
-host-supplied UI Graph Policy evidence structurally and report
-`evidenceResults[]`; cross-artifact policy diagnostics land in later
-implementation gates.
+behavior, Studio wiring, ModuleResolver token-slot enforcement, Locale-owner
+enforcement, Theme token-slot enforcement, or hidden Definition runtime
+behavior. The shared AppGraphValidator kernel validates host-supplied UI Graph
+Policy evidence structurally and reports `evidenceResults[]`; it also emits the
+Surface/route-only semantic diagnostics named in this document.
 
 ## Bottom Line Up Front
 
 <!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
 - UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice adds host-evidence schema result reporting, not semantic AppGraphValidator policy enforcement.
+- This slice adds host-evidence schema result reporting and Surface/route-only AppGraphValidator enforcement; Locale-owner, Theme token-slot, and hidden Definition checks remain later gates.
 - Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
@@ -336,16 +336,17 @@ choice until the Registry schema formally names it. The v4 spike's
 
 ## 6. Diagnostic Import
 
-Future executable `AppGraphValidator` integrations may include UI Graph Policy
-diagnostics as cross-artifact diagnostics. The validator report origin profile
-admits `ui-graph-policy`, but this document does not require any current
-validator to emit these diagnostics:
+The shared `AppGraphValidator` emits UI Graph Policy Surface/route diagnostics
+as cross-artifact diagnostics after policy host evidence and loaded artifacts
+pass source schema validation. Locale-owner, Theme token-slot, hidden
+Definition, ModuleResolver/Registry, runtime, Studio, MCP, projection, and
+consumer diagnostics remain later gates.
 
 | Field | Value |
 |---|---|
 | `origin` | `ui-graph-policy` |
 | `phase` | `cross-artifact` |
-| policy artifact identity | Future host-loading/source-pointer work; not standardized by this slice. |
+| policy artifact identity | Evidence-only source pointer from `hostEvidence.uiGraphPolicies[N]`; never an App Manifest artifact kind, ref, or path-derived identity. |
 
 Initial diagnostic codes:
 
@@ -362,11 +363,13 @@ Initial diagnostic codes:
 | `THEME-TOKEN-WIDGET` | error | A Theme token assignment references an unresolved or unadmitted module widget. |
 | `THEME-TOKEN-SLOT` | error | A Theme token assignment targets a token slot not declared by the widget. |
 
-Diagnostics MUST preserve the policy source pointer and any related Surface,
-Locale, Theme, Registry, or ModuleResolver pointers needed for deterministic
-authoring feedback. This v0.1 report-origin slice admits the diagnostic origin
-only; it does not add policy loading, executable validator emission, or full
-`AppGraphValidationReport` conformance for the semantic fixture corpus.
+Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
+`UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
+`UI-POLICY-ROUTE-REF`, and `UI-POLICY-RESPONSIVE-SLOT`. Policy source pointers
+MUST use `artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, opaque `source`,
+and `jsonPointer` only. Surface related sources may use normal resolved
+artifact handle pointers. Locale, Theme, Registry, ModuleResolver, and
+Definition diagnostics are not emitted by this slice.
 
 ## 7. Non-Goals and Boundaries
 

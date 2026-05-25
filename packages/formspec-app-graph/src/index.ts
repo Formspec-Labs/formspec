@@ -41,6 +41,9 @@ export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {
+  validateUiGraphPolicySurfaceRoutes,
+} from './ui-graph-policy.js';
+export {
   artifactHandlesFor,
   validateAppGraph,
 } from './validator.js';

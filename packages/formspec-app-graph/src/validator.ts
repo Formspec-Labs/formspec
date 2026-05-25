@@ -24,6 +24,7 @@ import {
   normalizeDiagnostics,
 } from './report.js';
 import { validateComponentRouteTargets } from './component-routes.js';
+import { validateUiGraphPolicySurfaceRoutes } from './ui-graph-policy.js';
 
 const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
 
@@ -263,6 +264,7 @@ function runCrossArtifactValidators(
 ): AppGraphDiagnostic[] {
   const allValidators = [
     validateComponentRouteTargets,
+    validateUiGraphPolicySurfaceRoutes,
     ...(validators ?? []),
   ];
   return allValidators.flatMap((validator) => validator({

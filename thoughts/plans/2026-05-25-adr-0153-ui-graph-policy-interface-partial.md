@@ -13,11 +13,13 @@ responsive collapse order, hidden Definition refs, and Theme token assignments
 to module widget token slots.
 
 The current slices promote the structural source schema, generated TypeScript
-type, host-supplied loading evidence, and executable host-evidence schema
-result reporting in the shared AppGraphValidator kernel. They do not promote an
-App Manifest slot, ArtifactResolver group, semantic UI Graph Policy diagnostics,
-ModuleResolver token-slot enforcement, runtime responsive behavior, renderer
-behavior, Studio wiring, or ADR 0152 authorization semantics.
+type, host-supplied loading evidence, executable host-evidence schema result
+reporting, and Surface/route-only semantic diagnostics in the shared
+AppGraphValidator kernel. They do not promote an App Manifest slot,
+ArtifactResolver group, Locale-owner checks, Theme token-slot checks, hidden
+Definition behavior, ModuleResolver token-slot enforcement, runtime responsive
+behavior, renderer behavior, Studio wiring, or ADR 0152 authorization
+semantics.
 
 ## Review Checkpoint
 
@@ -98,6 +100,16 @@ host-evidence not-run state under `summary.unvalidatedArtifacts`; keep evidence
 diagnostics limited to `artifactSlot`, `source`, and `jsonPointer`; do not add
 semantic UI Graph Policy diagnostics.
 
+Cicero approved the first semantic AppGraphValidator slice for Surface/route
+families only. Required boundary: emit `UI-POLICY-SURFACE-TARGET`,
+`UI-POLICY-ROUTE-COLLISION`, `UI-POLICY-ROUTE-REF`,
+`UI-POLICY-ROUTE-MISSING`, and `UI-POLICY-RESPONSIVE-SLOT` over schema-valid
+`hostEvidence.uiGraphPolicies[]` and loaded Surface handles; match
+`document.targetSurface.url` only against loaded Surface `ref.url`; keep policy
+pointers evidence-only; do not emit Locale owner, Theme token-slot, hidden
+Definition, ModuleResolver/Registry, runtime, consumer, App Manifest slot, or
+ADR 0152 authorization diagnostics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -158,13 +170,24 @@ semantic UI Graph Policy diagnostics.
   `evidenceSchemaValidators` and `evidenceResults[]` while preserving
   artifact-only `schemaValidators`, artifact-only `schemaResults[]`, and
   artifact-only `summary.unvalidatedArtifacts`.
+- `packages/formspec-app-graph/src/ui-graph-policy.ts`,
+  `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`, and
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-surface-routes.case.json`
+  add executable Surface/route diagnostics for target Surface mismatch, route
+  policy collision, unresolved route, missing route coverage, and unresolved
+  responsive slot references.
+- `tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py`
+  pins the executable fixture corpus and verifies that Locale owner, Theme
+  token-slot, hidden Definition, path-identity, and ADR 0152 authorization
+  families remain out of this slice.
 
 ## Still Open For Closure
 
 - Optional future App Manifest loading slot if the package contract later
   chooses one.
-- Semantic AppGraphValidator UI Graph Policy diagnostic emission.
-- Executable AppGraphValidator conformance over the semantic fixture families.
+- Locale-owner semantic diagnostics.
+- Hidden Definition semantic diagnostics and runtime behavior.
+- Theme token-slot semantic diagnostics.
 - ModuleResolver/Registry token-slot evidence integration.
 - Studio and authoring feedback.
 - Runtime hidden Definition state enforcement where applicable.
@@ -174,9 +197,10 @@ semantic UI Graph Policy diagnostics.
 - `python -m pytest tests/conformance/schemas/test_ui_graph_policy_schema.py -q`
 - `python -m pytest tests/conformance/schemas/test_app_graph_validation_report_schema.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py -q`
+- `python -m pytest tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
 - `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`
-- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts`
+- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`

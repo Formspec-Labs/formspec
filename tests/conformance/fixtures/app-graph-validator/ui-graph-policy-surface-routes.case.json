@@ -1,0 +1,562 @@
+{
+  "id": "ui-graph-policy-surface-routes",
+  "description": "Executable AppGraphValidator conformance for UI Graph Policy Surface and route-only semantic families.",
+  "handles": {
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.2",
+      "source": "memory://app",
+      "document": {
+        "$formspecApp": "2.2",
+        "id": "intake-app"
+      }
+    },
+    "surface-respondent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/intake/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "summary",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              },
+              {
+                "id": "details",
+                "slotType": "module-widget",
+                "binding": {
+                  "moduleId": "x-reviewer",
+                  "widgetName": "x-review-panel"
+                }
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": [
+              {
+                "id": "confirmation",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Done"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "policies": {
+    "valid-policy": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/valid",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "1.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "responsive": {
+              "collapseOrder": ["summary", "details"]
+            }
+          },
+          {
+            "routeId": "done",
+            "responsive": {
+              "collapseOrder": ["confirmation"]
+            }
+          }
+        ]
+      }
+    },
+    "target-mismatch": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/target-mismatch",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/admin"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "duplicate-route": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/duplicate-route",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          },
+          {
+            "routeId": "review"
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "unresolved-route": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/unresolved-route",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "missing-route"
+          }
+        ]
+      }
+    },
+    "missing-route": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/missing-route",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "unresolved-responsive-slot": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/unresolved-responsive-slot",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "responsive": {
+              "collapseOrder": ["summary", "missing-slot"]
+            }
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "deferred-policy-families": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/deferred-policy-families",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-reviewer"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/not-route-local"
+                }
+              ]
+            }
+          },
+          {
+            "routeId": "done"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-missing",
+                "widgetName": "x-missing-widget"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-policy-surface-routes",
+      "description": "A schema-valid host policy matching the loaded Surface routes emits no UI policy diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-policy"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-target-mismatch",
+      "description": "A policy targetSurface URL must match exactly one loaded Surface ref URL.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["target-mismatch"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/target-mismatch",
+              "jsonPointer": "/targetSurface/url"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/ref/url",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/admin"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "duplicate-route-policy",
+      "description": "A policy may not contain two entries for the same Surface route.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["duplicate-route"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-ROUTE-COLLISION",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/duplicate-route",
+              "jsonPointer": "/routePolicies/1/routeId"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/duplicate-route",
+                "jsonPointer": "/routePolicies/0/routeId"
+              }
+            ],
+            "details": {
+              "routeId": "review"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unresolved-route-policy",
+      "description": "A route policy must resolve to a route in the target Surface, without cascading into missing-route coverage.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["unresolved-route"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-ROUTE-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/unresolved-route",
+              "jsonPointer": "/routePolicies/0/routeId"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "routeId": "missing-route"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing-route-policy",
+      "description": "Every target Surface route must have a policy entry when all policy route refs resolve.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["missing-route"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-ROUTE-MISSING",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/respondent",
+              "jsonPointer": "/routes/1/id",
+              "ref": {
+                "url": "https://example.gov/apps/intake/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/missing-route",
+                "jsonPointer": "/routePolicies"
+              }
+            ],
+            "details": {
+              "routeId": "done"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unresolved-responsive-slot",
+      "description": "A responsive collapse slot id must resolve to a slot on the targeted Surface route.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["unresolved-responsive-slot"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-RESPONSIVE-SLOT",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/unresolved-responsive-slot",
+              "jsonPointer": "/routePolicies/0/responsive/collapseOrder/1"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes/0/slots",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "routeId": "review",
+              "slotId": "missing-slot"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "deferred-policy-families-not-emitted",
+      "description": "Locale ownership, Theme token-slot, and hidden Definition families remain deferred when Surface route policy checks pass.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["deferred-policy-families"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    }
+  ]
+}
