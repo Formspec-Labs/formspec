@@ -12,11 +12,11 @@ app-graph policy boundary for module Locale key ownership, route accessibility,
 responsive collapse order, hidden Definition refs, and Theme token assignments
 to module widget token slots.
 
-The current slice promotes only the structural source schema plus host-supplied
-loading evidence. It does not promote an App Manifest slot, ArtifactResolver
-group, generated types, `AppGraphValidator` implementation, ModuleResolver
-token-slot enforcement, runtime responsive behavior, renderer behavior, Studio
-wiring, or ADR 0152 authorization semantics.
+The current slices promote the structural source schema, generated TypeScript
+type, and host-supplied loading evidence. They do not promote an App Manifest
+slot, ArtifactResolver group, `AppGraphValidator` implementation,
+ModuleResolver token-slot enforcement, runtime responsive behavior, renderer
+behavior, Studio wiring, or ADR 0152 authorization semantics.
 
 ## Review Checkpoint
 
@@ -56,6 +56,14 @@ v2.3, ArtifactResolver group/report changes, AppGraphValidator enforcement,
 ModuleResolver/Registry token-slot enforcement, runtime hidden-state handling,
 Response Actions behavior, or ADR 0152 authorization fields.
 
+Cicero approved a follow-on generated-type slice. Required boundary: add
+`UiGraphPolicyDocument` generated TypeScript support only; no App Manifest slot
+or v2.3, ArtifactResolver group/report changes, AppGraphValidator enforcement
+or origin changes, ModuleResolver token-slot work, runtime hidden-state
+behavior, Studio/MCP/projection/renderer/production consumer wiring, ADR 0152
+authorization fields, pseudo artifact kind, or document-shape/path-derived
+identity.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -80,12 +88,16 @@ Response Actions behavior, or ADR 0152 authorization fields.
 - Structural schema fixtures and `tests/conformance/schemas/test_ui_graph_policy_schema.py`
   cover positive shape, spike-discriminator rejection, path-identity rejection,
   locale prefix shape, and authorization-field rejection.
+- `packages/formspec-types/src/generated/ui-graph-policy.ts` and the generated
+  barrel export publish `UiGraphPolicyDocument` for the structural source
+  contract only.
+- `packages/formspec-types/tests/schema-sync.test.ts` covers
+  `UiGraphPolicyDocument` importability.
 
 ## Still Open For Closure
 
 - App Manifest loading slot or accepted production host-loading rule for the
   policy source.
-- Generated types and package exports.
 - Broader positive and negative conformance fixtures beyond structural schema
   acceptance.
 - AppGraphValidator integration.

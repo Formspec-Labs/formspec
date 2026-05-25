@@ -9,7 +9,7 @@ Source schema: `schemas/ui-graph-policy.schema.json`
 
 - UI Graph Policy is a host-loaded app-graph policy artifact for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice does not add an App Manifest slot, generated types, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
+- This slice does not add an App Manifest slot, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
 - Policy identity comes from the loaded policy handle and `targetSurface`, never from fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
@@ -34,4 +34,4 @@ Source schema: `schemas/ui-graph-policy.schema.json`
 
 - A conforming UI Graph Policy document must include `$formspecUiGraphPolicy='0.1'`, strict SemVer `version`, `targetSurface`, and at least one `routePolicies[]` entry.
 - Structural conformance rejects `$wireframeUiPolicy` spike documents, path-identity fields, authorization fields, invalid module Locale prefixes, and App Manifest `uiPolicy` or `uiGraphPolicy` slots in the current manifest schema.
-- This slice proves schema shape and fixture acceptance only; App Manifest loading, generated types, AppGraphValidator integration, ModuleResolver/Registry token-slot checks, Studio feedback, and runtime hidden-state behavior remain later gates.
+- This slice proves schema shape, generated types, and fixture acceptance only; App Manifest loading, AppGraphValidator integration, ModuleResolver/Registry token-slot checks, Studio feedback, and runtime hidden-state behavior remain later gates.

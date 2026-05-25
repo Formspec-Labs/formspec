@@ -25,17 +25,19 @@ accessibility, responsive collapse, and module widget Theme token slots.
 The structural source contract is governed by
 `schemas/ui-graph-policy.schema.json`
 (`https://formspec.org/schemas/uiGraphPolicy/0.1`). This document intentionally
-does not define an App Manifest slot, generated types, runtime responsive
-behavior, renderer behavior, Studio wiring, ModuleResolver token-slot
-enforcement, or production `AppGraphValidator` implementation. Those land in
-later implementation gates after the source shape is stable.
+does not define an App Manifest slot, runtime responsive behavior, renderer
+behavior, Studio wiring, ModuleResolver token-slot enforcement, or production
+`AppGraphValidator` implementation. Generated TypeScript types are published by
+`@formspec-org/types` for the structural source contract only. Runtime and
+validator behavior land in later implementation gates after the source shape is
+stable.
 
 ## Bottom Line Up Front
 
 <!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
 - UI Graph Policy is a host-loaded app-graph policy artifact for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice does not add an App Manifest slot, generated types, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
+- This slice does not add an App Manifest slot, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
 - Policy identity comes from the loaded policy handle and `targetSurface`, never from fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
@@ -69,7 +71,6 @@ Out of scope:
 
 - adding an App Manifest `uiPolicy` / `uiGraphPolicy` sibling slot,
 - promoting `$wireframeUiPolicy` or the spike schema as production API,
-- generated types,
 - component/widget compatibility and responsive prop allowlists,
 - renderer layout algorithms or keyboard implementation details,
 - module admission and contribution ownership internals,
@@ -353,9 +354,8 @@ This v0.1 draft defines the prose interface contract and structural source
 schema for the UI graph policy families. Production closure still requires:
 
 1. an App Manifest loading slot or an accepted production host-loading rule,
-2. generated types,
-3. broader fixture-backed conformance beyond structural schema acceptance,
-4. `AppGraphValidator` integration,
-5. ModuleResolver/Registry token-slot evidence integration,
-6. Studio/authoring feedback, and
-7. runtime enforcement for hidden Definition state where applicable.
+2. broader fixture-backed conformance beyond structural schema acceptance,
+3. `AppGraphValidator` integration,
+4. ModuleResolver/Registry token-slot evidence integration,
+5. Studio/authoring feedback, and
+6. runtime enforcement for hidden Definition state where applicable.

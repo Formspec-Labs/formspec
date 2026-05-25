@@ -22,6 +22,7 @@ import type {
   DataSourcesDocument,
   ArtifactResolutionReport,
   AppGraphValidationReport,
+  UiGraphPolicyDocument,
   ValidationMappingDocument,
   ValidationReport,
 } from '../src/index.js';
@@ -68,6 +69,9 @@ describe('generated types smoke test', () => {
 
     const appGraphValidationReport = {} as AppGraphValidationReport;
     expect(appGraphValidationReport).toBeDefined();
+
+    const uiGraphPolicy = {} as UiGraphPolicyDocument;
+    expect(uiGraphPolicy).toBeDefined();
 
     const experience = {} as ExperienceDocument;
     expect(experience).toBeDefined();
