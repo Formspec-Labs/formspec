@@ -81,13 +81,17 @@ export function appGraphSourceFromModuleSource(
   source: ModuleResolutionSourcePointer | undefined,
 ): AppGraphSourcePointer | undefined {
   if (!source) return undefined;
-  return {
+  const isHostEvidence = source.artifactSlot.startsWith('hostEvidence.');
+  const pointer: AppGraphSourcePointer = {
     artifactSlot: source.artifactSlot,
-    artifactKind: source.artifactKind,
     source: source.source,
     jsonPointer: source.jsonPointer,
-    ref: source.ref ? { ...source.ref } : undefined,
   };
+  if (!isHostEvidence) {
+    pointer.artifactKind = source.artifactKind;
+    if (source.ref) pointer.ref = { ...source.ref };
+  }
+  return pointer;
 }
 
 export function artifactIdentityKey(handle: ResolvedArtifactHandle): string {

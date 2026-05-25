@@ -1,0 +1,881 @@
+{
+  "id": "ui-graph-policy-theme-widgets",
+  "description": "Executable AppGraphValidator conformance for UI Graph Policy Theme widget semantic checks.",
+  "handles": {
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.2",
+      "source": "memory://app",
+      "document": {
+        "$formspecApp": "2.2",
+        "id": "intake-app"
+      }
+    },
+    "surface-respondent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/intake/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "policies": {
+    "valid-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/valid-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "missing-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/missing-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "unadmitted-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/unadmitted-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "module-resolution-not-run-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/module-resolution-not-run-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "undeclared-slot",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "module-resolution-skipped-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/module-resolution-skipped-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "undeclared-slot",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "surface-target-mismatch-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/surface-target-mismatch-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/admin"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "owner-module-mismatch-theme-widget": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/owner-module-mismatch-theme-widget",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "moduleResolutionReports": {
+    "resolved-theme-widget": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/valid-theme-widget",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "no-theme-widget-contribution": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "unadmitted-theme-widget": {
+      "ok": false,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "denied",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "unadmitted",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/unadmitted-theme-widget",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          }
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "MODULE-CONTRIBUTION-UNADMITTED",
+          "severity": "error",
+          "phase": "module-resolution",
+          "origin": "module-resolver",
+          "message": "Theme widget contribution is not admitted.",
+          "primarySource": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/unadmitted-theme-widget",
+            "jsonPointer": "/theme/assignments/0/widgetRef",
+            "ref": {
+              "url": "https://example.gov/policies/unadmitted-theme-widget"
+            },
+            "module": {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          },
+          "details": {
+            "name": "x-review-panel",
+            "expectedCategory": "widget",
+            "status": "unadmitted"
+          }
+        }
+      ],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 0,
+        "deniedModules": 1,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 1,
+        "payloadFailures": 0,
+        "errors": 1,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "module-resolution-not-run": {
+      "ok": true,
+      "modules": [],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 0,
+        "admittedModules": 0,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "not-run"
+      }
+    },
+    "module-resolution-skipped": {
+      "ok": true,
+      "modules": [],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 0,
+        "admittedModules": 0,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "skipped",
+        "reason": "support-disabled"
+      }
+    },
+    "owner-module-mismatch-theme-widget": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        },
+        {
+          "ref": {
+            "id": "x-helper",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/1"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-helper",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/owner-module-mismatch-theme-widget",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "summary": {
+        "modules": 2,
+        "admittedModules": 2,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-theme-widget-with-resolved-contribution",
+      "description": "A Theme assignment widgetRef is valid when completed ModuleResolver evidence resolves the widget to the referenced module.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-theme-widget"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "missing-theme-widget-ref",
+      "description": "A Theme assignment widgetRef fails when completed ModuleResolver evidence has no matching widget contribution.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["missing-theme-widget"]
+        },
+        "moduleResolution": "no-theme-widget-contribution"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-WIDGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/missing-theme-widget",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "reason": "missing-contribution-evidence"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unadmitted-theme-widget-ref",
+      "description": "A Theme assignment widgetRef fails when the matching widget contribution is not admitted.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["unadmitted-theme-widget"]
+        },
+        "moduleResolution": "unadmitted-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 2,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 1,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-CONTRIBUTION-UNADMITTED",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/unadmitted-theme-widget",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "details": {
+              "name": "x-review-panel",
+              "expectedCategory": "widget",
+              "status": "unadmitted"
+            }
+          },
+          {
+            "code": "THEME-TOKEN-WIDGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/unadmitted-theme-widget",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "reason": "unadmitted-widget",
+              "contributionStatuses": ["unadmitted"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "module-resolution-not-run-skips-theme-widget",
+      "description": "Theme widgetRef checks do not run when ModuleResolver evidence is present but not completed.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["module-resolution-not-run-theme-widget"]
+        },
+        "moduleResolution": "module-resolution-not-run"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "module-resolution-absent-skips-theme-widget",
+      "description": "Theme widgetRef checks do not run when no ModuleResolver evidence is supplied.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["module-resolution-not-run-theme-widget"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "module-resolution-skipped-skips-theme-widget",
+      "description": "Theme widgetRef checks do not run when ModuleResolver evidence is skipped.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["module-resolution-skipped-theme-widget"]
+        },
+        "moduleResolution": "module-resolution-skipped"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 1
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-target-mismatch-skips-theme-widget",
+      "description": "Theme widgetRef checks do not run when the policy does not target the loaded Surface.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["surface-target-mismatch-theme-widget"]
+        },
+        "moduleResolution": "no-theme-widget-contribution"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/surface-target-mismatch-theme-widget",
+              "jsonPointer": "/targetSurface/url"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/ref/url",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/admin"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "widget-owner-module-mismatch",
+      "description": "A resolved widget contribution fails when it is owned by a different module than the policy widgetRef moduleId.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["owner-module-mismatch-theme-widget"]
+        },
+        "moduleResolution": "owner-module-mismatch-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-WIDGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/owner-module-mismatch-theme-widget",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "reason": "owner-module-mismatch",
+              "contributionStatuses": ["resolved"]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

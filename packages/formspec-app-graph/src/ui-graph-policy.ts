@@ -12,6 +12,7 @@ import {
 } from './report.js';
 import type {
   LocaleDocument,
+  ModuleResolutionContribution,
   ModuleResolutionModule,
   ModuleResolutionReport,
   SurfaceDocument,
@@ -21,6 +22,7 @@ import type {
 type HiddenDefinitionRef = NonNullable<
   NonNullable<UiGraphPolicyDocument['routePolicies'][number]['definitionVisibility']>['hiddenDefinitionRefs']
 >[number];
+type ThemeTokenAssignment = NonNullable<NonNullable<UiGraphPolicyDocument['theme']>['assignments']>[number];
 
 interface SurfaceRoute {
   id: string;
@@ -55,11 +57,18 @@ interface IndexedLocaleKeyOwner {
   keyPrefixModuleId?: string;
 }
 
+interface IndexedThemeTokenAssignment {
+  assignment: ThemeTokenAssignment;
+  index: number;
+}
+
 interface UiGraphPolicyEvidence {
   evidenceSlot: string;
   source: string;
   document: UiGraphPolicyDocument;
 }
+
+const UI_GRAPH_THEME_WIDGET_SITE = 'ui-graph-policy.theme.assignments.widgetRef';
 
 function evidenceSource(
   evidence: UiGraphPolicyEvidence,
@@ -180,6 +189,13 @@ function localeKeyOwners(policy: UiGraphPolicyDocument): IndexedLocaleKeyOwner[]
     moduleId: entry.moduleId,
     index,
     keyPrefixModuleId: keyPrefixModuleId(entry.keyPrefix),
+  }));
+}
+
+function themeAssignments(policy: UiGraphPolicyDocument): IndexedThemeTokenAssignment[] {
+  return (policy.theme?.assignments ?? []).map((assignment, index) => ({
+    assignment,
+    index,
   }));
 }
 
@@ -451,6 +467,83 @@ function validateLocaleOwnerModuleRefs(
   });
 }
 
+function contributionMatchesThemeWidgetAssignment(
+  contribution: ModuleResolutionContribution,
+  evidence: UiGraphPolicyEvidence,
+  assignment: IndexedThemeTokenAssignment,
+): boolean {
+  const expectedPointer = `/theme/assignments/${assignment.index}/widgetRef`;
+  return contribution.site === UI_GRAPH_THEME_WIDGET_SITE
+    && contribution.expectedCategory === 'widget'
+    && contribution.name === assignment.assignment.widgetRef.widgetName
+    && contribution.source.artifactSlot === evidence.evidenceSlot
+    && (
+      contribution.source.jsonPointer === expectedPointer
+      || contribution.source.jsonPointer.startsWith(`${expectedPointer}/`)
+    );
+}
+
+function contributionResolvedForModule(
+  contribution: ModuleResolutionContribution,
+  moduleId: string,
+): boolean {
+  return contribution.status === 'resolved'
+    && (contribution.owningModules ?? []).some((moduleRef) => moduleRef.id === moduleId);
+}
+
+function themeWidgetReason(
+  contributions: readonly ModuleResolutionContribution[],
+  moduleId: string,
+): string {
+  if (contributions.length === 0) return 'missing-contribution-evidence';
+  if (contributions.some((contribution) => contribution.status === 'resolved')) {
+    return contributions.some((contribution) =>
+      (contribution.owningModules ?? []).some((moduleRef) => moduleRef.id !== moduleId)
+    )
+      ? 'owner-module-mismatch'
+      : 'unresolved-widget';
+  }
+  if (contributions.some((contribution) => contribution.status === 'unadmitted')) return 'unadmitted-widget';
+  return 'unresolved-widget';
+}
+
+function validateThemeWidgetRefs(
+  evidence: UiGraphPolicyEvidence,
+  assignments: readonly IndexedThemeTokenAssignment[],
+  moduleResolution: ModuleResolutionReport | undefined,
+): AppGraphDiagnostic[] {
+  if (moduleResolution?.phase.status !== 'completed') return [];
+
+  return assignments.flatMap((assignment) => {
+    const widgetRef = assignment.assignment.widgetRef;
+    const matchingContributions = moduleResolution.contributions.filter((contribution) =>
+      contributionMatchesThemeWidgetAssignment(contribution, evidence, assignment)
+    );
+    if (matchingContributions.some((contribution) =>
+      contributionResolvedForModule(contribution, widgetRef.moduleId)
+    )) {
+      return [];
+    }
+
+    const details: Record<string, unknown> = {
+      moduleId: widgetRef.moduleId,
+      widgetName: widgetRef.widgetName,
+      reason: themeWidgetReason(matchingContributions, widgetRef.moduleId),
+    };
+    if (matchingContributions.length > 0) {
+      details.contributionStatuses = [...new Set(matchingContributions.map((contribution) => contribution.status))].sort();
+    }
+
+    return [diagnostic(
+      'THEME-TOKEN-WIDGET',
+      'A Theme token assignment references an unresolved or unadmitted module widget.',
+      evidenceSource(evidence, `/theme/assignments/${assignment.index}/widgetRef`),
+      undefined,
+      details,
+    )];
+  });
+}
+
 export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnostic[] {
   const surfaces = loadedSurfaceHandles(context.handles);
   const locales = loadedLocaleHandles(context.handles);
@@ -464,6 +557,7 @@ export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnos
     return [
       ...validateRoutePolicies(evidence, matchingSurfaces[0], definitions, routePolicies(evidence.document)),
       ...validateLocaleKeyOwners(evidence, locales, context.moduleResolution),
+      ...validateThemeWidgetRefs(evidence, themeAssignments(evidence.document), context.moduleResolution),
     ];
   });
 }

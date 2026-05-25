@@ -212,10 +212,11 @@ requiring all consumers to be wired in this prose slice.
 | Experience `units[].kind` | `unit-kind` | Future unit payload schema hook. |
 | Surface `module-widget.binding.moduleId` and `widgetName` | `widget` | `binding.config` validates against `widgetShape.props`. |
 | Theme widget configuration | `widget` | `widgetConfig` validates against `widgetShape.props`. |
+| UI Graph Policy `theme.assignments[].widgetRef` | `widget` | AppGraphValidator consumes completed contribution evidence only; token slots remain separate. |
 | Mapping transforms | transform contribution family when promoted | Future transform payload hook. |
 | Response Actions intents | `action-intent` | Validation tuple authority remains Response Actions and validation mapping. |
 | Validation Mapping rows | `validation-mapping-row` | `row` payload schema. |
-| UI graph policy token slots | `token-category` | Future `categoryShape` hook. |
+| UI Graph Policy token slots and token-category compatibility | `token-category` | Future `categoryShape` hook after Registry/report evidence names stable token-slot fields. |
 
 Component bundle id collision diagnostics, including current E605 behavior,
 are not ModuleResolver-owned. They remain bundle-graph validation because they

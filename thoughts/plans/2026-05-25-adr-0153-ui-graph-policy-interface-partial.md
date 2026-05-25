@@ -159,6 +159,19 @@ top-level ModuleResolver diagnostics; do not emit Theme token-slot, Registry
 token-slot, runtime, TraceIndex, App Manifest slot, ArtifactResolver, or ADR
 0152 authorization diagnostics.
 
+Copernicus and Carson approved a narrow Theme widgetRef slice after rejecting
+full Theme token-slot execution as not tractable under current contracts.
+Required boundary: emit `THEME-TOKEN-WIDGET` only for schema-valid host policy
+evidence after exact target Surface resolution and only when a completed
+`ModuleResolutionReport` lacks a matching admitted `widget` contribution owned
+by the policy `widgetRef.moduleId`; use ModuleResolver contribution evidence
+with site `ui-graph-policy.theme.assignments.widgetRef`; skip the check when
+ModuleResolver is absent, not-run, or skipped; do not read Registry directly,
+parse v4 `semantics.themeTokenSlots`, reimplement ModuleResolver, emit
+`THEME-TOKEN-SLOT`, resolve assignment `token`, check token-category
+compatibility, add TraceIndex/runtime/auth/App Manifest/ArtifactResolver policy
+diagnostics, or leak resolver-only source fields into UI policy diagnostics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -264,13 +277,28 @@ token-slot, runtime, TraceIndex, App Manifest slot, ArtifactResolver, or ADR
   pins hidden Definition evidence-only policy pointers, normal Surface related
   pointers, unresolved-route and target-mismatch cascade guards, version-match
   behavior, and no Theme/TraceIndex/path/auth leakage.
+- `packages/formspec-app-graph/src/ui-graph-policy.ts`,
+  `packages/formspec-app-graph/src/report.ts`,
+  `packages/formspec-app-graph/tests/ui-graph-policy-theme-conformance.test.ts`,
+  and
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-theme-widgets.case.json`
+  add executable `THEME-TOKEN-WIDGET` diagnostics for missing, unadmitted, and
+  wrong-owner Theme `widgetRef` contribution evidence using completed
+  ModuleResolver reports only, while imported ModuleResolver host-evidence
+  pointers are clamped to evidence-only source shape.
+- `tests/conformance/test_app_graph_ui_policy_theme_widget_fixture_corpus.py`
+  pins Theme widgetRef evidence-only policy pointers, completed/absent/not-run/
+  skipped ModuleResolver behavior, target-mismatch cascade guards, absence of
+  related resolver sources on `THEME-TOKEN-WIDGET`, imported ModuleResolver
+  host-evidence pointer sanitization, and no `THEME-TOKEN-SLOT`,
+  TraceIndex/path/auth leakage.
 
 ## Still Open For Closure
 
 - Optional future App Manifest loading slot if the package contract later
   chooses one.
-- Theme token-slot semantic diagnostics.
-- ModuleResolver/Registry token-slot evidence integration.
+- Theme token-slot semantic diagnostics (`THEME-TOKEN-SLOT`).
+- Registry token-slot evidence integration and token-category compatibility.
 - Studio and authoring feedback.
 - Runtime hidden Definition state enforcement where applicable.
 
@@ -281,12 +309,42 @@ token-slot, runtime, TraceIndex, App Manifest slot, ArtifactResolver, or ADR
 - `python -m pytest tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_app_graph_ui_policy_hidden_definition_fixture_corpus.py -q`
+- `python -m pytest tests/conformance/test_app_graph_ui_policy_theme_widget_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
 - `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`
-- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts ui-graph-policy-hidden-definition-conformance.test.ts ui-graph-policy-locale-conformance.test.ts`
+- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts ui-graph-policy-hidden-definition-conformance.test.ts ui-graph-policy-locale-conformance.test.ts ui-graph-policy-theme-conformance.test.ts`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`
 - `git -C formspec diff --check`
 - `git diff --check`
+
+## Deviations
+
+- 2026-05-25 Theme widgetRef slice: full `THEME-TOKEN-SLOT` execution is
+  deferred because Registry and ModuleResolver reports do not yet expose stable
+  widget token-slot evidence. This slice lands only `THEME-TOKEN-WIDGET`
+  against completed ModuleResolver widget contribution evidence.
+- 2026-05-25 Theme widgetRef slice: `THEME-TOKEN-WIDGET` diagnostics do not
+  attach ModuleResolver contribution related sources. The contribution evidence
+  is used for matching, while the emitted policy diagnostic remains
+  evidence-only at `hostEvidence.uiGraphPolicies[N]`.
+- 2026-05-25 Theme widgetRef slice: imported top-level ModuleResolver
+  diagnostics may point at host evidence. `AppGraphValidator` now strips
+  `artifactKind` and `ref` for imported host-evidence source pointers so
+  ModuleResolver evidence cannot promote a pseudo policy artifact identity.
+
+## Closure Evidence
+
+- 2026-05-25 Theme widgetRef executable evidence: targeted Vitest
+  `npm run --workspace @formspec-org/app-graph test -- ui-graph-policy-theme-conformance.test.ts app-graph-validator.test.ts`
+  passed with 27 tests after adding imported ModuleResolver host-evidence
+  pointer sanitization.
+- 2026-05-25 Theme widgetRef fixture integrity:
+  `python -m pytest tests/conformance/test_app_graph_ui_policy_theme_widget_fixture_corpus.py -q`
+  passed with 6 tests.
+- 2026-05-25 generated docs gate: `npm run docs:check` passed, including
+  generated Theme/spec artifacts, spec contract tests (188 passed), contract
+  surface metadata tests (452 passed, 4 upstream jsonschema deprecation
+  warnings), relocated-path checks, and changeset tier placement.

@@ -199,6 +199,53 @@ describe('validateAppGraph', () => {
     expect(report.summary.importedDiagnostics).toBe(1);
   });
 
+  it('sanitizes imported ModuleResolver host-evidence source pointers without mutating the resolver report', () => {
+    const moduleDiagnostic: ModuleResolutionDiagnostic = {
+      code: 'MODULE-CONTRIBUTION-UNADMITTED',
+      severity: 'error',
+      phase: 'module-resolution',
+      origin: 'module-resolver',
+      message: 'Contribution x-review-panel is not admitted.',
+      primarySource: {
+        artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+        artifactKind: 'hostEvidence',
+        source: 'host://policy/theme-widget',
+        jsonPointer: '/theme/assignments/0/widgetRef',
+        ref: { url: 'https://example.gov/policies/theme-widget' },
+        module: { id: 'x-reviewer', version: '1.0.0' },
+      },
+      details: { name: 'x-review-panel' },
+    };
+    const moduleResolution = moduleResolutionReport({
+      ok: false,
+      diagnostics: [moduleDiagnostic],
+    });
+
+    const report = validateAppGraph({
+      manifest: loadedHandle(),
+      moduleResolution,
+    });
+
+    const imported = report.diagnostics.find((entry) => entry.code === 'MODULE-CONTRIBUTION-UNADMITTED');
+    expect(imported).toMatchObject({
+      origin: 'module-resolver',
+      phase: 'module-resolution',
+      primarySource: {
+        artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+        source: 'host://policy/theme-widget',
+        jsonPointer: '/theme/assignments/0/widgetRef',
+      },
+      details: { name: 'x-review-panel' },
+    });
+    expect(imported?.primarySource).not.toHaveProperty('artifactKind');
+    expect(imported?.primarySource).not.toHaveProperty('ref');
+    expect(imported?.primarySource).not.toHaveProperty('module');
+    expect(moduleDiagnostic.primarySource).toHaveProperty('artifactKind');
+    expect(moduleDiagnostic.primarySource).toHaveProperty('ref');
+    expect(moduleDiagnostic.primarySource).toHaveProperty('module');
+    expect(report.summary.importedDiagnostics).toBe(1);
+  });
+
   it('does not duplicate nested ModuleResolutionReport diagnostics', () => {
     const nestedDiagnostic: ModuleResolutionDiagnostic = {
       code: 'MODULE-NESTED-SHOULD-NOT-IMPORT',
@@ -652,6 +699,13 @@ describe('validateAppGraph', () => {
               moduleId: 'x-helper',
             }],
             routePolicies: [{ routeId: 'review' }],
+            theme: {
+              assignments: [{
+                widgetRef: { moduleId: 'x-reviewer', widgetName: 'x-review-panel' },
+                slot: 'accent',
+                token: 'color.accent',
+              }],
+            },
           },
         }],
       },
@@ -668,6 +722,7 @@ describe('validateAppGraph', () => {
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-MISMATCH');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-REF');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('THEME-TOKEN-WIDGET');
     expect(report.diagnostics).toContainEqual(expect.objectContaining({
       code: 'APP-GRAPH-SCHEMA',
       phase: 'schema',
@@ -719,6 +774,13 @@ describe('validateAppGraph', () => {
               moduleId: 'x-helper',
             }],
             routePolicies: [{ routeId: 'review' }],
+            theme: {
+              assignments: [{
+                widgetRef: { moduleId: 'x-reviewer', widgetName: 'x-review-panel' },
+                slot: 'accent',
+                token: 'color.accent',
+              }],
+            },
           },
         }],
       },
@@ -734,6 +796,7 @@ describe('validateAppGraph', () => {
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-MISMATCH');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-REF');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('THEME-TOKEN-WIDGET');
     expect(report.phases).toContainEqual({
       phase: 'cross-artifact',
       status: 'skipped',
