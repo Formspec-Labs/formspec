@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use formspec_core::DocumentType;
 
+use crate::app_graph_report::AppGraphLintReport;
 use crate::generated::LintCode;
 
 // ── Severity ────────────────────────────────────────────────────
@@ -255,6 +256,15 @@ pub struct LintOptions {
     /// See `tests/conformance/COMP-BUNDLE-ID-MIGRATION.md` §1 Exclusion for
     /// rationale.
     pub bundle_component_documents: Vec<Value>,
+    /// Optional completed AppGraphValidator report for lint-side consumption.
+    ///
+    /// This report bridge does not run artifact loading, module resolution,
+    /// app-graph validation, Node, or TypeScript kernels. When supplied, the
+    /// report is schema-validated and exposed on the lint result without recoding
+    /// app-graph diagnostics into legacy lint codes.
+    pub app_graph_validation_report: Option<Value>,
+    /// Optional posture-declaration document for cross-document admission (E608/E609).
+    pub posture_declaration: Option<Value>,
     /// When `true`, run only pass 1 (document type detection) and return early.
     /// Useful for fast schema-level validation without semantic analysis.
     pub schema_only: bool,
@@ -272,6 +282,8 @@ pub struct LintResult {
     pub document_type: Option<DocumentType>,
     /// All diagnostics from all passes (sorted).
     pub diagnostics: Vec<LintDiagnostic>,
+    /// Completed app-graph report diagnostics preserved for lint consumers.
+    pub app_graph_report: Option<AppGraphLintReport>,
     /// Whether the document is valid (no errors).
     pub valid: bool,
 }

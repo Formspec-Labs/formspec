@@ -11,9 +11,9 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use formspec_core::{DocumentType, json_pointer_to_jsonpath, visit_component_subtree};
+use formspec_core::{json_pointer_to_jsonpath, visit_component_subtree, DocumentType};
 use jsonschema::{Resource, Validator};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::types::LintDiagnostic;
 

@@ -33,6 +33,8 @@ REQUIRED_FAMILIES = {
     "token-category-conflict",
     "token-category-evidence",
     "token-category-shape-mismatch",
+    "posture-module-admits-extra-provenance",
+    "posture-module-not-in-allowlist",
 }
 
 FORBIDDEN_KEYS = {

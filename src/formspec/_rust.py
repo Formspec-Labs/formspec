@@ -116,6 +116,8 @@ def _assert_rust_extension_contract() -> None:
         "component_documents",
         "locale_documents",
         "bundle_component_documents",
+        "app_graph_validation_report",
+        "posture_declaration",
         "schema_only",
         "no_fel",
     ]
@@ -392,7 +394,7 @@ def detect_document_type(document: dict) -> str | None:
     return formspec_rust.detect_type(document)
 
 
-def lint(
+def _lint_raw(
     document: dict,
     *,
     mode: str = "runtime",
@@ -403,9 +405,11 @@ def lint(
     component_documents: list[dict] | None = None,
     locale_documents: list[dict] | None = None,
     bundle_component_documents: list[dict] | None = None,
+    app_graph_validation_report: dict | None = None,
+    posture_declaration: dict | None = None,
     registry_documents: list[dict] | None = None,
-) -> list[LintDiagnostic]:
-    """Run the Rust linter on a Formspec document.
+) -> dict:
+    """Run the Rust linter on a Formspec document and return the raw host result.
 
     Args:
         document: The Formspec document dict to lint.
@@ -419,9 +423,12 @@ def lint(
         bundle_component_documents: Optional sibling Component documents reachable from a
             single App Manifest for bundle-graph id-uniqueness (E605 / COMP-BUNDLE-ID-COLLISION,
             ADR 0150 §5.3). Fires only when ≥2 documents are supplied.
+        app_graph_validation_report: Optional completed AppGraphValidator report to bridge
+            into lint output without recoding app-graph diagnostics.
+        posture_declaration: Optional posture-declaration document for E608/E609 admission.
         registry_documents: Optional list of registry documents for extension resolution.
     """
-    raw = formspec_rust.lint_document(
+    return formspec_rust.lint_document(
         document,
         mode=mode,
         registry_documents=registry_documents,
@@ -430,6 +437,92 @@ def lint(
         component_documents=component_documents,
         locale_documents=locale_documents,
         bundle_component_documents=bundle_component_documents,
+        app_graph_validation_report=app_graph_validation_report,
+        posture_declaration=posture_declaration,
+        schema_only=schema_only,
+        no_fel=no_fel,
+    )
+
+
+def lint_report(
+    document: dict,
+    *,
+    mode: str = "runtime",
+    schema_only: bool = False,
+    no_fel: bool = False,
+    component_definition: dict | None = None,
+    theme_document: dict | None = None,
+    component_documents: list[dict] | None = None,
+    locale_documents: list[dict] | None = None,
+    bundle_component_documents: list[dict] | None = None,
+    app_graph_validation_report: dict | None = None,
+    posture_declaration: dict | None = None,
+    registry_documents: list[dict] | None = None,
+) -> dict:
+    """Run the Rust linter and return the full host-facing lint result.
+
+    Use this API when callers need `valid` or `app_graph_report`.
+    """
+    return _lint_raw(
+        document,
+        mode=mode,
+        registry_documents=registry_documents,
+        component_definition=component_definition,
+        theme_document=theme_document,
+        component_documents=component_documents,
+        locale_documents=locale_documents,
+        bundle_component_documents=bundle_component_documents,
+        app_graph_validation_report=app_graph_validation_report,
+        posture_declaration=posture_declaration,
+        schema_only=schema_only,
+        no_fel=no_fel,
+    )
+
+
+def lint(
+    document: dict,
+    *,
+    mode: str = "runtime",
+    schema_only: bool = False,
+    no_fel: bool = False,
+    component_definition: dict | None = None,
+    theme_document: dict | None = None,
+    component_documents: list[dict] | None = None,
+    locale_documents: list[dict] | None = None,
+    bundle_component_documents: list[dict] | None = None,
+    posture_declaration: dict | None = None,
+    registry_documents: list[dict] | None = None,
+) -> list[LintDiagnostic]:
+    """Run the Rust linter and return legacy lint diagnostics.
+
+    Args:
+        document: The Formspec document dict to lint.
+        mode: Lint mode — "runtime" (default), "authoring", or "strict".
+        schema_only: When True, run only schema-level validation.
+        no_fel: When True, skip FEL expression passes.
+        component_definition: Optional definition document for cross-artifact checks.
+        theme_document: Optional theme document for Locale page-key checks.
+        component_documents: Optional component documents for Locale component-key checks.
+        locale_documents: Optional peer locale documents for fallback-chain checks.
+        bundle_component_documents: Optional sibling Component documents for
+            bundle-graph id-uniqueness.
+        posture_declaration: Optional posture-declaration document for E608/E609 admission.
+        registry_documents: Optional list of registry documents for extension resolution.
+
+    Use `lint_report()` when callers need the result validity flag or bridged
+    AppGraph report diagnostics.
+    """
+    raw = _lint_raw(
+        document,
+        mode=mode,
+        registry_documents=registry_documents,
+        component_definition=component_definition,
+        theme_document=theme_document,
+        component_documents=component_documents,
+        locale_documents=locale_documents,
+        bundle_component_documents=bundle_component_documents,
+        app_graph_validation_report=None,
+        posture_declaration=posture_declaration,
         schema_only=schema_only,
         no_fel=no_fel,
     )

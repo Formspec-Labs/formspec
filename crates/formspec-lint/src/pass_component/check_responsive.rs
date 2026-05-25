@@ -6,8 +6,8 @@ use crate::metadata;
 use crate::types::LintDiagnostic;
 use crate::ui_policy::ui_policy;
 
-use super::PASS;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check(state: &mut WalkState<'_>, node: &Value, path: &str, comp_type: &str) {
     let Some(responsive) = node.get("responsive").and_then(Value::as_object) else {

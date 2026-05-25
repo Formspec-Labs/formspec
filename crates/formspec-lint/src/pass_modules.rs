@@ -1028,11 +1028,9 @@ mod tests {
             1,
             "expected unresolved surface widgetName E603, got {diags:?}"
         );
-        assert!(
-            e603[0]
-                .path
-                .contains("routes[0].slots[0].binding.widgetName")
-        );
+        assert!(e603[0]
+            .path
+            .contains("routes[0].slots[0].binding.widgetName"));
         assert!(e603[0].message.contains("TypoWidget"));
     }
 

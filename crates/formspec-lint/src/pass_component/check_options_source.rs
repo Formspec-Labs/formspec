@@ -4,8 +4,8 @@ use crate::component_matrix::{is_input_component, requires_options_source};
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::PASS;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str, bind: &str) {
     if !is_input_component(comp_type) || !requires_options_source(comp_type) {

@@ -1,7 +1,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use super::classification::{CONTAINER_NO_BIND, LAYOUT_NO_BIND, LAYOUT_ROOTS};
-use super::{PASS, lint_component, lint_component_with_context};
+use super::{lint_component, lint_component_with_context, PASS};
 use crate::types::LintDiagnostic;
 use serde_json::json;
 

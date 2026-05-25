@@ -4,8 +4,8 @@ use crate::component_matrix::is_input_component;
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::PASS;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check_tree_duplicate(state: &mut WalkState<'_>, path: &str, bind: &str) {
     if !state.all_binds.insert(bind.to_string()) {

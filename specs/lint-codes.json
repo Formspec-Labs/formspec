@@ -196,6 +196,30 @@
       "state": "tested"
     },
     {
+      "code": "E608",
+      "pass": 3,
+      "severity": "error",
+      "title": "Document module fails posture field-equality admission (POSTURE-MODULE-ADMISSION-DENIED)",
+      "specRef": "specs/registry/extension-registry.md#posture-admission",
+      "suggestedFix": "change the document modules[] entry to match a posture allowedModules[] row, or widen the posture entry by omitting fields that should admit any document-side value",
+      "fixtures": [
+        "tests/fixtures/lint/E608-posture-module-admission-denied.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E609",
+      "pass": 3,
+      "severity": "error",
+      "title": "Authoring actor URN is absent from posture.allowedActors[] (POSTURE-ACTOR-ADMISSION-DENIED)",
+      "specRef": "specs/registry/extension-registry.md#posture-admission",
+      "suggestedFix": "add the actor URN to posture.allowedActors[] or change generatedBy/actor to an admitted AuthorActor id",
+      "fixtures": [
+        "tests/fixtures/lint/E609-posture-actor-admission-denied.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E606",
       "pass": 8,
       "severity": "error",

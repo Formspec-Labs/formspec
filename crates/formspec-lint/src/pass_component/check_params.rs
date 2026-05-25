@@ -5,8 +5,8 @@ use serde_json::Value;
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::PASS;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check(state: &mut WalkState<'_>, node: &Value, path: &str, comp_type: &str) {
     if !state.custom_names.contains(comp_type) {

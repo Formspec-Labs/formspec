@@ -1,12 +1,12 @@
 //! Bind resolution and field/component type compatibility (W800, E802, W802).
 
-use crate::component_matrix::{Compatibility, classify_compatibility, is_input_component};
+use crate::component_matrix::{classify_compatibility, is_input_component, Compatibility};
 use crate::metadata;
 use crate::types::LintDiagnostic;
 use serde_json::Value;
 
-use super::PASS;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check(
     state: &mut WalkState<'_>,
@@ -38,14 +38,16 @@ pub(crate) fn check(
             if let Some(ref dt) = field_info.data_type {
                 match classify_node_compatibility(node, comp_type, dt) {
                     Compatibility::Incompatible => {
-                        state.diags.push(metadata::with_metadata(LintDiagnostic::error(
-                            crate::LintCode::E802,
-                            PASS,
-                            path,
-                            format!(
+                        state
+                            .diags
+                            .push(metadata::with_metadata(LintDiagnostic::error(
+                                crate::LintCode::E802,
+                                PASS,
+                                path,
+                                format!(
                                 "Component '{comp_type}' is incompatible with field dataType '{dt}'"
                             ),
-                        )));
+                            )));
                     }
                     Compatibility::CompatibleWithWarning => {
                         state.diags.push(metadata::with_metadata(LintDiagnostic::warning(

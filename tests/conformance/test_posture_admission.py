@@ -12,8 +12,9 @@ way modules are. An act from an actor whose URN isn't in the allowlist is
 refused.
 
 Schema-side coverage here proves field shape + URN pattern. Runtime
-admission (the actual field-equality matcher across posture↔document) is a
-separate concern — filed as a P1 tk ticket (see this commit's report).
+field-equality admission is enforced by lint codes **E608** / **E609** when
+hosts pass `posture_declaration` (see
+`tests/conformance/fixtures/posture-admission/` and `for-n8c4`).
 """
 
 import json

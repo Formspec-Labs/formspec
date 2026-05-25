@@ -51,12 +51,15 @@ pub fn detect_type(document: &Bound<'_, PyAny>) -> PyResult<Option<String>> {
 ///         ADR 0150 §5.3). Fires only when ≥2 documents are supplied. The caller is responsible
 ///         for excluding revision sets (e.g. tests/conformance/fixtures/regeneration-merge/);
 ///         the lint layer sees only what is handed to it.
+///     app_graph_validation_report: Optional completed AppGraphValidator report dict
+///         to bridge into lint output without recoding app-graph diagnostics.
+///     posture_declaration: Optional posture-declaration document for E608/E609 admission.
 ///     schema_only: When true, run only schema-level validation (skip semantic passes)
 ///     no_fel: When true, skip FEL expression passes
 ///
 /// Returns:
-///     A dict with: document_type, valid, diagnostics (list of dicts)
-#[pyfunction(signature = (document, mode=None, registry_documents=None, definition_document=None, theme_document=None, component_documents=None, locale_documents=None, bundle_component_documents=None, schema_only=None, no_fel=None))]
+///     A dict with: document_type, valid, diagnostics, and optional app_graph_report
+#[pyfunction(signature = (document, mode=None, registry_documents=None, definition_document=None, theme_document=None, component_documents=None, locale_documents=None, bundle_component_documents=None, app_graph_validation_report=None, posture_declaration=None, schema_only=None, no_fel=None))]
 pub fn lint_document(
     py: Python,
     document: &Bound<'_, PyAny>,
@@ -67,6 +70,8 @@ pub fn lint_document(
     component_documents: Option<&Bound<'_, PyList>>,
     locale_documents: Option<&Bound<'_, PyList>>,
     bundle_component_documents: Option<&Bound<'_, PyList>>,
+    app_graph_validation_report: Option<&Bound<'_, PyAny>>,
+    posture_declaration: Option<&Bound<'_, PyAny>>,
     schema_only: Option<bool>,
     no_fel: Option<bool>,
 ) -> PyResult<PyObject> {
@@ -128,6 +133,16 @@ pub fn lint_document(
         None => Vec::new(),
     };
 
+    let app_graph_report: Option<Value> = match app_graph_validation_report {
+        Some(report) => Some(depythonize_json(report)?),
+        None => None,
+    };
+
+    let posture_doc: Option<Value> = match posture_declaration {
+        Some(doc) => Some(depythonize_json(doc)?),
+        None => None,
+    };
+
     let options = LintOptions {
         mode: lint_mode,
         registry_documents: registry_docs,
@@ -136,6 +151,8 @@ pub fn lint_document(
         component_documents: component_docs,
         locale_documents: locale_docs,
         bundle_component_documents: bundle_component_docs,
+        app_graph_validation_report: app_graph_report,
+        posture_declaration: posture_doc,
         schema_only: schema_only.unwrap_or(false),
         no_fel: no_fel.unwrap_or(false),
     };

@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use formspec_core::visit_definition_items_from_document;
 use serde_json::Value;
 
-use crate::component_matrix::{Compatibility, classify_compatibility};
+use crate::component_matrix::{classify_compatibility, Compatibility};
 use crate::metadata;
 use crate::types::LintDiagnostic;
 

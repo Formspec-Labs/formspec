@@ -432,11 +432,9 @@ mod tests {
         assert!(index.repeatable_groups.contains("sections"));
         assert!(index.repeatable_groups.contains("sections.rows"));
         assert!(index.repeatable_groups.contains("sections.rows.cells"));
-        assert!(
-            !index
-                .repeatable_groups
-                .contains("sections.rows.cells.value")
-        );
+        assert!(!index
+            .repeatable_groups
+            .contains("sections.rows.cells.value"));
 
         // Parent paths are correct
         assert_eq!(

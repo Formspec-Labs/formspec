@@ -1,0 +1,120 @@
+{
+  "id": "posture-module-not-in-allowlist",
+  "description": "Rejects an app module whose id is absent from posture allowedModules[].",
+  "inputs": {
+    "appModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": []
+          }
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
+      }
+    ],
+    "admission": {
+      "allowedModules": [
+        {
+          "id": "x-formspec-other",
+          "version": "0.1.0"
+        }
+      ]
+    }
+  },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-ADMISSION-DENIED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "deniedModules": 1
+  },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0"
+        },
+        "status": "denied",
+        "registryVersion": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-ADMISSION-DENIED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Host admission evidence denies module 'x-formspec-presentation@0.1.0'.",
+        "details": {
+          "reason": "not-listed"
+        },
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 0,
+      "deniedModules": 1,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  }
+}

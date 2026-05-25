@@ -1,0 +1,31 @@
+{
+  "$formspecExperience": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/e608" },
+  "modules": [
+    {
+      "id": "x-formspec-presentation",
+      "version": "0.1.0",
+      "lockHash": "sha256:module"
+    }
+  ],
+  "units": [],
+  "tasks": [],
+  "_postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.com/posture/e608",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": false
+    },
+    "allowedModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "lockHash": "sha256:other"
+      }
+    ]
+  }
+}

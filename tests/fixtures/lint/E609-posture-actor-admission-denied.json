@@ -1,0 +1,28 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/e609" },
+  "tree": {
+    "component": "Stack",
+    "children": [
+      {
+        "component": "TextInput",
+        "bind": "name",
+        "x-generation": {
+          "generatedBy": "urn:formspec:actor:ai-agent:wireframes"
+        }
+      }
+    ]
+  },
+  "_postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.com/posture/e609",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": false
+    },
+    "allowedActors": ["urn:formspec:actor:human:editor"]
+  }
+}

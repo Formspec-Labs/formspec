@@ -68,6 +68,12 @@ struct LintDocumentWasmOptions {
     /// ADR 0150 §5.3). Fires only when ≥2 documents are supplied.
     #[serde(default, alias = "bundleComponentDocuments")]
     bundle_component_documents: Vec<Value>,
+    /// Completed AppGraphValidator report to bridge into lint output.
+    #[serde(default, alias = "appGraphValidationReport")]
+    app_graph_validation_report: Option<Value>,
+    /// Posture-declaration document for E608/E609 admission checks.
+    #[serde(default, alias = "postureDeclaration")]
+    posture_declaration: Option<Value>,
     #[serde(default, alias = "schemaOnly")]
     schema_only: bool,
     #[serde(default, alias = "noFel")]
@@ -92,6 +98,8 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
         component_documents: parsed.component_documents,
         locale_documents: parsed.locale_documents,
         bundle_component_documents: parsed.bundle_component_documents,
+        app_graph_validation_report: parsed.app_graph_validation_report,
+        posture_declaration: parsed.posture_declaration,
         schema_only: parsed.schema_only,
         no_fel: parsed.no_fel,
     })
@@ -127,6 +135,26 @@ mod tests {
                 "themeDocument": {"$formspecTheme": "1.0"},
                 "componentDocuments": [{"$formspecComponent": "1.0"}],
                 "localeDocuments": [{"$formspecLocale": "1.0"}],
+                "appGraphValidationReport": {
+                    "ok": true,
+                    "summary": {
+                        "artifacts": 0,
+                        "loadedArtifacts": 0,
+                        "schemaFailures": 0,
+                        "unvalidatedArtifacts": 0,
+                        "graphErrors": 0,
+                        "errors": 0,
+                        "warnings": 0,
+                        "infos": 0,
+                        "importedDiagnostics": 0,
+                        "unsupportedFeatures": 0,
+                        "skippedPhases": 0
+                    },
+                    "schemaResults": [],
+                    "evidenceResults": [],
+                    "diagnostics": [],
+                    "phases": []
+                },
                 "schemaOnly": true,
                 "noFel": true
             }"#,
@@ -145,6 +173,7 @@ mod tests {
         );
         assert_eq!(options.component_documents.len(), 1);
         assert_eq!(options.locale_documents.len(), 1);
+        assert!(options.app_graph_validation_report.is_some());
         assert!(options.schema_only);
         assert!(options.no_fel);
     }
@@ -158,6 +187,26 @@ mod tests {
                 "theme_document": {"$formspecTheme": "1.0"},
                 "component_documents": [{"$formspecComponent": "1.0"}],
                 "locale_documents": [{"$formspecLocale": "1.0"}],
+                "app_graph_validation_report": {
+                    "ok": true,
+                    "summary": {
+                        "artifacts": 0,
+                        "loadedArtifacts": 0,
+                        "schemaFailures": 0,
+                        "unvalidatedArtifacts": 0,
+                        "graphErrors": 0,
+                        "errors": 0,
+                        "warnings": 0,
+                        "infos": 0,
+                        "importedDiagnostics": 0,
+                        "unsupportedFeatures": 0,
+                        "skippedPhases": 0
+                    },
+                    "schemaResults": [],
+                    "evidenceResults": [],
+                    "diagnostics": [],
+                    "phases": []
+                },
                 "schema_only": true,
                 "no_fel": true
             }"#,
@@ -175,6 +224,7 @@ mod tests {
         );
         assert_eq!(options.component_documents.len(), 1);
         assert_eq!(options.locale_documents.len(), 1);
+        assert!(options.app_graph_validation_report.is_some());
         assert!(options.schema_only);
         assert!(options.no_fel);
     }

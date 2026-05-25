@@ -25,6 +25,7 @@ __all__ = [
     "RegistryInfo",
     "evaluate_definition",
     "lint",
+    "lint_report",
     "detect_document_type",
     "execute_mapping",
     "parse_registry",

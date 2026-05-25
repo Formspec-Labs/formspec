@@ -1,0 +1,19 @@
+{
+  "id": "absent-posture-permissive",
+  "description": "When posture_declaration is omitted, posture admission emits nothing even if document declares modules[].",
+  "document": {
+    "$formspecExperience": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/posture-admission/no-posture" },
+    "modules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0"
+      }
+    ],
+    "units": [],
+    "tasks": []
+  },
+  "expectedCodes": [],
+  "forbiddenCodes": ["E608", "E609"]
+}

@@ -26,6 +26,13 @@ export {
   type ArtifactResolverSupportProfile,
 } from './artifact-resolver.js';
 export {
+  evaluateActorPostureAdmission,
+  evaluateModulePostureAdmission,
+  type ModulePostureAdmissionResult,
+  type PostureModuleField,
+  type PostureModuleRef,
+} from './posture-admission.js';
+export {
   moduleResolverInputFromAppGraph,
   resolveModules,
   type ModulePayloadValidator,

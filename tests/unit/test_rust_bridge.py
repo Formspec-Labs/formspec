@@ -12,6 +12,7 @@ from formspec._rust import (
     EvalResult,
     DependencySet,
     lint,
+    lint_report,
     detect_document_type,
     LintDiagnostic,
     evaluate_definition,
@@ -57,6 +58,8 @@ def test_formspec_rust_exports_expected_contract():
         "component_documents",
         "locale_documents",
         "bundle_component_documents",
+        "app_graph_validation_report",
+        "posture_declaration",
         "schema_only",
         "no_fel",
     ]
@@ -193,6 +196,51 @@ def test_lint_returns_diagnostics_for_bad_doc():
     results = lint(doc)
     assert len(results) > 0
     assert any(d.severity == "error" for d in results)
+
+
+def _app_graph_error_report():
+    return {
+        "ok": False,
+        "summary": {
+            "artifacts": 1,
+            "loadedArtifacts": 1,
+            "schemaFailures": 0,
+            "unvalidatedArtifacts": 0,
+            "graphErrors": 1,
+            "errors": 1,
+            "warnings": 0,
+            "infos": 0,
+            "importedDiagnostics": 1,
+            "unsupportedFeatures": 0,
+            "skippedPhases": 0,
+        },
+        "schemaResults": [],
+        "evidenceResults": [],
+        "diagnostics": [
+            {
+                "code": "MODULE-CONTRIBUTION-OWNER",
+                "severity": "error",
+                "phase": "module-resolution",
+                "origin": "module-resolver",
+                "message": "Widget evidence is owned by a different module.",
+            }
+        ],
+        "phases": [{"phase": "module-resolution", "status": "completed"}],
+    }
+
+
+def test_lint_report_exposes_app_graph_report_for_graph_root_doc():
+    raw = lint_report(
+        {"$formspecApp": "2.2"},
+        app_graph_validation_report=_app_graph_error_report(),
+    )
+    assert raw["valid"] is False
+    assert any(d["code"] == "E100" for d in raw["diagnostics"])
+    assert raw["app_graph_report"]["diagnostics"][0]["code"] == (
+        "MODULE-CONTRIBUTION-OWNER"
+    )
+    assert raw["app_graph_report"]["diagnostics"][0]["origin"] == "module-resolver"
+    assert "appGraphReport" not in raw
 
 
 # ── Evaluation ───────────────────────────────────────────────────

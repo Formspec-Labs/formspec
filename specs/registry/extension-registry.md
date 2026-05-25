@@ -256,9 +256,11 @@ All rules in this section are **normative**.
    start with `x-`.
 
 2. Extension identifiers MUST match the regular expression:
+
    ```
    ^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$
    ```
+
    That is: the `x-` prefix, followed by one or more hyphen-separated segments
    of lowercase ASCII letters and digits, each segment beginning with a letter.
 
@@ -348,6 +350,26 @@ conform to it (`x-formspec-core-task`, `x-formspec-core-actions`,
 `x-formspec-core-component`, `x-formspec-core-trace`,
 `x-formspec-core-ledger`). Subsequent non-core modules (P2+) cite this
 section rather than reauthoring the rules.
+
+### 4.2 Posture admission (ADR 0150 §4.4 / §5.4)
+
+Posture admission is a **cross-document join** between a
+`posture-declaration` document and a consuming artifact. JSON Schema cannot
+enforce it; the Formspec linter emits **E608** (module field-equality) and
+**E609** (static actor URN presence) when a host supplies
+`posture_declaration` alongside the document under lint.
+
+**Module admission (`allowedModules[]`).** A document `modules[]` entry is
+admitted iff some posture row matches: required `id` + `version` equality;
+`publisher` and `lockHash` are enforced only when present on the posture row
+(absent posture fields admit any document-side value). Pinning `lockHash` on
+the posture row closes hostile-substitution risk.
+
+**Actor admission (`allowedActors[]`).** When non-empty, bundle-time
+authoring URNs on the consuming document (`x-generation.generatedBy`,
+ledger-style `actor.id`) MUST appear in the list. Runtime actor gates at
+branch-open (studio) and publish/submit (formspec-server) consume the same
+matcher semantics; they are not reimplemented here.
 
 ---
 
@@ -698,6 +720,6 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
 | [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |
 | [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
 | [RFC 3986] | Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform Resource Identifier (URI): Generic Syntax", STD 66, RFC 3986, January 2005. |
-| [semver] | Preston-Werner, T., "Semantic Versioning 2.0.0", https://semver.org/spec/v2.0.0.html. |
-| [SPDX] | SPDX Workgroup, "SPDX License List", https://spdx.org/licenses/. |
+| [semver] | Preston-Werner, T., "Semantic Versioning 2.0.0", <https://semver.org/spec/v2.0.0.html>. |
+| [SPDX] | SPDX Workgroup, "SPDX License List", <https://spdx.org/licenses/>. |
 | [well-known] | Nottingham, M., "Defining Well-Known Uniform Resource Identifiers (URIs)", RFC 8615, May 2019. |

@@ -391,6 +391,7 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
                 bundle_component_documents = document.pop(
                     "_bundleComponentDocuments", None
                 )
+                posture_declaration = document.pop("_postureDeclaration", None)
 
             diagnostics = lint(
                 document,
@@ -400,6 +401,7 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
                 component_documents=component_documents,
                 locale_documents=locale_documents,
                 bundle_component_documents=bundle_component_documents,
+                posture_declaration=posture_declaration,
             )
             matching = [d for d in diagnostics if d.code == code]
             if not matching:

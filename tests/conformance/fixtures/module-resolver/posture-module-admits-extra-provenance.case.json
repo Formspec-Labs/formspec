@@ -1,0 +1,102 @@
+{
+  "id": "posture-module-admits-extra-provenance",
+  "description": "Posture {id, version} admits document module with extra publisher and lockHash.",
+  "inputs": {
+    "appModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "publisher": "https://example.org/",
+        "lockHash": "sha256:module",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "publisher": "https://example.org/",
+            "lockHash": "sha256:module"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": []
+          }
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
+      }
+    ],
+    "admission": {
+      "allowedModules": [
+        {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0"
+        }
+      ]
+    }
+  },
+  "expectedDiagnostics": [],
+  "expectedSummary": {
+    "errors": 0,
+    "admittedModules": 1
+  },
+  "expectedReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0",
+          "publisher": "https://example.org/",
+          "lockHash": "sha256:module"
+        },
+        "status": "admitted",
+        "registryVersion": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "publisher": "https://example.org/",
+            "lockHash": "sha256:module"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "module-not-in-allowlist",
+  "description": "Document module id absent from posture allowedModules[] emits E608.",
+  "document": {
+    "$formspecExperience": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/posture-admission/not-listed" },
+    "modules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0"
+      }
+    ],
+    "units": [],
+    "tasks": []
+  },
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.com/posture/not-listed",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": false
+    },
+    "allowedModules": [
+      {
+        "id": "x-formspec-other",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "expectedCodes": ["E608"],
+  "forbiddenCodes": ["E609"]
+}

@@ -66,6 +66,9 @@ Properties</a></li>
 <li><a href="#closed-core-republishing-adr-0150-4.9"
 id="toc-closed-core-republishing-adr-0150-4.9">4.1 Closed-core
 republishing (ADR 0150 §4.9)</a></li>
+<li><a href="#posture-admission-adr-0150-4.4-5.4"
+id="toc-posture-admission-adr-0150-4.4-5.4">4.2 Posture admission (ADR
+0150 §4.4 / §5.4)</a></li>
 </ul></li>
 <li><a href="#discovery" id="toc-discovery">5. Discovery</a></li>
 <li><a href="#extension-lifecycle" id="toc-extension-lifecycle">6.
@@ -906,6 +909,27 @@ href="../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#14-implementat
 <code>x-formspec-core-trace</code>,
 <code>x-formspec-core-ledger</code>). Subsequent non-core modules (P2+)
 cite this section rather than reauthoring the rules.</p>
+<h3 id="posture-admission-adr-0150-4.4-5.4">4.2 Posture admission (ADR
+0150 §4.4 / §5.4)</h3>
+<p>Posture admission is a <strong>cross-document join</strong> between a
+<code>posture-declaration</code> document and a consuming artifact. JSON
+Schema cannot enforce it; the Formspec linter emits
+<strong>E608</strong> (module field-equality) and <strong>E609</strong>
+(static actor URN presence) when a host supplies
+<code>posture_declaration</code> alongside the document under lint.</p>
+<p><strong>Module admission (<code>allowedModules[]</code>).</strong> A
+document <code>modules[]</code> entry is admitted iff some posture row
+matches: required <code>id</code> + <code>version</code> equality;
+<code>publisher</code> and <code>lockHash</code> are enforced only when
+present on the posture row (absent posture fields admit any
+document-side value). Pinning <code>lockHash</code> on the posture row
+closes hostile-substitution risk.</p>
+<p><strong>Actor admission (<code>allowedActors[]</code>).</strong> When
+non-empty, bundle-time authoring URNs on the consuming document
+(<code>x-generation.generatedBy</code>, ledger-style
+<code>actor.id</code>) MUST appear in the list. Runtime actor gates at
+branch-open (studio) and publish/submit (formspec-server) consume the
+same matcher semantics; they are not reimplemented here.</p>
 <hr />
 <h2 id="discovery">5. Discovery</h2>
 <p>To support automated discovery, organizations publishing Formspec
@@ -1296,13 +1320,15 @@ Identifier (URI): Generic Syntax”, STD 66, RFC 3986, January 2005.</td>
 </tr>
 <tr>
 <td>[semver]</td>
-<td>Preston-Werner, T., “Semantic Versioning 2.0.0”,
-https://semver.org/spec/v2.0.0.html.</td>
+<td>Preston-Werner, T., “Semantic Versioning 2.0.0”, <a
+href="https://semver.org/spec/v2.0.0.html"
+class="uri">https://semver.org/spec/v2.0.0.html</a>.</td>
 </tr>
 <tr>
 <td>[SPDX]</td>
-<td>SPDX Workgroup, “SPDX License List”,
-https://spdx.org/licenses/.</td>
+<td>SPDX Workgroup, “SPDX License List”, <a
+href="https://spdx.org/licenses/"
+class="uri">https://spdx.org/licenses/</a>.</td>
 </tr>
 <tr>
 <td>[well-known]</td>

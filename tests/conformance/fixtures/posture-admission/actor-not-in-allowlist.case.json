@@ -1,0 +1,34 @@
+{
+  "id": "actor-not-in-allowlist",
+  "description": "Authoring actor URN absent from posture allowedActors[] emits E609 (ADR 0150 §5.4).",
+  "document": {
+    "$formspecComponent": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/posture-admission/actor-denied" },
+    "tree": {
+      "component": "Stack",
+      "children": [
+        {
+          "component": "TextInput",
+          "bind": "name",
+          "x-generation": {
+            "generatedBy": "urn:formspec:actor:ai-agent:wireframes"
+          }
+        }
+      ]
+    }
+  },
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.com/posture/actor-denied",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": false
+    },
+    "allowedActors": ["urn:formspec:actor:human:editor"]
+  },
+  "expectedCodes": ["E609"],
+  "forbiddenCodes": ["E608"]
+}

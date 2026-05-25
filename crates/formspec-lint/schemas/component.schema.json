@@ -9,28 +9,11 @@
     "version",
     "tree"
   ],
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "$formspecComponent": {
-            "enum": ["1.0", "1.1"]
-          }
-        }
-      },
-      "then": {
-        "required": ["targetDefinition"],
-        "not": {
-          "required": ["targetSurfaceRoutes"]
-        }
-      },
-      "else": {
-        "anyOf": [
-          { "required": ["targetDefinition"] },
-          { "required": ["targetSurfaceRoutes"] }
-        ]
-      }
-    }
+  "oneOf": [
+    { "$ref": "#/$defs/LegacyFormBoundComponentDocumentIdentity" },
+    { "$ref": "#/$defs/Component12DefinitionIdentity" },
+    { "$ref": "#/$defs/Component12SurfaceRouteIdentity" },
+    { "$ref": "#/$defs/Component12MixedIdentity" }
   ],
   "patternProperties": {
     "^x-": true
@@ -182,6 +165,54 @@
   },
 
   "$defs": {
+    "LegacyFormBoundComponentDocumentIdentity": {
+      "type": "object",
+      "required": ["$formspecComponent", "targetDefinition"],
+      "properties": {
+        "$formspecComponent": { "enum": ["1.0", "1.1"] },
+        "targetDefinition": { "$ref": "#/$defs/TargetDefinition" },
+        "targetSurfaceRoutes": false
+      }
+    },
+
+    "Component12DefinitionIdentity": {
+      "type": "object",
+      "required": ["$formspecComponent", "targetDefinition"],
+      "properties": {
+        "$formspecComponent": { "const": "1.2" },
+        "targetDefinition": { "$ref": "#/$defs/TargetDefinition" },
+        "targetSurfaceRoutes": false
+      }
+    },
+
+    "Component12SurfaceRouteIdentity": {
+      "type": "object",
+      "required": ["$formspecComponent", "targetSurfaceRoutes"],
+      "properties": {
+        "$formspecComponent": { "const": "1.2" },
+        "targetDefinition": false,
+        "targetSurfaceRoutes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/SurfaceRouteTarget" }
+        }
+      }
+    },
+
+    "Component12MixedIdentity": {
+      "type": "object",
+      "required": ["$formspecComponent", "targetDefinition", "targetSurfaceRoutes"],
+      "properties": {
+        "$formspecComponent": { "const": "1.2" },
+        "targetDefinition": { "$ref": "#/$defs/TargetDefinition" },
+        "targetSurfaceRoutes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/SurfaceRouteTarget" }
+        }
+      }
+    },
+
     "TargetDefinition": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
     },

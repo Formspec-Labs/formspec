@@ -15,9 +15,9 @@ use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::visit_definition_items_json;
 use serde_json::Value;
 
-use crate::LintCode;
 use crate::tree::ItemTreeIndex;
 use crate::types::LintDiagnostic;
+use crate::LintCode;
 
 /// Data types compatible with optionSets.
 const OPTION_SET_COMPATIBLE_TYPES: &[&str] =

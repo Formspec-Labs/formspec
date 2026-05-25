@@ -19,6 +19,11 @@ import type {
   AppGraphHostEvidence,
   ResolvedArtifactHandle,
 } from './types.js';
+import {
+  evaluateModulePostureAdmission,
+  type PostureModuleField,
+  type PostureModuleRef,
+} from './posture-admission.js';
 
 export interface ModuleResolverRegistryEntry {
   name: string;
@@ -655,18 +660,24 @@ function versionSatisfies(requested: string, actual: string | undefined): boolea
 function admissionMismatch(
   ref: ModuleResolutionRef,
   admission: ModuleResolverAdmissionInput | undefined,
-): { allowed?: ModuleResolutionRef; field?: 'publisher' | 'lockHash' } | undefined {
-  if (!admission?.allowedModules) return undefined;
-  const allowed = admission.allowedModules.find((entry) => entry.id === ref.id);
-  if (!allowed) return undefined;
-  if (!versionSatisfies(allowed.version, ref.version)) return { allowed };
-  if (allowed.publisher !== undefined && allowed.publisher !== ref.publisher) {
-    return { allowed, field: 'publisher' };
+): { field?: PostureModuleField; reason: 'not-listed' | 'field-mismatch' } | undefined {
+  if (!admission?.allowedModules?.length) {
+    return undefined;
   }
-  if (allowed.lockHash !== undefined && allowed.lockHash !== ref.lockHash) {
-    return { allowed, field: 'lockHash' };
+  const postureRef: PostureModuleRef = {
+    id: ref.id,
+    version: ref.version,
+    publisher: ref.publisher,
+    lockHash: ref.lockHash,
+  };
+  const result = evaluateModulePostureAdmission(postureRef, admission.allowedModules);
+  if (result.admitted) {
+    return undefined;
   }
-  return undefined;
+  if (result.reason === 'not-listed') {
+    return { reason: 'not-listed' };
+  }
+  return { reason: 'field-mismatch', field: result.field };
 }
 
 function moduleInputs(input: ModuleResolverInput): AppModuleInput[] {
@@ -734,11 +745,19 @@ function resolveAppModules(input: ModuleResolverInput, index: RegistryIndex): {
           report.status = 'denied';
           const details: Record<string, unknown> = {};
           if (mismatch.field === 'lockHash') {
-            details.expectedLockHash = mismatch.allowed?.lockHash;
+            const postureEntry = input.admission?.allowedModules?.find((entry) => entry.id === ref.id);
+            details.expectedLockHash = postureEntry?.lockHash;
             details.actualLockHash = ref.lockHash;
           } else if (mismatch.field === 'publisher') {
-            details.expectedPublisher = mismatch.allowed?.publisher;
+            const postureEntry = input.admission?.allowedModules?.find((entry) => entry.id === ref.id);
+            details.expectedPublisher = postureEntry?.publisher;
             details.actualPublisher = ref.publisher;
+          } else if (mismatch.field === 'version') {
+            const postureEntry = input.admission?.allowedModules?.find((entry) => entry.id === ref.id);
+            details.expectedVersion = postureEntry?.version;
+            details.actualVersion = ref.version;
+          } else if (mismatch.reason === 'not-listed') {
+            details.reason = 'not-listed';
           }
           diagnostics.push(diagnostic(
             'MODULE-ADMISSION-DENIED',

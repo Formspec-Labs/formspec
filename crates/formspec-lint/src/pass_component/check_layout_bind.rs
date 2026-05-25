@@ -3,9 +3,9 @@
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::PASS;
 use super::classification::should_not_bind;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str) {
     if should_not_bind(comp_type) {

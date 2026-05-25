@@ -3,9 +3,9 @@
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::PASS;
 use super::classification::is_builtin;
 use super::walk::WalkState;
+use super::PASS;
 
 pub(crate) fn check(state: &mut WalkState<'_>, path: &str, comp_type: &str) {
     if !is_builtin(comp_type) && !state.custom_names.contains(comp_type) {

@@ -6,6 +6,7 @@
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
 //! Pass 3c (E603/E604): Module contribution resolution + payload-schema validation (ADR 0150 §4.2/§4.3)
+//! Pass 3e (E608/E609): Posture admission — module field-equality + actor URN scan (ADR 0150 §4.4/§5.4)
 //! Pass 4 (E400): FEL expression compilation
 //! Pass 5 (E500): Dependency cycle detection
 //! Pass 6 (W700-W712/E710): Theme — token validation, reference integrity, page semantics
@@ -21,6 +22,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
+pub mod app_graph_report;
 mod generated;
 mod lint_json;
 mod metadata;
@@ -30,10 +32,12 @@ mod pass_locale;
 pub mod pass_mapping;
 pub mod pass_modules;
 pub mod pass_ontology;
+mod pass_posture;
 mod pass_references_doc;
 mod pass_response_actions;
 mod pass_screener;
 mod pass_surface;
+pub mod posture_admission;
 mod schema_validation;
 mod semantic_helpers;
 mod types;
@@ -51,13 +55,18 @@ pub mod tree;
 
 use serde_json::Value;
 
-use formspec_core::{DocumentType, detect_document_type};
+use formspec_core::{detect_document_type, DocumentType};
 
 // Re-export public types
+#[doc(inline)]
+pub use app_graph_report::{
+    app_graph_lint_report_to_json_value, bridge_app_graph_report, AppGraphLintDiagnostic,
+    AppGraphLintReport, AppGraphReportSchemaError,
+};
 pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
 pub use types::{
-    LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
+    sort_diagnostics, LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity,
 };
 
 // ── Lint pipeline ───────────────────────────────────────────────
@@ -81,6 +90,8 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
     diagnostics.extend(pass_modules::check_bundle_component_ids(
         &options.bundle_component_documents,
     ));
+    let (app_graph_report, app_graph_diagnostics) = bridge_app_graph_report_for_lint(options);
+    diagnostics.extend(app_graph_diagnostics);
 
     let Some(doc_type) = detect_document_type(doc) else {
         diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
@@ -89,9 +100,11 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
             "$",
             "Cannot determine document type",
         )));
+        sort_diagnostics(&mut diagnostics);
         return LintResult {
             document_type: None,
             diagnostics,
+            app_graph_report,
             valid: false,
         };
     };
@@ -99,7 +112,7 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
     diagnostics.extend(schema_validation::validate_schema(doc, doc_type));
 
     if options.schema_only {
-        return finalize_lint_result(doc_type, diagnostics, options);
+        return finalize_lint_result(doc_type, diagnostics, options, app_graph_report);
     }
 
     // Pass 3c: module contribution resolution (E603) + payload-schema validation (E604).
@@ -109,6 +122,10 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         doc,
         doc_type_name,
         &options.registry_documents,
+    ));
+    diagnostics.extend(pass_posture::check_posture_admission(
+        doc,
+        options.posture_declaration.as_ref(),
     ));
 
     match doc_type {
@@ -169,7 +186,7 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
         _ => {}
     }
 
-    finalize_lint_result(doc_type, diagnostics, options)
+    finalize_lint_result(doc_type, diagnostics, options, app_graph_report)
 }
 
 fn lint_definition(
@@ -188,6 +205,7 @@ fn lint_definition(
             DocumentType::Definition,
             std::mem::take(diagnostics),
             options,
+            None,
         ));
     }
 
@@ -252,6 +270,7 @@ fn finalize_lint_result(
     doc_type: DocumentType,
     mut diagnostics: Vec<LintDiagnostic>,
     options: &LintOptions,
+    app_graph_report: Option<AppGraphLintReport>,
 ) -> LintResult {
     sort_diagnostics(&mut diagnostics);
 
@@ -263,13 +282,39 @@ fn finalize_lint_result(
 
     diagnostics.retain(|d| !d.suppressed_in(options.mode));
 
+    let app_graph_valid = app_graph_report.as_ref().map_or(true, |report| {
+        report.ok && report.diagnostics.iter().all(|d| d.severity != "error")
+    });
     let valid = diagnostics
         .iter()
-        .all(|d| d.severity != LintSeverity::Error);
+        .all(|d| d.severity != LintSeverity::Error)
+        && app_graph_valid;
     LintResult {
         document_type: Some(doc_type),
         diagnostics,
+        app_graph_report,
         valid,
+    }
+}
+
+fn bridge_app_graph_report_for_lint(
+    options: &LintOptions,
+) -> (Option<AppGraphLintReport>, Vec<LintDiagnostic>) {
+    let Some(report) = &options.app_graph_validation_report else {
+        return (None, Vec::new());
+    };
+
+    match bridge_app_graph_report(report) {
+        Ok(report) => (Some(report), Vec::new()),
+        Err(error) => (
+            None,
+            vec![crate::metadata::with_metadata(LintDiagnostic::error(
+                crate::LintCode::E101,
+                1,
+                "$.appGraphValidationReport",
+                format!("AppGraph validation report failed schema validation: {error}"),
+            ))],
+        ),
     }
 }
 
@@ -297,6 +342,35 @@ mod tests {
     const DEF_URL: &str = "https://example.com/forms/test";
     const DEF_VER: &str = "1.0.0";
 
+    fn app_graph_report_with_error() -> Value {
+        json!({
+            "ok": false,
+            "summary": {
+                "artifacts": 1,
+                "loadedArtifacts": 1,
+                "schemaFailures": 0,
+                "unvalidatedArtifacts": 0,
+                "graphErrors": 1,
+                "errors": 1,
+                "warnings": 0,
+                "infos": 0,
+                "importedDiagnostics": 1,
+                "unsupportedFeatures": 0,
+                "skippedPhases": 0
+            },
+            "schemaResults": [],
+            "evidenceResults": [],
+            "diagnostics": [{
+                "code": "MODULE-CONTRIBUTION-OWNER",
+                "severity": "error",
+                "phase": "module-resolution",
+                "origin": "module-resolver",
+                "message": "Widget evidence is owned by a different module."
+            }],
+            "phases": [{"phase": "module-resolution", "status": "completed"}]
+        })
+    }
+
     /// Spec: spec.md §2.1 — "$formspec" key identifies a valid definition document
     #[test]
     fn valid_definition_passes_all_passes() {
@@ -317,6 +391,84 @@ mod tests {
                 .collect::<Vec<_>>()
         );
         assert_eq!(result.document_type, Some(DocumentType::Definition));
+    }
+
+    #[test]
+    fn app_graph_report_bridge_preserves_codes_and_invalidates_lint_result() {
+        let def = json!({
+            "$formspec": "1.0",
+            "url": DEF_URL, "version": DEF_VER, "status": "draft", "title": "T",
+            "items": [{ "key": "name", "type": "field", "label": "Name", "dataType": "string" }],
+            "binds": [{ "path": "name", "required": "true" }]
+        });
+        let result = lint_with_options(
+            &def,
+            &LintOptions {
+                app_graph_validation_report: Some(app_graph_report_with_error()),
+                ..LintOptions::default()
+            },
+        );
+
+        assert!(!result.valid);
+        assert!(result.diagnostics.is_empty());
+        let app_graph_report = result
+            .app_graph_report
+            .expect("completed AppGraph report should bridge into lint result");
+        assert_eq!(app_graph_report.diagnostics.len(), 1);
+        assert_eq!(
+            app_graph_report.diagnostics[0].code,
+            "MODULE-CONTRIBUTION-OWNER"
+        );
+        assert_eq!(app_graph_report.diagnostics[0].origin, "module-resolver");
+        assert_eq!(app_graph_report.diagnostics[0].phase, "module-resolution");
+    }
+
+    #[test]
+    fn app_graph_report_bridge_rejects_invalid_report_in_lint_result() {
+        let def = json!({
+            "$formspec": "1.0",
+            "url": DEF_URL, "version": DEF_VER, "status": "draft", "title": "T",
+            "items": [{ "key": "name", "type": "field", "label": "Name", "dataType": "string" }],
+            "binds": [{ "path": "name", "required": "true" }]
+        });
+        let result = lint_with_options(
+            &def,
+            &LintOptions {
+                app_graph_validation_report: Some(json!({"diagnostics": []})),
+                ..LintOptions::default()
+            },
+        );
+
+        assert!(!result.valid);
+        assert!(result.app_graph_report.is_none());
+        assert!(result.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == crate::LintCode::E101
+                && diagnostic.path == "$.appGraphValidationReport"
+        }));
+    }
+
+    #[test]
+    fn app_graph_report_bridge_runs_before_document_type_gate() {
+        let result = lint_with_options(
+            &json!({"$formspecApp": "2.2"}),
+            &LintOptions {
+                app_graph_validation_report: Some(app_graph_report_with_error()),
+                ..LintOptions::default()
+            },
+        );
+
+        assert!(!result.valid);
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == crate::LintCode::E100));
+        let app_graph_report = result.app_graph_report.expect(
+            "unknown graph-root documents should still preserve completed AppGraph reports",
+        );
+        assert_eq!(
+            app_graph_report.diagnostics[0].code,
+            "MODULE-CONTRIBUTION-OWNER"
+        );
     }
 
     /// Spec: issuer sidecar - "$formspecIssuer" identifies a valid Issuer document.
@@ -444,12 +596,10 @@ mod tests {
         let doc = json!({ "random": "data" });
         let result = lint(&doc);
         assert!(!result.valid);
-        assert!(
-            result
-                .diagnostics
-                .iter()
-                .any(|d| d.code == crate::LintCode::E100)
-        );
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == crate::LintCode::E100));
         assert_eq!(result.diagnostics.len(), 1, "Should halt after E100");
     }
 
@@ -469,12 +619,10 @@ mod tests {
             ]
         });
         let result = lint(&def);
-        assert!(
-            result
-                .diagnostics
-                .iter()
-                .any(|d| d.code == crate::LintCode::E201)
-        );
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == crate::LintCode::E201));
         assert_eq!(
             result.diagnostics.iter().filter(|d| d.pass >= 3).count(),
             0,
@@ -783,12 +931,10 @@ mod tests {
         });
         let result = lint(&theme);
         assert_eq!(result.document_type, Some(DocumentType::Theme));
-        assert!(
-            result
-                .diagnostics
-                .iter()
-                .any(|d| d.code == crate::LintCode::W704)
-        );
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == crate::LintCode::W704));
         // Expect W704 (missing token ref), W708/W709 (registry checks), plus E101 from schema
         // Filter to only W704 — the core check this test validates
         let w704_count = result
@@ -877,12 +1023,10 @@ mod tests {
         });
         let result = lint(&comp);
         assert_eq!(result.document_type, Some(DocumentType::Component));
-        assert!(
-            result
-                .diagnostics
-                .iter()
-                .any(|d| d.code == crate::LintCode::E800)
-        );
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == crate::LintCode::E800));
     }
 
     /// Cross-pass integration: definition with errors across passes 3, 4, and 5.
@@ -979,12 +1123,10 @@ mod tests {
             },
         );
         assert!(!result.valid);
-        assert!(
-            result
-                .diagnostics
-                .iter()
-                .any(|d| d.code == crate::LintCode::E100)
-        );
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.code == crate::LintCode::E100));
     }
 
     // ── no_fel: skips passes 4 and 5 ────────────────────────────

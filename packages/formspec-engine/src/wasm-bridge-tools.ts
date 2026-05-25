@@ -271,6 +271,7 @@ export interface WasmLintDocumentOptions {
     themeDocument?: unknown;
     componentDocuments?: unknown[];
     localeDocuments?: unknown[];
+    appGraphValidationReport?: unknown;
     schemaOnly?: boolean;
     noFel?: boolean;
 }
@@ -283,6 +284,7 @@ export function wasmLintDocument(
     documentType: string | null;
     valid: boolean;
     diagnostics: any[];
+    appGraphReport?: { ok: boolean; diagnostics: any[] };
 } {
     assertWasmToolsReadySync();
     const optionsJson =

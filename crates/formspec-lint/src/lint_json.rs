@@ -1,17 +1,25 @@
 //! `serde_json::Value` projection for lint results (WASM / Python FFI).
 
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 
-use formspec_core::JsonWireStyle;
 use formspec_core::wire_keys::lint_document_type_key;
+use formspec_core::JsonWireStyle;
 
-use crate::LintResult;
+use crate::{app_graph_lint_report_to_json_value, LintResult};
 
 /// Wire keys for the authoring-loop metadata fields on diagnostics.
 fn diagnostic_metadata_keys(style: JsonWireStyle) -> (&'static str, &'static str) {
     match style {
         JsonWireStyle::JsCamel => ("suggestedFix", "specRef"),
         JsonWireStyle::PythonSnake => ("suggested_fix", "spec_ref"),
+    }
+}
+
+/// Wire key for the optional bridged AppGraph validation report.
+fn app_graph_report_key(style: JsonWireStyle) -> &'static str {
+    match style {
+        JsonWireStyle::JsCamel => "appGraphReport",
+        JsonWireStyle::PythonSnake => "app_graph_report",
     }
 }
 
@@ -46,6 +54,12 @@ pub fn lint_result_to_json_value(result: &LintResult, style: JsonWireStyle) -> V
     );
     m.insert("valid".to_string(), json!(result.valid));
     m.insert("diagnostics".to_string(), Value::Array(diagnostics));
+    if let Some(app_graph_report) = &result.app_graph_report {
+        m.insert(
+            app_graph_report_key(style).to_string(),
+            app_graph_lint_report_to_json_value(app_graph_report),
+        );
+    }
     Value::Object(m)
 }
 
@@ -53,12 +67,16 @@ pub fn lint_result_to_json_value(result: &LintResult, style: JsonWireStyle) -> V
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    use crate::types::{LintDiagnostic, LintResult};
+    use crate::{
+        app_graph_report::{AppGraphLintDiagnostic, AppGraphLintReport},
+        types::{LintDiagnostic, LintResult},
+    };
 
     fn result_with_diag(d: LintDiagnostic) -> LintResult {
         LintResult {
             document_type: None,
             diagnostics: vec![d],
+            app_graph_report: None,
             valid: false,
         }
     }
@@ -99,5 +117,58 @@ mod tests {
             wire["spec_ref"],
             json!("specs/theme/theme-spec.md#token-cascade")
         );
+    }
+
+    #[test]
+    fn wire_emits_app_graph_report_without_recoding_diagnostics() {
+        let result = LintResult {
+            document_type: None,
+            diagnostics: Vec::new(),
+            app_graph_report: Some(AppGraphLintReport {
+                ok: false,
+                diagnostics: vec![AppGraphLintDiagnostic {
+                    code: "MODULE-CONTRIBUTION-OWNER".to_string(),
+                    severity: "error".to_string(),
+                    phase: "module-resolution".to_string(),
+                    origin: "module-resolver".to_string(),
+                    message: "Wrong owner.".to_string(),
+                    primary_source: None,
+                    related_sources: Vec::new(),
+                    details: None,
+                }],
+            }),
+            valid: false,
+        };
+
+        let json = lint_result_to_json_value(&result, JsonWireStyle::JsCamel);
+        assert_eq!(
+            json["appGraphReport"]["diagnostics"][0]["code"],
+            json!("MODULE-CONTRIBUTION-OWNER")
+        );
+        assert_eq!(
+            json["appGraphReport"]["diagnostics"][0]["origin"],
+            json!("module-resolver")
+        );
+        assert_eq!(
+            json["appGraphReport"]["diagnostics"][0]["phase"],
+            json!("module-resolution")
+        );
+    }
+
+    #[test]
+    fn wire_emits_python_snake_case_app_graph_report_key() {
+        let result = LintResult {
+            document_type: None,
+            diagnostics: Vec::new(),
+            app_graph_report: Some(AppGraphLintReport {
+                ok: true,
+                diagnostics: Vec::new(),
+            }),
+            valid: true,
+        };
+
+        let json = lint_result_to_json_value(&result, JsonWireStyle::PythonSnake);
+        assert!(json.get("app_graph_report").is_some());
+        assert!(json.get("appGraphReport").is_none());
     }
 }

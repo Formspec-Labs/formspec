@@ -1,0 +1,37 @@
+{
+  "id": "module-lock-hash-mismatch",
+  "description": "Posture allowedModules[{id, version, lockHash}] rejects document module with mismatched lockHash (ADR 0150 §4.4).",
+  "document": {
+    "$formspecExperience": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": { "url": "https://example.com/forms/posture-admission/lock-hash" },
+    "modules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "lockHash": "sha256:actual"
+      }
+    ],
+    "units": [],
+    "tasks": []
+  },
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.com/posture/lock-hash",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": ["urn:formspec:sig-method:ed25519-cose-sign1@1"],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": false
+    },
+    "allowedModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "lockHash": "sha256:expected"
+      }
+    ]
+  },
+  "expectedCodes": ["E608"],
+  "forbiddenCodes": ["E609"]
+}
