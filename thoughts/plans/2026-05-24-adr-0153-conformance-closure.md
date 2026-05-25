@@ -42,6 +42,10 @@ or fine-grained authorization semantics.
   found A5 could not be implemented from existing Surface/Data Sources evidence
   alone; the least-hacky source is Surface route-parameter prose/schema plus a
   Surface-local lint fixture.
+- 2026-05-25 architecture review scout `019e6169-46b9-7302-9c8f-a7e5a9b7ea5a`
+  found EC12 runtime hidden-state has no normative runtime source yet. Existing
+  UI Graph Policy/AppGraphValidator hidden-Definition fixtures prove graph
+  policy only; they cannot close runtime rejection behavior.
 
 ## Evidence Map
 
@@ -63,7 +67,7 @@ or fine-grained authorization semantics.
 | A14 module version conflict across sibling artifacts | Unit test exists; source fixture missing before this slice | First promotion |
 | EC2 Experience unit reused across routes with different Definitions | Source conformance fixture plus AppGraphValidator Surface `experience-unit` check | Covered, URL-exact |
 | EC5 non-form app has zero Definitions | Component route `fake-target-definition` fixture | Covered for graph rejection |
-| EC12 hidden Definition while Response is mid-draft | Graph hidden-Definition fixtures cover policy; runtime hidden-state remains open | Partial |
+| EC12 hidden Definition while Response is mid-draft | Graph hidden-Definition fixtures cover policy; runtime hidden-state remains Held until a production runtime/consumer consumes schema-valid UI Graph Policy evidence and defines draft/action rejection | Held/Open |
 | EC13 Locale strings collide across modules/routes | UI Graph Policy Locale-owner collision fixtures | Covered |
 | EC14 Theme styles widget without declared token slots | UI Graph Policy Theme token-slot fixtures | Covered |
 | F7 Data Sources peer artifact | Data Sources schema/spec fixtures, including fail-closed fine-grained auth | Covered |
@@ -97,8 +101,9 @@ or fine-grained authorization semantics.
   Plan, embedded Definition screener, filename discovery, or ad hoc hostEvidence.
 - [x] Promote EC2 into Surface `experience-unit` source conformance fixtures and
   pin route-local Definition context in AppGraphValidator.
-- [ ] Split EC12 runtime hidden-state behavior from existing graph hidden-Definition
-  policy fixtures.
+- [x] Split EC12 runtime hidden-state behavior from existing graph hidden-Definition
+  policy fixtures. Do not close EC12 via UI Graph Policy/AppGraphValidator
+  fixtures, Runtime Plan, TraceIndex, or v4 spike runtime.
 
 ### Phase 4 - Rollup Closure
 
@@ -128,6 +133,12 @@ or fine-grained authorization semantics.
   runtime behavior. Data Sources `route-params` may expose resolved values to
   consumers, but Surface owns required route parameter declarations and
   Surface-local edge completeness.
+- 2026-05-25: EC12 runtime hidden-state remains Held. UI Graph Policy owns only
+  the graph invariant that a hidden Definition ref resolves to a loaded,
+  route-local `definition-form` slot. Runtime rejection of draft creation or
+  Response Action invocation needs a production runtime/consumer seam that
+  consumes schema-valid UI Graph Policy evidence. The v4 spike behavior remains
+  evidence, not source authority.
 
 ## Closure Evidence
 
@@ -173,10 +184,17 @@ Partial evidence after the first slice:
 - A5 tests:
   `crates/formspec-lint/src/pass_surface.rs` and
   `tests/conformance/spec/test_surface_contract.py`.
+- EC12 graph-policy evidence:
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-hidden-definitions.case.json`,
+  `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py`, and
+  `packages/formspec-app-graph/src/ui-graph-policy.ts`. This evidence does not
+  close runtime hidden-state behavior.
 
 Still open:
 
-- EC12 runtime behavior needs a dedicated slice; A10 remains Held/Open behind a
+- EC12 runtime behavior remains Held until a production runtime/consumer
+  consumes `UiGraphPolicyDocument` evidence and rejects draft/action state for
+  hidden route-local Definition slots. A10 remains Held/Open behind a
   Screener-to-app association source.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.
