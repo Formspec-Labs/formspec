@@ -1,0 +1,413 @@
+{
+  "id": "surface-experience-units",
+  "description": "Source conformance corpus for AppGraphValidator Surface experience-unit route-local Definition context.",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/experience-unit-conformance",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/intake",
+            "version": "1.0.0"
+          },
+          {
+            "url": "https://example.gov/forms/renewal",
+            "version": "1.0.0"
+          }
+        ],
+        "experience": {
+          "url": "https://example.gov/apps/experience-unit-conformance/experience",
+          "version": "1.0.0"
+        },
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "surface.valid-intake": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/intake",
+      "ref": {
+        "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "intake",
+        "routes": [
+          {
+            "id": "intake",
+            "path": "/intake",
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              },
+              {
+                "id": "work",
+                "slotType": "experience-unit",
+                "binding": {
+                  "unitRef": "collectApplicant"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.definition-mismatch": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/renewal",
+      "ref": {
+        "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "renewal",
+        "routes": [
+          {
+            "id": "renewal",
+            "path": "/renewal",
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/renewal"
+                }
+              },
+              {
+                "id": "work",
+                "slotType": "experience-unit",
+                "binding": {
+                  "unitRef": "collectApplicant"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.missing-unit": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/missing-unit",
+      "ref": {
+        "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "intake",
+        "routes": [
+          {
+            "id": "intake",
+            "path": "/intake",
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              },
+              {
+                "id": "work",
+                "slotType": "experience-unit",
+                "binding": {
+                  "unitRef": "missingUnit"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "experience.intake": {
+      "slot": "experience",
+      "artifactKind": "experience",
+      "status": "loaded",
+      "source": "memory://experience/intake",
+      "ref": {
+        "url": "https://example.gov/apps/experience-unit-conformance/experience",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecExperience": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "units": [
+          {
+            "id": "collectApplicant",
+            "kind": "data-entry",
+            "itemRefs": [
+              {
+                "path": "applicantName",
+                "purpose": "collect"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "definition.intake": {
+      "slot": "definitions[0]",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/intake",
+      "ref": {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Intake",
+        "items": []
+      },
+      "identity": {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      }
+    },
+    "definition.renewal": {
+      "slot": "definitions[1]",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/renewal",
+      "ref": {
+        "url": "https://example.gov/forms/renewal",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/forms/renewal",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Renewal",
+        "items": []
+      },
+      "identity": {
+        "url": "https://example.gov/forms/renewal",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-route-local-experience-unit",
+      "description": "A Surface experience-unit slot resolves when the loaded Experience unit targets the same Definition mounted on the route.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.valid-intake"
+          ],
+          "experience": [
+            "experience.intake"
+          ],
+          "definitions": [
+            "definition.intake",
+            "definition.renewal"
+          ]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 5,
+          "loadedArtifacts": 5,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "experience-unit-route-definition-mismatch",
+      "description": "An Experience unit targeting one Definition cannot be reused on a route whose route-local definition-form points at another Definition.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.definition-mismatch"
+          ],
+          "experience": [
+            "experience.intake"
+          ],
+          "definitions": [
+            "definition.intake",
+            "definition.renewal"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 5,
+          "loadedArtifacts": 5,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-DEFINITION",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/renewal",
+              "jsonPointer": "/routes/0/slots/1/binding/unitRef",
+              "ref": {
+                "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "experience",
+                "artifactKind": "experience",
+                "source": "memory://experience/intake",
+                "jsonPointer": "/targetDefinition/url",
+                "ref": {
+                  "url": "https://example.gov/apps/experience-unit-conformance/experience",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/renewal",
+                "jsonPointer": "/routes/0/slots/0/binding/definitionRef",
+                "ref": {
+                  "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "surfaceUrl": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+              "routeId": "renewal",
+              "slotId": "work",
+              "unitRef": "collectApplicant",
+              "reason": "route-definition-mismatch",
+              "experienceUrl": "https://example.gov/apps/experience-unit-conformance/experience",
+              "targetDefinition": "https://example.gov/forms/intake",
+              "routeDefinitionRefs": [
+                "https://example.gov/forms/renewal"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "experience-unit-ref-unresolved",
+      "description": "A Surface experience-unit slot must name a units[].id in the resolved Experience document.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.missing-unit"
+          ],
+          "experience": [
+            "experience.intake"
+          ],
+          "definitions": [
+            "definition.intake",
+            "definition.renewal"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 5,
+          "loadedArtifacts": 5,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/missing-unit",
+              "jsonPointer": "/routes/0/slots/1/binding/unitRef",
+              "ref": {
+                "url": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "experience",
+                "artifactKind": "experience",
+                "source": "memory://experience/intake",
+                "jsonPointer": "/units",
+                "ref": {
+                  "url": "https://example.gov/apps/experience-unit-conformance/experience",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "surfaceUrl": "https://example.gov/apps/experience-unit-conformance/surfaces/respondent",
+              "routeId": "intake",
+              "slotId": "work",
+              "unitRef": "missingUnit",
+              "reason": "unit-unresolved",
+              "experienceUrl": "https://example.gov/apps/experience-unit-conformance/experience"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

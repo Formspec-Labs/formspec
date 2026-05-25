@@ -32,6 +32,9 @@ or fine-grained authorization semantics.
 - 2026-05-25 architecture review scout `019e6127-0f7e-7b31-a2ca-267edd7cea48`
   found no blocker for A7 and recommended treating exact duplicate durable-effect
   keys within one action as source-invalid `E1804`, not as runtime semantics.
+- 2026-05-25 architecture review scout `019e6132-4468-7141-8892-1c9a146c0778`
+  found EC2 belongs in AppGraphValidator cross-artifact validation when scoped
+  to URL-exact Surface `experience-unit` route-local Definition context.
 
 ## Evidence Map
 
@@ -51,7 +54,7 @@ or fine-grained authorization semantics.
 | A12 generated Component id collision | Component route `node-identity-duplicate-key` fixture | Covered |
 | A13 module-widget payload mismatch | `module-resolver/payload-mismatch.case.json` | Covered |
 | A14 module version conflict across sibling artifacts | Unit test exists; source fixture missing before this slice | First promotion |
-| EC2 Experience unit reused across routes with different Definitions | No source fixture found | Open |
+| EC2 Experience unit reused across routes with different Definitions | Source conformance fixture plus AppGraphValidator Surface `experience-unit` check | Covered, URL-exact |
 | EC5 non-form app has zero Definitions | Component route `fake-target-definition` fixture | Covered for graph rejection |
 | EC12 hidden Definition while Response is mid-draft | Graph hidden-Definition fixtures cover policy; runtime hidden-state remains open | Partial |
 | EC13 Locale strings collide across modules/routes | UI Graph Policy Locale-owner collision fixtures | Covered |
@@ -83,7 +86,8 @@ or fine-grained authorization semantics.
 - [ ] Decide A5 route-params posture after Surface path-parameter prose exists.
 - [ ] Decide A10 Screener terminal-hop app-graph scope without promoting the
   deprecated embedded-screener model.
-- [ ] Add EC2 Experience-unit / Definition ownership source fixture.
+- [x] Promote EC2 into Surface `experience-unit` source conformance fixtures and
+  pin route-local Definition context in AppGraphValidator.
 - [ ] Split EC12 runtime hidden-state behavior from existing graph hidden-Definition
   policy fixtures.
 
@@ -105,6 +109,9 @@ or fine-grained authorization semantics.
 - 2026-05-25: A7 is intentionally exact-string and single-action scoped. It does
   not attempt FEL expression equivalence, cross-action alias detection, host
   replay-ledger behavior, or Runtime Plan promotion.
+- 2026-05-25: EC2 is URL-exact only. It does not claim Definition `id` alias
+  closure, TraceIndex behavior, runtime routing, hidden-state handling, submit
+  ownership, or authorization semantics.
 
 ## Closure Evidence
 
@@ -134,9 +141,16 @@ Partial evidence after the first slice:
   `crates/formspec-lint/src/pass_response_actions.rs`,
   `tests/conformance/schemas/test_response_actions_schema.py`, and
   `tests/conformance/spec/test_response_actions_runtime.py`.
+- EC2 fixture:
+  `tests/conformance/fixtures/app-graph-validator/surface-experience-units.case.json`.
+- EC2 AppGraphValidator code:
+  `packages/formspec-app-graph/src/surface-experience-units.ts`.
+- EC2 tests:
+  `packages/formspec-app-graph/tests/surface-experience-units-conformance.test.ts`
+  and `tests/conformance/test_app_graph_surface_experience_unit_fixture_corpus.py`.
 
 Still open:
 
-- A5, A10, EC2, and EC12 runtime behavior need dedicated slices.
+- A5, A10, and EC12 runtime behavior need dedicated slices.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.

@@ -52,6 +52,9 @@ export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {
+  validateSurfaceExperienceUnits,
+} from './surface-experience-units.js';
+export {
   validateUiGraphPolicy,
 } from './ui-graph-policy.js';
 export {
