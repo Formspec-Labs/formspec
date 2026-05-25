@@ -66,9 +66,9 @@ behind the old `component/1.1` schema identity.
 
 ## Deviations
 
-- The original ADR gate label used "vNext"; this slice makes the concrete
-  contract name Component 1.2 and removes "vNext" from Component 1.2
-  source/generated spec artifacts.
+- The original ADR gate label used a provisional future-version name; this
+  slice makes the concrete contract name Component 1.2 and removes provisional
+  naming from Component 1.2 source/generated spec artifacts.
 - The Component spec no longer uses the ADR as a normative reference for route
   identity. ADR references remain in this plan and in the parent rollup because
   those documents track rollout authority and deviations.

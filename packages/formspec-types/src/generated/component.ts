@@ -9,7 +9,7 @@
 import type { ModuleRef, TargetDefinition, Tokens, Breakpoints, StyleMap, AccessibilityBlock, Extensions, VisualSurfaceProps } from './common.js';
 import type { ConceptRef } from './experience.js';
 /**
- * A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.
+ * A Formspec Component Document per the Component Specification. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding or to Surface routes via Component 1.2 route identity. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition.
  */
 export type ComponentDocument =
   | (ComponentDocumentBase & {

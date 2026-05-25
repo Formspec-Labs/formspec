@@ -314,9 +314,9 @@ function customComponentNameType() {
   return `export type CustomComponentName =\n${prefixes};\n`;
 }
 
-function componentDocumentType() {
+function componentDocumentRootOverride() {
   return `/**
- * A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.
+ * A Formspec Component Document per the Component Specification. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding or to Surface routes via Component 1.2 route identity. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition.
  */
 export type ComponentDocument =
   | (ComponentDocumentBase & {
@@ -427,8 +427,11 @@ function postProcess(ts, moduleName) {
   }
 
   if (moduleName === 'component') {
+    // json-schema-to-typescript flattens the root if/then/else identity rule
+    // into a loose shape. Keep this override limited to the root discriminant;
+    // nested Component types still come from the schema.
     result = removeDeclBlock(result, 'ComponentDocument');
-    result = `${componentDocumentType()}${result}`;
+    result = `${componentDocumentRootOverride()}${result}`;
     result = result.replace(
       /export interface CustomComponentRef \{/,
       `${customComponentNameType()}\nexport interface CustomComponentRef {`,
