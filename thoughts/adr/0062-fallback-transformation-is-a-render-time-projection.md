@@ -1,6 +1,6 @@
 # ADR 0062: Fallback Transformation Is a Render-Time Projection
 
-**Status:** Proposed
+**Status:** Partial
 **Date:** 2026-05-21
 
 ## Context

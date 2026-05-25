@@ -1,6 +1,6 @@
 # ADR-0029: Schema Parity Phase 1 — Enrich Existing Files
 
-**Status:** Proposed
+**Status:** In Progress
 **Date:** 2026-02-28
 **Depends on:** [schema-coverage-audit.md](schema-coverage-audit.md)
 **Followed by:** [ADR-0030](0030-schema-parity-phase2-new-artifacts.md), [ADR-0031](0031-schema-parity-phase3-new-subsystems.md)

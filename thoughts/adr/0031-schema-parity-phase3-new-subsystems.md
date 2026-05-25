@@ -1,6 +1,6 @@
 # ADR-0031: Schema Parity Phase 3 — New Subsystems
 
-**Status:** Proposed
+**Status:** Partial
 **Date:** 2026-02-28
 **Depends on:** [ADR-0029](0029-schema-parity-phase1-enrich-existing.md), [ADR-0030](0030-schema-parity-phase2-new-artifacts.md), [schema-coverage-audit.md](schema-coverage-audit.md)
 

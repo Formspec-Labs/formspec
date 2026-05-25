@@ -1,6 +1,6 @@
 # ADR-0030: Schema Parity Phase 2 — New Artifacts & Mapping Depth
 
-**Status:** Proposed
+**Status:** Partial
 **Date:** 2026-02-28
 **Depends on:** [ADR-0029](0029-schema-parity-phase1-enrich-existing.md), [schema-coverage-audit.md](schema-coverage-audit.md)
 **Followed by:** [ADR-0031](0031-schema-parity-phase3-new-subsystems.md)
