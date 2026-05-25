@@ -26,9 +26,10 @@ The report output shape is structurally governed by
 (`https://formspec.org/schemas/appGraphValidationReport/0.1`) with generated
 TypeScript exported by `@formspec-org/types`. This document intentionally does
 not define a JSON Schema for validator requests, resolver implementations,
-conformance fixtures, runtime invocation behavior, projection behavior, or
-production consumer wiring. Those land in later implementation gates after the report
-boundary is stable.
+runtime invocation behavior, projection behavior, or production consumer wiring.
+The Component route-target fixtures described in §9 are source-conformance
+evidence for that validator family only. Broader production conformance lands in
+later implementation gates after the report boundary is stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the validator contract directly.
@@ -240,11 +241,12 @@ or per-source authorization semantics.
 
 ## 9. Conformance
 
-This v0.1 draft defines the prose validator contract and provides the
-report-schema/generation evidence currently available. A conforming future
-implementation will need later gates to provide:
+This v0.1 draft defines the prose validator contract, the shared report
+schema/generation evidence, and source conformance for the initial Component
+route-target validator family. A conforming future implementation will need
+later gates to provide:
 
-1. fixture-backed conformance cases,
+1. broader fixture-backed conformance beyond the Component route-target family,
 2. broader extraction from lint, studio-core, and spike-local lessons without fixture
    assumptions, and
 3. production consumers wired to shared validator output.

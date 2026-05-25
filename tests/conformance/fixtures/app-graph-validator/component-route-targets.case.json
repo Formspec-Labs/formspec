@@ -1,0 +1,1368 @@
+{
+  "id": "component-route-targets",
+  "description": "Source conformance corpus for AppGraphValidator Component 1.2 Surface route target diagnostics.",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ],
+        "components": [
+          {
+            "handle": "reviewRoute",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.duplicate-components": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ],
+        "component": {
+          "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+          "version": "1.0.0"
+        },
+        "components": [
+          {
+            "handle": "reviewAlt",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-alt",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.surface-unmanifested": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/admin",
+            "version": "1.0.0"
+          }
+        ],
+        "components": [
+          {
+            "handle": "reviewRoute",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.definition-other": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/other",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ],
+        "components": [
+          {
+            "handle": "reviewRoute",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.definition-present": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/intake",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ],
+        "components": [
+          {
+            "handle": "reviewRoute",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.surface-version-mismatch": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+            "version": "2.0.0"
+          }
+        ],
+        "components": [
+          {
+            "handle": "reviewRoute",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.surface-range-deferred": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.2",
+        "id": "https://example.gov/apps/component-route-conformance",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+            "version": "^2.0.0"
+          }
+        ],
+        "components": [
+          {
+            "handle": "reviewRoute",
+            "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "surface.respondent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review workspace"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.respondent-duplicate": {
+      "slot": "surfaces[1]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/respondent-duplicate",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondentDuplicate",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Duplicate review workspace"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.version-3": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/respondent-v3",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+        "version": "3.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review workspace"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.range": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/respondent-range",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+        "version": "^2.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "main",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review workspace"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "component.review-route": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/review-route",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.missing-route": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/missing-route",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "missing",
+            "role": "route"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.missing-slot": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/missing-slot",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "missing",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.default-route": {
+      "slot": "component",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/default-route",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.review-alt": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/review-alt",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-alt",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.refless": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/refless",
+      "ref": {},
+      "document": {
+        "$formspecComponent": "1.2",
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.membership-mismatch": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/membership-mismatch",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-alt",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.fake-target-definition": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/fake-target-definition",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.version-mismatch": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/version-mismatch",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "component.range-deferred": {
+      "slot": "components[0]",
+      "artifactKind": "component",
+      "status": "loaded",
+      "source": "memory://component/range-deferred",
+      "ref": {
+        "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+          {
+            "surface": {
+              "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "version": "^1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ],
+        "tree": {
+          "component": "Stack",
+          "children": []
+        }
+      }
+    },
+    "definition.intake": {
+      "slot": "definitions[0]",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/intake",
+      "ref": {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Intake",
+        "items": []
+      },
+      "identity": {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-route-target",
+      "description": "A Component 1.2 targetSurfaceRoutes[] entry resolves against manifested and loaded Surface route-slot evidence.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.review-route"
+          ]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "route-unresolved",
+      "description": "A route target must name a Surface routes[].id, not a URL path or inferred route.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.missing-route"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-ROUTE-UNRESOLVED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/missing-route",
+              "jsonPointer": "/targetSurfaceRoutes/0/route",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "route": "missing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "slot-unresolved",
+      "description": "A slot target must name a slot id on the resolved Surface route.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.missing-slot"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-SLOT-UNRESOLVED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/missing-slot",
+              "jsonPointer": "/targetSurfaceRoutes/0/slot",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "route": "review",
+              "slot": "missing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "duplicate-route-claim",
+      "description": "A singular component normalized as handle default conflicts with a components[] member claiming the same route slot role.",
+      "request": {
+        "manifest": "manifest.duplicate-components",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.default-route",
+            "component.review-alt"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-ROUTE-CLAIM-DUPLICATE",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/review-alt",
+              "jsonPointer": "/targetSurfaceRoutes/0",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-alt",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "component",
+                "artifactKind": "component",
+                "source": "memory://component/default-route",
+                "jsonPointer": "/targetSurfaceRoutes/0",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+              "surfaceVersion": "1.0.0",
+              "route": "review",
+              "slot": "main",
+              "role": "slot",
+              "priorOwner": "default (https://example.gov/apps/component-route-conformance/components/review-route)",
+              "duplicateOwner": "reviewAlt (https://example.gov/apps/component-route-conformance/components/review-alt)"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "component-ref-missing",
+      "description": "A loaded Component handle without App Manifest ref evidence is rejected instead of inferred from document URL or route names.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.refless"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-REF-MISSING",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/refless",
+              "jsonPointer": "",
+              "ref": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "component-membership-mismatch",
+      "description": "Loaded Component refs must resolve to App Manifest component membership.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.membership-mismatch"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-MEMBERSHIP",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/membership-mismatch",
+              "jsonPointer": "",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-alt",
+                "version": "1.0.0"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-unmanifested",
+      "description": "A Component route target must point at a Surface listed by the App Manifest.",
+      "request": {
+        "manifest": "manifest.surface-unmanifested",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.review-route"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-SURFACE-UNMANIFESTED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/review-route",
+              "jsonPointer": "/targetSurfaceRoutes/0/surface/url",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-unloaded",
+      "description": "A Component route target must resolve to a loaded Surface handle after ArtifactResolver succeeds.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "components": [
+            "component.review-route"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-SURFACE-UNLOADED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/review-route",
+              "jsonPointer": "/targetSurfaceRoutes/0/surface/url",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-ambiguous",
+      "description": "A Surface route target is ambiguous when more than one loaded Surface handle resolves to the same manifest ref URL.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent",
+            "surface.respondent-duplicate"
+          ],
+          "components": [
+            "component.review-route"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-SURFACE-AMBIGUOUS",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/review-route",
+              "jsonPointer": "/targetSurfaceRoutes/0/surface/url",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "surfaces[1]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent-duplicate",
+                "jsonPointer": "",
+                "ref": {
+                  "url": "https://example.gov/apps/component-route-conformance/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "componentHandle": "reviewRoute",
+              "surfaceUrl": "https://example.gov/apps/component-route-conformance/surfaces/respondent"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fake-target-definition",
+      "description": "A route-bound Component cannot use targetDefinition as a non-form shim when the app graph manifests no Definitions.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.fake-target-definition"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-FAKE-TARGET-DEFINITION",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/fake-target-definition",
+              "jsonPointer": "/targetDefinition/url",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "componentHandle": "reviewRoute",
+              "targetDefinition": "https://example.gov/forms/intake"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "target-definition-unmanifested",
+      "description": "When Definitions exist, targetDefinition must name one listed in App Manifest definitions[].",
+      "request": {
+        "manifest": "manifest.definition-other",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.fake-target-definition"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-TARGET-DEFINITION-UNMANIFESTED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/fake-target-definition",
+              "jsonPointer": "/targetDefinition/url",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "componentHandle": "reviewRoute",
+              "targetDefinition": "https://example.gov/forms/intake"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "target-definition-unloaded",
+      "description": "A manifested targetDefinition must resolve to a loaded Definition handle.",
+      "request": {
+        "manifest": "manifest.definition-present",
+        "artifacts": {
+          "surfaces": [
+            "surface.respondent"
+          ],
+          "components": [
+            "component.fake-target-definition"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-TARGET-DEFINITION-UNLOADED",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/fake-target-definition",
+              "jsonPointer": "/targetDefinition/url",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "componentHandle": "reviewRoute",
+              "targetDefinition": "https://example.gov/forms/intake"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-version-mismatch",
+      "description": "Exact Surface version pins are compared against both App Manifest and loaded Surface handle refs.",
+      "request": {
+        "manifest": "manifest.surface-version-mismatch",
+        "artifacts": {
+          "surfaces": [
+            "surface.version-3"
+          ],
+          "components": [
+            "component.version-mismatch"
+          ]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 2,
+          "errors": 2,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-COMPONENT-SURFACE-VERSION",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/version-mismatch",
+              "jsonPointer": "/targetSurfaceRoutes/0/surface/version",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "targetVersion": "1.0.0",
+              "candidateVersion": "2.0.0"
+            }
+          },
+          {
+            "code": "APP-GRAPH-COMPONENT-SURFACE-VERSION",
+            "primarySource": {
+              "artifactSlot": "components[0]",
+              "artifactKind": "component",
+              "source": "memory://component/version-mismatch",
+              "jsonPointer": "/targetSurfaceRoutes/0/surface/version",
+              "ref": {
+                "url": "https://example.gov/apps/component-route-conformance/components/review-route",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "targetVersion": "1.0.0",
+              "candidateVersion": "3.0.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-range-deferred",
+      "description": "Non-exact Surface version ranges stay deferred until a shared range policy exists.",
+      "request": {
+        "manifest": "manifest.surface-range-deferred",
+        "artifacts": {
+          "surfaces": [
+            "surface.range"
+          ],
+          "components": [
+            "component.range-deferred"
+          ]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    }
+  ]
+}

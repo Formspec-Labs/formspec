@@ -27,6 +27,15 @@ Two architecture reviews returned REVISE with the same boundary:
 - build identity from App Manifest refs and loaded handles, never source paths,
   filenames, URL suffixes, Surface ids, or route names.
 
+A source-conformance phase-boundary review approved adding fixture evidence for
+the existing validator behavior only. Required constraints: model already
+loaded, schema-valid graph inputs; keep membership authority in App Manifest
+`component` / `components[]` refs plus loaded handle `ref`; omit loaded handles
+for unloaded Surface/Definition cases so cross-artifact validation still runs;
+assert diagnostics, source pointers, related sources, details, summary counts,
+and completed cross-artifact phase status; keep `componentNodeIdentityKey()` as
+helper-unit coverage, not report conformance.
+
 ## Completed
 
 - `validateAppGraph()` now always runs the built-in Component route-target
@@ -45,6 +54,8 @@ Two architecture reviews returned REVISE with the same boundary:
   unmanifested target Definitions, or unloaded target Definitions.
 - `componentNodeIdentityKey()` and graph-wide node identity types are exported
   as preparatory API only.
+- Source conformance fixtures now exercise the existing Component route-target
+  validator against already-loaded, schema-valid graph handles.
 
 ## Still Open
 
@@ -53,9 +64,7 @@ Two architecture reviews returned REVISE with the same boundary:
   multi-Component apps.
 - `x-generation.copiedFrom` / `movedFrom` provenance using graph-wide node
   identity.
-- Source conformance fixtures for positive route Components, unresolved route,
-  unresolved slot, duplicate route claim, fake targetDefinition shim, and
-  graph-wide copy provenance.
+- Full node identity and graph-wide copy provenance fixtures.
 - Consumer wiring for lint, Studio, MCPs, runtime, and projection.
 
 ## Deviations
@@ -67,6 +76,9 @@ Two architecture reviews returned REVISE with the same boundary:
 - No resolver extraction was introduced. Tests pass explicit
   `ResolvedArtifactHandle` inputs that model the resolver output needed by this
   validator slice.
+- Source conformance fixtures are added for the existing route-target validator
+  only. They do not claim Studio/kernel identity, provenance, production
+  consumers, or ADR 0154 gate closure.
 
 ## Closure Evidence
 
@@ -76,9 +88,15 @@ Two architecture reviews returned REVISE with the same boundary:
   `packages/formspec-app-graph/src/validator.ts`.
 - Public exports: `packages/formspec-app-graph/src/index.ts`.
 - Tests:
-  `packages/formspec-app-graph/tests/component-route-validator.test.ts`.
+  `packages/formspec-app-graph/tests/component-route-validator.test.ts` and
+  `packages/formspec-app-graph/tests/component-route-conformance.test.ts`.
+- Fixtures:
+  `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`.
+- Fixture integrity:
+  `tests/conformance/test_app_graph_component_route_fixture_corpus.py`.
 
 ## Verification
 
 - `npm run --workspace @formspec-org/app-graph test`
 - `npm run --workspace @formspec-org/app-graph build`
+- `python -m pytest tests/conformance/test_app_graph_component_route_fixture_corpus.py -q`
