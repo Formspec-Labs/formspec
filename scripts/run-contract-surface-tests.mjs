@@ -56,6 +56,7 @@ runPython([
   'tests/conformance/spec/test_data_sources_contract.py',
   'tests/conformance/spec/test_surface_contract.py',
   'tests/conformance/schemas/test_ui_graph_policy_schema.py',
+  'tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py',
   'tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py',
 ]);
 

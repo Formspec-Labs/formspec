@@ -1,0 +1,41 @@
+{
+  "version": "0.1",
+  "description": "Host-supplied UI Graph Policy evidence fixture. This shape is request evidence only, not an App Manifest slot or resolver artifact.",
+  "cases": [
+    {
+      "caseId": "valid-host-loaded-ui-graph-policy",
+      "hostEvidence": {
+        "uiGraphPolicies": [
+          {
+            "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+            "source": "host://policy/respondent-ui-policy",
+            "document": {
+              "$formspecUiGraphPolicy": "0.1",
+              "version": "1.0.0",
+              "targetSurface": {
+                "url": "https://example.gov/apps/intake/surfaces/respondent",
+                "version": "1.0.0"
+              },
+              "routePolicies": [
+                {
+                  "routeId": "review",
+                  "a11y": {
+                    "landmark": "main",
+                    "keyboardNavigation": true
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expectedSourcePointers": [
+        {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "host://policy/respondent-ui-policy",
+          "jsonPointer": "/targetSurface/url"
+        }
+      ]
+    }
+  ]
+}

@@ -94,9 +94,23 @@ request has these conceptual fields:
 | `schemaRegistry` | yes | Closed support profile for schema IDs, artifact kinds, and versions the validator can evaluate without network lookup. |
 | `artifactResolution` | yes | `ArtifactResolver` result, including imported diagnostics for missing artifacts, unsupported references, discriminator drift, and ref/version mismatches. |
 | `moduleResolution` | no | `ModuleResolver` result when modules are present or module-contributed values must be checked. |
+| `hostEvidence` | no | Host-supplied evidence collections that are not App Manifest siblings, such as `uiGraphPolicies[]`. This evidence is never discovered by `ArtifactResolver`. |
 | `options` | no | Validator controls such as supported bundle versions, diagnostic severity policy, phase selection for tools, and compatibility profile. Options MUST NOT authorize fetching, rendering, or effect execution. |
 
-### 2.1 Artifact Handle
+### 2.1 Host Evidence
+
+`hostEvidence` is explicit request evidence supplied by the host. It is not an
+App Manifest slot namespace, and it is not discovered by `ArtifactResolver`.
+The v0.1 UI Graph Policy boundary defines
+`hostEvidence.uiGraphPolicies[]` entries with required `schemaId`, `source`, and
+`document` fields. `source` is diagnostic evidence only, not identity authority.
+
+A future executable validator that consumes host evidence MUST run source schema
+validation for those documents before using them in cross-artifact checks. This
+specification does not define a request JSON Schema or require the current
+shared kernel to emit UI Graph Policy diagnostics.
+
+### 2.2 Artifact Handle
 
 An artifact handle is not just a JSON document. It carries enough source and
 identity metadata for deterministic diagnostics:

@@ -111,19 +111,54 @@ tokens, modules, widgets, or token slots exist; those are graph semantics owned
 by later AppGraphValidator and ModuleResolver gates.
 
 This v0.1 slice does not add an App Manifest sibling slot or standardize a
-report artifact kind. A host MAY provide a loaded policy document as explicit
-evidence to a future UI Graph Policy evaluator. Until a future App Manifest
-version explicitly names a `uiGraphPolicy` sibling slot, `ArtifactResolver` MUST
-NOT discover UI Graph Policy documents from filenames, source paths, URL
-suffixes, Surface ids, route names, or the presence of `$wireframeUiPolicy`
-spike artifacts.
+report artifact kind. It defines an accepted host-supplied evidence boundary for
+future UI Graph Policy evaluation. Until a future App Manifest version
+explicitly names a `uiGraphPolicy` sibling slot, `ArtifactResolver` MUST NOT
+discover UI Graph Policy documents from filenames, source paths, URL suffixes,
+Surface ids, route names, or the presence of `$wireframeUiPolicy` spike
+artifacts.
 
 The schema is closed by default. It intentionally has no authorization fields
 and no path-identity fields. Fine-grained actor, route, widget, field, source,
 operation, and artifact authorization remain outside this contract until a
 dedicated authorization specification supplies those semantics.
 
-### 3.1 Schema Reference
+### 3.1 Host-Supplied Evidence
+
+Hosts may provide UI Graph Policy documents to future validators as explicit
+request evidence:
+
+```json
+{
+  "hostEvidence": {
+    "uiGraphPolicies": [
+      {
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "host://policy/respondent-ui-policy",
+        "document": {
+          "$formspecUiGraphPolicy": "0.1"
+        }
+      }
+    ]
+  }
+}
+```
+
+`hostEvidence.uiGraphPolicies[]` is a request evidence collection, not an App
+Manifest sibling slot. `schemaId`, `source`, and `document` are required.
+`schemaId` MUST be `https://formspec.org/schemas/uiGraphPolicy/0.1`. `source`
+is opaque diagnostic evidence; it is not identity authority. Policy identity
+comes from `document.targetSurface`, which future validation compares to loaded
+Surface evidence.
+
+Host evidence MUST NOT carry `artifactKind`, `ref`, `identity`, `slot`,
+path-derived identity fields, App Manifest `uiPolicy` / `uiGraphPolicy` slots,
+the `$wireframeUiPolicy` spike discriminator, or ADR 0152 authorization fields.
+Future diagnostics for this evidence may point at
+`artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, `source`, and a
+document-relative `jsonPointer`, but MUST NOT invent a policy artifact kind.
+
+### 3.2 Schema Reference
 
 <!-- schema-ref:start id=ui-graph-policy-top-level schema=schemas/ui-graph-policy.schema.json pointers=# -->
 <!-- generated:schema-ref id=ui-graph-policy-top-level -->
@@ -147,7 +182,7 @@ minimum conceptual request has these fields:
 | Field | Required | Description |
 |---|---|---|
 | `surface` | yes | Loaded Surface artifact handle. Surface remains source truth for routes and slots. |
-| `policy` | yes | Loaded UI Graph Policy document supplied by host evidence. This v0.1 slice does not define an App Manifest loading slot. |
+| `policy` | yes | Loaded UI Graph Policy document supplied through `hostEvidence.uiGraphPolicies[]`. This v0.1 slice does not define an App Manifest loading slot. |
 | `locales` | no | Loaded Locale artifact handles whose `strings` maps may contain `$module.*` keys. |
 | `theme` | no | Loaded Theme artifact handle whose token assignments or future graph-facing token references are checked. |
 | `registry` | no | Registry/module evidence used to resolve module widgets and token-slot declarations. |
@@ -355,9 +390,11 @@ policy, but it does not supply permission semantics.
 This v0.1 draft defines the prose interface contract and structural source
 schema for the UI graph policy families. Production closure still requires:
 
-1. an App Manifest loading slot or an accepted production host-loading rule,
-2. `AppGraphValidator` integration,
-3. executable validator conformance over the semantic fixture families,
-4. ModuleResolver/Registry token-slot evidence integration,
-5. Studio/authoring feedback, and
-6. runtime enforcement for hidden Definition state where applicable.
+1. executable `AppGraphValidator` integration over host-supplied policy
+   evidence,
+2. executable validator conformance over the semantic fixture families,
+3. ModuleResolver/Registry token-slot evidence integration,
+4. Studio/authoring feedback,
+5. runtime enforcement for hidden Definition state where applicable, and
+6. an optional future App Manifest loading slot if the app package contract
+   later chooses one.

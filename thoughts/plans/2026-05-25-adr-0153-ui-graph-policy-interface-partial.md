@@ -81,6 +81,14 @@ conformance, App Manifest slot, ArtifactResolver grouping, host-loading rule,
 ModuleResolver/Registry token-slot work, Studio/runtime/projection consumers, or
 ADR 0152 authorization semantics.
 
+Cicero approved a host-supplied evidence boundary before executable validator
+integration. Required boundary: define `hostEvidence.uiGraphPolicies[]` as
+explicit request evidence with fixed UI Graph Policy schema id, opaque source,
+and schema-valid document; do not add an App Manifest slot, ArtifactResolver
+grouping, fake policy `artifactKind`, validator emission, request JSON Schema,
+ModuleResolver/Registry token-slot work, runtime behavior, Studio/projection
+consumers, path/document-shape discovery, or ADR 0152 authorization semantics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -125,11 +133,18 @@ ADR 0152 authorization semantics.
   `packages/formspec-app-graph/src/types.ts` admit `ui-graph-policy` as a known
   report diagnostic origin while preserving the `x-*` extension lane and
   rejecting arbitrary non-extension origins.
+- `specs/app-graph/ui-graph-policy-spec.md`,
+  `specs/app-graph/app-graph-validator-spec.md`,
+  `tests/conformance/fixtures/ui-graph-policy/host-loaded/valid-host-evidence.case.json`,
+  and `tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py`
+  define and pin `hostEvidence.uiGraphPolicies[]` as explicit host-supplied
+  request evidence, not App Manifest loading, ArtifactResolver grouping,
+  path-derived identity, or ADR 0152 authorization policy.
 
 ## Still Open For Closure
 
-- App Manifest loading slot or accepted production host-loading rule for the
-  policy source.
+- Optional future App Manifest loading slot if the package contract later
+  chooses one.
 - Executable AppGraphValidator integration and diagnostic emission.
 - Executable AppGraphValidator conformance over the semantic fixture families.
 - ModuleResolver/Registry token-slot evidence integration.
@@ -140,6 +155,7 @@ ADR 0152 authorization semantics.
 
 - `python -m pytest tests/conformance/schemas/test_ui_graph_policy_schema.py -q`
 - `python -m pytest tests/conformance/schemas/test_app_graph_validation_report_schema.py -q`
+- `python -m pytest tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
 - `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`
 - `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts`

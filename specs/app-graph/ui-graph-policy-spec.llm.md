@@ -33,5 +33,6 @@ Source schema: `schemas/ui-graph-policy.schema.json`
 ## Conformance Essentials
 
 - A conforming UI Graph Policy document must include `$formspecUiGraphPolicy='0.1'`, strict SemVer `version`, `targetSurface`, and at least one `routePolicies[]` entry.
+- Host-supplied UI Graph Policy evidence uses `hostEvidence.uiGraphPolicies[]` with fixed schemaId, opaque source, and schema-valid document; it is not an App Manifest sibling slot or resolver artifact kind.
 - Structural conformance rejects `$wireframeUiPolicy` spike documents, path-identity fields, authorization fields, invalid module Locale prefixes, and App Manifest `uiPolicy` or `uiGraphPolicy` slots in the current manifest schema.
-- This slice proves schema shape, generated types, structural fixture acceptance, semantic fixture evidence, and report-origin readiness only; App Manifest loading, executable AppGraphValidator integration, ModuleResolver/Registry token-slot checks, Studio feedback, and runtime hidden-state behavior remain later gates.
+- This slice proves schema shape, generated types, structural fixture acceptance, host-evidence boundary, semantic fixture evidence, and report-origin readiness only; executable AppGraphValidator integration, ModuleResolver/Registry token-slot checks, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates.
