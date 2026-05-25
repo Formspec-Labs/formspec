@@ -1,6 +1,6 @@
 {
-  "id": "ui-graph-policy-surface-routes",
-  "description": "Executable AppGraphValidator conformance for UI Graph Policy Surface and route-only semantic families.",
+  "id": "ui-graph-policy-hidden-definitions",
+  "description": "Executable AppGraphValidator conformance for UI Graph Policy hidden Definition semantic families.",
   "handles": {
     "manifest": {
       "slot": "app",
@@ -38,13 +38,51 @@
                 "binding": {
                   "definitionRef": "https://example.gov/forms/intake"
                 }
-              },
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": [
               {
-                "id": "details",
-                "slotType": "module-widget",
+                "id": "confirmation",
+                "slotType": "static-content",
                 "binding": {
-                  "moduleId": "x-reviewer",
-                  "widgetName": "x-review-panel"
+                  "kind": "text",
+                  "content": "Done"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface-not-route-local": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/intake/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "summary",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Review"
                 }
               }
             ]
@@ -65,38 +103,144 @@
           }
         ]
       }
+    },
+    "definition-intake-v1": {
+      "slot": "definitions[0]",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/definition/1.0",
+      "source": "memory://definition/intake-v1",
+      "ref": {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "id": "intake"
+      }
+    },
+    "definition-intake-v2": {
+      "slot": "definitions[0]",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/definition/1.0",
+      "source": "memory://definition/intake-v2",
+      "ref": {
+        "url": "https://example.gov/forms/intake",
+        "version": "2.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "id": "intake"
+      }
     }
   },
   "policies": {
-    "valid-policy": {
+    "valid-hidden-definition": {
       "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/valid",
+      "source": "host://policy/valid-hidden-definition",
       "document": {
         "$formspecUiGraphPolicy": "0.1",
         "version": "1.0.0",
         "targetSurface": {
-          "url": "https://example.gov/apps/intake/surfaces/respondent",
-          "version": "1.0.0"
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
         },
         "routePolicies": [
           {
             "routeId": "review",
-            "responsive": {
-              "collapseOrder": ["summary", "details"]
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/intake",
+                  "version": "1.0.0"
+                }
+              ]
             }
           },
           {
-            "routeId": "done",
-            "responsive": {
-              "collapseOrder": ["confirmation"]
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "unresolved-hidden-definition": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/unresolved-hidden-definition",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/intake"
+                }
+              ]
+            }
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "hidden-definition-not-route-local": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/hidden-definition-not-route-local",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/intake"
+                }
+              ]
+            }
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "unresolved-route-with-hidden-definition": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/unresolved-route-with-hidden-definition",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "missing-route",
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/intake"
+                }
+              ]
             }
           }
         ]
       }
     },
-    "target-mismatch": {
+    "target-mismatch-with-hidden-definition": {
       "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/target-mismatch",
+      "source": "host://policy/target-mismatch-with-hidden-definition",
       "document": {
         "$formspecUiGraphPolicy": "0.1",
         "version": "1.0.0",
@@ -105,68 +249,21 @@
         },
         "routePolicies": [
           {
-            "routeId": "review"
+            "routeId": "review",
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/intake"
+                }
+              ]
+            }
           }
         ]
       }
     },
-    "duplicate-route": {
+    "hidden-definition-version-mismatch": {
       "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/duplicate-route",
-      "document": {
-        "$formspecUiGraphPolicy": "0.1",
-        "version": "1.0.0",
-        "targetSurface": {
-          "url": "https://example.gov/apps/intake/surfaces/respondent"
-        },
-        "routePolicies": [
-          {
-            "routeId": "review"
-          },
-          {
-            "routeId": "review"
-          },
-          {
-            "routeId": "done"
-          }
-        ]
-      }
-    },
-    "unresolved-route": {
-      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/unresolved-route",
-      "document": {
-        "$formspecUiGraphPolicy": "0.1",
-        "version": "1.0.0",
-        "targetSurface": {
-          "url": "https://example.gov/apps/intake/surfaces/respondent"
-        },
-        "routePolicies": [
-          {
-            "routeId": "missing-route"
-          }
-        ]
-      }
-    },
-    "missing-route": {
-      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/missing-route",
-      "document": {
-        "$formspecUiGraphPolicy": "0.1",
-        "version": "1.0.0",
-        "targetSurface": {
-          "url": "https://example.gov/apps/intake/surfaces/respondent"
-        },
-        "routePolicies": [
-          {
-            "routeId": "review"
-          }
-        ]
-      }
-    },
-    "unresolved-responsive-slot": {
-      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/unresolved-responsive-slot",
+      "source": "host://policy/hidden-definition-version-mismatch",
       "document": {
         "$formspecUiGraphPolicy": "0.1",
         "version": "1.0.0",
@@ -176,8 +273,13 @@
         "routePolicies": [
           {
             "routeId": "review",
-            "responsive": {
-              "collapseOrder": ["summary", "missing-slot"]
+            "definitionVisibility": {
+              "hiddenDefinitionRefs": [
+                {
+                  "url": "https://example.gov/forms/intake",
+                  "version": "1.0.0"
+                }
+              ]
             }
           },
           {
@@ -185,63 +287,27 @@
           }
         ]
       }
-    },
-    "deferred-policy-families": {
-      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
-      "source": "host://policy/deferred-policy-families",
-      "document": {
-        "$formspecUiGraphPolicy": "0.1",
-        "version": "1.0.0",
-        "targetSurface": {
-          "url": "https://example.gov/apps/intake/surfaces/respondent"
-        },
-        "localeKeyOwners": [
-          {
-            "keyPrefix": "$module.x-reviewer.",
-            "moduleId": "x-reviewer"
-          }
-        ],
-        "routePolicies": [
-          {
-            "routeId": "review"
-          },
-          {
-            "routeId": "done"
-          }
-        ],
-        "theme": {
-          "assignments": [
-            {
-              "widgetRef": {
-                "moduleId": "x-missing",
-                "widgetName": "x-missing-widget"
-              },
-              "slot": "accent",
-              "token": "color.accent"
-            }
-          ]
-        }
-      }
     }
   },
   "cases": [
     {
-      "id": "valid-policy-surface-routes",
-      "description": "A schema-valid host policy matching the loaded Surface routes emits no UI policy diagnostics.",
+      "id": "valid-hidden-definition",
+      "description": "A hidden Definition ref resolves to a loaded Definition and route-local definition-form slot.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "definitions": ["definition-intake-v1"]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["valid-policy"]
+          "uiGraphPolicies": ["valid-hidden-definition"]
         }
       },
       "expected": {
         "ok": true,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 0,
@@ -256,15 +322,15 @@
       }
     },
     {
-      "id": "surface-target-mismatch",
-      "description": "A policy targetSurface URL must match exactly one loaded Surface ref URL.",
+      "id": "unresolved-hidden-definition",
+      "description": "A hidden Definition ref must resolve to a loaded Definition handle by ref URL.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
           "surfaces": ["surface-respondent"]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["target-mismatch"]
+          "uiGraphPolicies": ["unresolved-hidden-definition"]
         }
       },
       "expected": {
@@ -284,18 +350,63 @@
         },
         "diagnostics": [
           {
-            "code": "UI-POLICY-SURFACE-TARGET",
+            "code": "UI-POLICY-HIDDEN-DEFINITION-REF",
             "primarySource": {
               "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-              "source": "host://policy/target-mismatch",
-              "jsonPointer": "/targetSurface/url"
+              "source": "host://policy/unresolved-hidden-definition",
+              "jsonPointer": "/routePolicies/0/definitionVisibility/hiddenDefinitionRefs/0/url"
+            },
+            "details": {
+              "routeId": "review",
+              "definitionRef": "https://example.gov/forms/intake",
+              "reason": "unresolved-definition"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hidden-definition-not-route-local",
+      "description": "A hidden Definition ref must be present as a definition-form slot on the target route.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-not-route-local"],
+          "definitions": ["definition-intake-v1"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["hidden-definition-not-route-local"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-HIDDEN-DEFINITION-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/hidden-definition-not-route-local",
+              "jsonPointer": "/routePolicies/0/definitionVisibility/hiddenDefinitionRefs/0/url"
             },
             "relatedSources": [
               {
                 "artifactSlot": "surfaces[0]",
                 "artifactKind": "surface",
                 "source": "memory://surface/respondent",
-                "jsonPointer": "/ref/url",
+                "jsonPointer": "/routes/0/slots",
                 "ref": {
                   "url": "https://example.gov/apps/intake/surfaces/respondent",
                   "version": "1.0.0"
@@ -303,71 +414,24 @@
               }
             ],
             "details": {
-              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/admin"
+              "routeId": "review",
+              "definitionRef": "https://example.gov/forms/intake",
+              "reason": "not-route-local"
             }
           }
         ]
       }
     },
     {
-      "id": "duplicate-route-policy",
-      "description": "A policy may not contain two entries for the same Surface route.",
+      "id": "unresolved-route-skips-hidden-definition",
+      "description": "An unresolved route policy does not cascade into hidden Definition diagnostics.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
           "surfaces": ["surface-respondent"]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["duplicate-route"]
-        }
-      },
-      "expected": {
-        "ok": false,
-        "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
-          "schemaFailures": 0,
-          "unvalidatedArtifacts": 0,
-          "graphErrors": 1,
-          "errors": 1,
-          "warnings": 0,
-          "infos": 0,
-          "importedDiagnostics": 0,
-          "unsupportedFeatures": 0,
-          "skippedPhases": 0
-        },
-        "diagnostics": [
-          {
-            "code": "UI-POLICY-ROUTE-COLLISION",
-            "primarySource": {
-              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-              "source": "host://policy/duplicate-route",
-              "jsonPointer": "/routePolicies/1/routeId"
-            },
-            "relatedSources": [
-              {
-                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-                "source": "host://policy/duplicate-route",
-                "jsonPointer": "/routePolicies/0/routeId"
-              }
-            ],
-            "details": {
-              "routeId": "review"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "unresolved-route-policy",
-      "description": "A route policy must resolve to a route in the target Surface, without cascading into missing-route coverage.",
-      "request": {
-        "manifest": "manifest",
-        "artifacts": {
-          "surfaces": ["surface-respondent"]
-        },
-        "hostEvidence": {
-          "uiGraphPolicies": ["unresolved-route"]
+          "uiGraphPolicies": ["unresolved-route-with-hidden-definition"]
         }
       },
       "expected": {
@@ -390,7 +454,7 @@
             "code": "UI-POLICY-ROUTE-REF",
             "primarySource": {
               "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-              "source": "host://policy/unresolved-route",
+              "source": "host://policy/unresolved-route-with-hidden-definition",
               "jsonPointer": "/routePolicies/0/routeId"
             },
             "relatedSources": [
@@ -413,15 +477,15 @@
       }
     },
     {
-      "id": "missing-route-policy",
-      "description": "Every target Surface route must have a policy entry when all policy route refs resolve.",
+      "id": "target-mismatch-skips-hidden-definition",
+      "description": "A target Surface mismatch does not cascade into hidden Definition diagnostics.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
           "surfaces": ["surface-respondent"]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["missing-route"]
+          "uiGraphPolicies": ["target-mismatch-with-hidden-definition"]
         }
       },
       "expected": {
@@ -441,72 +505,18 @@
         },
         "diagnostics": [
           {
-            "code": "UI-POLICY-ROUTE-MISSING",
-            "primarySource": {
-              "artifactSlot": "surfaces[0]",
-              "artifactKind": "surface",
-              "source": "memory://surface/respondent",
-              "jsonPointer": "/routes/1/id",
-              "ref": {
-                "url": "https://example.gov/apps/intake/surfaces/respondent",
-                "version": "1.0.0"
-              }
-            },
-            "relatedSources": [
-              {
-                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-                "source": "host://policy/missing-route",
-                "jsonPointer": "/routePolicies"
-              }
-            ],
-            "details": {
-              "routeId": "done"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "unresolved-responsive-slot",
-      "description": "A responsive collapse slot id must resolve to a slot on the targeted Surface route.",
-      "request": {
-        "manifest": "manifest",
-        "artifacts": {
-          "surfaces": ["surface-respondent"]
-        },
-        "hostEvidence": {
-          "uiGraphPolicies": ["unresolved-responsive-slot"]
-        }
-      },
-      "expected": {
-        "ok": false,
-        "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
-          "schemaFailures": 0,
-          "unvalidatedArtifacts": 0,
-          "graphErrors": 1,
-          "errors": 1,
-          "warnings": 0,
-          "infos": 0,
-          "importedDiagnostics": 0,
-          "unsupportedFeatures": 0,
-          "skippedPhases": 0
-        },
-        "diagnostics": [
-          {
-            "code": "UI-POLICY-RESPONSIVE-SLOT",
+            "code": "UI-POLICY-SURFACE-TARGET",
             "primarySource": {
               "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
-              "source": "host://policy/unresolved-responsive-slot",
-              "jsonPointer": "/routePolicies/0/responsive/collapseOrder/1"
+              "source": "host://policy/target-mismatch-with-hidden-definition",
+              "jsonPointer": "/targetSurface/url"
             },
             "relatedSources": [
               {
                 "artifactSlot": "surfaces[0]",
                 "artifactKind": "surface",
                 "source": "memory://surface/respondent",
-                "jsonPointer": "/routes/0/slots",
+                "jsonPointer": "/ref/url",
                 "ref": {
                   "url": "https://example.gov/apps/intake/surfaces/respondent",
                   "version": "1.0.0"
@@ -514,41 +524,56 @@
               }
             ],
             "details": {
-              "routeId": "review",
-              "slotId": "missing-slot"
+              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/admin"
             }
           }
         ]
       }
     },
     {
-      "id": "deferred-policy-families-not-emitted",
-      "description": "Locale ownership and Theme token-slot families remain deferred when Surface route policy checks pass.",
+      "id": "hidden-definition-version-mismatch",
+      "description": "A hidden Definition ref version must match the loaded Definition handle when present.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "definitions": ["definition-intake-v2"]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["deferred-policy-families"]
+          "uiGraphPolicies": ["hidden-definition-version-mismatch"]
         }
       },
       "expected": {
-        "ok": true,
+        "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
-          "graphErrors": 0,
-          "errors": 0,
+          "graphErrors": 1,
+          "errors": 1,
           "warnings": 0,
           "infos": 0,
           "importedDiagnostics": 0,
           "unsupportedFeatures": 0,
           "skippedPhases": 0
         },
-        "diagnostics": []
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-HIDDEN-DEFINITION-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/hidden-definition-version-mismatch",
+              "jsonPointer": "/routePolicies/0/definitionVisibility/hiddenDefinitionRefs/0/url"
+            },
+            "details": {
+              "routeId": "review",
+              "definitionRef": "https://example.gov/forms/intake",
+              "reason": "unresolved-definition",
+              "definitionVersion": "1.0.0"
+            }
+          }
+        ]
       }
     }
   ]

@@ -30,10 +30,11 @@ This row spans:
   `UI-POLICY-ROUTE-REF`, `UI-POLICY-ROUTE-MISSING`, and
   `UI-POLICY-RESPONSIVE-SLOT`, plus `LOCALE-KEY-OWNER` and
   `LOCALE-KEY-OWNER-COLLISION`, and
-  `LOCALE-KEY-OWNER-MODULE-MISMATCH`.
-- Locale owner ModuleResolver-backed module-id resolution, hidden Definition,
-  Theme token-slot, ModuleResolver/Registry, runtime, Studio, projection,
-  consumer, and optional future App Manifest slot work remains open.
+  `LOCALE-KEY-OWNER-MODULE-MISMATCH`, plus
+  `UI-POLICY-HIDDEN-DEFINITION-REF`.
+- Locale owner ModuleResolver-backed module-id resolution, Theme token-slot,
+  ModuleResolver/Registry, runtime hidden-state, Studio, projection, consumer,
+  and optional future App Manifest slot work remains open.
 
 ## Phase Order
 
@@ -67,16 +68,19 @@ Current partial evidence:
 - `packages/formspec-app-graph/src/ui-graph-policy.ts`
 - `tests/conformance/fixtures/ui-graph-policy/`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
+- `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-hidden-definitions.case.json`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-surface-routes.case.json`
 - `tests/conformance/schemas/test_ui_graph_policy_schema.py`
 - `tests/conformance/schemas/test_app_graph_validation_report_schema.py`
 - `tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py`
 - `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py`
 - `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`
+- `tests/conformance/test_app_graph_ui_policy_hidden_definition_fixture_corpus.py`
 - `tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py`
 - `packages/formspec-app-graph/tests/ui-graph-policy-locale-conformance.test.ts`
+- `packages/formspec-app-graph/tests/ui-graph-policy-hidden-definition-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
 
 Closure still requires Locale owner ModuleResolver-backed module-id resolution,
-hidden Definition, Theme token-slot, ModuleResolver/Registry token-slot
-evidence, consumer wiring, and final rollup gate transition.
+Theme token-slot, ModuleResolver/Registry token-slot evidence, runtime
+hidden-state behavior, consumer wiring, and final rollup gate transition.

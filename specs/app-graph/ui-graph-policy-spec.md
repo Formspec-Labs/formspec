@@ -30,15 +30,15 @@ behavior, Studio wiring, ModuleResolver token-slot enforcement, Locale-owner
 module-id resolution, Theme token-slot enforcement, or hidden Definition
 runtime behavior. The shared AppGraphValidator kernel validates host-supplied UI
 Graph Policy evidence structurally and reports `evidenceResults[]`; it also
-emits the Surface/route and Locale-owner semantic diagnostics named in this
-document.
+emits the Surface/route, Locale-owner, and hidden Definition reference semantic
+diagnostics named in this document.
 
 ## Bottom Line Up Front
 
 <!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
 - UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice adds host-evidence schema result reporting plus Surface/route and Locale-owner AppGraphValidator enforcement; Theme token-slot, hidden Definition, ModuleResolver, runtime, and consumer checks remain later gates.
+- This slice adds host-evidence schema result reporting plus Surface/route, Locale-owner, and hidden Definition AppGraphValidator enforcement; Theme token-slot, ModuleResolver, runtime hidden-state, and consumer checks remain later gates.
 - Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
@@ -337,11 +337,11 @@ choice until the Registry schema formally names it. The v4 spike's
 
 ## 6. Diagnostic Import
 
-The shared `AppGraphValidator` emits UI Graph Policy Surface/route and
-Locale-owner diagnostics as cross-artifact diagnostics after policy host
-evidence and loaded artifacts pass source schema validation. Theme token-slot,
-hidden Definition, ModuleResolver/Registry, runtime, Studio, MCP, projection,
-and consumer diagnostics remain later gates.
+The shared `AppGraphValidator` emits UI Graph Policy Surface/route,
+Locale-owner, and hidden Definition reference diagnostics as cross-artifact
+diagnostics after policy host evidence and loaded artifacts pass source schema
+validation. Theme token-slot, ModuleResolver/Registry, runtime hidden-state,
+Studio, MCP, projection, and consumer diagnostics remain later gates.
 
 | Field | Value |
 |---|---|
@@ -367,9 +367,10 @@ Initial diagnostic codes:
 
 Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
-`UI-POLICY-ROUTE-REF`, `UI-POLICY-RESPONSIVE-SLOT`, `LOCALE-KEY-OWNER`, and
-`LOCALE-KEY-OWNER-COLLISION`, and
-`LOCALE-KEY-OWNER-MODULE-MISMATCH`. Policy source pointers MUST use
+`UI-POLICY-ROUTE-REF`, `UI-POLICY-RESPONSIVE-SLOT`,
+`UI-POLICY-HIDDEN-DEFINITION-REF`, `LOCALE-KEY-OWNER`,
+`LOCALE-KEY-OWNER-COLLISION`, and `LOCALE-KEY-OWNER-MODULE-MISMATCH`. Policy
+source pointers MUST use
 `artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, opaque `source`, and
 `jsonPointer` only. Surface and Locale related sources may use normal resolved
 artifact handle pointers. The current Locale-owner executable slice checks
@@ -377,7 +378,7 @@ loaded Locale `strings` keys with `$module.` prefixes for declared owner prefix
 coverage, checks policy-local owner prefix overlap across different `moduleId`
 values, and checks that a policy owner `moduleId` matches the module segment in
 its `keyPrefix`. It does not yet resolve module ids through ModuleResolver.
-Theme, Registry, ModuleResolver, hidden Definition, runtime, and authorization
+Theme, Registry, ModuleResolver, runtime hidden-state, and authorization
 diagnostics are not emitted by this slice.
 
 ## 7. Non-Goals and Boundaries

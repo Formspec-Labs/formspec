@@ -15,11 +15,11 @@ to module widget token slots.
 The current slices promote the structural source schema, generated TypeScript
 type, host-supplied loading evidence, executable host-evidence schema result
 reporting, Surface/route semantic diagnostics, and policy-local Locale-owner
-diagnostics in the shared AppGraphValidator kernel. They do not promote an App
-Manifest slot, ArtifactResolver group, Theme token-slot checks, hidden
-Definition behavior, ModuleResolver token-slot or module-id resolution, runtime
-responsive behavior, renderer behavior, Studio wiring, or ADR 0152
-authorization semantics.
+diagnostics plus hidden Definition reference diagnostics in the shared
+AppGraphValidator kernel. They do not promote an App Manifest slot,
+ArtifactResolver group, Theme token-slot checks, ModuleResolver token-slot or
+module-id resolution, runtime hidden-state or responsive behavior, renderer
+behavior, Studio wiring, or ADR 0152 authorization semantics.
 
 ## Review Checkpoint
 
@@ -132,6 +132,22 @@ consume `ModuleResolutionReport`, widen AppGraph source pointers, emit Theme,
 hidden Definition, runtime, App Manifest slot, TraceIndex, or ADR 0152
 authorization diagnostics.
 
+Pasteur and Cicero approved an executable hidden Definition reference slice.
+Required boundary: emit `UI-POLICY-HIDDEN-DEFINITION-REF` only for schema-valid
+host policy evidence after exact target Surface and route resolution; resolve
+Definitions by loaded handle `ref.url` plus exact `ref.version` when the policy
+declares one; require a route-local `definition-form` slot whose
+`binding.definitionRef` matches the hidden Definition URL; skip hidden checks
+when the route itself is unresolved or the policy target Surface mismatches; do
+not add runtime hidden-state enforcement, Theme token-slot diagnostics,
+ModuleResolver/Registry integration, App Manifest slot, ArtifactResolver
+changes, TraceIndex, ADR 0152 authorization, source-pointer widening, or
+Component identity changes.
+
+Copernicus approved the hidden Definition implementation after resolving stale
+spec, generated LLM-reference, and contract-surface coverage wording. There
+were no remaining code or contract findings.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -217,13 +233,22 @@ authorization diagnostics.
   pins the executable Locale-owner fixture corpus, policy evidence-only
   pointers, Locale artifact pointers, zero-loaded-Locale behavior,
   keyPrefix/moduleId mismatch behavior, and no TraceIndex/path/auth leakage.
+- `packages/formspec-app-graph/src/ui-graph-policy.ts`,
+  `packages/formspec-app-graph/tests/ui-graph-policy-hidden-definition-conformance.test.ts`,
+  and
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-hidden-definitions.case.json`
+  add executable hidden Definition reference diagnostics for unresolved loaded
+  Definitions, version mismatch, and non-route-local `definition-form` slots.
+- `tests/conformance/test_app_graph_ui_policy_hidden_definition_fixture_corpus.py`
+  pins hidden Definition evidence-only policy pointers, normal Surface related
+  pointers, unresolved-route and target-mismatch cascade guards, version-match
+  behavior, and no Theme/TraceIndex/path/auth leakage.
 
 ## Still Open For Closure
 
 - Optional future App Manifest loading slot if the package contract later
   chooses one.
 - Locale-owner module-id resolution through ModuleResolver evidence.
-- Hidden Definition semantic diagnostics and runtime behavior.
 - Theme token-slot semantic diagnostics.
 - ModuleResolver/Registry token-slot evidence integration.
 - Studio and authoring feedback.
@@ -235,10 +260,11 @@ authorization diagnostics.
 - `python -m pytest tests/conformance/schemas/test_app_graph_validation_report_schema.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py -q`
+- `python -m pytest tests/conformance/test_app_graph_ui_policy_hidden_definition_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
 - `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`
-- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts ui-graph-policy-locale-conformance.test.ts`
+- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts ui-graph-policy-hidden-definition-conformance.test.ts ui-graph-policy-locale-conformance.test.ts`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`
