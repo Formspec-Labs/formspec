@@ -15,6 +15,15 @@ export {
   type AppGraphComponentNodeIdentity,
 } from './component-identity.js';
 export {
+  resolveArtifacts,
+  type ArtifactLoader,
+  type ArtifactLoaderDiagnosticInput,
+  type ArtifactLoaderInput,
+  type ArtifactLoaderOutcome,
+  type ArtifactResolverRequest,
+  type ArtifactResolverSupportProfile,
+} from './artifact-resolver.js';
+export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {

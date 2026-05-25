@@ -1,13 +1,13 @@
 ---
 title: Formspec ArtifactResolver Interface Specification
-version: 0.1.0-draft.3
+version: 0.1.0-draft.4
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec ArtifactResolver Interface Specification v0.1
 
-**Version:** 0.1.0-draft.3
+**Version:** 0.1.0-draft.4
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, AppGraphValidator, and Module Resolver
@@ -24,10 +24,12 @@ metadata consumed by `AppGraphValidator`.
 The resolver output report is also pinned by
 `schemas/artifact-resolution-report.schema.json` with `$id`
 `https://formspec.org/schemas/artifactResolutionReport/0.1` and generated
-`@formspec-org/types` types. This document intentionally does not define a
-resolver request schema, fixture-backed resolver conformance, a shared package
-implementation, production consumer wiring, or runtime fetch/cache policy.
-Those land in later implementation gates after responsibilities are stable.
+`@formspec-org/types` types. A shared pure TypeScript resolver kernel now lives
+in `@formspec-org/app-graph` and uses a host-injected loader port. This
+document intentionally does not define a resolver request schema,
+fixture-backed source conformance corpus, production consumer wiring, or
+runtime fetch/cache policy. Those land in later implementation gates after
+responsibilities are stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -81,16 +83,18 @@ Manifest document and a loading strategy.
 
 | Field | Required | Description |
 |---|---|---|
-| `manifest` | yes | Parsed App Manifest document plus source metadata for diagnostics. |
+| `manifest` | yes | Parsed App Manifest document. |
 | `loader` | yes | Host-supplied port that loads a sibling by `SiblingRef.url`, optional `version`, and expected artifact kind. |
-| `support` | yes | Supported App Manifest versions, artifact kinds, URI schemes, and optional version-range policy. |
-| `options` | no | Diagnostic policy, maximum artifact count, digest calculation preference, and host source-label policy. Options MUST NOT authorize sibling discovery outside manifest refs. |
+| `support` | no | Supported App Manifest versions, artifact kinds, and URI schemes. When omitted, the shared kernel uses its current default support profile. |
+| `source` | no | Host source label for the App Manifest handle. It is diagnostic evidence only, not identity. |
+| `digest` | no | Optional App Manifest content digest for reproducibility evidence. |
+| `schemaId` | no | Optional App Manifest schema selected by the host or support profile. |
 
 The resolver MAY reject a request before loading siblings when the manifest
-version or top-level shape is outside the supplied support profile. Full App
-Manifest source schema validation remains the `AppGraphValidator` schema phase;
-the resolver only performs enough manifest inspection to enumerate declared
-refs and protect its loading boundary.
+version or top-level shape is outside the supplied or default support profile.
+Full App Manifest source schema validation remains the `AppGraphValidator`
+schema phase; the resolver only performs enough manifest inspection to
+enumerate declared refs and protect its loading boundary.
 
 ## 3. Loader Port
 
@@ -243,9 +247,9 @@ the shared app-graph diagnostic envelope.
 Diagnostics MAY include host-specific `details`, but details MUST NOT promote
 local path, fixture, cache, or fetch metadata to identity authority.
 
-`ARTIFACT-COMPONENTS-VERSION-GATE` is reserved by this prose contract for the
-future shared resolver extraction and conformance slice; this draft does not
-claim production emission of that diagnostic.
+The shared resolver kernel emits the Data Sources and Component version-gate
+diagnostics above. Gate 12 closure still requires fixture-backed source
+conformance for those failure families and production consumer integration.
 
 ## 9. Non-Goals and Handoff
 
@@ -265,13 +269,12 @@ Data Sources payloads at runtime.
 This v0.1 draft defines the interface and output report contract only. A
 conforming future implementation still needs:
 
-1. shared package extraction,
-2. fixture-backed conformance for missing, unsupported, discriminator, version,
+1. fixture-backed conformance for missing, unsupported, discriminator, version,
    identity, v2.1 Data Sources gate failures, v2.2 Component version gate
    failures, and `ComponentRef.handle` preservation,
-3. integration with `AppGraphValidator` and `ModuleResolver`,
-4. production consumer wiring, and
-5. a resolver request schema/generated type only if future implementation
+2. integration with `AppGraphValidator` and `ModuleResolver`,
+3. production consumer wiring, and
+4. a resolver request schema/generated type only if future implementation
    inputs need a stable interchange artifact.
 
 Until those gates land, tools MAY use this document to align resolver
