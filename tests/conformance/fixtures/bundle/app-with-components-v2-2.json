@@ -1,0 +1,30 @@
+{
+  "fixture": "app-with-components-v2-2",
+  "purpose": "Positive: App Manifest v2.2 declaring components[] as per-handle Component sibling references while continuing to admit dataSources[].",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "2.2",
+    "version": "1.4.0",
+    "id": "https://example.gov/apps/component-routed-workspace",
+    "title": "Component Routed Workspace",
+    "definitions": [],
+    "surfaces": [
+      { "url": "https://example.gov/apps/component-routed-workspace/surfaces/respondent", "version": "1.0.0" }
+    ],
+    "dataSources": [
+      { "url": "https://example.gov/apps/component-routed-workspace/data-sources", "version": "1.0.0" }
+    ],
+    "components": [
+      {
+        "handle": "threadRoute",
+        "url": "https://example.gov/apps/component-routed-workspace/components/thread-route",
+        "version": "1.0.0"
+      },
+      {
+        "handle": "reviewShell",
+        "url": "https://example.gov/apps/component-routed-workspace/components/review-shell",
+        "version": "1.0.0"
+      }
+    ]
+  }
+}

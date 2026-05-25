@@ -1,0 +1,26 @@
+{
+  "fixture": "invalid-duplicate-component-handle",
+  "purpose": "Negative: two components[] entries share the same handle. Spec semantics test MUST reject.",
+  "expected": { "valid": false, "errorContains": "handle" },
+  "bundle": {
+    "$formspecBundle": "2.2",
+    "version": "1.4.0",
+    "id": "https://example.gov/apps/duplicate-component-handle",
+    "definitions": [],
+    "surfaces": [
+      { "url": "https://example.gov/apps/duplicate-component-handle/surfaces/respondent", "version": "1.0.0" }
+    ],
+    "components": [
+      {
+        "handle": "routeMain",
+        "url": "https://example.gov/apps/duplicate-component-handle/components/route-main",
+        "version": "1.0.0"
+      },
+      {
+        "handle": "routeMain",
+        "url": "https://example.gov/apps/duplicate-component-handle/components/route-alt",
+        "version": "1.0.0"
+      }
+    ]
+  }
+}

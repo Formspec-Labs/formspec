@@ -3,7 +3,7 @@ beyond schema acceptance.
 
 Schema validates structural shape. This file enforces semantics that
 JSON Schema cannot express: per-array uniqueness keys (locale tag,
-mapping handle) and sibling-URL distinctness from app `id`.
+mapping handle, component handle) and sibling-URL distinctness from app `id`.
 
 Per ADR 0150 §5.2/§5.3/§11.2 the singular `definition`/`registry`
 slots reframe as `definitions[]`/`registries[]`; the URL-collection
@@ -34,6 +34,10 @@ def _mapping_handles(bundle: dict) -> list[str]:
     return [entry["handle"] for entry in bundle.get("mappings", [])]
 
 
+def _component_handles(bundle: dict) -> list[str]:
+    return [entry["handle"] for entry in bundle.get("components", [])]
+
+
 class TestBundleArrayUniqueness:
     def test_locales_array_has_unique_tags_positive(self) -> None:
         bundle = _bundle("bundle-with-locales-and-mappings.json")
@@ -55,6 +59,23 @@ class TestBundleArrayUniqueness:
         handles = _mapping_handles(bundle)
         assert len(handles) != len(set(handles)), "fixture must contain a duplicate handle"
 
+    def test_components_array_has_unique_handles_positive(self) -> None:
+        bundle = _bundle("app-with-components-v2-2.json")
+        handles = _component_handles(bundle)
+        assert len(handles) == len(set(handles))
+
+    def test_components_array_rejects_duplicate_handles(self) -> None:
+        bundle = _bundle("invalid-duplicate-component-handle.json")
+        handles = _component_handles(bundle)
+        assert len(handles) != len(set(handles)), "fixture must contain a duplicate handle"
+
+    def test_component_default_handle_conflicts_with_singular_component(self) -> None:
+        bundle = _bundle("invalid-component-default-handle-conflict.json")
+        assert "component" in bundle
+        assert "default" in _component_handles(bundle), (
+            "fixture must contain a normalized default-handle conflict"
+        )
+
 
 def _all_sibling_urls(bundle: dict) -> list[str]:
     urls: list[str] = []
@@ -65,8 +86,8 @@ def _all_sibling_urls(bundle: dict) -> list[str]:
             urls.append(bundle[key]["url"])
     # Array-cardinality slots — includes the pluralized definitions[] /
     # registries[] / surfaces[] per ADR 0150 §5.2, alongside v2.1
-    # dataSources[] and the existing locales[] / mappings[].
-    for key in ("definitions", "registries", "surfaces", "dataSources", "locales", "mappings"):
+    # dataSources[], v2.2 components[], and the existing locales[] / mappings[].
+    for key in ("definitions", "registries", "surfaces", "dataSources", "components", "locales", "mappings"):
         for entry in bundle.get(key, []):
             urls.append(entry["url"])
     return urls
@@ -95,3 +116,14 @@ class TestAppManifestDataSources:
         assert data_source_urls
         assert set(data_source_urls).issubset(set(_all_sibling_urls(bundle)))
         assert bundle["id"] not in data_source_urls
+
+
+class TestAppManifestComponents:
+    def test_component_urls_participate_in_sibling_identity(self) -> None:
+        bundle = _bundle("app-with-components-v2-2.json")
+
+        component_urls = [entry["url"] for entry in bundle["components"]]
+
+        assert component_urls
+        assert set(component_urls).issubset(set(_all_sibling_urls(bundle)))
+        assert bundle["id"] not in component_urls

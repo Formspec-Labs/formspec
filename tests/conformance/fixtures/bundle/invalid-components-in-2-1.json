@@ -1,0 +1,21 @@
+{
+  "fixture": "invalid-components-in-2-1",
+  "purpose": "Negative: App Manifest v2.1 cannot use the v2.2-only components[] sibling slot.",
+  "expected": { "valid": false, "errorContains": "2.2" },
+  "bundle": {
+    "$formspecBundle": "2.1",
+    "version": "1.4.0",
+    "id": "https://example.gov/apps/components-too-early",
+    "definitions": [],
+    "surfaces": [
+      { "url": "https://example.gov/apps/components-too-early/surfaces/respondent", "version": "1.0.0" }
+    ],
+    "components": [
+      {
+        "handle": "threadRoute",
+        "url": "https://example.gov/apps/components-too-early/components/thread-route",
+        "version": "1.0.0"
+      }
+    ]
+  }
+}

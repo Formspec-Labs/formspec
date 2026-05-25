@@ -1,6 +1,6 @@
 {
   "fixture": "invalid-data-sources-in-2-0",
-  "purpose": "Negative: App Manifest v2.0 cannot use the v2.1-only dataSources[] sibling slot.",
+  "purpose": "Negative: App Manifest v2.0 cannot use the v2.1+ dataSources[] sibling slot.",
   "expected": { "valid": false, "errorContains": "2.1" },
   "bundle": {
     "$formspecBundle": "2.0",

@@ -546,20 +546,20 @@
       "bluf": "specs/bundle/app-manifest-spec.bluf.md",
       "llm": "specs/bundle/app-manifest-spec.llm.md",
       "behaviorEssentials": [
-        "App Manifest (formerly Bundle Manifest, reframed v2.0 per ADR 0150 §5.2/§5.3/§11.2, extended by v2.1 for Data Sources) is a pure composition envelope: names an app by composing zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, optional Data Sources catalogs, plus optional substrate Modules (ModuleRef[]) and Sessions (SessionRef[]) and any combination of optional single-cardinality siblings (Experience, Response Actions, Component, Theme, References, Ontology) by canonical URL and version.",
+        "App Manifest (formerly Bundle Manifest, reframed v2.0, extended by v2.1 for Data Sources and v2.2 for Components) is a pure composition envelope: names an app by composing zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, optional Data Sources catalogs, optional per-handle Component documents, plus optional substrate Modules (ModuleRef[]) and Sessions (SessionRef[]) and any combination of optional single-cardinality siblings (Experience, Response Actions, legacy Component, Theme, References, Ontology) by canonical URL and version.",
         "Absent siblings invoke each sibling spec's existing defaults; no synthesis, no inline sidecars, no shims on existing primary specs.",
-        "App `id` MUST be distinct from every sibling URL (singles and array entries); locales[].locale, mappings[].handle, definitions[].url, and dataSources[].url MUST be unique within their array.",
+        "App `id` MUST be distinct from every sibling URL (singles and array entries); locales[].locale, mappings[].handle, components[].handle, definitions[].url, and dataSources[].url MUST be unique within their array.",
         "App `version` is strict SemVer 2.0.0; per-SiblingRef.version accepts exact SemVer or range expressions resolved at sibling-resolution time.",
-        "`dataSources[]` is valid only when `$formspecBundle` is `\"2.1\"`; v2.0 manifests remain valid when they do not use the v2.1-only slot.",
-        "Forward composition graph (manifest → siblings) lives alongside the existing back-reference graph (sibling.targetDefinition → Definition); reverse-discovery continues to work for tools that do not use App Manifest.",
+        "`dataSources[]` is valid only when `$formspecBundle` is `\"2.1\"` or `\"2.2\"`; `components[]` is valid only when `$formspecBundle` is `\"2.2\"`.",
+        "Forward composition graph (manifest → siblings) lives alongside sibling-owned targetDefinition and targetSurfaceRoutes references; reverse-discovery continues to work for tools that do not use App Manifest.",
         "`definitions[]` MAY be empty (non-form apps composing only surfaces/modules), single-element (form-only common case), or multi-element (multi-form apps)."
       ],
       "conformanceEssentials": [
-        "A conforming App Manifest must include $formspecBundle='2.0' or '2.1', strict-SemVer version, uri-shaped id, and a REQUIRED definitions[] array (which MAY be empty).",
-        "Processors MUST enforce array uniqueness (locale tag, mapping handle, module id, session id, definition url, dataSources url), id-vs-sibling-URL distinctness, §5.3 sibling-pin consistency, and §5.4 module coherence at resolution time.",
+        "A conforming App Manifest must include $formspecBundle='2.0', '2.1', or '2.2', strict-SemVer version, uri-shaped id, and a REQUIRED definitions[] array (which MAY be empty).",
+        "Processors MUST enforce array uniqueness (locale tag, mapping handle, component handle, module id, session id, definition url, dataSources url), id-vs-sibling-URL distinctness, §5.3 sibling-pin consistency, and §5.4 module coherence at resolution time.",
         "Loaded sibling discriminators must match the slot per the §3.4 table; Definition is identified by `$formspec` (unqualified) while every other sibling carries `$formspec<Type>`.",
         "Documents with $formspecBundle='1.0' (legacy Bundle Manifest) MUST be rejected — the 1.0 → 2.0 plural-shape change is BREAKING per ADR 0150 §11.2.",
-        "Documents with dataSources[] MUST declare $formspecBundle='2.1'; v2.0 documents carrying dataSources[] are invalid.",
+        "Documents with dataSources[] MUST declare $formspecBundle='2.1' or '2.2'; documents with components[] MUST declare $formspecBundle='2.2'.",
         "App Manifest does NOT introduce shims, aliases, or backwards-compat fields on existing primary specs; existing artifacts remain unchanged."
       ]
     }

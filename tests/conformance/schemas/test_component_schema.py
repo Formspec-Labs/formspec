@@ -30,7 +30,7 @@ def test_minimal_document():
     }
     validate(instance=doc, schema=SCHEMA)
 
-def test_vnext_route_only_identity_document():
+def test_component_1_2_route_only_identity_document():
     doc = {
         "$formspecComponent": "1.2",
         "url": "https://example.gov/apps/workspace/components/review-route",
@@ -54,7 +54,7 @@ def test_vnext_route_only_identity_document():
     validate(instance=doc, schema=SCHEMA)
 
 
-def test_vnext_mixed_definition_and_route_identity_document():
+def test_component_1_2_mixed_definition_and_route_identity_document():
     doc = {
         "$formspecComponent": "1.2",
         "version": "1.0.0",
@@ -81,7 +81,7 @@ def test_vnext_mixed_definition_and_route_identity_document():
     validate(instance=doc, schema=SCHEMA)
 
 
-def test_vnext_document_requires_identity_binding():
+def test_component_1_2_document_requires_identity_binding():
     doc = {
         "$formspecComponent": "1.2",
         "version": "1.0.0",
@@ -142,7 +142,7 @@ def test_legacy_component_documents_remain_form_bound():
         },
     ],
 )
-def test_vnext_route_target_shape_invalid(route_target):
+def test_component_1_2_route_target_shape_invalid(route_target):
     doc = {
         "$formspecComponent": "1.2",
         "version": "1.0.0",

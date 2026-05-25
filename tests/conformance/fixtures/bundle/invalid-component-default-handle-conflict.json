@@ -1,0 +1,24 @@
+{
+  "fixture": "invalid-component-default-handle-conflict",
+  "purpose": "Negative: singular component normalizes to handle default, so components[].handle default conflicts.",
+  "expected": { "valid": false, "errorContains": "default" },
+  "bundle": {
+    "$formspecBundle": "2.2",
+    "version": "1.4.0",
+    "id": "https://example.gov/apps/component-default-conflict",
+    "definitions": [
+      { "url": "https://example.gov/apps/component-default-conflict/definition", "version": "1.0.0" }
+    ],
+    "component": {
+      "url": "https://example.gov/apps/component-default-conflict/components/default",
+      "version": "1.0.0"
+    },
+    "components": [
+      {
+        "handle": "default",
+        "url": "https://example.gov/apps/component-default-conflict/components/alternate-default",
+        "version": "1.0.0"
+      }
+    ]
+  }
+}
