@@ -285,6 +285,7 @@ Each event **MUST** contain at least:
 - `attachmentBinding` **MUST** be present for `attachment.added` and `attachment.replaced`.
 - `priorAttachmentBindingHash` **MUST** be present for `attachment.removed`; `attachment.removed` **MUST NOT** carry a new `attachmentBinding`.
 - `actionEvent` **MUST** be present for `action.invoked`, `action.failed`, `action.deferred`, and `action.replayed`; those events **MUST NOT** carry `changes` or `validationSnapshot`.
+- `data` **MUST** be present for `response.correction-recorded` and `bot-protection-cleared`, using the event-specific payload shape defined by this specification.
 - `sessionRef` **SHOULD** be present when the implementation distinguishes respondent sessions.
 - `amendmentRef` **SHOULD** be present when an event belongs to a particular reopening/amendment cycle.
 
@@ -306,7 +307,7 @@ Each event **MUST** contain at least:
 - `priorAttachmentBindingHash` — prior attachment-binding event hash referenced by an attachment removal.
 - `actionEvent` — Response Actions invocation payload for optional `action.*` events, defined in §8.5. The Ledger stores this payload without interpreting the semantic content of opaque `*Ref` fields.
 - `recordKind` — correction-profile discriminator for `response.correction-recorded`; when present it **MUST** equal `responseCorrection`.
-- `data` — structured `ResponseCorrection` payload for `response.correction-recorded`, defined in §11.3.
+- `data` — structured event-specific payload for `response.correction-recorded` (§11.3) or `bot-protection-cleared` (§8.6).
 - `priorEventHash` — previous event hash in the respondent-ledger chain, or `null` for the first event in a Trellis-wrapped chain.
 - `eventHash` — hash of this respondent-ledger event under the active integrity profile.
 - `privacyTier` — optional disclosure tier on the actor or identity attestation stating how linkable or revealed the subject is for this event.
@@ -666,6 +667,7 @@ An implementation **MAY** support additional material event types, including:
 - `action.failed`
 - `action.deferred`
 - `action.replayed`
+- `bot-protection-cleared`
 
 ### 8.3 Event type guidance
 
@@ -692,6 +694,7 @@ An implementation **MAY** support additional material event types, including:
 - `action.failed` — optional Response Actions audit event for an invocation ending in failed or blocked posture. The proximate cause remains runtime-owned and is carried as an opaque `causeRef`.
 - `action.deferred` — optional Response Actions audit event for an invocation whose effect chain deferred and produced a replay token.
 - `action.replayed` — optional Response Actions audit event for a retry or replay observing prior invocation outcomes.
+- `bot-protection-cleared` — optional FW-0036 audit event recording that the humane bot-protection gate ran and produced a provider-neutral verdict.
 
 ### 8.4 Explicit exclusions
 
@@ -721,6 +724,39 @@ The Ledger treats `causeRef`, `replayTokenRef`, and `priorInvocationRef` as opaq
 The completed lifecycle moment is already represented by `response.completed`; draft persistence is already represented by `draft.saved`; submit attempts are already represented by `response.submit-attempted`. Response Actions consumers should reuse those event kinds rather than duplicating them under `action.*`.
 
 These events are response-scoped audit records. They do **not** create or imply governed case identity, workflow acceptance, or case lifecycle authority.
+
+### 8.6 Bot-protection cleared event
+
+`bot-protection-cleared` records the result of the FW-0036 humane bot-protection gate. Processors **MAY** emit this event when form policy is `allowed` and the gate ran. Processors **MUST** emit this event when form policy is `required`, including denied outcomes, so the refusal has a durable audit record. Processors **MUST NOT** emit this event when form policy is `forbidden`; absence is structural because the form's `(definitionUrl, definitionVersion)` policy is public.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "attesterTier": "device-attested",
+  "attesterId": "urn:formspec:bot-attester:webauthn-up@1",
+  "outcome": "human",
+  "evaluatedAt": "2026-05-24T15:30:00Z",
+  "evidenceRef": "wa-up-assertion-id-opaque"
+}
+```
+
+`attesterTier` values are:
+
+- `device-attested`
+- `private-token`
+- `invisible-challenge`
+- `human-confirmation`
+- `escape-to-support`
+
+`outcome` values are:
+
+- `human`
+- `agent-registered`
+- `uncertain`
+- `denied`
+
+`attesterId` is an opaque URN or adapter identifier naming the attester that produced the verdict. `evidenceRef` is optional and opaque. The payload **MUST NOT** carry IP addresses, User-Agent strings, device fingerprints, geolocation, behavioral biometrics, or other re-identifying signals. Implementations that need vendor-side audit **MAY** keep vendor-native evidence behind `evidenceRef`; implementations that do not need that audit **MAY** omit it.
 
 ---
 

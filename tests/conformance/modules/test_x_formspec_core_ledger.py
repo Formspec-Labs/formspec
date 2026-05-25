@@ -2,16 +2,16 @@
 
 Republishes Respondent-Ledger closed-core enum values as Registry `property`
 contributions per ADR §4.9. Two enum sites:
-- EventType closed-core: 27 values at execution-time re-probe (plan r1
-  cited 20 floor; actual at probe = 27 — 7 newer values added between r1
+- EventType closed-core: 28 values at execution-time re-probe (plan r1
+  cited 20 floor; actual at probe = 28 — 8 newer values added between r1
   and execution: response.migrated, response.correction-recorded,
   field.edit-recorded, action.invoked, action.failed, action.deferred,
-  action.replayed). EXCLUDED from this republishing: the ^x- and
+  action.replayed, bot-protection-cleared). EXCLUDED from this republishing: the ^x- and
   ^(ai|user)\\. lanes — P4 ships those.
 - ChangeSetEntry.valueClass closed-core: 7 values (user-input, prepopulated,
   calculated, imported, attachment, system-derived, migration-derived).
 
-Total: 27 + 7 = 34 contribution entries.
+Total: 28 + 7 = 35 contribution entries.
 
 **Naming-translation (specs/registry/extension-registry.md §4.1 Rule 1):**
 EventType closed-core values use `.` separators (e.g. `session.started`).

@@ -48,6 +48,16 @@ def _attachment_removed_event() -> dict:
     return event
 
 
+def _bot_protection_event(name: str = "device-attested-human.json") -> dict:
+    fixture_path = (
+        ROOT_DIR
+        / "tests/conformance/fixtures/respondent-ledger/bot-protection-cleared"
+        / name
+    )
+    with open(fixture_path) as f:
+        return json.load(f)
+
+
 def test_attachment_added_fixture_is_schema_valid():
     _validate_event(_attachment_added_event())
 
@@ -187,6 +197,60 @@ def test_chained_ledger_rejects_null_prior_hash_after_first_event():
 
     with pytest.raises(ValidationError):
         _validate_ledger(doc)
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "device-attested-human.json",
+        "invisible-challenge-human.json",
+        "agent-registered.json",
+        "escape-to-support-denied.json",
+    ],
+)
+def test_bot_protection_cleared_fixtures_are_schema_valid(fixture_name: str):
+    event = _bot_protection_event(fixture_name)
+
+    _validate_event(event)
+
+    assert event["eventType"] == "bot-protection-cleared"
+    assert set(event["data"]) >= {
+        "attesterTier",
+        "attesterId",
+        "outcome",
+        "evaluatedAt",
+    }
+
+
+def test_bot_protection_cleared_is_published_in_event_type_enum():
+    event_type_def = EVENT_SCHEMA["$defs"]["EventType"]
+    closed_branch = next(b for b in event_type_def["oneOf"] if "enum" in b)
+
+    assert "bot-protection-cleared" in closed_branch["enum"]
+
+
+def test_bot_protection_cleared_requires_data_payload():
+    event = _bot_protection_event()
+    event.pop("data")
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_bot_protection_cleared_rejects_inline_reidentifying_fields():
+    event = _bot_protection_event()
+    event["data"]["ipAddress"] = "192.0.2.10"
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_bot_protection_cleared_data_is_only_valid_for_named_event():
+    event = _bot_protection_event()
+    event["eventType"] = "draft.saved"
+
+    with pytest.raises(ValidationError):
+        _validate_event(event)
 
 
 def test_chained_ledger_requires_null_prior_hash_on_first_event():

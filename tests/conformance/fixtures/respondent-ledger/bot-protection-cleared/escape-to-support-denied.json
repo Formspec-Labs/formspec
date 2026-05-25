@@ -1,0 +1,25 @@
+{
+  "eventId": "evt-bot-0004",
+  "sequence": 1,
+  "eventType": "bot-protection-cleared",
+  "occurredAt": "2026-05-24T15:33:00Z",
+  "recordedAt": "2026-05-24T15:33:01Z",
+  "responseId": "resp-bot-004",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "subjectRef": "subj-pseudo-004",
+    "privacyTier": "pseudonymous"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-intake"
+  },
+  "data": {
+    "attesterTier": "escape-to-support",
+    "attesterId": "urn:formspec:bot-attester:support-escape@1",
+    "outcome": "denied",
+    "evaluatedAt": "2026-05-24T15:33:00Z"
+  }
+}

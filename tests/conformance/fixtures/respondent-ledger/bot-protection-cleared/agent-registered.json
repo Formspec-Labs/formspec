@@ -1,0 +1,26 @@
+{
+  "eventId": "evt-bot-0003",
+  "sequence": 1,
+  "eventType": "bot-protection-cleared",
+  "occurredAt": "2026-05-24T15:32:00Z",
+  "recordedAt": "2026-05-24T15:32:01Z",
+  "responseId": "resp-bot-003",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "delegate",
+    "subjectRef": "urn:wos:agent:registered-filer-003",
+    "privacyTier": "pseudonymous"
+  },
+  "source": {
+    "kind": "api",
+    "channelId": "registered-agent-submit"
+  },
+  "data": {
+    "attesterTier": "device-attested",
+    "attesterId": "urn:formspec:bot-attester:wos-agent-registry@1",
+    "outcome": "agent-registered",
+    "evaluatedAt": "2026-05-24T15:32:00Z",
+    "evidenceRef": "agent-registry-verdict-opaque-003"
+  }
+}

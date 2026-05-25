@@ -102,7 +102,11 @@
       "description": "Correction-profile discriminator. Present only for response.correction-recorded events."
     },
     "data": {
-      "$ref": "#/$defs/ResponseCorrectionData"
+      "oneOf": [
+        { "$ref": "#/$defs/ResponseCorrectionData" },
+        { "$ref": "#/$defs/BotProtectionClearedData" }
+      ],
+      "description": "Structured payload for event types that define an event-specific data block."
     },
     "sessionRef": {
       "type": "string",
@@ -189,6 +193,18 @@
     },
     {
       "if": {
+        "properties": { "eventType": { "const": "bot-protection-cleared" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/BotProtectionClearedData" }
+        }
+      }
+    },
+    {
+      "if": {
         "required": ["recordKind"]
       },
       "then": {
@@ -201,7 +217,11 @@
         "required": ["data"]
       },
       "then": {
-        "properties": { "eventType": { "const": "response.correction-recorded" } },
+        "properties": {
+          "eventType": {
+            "enum": ["response.correction-recorded", "bot-protection-cleared"]
+          }
+        },
         "required": ["eventType"]
       }
     },
@@ -337,7 +357,8 @@
             "action.invoked",
             "action.failed",
             "action.deferred",
-            "action.replayed"
+            "action.replayed",
+            "bot-protection-cleared"
           ]
         },
         {
@@ -630,6 +651,45 @@
         },
         "extensions": {
           "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "BotProtectionClearedData": {
+      "type": "object",
+      "required": ["attesterTier", "attesterId", "outcome", "evaluatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "attesterTier": {
+          "type": "string",
+          "enum": [
+            "device-attested",
+            "private-token",
+            "invisible-challenge",
+            "human-confirmation",
+            "escape-to-support"
+          ],
+          "description": "FW-0036 attester tier that produced the verdict."
+        },
+        "attesterId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque URN or adapter identifier naming the attester that produced the verdict.",
+          "examples": ["urn:formspec:bot-attester:webauthn-up@1"]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["human", "agent-registered", "uncertain", "denied"],
+          "description": "Provider-neutral result of the bot-protection gate."
+        },
+        "evaluatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the attester verdict was evaluated."
+        },
+        "evidenceRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional opaque attester-side audit reference. This field MUST NOT contain IP addresses, User-Agent strings, device fingerprints, geolocation, behavioral biometrics, or other re-identifying signals."
         }
       }
     },
