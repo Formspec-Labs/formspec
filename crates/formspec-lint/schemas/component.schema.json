@@ -1,14 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/component/1.1",
+  "$id": "https://formspec.org/schemas/component/1.2",
   "title": "Formspec Component Document",
   "description": "A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.",
   "type": "object",
   "required": [
     "$formspecComponent",
     "version",
-    "targetDefinition",
     "tree"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "$formspecComponent": {
+            "enum": ["1.0", "1.1"]
+          }
+        }
+      },
+      "then": {
+        "required": ["targetDefinition"],
+        "not": {
+          "required": ["targetSurfaceRoutes"]
+        }
+      },
+      "else": {
+        "anyOf": [
+          { "required": ["targetDefinition"] },
+          { "required": ["targetSurfaceRoutes"] }
+        ]
+      }
+    }
   ],
   "patternProperties": {
     "^x-": true
@@ -17,9 +39,9 @@
   "properties": {
     "$formspecComponent": {
       "type": "string",
-      "enum": ["1.0", "1.1"],
-      "description": "Component specification version. MUST be '1.0' or '1.1'.",
-      "examples": ["1.0", "1.1"],
+      "enum": ["1.0", "1.1", "1.2"],
+      "description": "Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.",
+      "examples": ["1.0", "1.1", "1.2"],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for component document compatibility."
@@ -27,7 +49,7 @@
     },
     "modules": {
       "type": "array",
-      "description": "OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.",
+      "description": "OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Omitting modules[] is identical to declaring the core module set, which preserves form-only documents.",
       "items": {
         "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef"
       },
@@ -71,6 +93,31 @@
       "x-lm": {
         "critical": true,
         "intent": "Declares which definition this component tree is designed to render."
+      }
+    },
+    "targetSurfaceRoutes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SurfaceRouteTarget"
+      },
+      "description": "Component 1.2 bindings to Surface routes, slots, or app-shell targets. Each entry is an applicability claim resolved by AppGraph validation against the enclosing App Manifest and Surface documents; it does not create routes or slots.",
+      "examples": [
+        [
+          {
+            "surface": {
+              "url": "https://agency.gov/apps/workspace/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "route": "review",
+            "slot": "main",
+            "role": "slot"
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Declares where an app-graph Component tree applies in Surface route or slot space."
       }
     },
     "breakpoints": {
@@ -137,6 +184,51 @@
   "$defs": {
     "TargetDefinition": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
+    },
+
+    "SurfaceRef": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URL of a Surface document included in the enclosing App Manifest surfaces[]."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional exact version or range expression compatible with the App Manifest Surface pin."
+        }
+      }
+    },
+
+    "SurfaceRouteTarget": {
+      "type": "object",
+      "required": ["surface", "route", "role"],
+      "additionalProperties": false,
+      "properties": {
+        "surface": {
+          "$ref": "#/$defs/SurfaceRef",
+          "description": "Surface sibling identity for the route target."
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Surface routes[].id targeted by this Component. This is not the URL path."
+        },
+        "slot": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Optional slot key on the target route. When omitted, the Component targets the whole route projection."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["route", "slot", "app-shell"],
+          "description": "Role of this route target in the initial Component 1.2 contract."
+        }
+      }
     },
 
     "Tokens": {
@@ -210,7 +302,7 @@
         "id": {
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
-          "description": "Optional unique identifier for this node. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. **Uniqueness scope is bundle-graph-wide when present** per ADR 0150 §5.3 — every authored `id` MUST be unique across every Component document reachable from a single App Manifest, not merely unique within its own tree. JSON Schema cannot enforce graph-level uniqueness across multiple documents; the invariant is upheld by linter rule E605 (COMP-BUNDLE-ID-COLLISION) which walks the bundle graph and hard-fails on duplicates. **Load-bearing for ADR 0151's cross-document-move bidirectional map** (CRDT precondition: target doc has no collision). Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id, which counts as a single id occurrence for collision purposes."
+          "description": "Optional unique identifier for this node. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. **Uniqueness scope is bundle-graph-wide when present** — every authored `id` MUST be unique across every Component document reachable from a single App Manifest, not merely unique within its own tree. JSON Schema cannot enforce graph-level uniqueness across multiple documents; the invariant is upheld by linter rule E605 (COMP-BUNDLE-ID-COLLISION) which walks the bundle graph and hard-fails on duplicates. This is a precondition for cross-document move and copy maps: the target document must have no collision. Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id, which counts as a single id occurrence for collision purposes."
         },
         "unitRef": {
           "type": "string",
@@ -249,7 +341,7 @@
         },
         "extensions": {
           "$ref": "#/$defs/Extensions",
-          "description": "Typed slot for ^x-* extension payloads on every component node. Closes the spike F2 finding where x-generation-style extensions had no typed home given each component variant's `unevaluatedProperties: false` posture. Per ADR 0150 §4.7."
+          "description": "Typed slot for ^x-* extension payloads on every component node. This gives extension payloads a typed home even when component variants use `unevaluatedProperties: false`."
         },
         "x-generation": {
           "type": "object",

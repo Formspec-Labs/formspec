@@ -50,6 +50,22 @@ const generatedComponentWithReferenceFields: ComponentDocument = {
     },
   },
 };
+const generatedComponentRouteOnly: ComponentDocument = {
+  $formspecComponent: '1.2',
+  version: '1.0.0',
+  targetSurfaceRoutes: [
+    {
+      surface: { url: 'urn:test:surface' },
+      route: 'review',
+      role: 'route',
+    },
+  ],
+  tree: { component: 'Stack', children: [] },
+};
+const generatedComponentMixedIdentity: ComponentDocument = {
+  ...generatedComponentRouteOnly,
+  targetDefinition: { url: 'urn:test:definition' },
+};
 const generatedTheme: ThemeDocument = {
   $formspecTheme: '1.0',
   version: '1.0.0',
@@ -88,6 +104,26 @@ const badDefinitionRoot: FormDefinition = { ...generatedDefinition, acme: true }
 // @ts-expect-error Generated Component roots are closed except for x-* extensions.
 const badComponentRoot: ComponentDocument = { ...generatedComponent, acme: true };
 
+// @ts-expect-error Component 1.0/1.1 documents remain form-bound.
+const badLegacyComponentMissingTarget: ComponentDocument = {
+  $formspecComponent: '1.1',
+  version: '1.0.0',
+  tree: { component: 'Text', text: 'Missing targetDefinition' },
+};
+
+// @ts-expect-error Component 1.0/1.1 documents cannot use route identity.
+const badLegacyComponentRouteIdentity: ComponentDocument = {
+  ...generatedComponentRouteOnly,
+  $formspecComponent: '1.1',
+};
+
+// @ts-expect-error Component 1.2 documents require targetDefinition or targetSurfaceRoutes.
+const badComponent12MissingIdentity: ComponentDocument = {
+  $formspecComponent: '1.2',
+  version: '1.0.0',
+  tree: { component: 'Text', text: 'Missing identity' },
+};
+
 // @ts-expect-error Generated Theme roots are closed except for x-* extensions.
 const badThemeRoot: ThemeDocument = { ...generatedTheme, acme: true };
 
@@ -108,6 +144,8 @@ void customComponent;
 void generatedDefinition;
 void generatedComponent;
 void generatedComponentWithReferenceFields;
+void generatedComponentRouteOnly;
+void generatedComponentMixedIdentity;
 void generatedTheme;
 void generatedThemeWithWidget;
 void generatedDefinitionExtensions;
@@ -118,6 +156,9 @@ void badDefinitionWidget;
 void badCustomComponent;
 void badThemeItemWidget;
 void badDefinitionRoot;
+void badLegacyComponentMissingTarget;
+void badLegacyComponentRouteIdentity;
+void badComponent12MissingIdentity;
 void badComponentRoot;
 void badThemeRoot;
 void badDefinitionExtensions;

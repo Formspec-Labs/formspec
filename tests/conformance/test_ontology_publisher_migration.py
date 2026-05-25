@@ -8,13 +8,11 @@ from jsonschema import Draft202012Validator, RefResolver
 ROOT = Path(__file__).parents[2]
 ONT = json.loads((ROOT / "schemas" / "ontology.schema.json").read_text())
 COMMON = json.loads((ROOT / "schemas" / "common.schema.json").read_text())
-COMPONENT = json.loads((ROOT / "schemas" / "component.schema.json").read_text())
 
 
 def _v():
     store = {
         "https://formspec.org/schemas/common/1.0": COMMON,
-        "https://formspec.org/schemas/component/1.1": COMPONENT,
     }
     return Draft202012Validator(ONT, resolver=RefResolver.from_schema(ONT, store=store))
 

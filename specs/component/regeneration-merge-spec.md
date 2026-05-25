@@ -193,11 +193,11 @@ freshGenerationWithoutCommonAncestor(
 
 When `old_generated` is present, the `old_generated`, `designer_edited`,
 `new_generated`, and `merged` documents MUST declare `$formspecComponent:
-"1.1"` and MUST validate against the Component schema whose `$id` is
-`https://formspec.org/schemas/component/1.1`.
+"1.1"` and MUST validate against the active Component schema whose `$id` is
+`https://formspec.org/schemas/component/1.2`.
 
-Validating against the Component v1.1 schema is not sufficient by itself because
-that schema accepts earlier Component version markers for backward
+Validating against the active Component schema is not sufficient by itself
+because that schema accepts earlier Component version markers for backward
 compatibility. A regeneration-merge processor MUST reject any present Component
 document that does not declare `$formspecComponent: "1.1"` for `old_generated`,
 `designer_edited`, `new_generated`, or `merged`.
@@ -232,7 +232,8 @@ Component documents above are the merge inputs; they are not the single
 
 `merged` is a new Component document that represents the processor's proposed
 authoring draft. It is not one of the input documents. It MUST declare
-`$formspecComponent: "1.1"` and MUST validate against the Component v1.1 schema.
+`$formspecComponent: "1.1"` and MUST validate against the active Component
+schema.
 
 `report` is a new `MergeReport` document. It records which nodes survived,
 regenerated, orphaned, entered pending review, or produced conflicts. The report

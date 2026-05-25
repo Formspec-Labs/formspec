@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { Party, LangMap, ContactPoint } from './common.js';
+import type { TargetDefinition, Party, LangMap, ContactPoint } from './common.js';
 /**
  * Organization publishing this ontology document.
  */
@@ -97,19 +97,6 @@ export interface OntologyDocument {
    * Document-level extension properties. All keys MUST be x-prefixed.
    */
   extensions?: {};
-}
-/**
- * Binding to the target Formspec Definition and optional compatibility range.
- */
-export interface TargetDefinition {
-  /**
-   * Canonical URL of the target Definition.
-   */
-  url: string;
-  /**
-   * Semver range expression describing which Definition versions this document supports.
-   */
-  compatibleVersions?: string;
 }
 /**
  * Associates a Definition item with a concept in an external ontology or standard.

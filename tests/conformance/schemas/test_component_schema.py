@@ -30,6 +30,131 @@ def test_minimal_document():
     }
     validate(instance=doc, schema=SCHEMA)
 
+def test_vnext_route_only_identity_document():
+    doc = {
+        "$formspecComponent": "1.2",
+        "url": "https://example.gov/apps/workspace/components/review-route",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+            {
+                "surface": {
+                    "url": "https://example.gov/apps/workspace/surfaces/respondent",
+                    "version": "1.0.0",
+                },
+                "route": "review",
+                "slot": "main",
+                "role": "slot",
+            }
+        ],
+        "tree": {
+            "component": "Stack",
+            "children": [],
+        },
+    }
+    validate(instance=doc, schema=SCHEMA)
+
+
+def test_vnext_mixed_definition_and_route_identity_document():
+    doc = {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetDefinition": {
+            "url": "https://example.gov/forms/intake",
+            "compatibleVersions": ">=1.0.0 <2.0.0",
+        },
+        "targetSurfaceRoutes": [
+            {
+                "surface": {
+                    "url": "https://example.gov/apps/workspace/surfaces/respondent",
+                },
+                "route": "intakeReview",
+                "role": "route",
+            }
+        ],
+        "tree": {
+            "component": "Stack",
+            "children": [
+                {"component": "TextInput", "bind": "fullName"},
+            ],
+        },
+    }
+    validate(instance=doc, schema=SCHEMA)
+
+
+def test_vnext_document_requires_identity_binding():
+    doc = {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "tree": {
+            "component": "Section",
+            "title": "No identity",
+        },
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
+
+
+def test_legacy_component_documents_remain_form_bound():
+    doc = {
+        "$formspecComponent": "1.1",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [
+            {
+                "surface": {
+                    "url": "https://example.gov/apps/workspace/surfaces/respondent",
+                },
+                "route": "review",
+                "role": "route",
+            }
+        ],
+        "tree": {
+            "component": "Stack",
+            "children": [],
+        },
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
+
+
+@pytest.mark.parametrize(
+    "route_target",
+    [
+        {
+            "surface": {
+                "url": "https://example.gov/apps/workspace/surfaces/respondent",
+            },
+            "role": "route",
+        },
+        {
+            "surface": {
+                "url": "https://example.gov/apps/workspace/surfaces/respondent",
+            },
+            "route": "review",
+            "role": "modal",
+        },
+        {
+            "surface": {
+                "url": "https://example.gov/apps/workspace/surfaces/respondent",
+            },
+            "route": "review",
+            "role": "route",
+            "path": "/review",
+        },
+    ],
+)
+def test_vnext_route_target_shape_invalid(route_target):
+    doc = {
+        "$formspecComponent": "1.2",
+        "version": "1.0.0",
+        "targetSurfaceRoutes": [route_target],
+        "tree": {
+            "component": "Stack",
+            "children": [],
+        },
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
+
 def test_full_core_components():
     doc = {
         "$formspecComponent": "1.0",

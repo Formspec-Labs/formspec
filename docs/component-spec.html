@@ -237,9 +237,9 @@ id="toc-partial-component-trees">11.4 Partial Component Trees</a></li>
 <li><a href="#cross-references-to-peer-artifacts"
 id="toc-cross-references-to-peer-artifacts">11.5 Cross-References to
 Peer Artifacts</a></li>
-<li><a href="#app-graph-component-identity-adr-0154"
-id="toc-app-graph-component-identity-adr-0154">11.6 App-Graph Component
-Identity (ADR 0154)</a></li>
+<li><a href="#app-graph-component-identity"
+id="toc-app-graph-component-identity">11.6 App-Graph Component
+Identity</a></li>
 </ul></li>
 <li><a href="#validation-and-conformance"
 id="toc-validation-and-conformance">12. Validation and Conformance</a>
@@ -313,9 +313,9 @@ unless prefixed with “core” (e.g., “core §4.2.5”) or “theme” (e.g.,
 <ul>
 <li>This document defines Tier 3 Component Documents for explicit,
 tree-based Formspec rendering.</li>
-<li>A valid component document requires <code>$formspecComponent</code>,
-<code>version</code>, <code>targetDefinition</code>, and
-<code>tree</code>.</li>
+<li>Component 1.0/1.1 documents require <code>targetDefinition</code>;
+Component 1.2 documents require <code>targetDefinition</code> or
+<code>targetSurfaceRoutes[]</code>.</li>
 <li>Component trees control layout and widget selection but cannot
 override core behavioral semantics from the Definition.</li>
 <li>Component nodes may carry additive reference metadata
@@ -344,9 +344,8 @@ Levels (Core / Complete)</a></li>
 Properties</a></li>
 <li><a href="#22-target-definition-binding">§2.2 Target Definition
 Binding</a></li>
-<li><a
-href="#221-component-vnext-surface-route-identity-adr-0154">§2.2.1
-Component vNext Surface-Route Identity (ADR 0154)</a></li>
+<li><a href="#221-component-12-surface-route-identity">§2.2.1 Component
+1.2 Surface-Route Identity</a></li>
 <li><a href="#23-mime-type-formspec-componentjson">§2.3 MIME Type
 (.formspec-component.json)</a></li>
 <li><a href="#24-minimal-conforming-document">§2.4 Minimal Conforming
@@ -436,8 +435,8 @@ Tier 3 &gt; Tier 2 &gt; Tier 1</a></li>
 Trees</a></li>
 <li><a href="#115-cross-references-to-peer-artifacts">§11.5
 Cross-References to Peer Artifacts</a></li>
-<li><a href="#116-app-graph-component-identity-adr-0154">§11.6 App-Graph
-Component Identity (ADR 0154)</a></li>
+<li><a href="#116-app-graph-component-identity">§11.6 App-Graph
+Component Identity</a></li>
 </ul></li>
 <li><a href="#12-validation-and-conformance">§12 Validation and
 Conformance</a>
@@ -711,8 +710,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <td><code>$formspecComponent</code></td>
 <td><code>string</code></td>
 <td>yes</td>
-<td>enum: <code>“1.0”</code>, <code>“1.1”</code>; critical</td>
-<td>Component specification version. MUST be ‘1.0’ or ‘1.1’.</td>
+<td>enum: <code>“1.0”</code>, <code>“1.1”</code>, <code>“1.2”</code>;
+critical</td>
+<td>Component specification version. MUST be ‘1.0’, ‘1.1’, or ‘1.2’.
+Version 1.2 admits Surface-route identity while preserving form-bound
+1.0/1.1 documents.</td>
 </tr>
 <tr>
 <td><code>#/properties/breakpoints</code></td>
@@ -760,9 +762,9 @@ tree that is instantiated with {param} interpolation.</td>
 <td>—</td>
 <td>OPTIONAL declaration of substrate modules this document depends on.
 Each entry is a canonical ModuleRef (id + version, with optional
-publisher + lockHash for posture admission). Default-module-set behavior
-per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is
-identical to declaring the core module set. Per ADR 0150 §4.3.</td>
+publisher + lockHash for posture admission). Omitting modules[] is
+identical to declaring the core module set, which preserves form-only
+documents.</td>
 </tr>
 <tr>
 <td><code>#/properties/name</code></td>
@@ -776,11 +778,22 @@ identical to declaring the core module set. Per ADR 0150 §4.3.</td>
 <td><code>#/properties/targetDefinition</code></td>
 <td><code>targetDefinition</code></td>
 <td><code>$ref</code></td>
-<td>yes</td>
+<td>no</td>
 <td><code>$ref</code>: <code>#/$defs/TargetDefinition</code>;
 critical</td>
 <td>Binding to the target Formspec Definition and optional compatibility
 range.</td>
+</tr>
+<tr>
+<td><code>#/properties/targetSurfaceRoutes</code></td>
+<td><code>targetSurfaceRoutes</code></td>
+<td><code>array</code></td>
+<td>no</td>
+<td>critical</td>
+<td>Component 1.2 bindings to Surface routes, slots, or app-shell
+targets. Each entry is an applicability claim resolved by AppGraph
+validation against the enclosing App Manifest and Surface documents; it
+does not create routes or slots.</td>
 </tr>
 <tr>
 <td><code>#/properties/title</code></td>
@@ -877,30 +890,29 @@ rendering.</p>
 <p>The binding mechanism is identical to the Theme Specification’s
 <code>targetDefinition</code> (theme-spec §2.2). A Component Document
 and a Theme Document MAY target the same Definition simultaneously.</p>
-<h4 id="component-vnext-surface-route-identity-adr-0154">2.2.1 Component
-vNext Surface-Route Identity (ADR 0154)</h4>
-<p>The current v1.0/v1.1 schema is form-bound: it requires
-<code>targetDefinition</code>. ADR 0154 defines the vNext app-graph
-identity target but does not change the current schema until the
-Component schema-vNext gate lands. Processors MUST NOT accept a source
-Component document that fails the current schema unless they are
-explicitly evaluating a future vNext support profile.</p>
-<p>Component vNext MUST allow a Component document to declare one or
-both identity bindings:</p>
+<h4 id="component-1.2-surface-route-identity">2.2.1 Component 1.2
+Surface-Route Identity</h4>
+<p>Component 1.2 adds <code>$formspecComponent: "1.2"</code> for
+app-graph route identity while preserving form-bound v1.0/v1.1
+documents. v1.0/v1.1 source documents remain form-bound and MUST declare
+<code>targetDefinition</code>. A v1.2 source document MUST declare at
+least one identity binding: <code>targetDefinition</code> or
+<code>targetSurfaceRoutes[]</code>.</p>
+<p>Component 1.2 allows a Component document to declare one or both
+identity bindings:</p>
 <ol type="1">
 <li><code>targetDefinition</code> for Definition-bound form
 rendering.</li>
 <li><code>targetSurfaceRoutes[]</code> for Surface route, slot, or
 app-shell applicability.</li>
 </ol>
-<p>A Component vNext document MUST declare at least one of those
-bindings. A form-only Component declares <code>targetDefinition</code>
-only. A non-form route Component declares
-<code>targetSurfaceRoutes[]</code> only. A route projection that renders
-Definition-bound controls MAY declare both; in that case, the Surface
-route binding says where the tree appears, and
-<code>targetDefinition</code> says which form data model its bound
-controls use.</p>
+<p>A Component 1.2 document MUST declare at least one of those bindings.
+A form-only Component declares <code>targetDefinition</code> only. A
+non-form route Component declares <code>targetSurfaceRoutes[]</code>
+only. A route projection that renders Definition-bound controls MAY
+declare both; in that case, the Surface route binding says where the
+tree appears, and <code>targetDefinition</code> says which form data
+model its bound controls use.</p>
 <p><code>targetSurfaceRoutes[]</code> has this conceptual entry
 shape:</p>
 <div class="sourceCode" id="cb2"><pre
@@ -963,8 +975,8 @@ revision.</td>
 transitions, and slot bindings. A Component target is an applicability
 claim; it does not create the route or slot. AppGraph validation
 resolves <code>targetSurfaceRoutes[]</code> against the loaded App
-Manifest and Surface artifacts after the Component schema-vNext gate
-lands.</p>
+Manifest and Surface artifacts; the schema only validates the route
+target structure.</p>
 <p>Source documents MUST NOT fabricate a fake
 <code>targetDefinition</code> to make non-form route UI validate as a
 form Component. Exporters MAY emit output-only legacy compatibility
@@ -1107,11 +1119,8 @@ Reference Fields §5</a>.</td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Typed slot for <code>^x-*</code> extension payloads on every
-component node. Closes the long-standing gap where
-<code>unevaluatedProperties: false</code> on each component variant
-rejected ad-hoc <code>x-*</code> properties at the top level. Per ADR
-0150 §4.7 — substrate-level posture for any module-contributed extension
-payload.</td>
+component node. This gives extension payloads a typed home even when
+component variants use <code>unevaluatedProperties: false</code>.</td>
 </tr>
 <tr>
 <td><code>responsive</code></td>
@@ -5412,8 +5421,8 @@ provenance, and generation metadata. They MUST NOT change Tier 3
 precedence, fallback, layout, widget selection, slot binding,
 validation, Mapping, Response status, or action invocation. Default
 renderers MUST ignore them for runtime output.</p>
-<h3 id="app-graph-component-identity-adr-0154">11.6 App-Graph Component
-Identity (ADR 0154)</h3>
+<h3 id="app-graph-component-identity">11.6 App-Graph Component
+Identity</h3>
 <p>In an app graph, Component identity has more scope than a form-only
 <code>targetDefinition</code> binding. The production identity tuple
 is:</p>
@@ -5447,7 +5456,7 @@ is:</p>
 <td>App graph membership</td>
 <td>App Manifest <code>components[]</code> entries with unique
 <code>handle</code> values</td>
-<td>App Manifest vNext</td>
+<td>App Manifest schema revision</td>
 </tr>
 <tr>
 <td>Component node</td>
@@ -5494,7 +5503,8 @@ accessibility; <code>nodeId</code> is structural authoring identity.</p>
 <p>Component route identity does not give Component authority over
 Response Actions or authorization. An <code>ActionButton</code> may name
 an action, but Response Actions remains the only executor. Fine-grained
-authorization remains held behind ADR 0152.</p>
+authorization remains outside this specification until a dedicated
+authorization contract defines its ownership and policy shape.</p>
 <hr />
 <h2 id="validation-and-conformance">12. Validation and Conformance</h2>
 <p>This section defines the validation requirements for Component
@@ -5505,11 +5515,11 @@ Documents and the conformance criteria for processors.</p>
 structural rules defined in this specification. These rules MAY be
 expressed as a JSON Schema (<code>component.schema.json</code>) for
 tooling purposes.</p>
-<p>Current v1.0/v1.1 structural validation MUST verify:</p>
+<p>Structural validation MUST verify:</p>
 <ol type="1">
 <li><strong>Required properties:</strong>
-<code>$formspecComponent</code>, <code>version</code>,
-<code>targetDefinition</code>, and <code>tree</code> are present.</li>
+<code>$formspecComponent</code>, <code>version</code>, and
+<code>tree</code> are present.</li>
 <li><strong>Type correctness:</strong> Each property has the correct
 JSON type (string, object, array, integer, boolean) as specified.</li>
 <li><strong>Enum constraints:</strong> Properties with enumerated values
@@ -5525,12 +5535,12 @@ ConditionalGroup components include a <code>when</code> property.</li>
 <li><strong>Heading props:</strong> <code>level</code> is 1–6 and
 <code>text</code> is present.</li>
 </ol>
-<p>Component schema vNext structural validation MUST instead verify that
-<code>$formspecComponent</code>, <code>version</code>,
-<code>tree</code>, and at least one identity binding
-(<code>targetDefinition</code> or <code>targetSurfaceRoutes[]</code>)
-are present. A document that omits both identity bindings is invalid.
-This vNext rule is prose-only until the schema-vNext gate lands.</p>
+<p>Component v1.0/v1.1 documents MUST include
+<code>targetDefinition</code> and MUST NOT use
+<code>targetSurfaceRoutes[]</code>. Component v1.2 documents MUST
+include at least one identity binding (<code>targetDefinition</code> or
+<code>targetSurfaceRoutes[]</code>). A v1.2 document that omits both
+identity bindings is invalid.</p>
 <p>Structural validation MUST be performed before referential integrity
 checks (§12.2).</p>
 <h3 id="referential-integrity">12.2 Referential Integrity</h3>
@@ -5561,8 +5571,8 @@ rejected.</p></li>
 <code>columns</code> MUST reference valid item keys.</p></li>
 <li><p><strong>Cycle-free custom components:</strong> The custom
 component dependency graph MUST be acyclic (§7.4).</p></li>
-<li><p><strong>Surface-route targets (vNext):</strong> When a support
-profile admits <code>targetSurfaceRoutes[]</code>, every
+<li><p><strong>Surface-route targets (Component 1.2):</strong> When a
+support profile admits <code>targetSurfaceRoutes[]</code>, every
 <code>surface.url</code> MUST resolve against App Manifest
 <code>surfaces[]</code>, every <code>route</code> MUST resolve to that
 Surface document’s <code>routes[].id</code>, and every <code>slot</code>
@@ -5689,8 +5699,8 @@ presentational props may vary.</td>
 </tr>
 <tr>
 <td><strong>Route declarations</strong></td>
-<td>Components may target Surface routes in vNext, but Surface remains
-source truth for routes and slots.</td>
+<td>Component 1.2 documents may target Surface routes, but Surface
+remains source truth for routes and slots.</td>
 </tr>
 <tr>
 <td><strong>Fake non-form <code>targetDefinition</code>

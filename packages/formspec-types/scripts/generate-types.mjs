@@ -314,6 +314,79 @@ function customComponentNameType() {
   return `export type CustomComponentName =\n${prefixes};\n`;
 }
 
+function componentDocumentType() {
+  return `/**
+ * A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.
+ */
+export type ComponentDocument =
+  | (ComponentDocumentBase & {
+      /**
+       * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
+       */
+      $formspecComponent: '1.0' | '1.1';
+      targetDefinition: TargetDefinition;
+      targetSurfaceRoutes?: never;
+    })
+  | (ComponentDocumentBase & {
+      /**
+       * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
+       */
+      $formspecComponent: '1.2';
+    } & (
+      | {
+          targetDefinition: TargetDefinition;
+          targetSurfaceRoutes?: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
+        }
+      | {
+          targetDefinition?: TargetDefinition;
+          targetSurfaceRoutes: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
+        }
+    ));
+
+export interface ComponentDocumentBase {
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Omitting modules[] is identical to declaring the core module set, which preserves form-only documents.
+   */
+  modules?: ModuleRef[];
+  /**
+   * Canonical URI identifier for this Component Document.
+   */
+  url?: string;
+  /**
+   * Machine-friendly short identifier.
+   */
+  name?: string;
+  /**
+   * Human-readable name.
+   */
+  title?: string;
+  /**
+   * Human-readable description.
+   */
+  description?: string;
+  /**
+   * Version of this Component Document.
+   */
+  version: string;
+  breakpoints?: Breakpoints;
+  tokens?: Tokens;
+  /**
+   * Registry of custom component templates. Keys are PascalCase names (MUST NOT collide with built-in names). Each template has params and a tree that is instantiated with {param} interpolation.
+   */
+  components?: {
+    [k: string]: CustomComponentDef;
+  };
+  tree: AnyComponent3;
+  extensions?: Extensions;
+  /**
+   * This interface was referenced by the root JSON-Schema definition
+   * via the pattern property "^x-".
+   */
+  [k: \`x-\${string}\`]: unknown;
+}
+`;
+}
+
 /**
  * Fix known codegen issues:
  * - patternProperties generates `[k: string]: {}` which is too narrow
@@ -354,6 +427,8 @@ function postProcess(ts, moduleName) {
   }
 
   if (moduleName === 'component') {
+    result = removeDeclBlock(result, 'ComponentDocument');
+    result = `${componentDocumentType()}${result}`;
     result = result.replace(
       /export interface CustomComponentRef \{/,
       `${customComponentNameType()}\nexport interface CustomComponentRef {`,

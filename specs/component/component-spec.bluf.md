@@ -1,5 +1,5 @@
 - This document defines Tier 3 Component Documents for explicit, tree-based Formspec rendering.
-- A valid component document requires `$formspecComponent`, `version`, `targetDefinition`, and `tree`.
+- Component 1.0/1.1 documents require `targetDefinition`; Component 1.2 documents require `targetDefinition` or `targetSurfaceRoutes[]`.
 - Component trees control layout and widget selection but cannot override core behavioral semantics from the Definition.
 - Component nodes may carry additive reference metadata (`unitRef`, `taskRefs`, `conceptRefs`, and `x-generation`) defined by the Component Reference Fields companion; default renderers ignore it.
 - This BLUF is governed by `schemas/component.schema.json`; generated schema references are the canonical structural contract.

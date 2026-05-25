@@ -19,7 +19,7 @@ behavior, renderer behavior, Studio wiring, or ADR 0152 authorization semantics.
 ## Review Checkpoint
 
 Leibniz approved UI graph policy as the next strict slice after the ADR 0154
-Component spec-vNext prose partial. The review boundary was:
+Component 1.2 prose partial. The review boundary was:
 
 - place the prose contract at `specs/app-graph/ui-graph-policy-spec.md`;
 - define this as app-graph UI policy, not the existing shared UI authoring

@@ -51,7 +51,7 @@
       ]
     },
     "targetDefinition": {
-      "$ref": "https://formspec.org/schemas/component/1.1#/$defs/TargetDefinition",
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition",
       "description": "Binding to the target Formspec Definition and optional compatibility range.",
       "examples": [
         { "url": "https://example.org/forms/clinical-intake", "compatibleVersions": ">=1.0.0 <2.0.0" }

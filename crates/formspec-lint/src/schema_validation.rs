@@ -60,7 +60,7 @@ const CROSS_REF_SCHEMAS: &[(&str, &str)] = &[
     ),
     (
         COMPONENT_SCHEMA,
-        "https://formspec.org/schemas/component/1.1",
+        "https://formspec.org/schemas/component/1.2",
     ),
     (
         DEFINITION_SCHEMA,

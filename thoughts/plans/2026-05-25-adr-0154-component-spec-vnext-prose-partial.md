@@ -1,4 +1,4 @@
-# ADR 0154 Component Spec vNext Prose Partial
+# ADR 0154 Component 1.2 Prose Partial
 
 **Date:** 2026-05-25
 **Status:** Partial
@@ -8,14 +8,14 @@
 ## Scope
 
 This slice adds prose-only Component spec coverage for ADR 0154 Surface/route
-identity. It does not promote Component schema vNext, App Manifest
+identity. It does not promote Component 1.2 schema changes, App Manifest
 `components[]`, Surface schema linkage, AppGraphValidator enforcement,
 Studio/kernel graph identity, provenance rewrites, generated types, or
 conformance fixtures.
 
 ## Review Checkpoint
 
-Leibniz approved Component spec-vNext prose as the next strict slice after the
+Leibniz approved Component 1.2 prose as the next strict slice after the
 ModuleResolver interface partial. The review boundary was:
 
 - keep the slice prose-only;
@@ -30,9 +30,9 @@ ModuleResolver interface partial. The review boundary was:
 
 ## Completed
 
-- `specs/component/component-spec.md` now records the vNext identity target:
+- `specs/component/component-spec.md` now records the Component 1.2 identity target:
   `targetDefinition` remains the form binding, `targetSurfaceRoutes[]` carries
-  Surface route/slot/app-shell applicability, and vNext documents must declare
+  Surface route/slot/app-shell applicability, and Component 1.2 documents must declare
   at least one identity binding.
 - The spec defines the conceptual `targetSurfaceRoutes[]` entry shape and
   states that Surface remains source truth for routes and slots.
@@ -40,13 +40,13 @@ ModuleResolver interface partial. The review boundary was:
   node path, and optional `id` / `nodeId` scope.
 - The spec rejects fake non-form `targetDefinition` source identity while
   allowing output-only legacy shims to remain non-authoritative.
-- The semantic capsule now records the ADR 0154 vNext identity boundary.
+- The semantic capsule now records the ADR 0154 Component 1.2 identity boundary.
 
 ## Still Open For Closure
 
-- Component schema vNext must validate `targetDefinition` or
+- Component 1.2 schema changes must validate `targetDefinition` or
   `targetSurfaceRoutes[]` without breaking form-only documents.
-- App Manifest vNext must add `components[]` with unique `handle` and singular
+- App Manifest schema revision must add `components[]` with unique `handle` and singular
   `component` import/migration behavior.
 - Surface spec linkage must cross-reference Component route targeting without
   making Surface own Component trees.

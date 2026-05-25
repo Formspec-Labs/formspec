@@ -9,6 +9,75 @@
 import type { ModuleRef, TargetDefinition, Tokens, Breakpoints, StyleMap, AccessibilityBlock, Extensions, VisualSurfaceProps } from './common.js';
 import type { ConceptRef } from './experience.js';
 /**
+ * A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.
+ */
+export type ComponentDocument =
+  | (ComponentDocumentBase & {
+      /**
+       * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
+       */
+      $formspecComponent: '1.0' | '1.1';
+      targetDefinition: TargetDefinition;
+      targetSurfaceRoutes?: never;
+    })
+  | (ComponentDocumentBase & {
+      /**
+       * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
+       */
+      $formspecComponent: '1.2';
+    } & (
+      | {
+          targetDefinition: TargetDefinition;
+          targetSurfaceRoutes?: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
+        }
+      | {
+          targetDefinition?: TargetDefinition;
+          targetSurfaceRoutes: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
+        }
+    ));
+
+export interface ComponentDocumentBase {
+  /**
+   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Omitting modules[] is identical to declaring the core module set, which preserves form-only documents.
+   */
+  modules?: ModuleRef[];
+  /**
+   * Canonical URI identifier for this Component Document.
+   */
+  url?: string;
+  /**
+   * Machine-friendly short identifier.
+   */
+  name?: string;
+  /**
+   * Human-readable name.
+   */
+  title?: string;
+  /**
+   * Human-readable description.
+   */
+  description?: string;
+  /**
+   * Version of this Component Document.
+   */
+  version: string;
+  breakpoints?: Breakpoints;
+  tokens?: Tokens;
+  /**
+   * Registry of custom component templates. Keys are PascalCase names (MUST NOT collide with built-in names). Each template has params and a tree that is instantiated with {param} interpolation.
+   */
+  components?: {
+    [k: string]: CustomComponentDef;
+  };
+  tree: AnyComponent3;
+  extensions?: Extensions;
+  /**
+   * This interface was referenced by the root JSON-Schema definition
+   * via the pattern property "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+}
+/**
  * Component subtree instantiated when this custom component is used.
  */
 export type AnyComponent = {
@@ -65,7 +134,7 @@ export type Section = ComponentBase & VisualSurfaceProps & {
   children?: ChildrenArray;
 };
 /**
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "AnyComponent".
  */
 export type AnyComponent1 = {
@@ -155,7 +224,7 @@ export type Grid = ComponentBase & VisualSurfaceProps & {
 /**
  * A grid track fragment. String values are CSS track fragments or token references; numeric values normalize to fr weights.
  *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "GridTrack".
  */
 export type GridTrack = string | number;
@@ -196,7 +265,7 @@ export type Panel = ComponentBase & VisualSurfaceProps & {
 /**
  * Ordered list of child components. Renderers MUST preserve array order.
  *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ChildrenArray".
  */
 export type ChildrenArray = AnyComponent1[];
@@ -242,53 +311,36 @@ export type AnyComponent3 = {
   | CustomComponentRef
 );
 /**
- * A Formspec Component Document per the Component Specification v1.0. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition. Multiple Component Documents MAY target the same Definition for platform-specific presentations.
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "SurfaceRouteTarget".
  */
-export interface ComponentDocument {
+export interface SurfaceRouteTarget {
+  surface: SurfaceRef;
   /**
-   * Component specification version. MUST be '1.0' or '1.1'.
+   * Surface routes[].id targeted by this Component. This is not the URL path.
    */
-  $formspecComponent: '1.0' | '1.1';
+  route: string;
   /**
-   * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3.
+   * Optional slot key on the target route. When omitted, the Component targets the whole route projection.
    */
-  modules?: ModuleRef[];
+  slot?: string;
   /**
-   * Canonical URI identifier for this Component Document.
+   * Role of this route target in the initial Component 1.2 contract.
    */
-  url?: string;
+  role: 'route' | 'slot' | 'app-shell';
+}
+/**
+ * Surface sibling identity for the route target.
+ */
+export interface SurfaceRef {
   /**
-   * Machine-friendly short identifier.
+   * Canonical URL of a Surface document included in the enclosing App Manifest surfaces[].
    */
-  name?: string;
+  url: string;
   /**
-   * Human-readable name.
+   * Optional exact version or range expression compatible with the App Manifest Surface pin.
    */
-  title?: string;
-  /**
-   * Human-readable description.
-   */
-  description?: string;
-  /**
-   * Version of this Component Document.
-   */
-  version: string;
-  targetDefinition: TargetDefinition;
-  breakpoints?: Breakpoints;
-  tokens?: Tokens;
-  /**
-   * Registry of custom component templates. Keys are PascalCase names (MUST NOT collide with built-in names). Each template has params and a tree that is instantiated with {param} interpolation.
-   */
-  components?: {
-    [k: string]: CustomComponentDef;
-  };
-  tree: AnyComponent3;
-  extensions?: Extensions;
-  /**
-   * This interface was referenced by `ComponentDocument`'s JSON-Schema definition
-   * via the `patternProperty` "^x-".
-   */
-  [k: `x-${string}`]: unknown;
+  version?: string;
 }
 /**
  * A reusable component template. Instantiated by using the registry key as the component value and providing params. Templates MUST NOT reference themselves (directly or indirectly).
@@ -296,7 +348,7 @@ export interface ComponentDocument {
  * This interface was referenced by `undefined`'s JSON-Schema definition
  * via the `patternProperty` "^[A-Z][a-zA-Z0-9]*$".
  *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "CustomComponentDef".
  */
 export interface CustomComponentDef {
@@ -1028,7 +1080,7 @@ export interface CustomComponentRef extends ComponentBase {
 /**
  * Breakpoint-keyed prop overrides. Keys are breakpoint names; values are objects of component-specific props to shallow-merge at that breakpoint. MUST NOT contain component, bind, when, children, or responsive.
  *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ResponsiveOverrides".
  */
 export interface ResponsiveOverrides {
@@ -1037,12 +1089,12 @@ export interface ResponsiveOverrides {
 /**
  * Base properties shared by all component objects. Every component inherits these via $ref.
  *
- * This interface was referenced by `ComponentDocument`'s JSON-Schema
+ * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ComponentBase".
  */
 export interface ComponentBase {
   /**
-   * Optional unique identifier for this node. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. **Uniqueness scope is bundle-graph-wide when present** per ADR 0150 §5.3 — every authored `id` MUST be unique across every Component document reachable from a single App Manifest, not merely unique within its own tree. JSON Schema cannot enforce graph-level uniqueness across multiple documents; the invariant is upheld by linter rule E605 (COMP-BUNDLE-ID-COLLISION) which walks the bundle graph and hard-fails on duplicates. **Load-bearing for ADR 0151's cross-document-move bidirectional map** (CRDT precondition: target doc has no collision). Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id, which counts as a single id occurrence for collision purposes.
+   * Optional unique identifier for this node. Used for locale string addressing ($component.<id>.prop), test selectors, and accessibility anchoring. **Uniqueness scope is bundle-graph-wide when present** — every authored `id` MUST be unique across every Component document reachable from a single App Manifest, not merely unique within its own tree. JSON Schema cannot enforce graph-level uniqueness across multiple documents; the invariant is upheld by linter rule E605 (COMP-BUNDLE-ID-COLLISION) which walks the bundle graph and hard-fails on duplicates. This is a precondition for cross-document move and copy maps: the target document must have no collision. Inside repeat templates (DataTable, Accordion), the id identifies the template node — all rendered instances share the same id, which counts as a single id occurrence for collision purposes.
    */
   id?: string;
   /**

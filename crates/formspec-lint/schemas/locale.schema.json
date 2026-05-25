@@ -111,7 +111,7 @@
       ]
     },
     "targetDefinition": {
-      "$ref": "https://formspec.org/schemas/component/1.1#/$defs/TargetDefinition",
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition",
       "description": "Binding to the target Formspec Definition and compatible version range. The locale will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to inline strings only. The processor MUST NOT fail on a version mismatch.",
       "examples": [
         {

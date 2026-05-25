@@ -690,7 +690,7 @@ The normative JSON Schema for References Documents is defined in `schemas/refere
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
 | `#/properties/$formspecReferences` | `(self)` | <code>string</code> | — | const: <code>"1.0"</code>; critical | References specification version. MUST be '1.0'. |
-| `#/properties/targetDefinition` | `(self)` | <code>&#36;ref</code> | — | <code>&#36;ref</code>: <code>https://formspec.org/schemas/component/1.1#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and optional compatibility range. |
+| `#/properties/targetDefinition` | `(self)` | <code>&#36;ref</code> | — | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and optional compatibility range. |
 | `#/properties/references` | `(self)` | <code>array</code> | — | critical | Ordered list of references bound to the target Definition. Each entry specifies a target path (item key or '#' for form-level) and a reference or $ref pointer. References are static and resolved at load time. |
 | `#/$defs/BoundReference/properties/$ref` | `$ref` | <code>string</code> | no | pattern: <code>^#/referenceDefs/[a-zA-Z][a-zA-Z0-9_-]*&#36;</code> | JSON Pointer (RFC 6901) to a referenceDefs entry. Resolved at load time. |
 | `#/$defs/BoundReference/properties/audience` | `audience` | <code>string</code> | no | enum: <code>"human"</code>, <code>"agent"</code>, <code>"both"</code> | — |

@@ -44,11 +44,11 @@ def _assert_invalid(doc: dict) -> None:
 
 
 def test_component_schema_id_and_version_marker() -> None:
-    assert COMPONENT_SCHEMA["$id"] == "https://formspec.org/schemas/component/1.1"
+    assert COMPONENT_SCHEMA["$id"] == "https://formspec.org/schemas/component/1.2"
 
     marker = COMPONENT_SCHEMA["properties"]["$formspecComponent"]
     assert marker["type"] == "string"
-    assert marker["enum"] == ["1.0", "1.1"]
+    assert marker["enum"] == ["1.0", "1.1", "1.2"]
     assert "const" not in marker
 
 
@@ -122,7 +122,7 @@ def test_reference_field_component_fixtures_validate() -> None:
 
 def test_component_version_rejects_unknown_marker() -> None:
     doc = _minimal_component_doc()
-    doc["$formspecComponent"] = "1.2"
+    doc["$formspecComponent"] = "1.3"
 
     _assert_invalid(doc)
 

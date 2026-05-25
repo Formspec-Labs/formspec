@@ -6,6 +6,7 @@
  */
 
 /* eslint-disable */
+import type { TargetDefinition } from './common.js';
 /**
  * A single reference to an external or inline resource that provides context for a form element. At least one of 'uri' or 'content' MUST be present.
  *
@@ -172,19 +173,6 @@ export interface ReferencesDocument {
    * Document-level extension properties. All keys MUST be prefixed with 'x-'.
    */
   extensions?: {};
-}
-/**
- * Binding to the target Formspec Definition and optional compatibility range.
- */
-export interface TargetDefinition {
-  /**
-   * Canonical URL of the target Definition.
-   */
-  url: string;
-  /**
-   * Semver range expression describing which Definition versions this document supports.
-   */
-  compatibleVersions?: string;
 }
 /**
  * Registry of reusable Reference objects. Entries in the 'references' array may use {"$ref": "#/referenceDefs/{key}"} to include a definition from this registry with optional property overrides.

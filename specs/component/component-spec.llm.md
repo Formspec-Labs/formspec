@@ -8,7 +8,7 @@ Source schema: `schemas/component.schema.json`
 ## Bottom Line Up Front
 
 - This document defines Tier 3 Component Documents for explicit, tree-based Formspec rendering.
-- A valid component document requires `$formspecComponent`, `version`, `targetDefinition`, and `tree`.
+- Component 1.0/1.1 documents require `targetDefinition`; Component 1.2 documents require `targetDefinition` or `targetSurfaceRoutes[]`.
 - Component trees control layout and widget selection but cannot override core behavioral semantics from the Definition.
 - Component nodes may carry additive reference metadata (`unitRef`, `taskRefs`, `conceptRefs`, and `x-generation`) defined by the Component Reference Fields companion; default renderers ignore it.
 - This BLUF is governed by `schemas/component.schema.json`; generated schema references are the canonical structural contract.
@@ -21,8 +21,9 @@ Source schema: `schemas/component.schema.json`
 | `#/$defs/ComponentBase/properties/taskRefs` | no | array | Records advisory Experience Task links without ordering, workflow, validation, or rendering effects. | Optional references to Experience Task.id values. Report-only metadata; order is authoring/reporting order only. |
 | `#/$defs/ComponentBase/properties/unitRef` | no | string | Links a component node to its primary Experience Unit without changing runtime behavior. | Optional reference to an Experience Unit.id. Report-only metadata; does not affect rendering, binding, validation, or Response semantics. |
 | `#/$defs/ComponentBase/properties/x-generation` | no | object | Records provenance and source anchors only; renderers must ignore it and merge behavior is out of scope. | Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output. |
-| `#/properties/$formspecComponent` | yes | string | Version pin for component document compatibility. | Component specification version. MUST be '1.0' or '1.1'. |
-| `#/properties/targetDefinition` | yes | $ref | Declares which definition this component tree is designed to render. | Binding to the target Formspec Definition and optional compatibility range. |
+| `#/properties/$formspecComponent` | yes | string | Version pin for component document compatibility. | Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents. |
+| `#/properties/targetDefinition` | no | $ref | Declares which definition this component tree is designed to render. | Binding to the target Formspec Definition and optional compatibility range. |
+| `#/properties/targetSurfaceRoutes` | no | array | Declares where an app-graph Component tree applies in Surface route or slot space. | Component 1.2 bindings to Surface routes, slots, or app-shell targets. Each entry is an applicability claim resolved by AppGraph validation against the enclosing App Manifest and Surface documents; it does not create routes or slots. |
 | `#/properties/tree` | yes | $ref | Entry point for all component layout and binding declarations. | Root component node of the presentation tree. MUST be a single component object (wrap multiple children in Stack or Section). |
 | `#/properties/version` | yes | string | Revision identifier for the component tree document. | Version of this Component Document. |
 
@@ -50,12 +51,12 @@ Source schema: `schemas/component.schema.json`
 - Responsive constraints: breakpoint overrides are presentation-only and must not mutate structure (`component`, `children`) or identity (`bind`, `when`).
 - Token cascade: token lookup follows Tier 3 component tokens -> Tier 2 theme tokens -> renderer defaults; unresolved tokens degrade gracefully with warnings.
 - Partial-tree behavior: unbound required or visible items must still be rendered through Tier 2/Tier 1 fallback in Definition order to preserve completion semantics.
-- ADR 0154 vNext identity: form-bound Components keep `targetDefinition`; route-bound app UI uses `targetSurfaceRoutes[]`; graph-wide node identity must include Component, Surface, route, and node path scope.
+- Component 1.2 identity: form-bound Components keep `targetDefinition`; route-bound app UI uses `targetSurfaceRoutes[]`; graph-wide node identity must include Component, Surface, route, and node path scope.
 - Custom component semantics: registry-backed components use parameter interpolation in allowed string fields, prohibit recursive cycles, and must fail fast on missing required params.
 - Complexity guardrails: no recursive custom components, capped depth, no imperative event scripting, and no dynamic component type switching at runtime.
 
 ## Conformance Essentials
 
-- A conforming component document must include $formspecComponent, version, targetDefinition, and tree.
+- Component 1.0/1.1 documents must include $formspecComponent, version, targetDefinition, and tree; Component 1.2 documents must include $formspecComponent, version, tree, and targetDefinition or targetSurfaceRoutes[].
 - Processors must reject unsupported component-document versions and unknown non-x top-level properties.
 - Renderable trees must satisfy component-category constraints, bind compatibility, and declared structural limits.

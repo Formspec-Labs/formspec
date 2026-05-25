@@ -217,7 +217,7 @@
         "Core processors must substitute progressive components with declared fallbacks while preserving structure and applicable base props."
       ],
       "conformanceEssentials": [
-        "A conforming component document must include $formspecComponent, version, targetDefinition, and tree.",
+        "Component 1.0/1.1 documents must include $formspecComponent, version, targetDefinition, and tree; Component 1.2 documents must include $formspecComponent, version, tree, and targetDefinition or targetSurfaceRoutes[].",
         "Processors must reject unsupported component-document versions and unknown non-x top-level properties.",
         "Renderable trees must satisfy component-category constraints, bind compatibility, and declared structural limits."
       ]
