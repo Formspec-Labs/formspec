@@ -29,6 +29,7 @@ pub(crate) fn lint_response_actions(
     analyzer.check_target_definition();
     analyzer.check_duplicate_action_ids();
     analyzer.check_invalid_validation_overrides();
+    analyzer.check_duplicate_durable_effect_idempotency_keys();
     analyzer.check_static_idempotency_keys();
     analyzer.check_component_action_refs();
     analyzer.diagnostics
@@ -170,6 +171,46 @@ impl Analyzer<'_> {
         }
     }
 
+    fn check_duplicate_durable_effect_idempotency_keys(&mut self) {
+        let Some(actions) = self.doc.get("actions").and_then(Value::as_array) else {
+            return;
+        };
+        for (action_index, action) in actions.iter().enumerate() {
+            let Some(effects) = action.get("effects").and_then(Value::as_array) else {
+                continue;
+            };
+            let id = action
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or("<unknown>");
+            let mut first_paths = HashMap::<String, String>::new();
+            for (effect_index, effect) in effects.iter().enumerate() {
+                if !is_durable_effect(effect) {
+                    continue;
+                }
+                let Some(key) = effect.get("idempotencyKey").and_then(Value::as_str) else {
+                    continue;
+                };
+                let path =
+                    format!("$.actions[{action_index}].effects[{effect_index}].idempotencyKey");
+                if let Some(first_path) = first_paths.get(key) {
+                    self.diagnostics.push(error(
+                        crate::LintCode::E1804,
+                        PASS,
+                        path,
+                        format!(
+                            "Response Action {id:?} durable effect[{effect_index}] idempotencyKey {key:?} \
+                             duplicates an earlier durable effect at {first_path}; durable effects in one \
+                             action must not alias the same idempotent execution record."
+                        ),
+                    ));
+                } else {
+                    first_paths.insert(key.to_owned(), path);
+                }
+            }
+        }
+    }
+
     fn check_static_idempotency_keys(&mut self) {
         let Some(actions) = self.doc.get("actions").and_then(Value::as_array) else {
             return;
@@ -249,6 +290,13 @@ impl Analyzer<'_> {
             }
         });
     }
+}
+
+fn is_durable_effect(effect: &Value) -> bool {
+    matches!(
+        effect.get("type").and_then(Value::as_str),
+        Some("mappingExecution" | "ledgerAppend" | "handoffAssembly" | "evidenceRequest")
+    )
 }
 
 fn collect_action_ids(doc: &Value) -> HashSet<String> {
@@ -360,6 +408,42 @@ mod tests {
         let diags = lint_response_actions(&actions, None, &[]);
 
         assert!(diags.iter().any(|diag| diag.code == crate::LintCode::E1801));
+    }
+
+    #[test]
+    fn duplicate_durable_effect_idempotency_keys_emit_e1804() {
+        let mut doc = response_actions();
+        doc["actions"][0]["effects"] = json!([
+            {
+                "type": "mappingExecution",
+                "mappingRef": "applicationPayload",
+                "idempotencyKey": "@invocation.id & '/durable'"
+            },
+            {
+                "type": "hostEvent",
+                "eventName": "formspec-submit"
+            },
+            {
+                "type": "ledgerAppend",
+                "eventKind": "response.submit-attempted",
+                "idempotencyKey": "@invocation.id & '/durable'"
+            }
+        ]);
+
+        let diags = lint_response_actions(&doc, None, &[]);
+
+        let duplicate_key_diag = diags
+            .iter()
+            .find(|diag| diag.code == crate::LintCode::E1804)
+            .expect("E1804 not emitted");
+        assert_eq!(
+            duplicate_key_diag.path,
+            "$.actions[0].effects[2].idempotencyKey"
+        );
+        assert_eq!(
+            duplicate_key_diag.severity,
+            crate::types::LintSeverity::Error
+        );
     }
 
     #[test]

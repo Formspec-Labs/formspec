@@ -1290,6 +1290,16 @@
       "state": "tested"
     },
     {
+      "code": "E1804",
+      "pass": 9,
+      "severity": "error",
+      "title": "Response Actions duplicate durable-effect idempotency key",
+      "specRef": "specs/response-actions/response-actions-spec.md#63-idempotency",
+      "suggestedFix": "make every durable effect idempotencyKey unique within the action; include effect-specific material such as @invocation.id & '/<effect-name>'",
+      "fixtures": ["tests/conformance/fixtures/response-actions/duplicate-durable-idempotency-key.json"],
+      "state": "tested"
+    },
+    {
       "code": "W1802",
       "pass": 9,
       "severity": "warning",

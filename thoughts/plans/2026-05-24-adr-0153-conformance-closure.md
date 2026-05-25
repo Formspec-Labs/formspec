@@ -29,6 +29,9 @@ or fine-grained authorization semantics.
   returned APPROVE with zero findings for the A14 fixture slice.
 - 2026-05-25 code review scout `019e6123-b43d-7d73-9437-f80bb12f1768`
   approved the A11 fixture slice after one LOW ledger-consistency cleanup.
+- 2026-05-25 architecture review scout `019e6127-0f7e-7b31-a2ca-267edd7cea48`
+  found no blocker for A7 and recommended treating exact duplicate durable-effect
+  keys within one action as source-invalid `E1804`, not as runtime semantics.
 
 ## Evidence Map
 
@@ -40,7 +43,7 @@ or fine-grained authorization semantics.
 | A4 unresolved Surface route ref | Component route and UI Graph Policy route-ref fixtures | Covered |
 | A5 missing route params | Surface schema defers path parameter formalization | Open; do not invent params before prose |
 | A6 required-field runtime blocking | Response Actions runtime fixture `intent-submit-blocked.json` | Covered |
-| A7 duplicate durable-effect idempotency key | Idempotent replay positive fixture only; no negative duplicate-key source fixture | Open |
+| A7 duplicate durable-effect idempotency key | Source conformance fixture plus Rust lint `E1804` check | Covered |
 | A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held out of first slice |
 | A9 route/Definition ownership mismatch | Component route `bound-controls-route-definition-mismatch` fixture | Covered |
 | A10 undeclared Screener terminal hop | Surface schema documents `surface:<route-id>` but no app-graph source fixture | Open |
@@ -69,8 +72,9 @@ or fine-grained authorization semantics.
 
 ### Phase 2 - Response Actions Gaps
 
-- [ ] Add a source conformance fixture for duplicate durable-effect idempotency
-  keys or explicitly reject that as a static lint-only family after review.
+- [x] Promote exact duplicate durable-effect `idempotencyKey` strings within one
+  action into source conformance fixtures and pin the `E1804` static-processor
+  diagnostic.
 - [x] Promote duplicate Response Actions `actions[*].id` into source conformance
   fixtures and pin the `E1801` static-processor diagnostic.
 
@@ -98,6 +102,9 @@ or fine-grained authorization semantics.
   promoted production source artifact under ADR 0153.
 - 2026-05-25: A11 uses a schema-valid fixture plus Rust lint check because the
   Response Actions schema explicitly cannot enforce unique `actions[*].id`.
+- 2026-05-25: A7 is intentionally exact-string and single-action scoped. It does
+  not attempt FEL expression equivalence, cross-action alias detection, host
+  replay-ledger behavior, or Runtime Plan promotion.
 
 ## Closure Evidence
 
@@ -119,9 +126,17 @@ Partial evidence after the first slice:
 - A11 tests:
   `tests/conformance/schemas/test_response_actions_schema.py` and
   `tests/conformance/spec/test_response_actions_runtime.py`.
+- A7 fixture:
+  `tests/conformance/fixtures/response-actions/duplicate-durable-idempotency-key.json`.
+- A7 lint code:
+  `specs/lint-codes.json` (`E1804`) and generated Rust `LintCode::E1804`.
+- A7 tests:
+  `crates/formspec-lint/src/pass_response_actions.rs`,
+  `tests/conformance/schemas/test_response_actions_schema.py`, and
+  `tests/conformance/spec/test_response_actions_runtime.py`.
 
 Still open:
 
-- A5, A7, A10, EC2, and EC12 runtime behavior need dedicated slices.
+- A5, A10, EC2, and EC12 runtime behavior need dedicated slices.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.

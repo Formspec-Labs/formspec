@@ -248,3 +248,10 @@ def test_duplicate_action_ids_emit_e1801() -> None:
     codes = {diagnostic.code for diagnostic in lint(fixture["responseActions"])}
 
     assert fixture["expected"]["lintCode"] in codes
+
+
+def test_duplicate_durable_idempotency_keys_emit_e1804() -> None:
+    fixture = _fixture("duplicate-durable-idempotency-key.json")
+    codes = {diagnostic.code for diagnostic in lint(fixture["responseActions"])}
+
+    assert fixture["expected"]["lintCode"] in codes

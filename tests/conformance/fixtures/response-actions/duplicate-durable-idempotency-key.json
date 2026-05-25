@@ -1,0 +1,36 @@
+{
+  "fixture": "duplicate-durable-idempotency-key",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": {
+      "url": "https://example.gov/forms/response-actions-base",
+      "compatibleVersions": ">=1.0.0"
+    },
+    "actions": [
+      {
+        "id": "submit-duplicate-durable-key",
+        "intent": "submit",
+        "effects": [
+          {
+            "type": "mappingExecution",
+            "mappingRef": "applicationPayload",
+            "idempotencyKey": "@invocation.id & '/durable'"
+          },
+          {
+            "type": "hostEvent",
+            "eventName": "formspec-submit"
+          },
+          {
+            "type": "ledgerAppend",
+            "eventKind": "response.submit-attempted",
+            "idempotencyKey": "@invocation.id & '/durable'"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "lintCode": "E1804"
+  }
+}

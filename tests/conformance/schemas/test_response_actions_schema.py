@@ -78,6 +78,11 @@ class TestResponseActionsSchemaShape:
     def test_duplicate_action_id_fixture_is_schema_valid_but_semantically_invalid(self) -> None:
         _validator().validate(_fixture_doc("duplicate-action-id.json"))
 
+    def test_duplicate_durable_idempotency_key_fixture_is_schema_valid_but_semantically_invalid(
+        self,
+    ) -> None:
+        _validator().validate(_fixture_doc("duplicate-durable-idempotency-key.json"))
+
 
 class TestResponseActionsValidationTuple:
     def test_x_intent_requires_explicit_full_validation_tuple(self) -> None:
