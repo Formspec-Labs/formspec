@@ -30,4 +30,5 @@ export type { FELType, FELFunctionCatalog, FunctionEntry, Parameter } from './fe
 export type { ScreenerDocument, Availability, Phase, Route } from './screener.js';
 export type { DeterminationRecord, RouteResult, PhaseResult, InputEntry } from './determination.js';
 export type { Slot, SurfaceDocument, Transition } from './surface.js';
+export type { DataSource, DataSourceKind, RuntimeBehavior, CacheRule, DataSourcesDocument, ProvenanceRule } from './data-sources.js';
 export { VALIDATION_MAPPING_MASTER_TABLE } from './validation-mapping-master-table.js';

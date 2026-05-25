@@ -1,0 +1,25 @@
+{
+  "$formspecDataSources": "1.0",
+  "id": "https://example.gov/apps/data-aware-workspace/data-sources",
+  "version": "1.0.0",
+  "sources": [
+    {
+      "id": "route:active-matter",
+      "kind": "route-params",
+      "owner": "formspec",
+      "scope": "route",
+      "availability": {
+        "level": "route",
+        "surfaceRef": "https://example.gov/apps/data-aware-workspace/surface",
+        "routeRef": "matterList"
+      },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "none", "staleAfter": "PT1M" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "block-render",
+        "provenance": { "kind": "route-params", "source": "surface:matterList.params" }
+      }
+    }
+  ]
+}

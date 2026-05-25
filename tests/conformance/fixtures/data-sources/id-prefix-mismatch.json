@@ -1,0 +1,21 @@
+{
+  "$formspecDataSources": "1.0",
+  "id": "https://example.gov/apps/data-aware-workspace/data-sources",
+  "version": "1.0.0",
+  "sources": [
+    {
+      "id": "host:search-results",
+      "kind": "query-result",
+      "owner": "module",
+      "scope": "resource",
+      "availability": { "level": "module", "moduleId": "x-formspec-ai-runtime" },
+      "runtime": {
+        "delivery": "live",
+        "cache": { "mode": "subscribe" },
+        "authorizationBoundary": "module",
+        "failureMode": "degraded-widget",
+        "provenance": { "kind": "query-result", "source": "query:workspace-search" }
+      }
+    }
+  ]
+}

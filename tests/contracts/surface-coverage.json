@@ -702,6 +702,32 @@
       "runtimeScope": "spec-conformance-only",
       "runtimeRationale": "Respondent Library v1.0 defines the normative sidecar and fixture corpus that formspec-web must consume through DI. Wallet, sync, HPKE byte-work, WOS status adapters, and web UI adapters land in downstream implementation plans and must add crate/package surfaces when they consume this contract."
     },
+    "data-sources": {
+      "status": "enforced",
+      "spec": "specs/data-sources/data-sources-spec.md",
+      "schema": "schemas/data-sources.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_data_sources_schema.py",
+        "tests/conformance/spec/test_data_sources_contract.py",
+        "tests/conformance/schemas/test_bundle_manifest_schema.py",
+        "tests/conformance/spec/test_bundle_manifest_semantics.py"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/data-sources/",
+        "tests/conformance/fixtures/bundle/app-with-data-sources-v2-1.json",
+        "tests/conformance/fixtures/bundle/invalid-data-sources-in-2-0.json"
+      ],
+      "packages": {},
+      "checks": [
+        "Data Sources schema shape, closed source-family taxonomy, availability selector shape, runtime cache/failure/provenance rules, and coarse authorization boundary are pinned by schema and spec conformance tests",
+        "Fixture corpus covers a positive catalog plus duplicate id, id-prefix mismatch, cache/staleness, live-cache, draft-delivery, provenance drift, ambiguous surface/slot availability, and fine-grained authorization fail-closed paths",
+        "App Manifest v2.1 admits dataSources[] as URL/version sibling refs while v2.0 manifests reject that v2.1-only slot",
+        "Definition-local instances remain separate and continue to own @instance() lookup"
+      ],
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "Data Sources v1.0 defines the normative peer artifact, App Manifest v2.1 sibling slot, schema, fixture corpus, and static conformance contract only. Source loading, source-to-slot resolution, shared ArtifactResolver/AppGraphValidator behavior, Studio/MCP/runtime/projection consumers, and ADR 0152 fine-grained authorization land in later ADR 0153/0152 rows and must add crate/package surfaces when they consume this contract."
+    },
     "surface": {
       "status": "enforced",
       "spec": "specs/surface/surface-spec.md",
@@ -747,12 +773,12 @@
       ],
       "packages": {},
       "checks": [
-        "App Manifest schema shape, closed surface, required-property enforcement, $formspecBundle='2.0' const, and SemVer strictness are pinned by schema conformance tests",
-        "Spec semantics tests assert array-key uniqueness (locales[].locale, mappings[].handle) and id-vs-sibling-URL distinctness — invariants JSON Schema cannot express — by inspecting fixture authoring intent; processor-side enforcement of these rules awaits a loader implementation",
-        "Fixture corpus covers definition-only minimal, full-singles, locales+mappings, multi-definition app, non-form app (empty definitions[]), modules+sessions, and the negative postures (missing definitions[], duplicate locale tag, duplicate mapping handle, id-equals-sibling-url, unknown property, bad SemVer, retired $formspecBundle:'1.0')"
+        "App Manifest schema shape, closed surface, required-property enforcement, $formspecBundle 2.0/2.1 version gating, and SemVer strictness are pinned by schema conformance tests",
+        "Spec semantics tests assert array-key uniqueness (locales[].locale, mappings[].handle) and id-vs-sibling-URL distinctness, including dataSources[] URLs — invariants JSON Schema cannot express — by inspecting fixture authoring intent; processor-side enforcement of these rules awaits a loader implementation",
+        "Fixture corpus covers definition-only minimal, full-singles, locales+mappings, multi-definition app, non-form app (empty definitions[]), modules+sessions, v2.1 dataSources[], and the negative postures (missing definitions[], duplicate locale tag, duplicate mapping handle, id-equals-sibling-url, unknown property, bad SemVer, retired $formspecBundle:'1.0', dataSources[] on v2.0)"
       ],
       "runtimeScope": "spec-conformance-only",
-      "runtimeRationale": "App Manifest v2.0 (reframed from Bundle Manifest v1.0 per ADR 0150 §5.2/§5.3/§11.2) defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3. As a consequence, §6.1 rule 4 (§5.3 sibling-pin consistency) and rule 6 (§5.4 module coherence) require an online sibling-resolver and are NOT covered by the static fixture corpus; conformance suites that exercise rules 4+6 must stub the sibling-load seam. This row gains crate / package surfaces — and corresponding integration fixtures — once a renderer / Studio / MCP consumer adopts the App Manifest."
+      "runtimeRationale": "App Manifest v2.x (reframed from Bundle Manifest v1.0 per ADR 0150 §5.2/§5.3/§11.2 and extended by v2.1 for dataSources[]) defines a declarative composition envelope with no business logic; schema validation plus the §6.1 processor rules are sufficient. Loader implementations (Rust crate, TS module, Python loader) are explicitly out of scope per §6.3. As a consequence, §6.1 rule 4 (§5.3 sibling-pin consistency) and rule 6 (§5.4 module coherence) require an online sibling-resolver and are NOT covered by the static fixture corpus; conformance suites that exercise rules 4+6 must stub the sibling-load seam. This row gains crate / package surfaces — and corresponding integration fixtures — once a renderer / Studio / MCP consumer adopts the App Manifest."
     }
   }
 }

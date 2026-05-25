@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/dataSources/1.0",
+  "title": "Formspec Data Sources",
+  "description": "Peer app-graph artifact declaring named Data Sources for app, route, slot, module, resource, and Definition-response availability. Definition-local instances remain the authority for @instance() lookup inside a Definition; this document is the app-level catalog consumed by App Manifest resolution and future AppGraphValidator work.",
+  "type": "object",
+  "required": ["$formspecDataSources", "version", "id", "sources"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "$formspecDataSources": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Data Sources document version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for Data Sources document compatibility"
+      }
+    },
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical identity URL for this Data Sources catalog. App Manifest v2.1 dataSources[] entries reference this URL.",
+      "examples": ["https://example.gov/apps/intake/data-sources"]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Version of this Data Sources document. MUST be a strict SemVer 2.0.0 string.",
+      "examples": ["1.0.0", "1.0.0-draft.1"]
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable title for this Data Sources catalog."
+    },
+    "description": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/DataSource" },
+      "description": "Named data sources available to the resolved app graph. Each id MUST be unique within this document; processors enforce that semantic invariant."
+    },
+    "extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "DataSourceKind": {
+      "type": "string",
+      "enum": [
+        "host-state",
+        "definition-response",
+        "document-resource",
+        "conversation-stream",
+        "query-result",
+        "route-params"
+      ],
+      "description": "Closed source family taxonomy for Data Sources v1.0."
+    },
+    "DataSource": {
+      "type": "object",
+      "required": ["id", "kind", "owner", "scope", "availability", "runtime"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "host-state" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "id": { "pattern": "^host:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
+              "runtime": {
+                "properties": {
+                  "provenance": {
+                    "properties": { "kind": { "const": "host-state" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "definition-response" } }, "required": ["kind"] },
+          "then": {
+            "required": ["definitionRef"],
+            "properties": {
+              "id": { "pattern": "^response:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
+              "runtime": {
+                "properties": {
+                  "provenance": {
+                    "properties": { "kind": { "const": "definition-response" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "document-resource" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "id": { "pattern": "^resource:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
+              "runtime": {
+                "properties": {
+                  "provenance": {
+                    "properties": { "kind": { "const": "document-resource" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "conversation-stream" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "id": { "pattern": "^conversation:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
+              "runtime": {
+                "properties": {
+                  "provenance": {
+                    "properties": { "kind": { "const": "conversation-stream" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "query-result" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "id": { "pattern": "^query:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
+              "runtime": {
+                "properties": {
+                  "provenance": {
+                    "properties": { "kind": { "const": "query-result" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "route-params" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "id": { "pattern": "^route:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
+              "runtime": {
+                "properties": {
+                  "provenance": {
+                    "properties": { "kind": { "const": "route-params" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "runtime": {
+                "properties": { "delivery": { "const": "draft" } },
+                "required": ["delivery"]
+              }
+            },
+            "required": ["runtime"]
+          },
+          "then": {
+            "properties": {
+              "kind": { "const": "definition-response" },
+              "runtime": {
+                "properties": {
+                  "cache": {
+                    "properties": { "mode": { "const": "draft" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+          "description": "Stable source id unique within this document. Prefix MUST match kind: host, response, resource, query, conversation, or route."
+        },
+        "kind": { "$ref": "#/$defs/DataSourceKind" },
+        "definitionRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical Definition URL when this source family reads or exposes Definition-response state."
+        },
+        "owner": {
+          "type": "string",
+          "enum": ["host", "formspec", "module"],
+          "description": "Runtime owner responsible for supplying this source. This is ownership metadata, not authorization."
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["session", "route", "definition", "resource"],
+          "description": "Lifetime or addressing scope for the source."
+        },
+        "availability": { "$ref": "#/$defs/Availability" },
+        "runtime": { "$ref": "#/$defs/RuntimeBehavior" },
+        "schema": {
+          "type": "object",
+          "description": "Optional JSON Schema fragment describing payload shape. This is a contract for hosts and validators, not inline source data."
+        },
+        "description": {
+          "type": "string"
+        },
+        "extensions": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+        }
+      }
+    },
+    "Availability": {
+      "type": "object",
+      "required": ["level"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "const": "definition" } }, "required": ["level"] },
+          "then": { "required": ["definitionRef"] }
+        },
+        {
+          "if": { "properties": { "level": { "const": "surface" } }, "required": ["level"] },
+          "then": { "required": ["surfaceRef"] }
+        },
+        {
+          "if": { "properties": { "level": { "const": "route" } }, "required": ["level"] },
+          "then": { "required": ["surfaceRef", "routeRef"] }
+        },
+        {
+          "if": { "properties": { "level": { "const": "slot" } }, "required": ["level"] },
+          "then": { "required": ["surfaceRef", "routeRef", "slotId"] }
+        },
+        {
+          "if": { "properties": { "level": { "const": "module" } }, "required": ["level"] },
+          "then": { "required": ["moduleId"] }
+        },
+        {
+          "if": { "required": ["routeRef"] },
+          "then": { "required": ["surfaceRef"] }
+        },
+        {
+          "if": { "required": ["slotId"] },
+          "then": { "required": ["surfaceRef", "routeRef"] }
+        }
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["app", "definition", "surface", "route", "slot", "module"],
+          "description": "Where this source is advertised in the resolved app graph."
+        },
+        "definitionRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical Definition URL for definition-scoped availability."
+        },
+        "surfaceRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical Surface URL. Required for surface, route, and slot availability because App Manifest surfaces[] may contain more than one Surface."
+        },
+        "routeRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Surface route id. Requires surfaceRef."
+        },
+        "slotId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Surface slot id. Requires surfaceRef and routeRef."
+        },
+        "moduleId": {
+          "type": "string",
+          "pattern": "^x-[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Module id when the source is advertised to a module contribution."
+        }
+      }
+    },
+    "RuntimeBehavior": {
+      "type": "object",
+      "required": ["delivery", "cache", "authorizationBoundary", "failureMode", "provenance"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "delivery": { "const": "live" } }, "required": ["delivery"] },
+          "then": {
+            "properties": {
+              "cache": {
+                "properties": { "mode": { "const": "subscribe" } }
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "delivery": {
+          "type": "string",
+          "enum": ["snapshot", "live", "draft"],
+          "description": "How the source is delivered to consumers: one-time snapshot, live subscription, or draft Response state."
+        },
+        "cache": { "$ref": "#/$defs/CacheRule" },
+        "authorizationBoundary": {
+          "type": "string",
+          "enum": ["host", "formspec-session", "module"],
+          "description": "Coarse boundary that owns admission before this source is exposed. Fine-grained actor, route, operation, widget, or field authorization remains forbidden until ADR 0152."
+        },
+        "failureMode": {
+          "type": "string",
+          "enum": ["empty-state", "stale-ok", "block-render", "degraded-widget"],
+          "description": "Consumer behavior when the source cannot be supplied."
+        },
+        "provenance": { "$ref": "#/$defs/ProvenanceRule" }
+      }
+    },
+    "CacheRule": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "none" } }, "required": ["mode"] },
+          "then": { "not": { "required": ["staleAfter"] } }
+        }
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["snapshot", "subscribe", "draft", "none"],
+          "description": "Cache behavior. `none` forbids staleAfter; live delivery requires subscribe; draft delivery requires draft."
+        },
+        "staleAfter": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ISO 8601 duration after which a cached value is stale. Forbidden when mode is none."
+        }
+      }
+    },
+    "ProvenanceRule": {
+      "type": "object",
+      "required": ["kind", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/$defs/DataSourceKind" },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Host, resource, query, conversation, route, or response provenance pointer. The Data Source spec defines the expected family; concrete resolver syntax is host-specific."
+        }
+      }
+    }
+  }
+}

@@ -1,21 +1,31 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/bundleManifest/2.0",
+  "$id": "https://formspec.org/schemas/bundleManifest/2.1",
   "title": "Formspec App Manifest",
-  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest; reframed per ADR 0150 §5.2/§5.3/§11.2). The author-facing composition envelope above a Formspec app. An app composes zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, and OPTIONAL substrate Modules / Sessions / Locales / Mappings / Theme / Component / References / Ontology / Experience / Response Actions. `definitions` is REQUIRED but MAY be an empty array (non-form apps — workflow viewers, registry browsers, etc. — compose surfaces without Definitions). The `$formspecBundle` const bumps to '2.0' so strict-validating consumers of the legacy '1.0' shape fail loud rather than silently mis-parse a structurally different document. See specs/bundle/app-manifest-spec.md for normative prose.",
+  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest; reframed per ADR 0150 §5.2/§5.3/§11.2). The author-facing composition envelope above a Formspec app. An app composes zero-or-more Definitions, zero-or-more Surfaces, zero-or-more Registries, and OPTIONAL substrate Modules / Sessions / Locales / Mappings / Theme / Component / References / Ontology / Experience / Response Actions. App Manifest v2.1 adds optional dataSources[] sibling references; v2.0 manifests remain valid but MUST NOT carry dataSources[]. `definitions` is REQUIRED but MAY be an empty array (non-form apps — workflow viewers, registry browsers, etc. — compose surfaces without Definitions). The `$formspecBundle` const originally bumped to '2.0' so strict-validating consumers of the legacy '1.0' shape fail loud rather than silently mis-parse a structurally different document. See specs/bundle/app-manifest-spec.md for normative prose.",
   "$comment": "Bundle-graph id-uniqueness invariant per ADR 0150 §5.3: every authored ComponentBase.id reachable from this App Manifest MUST be unique across all referenced Component documents (not merely per-document). JSON Schema cannot enforce cross-document uniqueness; linter rule E605 (COMP-BUNDLE-ID-COLLISION) walks the bundle graph and hard-fails on duplicates. Load-bearing for cross-document Component-tree refactors (ADR 0151).",
   "type": "object",
   "required": ["$formspecBundle", "version", "id", "definitions"],
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "required": ["dataSources"] },
+      "then": {
+        "properties": {
+          "$formspecBundle": { "const": "2.1" }
+        }
+      }
+    }
+  ],
   "patternProperties": {
     "^x-": {}
   },
   "properties": {
     "$formspecBundle": {
       "type": "string",
-      "const": "2.0",
-      "description": "App Manifest specification version. MUST be '2.0'. Bumped from '1.0' per ADR 0150 §5.2/§11.2 — the singular→plural shape change is structural; the const bump makes strict-validating consumers of the legacy shape fail loud rather than silently mis-parse.",
-      "examples": ["2.0"],
+      "enum": ["2.0", "2.1"],
+      "description": "App Manifest specification version. MUST be '2.0' or '2.1'. The v2.0 bump from '1.0' per ADR 0150 §5.2/§11.2 is structural; v2.1 is the first additive minor and introduces dataSources[] sibling references. Documents with dataSources[] MUST use '2.1'.",
+      "examples": ["2.0", "2.1"],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for App Manifest document compatibility"
@@ -99,6 +109,19 @@
       "examples": [
         [{ "url": "https://example.gov/apps/intake/surface-respondent", "version": "1.0.0" }]
       ]
+    },
+    "dataSources": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/SiblingRef" },
+      "description": "Optional list of Data Sources catalog documents. This member is valid only when `$formspecBundle` is '2.1'. Entries use URL/version sibling identity; they MUST NOT use local fixture paths or implicit discovery.",
+      "examples": [
+        [{ "url": "https://example.gov/apps/intake/data-sources", "version": "1.0.0" }]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "App-level Data Sources catalog references"
+      }
     },
     "modules": {
       "type": "array",

@@ -1,0 +1,6 @@
+- Data Sources is a peer app artifact for app-graph source catalogs; Definition-local `instances` remain the authority for `@instance()` lookup inside a Definition.
+- App Manifest v2.1 introduces `dataSources[]` sibling references by URL/version; v2.0 manifests remain valid but cannot carry `dataSources[]`.
+- Each source declares a closed source family, owner, scope, availability selector, runtime delivery/cache/failure/provenance behavior, and coarse authorization boundary.
+- Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
+- The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
+- Fine-grained actor, operation, route, widget, or field authorization remains fail-closed until ADR 0152 supplies the authorization contract.

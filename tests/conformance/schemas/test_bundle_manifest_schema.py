@@ -1,11 +1,11 @@
 """Schema acceptance tests for the App Manifest (formerly Bundle Manifest) spec.
 
 Per ADR 0150 §5.2/§5.3/§11.2: the Bundle Manifest reframes as the App Manifest
-— singular `definition` becomes `definitions[]` (MAY be empty for non-form apps);
+-- singular `definition` becomes `definitions[]` (MAY be empty for non-form apps);
 singular `registry` becomes `registries[]`; `surfaces[]` and `modules[]` and
-`sessions[]` arrive. `$formspecBundle` bumps "1.0" → "2.0" so strict-validating
+`sessions[]` arrive. `$formspecBundle` bumps "1.0" -> "2.0" so strict-validating
 consumers fail-loud rather than silently mis-parse the structurally different
-document.
+document. App Manifest v2.1 adds `dataSources[]` as an additive minor slot.
 """
 
 from __future__ import annotations
@@ -57,8 +57,8 @@ class TestAppManifestSchemaShape:
             "definitions",
         }
 
-    def test_formspec_bundle_const_is_two_zero(self) -> None:
-        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["const"] == "2.0"
+    def test_formspec_bundle_accepts_current_two_x_versions(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["enum"] == ["2.0", "2.1"]
 
     def test_singular_definition_property_retired(self) -> None:
         assert "definition" not in BUNDLE_SCHEMA["properties"]
@@ -74,6 +74,10 @@ class TestAppManifestSchemaShape:
 
     def test_surfaces_is_an_array(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["surfaces"]["type"] == "array"
+
+    def test_data_sources_is_an_array_and_v2_1_only(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["dataSources"]["type"] == "array"
+        assert BUNDLE_SCHEMA["allOf"][0]["then"]["properties"]["$formspecBundle"]["const"] == "2.1"
 
     def test_modules_field_present(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["modules"]["type"] == "array"
@@ -107,6 +111,10 @@ class TestAppManifestPositiveFixtures:
         """ADR §5.2/§5.5: modules[] (ModuleRef) and sessions[] (SessionRef)."""
         _validator().validate(_fixture_bundle("app-with-modules-and-sessions.json"))
 
+    def test_app_with_data_sources_v2_1_validates(self) -> None:
+        """ADR 0153 gate 5: dataSources[] is an App Manifest v2.1 additive slot."""
+        _validator().validate(_fixture_bundle("app-with-data-sources-v2-1.json"))
+
 
 class TestAppManifestNegativeFixtures:
     def test_missing_definitions_rejected(self) -> None:
@@ -126,8 +134,14 @@ class TestAppManifestNegativeFixtures:
         assert "version" in str(excinfo.value).lower() or "pattern" in str(excinfo.value).lower()
 
     def test_formspec_bundle_1_0_rejected(self) -> None:
-        """ADR §11.2: $formspecBundle const bumps 1.0 → 2.0 so strict-validating
+        """ADR §11.2: $formspecBundle const bumps 1.0 -> 2.0 so strict-validating
         consumers fail-loud rather than silently mis-parse."""
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-formspec-bundle-1-0.json"))
         assert "formspecBundle" in str(excinfo.value) or "2.0" in str(excinfo.value)
+
+    def test_data_sources_on_two_zero_rejected(self) -> None:
+        """dataSources[] is valid only for `$formspecBundle: "2.1"`."""
+        with pytest.raises(ValidationError) as excinfo:
+            _validator().validate(_fixture_bundle("invalid-data-sources-in-2-0.json"))
+        assert "2.1" in str(excinfo.value) or "$formspecBundle" in str(excinfo.value)

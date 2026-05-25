@@ -64,9 +64,9 @@ def _all_sibling_urls(bundle: dict) -> list[str]:
         if key in bundle:
             urls.append(bundle[key]["url"])
     # Array-cardinality slots — includes the pluralized definitions[] /
-    # registries[] / surfaces[] per ADR 0150 §5.2, alongside the existing
-    # locales[] / mappings[].
-    for key in ("definitions", "registries", "surfaces", "locales", "mappings"):
+    # registries[] / surfaces[] per ADR 0150 §5.2, alongside v2.1
+    # dataSources[] and the existing locales[] / mappings[].
+    for key in ("definitions", "registries", "surfaces", "dataSources", "locales", "mappings"):
         for entry in bundle.get(key, []):
             urls.append(entry["url"])
     return urls
@@ -84,3 +84,14 @@ class TestAppManifestIdDistinctness:
         assert bundle["id"] in _all_sibling_urls(bundle), (
             "fixture must collide app `id` with a sibling URL"
         )
+
+
+class TestAppManifestDataSources:
+    def test_data_sources_urls_participate_in_sibling_identity(self) -> None:
+        bundle = _bundle("app-with-data-sources-v2-1.json")
+
+        data_source_urls = [entry["url"] for entry in bundle["dataSources"]]
+
+        assert data_source_urls
+        assert set(data_source_urls).issubset(set(_all_sibling_urls(bundle)))
+        assert bundle["id"] not in data_source_urls

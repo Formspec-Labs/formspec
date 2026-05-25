@@ -1049,13 +1049,19 @@ Verifier obligations (shipping behavior — see
 
 #### 2.1.7 Data Source
 
-A **Data Source** is a declaration within a Definition that makes external or
-supplemental data available to FEL expressions at runtime. Data Sources are the
-mechanism by which secondary instances (§2.1.2) are populated.
+A Definition-local **Data Source** is an entry in the top-level `instances`
+object that makes external or supplemental data available to FEL expressions at
+runtime. Definition-local Data Sources are the mechanism by which secondary
+instances (§2.1.2) are populated.
 
-Each Data Source MUST have a `name` (string, unique identifier within the
-Definition, used in `@instance('name')` references, MUST match
-`^[a-zA-Z_][a-zA-Z0-9_]*$`).
+The property name in `instances` is the source name. It is the identifier used
+in `@instance('name')` references and MUST match
+`^[a-zA-Z_][a-zA-Z0-9_]*$`.
+
+The peer [Data Sources companion specification](../data-sources/data-sources-spec.md)
+defines app-level source catalogs for App Manifest graphs. It does not create
+`@instance()` names by default and does not replace Definition-local
+`instances`.
 
 Each Data Source MUST also declare its content via one of the following
 mechanisms:
@@ -1080,24 +1086,21 @@ is encountered.
 >
 > ```json
 > {
->   "dataSources": [
->     {
->       "name": "countryCodes",
+>   "instances": {
+>     "countryCodes": {
 >       "data": [
 >         { "code": "US", "label": "United States" },
 >         { "code": "GB", "label": "United Kingdom" },
 >         { "code": "CA", "label": "Canada" }
 >       ]
 >     },
->     {
->       "name": "priorYear",
+>     "priorYear": {
 >       "source": "https://api.example.org/responses/2024/{{respondentId}}"
 >     },
->     {
->       "name": "inventory",
+>     "inventory": {
 >       "source": "formspec-fn:loadInventoryData"
 >     }
->   ]
+>   }
 > }
 > ```
 >

@@ -1,0 +1,20 @@
+{
+  "fixture": "app-with-data-sources-v2-1",
+  "purpose": "Positive: App Manifest v2.1 declaring dataSources[] as peer app-graph sibling references.",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "2.1",
+    "version": "1.3.0",
+    "id": "https://example.gov/apps/data-aware-workspace",
+    "title": "Data-Aware Workspace",
+    "definitions": [
+      { "url": "https://example.gov/apps/data-aware-workspace/definition", "version": "1.0.0" }
+    ],
+    "surfaces": [
+      { "url": "https://example.gov/apps/data-aware-workspace/surface", "version": "1.0.0" }
+    ],
+    "dataSources": [
+      { "url": "https://example.gov/apps/data-aware-workspace/data-sources", "version": "1.0.0" }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "fixture": "invalid-data-sources-in-2-0",
+  "purpose": "Negative: App Manifest v2.0 cannot use the v2.1-only dataSources[] sibling slot.",
+  "expected": { "valid": false, "errorContains": "2.1" },
+  "bundle": {
+    "$formspecBundle": "2.0",
+    "version": "1.3.0",
+    "id": "https://example.gov/apps/data-source-too-early",
+    "definitions": [
+      { "url": "https://example.gov/apps/data-source-too-early/definition", "version": "1.0.0" }
+    ],
+    "dataSources": [
+      { "url": "https://example.gov/apps/data-source-too-early/data-sources", "version": "1.0.0" }
+    ]
+  }
+}

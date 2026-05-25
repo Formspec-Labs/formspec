@@ -34,7 +34,7 @@ const URI_TO_LOCAL = {};
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
   'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
-  'fel-functions', 'screener', 'determination', 'surface', 'verification-receipt']) {
+  'fel-functions', 'screener', 'determination', 'surface', 'data-sources', 'verification-receipt']) {
   const filePath = resolve(SCHEMAS_DIR, `${f}.schema.json`);
   if (existsSync(filePath)) {
     const s = JSON.parse(readFileSync(filePath, 'utf-8'));
@@ -145,6 +145,7 @@ const SCHEMA_SOURCES = [
   { file: 'screener.schema.json', title: 'ScreenerDocument' },
   { file: 'determination.schema.json', title: 'DeterminationRecord' },
   { file: 'surface.schema.json', title: 'SurfaceDocument' },
+  { file: 'data-sources.schema.json', title: 'DataSourcesDocument' },
 ];
 
 const FILE_BANNER = `/**
@@ -397,6 +398,20 @@ function postProcess(ts, moduleName) {
   persistence: PersistencePolicy;
 };`,
     );
+  }
+
+  if (moduleName === 'data-sources') {
+    // json-schema-to-typescript widens some allOf/conditional closed
+    // objects into `{ [k: string]: unknown } & {...}`. Data Sources relies on
+    // closed objects to reject fine-grained authorization and ambiguous
+    // availability fields, so strip the broad intersection while preserving
+    // explicit x-* extension lanes on DataSource.
+    for (const name of ['DataSource', 'Availability', 'RuntimeBehavior', 'CacheRule']) {
+      result = result.replace(
+        new RegExp(`export type ${name} = \\{\\s*\\[k: string\\]: unknown;\\s*\\} & (\\{[\\s\\S]*?\\n\\});`, 'm'),
+        `export type ${name} = $1;`
+      );
+    }
   }
 
   return result;

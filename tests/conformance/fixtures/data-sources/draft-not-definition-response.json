@@ -1,0 +1,21 @@
+{
+  "$formspecDataSources": "1.0",
+  "id": "https://example.gov/apps/data-aware-workspace/data-sources",
+  "version": "1.0.0",
+  "sources": [
+    {
+      "id": "host:draft-state",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "session",
+      "availability": { "level": "app" },
+      "runtime": {
+        "delivery": "draft",
+        "cache": { "mode": "draft" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "host-state", "source": "host:draft-state" }
+      }
+    }
+  ]
+}

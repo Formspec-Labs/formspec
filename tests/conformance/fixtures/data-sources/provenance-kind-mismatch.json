@@ -1,0 +1,21 @@
+{
+  "$formspecDataSources": "1.0",
+  "id": "https://example.gov/apps/data-aware-workspace/data-sources",
+  "version": "1.0.0",
+  "sources": [
+    {
+      "id": "resource:policy-library",
+      "kind": "document-resource",
+      "owner": "host",
+      "scope": "resource",
+      "availability": { "level": "app" },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "P1D" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "query-result", "source": "resource:policy-library" }
+      }
+    }
+  ]
+}

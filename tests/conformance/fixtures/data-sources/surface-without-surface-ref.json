@@ -1,0 +1,23 @@
+{
+  "$formspecDataSources": "1.0",
+  "id": "https://example.gov/apps/data-aware-workspace/data-sources",
+  "version": "1.0.0",
+  "sources": [
+    {
+      "id": "host:surface-context",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "route",
+      "availability": {
+        "level": "surface"
+      },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "host-state", "source": "host:surface-context" }
+      }
+    }
+  ]
+}

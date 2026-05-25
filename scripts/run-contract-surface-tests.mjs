@@ -46,6 +46,10 @@ runPython([
   'tests/conformance/spec/test_trace_predicates.py',
   'tests/conformance/spec/test_trace_stale_rejection.py',
   'tests/conformance/spec/test_trace_studio_review_composition.py',
+  'tests/conformance/schemas/test_bundle_manifest_schema.py',
+  'tests/conformance/spec/test_bundle_manifest_semantics.py',
+  'tests/conformance/schemas/test_data_sources_schema.py',
+  'tests/conformance/spec/test_data_sources_contract.py',
   'tests/conformance/spec/test_surface_contract.py',
 ]);
 

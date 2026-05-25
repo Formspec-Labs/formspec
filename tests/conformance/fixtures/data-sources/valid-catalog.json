@@ -1,0 +1,80 @@
+{
+  "$formspecDataSources": "1.0",
+  "id": "https://example.gov/apps/data-aware-workspace/data-sources",
+  "version": "1.0.0",
+  "title": "Data-Aware Workspace Sources",
+  "sources": [
+    {
+      "id": "host:open-matters",
+      "kind": "host-state",
+      "owner": "host",
+      "scope": "session",
+      "availability": { "level": "app" },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "snapshot", "staleAfter": "PT5M" },
+        "authorizationBoundary": "host",
+        "failureMode": "empty-state",
+        "provenance": { "kind": "host-state", "source": "host:matters.open" }
+      },
+      "schema": {
+        "type": "array",
+        "items": { "type": "object" }
+      }
+    },
+    {
+      "id": "route:active-matter",
+      "kind": "route-params",
+      "owner": "formspec",
+      "scope": "route",
+      "availability": {
+        "level": "slot",
+        "surfaceRef": "https://example.gov/apps/data-aware-workspace/surface",
+        "routeRef": "matterList",
+        "slotId": "filters"
+      },
+      "runtime": {
+        "delivery": "snapshot",
+        "cache": { "mode": "none" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "block-render",
+        "provenance": { "kind": "route-params", "source": "surface:matterList.params" }
+      }
+    },
+    {
+      "id": "response:new-matter-draft",
+      "kind": "definition-response",
+      "definitionRef": "https://example.gov/apps/data-aware-workspace/definition",
+      "owner": "formspec",
+      "scope": "definition",
+      "availability": {
+        "level": "definition",
+        "definitionRef": "https://example.gov/apps/data-aware-workspace/definition"
+      },
+      "runtime": {
+        "delivery": "draft",
+        "cache": { "mode": "draft" },
+        "authorizationBoundary": "formspec-session",
+        "failureMode": "block-render",
+        "provenance": { "kind": "definition-response", "source": "response:draft:new-matter" }
+      }
+    },
+    {
+      "id": "query:search-results",
+      "kind": "query-result",
+      "owner": "module",
+      "scope": "resource",
+      "availability": {
+        "level": "module",
+        "moduleId": "x-formspec-ai-runtime"
+      },
+      "runtime": {
+        "delivery": "live",
+        "cache": { "mode": "subscribe", "staleAfter": "PT30S" },
+        "authorizationBoundary": "module",
+        "failureMode": "degraded-widget",
+        "provenance": { "kind": "query-result", "source": "query:workspace-search" }
+      }
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import type {
   ThemeDocument,
   MappingDocument,
   ResponseActionsDocument,
+  DataSourcesDocument,
   ValidationMappingDocument,
   ValidationReport,
 } from '../src/index.js';
@@ -56,6 +57,9 @@ describe('generated types smoke test', () => {
 
     const responseActions = {} as ResponseActionsDocument;
     expect(responseActions).toBeDefined();
+
+    const dataSources = {} as DataSourcesDocument;
+    expect(dataSources).toBeDefined();
 
     const experience = {} as ExperienceDocument;
     expect(experience).toBeDefined();
@@ -136,5 +140,21 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(src).toMatch(
       /export type ValidationTuple = \{\s*profile: ValidationProfile;\s*blocking: BlockingPolicy;\s*persistence: PersistencePolicy;\s*\};/m,
     );
+  });
+
+  it('Data Sources closed runtime and availability types do NOT carry broad indexes', () => {
+    // Data Sources rejects fine-grained authorization fields and ambiguous
+    // availability selectors through closed schema objects. Generated types
+    // must not re-open those objects with `[k: string]: unknown`.
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/data-sources.ts'),
+      'utf-8',
+    );
+    for (const typeName of ['DataSource', 'Availability', 'RuntimeBehavior', 'CacheRule']) {
+      expect(src).not.toMatch(
+        new RegExp(`export type ${typeName} = \\{\\s*\\[k: string\\]: unknown;\\s*\\} &`, 'm'),
+      );
+    }
+    expect(src).toContain('[k: `x-${string}`]: unknown;');
   });
 });
