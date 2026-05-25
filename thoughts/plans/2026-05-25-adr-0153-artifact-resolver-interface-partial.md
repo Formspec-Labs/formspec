@@ -3,8 +3,8 @@
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ArtifactResolver
 **Status:** Partial; prose/interface boundary, output report schema/type
-contract, shared resolver kernel, and source conformance fixtures defined;
-validator integration and consumers remain open
+contract, shared resolver kernel, source conformance fixtures, and bounded
+validator/module handoff fixture defined; production consumers remain open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -16,8 +16,8 @@ vocabulary, output report schema/type contract, shared resolver kernel, and
 source conformance fixtures.
 
 Not in the completed slices: resolver request JSON Schema, production
-consumers, AppGraphValidator request integration, ModuleResolver
-admission/contribution logic, runtime fetch/cache policy, Data Sources payload
+consumers, ModuleResolver admission/contribution logic beyond consuming the
+completed resolver output, runtime fetch/cache policy, Data Sources payload
 loading, or ADR 0152 fine-grained authorization.
 
 ## Review Checkpoints
@@ -78,6 +78,16 @@ loading, or ADR 0152 fine-grained authorization.
   based, avoid public schema for the harness format, assert diagnostics,
   summary, loader call order, no `modules[]` / `sessions[]` loader calls,
   `ComponentRef.handle` preservation, and no fixture/path-derived identity.
+- 2026-05-25 architecture checkpoint (Darwin): APPROVE WITH CHANGES for the
+  ArtifactResolver -> ModuleResolver -> AppGraphValidator handoff. Required
+  shape: add one pure adapter from completed `ArtifactResolutionReport`, return
+  manifest, flattened handles, grouped artifacts, and artifact-resolution
+  diagnostics only; preserve resolver, module, and validator ownership; prove
+  the path with source fixtures; keep Gate 12 and Gate 4 Partial; do not add
+  request schema, production fetch/cache policy, Data Sources payload loading,
+  runtime hidden-state behavior, Component Studio/kernel/provenance,
+  TraceIndex, App Manifest policy slot, ADR 0152 authorization, or path/URL
+  suffix identity.
 
 ## Extraction Slice Plan
 
@@ -187,12 +197,28 @@ Fixture boundaries:
 - [x] Add
   `packages/formspec-app-graph/tests/artifact-resolver-conformance.test.ts`
   to execute the fixture corpus through the real shared resolver kernel.
+- [x] Export `artifactResolutionGraphInput()` as a pure adapter from completed
+  `ArtifactResolutionReport` into `AppGraphValidationRequest` artifact inputs.
+  The adapter preserves resolver artifact groups and non-loaded handles, and
+  carries resolver diagnostics through `artifactResolution` so AppGraph reports
+  do not double-import handle-local resolver diagnostics.
+- [x] Add
+  `tests/conformance/fixtures/artifact-resolution-graph/graph-pipeline-handoff.case.json`
+  plus
+  `packages/formspec-app-graph/tests/artifact-resolution-graph-handoff.test.ts`
+  to prove `resolveArtifacts()` -> `artifactResolutionGraphInput()` ->
+  `moduleResolverInputFromAppGraph()` -> `resolveModules()` ->
+  `validateAppGraph()` with Registry, Surface module-widget, Experience,
+  Response Actions, Theme, and UI Graph Policy evidence.
+- [x] Cover a missing-surface resolver failure path where the artifact
+  diagnostic imports into AppGraph reports exactly once and non-loaded handles
+  make cross-artifact validation skip instead of fabricating UI Graph Policy
+  coherence.
 
 ## Still Open for Gate 12 Closure
 
 - [ ] Define a resolver request schema/generated type only if future
   implementation inputs need a stable interchange artifact.
-- [ ] Wire the resolver output into the shared `AppGraphValidator` request.
 - [ ] Wire production consumers only after shared resolver and validator
   contracts are stable.
 
@@ -224,9 +250,13 @@ Fixture boundaries:
 - 2026-05-25: Source conformance fixtures intentionally use a harness-local
   JSON case shape executed by a TypeScript/Vitest runner. This avoids a second
   resolver implementation in Python and does not promote the harness format as
-  a public schema. Gate 12 remains Partial because AppGraphValidator request
-  integration, ModuleResolver handoff, production consumers, and full
-  production wiring remain open.
+  a public schema. Gate 12 remains Partial because production consumers and
+  full production wiring remain open.
+- 2026-05-25: The handoff adapter is a pure projection of a completed
+  `ArtifactResolutionReport`. It does not fetch artifacts, validate source
+  schemas, load host evidence, admit modules, emit diagnostics, or recover graph
+  identity from paths or URL suffixes. Gate 12 remains Partial because
+  production consumers are still not wired to this path.
 
 ## Partial Evidence
 
@@ -247,6 +277,10 @@ Fixture boundaries:
   `tests/conformance/fixtures/artifact-resolver/`.
 - Source conformance runner:
   `packages/formspec-app-graph/tests/artifact-resolver-conformance.test.ts`.
+- Handoff fixture:
+  `tests/conformance/fixtures/artifact-resolution-graph/graph-pipeline-handoff.case.json`.
+- Handoff test:
+  `packages/formspec-app-graph/tests/artifact-resolution-graph-handoff.test.ts`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root

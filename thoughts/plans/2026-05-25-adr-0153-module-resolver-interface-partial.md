@@ -73,6 +73,16 @@ authorization.
   rewiring, production consumers, Trellis LedgerPort injection, UI runtime
   hidden-state, Component Studio/kernel/provenance, ArtifactResolver production
   consumers, and ADR 0152 authorization out of scope.
+- 2026-05-25 architecture checkpoint (Darwin): APPROVE WITH CHANGES for the
+  ArtifactResolver -> ModuleResolver -> AppGraphValidator handoff. Required
+  boundary: consume completed `ArtifactResolutionReport` through one pure
+  adapter, feed its loaded handles into `moduleResolverInputFromAppGraph()`,
+  import resolver diagnostics into AppGraph reports, keep non-loaded handles as
+  skip evidence, and preserve ArtifactResolver, ModuleResolver, and
+  AppGraphValidator ownership. Gate 4 and Gate 12 remain Partial; production
+  consumers, request schema, runtime fetch/cache policy, Data Sources payload
+  loading, TraceIndex, Component Studio/kernel/provenance, App Manifest policy
+  slots, and ADR 0152 authorization stay out of scope.
 
 ## Work Completed
 
@@ -147,13 +157,23 @@ authorization.
   evidence cannot translate `binding.widgetName` through
   `widgetShape.widgetName`, the collector preserves the authored value and
   leaves `MODULE-CONTRIBUTION-MISSING` to `resolveModules()`.
+- [x] Add an executable ArtifactResolver handoff fixture that runs
+  `resolveArtifacts()` into `artifactResolutionGraphInput()`, feeds the loaded
+  handles plus UI Graph Policy host evidence into
+  `moduleResolverInputFromAppGraph()`, then passes the completed
+  `ModuleResolutionReport` into `validateAppGraph()`.
+- [x] Prove missing-surface resolver failure behavior: ArtifactResolver
+  diagnostics import into the AppGraph report exactly once, non-loaded handles
+  keep cross-artifact validation skipped, and UI Graph Policy semantics do not
+  fabricate coherence over unresolved artifacts.
 
 ## Still Open for Gate 4 Closure
 
 - [ ] Wire lint, Studio, MCPs, runtime, and projection consumers to the shared
   resolver output.
-- [ ] Integrate the graph collector with production `ArtifactResolver` output
-  instead of fixture-provided loaded handles.
+- [ ] Wire production graph-loading flows to the
+  `resolveArtifacts()` -> `artifactResolutionGraphInput()` ->
+  `moduleResolverInputFromAppGraph()` path.
 - [ ] Use typed module evidence for any remaining module-consuming graph
   semantics beyond the current UI Graph Policy families without duplicating
   ModuleResolver findings as native module checks.
@@ -216,6 +236,10 @@ authorization.
   Resolver spec still marks transform contributions as future promotion work,
   and the Registry schema does not yet admit a `transform` contribution
   category.
+- 2026-05-25: The ArtifactResolver handoff fixture proves the shared-library
+  path only. It does not wire lint, Studio, MCP, runtime, projection, or
+  production graph-loading consumers, and it does not expand ModuleResolver
+  authority beyond module admission/contribution evidence.
 
 ## Partial Evidence
 
@@ -238,6 +262,10 @@ authorization.
   `tests/conformance/fixtures/module-resolver-graph/graph-collector-handoff.case.json`.
 - Graph-collector test:
   `packages/formspec-app-graph/tests/module-resolver-graph-conformance.test.ts`.
+- ArtifactResolver handoff fixture:
+  `tests/conformance/fixtures/artifact-resolution-graph/graph-pipeline-handoff.case.json`.
+- ArtifactResolver handoff test:
+  `packages/formspec-app-graph/tests/artifact-resolution-graph-handoff.test.ts`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root

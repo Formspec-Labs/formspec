@@ -25,12 +25,15 @@ The resolver output report is also pinned by
 `schemas/artifact-resolution-report.schema.json` with `$id`
 `https://formspec.org/schemas/artifactResolutionReport/0.1` and generated
 `@formspec-org/types` types. A shared pure TypeScript resolver kernel now lives
-in `@formspec-org/app-graph` and uses a host-injected loader port. This
-document intentionally does not define a resolver request schema, production
-consumer wiring, or runtime fetch/cache policy. A source conformance corpus now
-executes the shared kernel against scenario fixtures; request interchange and
-consumer wiring land in later implementation gates after responsibilities are
-stable.
+in `@formspec-org/app-graph` and uses a host-injected loader port. The package
+also exports a pure handoff adapter that projects a completed resolver report
+into AppGraphValidator artifact inputs while carrying resolver diagnostics once
+through `artifactResolution`. This document intentionally does not define a
+resolver request schema, production consumer wiring, or runtime fetch/cache
+policy. Source conformance now executes the shared kernel against scenario
+fixtures and a bounded ArtifactResolver -> ModuleResolver -> AppGraphValidator
+handoff fixture; production consumer wiring lands in later implementation gates
+after responsibilities are stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -45,6 +48,9 @@ this specification states the resolver contract directly.
 - A host supplies the loader port. The resolver normalizes loaded artifacts,
   checks expected discriminator and identity/version evidence, and emits
   deterministic `artifact-resolution` diagnostics.
+- The shared handoff adapter preserves resolver artifact groups and non-loaded
+  handles for validator phase gating, but imports resolver diagnostics through
+  `artifactResolution` instead of duplicating them on graph handles.
 - Module and session declarations may be surfaced as manifest evidence, but
   module admission, dependencies, contribution ownership, and session runtime
   policy remain outside resolver authority.
@@ -226,6 +232,14 @@ Component-list handles and no fabricated catalog or Component membership list.
 
 Downstream `AppGraphValidator` consumes the handles and imports diagnostics
 with `origin: "artifact-resolver"` and `phase: "artifact-resolution"`.
+`artifactResolutionGraphInput(report)` is the shared package adapter for this
+handoff. It returns the manifest handle, sibling handles flattened from
+`report.artifacts`, the same grouped artifact handles for
+`AppGraphValidationRequest.artifacts`, and `artifactResolution.diagnostics`.
+The adapter keeps non-`loaded` handles in place so cross-artifact validation can
+skip with `unresolved-artifacts`; it does not validate schemas, admit modules,
+load host evidence, emit diagnostics, or recover graph coherence from paths or
+URL suffixes.
 
 ## 8. Diagnostics
 
@@ -250,8 +264,7 @@ local path, fixture, cache, or fetch metadata to identity authority.
 
 The shared resolver kernel emits the Data Sources and Component version-gate
 diagnostics above. Source conformance fixtures cover those failure families.
-Gate 12 closure still requires AppGraphValidator/ModuleResolver integration and
-production consumer integration.
+Gate 12 closure still requires production consumer integration.
 
 ## 9. Non-Goals and Handoff
 
@@ -262,19 +275,22 @@ The resolver hands off:
 - manifest `sessions[]` declarations to runtime/session ownership, and
 - source labels and digests to tools that need reproducibility evidence.
 
-It does not decide whether the resolved graph is coherent, whether modules are
-admitted, whether Response Actions may execute, or whether a host may fetch
-Data Sources payloads at runtime.
+The shared handoff path is `resolveArtifacts()` ->
+`artifactResolutionGraphInput()` -> `moduleResolverInputFromAppGraph()` ->
+`resolveModules()` -> `validateAppGraph()`. It does not decide whether the
+resolved graph is coherent, whether modules are admitted, whether Response
+Actions may execute, or whether a host may fetch Data Sources payloads at
+runtime.
 
 ## 10. Conformance
 
 This v0.1 draft defines the interface, output report contract, shared kernel,
-and source conformance fixture families. A conforming production implementation
-still needs:
+handoff adapter, source conformance fixture families, and an executable
+ArtifactResolver -> ModuleResolver -> AppGraphValidator handoff fixture. A
+conforming production implementation still needs:
 
-1. integration with `AppGraphValidator` and `ModuleResolver`,
-2. production consumer wiring, and
-3. a resolver request schema/generated type only if future implementation
+1. production consumer wiring, and
+2. a resolver request schema/generated type only if future implementation
    inputs need a stable interchange artifact.
 
 Until those gates land, tools MAY use this document to align resolver

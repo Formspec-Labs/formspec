@@ -1,0 +1,395 @@
+{
+  "id": "graph-pipeline-handoff",
+  "description": "ArtifactResolver output projects into ModuleResolver and AppGraphValidator without path-derived graph identity.",
+  "documents": {
+    "memory://experience/review": {
+      "$formspecExperience": "1.0",
+      "version": "1.0.0",
+      "modules": [
+        { "id": "x-experience", "version": "1.0.0" }
+      ],
+      "units": [
+        {
+          "id": "special-review",
+          "kind": "x-special-unit"
+        }
+      ]
+    },
+    "memory://response-actions": {
+      "$formspecResponseActions": "0.1",
+      "version": "1.0.0",
+      "modules": [
+        { "id": "x-actions", "version": "1.0.0" }
+      ],
+      "actions": [
+        {
+          "id": "escalate",
+          "intent": "x-escalate",
+          "effects": []
+        }
+      ]
+    },
+    "memory://theme/review": {
+      "$formspecTheme": "1.0",
+      "version": "1.0.0",
+      "modules": [
+        { "id": "x-theme", "version": "1.0.0" }
+      ],
+      "defaults": {
+        "widget": "x-theme-money",
+        "widgetConfig": {
+          "currency": "USD"
+        }
+      },
+      "selectors": [
+        {
+          "match": { "dataType": "date" },
+          "apply": {
+            "widget": "x-theme-date",
+            "widgetConfig": {
+              "format": "short"
+            }
+          }
+        }
+      ],
+      "items": {
+        "caseId": {
+          "widget": "x-theme-case-id",
+          "widgetConfig": {
+            "readonly": true
+          }
+        }
+      },
+      "tokens": {
+        "color.accent": "#005ea8"
+      }
+    },
+    "memory://registry/modules": {
+      "$formspecRegistry": "1.0",
+      "version": "1.0.0",
+      "entries": [
+        {
+          "name": "x-acme-surface",
+          "category": "module",
+          "version": "1.0.0",
+          "contributes": ["x-acme-surface-widget-case-status"]
+        },
+        {
+          "name": "x-acme-surface-widget-case-status",
+          "category": "widget",
+          "version": "1.0.0",
+          "widgetShape": {
+            "widgetName": "CaseStatus",
+            "props": {
+              "type": "object",
+              "required": ["density", "showOwner"],
+              "properties": {
+                "density": { "type": "string" },
+                "showOwner": { "type": "boolean" }
+              }
+            }
+          }
+        },
+        {
+          "name": "x-actions",
+          "category": "module",
+          "version": "1.0.0",
+          "contributes": ["x-escalate"]
+        },
+        {
+          "name": "x-escalate",
+          "category": "action-intent",
+          "version": "1.0.0"
+        },
+        {
+          "name": "x-reviewer",
+          "category": "module",
+          "version": "1.0.0",
+          "contributes": ["x-review-panel"]
+        },
+        {
+          "name": "x-review-panel",
+          "category": "widget",
+          "version": "1.0.0",
+          "widgetShape": {
+            "widgetName": "x-review-panel",
+            "tokenSlots": [
+              {
+                "name": "accent",
+                "acceptedTokenCategories": ["color"]
+              }
+            ]
+          }
+        },
+        {
+          "name": "x-experience",
+          "category": "module",
+          "version": "1.0.0",
+          "contributes": ["x-special-unit"]
+        },
+        {
+          "name": "x-special-unit",
+          "category": "unit-kind",
+          "version": "1.0.0"
+        },
+        {
+          "name": "x-theme",
+          "category": "module",
+          "version": "1.0.0",
+          "contributes": ["x-theme-money", "x-theme-date", "x-theme-case-id"]
+        },
+        {
+          "name": "x-theme-money",
+          "category": "widget",
+          "version": "1.0.0",
+          "widgetShape": {
+            "props": {
+              "type": "object",
+              "required": ["currency"],
+              "properties": {
+                "currency": { "type": "string" }
+              }
+            }
+          }
+        },
+        {
+          "name": "x-theme-date",
+          "category": "widget",
+          "version": "1.0.0",
+          "widgetShape": {
+            "props": {
+              "type": "object",
+              "required": ["format"],
+              "properties": {
+                "format": { "type": "string" }
+              }
+            }
+          }
+        },
+        {
+          "name": "x-theme-case-id",
+          "category": "widget",
+          "version": "1.0.0",
+          "widgetShape": {
+            "props": {
+              "type": "object",
+              "required": ["readonly"],
+              "properties": {
+                "readonly": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "memory://surface/review": {
+      "$formspecSurface": "1.0",
+      "version": "1.0.0",
+      "modules": [
+        { "id": "x-acme-surface", "version": "1.0.0" }
+      ],
+      "routes": [
+        {
+          "id": "review",
+          "slots": [
+            {
+              "id": "summary",
+              "slotType": "module-widget",
+              "binding": {
+                "moduleId": "x-acme-surface",
+                "widgetName": "CaseStatus",
+                "config": {
+                  "density": "compact",
+                  "showOwner": true
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "hostEvidence": {
+    "uiGraphPolicies": [
+      {
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "host://policy/review",
+        "document": {
+          "$formspecUiGraphPolicy": "0.1",
+          "version": "1.0.0",
+          "targetSurface": {
+            "url": "memory://surface/review"
+          },
+          "routePolicies": [
+            { "routeId": "review" }
+          ],
+          "theme": {
+            "assignments": [
+              {
+                "widgetRef": {
+                  "moduleId": "x-reviewer",
+                  "widgetName": "x-review-panel"
+                },
+                "slot": "accent",
+                "token": "color.accent"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "happy-path",
+      "manifest": {
+        "$formspecBundle": "2.2",
+        "$formspecApp": "1.0",
+        "id": "memory://app/intake",
+        "version": "1.0.0",
+        "modules": [
+          { "id": "x-acme-surface", "version": "1.0.0" },
+          { "id": "x-actions", "version": "1.0.0" },
+          { "id": "x-reviewer", "version": "1.0.0" },
+          { "id": "x-experience", "version": "1.0.0" },
+          { "id": "x-theme", "version": "1.0.0" }
+        ],
+        "sessions": [
+          { "url": "memory://session/should-not-load" }
+        ],
+        "experience": {
+          "url": "memory://experience/review",
+          "version": "1.0.0"
+        },
+        "responseActions": {
+          "url": "memory://response-actions",
+          "version": "1.0.0"
+        },
+        "theme": {
+          "url": "memory://theme/review",
+          "version": "1.0.0"
+        },
+        "registries": [
+          {
+            "url": "memory://registry/modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "memory://surface/review",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "expected": {
+        "ok": true,
+        "loaderCalls": [
+          "experience:experience:memory://experience/review",
+          "responseActions:responseActions:memory://response-actions",
+          "theme:theme:memory://theme/review",
+          "registries[0]:registry:memory://registry/modules",
+          "surfaces[0]:surface:memory://surface/review"
+        ],
+        "noLoaderCallContains": [
+          "memory://session/should-not-load"
+        ],
+        "groups": {
+          "experience": 1,
+          "responseActions": 1,
+          "theme": 1,
+          "registries": 1,
+          "surfaces": 1
+        },
+        "contributions": [
+          "x-special-unit",
+          "x-escalate",
+          "x-theme-money",
+          "x-theme-date",
+          "x-theme-case-id",
+          "x-acme-surface-widget-case-status",
+          "x-review-panel"
+        ],
+        "absentDiagnostics": [
+          "THEME-TOKEN-WIDGET",
+          "THEME-TOKEN-SLOT",
+          "THEME-TOKEN-CATEGORY"
+        ]
+      }
+    },
+    {
+      "id": "missing-surface",
+      "manifest": {
+        "$formspecBundle": "2.2",
+        "$formspecApp": "1.0",
+        "id": "memory://app/intake",
+        "version": "1.0.0",
+        "modules": [
+          { "id": "x-acme-surface", "version": "1.0.0" },
+          { "id": "x-actions", "version": "1.0.0" },
+          { "id": "x-reviewer", "version": "1.0.0" },
+          { "id": "x-experience", "version": "1.0.0" },
+          { "id": "x-theme", "version": "1.0.0" }
+        ],
+        "sessions": [
+          { "url": "memory://session/should-not-load" }
+        ],
+        "experience": {
+          "url": "memory://experience/review",
+          "version": "1.0.0"
+        },
+        "responseActions": {
+          "url": "memory://response-actions",
+          "version": "1.0.0"
+        },
+        "theme": {
+          "url": "memory://theme/review",
+          "version": "1.0.0"
+        },
+        "registries": [
+          {
+            "url": "memory://registry/modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "memory://surface/review",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "loader": {
+        "missing": ["memory://surface/review"]
+      },
+      "expected": {
+        "ok": false,
+        "loaderCalls": [
+          "experience:experience:memory://experience/review",
+          "responseActions:responseActions:memory://response-actions",
+          "theme:theme:memory://theme/review",
+          "registries[0]:registry:memory://registry/modules",
+          "surfaces[0]:surface:memory://surface/review"
+        ],
+        "noLoaderCallContains": [
+          "memory://session/should-not-load"
+        ],
+        "groups": {
+          "experience": 1,
+          "responseActions": 1,
+          "theme": 1,
+          "registries": 1,
+          "surfaces": 1
+        },
+        "diagnostics": ["ARTIFACT-MISSING"],
+        "unresolvedSlot": "surfaces[0]",
+        "crossArtifactSkippedReason": "unresolved-artifacts",
+        "absentDiagnostics": [
+          "UI-POLICY-SURFACE-TARGET",
+          "UI-POLICY-ROUTE-REF",
+          "THEME-TOKEN-WIDGET"
+        ]
+      }
+    }
+  ]
+}

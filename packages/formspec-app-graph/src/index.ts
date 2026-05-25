@@ -15,7 +15,9 @@ export {
   type AppGraphComponentNodeIdentity,
 } from './component-identity.js';
 export {
+  artifactResolutionGraphInput,
   resolveArtifacts,
+  type ArtifactResolutionGraphInput,
   type ArtifactLoader,
   type ArtifactLoaderDiagnosticInput,
   type ArtifactLoaderInput,

@@ -7,7 +7,17 @@ import type {
   ArtifactResolutionIdentity,
   ArtifactResolutionRef,
   ArtifactResolutionReport,
+  ArtifactResolutionSourcePointer,
 } from '@formspec-org/types';
+import type {
+  AppGraphArtifactIdentity,
+  AppGraphArtifactRef,
+  AppGraphDiagnostic,
+  AppGraphDiagnosticReport,
+  AppGraphSourcePointer,
+  AppGraphValidationRequest,
+  ResolvedArtifactHandle,
+} from './types.js';
 
 export interface ArtifactResolverSupportProfile {
   bundleVersions?: string[];
@@ -50,6 +60,13 @@ export interface ArtifactResolverRequest {
   source?: string;
   digest?: string;
   schemaId?: string;
+}
+
+export interface ArtifactResolutionGraphInput {
+  manifest: ResolvedArtifactHandle;
+  handles: ResolvedArtifactHandle[];
+  artifacts: NonNullable<AppGraphValidationRequest['artifacts']>;
+  artifactResolution: AppGraphDiagnosticReport;
 }
 
 type ArtifactGroup = keyof ArtifactResolutionReport['artifacts'];
@@ -261,6 +278,78 @@ function diagnosticSortKey(diagnostic: ArtifactResolutionDiagnostic): string {
 
 function normalizeDiagnostics(diagnostics: readonly ArtifactResolutionDiagnostic[]): ArtifactResolutionDiagnostic[] {
   return [...diagnostics].sort((left, right) => diagnosticSortKey(left).localeCompare(diagnosticSortKey(right)));
+}
+
+function graphArtifactRef(ref: ArtifactResolutionRef | undefined): AppGraphArtifactRef | undefined {
+  if (!ref) return undefined;
+  const cloned: AppGraphArtifactRef = {};
+  for (const [key, value] of Object.entries(ref)) {
+    cloned[key] = value;
+  }
+  return Object.keys(cloned).length > 0 ? cloned : undefined;
+}
+
+function graphArtifactIdentity(identity: ArtifactResolutionIdentity | undefined): AppGraphArtifactIdentity | undefined {
+  return identity ? { ...identity } : undefined;
+}
+
+function graphSourcePointer(source: ArtifactResolutionSourcePointer | undefined): AppGraphSourcePointer | undefined {
+  if (!source) return undefined;
+  const pointer: AppGraphSourcePointer = {};
+  if (source.artifactSlot !== undefined) pointer.artifactSlot = source.artifactSlot;
+  if (source.artifactKind !== undefined) pointer.artifactKind = source.artifactKind;
+  if (source.source !== undefined) pointer.source = source.source;
+  if (source.jsonPointer !== undefined) pointer.jsonPointer = source.jsonPointer;
+  const ref = graphArtifactRef(source.ref);
+  if (ref) pointer.ref = ref;
+  return pointer;
+}
+
+function graphDiagnostic(diagnostic: ArtifactResolutionDiagnostic): AppGraphDiagnostic {
+  return {
+    code: diagnostic.code,
+    severity: diagnostic.severity,
+    phase: diagnostic.phase,
+    origin: diagnostic.origin,
+    message: diagnostic.message,
+    primarySource: graphSourcePointer(diagnostic.primarySource),
+    relatedSources: diagnostic.relatedSources?.map(graphSourcePointer).filter((source): source is AppGraphSourcePointer => source !== undefined),
+    details: diagnostic.details ? { ...diagnostic.details } : undefined,
+  };
+}
+
+function graphHandle(handle: ArtifactResolutionHandle): ResolvedArtifactHandle {
+  const converted: ResolvedArtifactHandle = {
+    slot: handle.slot,
+    artifactKind: handle.artifactKind,
+    status: handle.status,
+  };
+  const ref = graphArtifactRef(handle.ref);
+  if (ref) converted.ref = ref;
+  if (handle.schemaId !== undefined) converted.schemaId = handle.schemaId;
+  if (handle.document !== undefined) converted.document = handle.document;
+  const identity = graphArtifactIdentity(handle.identity);
+  if (identity) converted.identity = identity;
+  if (handle.source !== undefined) converted.source = handle.source;
+  if (handle.digest !== undefined) converted.digest = handle.digest;
+  return converted;
+}
+
+export function artifactResolutionGraphInput(report: ArtifactResolutionReport): ArtifactResolutionGraphInput {
+  const artifacts: NonNullable<AppGraphValidationRequest['artifacts']> = {};
+  for (const [group, handles] of Object.entries(report.artifacts)) {
+    if (!handles || handles.length === 0) continue;
+    artifacts[group] = handles.map(graphHandle);
+  }
+
+  return {
+    manifest: graphHandle(report.manifest),
+    handles: Object.values(artifacts).flatMap((handles) => handles ?? []),
+    artifacts,
+    artifactResolution: {
+      diagnostics: report.diagnostics.map(graphDiagnostic),
+    },
+  };
 }
 
 function artifactIdentity(document: unknown): ArtifactResolutionIdentity | undefined {
