@@ -9,7 +9,7 @@ repository = "https://github.com/Formspec-org/formspec"
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 fancy-regex = "0.14"
-fel-core = { version = "0.1.0", path = "../../../fel-core" }
+fel-core = { version = "0.2.0", path = "../../../fel-core" }
 formspec-core = { version = "0.1.0", path = "../formspec-core" }
 rust_decimal = "1"
 serde = { version = "1", features = ["derive"] }
@@ -18,7 +18,7 @@ url = "2"
 
 # Integration tests call `fel_core` directly (round-trip checks); keep this explicit.
 [dev-dependencies]
-fel-core = { version = "0.1.0", path = "../../../fel-core" }
+fel-core = { version = "0.2.0", path = "../../../fel-core" }
 
 [[test]]
 name = "integration"
