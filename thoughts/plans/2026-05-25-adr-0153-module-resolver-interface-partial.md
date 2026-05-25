@@ -2,7 +2,7 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ModuleResolver
-**Status:** Partial; prose/interface boundary defined, shared extraction remains open
+**Status:** Partial; prose/interface boundary plus report schema/type defined, shared extraction remains open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -11,10 +11,11 @@ Advance ADR 0153 gate 4 without claiming resolver extraction closure. This
 slice defines the `ModuleResolver` request/response boundary, Registry index
 input, app and sibling `modules[]` evidence, default module set semantics,
 coarse admission evidence, version/dependency checks, contribution ownership,
-payload-schema hook boundary, and module-resolution diagnostics in prose.
+payload-schema hook boundary, module-resolution diagnostics in prose, and the
+output report schema/type contract.
 
-Not in this slice: Rust lint changes, shared resolver package code, report JSON
-Schema, generated types, fixture-backed conformance, production consumers,
+Not in this slice: Rust lint changes, shared resolver package code,
+resolver request JSON Schema, fixture-backed conformance, production consumers,
 ArtifactResolver loading behavior, AppGraphValidator cross-artifact checks,
 runtime execution, renderer fallback, E605 Component id collision ownership, v4
 Posture sidecar promotion, or ADR 0152 fine-grained authorization.
@@ -52,11 +53,15 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
   AppGraph reports.
 - [x] Clarify that the spec is self-authoring: ADRs record provenance, while
   the spec states the `ModuleResolver` contract directly.
+- [x] Add `schemas/module-resolution-report.schema.json` as the resolver output
+  report contract.
+- [x] Publish generated `ModuleResolutionReport` types from
+  `@formspec-org/types`.
+- [x] Add focused schema acceptance tests for report shape, resolver-only
+  origin/phase, closed `ModuleRef`, and fixture/path-identity rejection.
 
 ## Still Open for Gate 4 Closure
 
-- [ ] Promote schema/generated type surfaces only after the prose contract is
-  stable and an implementation boundary is selected.
 - [ ] Extract a shared resolver package or app-graph package module from the
   Rust lint and spike-local seeds without copying spike-only assumptions.
 - [ ] Add fixture-backed conformance for admission, dependency, contribution,
@@ -77,10 +82,17 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
 - 2026-05-25: Host-supplied admission evidence replaces any dependency on the
   v4 spike Posture sidecar. Fine-grained authorization remains a separate
   authorization-contract concern.
+- 2026-05-25: The report schema/type slice keeps gate 4 Partial. It freezes the
+  resolver output envelope, not resolver execution, source fixture conformance,
+  or production consumer wiring.
 
 ## Partial Evidence
 
 - Spec: `specs/app-graph/module-resolver-spec.md`.
+- Schema: `schemas/module-resolution-report.schema.json`.
+- Generated type: `packages/formspec-types/src/generated/module-resolution-report.ts`.
+- Tests: `tests/conformance/schemas/test_module_resolution_report_schema.py`;
+  `packages/formspec-types/tests/schema-sync.test.ts`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root

@@ -35,7 +35,7 @@ for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mappin
   'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'surface', 'data-sources',
-  'app-graph-validation-report', 'verification-receipt']) {
+  'app-graph-validation-report', 'module-resolution-report', 'verification-receipt']) {
   const filePath = resolve(SCHEMAS_DIR, `${f}.schema.json`);
   if (existsSync(filePath)) {
     const s = JSON.parse(readFileSync(filePath, 'utf-8'));
@@ -149,6 +149,7 @@ const SCHEMA_SOURCES = [
   { file: 'data-sources.schema.json', title: 'DataSourcesDocument' },
   { file: 'artifact-resolution-report.schema.json', title: 'ArtifactResolutionReport' },
   { file: 'app-graph-validation-report.schema.json', title: 'AppGraphValidationReport' },
+  { file: 'module-resolution-report.schema.json', title: 'ModuleResolutionReport' },
 ];
 
 const FILE_BANNER = `/**

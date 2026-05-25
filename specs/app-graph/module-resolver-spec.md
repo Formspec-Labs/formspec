@@ -1,13 +1,13 @@
 ---
 title: Formspec ModuleResolver Interface Specification
-version: 0.1.0-draft.2
+version: 0.1.0-draft.3
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec ModuleResolver Interface Specification v0.1
 
-**Version:** 0.1.0-draft.2
+**Version:** 0.1.0-draft.3
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, Registry, Surface, and AppGraphValidator
@@ -16,17 +16,19 @@ status: draft
 
 ## Status of This Document
 
-This document is the prose-only interface contract for the app-graph
-`ModuleResolver` primitive. It defines the request/response shape, registry
-index boundary, app and sibling `modules[]` evidence, admission model,
-contribution ownership checks, payload-schema hook boundary, and diagnostics
+This document is the interface contract for the app-graph `ModuleResolver`
+primitive. It defines the request/response shape, registry index boundary, app
+and sibling `modules[]` evidence, admission model, contribution ownership
+checks, payload-schema hook boundary, resolver report schema, and diagnostics
 consumed by `AppGraphValidator`.
 
-This document intentionally does not define a JSON Schema, generated types,
-fixture-backed conformance, shared package implementation, Rust lint rewrite,
-production consumer wiring, renderer fallback policy, or fine-grained
-authorization. Those land in later implementation gates after the prose
-responsibilities are stable.
+`schemas/module-resolution-report.schema.json` defines the output report data
+contract, and `@formspec-org/types` publishes the generated
+`ModuleResolutionReport` TypeScript surface. This document intentionally does
+not define a resolver request JSON Schema, fixture-backed conformance, shared
+package implementation, Rust lint rewrite, production consumer wiring,
+renderer fallback policy, or fine-grained authorization. Those land in later
+implementation gates after the report surface is stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -273,15 +275,14 @@ Sources payloads, or decide Component Surface/route identity.
 
 ## 12. Conformance
 
-This v0.1 draft is an interface and responsibility contract only. A conforming
-future implementation still needs:
+This v0.1 draft is an interface and report contract only. A conforming future
+implementation still needs:
 
-1. schema or generated type promotion if the report/handle surface is frozen,
-2. shared resolver package extraction,
-3. fixture-backed conformance for module admission, dependency, contribution,
+1. shared resolver package extraction,
+2. fixture-backed conformance for module admission, dependency, contribution,
    category, conflict, and payload failures,
-4. integration with `ArtifactResolver` and `AppGraphValidator`, and
-5. production consumer wiring across lint, Studio, MCPs, runtime, and
+3. integration with `ArtifactResolver` and `AppGraphValidator`, and
+4. production consumer wiring across lint, Studio, MCPs, runtime, and
    projection surfaces that consume module evidence.
 
 Until those gates land, tools MAY use this document to align resolver

@@ -200,4 +200,21 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(src).toContain('document?: unknown;');
     expect(src).toContain('[k: `x-${string}`]: unknown;');
   });
+
+  it('ModuleResolutionReport keeps resolver origins and extension refs narrow', () => {
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/module-resolution-report.ts'),
+      'utf-8',
+    );
+    const indexSrc = readFileSync(
+      resolve(__dirname, '../src/generated/index.ts'),
+      'utf-8',
+    );
+    expect(src).toContain("export type ModuleResolutionOrigin = 'module-resolver';");
+    expect(src).toContain("export type ModuleResolutionPhase = 'module-resolution';");
+    expect(src).not.toMatch(/export type ModuleResolutionOrigin =[^;]*\| string;/);
+    expect(src).not.toMatch(/export type ModuleResolutionPhase =[^;]*\| string;/);
+    expect(src).toContain('[k: `x-${string}`]: unknown;');
+    expect(indexSrc).toContain('ModuleResolutionReport');
+  });
 });

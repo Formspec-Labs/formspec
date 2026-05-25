@@ -1,0 +1,420 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/moduleResolutionReport/0.1",
+  "title": "Formspec Module Resolution Report",
+  "description": "Deterministic ModuleResolver output for the module-resolution phase. This schema covers normalized app modules, sibling-document module coherence, contribution resolution, resolver diagnostics, phase status, and summary counts. It is a data contract only: it does not schema resolver requests, source artifact payloads, Registry source schemas, runtime execution, renderer fallback policy, fine-grained authorization, Posture sidecars, credentials, fetched payloads, rendered output, or local fixture paths.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "modules", "documents", "contributions", "diagnostics", "summary", "phase"],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "true only when the report contains no error-severity module-resolution diagnostics. JSON Schema cannot derive this from diagnostics; report producers enforce the invariant."
+    },
+    "modules": {
+      "type": "array",
+      "description": "Normalized app module set, including support-profile default modules when they are effective.",
+      "items": { "$ref": "#/$defs/ModuleResolutionModule" }
+    },
+    "documents": {
+      "type": "array",
+      "description": "Per-loaded-document module declaration coherence results.",
+      "items": { "$ref": "#/$defs/ModuleResolutionDocument" }
+    },
+    "contributions": {
+      "type": "array",
+      "description": "Module-contributed value resolution results keyed by consuming site evidence.",
+      "items": { "$ref": "#/$defs/ModuleResolutionContribution" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "description": "Resolver diagnostics normalized to origin module-resolver and phase module-resolution.",
+      "items": { "$ref": "#/$defs/ModuleResolutionDiagnostic" }
+    },
+    "summary": {
+      "$ref": "#/$defs/ModuleResolutionSummary"
+    },
+    "phase": {
+      "$ref": "#/$defs/ModuleResolutionPhaseStatus"
+    },
+    "support": {
+      "$ref": "#/$defs/ModuleResolutionSupportProfile"
+    }
+  },
+  "$defs": {
+    "ModuleResolutionSeverity": {
+      "type": "string",
+      "enum": ["error", "warning", "info"]
+    },
+    "ModuleResolutionPhase": {
+      "type": "string",
+      "const": "module-resolution"
+    },
+    "ModuleResolutionOrigin": {
+      "type": "string",
+      "const": "module-resolver"
+    },
+    "ModuleResolutionPhaseStatusValue": {
+      "type": "string",
+      "enum": ["completed", "skipped", "not-run"]
+    },
+    "ModuleResolutionModuleStatus": {
+      "type": "string",
+      "enum": ["admitted", "denied", "unresolved", "dependency-unresolved"]
+    },
+    "ModuleResolutionDocumentStatus": {
+      "type": "string",
+      "enum": ["coherent", "defaulted", "undeclared-module", "version-mismatch", "admission-denied"]
+    },
+    "ModuleResolutionContributionStatus": {
+      "type": "string",
+      "enum": [
+        "resolved",
+        "missing",
+        "category-mismatch",
+        "unowned",
+        "conflict",
+        "unadmitted",
+        "payload-schema-mismatch"
+      ]
+    },
+    "ModuleResolutionPayloadStatus": {
+      "type": "string",
+      "enum": ["not-run", "passed", "failed", "missing-validator"]
+    },
+    "ModuleResolutionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Canonical module reference identity tuple. Host admission evidence may reuse these fields, but the resolver report must not extend this shape with fixture, path-derived identity, Posture-specific, actor-specific, route-specific, widget-specific, field-specific, source-specific, or operation-specific policy fields.",
+      "required": ["id", "version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Module ID following the canonical Registry module naming pattern."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Strict SemVer string or supported range expression."
+        },
+        "publisher": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:",
+          "description": "Optional provenance assertion copied from the canonical ModuleRef shape."
+        },
+        "lockHash": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+:[A-Za-z0-9+/=]+$",
+          "description": "Optional digest pin copied from the canonical ModuleRef shape."
+        },
+        "extensions": {
+          "$ref": "#/$defs/ModuleResolutionExtensions"
+        }
+      }
+    },
+    "ModuleResolutionExtensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "propertyNames": { "pattern": "^x-" },
+      "description": "ModuleRef extension object whose keys must be prefixed with x-."
+    },
+    "ModuleResolutionArtifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Artifact reference evidence copied from the loaded graph for diagnostics only. Only x-* extension keys may extend this shape; local paths, fixture names, and path-derived identity flags are intentionally rejected.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "patternProperties": {
+        "^x-": true
+      }
+    },
+    "ModuleResolutionSourcePointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactSlot", "artifactKind", "jsonPointer"],
+      "description": "Diagnostic pointer to source evidence. The source string is for reporting only; local paths, filenames, fixture names, and URL suffixes are not production identity.",
+      "properties": {
+        "artifactSlot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jsonPointer": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/ModuleResolutionArtifactRef"
+        },
+        "module": {
+          "$ref": "#/$defs/ModuleResolutionRef"
+        }
+      }
+    },
+    "ModuleResolutionDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "phase", "origin", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable machine-readable module-resolution diagnostic code."
+        },
+        "severity": {
+          "$ref": "#/$defs/ModuleResolutionSeverity"
+        },
+        "phase": {
+          "$ref": "#/$defs/ModuleResolutionPhase"
+        },
+        "origin": {
+          "$ref": "#/$defs/ModuleResolutionOrigin"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primarySource": {
+          "$ref": "#/$defs/ModuleResolutionSourcePointer"
+        },
+        "relatedSources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionSourcePointer" }
+        },
+        "details": {
+          "type": "object",
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "fixture",
+                "filename",
+                "localPath",
+                "pathIdentity",
+                "identityFromPath",
+                "authorization",
+                "authz",
+                "routePolicy",
+                "routePolicies",
+                "widgetPolicy",
+                "widgetPolicies",
+                "fieldPolicy",
+                "fieldPolicies",
+                "sourcePolicy",
+                "sourcePolicies",
+                "operationPolicy",
+                "operationPolicies",
+                "permissions"
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "description": "Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, local fixture-path identity, or fine-grained authorization policy."
+        }
+      }
+    },
+    "ModuleResolutionModule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "status", "source"],
+      "properties": {
+        "ref": {
+          "$ref": "#/$defs/ModuleResolutionRef"
+        },
+        "status": {
+          "$ref": "#/$defs/ModuleResolutionModuleStatus"
+        },
+        "source": {
+          "$ref": "#/$defs/ModuleResolutionSourcePointer"
+        },
+        "registryVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaulted": {
+          "type": "boolean",
+          "description": "true when the module came from the support profile's default module set rather than an explicit App Manifest modules[] entry."
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionDiagnostic" }
+        }
+      }
+    },
+    "ModuleResolutionDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactSlot", "artifactKind", "status", "modules", "source"],
+      "properties": {
+        "artifactSlot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/ModuleResolutionDocumentStatus"
+        },
+        "modules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionRef" }
+        },
+        "effectiveModules": {
+          "type": "array",
+          "description": "Document modules after applying the support profile default module set when modules[] is omitted.",
+          "items": { "$ref": "#/$defs/ModuleResolutionRef" }
+        },
+        "source": {
+          "$ref": "#/$defs/ModuleResolutionSourcePointer"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionDiagnostic" }
+        }
+      }
+    },
+    "ModuleResolutionContribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site", "name", "expectedCategory", "status", "source"],
+      "properties": {
+        "site": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable consuming-site label, such as experience.units.kind or surface.module-widget.binding.widgetName."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedCategory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registryCategory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entryVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owningModules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionRef" }
+        },
+        "status": {
+          "$ref": "#/$defs/ModuleResolutionContributionStatus"
+        },
+        "payloadStatus": {
+          "$ref": "#/$defs/ModuleResolutionPayloadStatus"
+        },
+        "source": {
+          "$ref": "#/$defs/ModuleResolutionSourcePointer"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionDiagnostic" }
+        }
+      }
+    },
+    "ModuleResolutionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modules",
+        "admittedModules",
+        "deniedModules",
+        "documents",
+        "contributions",
+        "unresolvedDependencies",
+        "unresolvedContributions",
+        "payloadFailures",
+        "errors",
+        "warnings",
+        "infos"
+      ],
+      "properties": {
+        "modules": { "type": "integer", "minimum": 0 },
+        "admittedModules": { "type": "integer", "minimum": 0 },
+        "deniedModules": { "type": "integer", "minimum": 0 },
+        "documents": { "type": "integer", "minimum": 0 },
+        "contributions": { "type": "integer", "minimum": 0 },
+        "unresolvedDependencies": { "type": "integer", "minimum": 0 },
+        "unresolvedContributions": { "type": "integer", "minimum": 0 },
+        "payloadFailures": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "infos": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ModuleResolutionPhaseStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "status"],
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/ModuleResolutionPhase"
+        },
+        "status": {
+          "$ref": "#/$defs/ModuleResolutionPhaseStatusValue"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ModuleResolutionSupportProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "defaultModules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionRef" }
+        },
+        "moduleCategories": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "contributionCategories": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "versionRangeGrammar": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payloadSchemaValidators": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
