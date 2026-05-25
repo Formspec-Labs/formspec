@@ -1,0 +1,205 @@
+{
+  "id": "graph-collector-handoff",
+  "description": "Graph-loaded artifacts collect ModuleResolver document and use evidence, then feed AppGraphValidator UI policy semantics.",
+  "graph": {
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app-manifest",
+      "document": {
+        "$formspecApp": "1.0",
+        "version": "1.0.0",
+        "modules": [
+          { "id": "x-acme-surface", "version": "1.0.0" },
+          { "id": "x-actions", "version": "1.0.0" },
+          { "id": "x-reviewer", "version": "1.0.0" }
+        ]
+      }
+    },
+    "handles": [
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "status": "loaded",
+        "source": "memory://surface/review",
+        "ref": {
+          "url": "https://example.gov/apps/intake/surfaces/review",
+          "version": "1.0.0"
+        },
+        "document": {
+          "$formspecSurface": "1.0",
+          "version": "1.0.0",
+          "modules": [
+            { "id": "x-acme-surface", "version": "1.0.0" }
+          ],
+          "routes": [
+            {
+              "id": "review",
+              "slots": [
+                {
+                  "id": "summary",
+                  "slotType": "module-widget",
+                  "binding": {
+                    "moduleId": "x-acme-surface",
+                    "widgetName": "CaseStatus",
+                    "config": {
+                      "density": "compact",
+                      "showOwner": true
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "slot": "responseActions",
+        "artifactKind": "responseActions",
+        "status": "loaded",
+        "source": "memory://response-actions",
+        "document": {
+          "$formspecResponseActions": "0.1",
+          "version": "1.0.0",
+          "modules": [
+            { "id": "x-actions", "version": "1.0.0" }
+          ],
+          "actions": [
+            {
+              "id": "escalate",
+              "intent": "x-escalate",
+              "effects": []
+            }
+          ]
+        }
+      },
+      {
+        "slot": "themes[0]",
+        "artifactKind": "theme",
+        "status": "loaded",
+        "source": "memory://theme/review",
+        "document": {
+          "$formspecTheme": "1.0",
+          "version": "1.0.0",
+          "tokens": {
+            "color.accent": "#005ea8"
+          }
+        }
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "status": "loaded",
+        "source": "memory://registry/modules",
+        "document": {
+          "$formspecRegistry": "1.0",
+          "version": "1.0.0",
+          "entries": [
+            {
+              "name": "x-acme-surface",
+              "category": "module",
+              "version": "1.0.0",
+              "contributes": ["x-acme-surface-widget-case-status"]
+            },
+            {
+              "name": "x-acme-surface-widget-case-status",
+              "category": "widget",
+              "version": "1.0.0",
+              "widgetShape": {
+                "widgetName": "CaseStatus",
+                "props": {
+                  "type": "object",
+                  "required": ["density", "showOwner"],
+                  "properties": {
+                    "density": { "type": "string" },
+                    "showOwner": { "type": "boolean" }
+                  }
+                }
+              }
+            },
+            {
+              "name": "x-actions",
+              "category": "module",
+              "version": "1.0.0",
+              "contributes": ["x-escalate"]
+            },
+            {
+              "name": "x-escalate",
+              "category": "action-intent",
+              "version": "1.0.0"
+            },
+            {
+              "name": "x-reviewer",
+              "category": "module",
+              "version": "1.0.0",
+              "contributes": ["x-review-panel"]
+            },
+            {
+              "name": "x-review-panel",
+              "category": "widget",
+              "version": "1.0.0",
+              "widgetShape": {
+                "widgetName": "x-review-panel",
+                "tokenSlots": [
+                  {
+                    "name": "accent",
+                    "acceptedTokenCategories": ["color"]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "hostEvidence": {
+      "uiGraphPolicies": [
+        {
+          "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+          "source": "host://policy/review",
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/review"
+            },
+            "routePolicies": [
+              { "routeId": "review" }
+            ],
+            "theme": {
+              "assignments": [
+                {
+                  "widgetRef": {
+                    "moduleId": "x-reviewer",
+                    "widgetName": "x-review-panel"
+                  },
+                  "slot": "accent",
+                  "token": "color.accent"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "expected": {
+    "appModuleIds": ["x-acme-surface", "x-actions", "x-reviewer"],
+    "surfaceWidgetUseName": "x-acme-surface-widget-case-status",
+    "responseActionUseName": "x-escalate",
+    "uiPolicyWidgetUseName": "x-review-panel",
+    "fallbackSurfaceWidgetUseName": "UnmappedCaseStatus",
+    "fallbackDiagnosticCode": "MODULE-CONTRIBUTION-MISSING",
+    "contributionNames": [
+      "x-acme-surface-widget-case-status",
+      "x-escalate",
+      "x-review-panel"
+    ],
+    "absentAppGraphDiagnostics": [
+      "THEME-TOKEN-WIDGET",
+      "THEME-TOKEN-SLOT",
+      "THEME-TOKEN-CATEGORY"
+    ]
+  }
+}

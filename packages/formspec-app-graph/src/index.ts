@@ -24,10 +24,12 @@ export {
   type ArtifactResolverSupportProfile,
 } from './artifact-resolver.js';
 export {
+  moduleResolverInputFromAppGraph,
   resolveModules,
   type ModulePayloadValidator,
   type ModulePayloadValidatorInput,
   type ModulePayloadValidatorResult,
+  type ModuleResolverGraphInput,
   type ModuleResolverAdmissionInput,
   type ModuleResolverContributionUse,
   type ModuleResolverDocumentInput,

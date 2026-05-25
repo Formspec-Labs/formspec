@@ -312,18 +312,35 @@ Sources payloads, or decide Component Surface/route identity.
 
 ## 12. Conformance
 
-This v0.1 draft is an interface, report contract, shared kernel contract, and
-source fixture corpus. The current `@formspec-org/app-graph` conformance runner
-executes the corpus through `resolveModules`. Fixture inputs carry explicit
-source evidence for app modules, default modules, sibling-document modules,
-Registry artifacts, contribution sites, and payload-bearing contribution
-payloads. The corpus also covers resolved widget token-slot evidence from
-Registry `widgetShape.tokenSlots[]` without promoting v4
-`semantics.themeTokenSlots`. The runner does not derive report identity from
-fixture filenames, case ids, artifact paths, or payload-presence heuristics. A
-conforming future implementation still needs:
+This v0.1 draft is an interface, report contract, shared kernel contract,
+source fixture corpus, and loaded-graph collection contract. The current
+`@formspec-org/app-graph` conformance runner executes the source fixture corpus
+through `resolveModules`. Fixture inputs carry explicit source evidence for app
+modules, default modules, sibling-document modules, Registry artifacts,
+contribution sites, and payload-bearing contribution payloads. The corpus also
+covers resolved widget token-slot evidence from Registry
+`widgetShape.tokenSlots[]` without promoting v4 `semantics.themeTokenSlots`.
 
-1. integration with `ArtifactResolver` and `AppGraphValidator`,
+The shared package also exposes `moduleResolverInputFromAppGraph()` for already
+loaded app-graph handles and host evidence. That helper collects App Manifest
+`modules[]`, loaded Registry entries, sibling document `modules[]`, known
+module-consuming sites, Surface `module-widget` payload evidence, and UI Graph
+Policy `widgetRef` host evidence into the same `ModuleResolverInput` shape. It
+does not fetch artifacts, validate schemas, admit modules, emit diagnostics, or
+execute runtime behavior; `resolveModules()` remains the admission and
+contribution authority. It does not collect future-only Mapping transform or
+Validation Mapping row contributions until those contribution categories are
+promoted into the Registry contract.
+
+The graph-collector conformance fixture feeds the completed
+`ModuleResolutionReport` into `AppGraphValidator` UI Graph Policy semantics so
+the handoff is executable without promoting production runtime consumers. The
+runner does not derive report identity from fixture filenames, case ids,
+artifact paths, or payload-presence heuristics. A conforming future
+implementation still needs:
+
+1. integration with `ArtifactResolver` output in production graph-loading
+   flows,
 2. production consumer wiring across lint, Studio, MCPs, runtime, and
    projection surfaces that consume module evidence.
 

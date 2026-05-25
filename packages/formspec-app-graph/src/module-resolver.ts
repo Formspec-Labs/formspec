@@ -1,6 +1,7 @@
 /** @filedesc Shared ModuleResolver kernel for module admission and contribution evidence. */
 
 import type {
+  ModuleResolutionArtifactRef,
   ModuleResolutionContribution,
   ModuleResolutionDiagnostic,
   ModuleResolutionDocument,
@@ -13,6 +14,11 @@ import type {
   ModuleResolutionSupportProfile,
   ModuleResolutionTokenCategoryEvidence,
 } from '@formspec-org/types';
+import type {
+  AppGraphArtifactRef,
+  AppGraphHostEvidence,
+  ResolvedArtifactHandle,
+} from './types.js';
 
 export interface ModuleResolverRegistryEntry {
   name: string;
@@ -92,6 +98,15 @@ export interface ModuleResolverInput {
   source?: string;
 }
 
+export interface ModuleResolverGraphInput {
+  manifest: ResolvedArtifactHandle;
+  handles: readonly ResolvedArtifactHandle[];
+  hostEvidence?: AppGraphHostEvidence;
+  admission?: ModuleResolverAdmissionInput;
+  support?: ModuleResolverSupportInput;
+  source?: string;
+}
+
 interface RegistryEntryRecord {
   entry: ModuleResolverRegistryEntry;
   registryIndex: number;
@@ -119,6 +134,7 @@ interface ModuleState {
 const MODULE_PHASE = 'module-resolution';
 const MODULE_ORIGIN = 'module-resolver';
 const CUSTOM_TOKEN_CATEGORY_PREFIX_PATTERN = /^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$/;
+const EXTENSION_NAME_PATTERN = /^x-/;
 
 function sourceForKind(kind: string): string {
   return `memory://${kind}`;
@@ -136,6 +152,397 @@ function cloneRef(ref: ModuleResolutionRef): ModuleResolutionRef {
     (cloned as ModuleResolutionRef & { extensions?: Record<`x-${string}`, unknown> }).extensions = { ...extensions };
   }
   return cloned;
+}
+
+type JsonRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): JsonRecord | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonRecord
+    : undefined;
+}
+
+function recordArray(value: unknown): JsonRecord[] {
+  return Array.isArray(value)
+    ? value.flatMap((entry) => asRecord(entry) ? [entry as JsonRecord] : [])
+    : [];
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function extensionName(value: unknown): string | undefined {
+  const name = stringValue(value);
+  return name && EXTENSION_NAME_PATTERN.test(name) ? name : undefined;
+}
+
+function escapeJsonPointerToken(token: string): string {
+  return token.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+
+function cloneGraphRef(ref: AppGraphArtifactRef | undefined): ModuleResolutionArtifactRef | undefined {
+  if (!ref) return undefined;
+  const cloned: ModuleResolutionArtifactRef = {};
+  if (typeof ref.url === 'string') cloned.url = ref.url;
+  if (typeof ref.version === 'string') cloned.version = ref.version;
+  if (typeof ref.handle === 'string') cloned.handle = ref.handle;
+  if (typeof ref.locale === 'string') cloned.locale = ref.locale;
+  for (const [key, value] of Object.entries(ref)) {
+    if (key.startsWith('x-')) {
+      cloned[key as `x-${string}`] = value;
+    }
+  }
+  return Object.keys(cloned).length > 0 ? cloned : undefined;
+}
+
+function sourceForGraphHandle(
+  handle: ResolvedArtifactHandle,
+  jsonPointer: string,
+  module?: ModuleResolutionRef,
+): ModuleResolutionSourcePointer {
+  const source: ModuleResolutionSourcePointer = {
+    artifactSlot: handle.slot,
+    artifactKind: handle.artifactKind,
+    source: handle.source ?? sourceForKind(handle.artifactKind),
+    jsonPointer,
+  };
+  const ref = cloneGraphRef(handle.ref);
+  if (ref) source.ref = ref;
+  if (module) source.module = cloneRef(module);
+  return source;
+}
+
+function sourceForHostEvidence(
+  index: number,
+  source: string,
+  jsonPointer: string,
+): ModuleResolutionSourcePointer {
+  return {
+    artifactSlot: `hostEvidence.uiGraphPolicies[${index}]`,
+    artifactKind: 'hostEvidence',
+    source,
+    jsonPointer,
+  };
+}
+
+function moduleInputFromRecord(
+  record: JsonRecord,
+  source: ModuleResolutionSourcePointer,
+): ModuleResolverModuleInput | undefined {
+  const id = stringValue(record.id);
+  const version = stringValue(record.version);
+  if (!id || !version) return undefined;
+  const module: ModuleResolverModuleInput = {
+    id,
+    version,
+    source: { ...source, module: { id, version } },
+  };
+  const publisher = stringValue(record.publisher);
+  const lockHash = stringValue(record.lockHash);
+  if (publisher !== undefined) module.publisher = publisher;
+  if (lockHash !== undefined) module.lockHash = lockHash;
+  const extensions = asRecord(record.extensions);
+  if (extensions) {
+    const extensionValues = Object.fromEntries(
+      Object.entries(extensions).filter(([key]) => key.startsWith('x-')),
+    ) as Record<`x-${string}`, unknown>;
+    if (Object.keys(extensionValues).length > 0) {
+      module.extensions = extensionValues;
+    }
+  }
+  if (publisher !== undefined || lockHash !== undefined || module.extensions !== undefined) {
+    module.source = { ...source, module: cloneRef(module) };
+  }
+  return module;
+}
+
+function moduleInputsFromDocument(
+  handle: ResolvedArtifactHandle,
+  document: JsonRecord,
+): ModuleResolverModuleInput[] {
+  return recordArray(document.modules).flatMap((entry, index) => {
+    const module = moduleInputFromRecord(entry, sourceForGraphHandle(handle, `/modules/${index}`));
+    return module ? [module] : [];
+  });
+}
+
+function graphHandleKey(handle: ResolvedArtifactHandle): string {
+  const ref = handle.ref ?? {};
+  return [
+    handle.slot,
+    handle.artifactKind,
+    handle.source ?? '',
+    ref.url ?? '',
+    ref.version ?? '',
+    handle.status,
+  ].join('\u0000');
+}
+
+function graphHandles(input: ModuleResolverGraphInput): ResolvedArtifactHandle[] {
+  const handles: ResolvedArtifactHandle[] = [];
+  const seen = new Set<string>();
+  for (const handle of [input.manifest, ...input.handles]) {
+    const key = graphHandleKey(handle);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    handles.push(handle);
+  }
+  return handles;
+}
+
+function loadedDocument(handle: ResolvedArtifactHandle): JsonRecord | undefined {
+  if (handle.status !== 'loaded') return undefined;
+  return asRecord(handle.document);
+}
+
+function registryInputFromHandle(handle: ResolvedArtifactHandle): ModuleResolverRegistryInput | undefined {
+  if (handle.artifactKind !== 'registry') return undefined;
+  const document = loadedDocument(handle);
+  if (!document) return undefined;
+  const entries = recordArray(document.entries).flatMap((entry) => {
+    const name = stringValue(entry.name);
+    const category = stringValue(entry.category);
+    return name && category ? [{ ...entry, name, category } as ModuleResolverRegistryEntry] : [];
+  });
+  if (entries.length === 0) return undefined;
+  return {
+    entries,
+    artifactSlot: handle.slot,
+    artifactKind: 'registry',
+    source: handle.source ?? sourceForKind(handle.artifactKind),
+  };
+}
+
+function widgetContributionNameFor(
+  moduleId: string,
+  widgetName: string,
+  registries: readonly ModuleResolverRegistryInput[],
+): string | undefined {
+  const allEntries = registries.flatMap((registry) => registry.entries);
+  for (const registry of registries) {
+    const entriesByName = new Map(registry.entries.map((entry) => [entry.name, entry]));
+    const moduleEntry = entriesByName.get(moduleId);
+    if (moduleEntry?.category !== 'module') continue;
+    for (const contributionName of moduleEntry.contributes ?? []) {
+      const contribution = allEntries.find((entry) => entry.name === contributionName);
+      if (contribution?.category !== 'widget') continue;
+      const shape = asRecord(contribution.widgetShape);
+      if (stringValue(shape?.widgetName) === widgetName) return contributionName;
+    }
+  }
+  return undefined;
+}
+
+function surfaceUses(
+  handle: ResolvedArtifactHandle,
+  document: JsonRecord,
+  registries: readonly ModuleResolverRegistryInput[],
+): ModuleResolverContributionUse[] {
+  return recordArray(document.routes).flatMap((route, routeIndex) =>
+    recordArray(route.slots).flatMap((slot, slotIndex) => {
+      if (slot.slotType !== 'module-widget') return [];
+      const binding = asRecord(slot.binding);
+      if (!binding) return [];
+      const moduleId = stringValue(binding.moduleId);
+      const widgetName = stringValue(binding.widgetName);
+      if (!moduleId || !widgetName) return [];
+      const name = widgetContributionNameFor(moduleId, widgetName, registries) ?? widgetName;
+      const use: ModuleResolverContributionUse = {
+        site: 'surface.module-widget.binding.widgetName',
+        name,
+        expectedCategory: 'widget',
+        source: sourceForGraphHandle(handle, `/routes/${routeIndex}/slots/${slotIndex}/binding/widgetName`),
+      };
+      if (binding.config !== undefined) {
+        use.payload = binding.config;
+        use.payloadSource = sourceForGraphHandle(handle, `/routes/${routeIndex}/slots/${slotIndex}/binding/config`);
+      }
+      return [use];
+    })
+  );
+}
+
+function experienceUses(
+  handle: ResolvedArtifactHandle,
+  document: JsonRecord,
+): ModuleResolverContributionUse[] {
+  return recordArray(document.units).flatMap((unit, index) => {
+    const name = extensionName(unit.kind);
+    return name ? [{
+      site: 'experience.units.kind',
+      name,
+      expectedCategory: 'unit-kind',
+      source: sourceForGraphHandle(handle, `/units/${index}/kind`),
+    }] : [];
+  });
+}
+
+function themeWidgetUse(
+  handle: ResolvedArtifactHandle,
+  site: string,
+  name: string | undefined,
+  sourcePointer: string,
+  payload: unknown,
+  payloadPointer: string,
+): ModuleResolverContributionUse[] {
+  if (!name) return [];
+  const use: ModuleResolverContributionUse = {
+    site,
+    name,
+    expectedCategory: 'widget',
+    source: sourceForGraphHandle(handle, sourcePointer),
+  };
+  if (payload !== undefined) {
+    use.payload = payload;
+    use.payloadSource = sourceForGraphHandle(handle, payloadPointer);
+  }
+  return [use];
+}
+
+function themeBlockUses(
+  handle: ResolvedArtifactHandle,
+  block: unknown,
+  pointer: string,
+): ModuleResolverContributionUse[] {
+  const record = asRecord(block);
+  if (!record) return [];
+  return themeWidgetUse(
+    handle,
+    'theme.presentation.widget',
+    extensionName(record.widget),
+    `${pointer}/widget`,
+    record.widgetConfig,
+    `${pointer}/widgetConfig`,
+  );
+}
+
+function themeUses(
+  handle: ResolvedArtifactHandle,
+  document: JsonRecord,
+): ModuleResolverContributionUse[] {
+  const uses: ModuleResolverContributionUse[] = [
+    ...themeBlockUses(handle, document.defaults, '/defaults'),
+    ...recordArray(document.selectors).flatMap((selector, index) =>
+      themeBlockUses(handle, selector.apply, `/selectors/${index}/apply`)
+    ),
+  ];
+  const items = asRecord(document.items);
+  if (items) {
+    for (const [key, block] of Object.entries(items)) {
+      uses.push(...themeBlockUses(handle, block, `/items/${escapeJsonPointerToken(key)}`));
+    }
+  }
+  return uses;
+}
+
+function responseActionUses(
+  handle: ResolvedArtifactHandle,
+  document: JsonRecord,
+): ModuleResolverContributionUse[] {
+  return recordArray(document.actions).flatMap((action, index) => {
+    const name = extensionName(action.intent);
+    return name ? [{
+      site: 'response-actions.actions.intent',
+      name,
+      expectedCategory: 'action-intent',
+      source: sourceForGraphHandle(handle, `/actions/${index}/intent`),
+    }] : [];
+  });
+}
+
+function documentUses(
+  handle: ResolvedArtifactHandle,
+  document: JsonRecord,
+  registries: readonly ModuleResolverRegistryInput[],
+): ModuleResolverContributionUse[] {
+  switch (handle.artifactKind) {
+    case 'experience':
+      return experienceUses(handle, document);
+    case 'surface':
+      return surfaceUses(handle, document, registries);
+    case 'theme':
+      return themeUses(handle, document);
+    case 'responseActions':
+    case 'response-actions':
+      return responseActionUses(handle, document);
+    default:
+      return [];
+  }
+}
+
+function documentInputFromHandle(
+  handle: ResolvedArtifactHandle,
+  registries: readonly ModuleResolverRegistryInput[],
+): ModuleResolverDocumentInput | undefined {
+  if (handle.artifactKind === 'appManifest' || handle.artifactKind === 'registry') return undefined;
+  const document = loadedDocument(handle);
+  if (!document) return undefined;
+  const modules = moduleInputsFromDocument(handle, document);
+  const uses = documentUses(handle, document, registries);
+  if (modules.length === 0 && uses.length === 0) return undefined;
+  return {
+    artifactSlot: handle.slot,
+    artifactKind: handle.artifactKind,
+    source: handle.source ?? sourceForKind(handle.artifactKind),
+    ...(modules.length > 0 ? { modules } : {}),
+    ...(uses.length > 0 ? { uses } : {}),
+  };
+}
+
+function uiGraphPolicyUses(
+  evidence: NonNullable<AppGraphHostEvidence['uiGraphPolicies']>[number],
+  evidenceIndex: number,
+): ModuleResolverContributionUse[] {
+  const document = asRecord(evidence.document);
+  const theme = asRecord(document?.theme);
+  return recordArray(theme?.assignments).flatMap((assignment, index) => {
+    const widgetRef = asRecord(assignment.widgetRef);
+    const name = stringValue(widgetRef?.widgetName);
+    return name ? [{
+      site: 'ui-graph-policy.theme.assignments.widgetRef',
+      name,
+      expectedCategory: 'widget',
+      source: sourceForHostEvidence(evidenceIndex, evidence.source, `/theme/assignments/${index}/widgetRef`),
+    }] : [];
+  });
+}
+
+function hostEvidenceDocuments(hostEvidence: AppGraphHostEvidence | undefined): ModuleResolverDocumentInput[] {
+  return (hostEvidence?.uiGraphPolicies ?? []).flatMap((evidence, index) => {
+    const uses = uiGraphPolicyUses(evidence, index);
+    return uses.length > 0 ? [{
+      artifactSlot: `hostEvidence.uiGraphPolicies[${index}]`,
+      artifactKind: 'hostEvidence',
+      source: evidence.source,
+      uses,
+    }] : [];
+  });
+}
+
+export function moduleResolverInputFromAppGraph(input: ModuleResolverGraphInput): ModuleResolverInput {
+  const handles = graphHandles(input);
+  const manifestDocument = loadedDocument(input.manifest);
+  const appModules = manifestDocument ? moduleInputsFromDocument(input.manifest, manifestDocument) : [];
+  const registries = handles.flatMap((handle) => {
+    const registry = registryInputFromHandle(handle);
+    return registry ? [registry] : [];
+  });
+  const documents = [
+    ...handles.flatMap((handle) => {
+      const document = documentInputFromHandle(handle, registries);
+      return document ? [document] : [];
+    }),
+    ...hostEvidenceDocuments(input.hostEvidence),
+  ];
+  return {
+    appModules,
+    ...(documents.length > 0 ? { documents } : {}),
+    registries,
+    ...(input.admission ? { admission: input.admission } : {}),
+    ...(input.support ? { support: input.support } : {}),
+    ...(input.source ? { source: input.source } : (input.manifest.source ? { source: input.manifest.source } : {})),
+  };
 }
 
 function moduleSource(

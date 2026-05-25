@@ -2,7 +2,9 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ModuleResolver
-**Status:** Partial; prose/interface boundary, report schema/type, shared kernel, and executable fixture conformance defined; consumer wiring remains open
+**Status:** Partial; prose/interface boundary, report schema/type, shared
+kernel, loaded-graph evidence collection, and executable fixture conformance
+defined; production consumer wiring remains open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -64,6 +66,13 @@ authorization.
   open findings for the typed handoff diff. Copernicus noted one low residual
   risk around nested `modules[].diagnostics`; a follow-up unit test now pins that
   nested diagnostics are not imported into the AppGraph report.
+- 2026-05-25 architecture checkpoint (Avicenna): APPROVE WITH CHANGES for the
+  next ADR 0153 slice. Required boundary: implement shared module-consuming
+  graph evidence collection from already-loaded handles, feed the resulting
+  `ModuleResolutionReport` into AppGraphValidator fixtures, keep lint
+  rewiring, production consumers, Trellis LedgerPort injection, UI runtime
+  hidden-state, Component Studio/kernel/provenance, ArtifactResolver production
+  consumers, and ADR 0152 authorization out of scope.
 
 ## Work Completed
 
@@ -117,14 +126,31 @@ authorization.
 - [x] Reflect `ModuleResolutionReport.phase.status` / `reason` in the
   AppGraph report phase table instead of treating request presence as
   completion.
+- [x] Add `moduleResolverInputFromAppGraph()` to collect App Manifest
+  `modules[]`, loaded Registry entries, sibling `modules[]`, known
+  promoted module-consuming sites, Surface module-widget payloads, and UI Graph
+  Policy `widgetRef` host evidence from already-loaded graph handles.
+- [x] Translate Surface-authored `module-widget.binding.widgetName` through
+  Registry `widgetShape.widgetName` to the contributed Registry entry name when
+  the owning module contribution can be found, falling back to the authored name
+  so `resolveModules()` still owns unresolved contribution diagnostics.
+- [x] Add a graph-collector source conformance fixture that runs the collected
+  input through `resolveModules()` and passes the completed report into
+  `validateAppGraph()` UI Graph Policy semantics.
+- [x] Cover the Surface widget-name fallback path: when loaded Registry
+  evidence cannot translate `binding.widgetName` through
+  `widgetShape.widgetName`, the collector preserves the authored value and
+  leaves `MODULE-CONTRIBUTION-MISSING` to `resolveModules()`.
 
 ## Still Open for Gate 4 Closure
 
 - [ ] Wire lint, Studio, MCPs, runtime, and projection consumers to the shared
   resolver output.
-- [ ] Use typed module evidence for module-consuming graph semantics such as
-  UI Graph Policy Locale-owner module-id resolution and Theme token-slot
-  validation without duplicating ModuleResolver findings as native module checks.
+- [ ] Integrate the graph collector with production `ArtifactResolver` output
+  instead of fixture-provided loaded handles.
+- [ ] Use typed module evidence for any remaining module-consuming graph
+  semantics beyond the current UI Graph Policy families without duplicating
+  ModuleResolver findings as native module checks.
 
 ## Deviations
 
@@ -158,9 +184,24 @@ authorization.
   `source.module` evidence. The full `ModuleResolutionReport` remains available
   on validator context for later policy semantics; the AppGraph report schema is
   not widened.
-- 2026-05-25: Module evidence availability does not yet emit new Locale-owner
-  module-id or Theme token-slot diagnostics. Those remain separate UI Graph
-  Policy gates after this typed handoff.
+- 2026-05-25: The initial typed handoff did not emit new Locale-owner
+  module-id or Theme token-slot diagnostics. Later UI Graph Policy slices now
+  consume completed ModuleResolver evidence for those families; Gate 4 remains
+  Partial because production consumers and production graph-loading flows still
+  do not use the shared resolver bridge.
+- 2026-05-25: The graph collector is a loaded-handle adapter only. It does not
+  fetch artifacts, validate source schemas, admit modules, emit diagnostics,
+  wire production consumers, or replace `resolveModules()` as the contribution
+  authority.
+- 2026-05-25: The Surface widget collector translates
+  `binding.widgetName` to a Registry contribution entry only when loaded
+  Registry evidence connects the route's `binding.moduleId` to a widget whose
+  `widgetShape.widgetName` matches. Otherwise it preserves the authored value
+  so the shared resolver emits the normal contribution diagnostics.
+- 2026-05-25: Mapping transform collection remains out of scope. The Module
+  Resolver spec still marks transform contributions as future promotion work,
+  and the Registry schema does not yet admit a `transform` contribution
+  category.
 
 ## Partial Evidence
 
@@ -179,12 +220,17 @@ authorization.
   `packages/formspec-app-graph/tests/app-graph-validator.test.ts`;
   `tests/conformance/schemas/test_app_graph_validation_report_schema.py`.
 - Fixtures: `tests/conformance/fixtures/module-resolver/*.case.json`.
+- Graph-collector fixture:
+  `tests/conformance/fixtures/module-resolver-graph/graph-collector-handoff.case.json`.
+- Graph-collector test:
+  `packages/formspec-app-graph/tests/module-resolver-graph-conformance.test.ts`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root
   `thoughts/2026-05-24-adr-0150-followons-and-gating.md`.
 - Verification: `npm run --workspace @formspec-org/app-graph test`;
   `npm run --workspace @formspec-org/app-graph build`;
+  `npm run --workspace @formspec-org/app-graph test -- tests/module-resolver-graph-conformance.test.ts`;
   `npx tsc -p packages/formspec-app-graph/tsconfig.json --noEmit`;
   `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`;
   `python -m pytest tests/conformance/test_module_resolver_fixture_corpus.py -q`;
