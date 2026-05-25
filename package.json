@@ -14,7 +14,7 @@
     "examples/uswds-grant"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@formspec-org/types && npm run build --workspace=@formspec-org/layout && npm run build --workspace=@formspec-org/engine && npm run build --workspace=@formspec-org/assist && npm run build --workspace=@formspec-org/core && npm run build --workspace=@formspec-org/webcomponent && npm run build --workspace=@formspec-org/adapters && npm run build --workspace=@formspec-org/react",
+    "build": "npm run build --workspace=@formspec-org/types && npm run build --workspace=@formspec-org/app-graph && npm run build --workspace=@formspec-org/layout && npm run build --workspace=@formspec-org/engine && npm run build --workspace=@formspec-org/assist && npm run build --workspace=@formspec-org/core && npm run build --workspace=@formspec-org/webcomponent && npm run build --workspace=@formspec-org/adapters && npm run build --workspace=@formspec-org/react",
     "test:serve": "vite --port 8080 --host 127.0.0.1",
     "start:stories": "npm run dev --workspace=formspec-stories",
     "storybook": "storybook dev -p 6006",
@@ -34,7 +34,7 @@
     "test": "npm run test:e2e",
     "test:e2e": "playwright test",
     "build:types": "npm run --workspace @formspec-org/types build",
-    "test:unit": "npm run --workspace @formspec-org/types test && npm run --workspace @formspec-org/engine test:unit && npm run --workspace @formspec-org/assist test && npm run --workspace @formspec-org/webcomponent test && npm run --workspace @formspec-org/adapters test && npm run --workspace @formspec-org/layout test && npm run --workspace @formspec-org/react test && npm run --workspace @formspec-org/core test",
+    "test:unit": "npm run --workspace @formspec-org/types test && npm run --workspace @formspec-org/app-graph test && npm run --workspace @formspec-org/engine test:unit && npm run --workspace @formspec-org/assist test && npm run --workspace @formspec-org/webcomponent test && npm run --workspace @formspec-org/adapters test && npm run --workspace @formspec-org/layout test && npm run --workspace @formspec-org/react test && npm run --workspace @formspec-org/core test",
     "test:all": "npm run test:unit && npm run test:e2e",
     "generate:theme": "node scripts/generate-theme-from-registry.mjs",
     "docs:generate": "node scripts/generate-theme-from-registry.mjs && node scripts/generate-spec-artifacts.mjs && node scripts/generate-lint-codes.mjs && node scripts/generate-filemap.mjs",

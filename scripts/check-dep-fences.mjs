@@ -9,6 +9,7 @@ import { execSync } from 'node:child_process';
  */
 const LAYERS = {
   '@formspec-org/types':    0,
+  '@formspec-org/app-graph': 1,
   '@formspec-org/engine':   1,
   '@formspec-org/layout':   1,
   '@formspec-org/assist':   2,

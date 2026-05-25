@@ -118,18 +118,20 @@ The validator runs in deterministic phases:
 1. Import `artifactResolution` diagnostics and mark unresolved handles.
 2. Import `moduleResolution` diagnostics when supplied.
 3. Validate loaded artifacts against their selected source schemas.
-4. Skip cross-artifact validation when required source schemas fail, and emit an
-   informational skipped-phase diagnostic.
-5. Evaluate cross-artifact invariants for the remaining schema-valid graph.
-6. Apply fail-closed checks for unsupported features and ADR 0152 authorization
+4. Record loaded artifacts without an available schema validator as `not-run`
+   schema results.
+5. Skip cross-artifact validation when required source schemas fail or do not
+   run, and emit an informational skipped-phase diagnostic.
+6. Evaluate cross-artifact invariants for the remaining schema-valid graph.
+7. Apply fail-closed checks for unsupported features and ADR 0152 authorization
    placeholders.
-7. Return one report sorted deterministically by severity, phase, artifact slot,
+8. Return one report sorted deterministically by severity, phase, artifact slot,
    JSON Pointer, and code.
 
 Schema validation is a precondition for cross-artifact interpretation. A schema
-valid graph can still be graph-invalid. A schema-invalid artifact can still
-produce imported resolver diagnostics, but graph checks depending on that
-artifact MUST be skipped rather than guessed.
+valid graph can still be graph-invalid. A schema-invalid or schema-unvalidated
+artifact can still produce imported resolver diagnostics, but graph checks
+depending on that artifact MUST be skipped rather than guessed.
 
 ## 4. Validation Report
 
@@ -139,7 +141,7 @@ data report, not an execution plan.
 | Field | Required | Description |
 |---|---|---|
 | `ok` | yes | `true` only when no error-severity diagnostic exists in the report. |
-| `summary` | yes | Counts for artifacts, schema failures, graph errors, warnings, infos, imported diagnostics, unsupported features, and skipped phases. |
+| `summary` | yes | Counts for artifacts, schema failures, schema-unvalidated artifacts, graph errors, warnings, infos, imported diagnostics, unsupported features, and skipped phases. |
 | `schemaResults` | yes | Per-loaded-artifact schema validation results, including schema ID, artifact source pointer, status, and schema diagnostics. |
 | `diagnostics` | yes | Unified diagnostics from native validator phases and imported resolver/module/surface-local phases. |
 | `phases` | yes | Ordered phase statuses with `completed`, `skipped`, or `not-run` status and skip reason when applicable. |
