@@ -1,0 +1,153 @@
+{
+  "id": "sibling-version-mismatch",
+  "description": "Rejects a sibling document module version outside the admitted app module version.",
+  "inputs": {
+    "appModules": [
+      {
+        "id": "x-versioned",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-versioned",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "modules": [
+          {
+            "id": "x-versioned",
+            "version": "2.0.0",
+            "source": {
+              "artifactSlot": "experience",
+              "artifactKind": "experience",
+              "source": "memory://experience",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-versioned",
+                "version": "2.0.0"
+              }
+            }
+          }
+        ],
+        "source": "memory://experience"
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-versioned",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": []
+          }
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
+      }
+    ]
+  },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-SIBLING-VERSION-MISMATCH",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "documents": 1
+  },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-versioned",
+          "version": "1.0.0"
+        },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-versioned",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "status": "version-mismatch",
+        "modules": [
+          {
+            "id": "x-versioned",
+            "version": "2.0.0"
+          }
+        ],
+        "source": {
+          "artifactSlot": "experience",
+          "artifactKind": "experience",
+          "source": "memory://experience",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-versioned",
+            "version": "2.0.0"
+          }
+        }
+      }
+    ],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-SIBLING-VERSION-MISMATCH",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Sibling document declares module 'x-versioned@2.0.0' outside the admitted app module version.",
+        "primarySource": {
+          "artifactSlot": "experience",
+          "artifactKind": "experience",
+          "source": "memory://experience",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-versioned",
+            "version": "2.0.0"
+          }
+        }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 1,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  }
+}

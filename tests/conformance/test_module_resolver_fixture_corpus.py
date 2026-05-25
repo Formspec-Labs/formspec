@@ -22,6 +22,7 @@ REQUIRED_FAMILIES = {
     "version-mismatch",
     "dependency-unresolved",
     "sibling-undeclared",
+    "sibling-version-mismatch",
     "host-admission-denied",
     "contribution-missing",
     "contribution-category",
