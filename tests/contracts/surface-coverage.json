@@ -871,8 +871,8 @@
       },
       "checks": [
         "Surface schema shape, closed slot taxonomy, draft/document prose, and transition authority are covered by spec and schema conformance tests",
-        "Fixture corpus covers a publishable positive Surface, App Manifest URL sibling refs, E606, E607, E603, and E604 fail-closed paths",
-        "Rust lint owns Surface-local route graph diagnostics plus module-widget admission/config validation",
+        "Fixture corpus covers a publishable positive Surface, App Manifest URL sibling refs, E606, E607, E610, E603, and E604 fail-closed paths",
+        "Rust lint owns Surface-local route graph diagnostics, route-parameter completeness, plus module-widget admission/config validation",
         "studio-core exposes readSurfaceDraft as authoring projection and exportSurfaceDocument as the fail-closed publish gate"
       ]
     },

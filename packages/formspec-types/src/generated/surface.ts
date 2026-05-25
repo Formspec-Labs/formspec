@@ -86,9 +86,13 @@ export interface Route {
    */
   id: string;
   /**
-   * URL-style path for this route. SHOULD start with '/'. v0.1 admits any non-empty string; future revs MAY pin RFC 6570 URI Template semantics if path parameters are formalized.
+   * URL-style path for this route. SHOULD start with '/'. v0.1 route parameters use simple URI Template markers like '/matter/{matterId}'; paths with no `{name}` markers and no params[] remain opaque non-empty strings.
    */
   path: string;
+  /**
+   * OPTIONAL required route parameters for entering this route. Each declared name MUST appear as a simple `{name}` marker in path; every Surface-local edge into this route MUST supply all declared params.
+   */
+  params?: RouteParam[];
   /**
    * Human-readable route title (for navigation chrome, breadcrumbs, etc.).
    */
@@ -111,6 +115,27 @@ export interface Route {
 }
 /**
  * This interface was referenced by `SurfaceDocument`'s JSON-Schema
+ * via the `definition` "RouteParam".
+ */
+export interface RouteParam {
+  /**
+   * Route parameter name. MUST appear exactly once as `{name}` in the route path when params[] is declared.
+   */
+  name: string;
+  /**
+   * Route parameter value type. v0.1 admits strings only; richer coercion belongs to runtime or Data Sources consumers.
+   */
+  type: 'string';
+  description?: string;
+  example?: string;
+  /**
+   * This interface was referenced by `RouteParam`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
+}
+/**
+ * This interface was referenced by `SurfaceDocument`'s JSON-Schema
  * via the `definition` "Transition".
  */
 export interface Transition {
@@ -126,9 +151,25 @@ export interface Transition {
    * OPTIONAL FEL condition gating this transition. Processors evaluate against validated bundle-state bindings; authoring facades may reject this field until they can validate those bindings.
    */
   when?: string;
+  params?: RouteParamMap;
   /**
    * This interface was referenced by `Transition`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
+}
+/**
+ * OPTIONAL transition parameter map. Keys name params declared by the target route; values name host/runtime bindings supplied after the transition trigger completes under Response Actions authority.
+ */
+export interface RouteParamMap {
+  /**
+   * Name of the runtime, host, prior route param, or response binding whose value supplies this target route parameter.
+   *
+   * This interface was referenced by `RouteParamMap`'s JSON-Schema definition
+   * via the `patternProperty` "^[a-zA-Z][a-zA-Z0-9_-]*$".
+   *
+   * This interface was referenced by `RouteParamMap`'s JSON-Schema definition
+   * via the `patternProperty` "^[a-zA-Z][a-zA-Z0-9_-]*$".
+   */
+  [k: string]: string;
 }

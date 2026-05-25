@@ -92,6 +92,46 @@ A route that is not reached by this walk is invalid and MUST be reported as
 from a reachable route, embed the route via an `embed-route` slot, or remove the
 unreachable route.
 
+### Route Parameters
+
+A route MAY declare required route parameters in `routes[].params[]`. These
+parameters describe values needed to enter the route, not form fields,
+authorization rules, or Data Sources payloads.
+
+Each `routes[].params[]` entry has:
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | yes | Route parameter name. |
+| `type` | yes | Closed v0.1 value type. Only `string` is admitted. |
+| `description` | no | Human-readable explanation. |
+| `example` | no | Example string value. |
+
+When `params[]` is present, `path` MUST contain a simple URI Template marker for
+each parameter using `{name}` syntax. Every `{name}` marker in `path` MUST have
+a matching `params[]` declaration. Surface v0.1 uses only simple
+single-variable markers; it does not admit URI Template operators, exploded
+values, matrix parameters, query parameters, optional segments, regex captures,
+or colon-prefixed framework syntax as normative parameter syntax. A `path` with
+no `{name}` markers and no `params[]` remains an opaque non-empty route path.
+
+Every Surface-local edge into a parameterized route MUST supply all target route
+parameters:
+
+- `transitions[].params` supplies parameters for `transitions[].to`;
+- `embed-route.binding.params` supplies parameters for `binding.routeRef`.
+
+Parameter-map keys name the target route's declared parameters. Values are
+binding names supplied by the host/runtime context after the transition trigger
+or embed decision has been admitted. Surface defines the required key
+completeness; it does not define how hosts materialize those values, fetch Data
+Sources payloads, or authorize access. Missing target parameters are invalid and
+MUST be reported as `E610` (`SURFACE-ROUTE-PARAM-MISSING`).
+
+Data Sources `route-params` sources may expose resolved route parameters to
+consumers. They do not declare required route parameters and do not satisfy
+Surface edge completeness.
+
 ## 4. Slot Bindings
 
 ### Slot Binding Validity
@@ -99,6 +139,8 @@ unreachable route.
 An `embed-route` slot's `binding.routeRef` MUST name a route declared in the
 same Surface document's `routes[]` array. A missing route target is invalid and
 MUST be reported as `E607` (`SURFACE-SLOT-BINDING-UNRESOLVED`).
+If the target route declares `params[]`, `binding.params` MUST supply every
+declared target parameter per §3 Route Parameters.
 
 Component `targetSurfaceRoutes[].slot`, when present, names a slot `id` on the
 target route. That external target does not change the slot's `slotType`, typed
@@ -145,6 +187,11 @@ bundle state. The transition fires only when `when` evaluates true. Producers
 and authoring facades MAY reject `when` until they can validate the expression
 against bundle-state bindings instead of guessing at renderer-local state.
 
+If the target route declares `params[]`, `transitions[].params` MUST supply every
+declared target parameter per §3 Route Parameters. Surface does not execute the
+trigger or resolve the parameter values; Response Actions remains the trigger's
+executor when the trigger references an action or closed-core intent.
+
 ## 5. Closed slot-type taxonomy (v0.1)
 
 [ADR 0150 §6.2](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#62-closed-slot-type-taxonomy)
@@ -156,7 +203,7 @@ closes the v0.1 slot-type list at five values:
 | `experience-unit` | `{ experienceRef?: string, unitRef: string }` | A specific Experience unit. |
 | `module-widget`   | `{ moduleId: string, widgetName: string, config?: object }` | A widget supplied by a declared module. |
 | `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, level?: 1..6 }` | Inline literal content. |
-| `embed-route`     | `{ routeRef: string, mode?: string }` | Another route from this Surface (modal/panel/dialog). |
+| `embed-route`     | `{ routeRef: string, mode?: string, params?: RouteParamMap }` | Another route from this Surface (modal/panel/dialog). |
 
 Each binding shape is enforced by `schemas/surface.schema.json` via an
 `allOf [if/then]` gate discriminating on `slotType`. The taxonomy is closed at

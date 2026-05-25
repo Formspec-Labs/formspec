@@ -68,6 +68,8 @@ def test_surface_publishable_fixture_validates_and_lints_clean() -> None:
     [
         ("route-unreachable.surface.json", "E606"),
         ("embed-route-unresolved.surface.json", "E607"),
+        ("transition-missing-route-param.surface.json", "E610"),
+        ("embed-route-missing-route-param.surface.json", "E610"),
         ("module-widget-undeclared.surface.json", "E603"),
         ("module-widget-config-invalid.surface.json", "E604"),
     ],
@@ -99,7 +101,11 @@ def test_surface_strict_widget_registry_fixture_validates() -> None:
 
 def test_surface_schema_describes_draft_and_transition_authority() -> None:
     assert "Authoring drafts are not separate source artifacts" in SURFACE_SCHEMA["description"]
+    route = SURFACE_SCHEMA["$defs"]["Route"]["properties"]
     transition = SURFACE_SCHEMA["$defs"]["Transition"]["properties"]
+    assert "simple URI Template markers" in route["path"]["description"]
+    assert "all declared params" in route["params"]["description"]
+    assert "target route" in transition["params"]["description"]
     assert "Surface declares the navigation trigger" in transition["trigger"]["description"]
     assert "validated bundle-state bindings" in transition["when"]["description"]
 

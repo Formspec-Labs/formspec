@@ -38,6 +38,10 @@ or fine-grained authorization semantics.
 - 2026-05-25 architecture review scout `019e6147-95d5-7290-b780-003ae1d42248`
   found A10 must stay Held/Open until a real Screener-to-app association source
   exists; ad hoc host evidence would invent a public validator contract.
+- 2026-05-25 architecture review scout `019e6153-2681-7ab0-8681-826910417013`
+  found A5 could not be implemented from existing Surface/Data Sources evidence
+  alone; the least-hacky source is Surface route-parameter prose/schema plus a
+  Surface-local lint fixture.
 
 ## Evidence Map
 
@@ -47,7 +51,7 @@ or fine-grained authorization semantics.
 | A2 unadmitted contribution owner | `module-resolver/contribution-unadmitted.case.json` | Covered |
 | A3 unresolved navigation target | Surface E606/E607 and UI Graph Policy unresolved route fixtures | Covered, naming needs pin |
 | A4 unresolved Surface route ref | Component route and UI Graph Policy route-ref fixtures | Covered |
-| A5 missing route params | Surface schema defers path parameter formalization | Open; do not invent params before prose |
+| A5 missing route params | Surface route-parameter prose/schema plus lint `E610` fixture | Covered |
 | A6 required-field runtime blocking | Response Actions runtime fixture `intent-submit-blocked.json` | Covered |
 | A7 duplicate durable-effect idempotency key | Source conformance fixture plus Rust lint `E1804` check | Covered |
 | A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held out of first slice |
@@ -86,7 +90,8 @@ or fine-grained authorization semantics.
 
 ### Phase 3 - Route / Screener / Experience Gaps
 
-- [ ] Decide A5 route-params posture after Surface path-parameter prose exists.
+- [x] Promote A5 into Surface route-parameter prose/schema and pin the `E610`
+  Surface-local lint diagnostic for missing target route params.
 - [x] Hold A10; do not implement AppGraphValidator Screener validation until the
   Screener association source is specified. Do not close via TraceIndex, Runtime
   Plan, embedded Definition screener, filename discovery, or ad hoc hostEvidence.
@@ -119,6 +124,10 @@ or fine-grained authorization semantics.
 - 2026-05-25: A10 cannot count as conformance closure from Surface/Screener
   prose alone. Current evidence proves target syntax only, not graph-associated
   Screener route resolution.
+- 2026-05-25: A5 is Surface-local route graph validation, not Data Sources
+  runtime behavior. Data Sources `route-params` may expose resolved values to
+  consumers, but Surface owns required route parameter declarations and
+  Surface-local edge completeness.
 
 ## Closure Evidence
 
@@ -155,10 +164,19 @@ Partial evidence after the first slice:
 - EC2 tests:
   `packages/formspec-app-graph/tests/surface-experience-units-conformance.test.ts`
   and `tests/conformance/test_app_graph_surface_experience_unit_fixture_corpus.py`.
+- A5 fixtures:
+  `tests/conformance/fixtures/surface/transition-missing-route-param.surface.json`
+  and
+  `tests/conformance/fixtures/surface/embed-route-missing-route-param.surface.json`.
+- A5 lint code:
+  `specs/lint-codes.json` (`E610`) and generated Rust `LintCode::E610`.
+- A5 tests:
+  `crates/formspec-lint/src/pass_surface.rs` and
+  `tests/conformance/spec/test_surface_contract.py`.
 
 Still open:
 
-- A5 and EC12 runtime behavior need dedicated slices; A10 remains Held/Open
-  behind a Screener-to-app association source.
+- EC12 runtime behavior needs a dedicated slice; A10 remains Held/Open behind a
+  Screener-to-app association source.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.

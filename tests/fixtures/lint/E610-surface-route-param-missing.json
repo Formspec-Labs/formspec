@@ -1,0 +1,48 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "caseDashboard",
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "intro",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "Home"
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "trigger": "openCase",
+          "to": "case"
+        }
+      ]
+    },
+    {
+      "id": "case",
+      "path": "/cases/{caseId}",
+      "params": [
+        {
+          "name": "caseId",
+          "type": "string",
+          "example": "case-123"
+        }
+      ],
+      "slots": [
+        {
+          "id": "summary",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "Case summary"
+          }
+        }
+      ]
+    }
+  ]
+}

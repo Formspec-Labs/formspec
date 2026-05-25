@@ -244,6 +244,18 @@
       "state": "tested"
     },
     {
+      "code": "E610",
+      "pass": 8,
+      "severity": "error",
+      "title": "Surface route parameter declaration or edge binding is incomplete (SURFACE-ROUTE-PARAM-MISSING)",
+      "specRef": "specs/surface/surface-spec.md#route-parameters",
+      "suggestedFix": "align routes[].params[] with the route path's simple {name} markers, then add any missing target parameter key to transitions[].params or embed-route.binding.params",
+      "fixtures": [
+        "tests/fixtures/lint/E610-surface-route-param-missing.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W700",
       "pass": 6,
       "severity": "warning",

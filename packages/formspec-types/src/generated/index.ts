@@ -29,7 +29,7 @@ export type { LocaleDocument } from './locale.js';
 export type { FELType, FELFunctionCatalog, FunctionEntry, Parameter } from './fel-functions.js';
 export type { ScreenerDocument, Availability, Phase, Route } from './screener.js';
 export type { DeterminationRecord, RouteResult, PhaseResult, InputEntry } from './determination.js';
-export type { Slot, SurfaceDocument, Transition } from './surface.js';
+export type { Slot, SurfaceDocument, RouteParam, Transition, RouteParamMap } from './surface.js';
 export type { DataSource, DataSourceKind, RuntimeBehavior, CacheRule, DataSourcesDocument, ProvenanceRule } from './data-sources.js';
 export type { ArtifactResolutionHandleStatus, ArtifactResolutionSeverity, ArtifactResolutionPhase, ArtifactResolutionOrigin, ArtifactResolutionPhaseStatusValue, ArtifactResolutionReport, ArtifactResolutionHandle, ArtifactResolutionRef, ArtifactResolutionIdentity, ArtifactResolutionDiagnostic, ArtifactResolutionSourcePointer, ArtifactResolutionArtifacts, ArtifactResolutionSummary, ArtifactResolutionPhaseStatus } from './artifact-resolution-report.js';
 export type { SchemaResultStatus, Severity, Origin, PhaseStatusValue, AppGraphValidationReport, SchemaResult, Diagnostic, SourcePointer, ArtifactRef, EvidenceSchemaResult, EvidenceDiagnostic, EvidenceSourcePointer, PhaseStatus, SupportProfile } from './app-graph-validation-report.js';

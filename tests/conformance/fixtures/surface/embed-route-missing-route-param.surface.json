@@ -1,0 +1,41 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "caseDashboard",
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "detailsPanel",
+          "slotType": "embed-route",
+          "binding": {
+            "routeRef": "details"
+          }
+        }
+      ]
+    },
+    {
+      "id": "details",
+      "path": "/details/{caseId}",
+      "params": [
+        {
+          "name": "caseId",
+          "type": "string",
+          "example": "case-123"
+        }
+      ],
+      "slots": [
+        {
+          "id": "detailsText",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "Details"
+          }
+        }
+      ]
+    }
+  ]
+}
