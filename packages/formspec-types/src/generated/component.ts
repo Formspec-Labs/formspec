@@ -11,32 +11,11 @@ import type { ConceptRef } from './experience.js';
 /**
  * A Formspec Component Document per the Component Specification. Defines a Tier 3 parallel presentation tree of UI components bound to a Formspec Definition's items via slot binding or to Surface routes via Component 1.2 route identity. The component tree controls layout and widget selection but cannot override core behavioral semantics (required, relevant, readonly, calculate, constraint) from the Definition.
  */
-export type ComponentDocument =
-  | (ComponentDocumentBase & {
-      /**
-       * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
-       */
-      $formspecComponent: '1.0' | '1.1';
-      targetDefinition: TargetDefinition;
-      targetSurfaceRoutes?: never;
-    })
-  | (ComponentDocumentBase & {
-      /**
-       * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
-       */
-      $formspecComponent: '1.2';
-    } & (
-      | {
-          targetDefinition: TargetDefinition;
-          targetSurfaceRoutes?: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
-        }
-      | {
-          targetDefinition?: TargetDefinition;
-          targetSurfaceRoutes: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
-        }
-    ));
-
-export interface ComponentDocumentBase {
+export type ComponentDocument = {
+  /**
+   * Component specification version. MUST be '1.0', '1.1', or '1.2'. Version 1.2 admits Surface-route identity while preserving form-bound 1.0/1.1 documents.
+   */
+  $formspecComponent: '1.0' | '1.1' | '1.2';
   /**
    * OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Omitting modules[] is identical to declaring the core module set, which preserves form-only documents.
    */
@@ -61,6 +40,13 @@ export interface ComponentDocumentBase {
    * Version of this Component Document.
    */
   version: string;
+  targetDefinition?: TargetDefinition;
+  /**
+   * Component 1.2 bindings to Surface routes, slots, or app-shell targets. Each entry is an applicability claim resolved by AppGraph validation against the enclosing App Manifest and Surface documents; it does not create routes or slots.
+   *
+   * @minItems 1
+   */
+  targetSurfaceRoutes?: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
   breakpoints?: Breakpoints;
   tokens?: Tokens;
   /**
@@ -72,11 +58,16 @@ export interface ComponentDocumentBase {
   tree: AnyComponent3;
   extensions?: Extensions;
   /**
-   * This interface was referenced by the root JSON-Schema definition
-   * via the pattern property "^x-".
+   * This interface was referenced by `undefined`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
-}
+} & (
+  | LegacyFormBoundComponentDocumentIdentity
+  | Component12DefinitionIdentity
+  | Component12SurfaceRouteIdentity
+  | Component12MixedIdentity
+);
 /**
  * Component subtree instantiated when this custom component is used.
  */
@@ -1076,6 +1067,48 @@ export interface CustomComponentRef extends ComponentBase {
   params?: {
     [k: string]: string;
   };
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "LegacyFormBoundComponentDocumentIdentity".
+ */
+export interface LegacyFormBoundComponentDocumentIdentity {
+  $formspecComponent: '1.0' | '1.1';
+  targetDefinition: TargetDefinition;
+  targetSurfaceRoutes?: never;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Component12DefinitionIdentity".
+ */
+export interface Component12DefinitionIdentity {
+  $formspecComponent: '1.2';
+  targetDefinition: TargetDefinition;
+  targetSurfaceRoutes?: never;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Component12SurfaceRouteIdentity".
+ */
+export interface Component12SurfaceRouteIdentity {
+  $formspecComponent: '1.2';
+  targetDefinition?: never;
+  /**
+   * @minItems 1
+   */
+  targetSurfaceRoutes: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Component12MixedIdentity".
+ */
+export interface Component12MixedIdentity {
+  $formspecComponent: '1.2';
+  targetDefinition: TargetDefinition;
+  /**
+   * @minItems 1
+   */
+  targetSurfaceRoutes: [SurfaceRouteTarget, ...SurfaceRouteTarget[]];
 }
 /**
  * Breakpoint-keyed prop overrides. Keys are breakpoint names; values are objects of component-specific props to shallow-merge at that breakpoint. MUST NOT contain component, bind, when, children, or responsive.

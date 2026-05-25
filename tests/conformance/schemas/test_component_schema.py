@@ -116,6 +116,31 @@ def test_legacy_component_documents_remain_form_bound():
         validate(instance=doc, schema=SCHEMA)
 
 
+def test_legacy_component_documents_reject_route_identity_even_with_target_definition():
+    doc = {
+        "$formspecComponent": "1.1",
+        "version": "1.0.0",
+        "targetDefinition": {
+            "url": "https://example.gov/forms/intake",
+        },
+        "targetSurfaceRoutes": [
+            {
+                "surface": {
+                    "url": "https://example.gov/apps/workspace/surfaces/respondent",
+                },
+                "route": "review",
+                "role": "route",
+            }
+        ],
+        "tree": {
+            "component": "Stack",
+            "children": [],
+        },
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=doc, schema=SCHEMA)
+
+
 @pytest.mark.parametrize(
     "route_target",
     [
