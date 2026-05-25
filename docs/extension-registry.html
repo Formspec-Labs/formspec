@@ -653,11 +653,21 @@ a row after the MasterTable four-constraint demotion)</td>
 </tr>
 <tr>
 <td><code>token-category</code></td>
-<td><code>categoryShape</code> — token category shape (folds Token
-Registry into the unified Registry as a contribution profile)</td>
+<td><code>categoryShape</code> — custom token category shape with
+explicit <code>prefix</code> authority (folds Token Registry into the
+unified Registry as a contribution profile)</td>
 </tr>
 </tbody>
 </table>
+<p>For <code>token-category</code> entries,
+<code>categoryShape.prefix</code> is the graph-visible Theme token
+category prefix. The Registry entry <code>name</code> is not prefix
+authority: entry names remain <code>x-*</code> contribution identifiers,
+while <code>categoryShape.prefix</code> names the token key prefix
+consumed by ModuleResolver and UI Graph Policy. Custom token-category
+prefixes MUST be <code>x-*</code>; platform prefixes remain owned by the
+platform Token Registry. Every key in <code>categoryShape.tokens</code>
+MUST start with <code>categoryShape.prefix + "."</code>.</p>
 <p><strong><code>concept</code></strong> — Concept identity (Ontology
 specification):</p>
 <table>
@@ -1216,7 +1226,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="
 <span id="cb5-110"><a href="#cb5-110" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;validation&quot;</span><span class="fu">:</span>     <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `action-intent` (full ValidationTuple per VM §6.1).&quot;</span> <span class="fu">},</span></span>
 <span id="cb5-111"><a href="#cb5-111" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;slotShape&quot;</span><span class="fu">:</span>      <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `slot-type`.&quot;</span> <span class="fu">},</span></span>
 <span id="cb5-112"><a href="#cb5-112" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;row&quot;</span><span class="fu">:</span>            <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `validation-mapping-row` (closed MappingEntry shape per VM §6).&quot;</span> <span class="fu">},</span></span>
-<span id="cb5-113"><a href="#cb5-113" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;categoryShape&quot;</span><span class="fu">:</span>  <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `token-category` (folds Token Registry into the unified Registry).&quot;</span> <span class="fu">}</span></span>
+<span id="cb5-113"><a href="#cb5-113" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;categoryShape&quot;</span><span class="fu">:</span>  <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `token-category`; includes explicit `prefix` authority and token metadata.&quot;</span> <span class="fu">}</span></span>
 <span id="cb5-114"><a href="#cb5-114" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
 <span id="cb5-115"><a href="#cb5-115" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;allOf&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
 <span id="cb5-116"><a href="#cb5-116" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>

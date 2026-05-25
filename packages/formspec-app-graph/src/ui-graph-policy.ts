@@ -15,6 +15,7 @@ import type {
   ModuleResolutionContribution,
   ModuleResolutionModule,
   ModuleResolutionReport,
+  ModuleResolutionTokenCategoryEvidence,
   SurfaceDocument,
   ThemeDocument,
   UiGraphPolicyDocument,
@@ -77,6 +78,7 @@ interface UiGraphPolicyEvidence {
 }
 
 const UI_GRAPH_THEME_WIDGET_SITE = 'ui-graph-policy.theme.assignments.widgetRef';
+export const PLATFORM_TOKEN_CATEGORY_PREFIXES = new Set(['color', 'font', 'radius', 'spacing']);
 
 function evidenceSource(
   evidence: UiGraphPolicyEvidence,
@@ -543,7 +545,7 @@ function validateThemeWidgetRefs(
       if (tokenSlotDiagnostics.length > 0) return tokenSlotDiagnostics;
       const tokenEvidence = tokenEvidenceByAssignment.get(assignment.index);
       if (!tokenEvidence?.resolved) return [];
-      return validateThemeTokenCategory(evidence, assignment, resolvedContributions, tokenEvidence);
+      return validateThemeTokenCategory(evidence, assignment, resolvedContributions, tokenEvidence, moduleResolution);
     }
 
     const details: Record<string, unknown> = {
@@ -666,6 +668,14 @@ function tokenSlotSources(
     .filter((source): source is AppGraphSourcePointer => source !== undefined);
 }
 
+function tokenCategorySources(
+  tokenCategories: readonly ModuleResolutionTokenCategoryEvidence[],
+): AppGraphSourcePointer[] {
+  return tokenCategories
+    .map((tokenCategory) => appGraphSourceFromModuleSource(tokenCategory.source))
+    .filter((source): source is AppGraphSourcePointer => source !== undefined);
+}
+
 function matchingThemeTokenSlots(
   resolvedContributions: readonly ModuleResolutionContribution[],
   slot: string,
@@ -709,21 +719,79 @@ function validateThemeTokenCategory(
   assignment: IndexedThemeTokenAssignment,
   resolvedContributions: readonly ModuleResolutionContribution[],
   tokenEvidence: ThemeTokenEvidence,
+  moduleResolution: ModuleResolutionReport,
 ): AppGraphDiagnostic[] {
   const slot = assignment.assignment.slot;
   const matchingSlots = matchingThemeTokenSlots(resolvedContributions, slot);
   const token = assignment.assignment.token;
-  if (matchingSlots.some((tokenSlot) =>
-    tokenSlot.acceptedTokenCategories.some((categoryPrefix) => token.startsWith(`${categoryPrefix}.`))
-  )) {
+  const acceptedPrefix = [...new Set(matchingSlots.flatMap((tokenSlot) => tokenSlot.acceptedTokenCategories))]
+    .filter((categoryPrefix) => token.startsWith(`${categoryPrefix}.`))
+    .sort((left, right) => right.length - left.length || left.localeCompare(right))[0];
+  if (acceptedPrefix && PLATFORM_TOKEN_CATEGORY_PREFIXES.has(acceptedPrefix)) {
     return [];
   }
-
+  if (acceptedPrefix?.startsWith('x-')) {
+    const matchingTokenCategories = (moduleResolution.tokenCategories ?? [])
+      .filter((tokenCategory) => tokenCategory.prefix === acceptedPrefix);
+    const admittedTokenCategories = matchingTokenCategories
+      .filter((tokenCategory) => tokenCategory.status === 'admitted');
+    if (admittedTokenCategories.length === 1 && matchingTokenCategories.length === 1) {
+      return [];
+    }
+    const widgetRef = assignment.assignment.widgetRef;
+    const relatedSources = [
+      ...tokenSlotSources(matchingSlots),
+      ...(tokenEvidence.tokenSource ? [tokenEvidence.tokenSource] : []),
+      ...tokenCategorySources(matchingTokenCategories),
+    ];
+    return [diagnostic(
+      'THEME-TOKEN-CATEGORY-REF',
+      'A Theme token assignment uses an accepted custom token category without exactly one admitted Registry category evidence entry.',
+      evidenceSource(evidence, `/theme/assignments/${assignment.index}/token`),
+      relatedSources.length > 0 ? relatedSources : undefined,
+      {
+        moduleId: widgetRef.moduleId,
+        widgetName: widgetRef.widgetName,
+        slot,
+        token,
+        categoryPrefix: acceptedPrefix,
+        reason: matchingTokenCategories.length === 0
+          ? 'missing-token-category-evidence'
+          : (matchingTokenCategories.some((tokenCategory) => tokenCategory.status === 'conflict')
+            ? 'conflicting-token-category-evidence'
+            : (matchingTokenCategories.some((tokenCategory) => tokenCategory.status === 'shape-mismatch')
+              ? 'token-category-shape-mismatch'
+              : 'ambiguous-token-category-evidence')),
+        tokenCategoryStatuses: [...new Set(matchingTokenCategories.map((tokenCategory) => tokenCategory.status))].sort(),
+      },
+    )];
+  }
+  if (acceptedPrefix) {
+    const widgetRef = assignment.assignment.widgetRef;
+    const relatedSources = [
+      ...tokenSlotSources(matchingSlots),
+      ...(tokenEvidence.tokenSource ? [tokenEvidence.tokenSource] : []),
+    ];
+    return [diagnostic(
+      'THEME-TOKEN-CATEGORY-REF',
+      'A Theme token assignment uses a non-platform token category prefix without custom x-* evidence authority.',
+      evidenceSource(evidence, `/theme/assignments/${assignment.index}/token`),
+      relatedSources.length > 0 ? relatedSources : undefined,
+      {
+        moduleId: widgetRef.moduleId,
+        widgetName: widgetRef.widgetName,
+        slot,
+        token,
+        categoryPrefix: acceptedPrefix,
+        reason: 'unsupported-category-prefix',
+      },
+    )];
+  }
   const widgetRef = assignment.assignment.widgetRef;
   const acceptedTokenCategories = [...new Set(matchingSlots.flatMap((tokenSlot) => tokenSlot.acceptedTokenCategories))].sort();
   const relatedSources = [
-    ...(tokenEvidence.tokenSource ? [tokenEvidence.tokenSource] : []),
     ...tokenSlotSources(matchingSlots),
+    ...(tokenEvidence.tokenSource ? [tokenEvidence.tokenSource] : []),
   ];
 
   return [diagnostic(

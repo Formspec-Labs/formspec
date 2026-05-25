@@ -1,0 +1,195 @@
+{
+  "id": "token-category-evidence",
+  "description": "Reports normalized admitted Registry token-category evidence from direct admitted module contributions.",
+  "inputs": {
+    "appModules": [
+      {
+        "id": "x-reviewer",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+        "artifactKind": "hostEvidence",
+        "uses": [
+          {
+            "site": "ui-graph-policy.theme.assignments.widgetRef",
+            "name": "x-review-panel",
+            "expectedCategory": "widget",
+            "source": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "artifactKind": "hostEvidence",
+              "source": "host://policy/review",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            }
+          }
+        ],
+        "source": "host://policy/review"
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-reviewer",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": [
+              "x-review-panel",
+              "x-agency-token-category"
+            ]
+          },
+          {
+            "name": "x-review-panel",
+            "category": "widget",
+            "version": "1.0.0",
+            "widgetShape": {
+              "tokenSlots": [
+                {
+                  "name": "accent",
+                  "acceptedTokenCategories": [
+                    "x-agency"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "x-agency-token-category",
+            "category": "token-category",
+            "version": "1.0.0",
+            "categoryShape": {
+              "prefix": "x-agency",
+              "type": "color",
+              "tokens": {
+                "x-agency.seal-color": {
+                  "description": "Official agency seal color",
+                  "type": "color"
+                }
+              }
+            }
+          }
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
+      }
+    ]
+  },
+  "expectedDiagnostics": [],
+  "expectedSummary": {
+    "errors": 0,
+    "modules": 1,
+    "contributions": 1
+  },
+  "expectedReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-reviewer",
+          "version": "1.0.0"
+        },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "ui-graph-policy.theme.assignments.widgetRef",
+        "name": "x-review-panel",
+        "expectedCategory": "widget",
+        "registryCategory": "widget",
+        "entryVersion": "1.0.0",
+        "owningModules": [
+          {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        ],
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "artifactKind": "hostEvidence",
+          "source": "host://policy/review",
+          "jsonPointer": "/theme/assignments/0/widgetRef"
+        },
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "x-agency"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "memory://registry",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          }
+        ]
+      }
+    ],
+    "tokenCategories": [
+      {
+        "prefix": "x-agency",
+        "status": "admitted",
+        "entryName": "x-agency-token-category",
+        "entryVersion": "1.0.0",
+        "owningModules": [
+          {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        ],
+        "source": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "memory://registry",
+          "jsonPointer": "/entries/2/categoryShape"
+        }
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 1,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  }
+}

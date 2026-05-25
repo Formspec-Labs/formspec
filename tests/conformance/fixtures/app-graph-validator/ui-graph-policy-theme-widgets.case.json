@@ -65,6 +65,7 @@
         "tokens": {
           "color.accent": "#005ea8",
           "spacing.md": "1rem",
+          "typography.body.size": "1rem",
           "x-agency.seal-color": "#1a4480"
         }
       }
@@ -116,6 +117,146 @@
               },
               "slot": "accent",
               "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "valid-custom-token-category": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/valid-custom-token-category",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "x-agency.seal-color"
+            }
+          ]
+        }
+      }
+    },
+    "missing-custom-token-category": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/missing-custom-token-category",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "x-agency.seal-color"
+            }
+          ]
+        }
+      }
+    },
+    "conflicting-custom-token-category": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/conflicting-custom-token-category",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "x-agency.seal-color"
+            }
+          ]
+        }
+      }
+    },
+    "shape-mismatch-custom-token-category": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/shape-mismatch-custom-token-category",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "x-agency.seal-color"
+            }
+          ]
+        }
+      }
+    },
+    "unsupported-token-category-prefix": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/unsupported-token-category-prefix",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "typography.body.size"
             }
           ]
         }
@@ -445,6 +586,488 @@
               "name": "accent",
               "acceptedTokenCategories": [
                 "color"
+              ],
+              "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              }
+            }
+          ]
+        }
+      ],
+      "diagnostics": [],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "resolved-theme-widget-custom-category": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/valid-custom-token-category",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          },
+          "widgetTokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "x-agency"
+              ],
+              "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              }
+            }
+          ]
+        }
+      ],
+      "tokenCategories": [
+        {
+          "prefix": "x-agency",
+          "status": "admitted",
+          "entryName": "x-agency-token-category",
+          "entryVersion": "1.0.0",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "source": {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/2/categoryShape"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "resolved-theme-widget-custom-category-missing": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/missing-custom-token-category",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          },
+          "widgetTokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "x-agency"
+              ],
+              "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              }
+            }
+          ]
+        }
+      ],
+      "diagnostics": [],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "resolved-theme-widget-custom-category-conflict": {
+      "ok": false,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        },
+        {
+          "ref": {
+            "id": "x-helper",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/1"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/conflicting-custom-token-category",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          },
+          "widgetTokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "x-agency"
+              ],
+              "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              }
+            }
+          ]
+        }
+      ],
+      "tokenCategories": [
+        {
+          "prefix": "x-agency",
+          "status": "conflict",
+          "entryName": "x-agency-token-category",
+          "entryVersion": "1.0.0",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            },
+            {
+              "id": "x-helper",
+              "version": "1.0.0"
+            }
+          ],
+          "source": {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/2/categoryShape"
+          }
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "MODULE-TOKEN-CATEGORY-CONFLICT",
+          "severity": "error",
+          "phase": "module-resolution",
+          "origin": "module-resolver",
+          "message": "More than one admitted token-category contribution claims prefix 'x-agency'.",
+          "primarySource": {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/2/categoryShape/prefix"
+          },
+          "details": {
+            "prefix": "x-agency",
+            "entries": [
+              "x-agency-token-category",
+              "x-agency-token-category"
+            ],
+            "owners": [
+              "x-reviewer",
+              "x-helper"
+            ]
+          }
+        }
+      ],
+      "summary": {
+        "modules": 2,
+        "admittedModules": 2,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 1,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "resolved-theme-widget-custom-category-shape-mismatch": {
+      "ok": false,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/shape-mismatch-custom-token-category",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          },
+          "widgetTokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "x-agency"
+              ],
+              "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              }
+            }
+          ]
+        }
+      ],
+      "tokenCategories": [
+        {
+          "prefix": "x-agency",
+          "status": "shape-mismatch",
+          "entryName": "x-agency-token-category",
+          "entryVersion": "1.0.0",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "source": {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/2/categoryShape"
+          }
+        }
+      ],
+      "diagnostics": [
+        {
+          "code": "MODULE-TOKEN-CATEGORY-SHAPE",
+          "severity": "error",
+          "phase": "module-resolution",
+          "origin": "module-resolver",
+          "message": "Token category contribution 'x-agency-token-category' has invalid categoryShape evidence.",
+          "primarySource": {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/2/categoryShape/tokens"
+          },
+          "details": {
+            "entryName": "x-agency-token-category",
+            "reason": "token-key-prefix-mismatch",
+            "prefix": "x-agency",
+            "tokenKey": "wrong.seal-color"
+          }
+        }
+      ],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 1,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 1,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "resolved-theme-widget-unsupported-category": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0"
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [
+        {
+          "site": "ui-graph-policy.theme.assignments.widgetRef",
+          "name": "x-review-panel",
+          "expectedCategory": "widget",
+          "registryCategory": "widget",
+          "owningModules": [
+            {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          ],
+          "status": "resolved",
+          "source": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "artifactKind": "hostEvidence",
+            "source": "host://policy/unsupported-token-category-prefix",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          },
+          "widgetTokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "typography"
               ],
               "source": {
                 "artifactSlot": "registries[0]",
@@ -879,6 +1502,360 @@
           "skippedPhases": 0
         },
         "diagnostics": []
+      }
+    },
+    {
+      "id": "valid-custom-token-category-evidence",
+      "description": "A Theme assignment using a custom x-* token category is valid when ModuleResolver supplies admitted token-category evidence.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-custom-token-category"]
+        },
+        "moduleResolution": "resolved-theme-widget-custom-category"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "missing-custom-token-category-evidence",
+      "description": "A Theme assignment using an accepted custom x-* token category fails when ModuleResolver lacks admitted category evidence.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["missing-custom-token-category"]
+        },
+        "moduleResolution": "resolved-theme-widget-custom-category-missing"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-CATEGORY-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/missing-custom-token-category",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              },
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens/x-agency.seal-color",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "x-agency.seal-color",
+              "categoryPrefix": "x-agency",
+              "reason": "missing-token-category-evidence",
+              "tokenCategoryStatuses": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "conflicting-custom-token-category-evidence",
+      "description": "A Theme assignment using an accepted custom x-* token category fails when ModuleResolver reports conflicting category evidence.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["conflicting-custom-token-category"]
+        },
+        "moduleResolution": "resolved-theme-widget-custom-category-conflict"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 2,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 1,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-TOKEN-CATEGORY-CONFLICT",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "memory://registry",
+              "jsonPointer": "/entries/2/categoryShape/prefix"
+            },
+            "details": {
+              "prefix": "x-agency",
+              "entries": [
+                "x-agency-token-category",
+                "x-agency-token-category"
+              ],
+              "owners": [
+                "x-reviewer",
+                "x-helper"
+              ]
+            }
+          },
+          {
+            "code": "THEME-TOKEN-CATEGORY-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/conflicting-custom-token-category",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              },
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/2/categoryShape"
+              },
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens/x-agency.seal-color",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "x-agency.seal-color",
+              "categoryPrefix": "x-agency",
+              "reason": "conflicting-token-category-evidence",
+              "tokenCategoryStatuses": ["conflict"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "shape-mismatch-custom-token-category-evidence",
+      "description": "A Theme assignment using an accepted custom x-* token category fails when ModuleResolver reports shape-mismatched category evidence.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["shape-mismatch-custom-token-category"]
+        },
+        "moduleResolution": "resolved-theme-widget-custom-category-shape-mismatch"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 2,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 1,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-TOKEN-CATEGORY-SHAPE",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "memory://registry",
+              "jsonPointer": "/entries/2/categoryShape/tokens"
+            },
+            "details": {
+              "entryName": "x-agency-token-category",
+              "reason": "token-key-prefix-mismatch",
+              "prefix": "x-agency",
+              "tokenKey": "wrong.seal-color"
+            }
+          },
+          {
+            "code": "THEME-TOKEN-CATEGORY-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/shape-mismatch-custom-token-category",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              },
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/2/categoryShape"
+              },
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens/x-agency.seal-color",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "x-agency.seal-color",
+              "categoryPrefix": "x-agency",
+              "reason": "token-category-shape-mismatch",
+              "tokenCategoryStatuses": ["shape-mismatch"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unsupported-token-category-prefix",
+      "description": "A Theme assignment using a non-platform, non-x-* prefix fails graph-visible token-slot compatibility even if the Theme token exists.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["unsupported-token-category-prefix"]
+        },
+        "moduleResolution": "resolved-theme-widget-unsupported-category"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-CATEGORY-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/unsupported-token-category-prefix",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              },
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens/typography.body.size",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "typography.body.size",
+              "categoryPrefix": "typography",
+              "reason": "unsupported-category-prefix"
+            }
+          }
+        ]
       }
     },
     {

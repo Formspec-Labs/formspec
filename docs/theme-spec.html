@@ -553,7 +553,11 @@ that promote visual consistency. Defined once here, referenced
 throughout the theme via ‘$token.<key>’ syntax in style and widgetConfig
 string values. Token keys use dot-delimited category prefixes (e.g.,
 ‘color.primary’, ‘spacing.md’). Values MUST be strings or numbers. Token
-references MUST NOT be recursive.</td>
+references MUST NOT be recursive. UI Graph Policy graph-visible widget
+token slots accept platform prefixes from token-registry.json plus
+custom x-* prefixes; broader Theme token-map prefixes such as
+typography, border, and elevation are metadata vocabulary unless a later
+graph policy gate promotes them.</td>
 </tr>
 <tr>
 <td><code>#/properties/url</code></td>
@@ -725,7 +729,15 @@ to/from DTCG format by splitting/joining on dots.</p>
 </blockquote>
 <h3 id="token-categories">3.2 Token Categories</h3>
 <p>Token keys SHOULD use the following category prefixes for
-interoperability. These categories are RECOMMENDED, not required.</p>
+interoperability. These categories are RECOMMENDED, not required. UI
+Graph Policy graph-visible widget token slots use a narrower
+compatibility gate: platform prefixes are the current Token Registry
+categories (<code>color</code>, <code>font</code>, <code>radius</code>,
+<code>spacing</code>), and module-contributed custom prefixes must be
+<code>x-*</code> with admitted Registry <code>token-category</code>
+evidence. Other Theme token-map prefixes in this table remain valid
+vocabulary, but they are not graph-visible widget token-slot prefixes
+unless a later policy gate promotes them.</p>
 <table>
 <colgroup>
 <col style="width: 26%" />

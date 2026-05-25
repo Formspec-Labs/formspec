@@ -70,6 +70,17 @@ def _minimal_entry(category="property", **overrides):
         entry["returns"] = "string"
     elif category == "constraint":
         entry["parameters"] = [{"name": "value", "type": "integer"}]
+    elif category == "token-category":
+        entry["categoryShape"] = {
+            "prefix": "x-agency",
+            "type": "color",
+            "tokens": {
+                "x-agency.seal-color": {
+                    "description": "Official agency seal color",
+                    "type": "color",
+                },
+            },
+        }
     entry.update(overrides)
     # Conditional requirement: deprecated status needs deprecationNotice
     if entry.get("status") == "deprecated" and "deprecationNotice" not in entry:
@@ -227,6 +238,27 @@ class TestWidgetShapeTokenSlots:
             _validate(_minimal_registry(entries=[entry]))
 
 
+class TestTokenCategoryShape:
+
+    def test_token_category_shape_requires_explicit_prefix(self):
+        entry = _minimal_entry("token-category")
+        del entry["categoryShape"]["prefix"]
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    def test_token_category_shape_rejects_platform_prefixes(self):
+        entry = _minimal_entry("token-category")
+        entry["categoryShape"]["prefix"] = "color"
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    def test_token_category_shape_rejects_unknown_fields(self):
+        entry = _minimal_entry("token-category")
+        entry["categoryShape"]["entryNameAsPrefix"] = True
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+
 # ===================================================================
 # TestEntryVersion
 # ===================================================================
@@ -329,6 +361,12 @@ class TestEntryCategoryConditionals:
         entry = _minimal_entry("module")
         entry["contributes"] = ["x-formspec-foo"]
         _validate(_minimal_registry(entries=[entry]))
+
+    def test_token_category_requires_category_shape(self):
+        entry = _minimal_entry("token-category")
+        del entry["categoryShape"]
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
 
 
 # ===================================================================

@@ -111,7 +111,7 @@
     },
     "tokens": {
       "$ref": "#/$defs/Tokens",
-      "description": "Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive.",
+      "description": "Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive. UI Graph Policy graph-visible widget token slots accept platform prefixes from token-registry.json plus custom x-* prefixes; broader Theme token-map prefixes such as typography, border, and elevation are metadata vocabulary unless a later graph policy gate promotes them.",
       "examples": [
         {
           "color.primary": "#0057B7",
@@ -129,7 +129,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Central design vocabulary referenced via $token.<key> in style and widgetConfig. Enables consistent theming and easy rebrand. RECOMMENDED category prefixes: color.*, spacing.*, typography.*, border.*, elevation.*, x-* (custom)."
+        "intent": "Central design vocabulary referenced via $token.<key> in style and widgetConfig. Enables consistent theming and easy rebrand. RECOMMENDED token-map prefixes include color.*, spacing.*, typography.*, border.*, elevation.*, x-* (custom); graph-visible UI policy token-slot compatibility recognizes platform token-registry prefixes plus custom x-* evidence."
       }
     },
     "defaults": {

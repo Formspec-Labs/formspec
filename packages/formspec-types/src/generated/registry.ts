@@ -184,10 +184,7 @@ export type RegistryEntry = {
    * Closed MappingEntry shape per VM §6. REQUIRED when category is 'validation-mapping-row'. Contributes a row to the `validation-mapping.MasterTable` after the §4.2 four-constraint demotion. Per ADR 0150 §4.2.
    */
   row?: {};
-  /**
-   * Token category shape (mirrors today's token-registry.schema.json `Category` shape). REQUIRED when category is 'token-category'. Folds Token Registry into the unified Registry as a contribution profile per ADR 0150 §2.3/§4.2.
-   */
-  categoryShape?: {};
+  categoryShape?: TokenCategoryShape;
   /**
    * The concept IRI in the external ontology or standard. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents.
    */
@@ -214,6 +211,22 @@ export type RegistryEntry = {
   vocabularyVersion?: string;
   filter?: VocabularyFilter;
 };
+/**
+ * Semantic token type used by tooling to select editors and validate values.
+ *
+ * This interface was referenced by `RegistryDocument`'s JSON-Schema
+ * via the `definition` "TokenCategoryTokenType".
+ */
+export type TokenCategoryTokenType =
+  | 'color'
+  | 'dimension'
+  | 'fontFamily'
+  | 'fontWeight'
+  | 'duration'
+  | 'opacity'
+  | 'shadow'
+  | 'number';
+
 /**
  * A static JSON document format for publishing, discovering, and validating Formspec extensions and semantic metadata. A Registry Document enumerates named entries — custom data types, functions, constraints, properties, namespaces, concept identities, and vocabulary bindings — with metadata, version history, compatibility bounds, and machine-readable schemas. Any organization MAY publish its own Registry Document. Interoperability is achieved through the common format, not centralized authority.
  */
@@ -256,7 +269,7 @@ export interface WidgetTokenSlot {
    */
   name: string;
   /**
-   * Accepted Theme token category prefixes for this slot, such as 'color', 'spacing', or 'x-agency'. These values are category prefixes, not Registry entry names. Compatibility is validated by a later UI Graph Policy gate using loaded Theme token evidence; Registry token-category contribution compatibility remains deferred until ModuleResolver exposes normalized category evidence.
+   * Accepted Theme token category prefixes for this slot, such as 'color', 'spacing', or 'x-agency'. These values are category prefixes, not Registry entry names. Platform prefixes are owned by token-registry.json; custom x-* prefixes require normalized ModuleResolver token-category evidence before UI Graph Policy treats them as compatible.
    *
    * @minItems 1
    */
@@ -269,6 +282,61 @@ export interface WidgetTokenSlot {
    * Human-readable purpose of the token slot.
    */
   description?: string;
+}
+/**
+ * Token category shape. REQUIRED when category is 'token-category'. The `prefix` field is the graph-visible Theme token category prefix; the Registry entry `name` is not prefix authority. Folds Token Registry into the unified Registry as a contribution profile per ADR 0150 §2.3/§4.2 and ADR 0153 UI Graph Policy gates.
+ */
+export interface TokenCategoryShape {
+  /**
+   * Custom Theme token category prefix, such as `x-agency`. Platform prefixes (`color`, `font`, `radius`, `spacing`) remain platform token authority and are not module-contributed Registry categories.
+   */
+  prefix: string;
+  /**
+   * Human-readable description of the custom token category.
+   */
+  description?: string;
+  /**
+   * Default token type for entries in this category. Entries may override with their own type.
+   */
+  type: 'color' | 'dimension' | 'fontFamily' | 'fontWeight' | 'duration' | 'opacity' | 'shadow' | 'number';
+  /**
+   * Prefix for dark-mode counterpart tokens. Only categories whose type is `color` SHOULD declare darkPrefix.
+   */
+  darkPrefix?: string;
+  /**
+   * Token entries keyed by full dot-delimited token key. Each key MUST start with the category `prefix` followed by a dot.
+   */
+  tokens: {
+    [k: string]: TokenCategoryTokenEntry;
+  };
+}
+/**
+ * Metadata for one custom token entry in a Registry token-category contribution.
+ *
+ * This interface was referenced by `RegistryDocument`'s JSON-Schema
+ * via the `definition` "TokenCategoryTokenEntry".
+ */
+export interface TokenCategoryTokenEntry {
+  /**
+   * Human-readable description of the token's purpose.
+   */
+  description?: string;
+  /**
+   * Token type, overriding the category default.
+   */
+  type?: 'color' | 'dimension' | 'fontFamily' | 'fontWeight' | 'duration' | 'opacity' | 'shadow' | 'number';
+  /**
+   * Default value shipped with the module token category.
+   */
+  default?: string | number;
+  /**
+   * Default dark-mode value. Only meaningful when the containing category declares a darkPrefix.
+   */
+  dark?: string | number;
+  /**
+   * Example token values for documentation and tooling hints.
+   */
+  examples?: (string | number)[];
 }
 /**
  * Declares that the bound concept is equivalent to a concept in another system. Relationship types follow SKOS (Simple Knowledge Organization System) semantics.

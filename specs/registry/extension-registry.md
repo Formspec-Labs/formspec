@@ -201,7 +201,15 @@ No additional required properties. The `schemaUrl` is RECOMMENDED.
 | `action-intent` | `validation` — full ValidationTuple per Validation Mapping §6.1 |
 | `slot-type` | `slotShape` — Surface slot binding contract |
 | `validation-mapping-row` | `row` — closed MappingEntry shape per VM §6 (contributes a row after the MasterTable four-constraint demotion) |
-| `token-category` | `categoryShape` — token category shape (folds Token Registry into the unified Registry as a contribution profile) |
+| `token-category` | `categoryShape` — custom token category shape with explicit `prefix` authority (folds Token Registry into the unified Registry as a contribution profile) |
+
+For `token-category` entries, `categoryShape.prefix` is the graph-visible
+Theme token category prefix. The Registry entry `name` is not prefix authority:
+entry names remain `x-*` contribution identifiers, while `categoryShape.prefix`
+names the token key prefix consumed by ModuleResolver and UI Graph Policy.
+Custom token-category prefixes MUST be `x-*`; platform prefixes remain owned by
+the platform Token Registry. Every key in `categoryShape.tokens` MUST start
+with `categoryShape.prefix + "."`.
 
 **`concept`** — Concept identity (Ontology specification):
 
@@ -644,7 +652,7 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
     "validation":     { "type": "object", "description": "REQUIRED for `action-intent` (full ValidationTuple per VM §6.1)." },
     "slotShape":      { "type": "object", "description": "REQUIRED for `slot-type`." },
     "row":            { "type": "object", "description": "REQUIRED for `validation-mapping-row` (closed MappingEntry shape per VM §6)." },
-    "categoryShape":  { "type": "object", "description": "REQUIRED for `token-category` (folds Token Registry into the unified Registry)." }
+    "categoryShape":  { "type": "object", "description": "REQUIRED for `token-category`; includes explicit `prefix` authority and token metadata." }
   },
   "allOf": [
     {

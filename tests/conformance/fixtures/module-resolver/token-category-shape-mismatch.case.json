@@ -1,0 +1,148 @@
+{
+  "id": "token-category-shape-mismatch",
+  "description": "Fails closed when an admitted Registry token-category record has categoryShape tokens that do not match the declared prefix.",
+  "inputs": {
+    "appModules": [
+      {
+        "id": "x-reviewer",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-reviewer",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": [
+              "x-agency-token-category"
+            ]
+          },
+          {
+            "name": "x-agency-token-category",
+            "category": "token-category",
+            "version": "1.0.0",
+            "categoryShape": {
+              "prefix": "x-agency",
+              "type": "color",
+              "tokens": {
+                "wrong.seal-color": {
+                  "type": "color"
+                }
+              }
+            }
+          }
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
+      }
+    ]
+  },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-TOKEN-CATEGORY-SHAPE",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "modules": 1,
+    "contributions": 0
+  },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-reviewer",
+          "version": "1.0.0"
+        },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "tokenCategories": [
+      {
+        "prefix": "x-agency",
+        "status": "shape-mismatch",
+        "entryName": "x-agency-token-category",
+        "entryVersion": "1.0.0",
+        "owningModules": [
+          {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          }
+        ],
+        "source": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "memory://registry",
+          "jsonPointer": "/entries/1/categoryShape"
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-TOKEN-CATEGORY-SHAPE",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Token category contribution 'x-agency-token-category' has invalid categoryShape evidence.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "memory://registry",
+          "jsonPointer": "/entries/1/categoryShape/tokens"
+        },
+        "details": {
+          "entryName": "x-agency-token-category",
+          "reason": "token-key-prefix-mismatch",
+          "prefix": "x-agency",
+          "tokenKey": "wrong.seal-color"
+        }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  }
+}

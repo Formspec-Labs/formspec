@@ -139,7 +139,7 @@ that omits a REQUIRED property.
 | `#/properties/targetDefinition` | `targetDefinition` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/TargetDefinition</code>; critical | Binding to the target Formspec Definition and compatible version range. The theme will only be applied to Definitions matching this target. If compatibleVersions is present and the Definition version falls outside the range, the processor SHOULD warn and MAY fall back to Tier 1 hints only (null theme). The processor MUST NOT fail on a version mismatch. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable display name for the theme. |
 | `#/properties/tokenMeta` | `tokenMeta` | <code>object</code> | no | — | Metadata for custom tokens introduced by this theme. Follows the Token Registry category schema. Platform tokens MUST NOT be redefined here — the platform registry provides their metadata. See the Token Registry Specification for details. |
-| `#/properties/tokens` | `tokens` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Tokens</code>; critical | Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive. |
+| `#/properties/tokens` | `tokens` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Tokens</code>; critical | Design tokens — named values (colors, spacing, typography, borders) that promote visual consistency. Defined once here, referenced throughout the theme via '$token.<key>' syntax in style and widgetConfig string values. Token keys use dot-delimited category prefixes (e.g., 'color.primary', 'spacing.md'). Values MUST be strings or numbers. Token references MUST NOT be recursive. UI Graph Policy graph-visible widget token slots accept platform prefixes from token-registry.json plus custom x-* prefixes; broader Theme token-map prefixes such as typography, border, and elevation are metadata vocabulary unless a later graph policy gate promotes them. |
 | `#/properties/url` | `url` | <code>string</code> | no | — | Canonical identifier for this theme. Stable across theme versions — the pair (url, version) SHOULD be globally unique. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version of this theme document. SemVer is RECOMMENDED. The pair (url, version) SHOULD be unique across all published theme versions. |
 <!-- schema-ref:end -->
@@ -254,6 +254,12 @@ null.
 
 Token keys SHOULD use the following category prefixes for
 interoperability. These categories are RECOMMENDED, not required.
+UI Graph Policy graph-visible widget token slots use a narrower compatibility
+gate: platform prefixes are the current Token Registry categories (`color`,
+`font`, `radius`, `spacing`), and module-contributed custom prefixes must be
+`x-*` with admitted Registry `token-category` evidence. Other Theme token-map
+prefixes in this table remain valid vocabulary, but they are not graph-visible
+widget token-slot prefixes unless a later policy gate promotes them.
 
 | Prefix | Purpose | Example keys |
 |--------|---------|-------------|

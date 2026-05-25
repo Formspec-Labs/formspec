@@ -478,9 +478,37 @@
         },
         "widgetShape": {
           "type": "object",
-          "description": "Widget contract (props, children policy, fallback chain). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. Per ADR 0150 §4.2 / Component §progressive-to-core.",
+          "description": "Widget contract (props, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.",
+          "properties": {
+            "props": {
+              "type": "object",
+              "description": "JSON Schema fragment for widget configuration payloads such as Theme widgetConfig or Surface module-widget binding.config."
+            },
+            "childrenPolicy": {
+              "type": "string",
+              "description": "Renderer-facing child composition policy for the widget."
+            },
+            "fallback": {
+              "type": "string",
+              "description": "Fallback core widget or rendering strategy used when this widget is unavailable."
+            },
+            "tokenSlots": {
+              "type": "array",
+              "description": "Graph-visible Theme token slots accepted by this widget. ModuleResolver normalizes this evidence into ModuleResolutionReport.widgetTokenSlots for UI Graph Policy validators; this field does not define token values, cascade, or renderer behavior.",
+              "items": {
+                "$ref": "#/$defs/WidgetTokenSlot"
+              }
+            }
+          },
           "examples": [
-            {"props": {"type": "object"}, "childrenPolicy": "no-children", "fallback": "Stack"}
+            {
+              "props": {"type": "object"},
+              "childrenPolicy": "no-children",
+              "fallback": "Stack",
+              "tokenSlots": [
+                {"name": "accent", "acceptedTokenCategories": ["color"]}
+              ]
+            }
           ]
         },
         "validation": {
@@ -505,10 +533,19 @@
           ]
         },
         "categoryShape": {
-          "type": "object",
-          "description": "Token category shape (mirrors today's token-registry.schema.json `Category` shape). REQUIRED when category is 'token-category'. Folds Token Registry into the unified Registry as a contribution profile per ADR 0150 §2.3/§4.2.",
+          "$ref": "#/$defs/TokenCategoryShape",
+          "description": "Token category shape. REQUIRED when category is 'token-category'. The `prefix` field is the graph-visible Theme token category prefix; the Registry entry `name` is not prefix authority. Folds Token Registry into the unified Registry as a contribution profile per ADR 0150 §2.3/§4.2 and ADR 0153 UI Graph Policy gates.",
           "examples": [
-            {"type": "object", "properties": {"name": {"type": "string"}, "value": {"type": "string"}}}
+            {
+              "prefix": "x-agency",
+              "type": "color",
+              "tokens": {
+                "x-agency.seal-color": {
+                  "description": "Official agency seal color",
+                  "type": "color"
+                }
+              }
+            }
           ]
         },
         "conceptUri": {
@@ -770,6 +807,122 @@
           }
         }
       ]
+    },
+    "TokenCategoryShape": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Module-contributed custom Theme token category evidence. `prefix` is the graph-visible category prefix consumed by ModuleResolver and UI Graph Policy. Token keys in `tokens` MUST start with `prefix + \".\"`; processors enforce that dynamic invariant.",
+      "required": ["prefix", "type", "tokens"],
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Custom Theme token category prefix, such as `x-agency`. Platform prefixes (`color`, `font`, `radius`, `spacing`) remain platform token authority and are not module-contributed Registry categories."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the custom token category."
+        },
+        "type": {
+          "$ref": "#/$defs/TokenCategoryTokenType",
+          "description": "Default token type for entries in this category. Entries may override with their own type."
+        },
+        "darkPrefix": {
+          "type": "string",
+          "description": "Prefix for dark-mode counterpart tokens. Only categories whose type is `color` SHOULD declare darkPrefix."
+        },
+        "tokens": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/TokenCategoryTokenEntry"
+          },
+          "description": "Token entries keyed by full dot-delimited token key. Each key MUST start with the category `prefix` followed by a dot."
+        }
+      }
+    },
+    "TokenCategoryTokenEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Metadata for one custom token entry in a Registry token-category contribution.",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the token's purpose."
+        },
+        "type": {
+          "$ref": "#/$defs/TokenCategoryTokenType",
+          "description": "Token type, overriding the category default."
+        },
+        "default": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" }
+          ],
+          "description": "Default value shipped with the module token category."
+        },
+        "dark": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" }
+          ],
+          "description": "Default dark-mode value. Only meaningful when the containing category declares a darkPrefix."
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" }
+            ]
+          },
+          "description": "Example token values for documentation and tooling hints."
+        }
+      }
+    },
+    "TokenCategoryTokenType": {
+      "type": "string",
+      "enum": [
+        "color",
+        "dimension",
+        "fontFamily",
+        "fontWeight",
+        "duration",
+        "opacity",
+        "shadow",
+        "number"
+      ],
+      "description": "Semantic token type used by tooling to select editors and validate values."
+    },
+    "WidgetTokenSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A Theme token slot declared by a module widget. Slot declarations are Registry evidence for UI Graph Policy checks only; they do not define token values, Theme cascade, renderer fallback, runtime state, or authorization.",
+      "required": ["name", "acceptedTokenCategories"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Token slot name as referenced by UI Graph Policy theme.assignments[].slot."
+        },
+        "acceptedTokenCategories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Accepted Theme token category prefixes for this slot, such as 'color', 'spacing', or 'x-agency'. These values are category prefixes, not Registry entry names. Platform prefixes are owned by token-registry.json; custom x-* prefixes require normalized ModuleResolver token-category evidence before UI Graph Policy treats them as compatible."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether the widget contract expects this slot to be assigned by policy."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable purpose of the token slot."
+        }
+      }
     },
     "ConceptEquivalent": {
       "type": "object",

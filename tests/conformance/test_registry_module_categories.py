@@ -219,12 +219,15 @@ def test_token_category_requires_categoryshape():
 
 
 def test_token_category_accepts_with_categoryshape():
-    entry = _common_fields("x-formspec-tokens-color", "token-category")
+    entry = _common_fields("x-agency-token-category", "token-category")
     entry["categoryShape"] = {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "value": {"type": "string"},
+        "prefix": "x-agency",
+        "type": "color",
+        "tokens": {
+            "x-agency.seal-color": {
+                "description": "Official agency seal color",
+                "type": "color",
+            },
         },
     }
     _validate_entry(entry)

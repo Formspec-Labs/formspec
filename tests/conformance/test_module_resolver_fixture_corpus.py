@@ -30,6 +30,9 @@ REQUIRED_FAMILIES = {
     "contribution-unadmitted",
     "payload-mismatch",
     "widget-token-slots",
+    "token-category-conflict",
+    "token-category-evidence",
+    "token-category-shape-mismatch",
 }
 
 FORBIDDEN_KEYS = {
@@ -96,6 +99,10 @@ def _widget_token_slots(report: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _token_categories(report: dict[str, Any]) -> list[dict[str, Any]]:
+    return report.get("tokenCategories", [])
+
+
 def _assert_summary_contains(report: dict[str, Any], expected: dict[str, Any]) -> None:
     for key, value in expected.items():
         assert report["summary"][key] == value
@@ -137,6 +144,11 @@ def test_expected_reports_validate_and_preserve_module_resolver_ownership() -> N
             assert isinstance(token_slot["acceptedTokenCategories"], list)
             assert token_slot["acceptedTokenCategories"]
             _assert_source_pointer(token_slot["source"])
+
+        for token_category in _token_categories(report):
+            assert isinstance(token_category["prefix"], str)
+            assert isinstance(token_category["status"], str)
+            _assert_source_pointer(token_category["source"])
 
 
 def test_fixtures_do_not_encode_path_identity_or_fine_grained_auth() -> None:

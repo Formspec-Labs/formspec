@@ -6,10 +6,12 @@ import type {
   ModuleResolutionDocument,
   ModuleResolutionModule,
   ModuleResolutionPayloadStatus,
+  ModuleResolutionRegistrySourcePointer,
   ModuleResolutionRef,
   ModuleResolutionReport,
   ModuleResolutionSourcePointer,
   ModuleResolutionSupportProfile,
+  ModuleResolutionTokenCategoryEvidence,
 } from '@formspec-org/types';
 
 export interface ModuleResolverRegistryEntry {
@@ -22,13 +24,18 @@ export interface ModuleResolverRegistryEntry {
     props?: unknown;
     tokenSlots?: unknown;
   };
+  categoryShape?: {
+    prefix?: unknown;
+    tokens?: unknown;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 
 export interface ModuleResolverRegistryInput {
   entries: ModuleResolverRegistryEntry[];
   artifactSlot?: string;
-  artifactKind?: string;
+  artifactKind?: 'registry';
   source?: string;
 }
 
@@ -94,6 +101,7 @@ interface RegistryEntryRecord {
 interface RegistryIndex {
   modulesById: Map<string, RegistryEntryRecord>;
   entriesByName: Map<string, RegistryEntryRecord>;
+  entriesByNameAll: Map<string, RegistryEntryRecord[]>;
   contributedBy: Map<string, RegistryEntryRecord[]>;
 }
 
@@ -110,6 +118,7 @@ interface ModuleState {
 
 const MODULE_PHASE = 'module-resolution';
 const MODULE_ORIGIN = 'module-resolver';
+const CUSTOM_TOKEN_CATEGORY_PREFIX_PATTERN = /^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$/;
 
 function sourceForKind(kind: string): string {
   return `memory://${kind}`;
@@ -147,11 +156,11 @@ function registrySource(
   registry: RegistryEntryRecord,
   input: ModuleResolverInput,
   jsonPointer = `/entries/${registry.entryIndex}`,
-): ModuleResolutionSourcePointer {
+): ModuleResolutionRegistrySourcePointer {
   const registryInput = input.registries[registry.registryIndex];
   return {
     artifactSlot: registryInput.artifactSlot ?? `registries[${registry.registryIndex}]`,
-    artifactKind: registryInput.artifactKind ?? 'registry',
+    artifactKind: 'registry',
     source: registryInput.source ?? 'memory://registry',
     jsonPointer,
   };
@@ -192,12 +201,16 @@ function diagnostic(
 function buildRegistryIndex(registries: readonly ModuleResolverRegistryInput[]): RegistryIndex {
   const modulesById = new Map<string, RegistryEntryRecord>();
   const entriesByName = new Map<string, RegistryEntryRecord>();
+  const entriesByNameAll = new Map<string, RegistryEntryRecord[]>();
   const contributedBy = new Map<string, RegistryEntryRecord[]>();
 
   registries.forEach((registry, registryIndex) => {
     registry.entries.forEach((entry, entryIndex) => {
       const record: RegistryEntryRecord = { entry, registryIndex, entryIndex };
       entriesByName.set(entry.name, record);
+      const allNamedEntries = entriesByNameAll.get(entry.name) ?? [];
+      allNamedEntries.push(record);
+      entriesByNameAll.set(entry.name, allNamedEntries);
       if (entry.category === 'module') {
         modulesById.set(entry.name, record);
         for (const contribution of entry.contributes ?? []) {
@@ -209,7 +222,7 @@ function buildRegistryIndex(registries: readonly ModuleResolverRegistryInput[]):
     });
   });
 
-  return { modulesById, entriesByName, contributedBy };
+  return { modulesById, entriesByName, entriesByNameAll, contributedBy };
 }
 
 function parseSemver(value: string): [number, number, number] | undefined {
@@ -488,6 +501,179 @@ function tokenSlotEvidenceFor(
   return evidence.length > 0 ? evidence : undefined;
 }
 
+interface TokenCategoryCandidate {
+  prefix: string;
+  record: RegistryEntryRecord;
+  owner: RegistryEntryRecord;
+}
+
+function tokenCategoryEvidenceFor(
+  candidate: TokenCategoryCandidate,
+  input: ModuleResolverInput,
+  status: ModuleResolutionTokenCategoryEvidence['status'],
+): ModuleResolutionTokenCategoryEvidence {
+  return {
+    prefix: candidate.prefix,
+    status,
+    entryName: candidate.record.entry.name,
+    ...(candidate.record.entry.version ? { entryVersion: candidate.record.entry.version } : {}),
+    owningModules: [ownerRef(candidate.owner)],
+    source: registrySource(candidate.record, input, `/entries/${candidate.record.entryIndex}/categoryShape`),
+  };
+}
+
+function tokenCategoryDiagnostic(
+  record: RegistryEntryRecord,
+  input: ModuleResolverInput,
+  reason: string,
+  pointer = `/entries/${record.entryIndex}/categoryShape`,
+  extraDetails: Record<string, unknown> = {},
+): ModuleResolutionDiagnostic {
+  return diagnostic(
+    'MODULE-TOKEN-CATEGORY-SHAPE',
+    `Token category contribution '${record.entry.name}' has invalid categoryShape evidence.`,
+    registrySource(record, input, pointer),
+    {
+      details: {
+        entryName: record.entry.name,
+        reason,
+        ...extraDetails,
+      },
+    },
+  );
+}
+
+function tokenCategoryShapeMismatch(
+  record: RegistryEntryRecord,
+  owner: RegistryEntryRecord,
+  input: ModuleResolverInput,
+  prefix: string,
+): ModuleResolutionTokenCategoryEvidence {
+  return {
+    prefix,
+    status: 'shape-mismatch',
+    entryName: record.entry.name,
+    ...(record.entry.version ? { entryVersion: record.entry.version } : {}),
+    owningModules: [ownerRef(owner)],
+    source: registrySource(record, input, `/entries/${record.entryIndex}/categoryShape`),
+  };
+}
+
+function tokenKeysForShape(shape: ModuleResolverRegistryEntry['categoryShape']): string[] | undefined {
+  const tokens = shape?.tokens;
+  if (!tokens || typeof tokens !== 'object' || Array.isArray(tokens)) return undefined;
+  return Object.keys(tokens);
+}
+
+function tokenCategoryRecordsForContribution(
+  index: RegistryIndex,
+  contributionName: string,
+): RegistryEntryRecord[] {
+  return (index.entriesByNameAll.get(contributionName) ?? [])
+    .filter((record) => record.entry.category === 'token-category');
+}
+
+function normalizeTokenCategories(
+  input: ModuleResolverInput,
+  index: RegistryIndex,
+  moduleStates: ReadonlyMap<string, ModuleState>,
+): {
+  tokenCategories: ModuleResolutionTokenCategoryEvidence[];
+  diagnostics: ModuleResolutionDiagnostic[];
+} {
+  const tokenCategories: ModuleResolutionTokenCategoryEvidence[] = [];
+  const diagnostics: ModuleResolutionDiagnostic[] = [];
+  const validCandidatesByPrefix = new Map<string, TokenCategoryCandidate[]>();
+
+  for (const state of moduleStates.values()) {
+    if (state.report.status !== 'admitted' || !state.registry) continue;
+    const owner = state.registry;
+    for (const contributionName of owner.entry.contributes ?? []) {
+      for (const record of tokenCategoryRecordsForContribution(index, contributionName)) {
+        const shape = record.entry.categoryShape;
+        const rawPrefix = shape?.prefix;
+        const prefix = typeof rawPrefix === 'string' ? rawPrefix : '<missing>';
+        if (typeof rawPrefix !== 'string') {
+          tokenCategories.push(tokenCategoryShapeMismatch(record, owner, input, prefix));
+          diagnostics.push(tokenCategoryDiagnostic(
+            record,
+            input,
+            'missing-prefix',
+            `/entries/${record.entryIndex}/categoryShape/prefix`,
+          ));
+          continue;
+        }
+        if (!CUSTOM_TOKEN_CATEGORY_PREFIX_PATTERN.test(rawPrefix)) {
+          tokenCategories.push(tokenCategoryShapeMismatch(record, owner, input, rawPrefix));
+          diagnostics.push(tokenCategoryDiagnostic(
+            record,
+            input,
+            'invalid-prefix',
+            `/entries/${record.entryIndex}/categoryShape/prefix`,
+            { prefix: rawPrefix },
+          ));
+          continue;
+        }
+        const tokenKeys = tokenKeysForShape(shape);
+        const invalidTokenKey = tokenKeys?.find((key) => !key.startsWith(`${rawPrefix}.`));
+        if (!tokenKeys || tokenKeys.length === 0 || invalidTokenKey !== undefined) {
+          tokenCategories.push(tokenCategoryShapeMismatch(record, owner, input, rawPrefix));
+          diagnostics.push(tokenCategoryDiagnostic(
+            record,
+            input,
+            invalidTokenKey !== undefined ? 'token-key-prefix-mismatch' : 'missing-tokens',
+            `/entries/${record.entryIndex}/categoryShape/tokens`,
+            { prefix: rawPrefix, ...(invalidTokenKey !== undefined ? { tokenKey: invalidTokenKey } : {}) },
+          ));
+          continue;
+        }
+        const candidates = validCandidatesByPrefix.get(rawPrefix) ?? [];
+        candidates.push({ prefix: rawPrefix, record, owner });
+        validCandidatesByPrefix.set(rawPrefix, candidates);
+      }
+    }
+  }
+
+  for (const [prefix, candidates] of validCandidatesByPrefix) {
+    if (candidates.length === 1) {
+      tokenCategories.push(tokenCategoryEvidenceFor(candidates[0], input, 'admitted'));
+      continue;
+    }
+    const [primary, ...related] = candidates;
+    tokenCategories.push({
+      prefix,
+      status: 'conflict',
+      entryName: primary.record.entry.name,
+      ...(primary.record.entry.version ? { entryVersion: primary.record.entry.version } : {}),
+      owningModules: candidates.map((candidate) => ownerRef(candidate.owner)),
+      source: registrySource(primary.record, input, `/entries/${primary.record.entryIndex}/categoryShape`),
+    });
+    diagnostics.push(diagnostic(
+      'MODULE-TOKEN-CATEGORY-CONFLICT',
+      `More than one admitted token-category contribution claims prefix '${prefix}'.`,
+      registrySource(primary.record, input, `/entries/${primary.record.entryIndex}/categoryShape/prefix`),
+      {
+        relatedSources: related.map((candidate) =>
+          registrySource(candidate.record, input, `/entries/${candidate.record.entryIndex}/categoryShape/prefix`)
+        ),
+        details: {
+          prefix,
+          entries: candidates.map((candidate) => candidate.record.entry.name),
+          owners: candidates.map((candidate) => candidate.owner.entry.name),
+        },
+      },
+    ));
+  }
+
+  tokenCategories.sort((left, right) =>
+    left.prefix.localeCompare(right.prefix)
+    || (left.entryName ?? '').localeCompare(right.entryName ?? '')
+    || left.status.localeCompare(right.status)
+  );
+
+  return { tokenCategories, diagnostics };
+}
+
 function payloadValidatorName(
   use: ModuleResolverContributionUse,
   entry: RegistryEntryRecord,
@@ -698,10 +884,12 @@ export function resolveModules(input: ModuleResolverInput): ModuleResolutionRepo
   const appModules = resolveAppModules(input, index);
   const documentResults = resolveDocuments(input.documents ?? [], appModules.states, input);
   const contributionResults = resolveContributions(input, index, appModules.states);
+  const tokenCategoryResults = normalizeTokenCategories(input, index, appModules.states);
   const diagnostics = [
     ...appModules.diagnostics,
     ...documentResults.diagnostics,
     ...contributionResults.diagnostics,
+    ...tokenCategoryResults.diagnostics,
   ];
   const support = supportForReport(input.support);
 
@@ -710,6 +898,7 @@ export function resolveModules(input: ModuleResolverInput): ModuleResolutionRepo
     modules: appModules.modules,
     documents: documentResults.documents,
     contributions: contributionResults.contributions,
+    ...(tokenCategoryResults.tokenCategories.length > 0 ? { tokenCategories: tokenCategoryResults.tokenCategories } : {}),
     diagnostics,
     summary: summaryFor(
       appModules.modules,

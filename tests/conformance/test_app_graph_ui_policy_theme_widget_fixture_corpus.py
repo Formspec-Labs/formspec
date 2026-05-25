@@ -24,6 +24,11 @@ FIXTURE_PATH = (
 REQUIRED_CASES = {
     "ambiguous-loaded-theme-evidence",
     "valid-theme-widget-with-resolved-contribution",
+    "valid-custom-token-category-evidence",
+    "missing-custom-token-category-evidence",
+    "conflicting-custom-token-category-evidence",
+    "shape-mismatch-custom-token-category-evidence",
+    "unsupported-token-category-prefix",
     "missing-loaded-theme-evidence",
     "missing-theme-token-ref",
     "theme-token-category-mismatch",
@@ -42,6 +47,16 @@ EXPECTED_CODES = {
     "ambiguous-loaded-theme-evidence": ["THEME-TOKEN-REF"],
     "missing-loaded-theme-evidence": ["THEME-TOKEN-REF"],
     "missing-theme-token-ref": ["THEME-TOKEN-REF"],
+    "missing-custom-token-category-evidence": ["THEME-TOKEN-CATEGORY-REF"],
+    "conflicting-custom-token-category-evidence": [
+        "MODULE-TOKEN-CATEGORY-CONFLICT",
+        "THEME-TOKEN-CATEGORY-REF",
+    ],
+    "shape-mismatch-custom-token-category-evidence": [
+        "MODULE-TOKEN-CATEGORY-SHAPE",
+        "THEME-TOKEN-CATEGORY-REF",
+    ],
+    "unsupported-token-category-prefix": ["THEME-TOKEN-CATEGORY-REF"],
     "theme-token-category-mismatch": ["THEME-TOKEN-CATEGORY"],
     "undeclared-theme-token-slot": ["THEME-TOKEN-SLOT"],
     "missing-theme-token-slot-evidence": ["THEME-TOKEN-SLOT"],
@@ -213,6 +228,30 @@ def test_ui_graph_policy_theme_widget_fixtures_carry_token_slot_evidence() -> No
     ]
 
 
+def test_ui_graph_policy_theme_widget_fixtures_carry_token_category_evidence() -> None:
+    report = _corpus()["moduleResolutionReports"]["resolved-theme-widget-custom-category"]
+    assert report["tokenCategories"] == [
+        {
+            "prefix": "x-agency",
+            "status": "admitted",
+            "entryName": "x-agency-token-category",
+            "entryVersion": "1.0.0",
+            "owningModules": [
+                {
+                    "id": "x-reviewer",
+                    "version": "1.0.0",
+                }
+            ],
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/2/categoryShape",
+            },
+        }
+    ]
+
+
 def test_ui_graph_policy_theme_widget_slot_diagnostics_are_policy_owned() -> None:
     undeclared = _case("undeclared-theme-token-slot")["expected"]["diagnostics"][0]
     assert undeclared["code"] == "THEME-TOKEN-SLOT"
@@ -277,6 +316,37 @@ def test_ui_graph_policy_theme_widget_token_diagnostics_are_policy_owned() -> No
         "theme",
     }
 
+    custom_missing = _case("missing-custom-token-category-evidence")["expected"]["diagnostics"][0]
+    assert custom_missing["code"] == "THEME-TOKEN-CATEGORY-REF"
+    assert custom_missing["details"]["reason"] == "missing-token-category-evidence"
+    assert custom_missing["details"]["categoryPrefix"] == "x-agency"
+    assert len(custom_missing["relatedSources"]) == 2
+    _assert_registry_pointer(custom_missing["relatedSources"][0])
+    _assert_theme_pointer(custom_missing["relatedSources"][1])
+
+    custom_conflict = _case("conflicting-custom-token-category-evidence")["expected"]["diagnostics"][1]
+    assert custom_conflict["code"] == "THEME-TOKEN-CATEGORY-REF"
+    assert custom_conflict["details"]["reason"] == "conflicting-token-category-evidence"
+    assert custom_conflict["details"]["tokenCategoryStatuses"] == ["conflict"]
+    assert len(custom_conflict["relatedSources"]) == 3
+    _assert_registry_pointer(custom_conflict["relatedSources"][0])
+    _assert_registry_pointer(custom_conflict["relatedSources"][1])
+    _assert_theme_pointer(custom_conflict["relatedSources"][2])
+
+    custom_shape = _case("shape-mismatch-custom-token-category-evidence")["expected"]["diagnostics"][1]
+    assert custom_shape["code"] == "THEME-TOKEN-CATEGORY-REF"
+    assert custom_shape["details"]["reason"] == "token-category-shape-mismatch"
+    assert custom_shape["details"]["tokenCategoryStatuses"] == ["shape-mismatch"]
+    assert len(custom_shape["relatedSources"]) == 3
+    _assert_registry_pointer(custom_shape["relatedSources"][0])
+    _assert_registry_pointer(custom_shape["relatedSources"][1])
+    _assert_theme_pointer(custom_shape["relatedSources"][2])
+
+    unsupported = _case("unsupported-token-category-prefix")["expected"]["diagnostics"][0]
+    assert unsupported["code"] == "THEME-TOKEN-CATEGORY-REF"
+    assert unsupported["details"]["reason"] == "unsupported-category-prefix"
+    assert unsupported["details"]["categoryPrefix"] == "typography"
+
 
 def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() -> None:
     for case in _corpus()["cases"]:
@@ -330,7 +400,11 @@ def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> N
             if diagnostic["code"] == "THEME-TOKEN-SLOT":
                 assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
                 assert diagnostic["primarySource"]["jsonPointer"].endswith("/slot")
-            if diagnostic["code"] in {"THEME-TOKEN-REF", "THEME-TOKEN-CATEGORY"}:
+            if diagnostic["code"] in {
+                "THEME-TOKEN-REF",
+                "THEME-TOKEN-CATEGORY",
+                "THEME-TOKEN-CATEGORY-REF",
+            }:
                 assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
                 assert diagnostic["primarySource"]["jsonPointer"].endswith("/token")
             if diagnostic["code"] == "MODULE-CONTRIBUTION-UNADMITTED":

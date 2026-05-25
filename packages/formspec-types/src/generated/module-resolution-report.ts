@@ -64,6 +64,17 @@ export type ModuleResolutionRegistrySourcePointer = ModuleResolutionSourcePointe
 };
 /**
  * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema
+ * via the `definition` "ModuleResolutionTokenCategoryStatus".
+ */
+export type ModuleResolutionTokenCategoryStatus =
+  | 'admitted'
+  | 'missing'
+  | 'unowned'
+  | 'conflict'
+  | 'unadmitted'
+  | 'shape-mismatch';
+/**
+ * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema
  * via the `definition` "ModuleResolutionPhaseStatusValue".
  */
 export type ModuleResolutionPhaseStatusValue = 'completed' | 'skipped' | 'not-run';
@@ -88,6 +99,10 @@ export interface ModuleResolutionReport {
    * Module-contributed value resolution results keyed by consuming site evidence.
    */
   contributions: ModuleResolutionContribution[];
+  /**
+   * Report-level normalized Registry token-category evidence from admitted module contributions. UI Graph Policy consumes admitted custom x-* prefix evidence from this array; AppGraphValidator MUST NOT read Registry directly.
+   */
+  tokenCategories?: ModuleResolutionTokenCategoryEvidence[];
   /**
    * Resolver diagnostics normalized to origin module-resolver and phase module-resolution.
    */
@@ -253,11 +268,31 @@ export interface ModuleResolutionWidgetTokenSlot {
    */
   name: string;
   /**
-   * Accepted Theme token category prefixes for this slot, copied from Registry widgetShape.tokenSlots[].acceptedTokenCategories. These values are category prefixes, not Registry entry names. Loaded-Theme token category checks are executable in UI Graph Policy; Registry token-category contribution compatibility remains deferred until ModuleResolver exposes normalized category evidence.
+   * Accepted Theme token category prefixes for this slot, copied from Registry widgetShape.tokenSlots[].acceptedTokenCategories. These values are category prefixes, not Registry entry names. Loaded-Theme token category checks are executable in UI Graph Policy; custom x-* prefixes require report-level tokenCategories[] evidence.
    *
    * @minItems 1
    */
   acceptedTokenCategories: [string, ...string[]];
+  source: ModuleResolutionRegistrySourcePointer;
+}
+/**
+ * Normalized Registry token-category evidence for a graph-visible custom Theme token category prefix.
+ *
+ * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema
+ * via the `definition` "ModuleResolutionTokenCategoryEvidence".
+ */
+export interface ModuleResolutionTokenCategoryEvidence {
+  /**
+   * Graph-visible Theme token category prefix declared by Registry categoryShape.prefix. Admitted entries use custom x-* prefixes; shape-mismatch entries may carry the invalid source value for diagnostics.
+   */
+  prefix: string;
+  status: ModuleResolutionTokenCategoryStatus;
+  /**
+   * Registry entry name that supplied the categoryShape. This is evidence identity, not category-prefix authority.
+   */
+  entryName?: string;
+  entryVersion?: string;
+  owningModules?: ModuleResolutionRef[];
   source: ModuleResolutionRegistrySourcePointer;
 }
 /**

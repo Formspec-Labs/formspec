@@ -113,13 +113,13 @@ Missing or failing host-evidence schema validation MUST produce
 Artifact `schemaValidators` MUST NOT be used for host evidence.
 
 This specification does not define a request JSON Schema and does not require
-Registry token-category contribution compatibility, runtime hidden-state, or
-consumer UI Graph Policy diagnostics in this slice. The shared kernel does
-include the Surface/route, Locale-owner, hidden Definition reference, Theme
-widgetRef, Theme token-slot, and Theme token-reference/category UI Graph Policy
-semantic passes over schema-valid `hostEvidence.uiGraphPolicies[]`, loaded
-Surface handles, loaded Locale handles, loaded Definition handles, loaded Theme
-handles, and completed ModuleResolver evidence when a check depends on module
+runtime hidden-state or consumer UI Graph Policy diagnostics in this slice. The
+shared kernel does include the Surface/route, Locale-owner, hidden Definition
+reference, Theme widgetRef, Theme token-slot, Theme token-reference/category,
+and custom token-category evidence UI Graph Policy semantic passes over
+schema-valid `hostEvidence.uiGraphPolicies[]`, loaded Surface handles, loaded
+Locale handles, loaded Definition handles, loaded Theme handles, and completed
+ModuleResolver evidence when a check depends on module
 admission, contribution ownership, or normalized widget token-slot evidence.
 
 ### 2.2 Artifact Handle
@@ -257,7 +257,7 @@ app-graph report.
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. |
 | Data Sources availability selectors to loaded Surfaces, routes, slots, Definitions, and modules | `AppGraphValidator` | `cross-artifact` | Payload fetching and cache behavior remain out of scope. |
-| UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme widget refs/token slots | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary and `ui-graph-policy` is an admitted report origin. The shared kernel currently enforces host-evidence-backed Surface/route, policy-local Locale-owner, Locale-owner module-id resolution against completed ModuleResolver evidence, hidden Definition reference diagnostics, Theme widgetRef resolution against completed ModuleResolver widget contribution evidence, Theme token-slot checks against completed ModuleResolver `widgetTokenSlots[]` evidence, and Theme token reference/category checks over exactly-one loaded Theme evidence; Registry token-category contribution compatibility, runtime hidden-state, and consumer checks remain later gates. |
+| UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme widget refs/token slots/categories | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary and `ui-graph-policy` is an admitted report origin. The shared kernel currently enforces host-evidence-backed Surface/route, policy-local Locale-owner, Locale-owner module-id resolution against completed ModuleResolver evidence, hidden Definition reference diagnostics, Theme widgetRef resolution against completed ModuleResolver widget contribution evidence, Theme token-slot checks against completed ModuleResolver `widgetTokenSlots[]` evidence, Theme token reference/category checks over exactly-one loaded Theme evidence, and custom `x-*` category compatibility against completed ModuleResolver `tokenCategories[]` evidence; runtime hidden-state and consumer checks remain later gates. |
 | Fine-grained actor, route, operation, widget, field, or source authorization | Future authorization contract | `authorization-boundary` | Until a dedicated authorization contract lands, such fields fail closed rather than receiving semantics. |
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
 | Component Surface/route target resolution, duplicate route claims, route-bound control Definition context, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | The shared kernel currently enforces loaded Component membership, Surface/route/slot target resolution, duplicate route claims, exact-only Surface version mismatch, ref-less Component handle rejection, evidence-limited fake `targetDefinition` rejection, and URL-based `definition-form` route context for route-bound Components with bound controls. Full graph-wide node identity disambiguation remains a later gate. |

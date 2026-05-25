@@ -26,6 +26,11 @@
       "description": "Module-contributed value resolution results keyed by consuming site evidence.",
       "items": { "$ref": "#/$defs/ModuleResolutionContribution" }
     },
+    "tokenCategories": {
+      "type": "array",
+      "description": "Report-level normalized Registry token-category evidence from admitted module contributions. UI Graph Policy consumes admitted custom x-* prefix evidence from this array; AppGraphValidator MUST NOT read Registry directly.",
+      "items": { "$ref": "#/$defs/ModuleResolutionTokenCategoryEvidence" }
+    },
     "diagnostics": {
       "type": "array",
       "description": "Resolver diagnostics normalized to origin module-resolver and phase module-resolution.",
@@ -81,6 +86,10 @@
     "ModuleResolutionPayloadStatus": {
       "type": "string",
       "enum": ["not-run", "passed", "failed", "missing-validator"]
+    },
+    "ModuleResolutionTokenCategoryStatus": {
+      "type": "string",
+      "enum": ["admitted", "missing", "unowned", "conflict", "unadmitted", "shape-mismatch"]
     },
     "ModuleResolutionRef": {
       "type": "object",
@@ -368,7 +377,39 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Accepted Theme token category prefixes for this slot, copied from Registry widgetShape.tokenSlots[].acceptedTokenCategories. These values are category prefixes, not Registry entry names. Loaded-Theme token category checks are executable in UI Graph Policy; Registry token-category contribution compatibility remains deferred until ModuleResolver exposes normalized category evidence."
+          "description": "Accepted Theme token category prefixes for this slot, copied from Registry widgetShape.tokenSlots[].acceptedTokenCategories. These values are category prefixes, not Registry entry names. Loaded-Theme token category checks are executable in UI Graph Policy; custom x-* prefixes require report-level tokenCategories[] evidence."
+        },
+        "source": {
+          "$ref": "#/$defs/ModuleResolutionRegistrySourcePointer"
+        }
+      }
+    },
+    "ModuleResolutionTokenCategoryEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Normalized Registry token-category evidence for a graph-visible custom Theme token category prefix.",
+      "required": ["prefix", "status", "source"],
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Graph-visible Theme token category prefix declared by Registry categoryShape.prefix. Admitted entries use custom x-* prefixes; shape-mismatch entries may carry the invalid source value for diagnostics."
+        },
+        "status": {
+          "$ref": "#/$defs/ModuleResolutionTokenCategoryStatus"
+        },
+        "entryName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Registry entry name that supplied the categoryShape. This is evidence identity, not category-prefix authority."
+        },
+        "entryVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owningModules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ModuleResolutionRef" }
         },
         "source": {
           "$ref": "#/$defs/ModuleResolutionRegistrySourcePointer"

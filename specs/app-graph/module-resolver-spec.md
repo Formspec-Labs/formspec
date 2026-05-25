@@ -136,6 +136,7 @@ The resolver builds or consumes a deterministic Registry index:
 | `contributedBy` | Contribution name to owning module ids. |
 | `payloadSchemas` | Contribution name to payload schema fragments such as `widgetShape.props`, `slotShape`, `semantics`, `row`, or `categoryShape`. |
 | `widgetTokenSlots` | Resolved widget contribution to Registry `widgetShape.tokenSlots[]` evidence. This is the production source for UI Graph Policy Theme token-slot checks; the resolver MUST NOT read v4 spike `semantics.themeTokenSlots` as authority. |
+| `tokenCategories` | Normalized admitted Registry `token-category.categoryShape` evidence keyed by explicit `categoryShape.prefix`. Registry entry names are never category-prefix authority. |
 
 Each module entry's `contributes[]` names Registry entries bundled by that
 module. Each `dependencies[]` entry is a `ModuleRef` that must resolve against
@@ -179,7 +180,9 @@ The resolver runs deterministic phases:
 7. Resolve each module-contributed value to one Registry entry, expected
    category, and admitted owning module.
 8. Run payload-schema validators for payload-bearing contribution sites.
-9. Return a module-resolution report with deterministic diagnostics.
+9. Normalize admitted `token-category` contribution evidence from admitted
+   modules' direct `contributes[]` lists.
+10. Return a module-resolution report with deterministic diagnostics.
 
 Each phase should continue after recoverable failures so downstream reports can
 show the full module-resolution failure set.
@@ -218,7 +221,7 @@ requiring all consumers to be wired in this prose slice.
 | Response Actions intents | `action-intent` | Validation tuple authority remains Response Actions and validation mapping. |
 | Validation Mapping rows | `validation-mapping-row` | `row` payload schema. |
 | UI Graph Policy token slots | `widget` | AppGraphValidator consumes completed widget contribution evidence plus `widgetTokenSlots[]` copied from Registry `widgetShape.tokenSlots[]`; `THEME-TOKEN-SLOT` remains UI Graph Policy-owned. |
-| UI Graph Policy token-category compatibility | `token-category` | Future `categoryShape` hook after ModuleResolver exposes normalized admitted token-category evidence. The current `widgetTokenSlots[].acceptedTokenCategories[]` values are category prefixes for loaded Theme token checks, not Registry entry names. |
+| UI Graph Policy token-category compatibility | `token-category` | `ModuleResolutionReport.tokenCategories[]` exposes admitted custom `x-*` category evidence from Registry `categoryShape.prefix`. `widgetTokenSlots[].acceptedTokenCategories[]` values are category prefixes for loaded Theme token checks, not Registry entry names. |
 
 Component bundle id collision diagnostics, including current E605 behavior,
 are not ModuleResolver-owned. They remain bundle-graph validation because they
@@ -234,6 +237,7 @@ evidence.
 | `modules` | yes | Normalized app module set with source pointers. |
 | `documents` | yes | Per-document module coherence results. |
 | `contributions` | yes | Contribution resolution results keyed by consuming site. |
+| `tokenCategories` | no | Normalized Registry `token-category` evidence from admitted modules, keyed by explicit `categoryShape.prefix`. Present when admitted token-category evidence is discovered or rejected as conflicting/shape-mismatched. |
 | `diagnostics` | yes | Module-resolution diagnostics in the shared app-graph envelope. |
 | `summary` | yes | Counts for modules, admitted modules, denied modules, unresolved dependencies, unresolved contributions, payload failures, errors, warnings, and infos. |
 | `phase` | yes | Module-resolution phase status and optional reason. |
@@ -244,6 +248,19 @@ slot declarations. This report evidence is inert by itself: ModuleResolver does
 not emit `THEME-TOKEN-SLOT`, validate Theme tokens, decide token category
 compatibility, execute renderer fallback, or infer policy from v4 spike
 `semantics.themeTokenSlots` data.
+
+Report-level `tokenCategories[]` entries normalize Registry
+`category: "token-category"` contributions. The resolver scans admitted module
+entries' direct `contributes[]` lists and then scans Registry entries by name;
+it MUST NOT rely on a last-writer `entriesByName` map for this evidence. An
+admitted category requires exactly one admitted contribution for a custom
+`x-*` `categoryShape.prefix`, and every `categoryShape.tokens` key must start
+with that prefix plus a dot. Duplicate admitted category evidence for the same
+prefix yields `status: "conflict"` and a module-resolution diagnostic. Missing,
+non-string, non-`x-*`, or token-key-mismatched `categoryShape.prefix` evidence
+yields `status: "shape-mismatch"` and a module-resolution diagnostic. Platform
+prefixes from `schemas/token-registry.json` (`color`, `font`, `radius`,
+`spacing`) remain platform token authority, not Registry module contributions.
 
 Downstream `AppGraphValidator` consumes the full `ModuleResolutionReport` as
 typed context evidence and imports only the report's top-level diagnostics with
@@ -270,6 +287,8 @@ the shared app-graph diagnostic envelope.
 | `MODULE-CONTRIBUTION-CONFLICT` | error | More than one module contributes the same Registry entry. |
 | `MODULE-CONTRIBUTION-UNADMITTED` | error | The owning module is not admitted by app or host evidence. |
 | `MODULE-PAYLOAD-SCHEMA-MISMATCH` | error | A payload-bearing use fails the owning contribution's payload schema. |
+| `MODULE-TOKEN-CATEGORY-SHAPE` | error | An admitted Registry token-category contribution has missing, invalid, or internally inconsistent `categoryShape.prefix` evidence. |
+| `MODULE-TOKEN-CATEGORY-CONFLICT` | error | More than one admitted token-category contribution claims the same custom category prefix. |
 
 Existing lint codes E603 and E604 are current enforcement seeds for unresolved
 module-extensible values and payload-schema mismatches. A shared resolver may

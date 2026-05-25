@@ -9,6 +9,7 @@ import {
   type AppGraphValidationRequest,
   type ResolvedArtifactHandle,
 } from '../src/index.js';
+import { PLATFORM_TOKEN_CATEGORY_PREFIXES } from '../src/ui-graph-policy.js';
 import type { ModuleResolutionReport } from '@formspec-org/types';
 
 interface FixturePolicy {
@@ -58,9 +59,19 @@ interface FixtureCorpus {
 const FIXTURE_PATH = resolve(
   fileURLToPath(new URL('../../../tests/conformance/fixtures/app-graph-validator/ui-graph-policy-theme-widgets.case.json', import.meta.url)),
 );
+const TOKEN_REGISTRY_PATH = resolve(
+  fileURLToPath(new URL('../../../schemas/token-registry.json', import.meta.url)),
+);
 
 function fixtureCorpus(): FixtureCorpus {
   return JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as FixtureCorpus;
+}
+
+function platformTokenRegistryPrefixes(): string[] {
+  const registry = JSON.parse(readFileSync(TOKEN_REGISTRY_PATH, 'utf8')) as {
+    categories?: Record<string, unknown>;
+  };
+  return Object.keys(registry.categories ?? {}).sort();
 }
 
 function handleFor(corpus: FixtureCorpus, key: string): ResolvedArtifactHandle {
@@ -124,6 +135,10 @@ function expectDiagnostic(actual: AppGraphDiagnostic, expected: FixtureDiagnosti
 
 describe('UI Graph Policy Theme widget source conformance fixtures', () => {
   const corpus = fixtureCorpus();
+
+  it('keeps graph-visible platform token category prefixes pinned to token-registry categories', () => {
+    expect([...PLATFORM_TOKEN_CATEGORY_PREFIXES].sort()).toEqual(platformTokenRegistryPrefixes());
+  });
 
   for (const testCase of corpus.cases) {
     it(`${testCase.id}: ${testCase.description}`, () => {

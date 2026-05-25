@@ -237,4 +237,105 @@ describe('resolveModules', () => {
     });
     expect(report.diagnostics).toEqual([]);
   });
+
+  it('normalizes admitted token-category evidence from categoryShape.prefix', () => {
+    const report = resolveModules({
+      appModules: [{
+        id: 'x-reviewer',
+        version: '1.0.0',
+        source: {
+          artifactSlot: 'app',
+          artifactKind: 'appManifest',
+          source: 'memory://app',
+          jsonPointer: '/modules/0',
+          module: { id: 'x-reviewer', version: '1.0.0' },
+        },
+      }],
+      registries: registry([
+        { name: 'x-reviewer', category: 'module', version: '1.0.0', contributes: ['x-agency-token-category'] },
+        {
+          name: 'x-agency-token-category',
+          category: 'token-category',
+          version: '1.0.0',
+          categoryShape: {
+            prefix: 'x-agency',
+            type: 'color',
+            tokens: {
+              'x-agency.seal-color': { description: 'Official agency seal color', type: 'color' },
+            },
+          },
+        },
+      ]),
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.tokenCategories).toEqual([
+      {
+        prefix: 'x-agency',
+        status: 'admitted',
+        entryName: 'x-agency-token-category',
+        entryVersion: '1.0.0',
+        owningModules: [{ id: 'x-reviewer', version: '1.0.0' }],
+        source: {
+          artifactSlot: 'registries[0]',
+          artifactKind: 'registry',
+          source: 'memory://registry',
+          jsonPointer: '/entries/1/categoryShape',
+        },
+      },
+    ]);
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it('diagnoses duplicate admitted token-category prefixes without losing duplicate Registry names', () => {
+    const report = resolveModules({
+      appModules: [{
+        id: 'x-reviewer',
+        version: '1.0.0',
+        source: {
+          artifactSlot: 'app',
+          artifactKind: 'appManifest',
+          source: 'memory://app',
+          jsonPointer: '/modules/0',
+          module: { id: 'x-reviewer', version: '1.0.0' },
+        },
+      }],
+      registries: registry([
+        { name: 'x-reviewer', category: 'module', version: '1.0.0', contributes: ['x-agency-token-category'] },
+        {
+          name: 'x-agency-token-category',
+          category: 'token-category',
+          version: '1.0.0',
+          categoryShape: {
+            prefix: 'x-agency',
+            type: 'color',
+            tokens: { 'x-agency.seal-color': { type: 'color' } },
+          },
+        },
+        {
+          name: 'x-agency-token-category',
+          category: 'token-category',
+          version: '1.0.0',
+          categoryShape: {
+            prefix: 'x-agency',
+            type: 'color',
+            tokens: { 'x-agency.alert-color': { type: 'color' } },
+          },
+        },
+      ]),
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.tokenCategories).toMatchObject([
+      {
+        prefix: 'x-agency',
+        status: 'conflict',
+        owningModules: [
+          { id: 'x-reviewer', version: '1.0.0' },
+          { id: 'x-reviewer', version: '1.0.0' },
+        ],
+      },
+    ]);
+    expect(report.diagnostics.map((entry) => entry.code)).toEqual(['MODULE-TOKEN-CATEGORY-CONFLICT']);
+  });
 });

@@ -315,3 +315,59 @@ def test_widget_token_slot_evidence_requires_registry_artifact_kind() -> None:
     ]
     with pytest.raises(ValidationError):
         _validator().validate(report)
+
+
+def test_token_category_evidence_shape_passes() -> None:
+    report = _valid_report()
+    report["tokenCategories"] = [
+        {
+            "prefix": "x-agency",
+            "status": "admitted",
+            "entryName": "x-agency-token-category",
+            "entryVersion": "1.0.0",
+            "owningModules": [_module_ref()],
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/categoryShape",
+            },
+        }
+    ]
+    _validator().validate(report)
+
+
+def test_token_category_evidence_requires_registry_source() -> None:
+    report = _valid_report()
+    report["tokenCategories"] = [
+        {
+            "prefix": "x-agency",
+            "status": "admitted",
+            "source": {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface",
+                "jsonPointer": "/routes/0",
+            },
+        }
+    ]
+    with pytest.raises(ValidationError):
+        _validator().validate(report)
+
+
+def test_token_category_evidence_rejects_unknown_status() -> None:
+    report = _valid_report()
+    report["tokenCategories"] = [
+        {
+            "prefix": "x-agency",
+            "status": "unknown",
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/categoryShape",
+            },
+        }
+    ]
+    with pytest.raises(ValidationError):
+        _validator().validate(report)
