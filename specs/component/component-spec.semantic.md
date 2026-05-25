@@ -13,5 +13,6 @@
 - Responsive constraints: breakpoint overrides are presentation-only and must not mutate structure (`component`, `children`) or identity (`bind`, `when`).
 - Token cascade: token lookup follows Tier 3 component tokens -> Tier 2 theme tokens -> renderer defaults; unresolved tokens degrade gracefully with warnings.
 - Partial-tree behavior: unbound required or visible items must still be rendered through Tier 2/Tier 1 fallback in Definition order to preserve completion semantics.
+- ADR 0154 vNext identity: form-bound Components keep `targetDefinition`; route-bound app UI uses `targetSurfaceRoutes[]`; graph-wide node identity must include Component, Surface, route, and node path scope.
 - Custom component semantics: registry-backed components use parameter interpolation in allowed string fields, prohibit recursive cycles, and must fail fast on missing required params.
 - Complexity guardrails: no recursive custom components, capped depth, no imperative event scripting, and no dynamic component type switching at runtime.

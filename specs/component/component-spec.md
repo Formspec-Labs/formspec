@@ -63,6 +63,7 @@ Section references (§N) refer to this document unless prefixed with
 - [§2 Document Structure](#2-document-structure)
   - [§2.1 Top-Level Properties](#21-top-level-properties)
   - [§2.2 Target Definition Binding](#22-target-definition-binding)
+  - [§2.2.1 Component vNext Surface-Route Identity (ADR 0154)](#221-component-vnext-surface-route-identity-adr-0154)
   - [§2.3 MIME Type (.formspec-component.json)](#23-mime-type-formspec-componentjson)
   - [§2.4 Minimal Conforming Document](#24-minimal-conforming-document)
 - [§3 Component Model](#3-component-model)
@@ -108,6 +109,7 @@ Section references (§N) refer to this document unless prefixed with
   - [§11.3 Precedence: Tier 3 > Tier 2 > Tier 1](#113-precedence-tier-3--tier-2--tier-1)
   - [§11.4 Partial Component Trees](#114-partial-component-trees)
   - [§11.5 Cross-References to Peer Artifacts](#115-cross-references-to-peer-artifacts)
+  - [§11.6 App-Graph Component Identity (ADR 0154)](#116-app-graph-component-identity-adr-0154)
 - [§12 Validation and Conformance](#12-validation-and-conformance)
   - [§12.1 Structural Validation (JSON Schema)](#121-structural-validation-json-schema)
   - [§12.2 Referential Integrity](#122-referential-integrity)
@@ -294,6 +296,61 @@ warn and MAY fall back to Tier 2/Tier 1 rendering.
 The binding mechanism is identical to the Theme Specification's
 `targetDefinition` (theme-spec §2.2). A Component Document and a Theme
 Document MAY target the same Definition simultaneously.
+
+#### 2.2.1 Component vNext Surface-Route Identity (ADR 0154)
+
+The current v1.0/v1.1 schema is form-bound: it requires
+`targetDefinition`. ADR 0154 defines the vNext app-graph identity target but
+does not change the current schema until the Component schema-vNext gate lands.
+Processors MUST NOT accept a source Component document that fails the current
+schema unless they are explicitly evaluating a future vNext support profile.
+
+Component vNext MUST allow a Component document to declare one or both identity
+bindings:
+
+1. `targetDefinition` for Definition-bound form rendering.
+2. `targetSurfaceRoutes[]` for Surface route, slot, or app-shell
+   applicability.
+
+A Component vNext document MUST declare at least one of those bindings. A
+form-only Component declares `targetDefinition` only. A non-form route Component
+declares `targetSurfaceRoutes[]` only. A route projection that renders
+Definition-bound controls MAY declare both; in that case, the Surface route
+binding says where the tree appears, and `targetDefinition` says which form data
+model its bound controls use.
+
+`targetSurfaceRoutes[]` has this conceptual entry shape:
+
+```json
+{
+  "surface": {
+    "url": "https://agency.gov/apps/workspace/surfaces/respondent",
+    "version": "1.0.0"
+  },
+  "route": "review",
+  "slot": "main",
+  "role": "slot"
+}
+```
+
+| Field | Cardinality | Description |
+|---|---|---|
+| `surface.url` | **1..1** | URL of a Surface document included in the enclosing App Manifest `surfaces[]`. |
+| `surface.version` | **0..1** | Optional exact version or range compatible with the App Manifest Surface pin. |
+| `route` | **1..1** | Surface `routes[].id`. It is not the URL path. |
+| `slot` | **0..1** | Route slot key. When omitted, the Component targets the whole route projection. |
+| `role` | **1..1** | Initial values are `route`, `slot`, and `app-shell`. Future values require a Component spec/schema revision. |
+
+Surface remains source truth for routes, slots, navigation, transitions, and
+slot bindings. A Component target is an applicability claim; it does not create
+the route or slot. AppGraph validation resolves `targetSurfaceRoutes[]` against
+the loaded App Manifest and Surface artifacts after the Component schema-vNext
+gate lands.
+
+Source documents MUST NOT fabricate a fake `targetDefinition` to make non-form
+route UI validate as a form Component. Exporters MAY emit output-only legacy
+compatibility shims for older tools, but graph validators MUST NOT treat those
+shims as source identity.
 
 ### 2.3 MIME Type (.formspec-component.json)
 
@@ -3167,6 +3224,60 @@ and generation metadata. They MUST NOT change Tier 3 precedence, fallback,
 layout, widget selection, slot binding, validation, Mapping, Response status,
 or action invocation. Default renderers MUST ignore them for runtime output.
 
+### 11.6 App-Graph Component Identity (ADR 0154)
+
+In an app graph, Component identity has more scope than a form-only
+`targetDefinition` binding. The production identity tuple is:
+
+| Scope | Identity | Owner |
+|---|---|---|
+| Component document | `url` + `version`; App Manifest `components[]` handle when bundled | Component document and App Manifest |
+| Surface route target | `surface.url` + `surface.version?` + `route` + optional `slot` + `role` | Component document, validated against Surface |
+| App graph membership | App Manifest `components[]` entries with unique `handle` values | App Manifest vNext |
+| Component node | Surface identity + route + Component handle/ref + `nodePath` + optional `id` / `nodeId` | Component tree and graph-aware operations |
+
+Graph-wide node identity MUST include enough scope to disambiguate multiple
+Surfaces and multiple Component documents:
+
+```json
+{
+  "component": {
+    "handle": "reviewRoute",
+    "url": "https://agency.gov/apps/workspace/components/review-route",
+    "version": "1.0.0"
+  },
+  "surface": {
+    "url": "https://agency.gov/apps/workspace/surfaces/respondent",
+    "version": "1.0.0"
+  },
+  "route": "review",
+  "nodePath": "/reviewLayout/submit",
+  "id": "submitButton",
+  "nodeId": "submitButton"
+}
+```
+
+`nodePath` is an absolute route-scoped path. Path segments resolve from stable
+node labels in this order:
+
+1. `nodeId`, when present.
+2. `bind`, for Definition-bound controls.
+3. `ComponentBase.id`, when present.
+
+Sibling path segments MUST be unambiguous. A node that cannot produce an
+unambiguous path segment cannot participate in graph-wide copy, move,
+provenance, or generated patch operations.
+
+`ComponentBase.id` remains bundle-graph-wide when present. `nodeId` is
+editor/runtime-stable structural identity when present. They may be equal, but
+they serve different purposes: `id` is public addressing for locale, tests, and
+accessibility; `nodeId` is structural authoring identity.
+
+Component route identity does not give Component authority over Response
+Actions or authorization. An `ActionButton` may name an action, but Response
+Actions remains the only executor. Fine-grained authorization remains held
+behind ADR 0152.
+
 ---
 
 ## 12. Validation and Conformance
@@ -3181,7 +3292,7 @@ the structural rules defined in this specification. These rules MAY
 be expressed as a JSON Schema (`component.schema.json`) for tooling
 purposes.
 
-Structural validation MUST verify:
+Current v1.0/v1.1 structural validation MUST verify:
 
 1. **Required properties:** `$formspecComponent`, `version`,
    `targetDefinition`, and `tree` are present.
@@ -3197,6 +3308,12 @@ Structural validation MUST verify:
 6. **ConditionalGroup `when`:** ConditionalGroup components include
    a `when` property.
 7. **Heading props:** `level` is 1–6 and `text` is present.
+
+Component schema vNext structural validation MUST instead verify that
+`$formspecComponent`, `version`, `tree`, and at least one identity binding
+(`targetDefinition` or `targetSurfaceRoutes[]`) are present. A document that
+omits both identity bindings is invalid. This vNext rule is prose-only until the
+schema-vNext gate lands.
 
 Structural validation MUST be performed before referential integrity
 checks (§12.2).
@@ -3232,6 +3349,17 @@ integrity:
 
 6. **Cycle-free custom components:** The custom component dependency
    graph MUST be acyclic (§7.4).
+
+7. **Surface-route targets (vNext):** When a support profile admits
+   `targetSurfaceRoutes[]`, every `surface.url` MUST resolve against App
+   Manifest `surfaces[]`, every `route` MUST resolve to that Surface
+   document's `routes[].id`, and every `slot` MUST resolve to a slot key on
+   that route.
+
+8. **Fake Definition shims:** A non-form source Component MUST NOT satisfy
+   identity by inventing `targetDefinition`. Output-only compatibility shims
+   MAY be reported by exporters, but graph validators MUST ignore them as
+   source identity.
 
 ### 12.3 Compatibility Validation
 
@@ -3300,6 +3428,8 @@ conforming processors.
 | **Component inheritance** | No `extends` or prototype-chain mechanism for component types. Use custom components (§7) for reuse. |
 | **Dynamic component registration** | The `components` registry is static. Components MUST NOT be added or removed at runtime. |
 | **Deep responsive (children swap)** | Responsive overrides MUST NOT alter `children`, `bind`, or `component` type (§9.4). Only presentational props may vary. |
+| **Route declarations** | Components may target Surface routes in vNext, but Surface remains source truth for routes and slots. |
+| **Fake non-form `targetDefinition` identity** | Non-form route Components use `targetSurfaceRoutes[]`; source documents MUST NOT fabricate Definition bindings to satisfy form-only tooling. |
 
 ### 13.2 Guard Rails
 
