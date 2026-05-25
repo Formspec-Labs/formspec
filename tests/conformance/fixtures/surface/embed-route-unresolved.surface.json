@@ -1,0 +1,20 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "surfaceContractUnresolvedEmbed",
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "missingPanel",
+          "slotType": "embed-route",
+          "binding": {
+            "routeRef": "missingPanel"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -501,6 +501,26 @@
       ]
     },
     {
+      "spec": "specs/surface/surface-spec.md",
+      "schema": "schemas/surface.schema.json",
+      "bluf": "specs/surface/surface-spec.bluf.md",
+      "llm": "specs/surface/surface-spec.llm.md",
+      "behaviorEssentials": [
+        "Surface documents are published source artifacts for app routes, slots, embed-route edges, and transition declarations; Surface drafts are authoring projections and are not bundled identity.",
+        "`readSurfaceDraft` may expose non-publishable state with diagnostics; `exportSurfaceDocument` is the fail-closed publication gate for schema shape and Surface-local rules.",
+        "Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.",
+        "Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.",
+        "Cross-artifact resolution for Definition, Experience, Response Actions, module contributions, Component identity, Data Sources, and authorization belongs to App Manifest resolution and app-graph validation."
+      ],
+      "conformanceEssentials": [
+        "A conforming published Surface document must include `$formspecSurface='0.1'`, `id`, `entry`, and at least one route with at least one slot.",
+        "Processors must reject or diagnose draft/export attempts with missing entry route, empty route set, duplicate route ids, routes without slots, duplicate slot ids, unresolved embed-route targets, or unreachable routes.",
+        "E606 covers unreachable routes and E607 covers unresolved embed-route slot targets.",
+        "Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.",
+        "App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery."
+      ]
+    },
+    {
       "spec": "specs/bundle/app-manifest-spec.md",
       "schema": "schemas/bundle-manifest.schema.json",
       "bluf": "specs/bundle/app-manifest-spec.bluf.md",

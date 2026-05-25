@@ -27,7 +27,46 @@ Slots compose Definition forms, Experience units, module widgets, static
 content, and nested route references. Surface is inward composition: it
 describes what can be rendered within an app after the app has been selected.
 
-## 2. Route Graph
+## 2. Surface Document and Authoring Draft
+
+### Published Surface Document
+
+A published Surface document is the schema-valid artifact with
+`$formspecSurface`, `id`, `entry`, and `routes[]`. It is source truth for route
+ids, URL-style route paths, slot bindings, embed-route edges, and transition
+declarations. It is not source truth for Definition validation, Response Actions
+execution, Data Sources, Component tree identity, or fine-grained
+authorization.
+
+App Manifest `surfaces[]` entries name published Surface documents by sibling
+reference. A Surface document MUST NOT use local fixture paths, filenames, URL
+suffix conventions, or implicit sibling discovery as identity.
+
+### Authoring Surface Draft
+
+A Surface draft is authoring state. It MAY be incomplete while an author adds
+routes, slots, and transitions. Draft readers MAY expose route-less,
+slot-less, unreachable, or otherwise non-publishable state when they also expose
+diagnostics.
+
+`readSurfaceDraft` returns an authoring projection plus `publishable` and
+diagnostics. Consumers MUST NOT treat a `readSurfaceDraft` value as a published
+Surface document unless `publishable` is true or `exportSurfaceDocument`
+succeeds.
+
+`exportSurfaceDocument` is the publication gate. It MUST fail closed while the
+draft violates the Surface schema shape or Surface-local publishability rules:
+missing entry route, empty route set, duplicate route ids, routes without slots,
+duplicate slot ids, unresolved embed-route targets, or unreachable routes. The
+exported value is a Surface document; the draft store is not bundled into the
+App Manifest and does not become artifact identity.
+
+Cross-artifact checks stay outside this local export gate. Definition,
+Experience, Response Actions, module contribution, Component, Data Sources, and
+authorization resolution are owned by App Manifest resolution and app-graph
+validation.
+
+## 3. Route Graph
 
 ### Route Graph Reachability
 
@@ -44,7 +83,7 @@ A route that is not reached by this walk is invalid and MUST be reported as
 from a reachable route, embed the route via an `embed-route` slot, or remove the
 unreachable route.
 
-## 3. Slot Bindings
+## 4. Slot Bindings
 
 ### Slot Binding Validity
 
@@ -77,18 +116,23 @@ entry-name; `widget` contributions are looked up by `widgetShape.widgetName`).
 ### Transition trigger semantics
 
 Per `schemas/surface.schema.json:$defs.Transition.trigger`, a transition's
-`trigger` is either: (1) a Response Actions action ID (resolved against
-the bundle's response-actions document), or (2) a closed-core Response
-Actions intent value (`submit`, `save-draft`, `autosave`, `review`,
-`request-evidence` per `x-formspec-core-actions`). When the named action
-or intent fires successfully, the transition advances the surface to
-`to`. If `when` is present, it is an FEL boolean expression evaluated
-against current bundle state — the transition fires only when `when`
-evaluates true. Resolution: the renderer/router inspects the trigger
-string and routes to the bundle's response-actions document for action-ID
-match first, falling back to the intent enum if no action ID matches.
+`trigger` is either: (1) a Response Actions action ID resolved against the
+bundle's response-actions document, or (2) a closed-core Response Actions intent
+value (`submit`, `save-draft`, `autosave`, `review`, `request-evidence` per
+`x-formspec-core-actions`).
 
-## 4. Closed slot-type taxonomy (v0.1)
+Surface only declares the navigation trigger. Response Actions remains the sole
+executor for preconditions, validation tuple selection, effects, idempotency,
+replay, retry, blocking, and terminal state. A router MAY advance a Surface
+transition only after the referenced action or closed-core intent has completed
+successfully under Response Actions authority.
+
+If `when` is present, it is an FEL boolean expression evaluated against current
+bundle state. The transition fires only when `when` evaluates true. Producers
+and authoring facades MAY reject `when` until they can validate the expression
+against bundle-state bindings instead of guessing at renderer-local state.
+
+## 5. Closed slot-type taxonomy (v0.1)
 
 [ADR 0150 §6.2](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#62-closed-slot-type-taxonomy)
 closes the v0.1 slot-type list at five values:
@@ -106,7 +150,7 @@ Each binding shape is enforced by `schemas/surface.schema.json` via an
 v0.1; future revisions admit new slot types via the Registry `slot-type`
 contribution category per ADR §4.2.
 
-## 5. The `surface:<route-id>` URI scheme
+## 6. The `surface:<route-id>` URI scheme
 
 [ADR 0150 §7](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#7-surface-and-screener-are-orthogonal)
 registers a URI scheme so a Screener terminal-hop target can land inside
@@ -133,16 +177,19 @@ inside the Screener document itself; the Screener emits a destination URI
 string. Surface picks the URI up by scheme inspection at the renderer or
 gateway layer.
 
-## 6. Conformance
+## 7. Conformance
 
 A Surface document is conformance-coherent when:
 
 1. Schema validation against `schemas/surface.schema.json` passes.
-2. E606 reports no unreachable routes (every `routes[].id` reachable from
+2. Local publish/export diagnostics report no draft-only conditions such as
+   missing entry route, empty route set, duplicate route ids, routes without
+   slots, or duplicate slot ids.
+3. E606 reports no unreachable routes (every `routes[].id` reachable from
    `entry` via transitions and embed-route bindings).
-3. E607 reports no unresolved embed-route bindings (every
+4. E607 reports no unresolved embed-route bindings (every
    `binding.routeRef` resolves to a `routes[].id` in this Surface).
-4. Cross-bundle bindings resolve via the existing bundle-graph passes —
+5. Cross-bundle bindings resolve via the existing bundle-graph passes —
    `definition-form.definitionRef` and `experience-unit.unitRef` /
    `experienceRef` against the bundle manifest;
    `module-widget.moduleId` against the document's `modules[]`

@@ -702,6 +702,37 @@
       "runtimeScope": "spec-conformance-only",
       "runtimeRationale": "Respondent Library v1.0 defines the normative sidecar and fixture corpus that formspec-web must consume through DI. Wallet, sync, HPKE byte-work, WOS status adapters, and web UI adapters land in downstream implementation plans and must add crate/package surfaces when they consume this contract."
     },
+    "surface": {
+      "status": "enforced",
+      "spec": "specs/surface/surface-spec.md",
+      "schema": "schemas/surface.schema.json",
+      "conformance": [
+        "tests/conformance/modules/test_x_formspec_surface.py",
+        "tests/conformance/spec/test_surface_contract.py"
+      ],
+      "crates": [
+        "crates/formspec-lint/src/pass_surface.rs",
+        "crates/formspec-lint/src/pass_modules.rs",
+        "crates/formspec-lint/schemas/surface.schema.json"
+      ],
+      "fixtures": [
+        "tests/conformance/fixtures/modules/x-formspec-surface/",
+        "tests/conformance/fixtures/surface/"
+      ],
+      "packages": {
+        "studio-core": [
+          "../formspec-studio/packages/formspec-studio-core/src/kernel/StudioCoreKernel.ts",
+          "../formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts",
+          "../formspec-studio/packages/formspec-studio-core/tests/kernel/proposal-manager-facade.test.ts"
+        ]
+      },
+      "checks": [
+        "Surface schema shape, closed slot taxonomy, draft/document prose, and transition authority are covered by spec and schema conformance tests",
+        "Fixture corpus covers a publishable positive Surface, App Manifest URL sibling refs, E606, E607, E603, and E604 fail-closed paths",
+        "Rust lint owns Surface-local route graph diagnostics plus module-widget admission/config validation",
+        "studio-core exposes readSurfaceDraft as authoring projection and exportSurfaceDocument as the fail-closed publish gate"
+      ]
+    },
     "app-manifest": {
       "status": "enforced",
       "spec": "specs/bundle/app-manifest-spec.md",

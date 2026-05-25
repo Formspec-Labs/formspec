@@ -1,0 +1,31 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "surfaceContractInvalidWidgetConfig",
+  "entry": "home",
+  "modules": [
+    {
+      "id": "x-acme-surface",
+      "version": "^1.0.0"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "caseStatus",
+          "slotType": "module-widget",
+          "binding": {
+            "moduleId": "x-acme-surface",
+            "widgetName": "CaseStatus",
+            "config": {
+              "density": "wide",
+              "showOwner": "yes"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

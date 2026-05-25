@@ -39,7 +39,7 @@ export type Slot = {
 };
 
 /**
- * A Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition.
+ * A published Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition. Authoring drafts are not separate source artifacts; tools that expose drafts must export a schema-valid Surface document before publication.
  */
 export interface SurfaceDocument {
   /**
@@ -115,7 +115,7 @@ export interface Route {
  */
 export interface Transition {
   /**
-   * Transition trigger. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a Response Actions intent value (per x-formspec-core-actions). The trigger fires the transition when the action runs to completion.
+   * Transition trigger declaration. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a Response Actions intent value (per x-formspec-core-actions). Surface declares the navigation trigger; Response Actions remains the executor for preconditions, validation, effects, idempotency, replay, retry, blocking, and terminal state.
    */
   trigger: string;
   /**
@@ -123,7 +123,7 @@ export interface Transition {
    */
   to: string;
   /**
-   * OPTIONAL FEL condition gating this transition. Renderer evaluates against current bundle state.
+   * OPTIONAL FEL condition gating this transition. Processors evaluate against validated bundle-state bindings; authoring facades may reject this field until they can validate those bindings.
    */
   when?: string;
   /**

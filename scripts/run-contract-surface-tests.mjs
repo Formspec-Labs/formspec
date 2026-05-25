@@ -46,12 +46,22 @@ runPython([
   'tests/conformance/spec/test_trace_predicates.py',
   'tests/conformance/spec/test_trace_stale_rejection.py',
   'tests/conformance/spec/test_trace_studio_review_composition.py',
+  'tests/conformance/spec/test_surface_contract.py',
 ]);
 
 if (metadataOnly) {
   process.exit(0);
 }
 
+run('npm', [
+  '--prefix',
+  '../formspec-studio',
+  'run',
+  'test',
+  '--workspace=@formspec-org/studio-core',
+  '--',
+  'tests/kernel/proposal-manager-facade.test.ts',
+]);
 run('npm', ['run', '--workspace', '@formspec-org/types', 'test', '--', 'tests/schema-sync.test.ts', 'tests/schema-fuzz.test.ts']);
 run('npm', ['run', '--workspace', '@formspec-org/react', 'test', '--', 'tests/locale-parity.test.tsx', 'tests/validation-report-parity.test.tsx']);
 run('npm', ['run', '--workspace', '@formspec-org/webcomponent', 'test', '--', 'tests/components/interactive-plugins.test.ts']);

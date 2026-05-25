@@ -1,0 +1,21 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "surfaceContractUndeclaredWidget",
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "caseStatus",
+          "slotType": "module-widget",
+          "binding": {
+            "moduleId": "x-acme-surface",
+            "widgetName": "CaseStatus"
+          }
+        }
+      ]
+    }
+  ]
+}

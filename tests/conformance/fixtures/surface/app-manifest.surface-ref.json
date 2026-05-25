@@ -1,0 +1,24 @@
+{
+  "$formspecBundle": "2.0",
+  "id": "https://example.gov/apps/surface-contract",
+  "version": "1.0.0",
+  "definitions": [],
+  "registries": [
+    {
+      "url": "https://example.gov/registries/surface-contract",
+      "version": "1.0.0"
+    }
+  ],
+  "surfaces": [
+    {
+      "url": "https://example.gov/apps/surface-contract/surfaces/reviewer",
+      "version": "1.0.0"
+    }
+  ],
+  "modules": [
+    {
+      "id": "x-acme-surface",
+      "version": "^1.0.0"
+    }
+  ]
+}

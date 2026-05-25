@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/surface/0.1",
   "title": "Formspec Surface (v0.1)",
-  "description": "A Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition.",
+  "description": "A published Formspec Surface document per ADR 0150 §6 (Surface as composition primitive). Surface names routes within an app and binds slots that compose Experience units, Definition forms, module widgets, static content, and nested route references. Surface is orthogonal to Screener (§7) — Surface is steady-state inward composition; Screener is one-shot outward routing. The cross-seam is the `surface:<route-id>` URI scheme: a Screener terminal-hop target with that scheme lands inside Surface composition. Authoring drafts are not separate source artifacts; tools that expose drafts must export a schema-valid Surface document before publication.",
   "type": "object",
   "required": ["$formspecSurface", "id", "entry", "routes"],
   "additionalProperties": false,
@@ -119,6 +119,7 @@
             "static-content",
             "embed-route"
           ],
+          "examples": ["definition-form", "module-widget", "embed-route"],
           "description": "Closed v0.1 slot-type taxonomy per ADR 0150 §6.2. Each value pins a binding shape (see allOf gates below). Closed at v0.1 — extensions land via the module Registry's `slot-type` contribution category in a future rev.",
           "x-lm": {
             "critical": true,
@@ -291,7 +292,7 @@
       "properties": {
         "trigger": {
           "type": "string",
-          "description": "Transition trigger. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a Response Actions intent value (per x-formspec-core-actions). The trigger fires the transition when the action runs to completion.",
+          "description": "Transition trigger declaration. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a Response Actions intent value (per x-formspec-core-actions). Surface declares the navigation trigger; Response Actions remains the executor for preconditions, validation, effects, idempotency, replay, retry, blocking, and terminal state.",
           "examples": ["submit", "actionRef:nextStep", "review"]
         },
         "to": {
@@ -301,7 +302,7 @@
         },
         "when": {
           "$ref": "https://formspec.org/schemas/definition/1.0#/$defs/FELExpression",
-          "description": "OPTIONAL FEL condition gating this transition. Renderer evaluates against current bundle state."
+          "description": "OPTIONAL FEL condition gating this transition. Processors evaluate against validated bundle-state bindings; authoring facades may reject this field until they can validate those bindings."
         }
       }
     }

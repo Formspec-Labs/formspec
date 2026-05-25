@@ -1,0 +1,60 @@
+{
+  "$formspecRegistry": "1.0",
+  "$schema": "https://formspec.org/schemas/registry/v1.0/registry.json",
+  "publisher": {
+    "name": "ACME Surface Fixtures",
+    "url": "https://example.gov/acme",
+    "contact": "surface-contract@example.gov"
+  },
+  "published": "2026-05-24T00:00:00Z",
+  "entries": [
+    {
+      "name": "x-acme-surface",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Fixture module for Surface contract conformance.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "contributes": [
+        "x-acme-surface-widget-case-status"
+      ]
+    },
+    {
+      "name": "x-acme-surface-widget-case-status",
+      "category": "widget",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Fixture widget with strict props for Surface E604 coverage.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "widgetShape": {
+        "widgetName": "CaseStatus",
+        "props": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "density",
+            "showOwner"
+          ],
+          "properties": {
+            "density": {
+              "type": "string",
+              "enum": [
+                "compact",
+                "full"
+              ]
+            },
+            "showOwner": {
+              "type": "boolean"
+            }
+          }
+        },
+        "childrenPolicy": "no-children",
+        "widgetCategory": "display"
+      }
+    }
+  ]
+}

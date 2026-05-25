@@ -1,0 +1,35 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "surfaceContractUnreachable",
+  "entry": "home",
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "slots": [
+        {
+          "id": "homeText",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "Home"
+          }
+        }
+      ]
+    },
+    {
+      "id": "orphan",
+      "path": "/orphan",
+      "slots": [
+        {
+          "id": "orphanText",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "text",
+            "content": "Unreachable"
+          }
+        }
+      ]
+    }
+  ]
+}

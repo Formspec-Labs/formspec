@@ -1,0 +1,66 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "surfaceContractReviewer",
+  "title": "Reviewer workspace",
+  "entry": "home",
+  "modules": [
+    {
+      "id": "x-acme-surface",
+      "version": "^1.0.0"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "path": "/",
+      "title": "Home",
+      "slots": [
+        {
+          "id": "heading",
+          "slotType": "static-content",
+          "position": "header",
+          "binding": {
+            "kind": "heading",
+            "content": "Reviewer Workspace",
+            "level": 1
+          }
+        },
+        {
+          "id": "caseStatus",
+          "slotType": "module-widget",
+          "position": "main",
+          "binding": {
+            "moduleId": "x-acme-surface",
+            "widgetName": "CaseStatus",
+            "config": {
+              "density": "compact",
+              "showOwner": true
+            }
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "trigger": "submit",
+          "to": "details"
+        }
+      ]
+    },
+    {
+      "id": "details",
+      "path": "/details",
+      "title": "Details",
+      "slots": [
+        {
+          "id": "detailsText",
+          "slotType": "static-content",
+          "position": "main",
+          "binding": {
+            "kind": "text",
+            "content": "Details are available after the Response Action completes."
+          }
+        }
+      ]
+    }
+  ]
+}
