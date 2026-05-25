@@ -1,0 +1,15 @@
+{
+  "$formspecUiGraphPolicy": "0.1",
+  "version": "1.0.0",
+  "targetSurface": {
+    "url": "https://example.gov/apps/intake/surfaces/respondent"
+  },
+  "routePolicies": [
+    {
+      "routeId": "review",
+      "authorization": {
+        "allowedActors": ["applicant"]
+      }
+    }
+  ]
+}

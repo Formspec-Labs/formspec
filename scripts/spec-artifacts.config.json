@@ -593,6 +593,24 @@
       ]
     },
     {
+      "spec": "specs/app-graph/ui-graph-policy-spec.md",
+      "schema": "schemas/ui-graph-policy.schema.json",
+      "bluf": "specs/app-graph/ui-graph-policy-spec.bluf.md",
+      "llm": "specs/app-graph/ui-graph-policy-spec.llm.md",
+      "behaviorEssentials": [
+        "Treat UI Graph Policy as a host-loaded app-graph artifact over already resolved Surface routes and sibling graph evidence.",
+        "Use `$formspecUiGraphPolicy='0.1'` and `targetSurface` as the structural policy identity anchor; do not derive policy identity from local paths, filenames, URL suffixes, route names, or spike discriminators.",
+        "Keep `specs/ui-policy.json` as the owner for component/widget vocabulary, fallback policy, responsive prop allowlists, breakpoint alignment, and token warning hooks.",
+        "Interpret route accessibility, responsive collapse, hidden Definition references, Locale key ownership, and Theme token-slot assignments as graph policy declarations, not renderer execution rules.",
+        "Leave fine-grained actor, route, widget, field, source, operation, and artifact authorization outside this contract until a dedicated authorization specification supplies those semantics."
+      ],
+      "conformanceEssentials": [
+        "A conforming UI Graph Policy document must include `$formspecUiGraphPolicy='0.1'`, strict SemVer `version`, `targetSurface`, and at least one `routePolicies[]` entry.",
+        "Structural conformance rejects `$wireframeUiPolicy` spike documents, path-identity fields, authorization fields, invalid module Locale prefixes, and App Manifest `uiPolicy` or `uiGraphPolicy` slots in the current manifest schema.",
+        "This slice proves schema shape and fixture acceptance only; App Manifest loading, generated types, AppGraphValidator integration, ModuleResolver/Registry token-slot checks, Studio feedback, and runtime hidden-state behavior remain later gates."
+      ]
+    },
+    {
       "spec": "specs/surface/surface-spec.md",
       "schema": "schemas/surface.schema.json",
       "bluf": "specs/surface/surface-spec.bluf.md",

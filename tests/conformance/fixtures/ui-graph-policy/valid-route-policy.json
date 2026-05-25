@@ -1,0 +1,48 @@
+{
+  "$formspecUiGraphPolicy": "0.1",
+  "version": "1.0.0",
+  "title": "Respondent route policy",
+  "targetSurface": {
+    "url": "https://example.gov/apps/intake/surfaces/respondent",
+    "version": "1.0.0"
+  },
+  "localeKeyOwners": [
+    {
+      "keyPrefix": "$module.x-formspec-surface.",
+      "moduleId": "x-formspec-surface"
+    }
+  ],
+  "routePolicies": [
+    {
+      "routeId": "review",
+      "a11y": {
+        "landmark": "main",
+        "keyboardNavigation": true
+      },
+      "responsive": {
+        "minColumns": 1,
+        "collapseOrder": ["summary", "details"]
+      },
+      "definitionVisibility": {
+        "hiddenDefinitionRefs": [
+          {
+            "url": "https://example.gov/forms/intake",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    }
+  ],
+  "theme": {
+    "assignments": [
+      {
+        "widgetRef": {
+          "moduleId": "x-formspec-surface",
+          "widgetName": "x-workspace-card"
+        },
+        "slot": "accent",
+        "token": "color.accent"
+      }
+    ]
+  }
+}

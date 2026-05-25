@@ -1,0 +1,18 @@
+{
+  "$formspecUiGraphPolicy": "0.1",
+  "version": "1.0.0",
+  "targetSurface": {
+    "url": "https://example.gov/apps/intake/surfaces/respondent"
+  },
+  "localeKeyOwners": [
+    {
+      "keyPrefix": "$wireframe.review.",
+      "moduleId": "x-formspec-surface"
+    }
+  ],
+  "routePolicies": [
+    {
+      "routeId": "review"
+    }
+  ]
+}

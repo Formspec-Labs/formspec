@@ -797,6 +797,26 @@
       "runtimeScope": "spec-conformance-only",
       "runtimeRationale": "Data Sources v1.0 defines the normative peer artifact, App Manifest v2.1 sibling slot, schema, fixture corpus, and static conformance contract only. Source loading, source-to-slot resolution, shared ArtifactResolver/AppGraphValidator behavior, Studio/MCP/runtime/projection consumers, and ADR 0152 fine-grained authorization land in later ADR 0153/0152 rows and must add crate/package surfaces when they consume this contract."
     },
+    "ui-graph-policy": {
+      "status": "enforced",
+      "spec": "specs/app-graph/ui-graph-policy-spec.md",
+      "schema": "schemas/ui-graph-policy.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_ui_graph_policy_schema.py"
+      ],
+      "crates": [],
+      "fixtures": [
+        "tests/conformance/fixtures/ui-graph-policy/"
+      ],
+      "packages": {},
+      "checks": [
+        "UI Graph Policy schema shape and host-loaded source boundary are pinned by schema conformance tests",
+        "Fixture corpus covers positive route-policy shape, minimal route-policy shape, spike-discriminator rejection, path-identity rejection, invalid module Locale prefix rejection, and authorization-field rejection",
+        "Current App Manifest schema remains closed and does not admit uiPolicy or uiGraphPolicy slots"
+      ],
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "UI Graph Policy v0.1 defines the normative host-loaded structural policy artifact, schema, and fixture corpus only. App Manifest loading, generated types, ArtifactResolver group/report changes, AppGraphValidator enforcement, ModuleResolver/Registry token-slot integration, Studio feedback, and runtime hidden-state behavior remain later gates and must add crate/package surfaces when they consume this contract."
+    },
     "surface": {
       "status": "enforced",
       "spec": "specs/surface/surface-spec.md",

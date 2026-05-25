@@ -7,14 +7,16 @@
 
 ## Scope
 
-This slice adds a prose-only UI Graph Policy interface contract. It defines the
+This plan tracks the UI Graph Policy interface contract. It defines the
 app-graph policy boundary for module Locale key ownership, route accessibility,
 responsive collapse order, hidden Definition refs, and Theme token assignments
 to module widget token slots.
 
-It does not promote a JSON Schema, App Manifest slot, generated types,
-conformance fixtures, `AppGraphValidator` implementation, runtime responsive
-behavior, renderer behavior, Studio wiring, or ADR 0152 authorization semantics.
+The current slice promotes only the structural source schema plus host-supplied
+loading evidence. It does not promote an App Manifest slot, ArtifactResolver
+group, generated types, `AppGraphValidator` implementation, ModuleResolver
+token-slot enforcement, runtime responsive behavior, renderer behavior, Studio
+wiring, or ADR 0152 authorization semantics.
 
 ## Review Checkpoint
 
@@ -47,6 +49,13 @@ wiring, or authorization semantics.
 Dalton approved the hygiene slice after one ModuleResolver wording revision;
 there were no UI Graph Policy findings.
 
+Cicero approved a narrow source-shape phase after the Component route-target
+conformance slice. Required boundary: add a structural schema/contract and
+host-supplied loading rule only; do not add an App Manifest slot, App Manifest
+v2.3, ArtifactResolver group/report changes, AppGraphValidator enforcement,
+ModuleResolver/Registry token-slot enforcement, runtime hidden-state handling,
+Response Actions behavior, or ADR 0152 authorization fields.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -56,17 +65,29 @@ there were no UI Graph Policy findings.
 - The spec defines conceptual policy fields for `targetSurface`,
   `localeKeyOwners[]`, `routePolicies[]`, and `theme.assignments[]`.
 - The spec names initial imported diagnostic codes with
-  `origin: "ui-graph-policy"` and `phase: "cross-artifact"`.
+  `origin: "ui-graph-policy"` and `phase: "cross-artifact"` as future
+  report-profile work.
 - The spec is self-authoring: ADRs record provenance, while the spec states the
   UI Graph Policy contract directly.
 - ADR 0153 and the stack rollup record gates 9a-9d as Partial.
+- `schemas/ui-graph-policy.schema.json` defines the v0.1 structural source
+  contract for host-loaded policy evidence.
+- `scripts/spec-artifacts.config.json`,
+  `specs/app-graph/ui-graph-policy-spec.bluf.md`,
+  `specs/app-graph/ui-graph-policy-spec.llm.md`, and
+  `tests/contracts/surface-coverage.json` make the source contract first-class
+  in the repo's generated spec artifacts and contract-surface ledger.
+- Structural schema fixtures and `tests/conformance/schemas/test_ui_graph_policy_schema.py`
+  cover positive shape, spike-discriminator rejection, path-identity rejection,
+  locale prefix shape, and authorization-field rejection.
 
 ## Still Open For Closure
 
-- A schema or accepted structural contract for the policy source.
-- App Manifest or host loading rules for the policy source.
+- App Manifest loading slot or accepted production host-loading rule for the
+  policy source.
 - Generated types and package exports.
-- Positive and negative conformance fixtures.
+- Broader positive and negative conformance fixtures beyond structural schema
+  acceptance.
 - AppGraphValidator integration.
 - ModuleResolver/Registry token-slot evidence integration.
 - Studio and authoring feedback.
@@ -74,6 +95,7 @@ there were no UI Graph Policy findings.
 
 ## Verification
 
+- `python -m pytest tests/conformance/schemas/test_ui_graph_policy_schema.py -q`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`

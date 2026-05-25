@@ -1,50 +1,45 @@
 ---
 title: Formspec UI Graph Policy Interface Specification
-version: 0.1.0-draft.2
+version: 0.1.0-draft.3
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec UI Graph Policy Interface Specification v0.1
 
-**Version:** 0.1.0-draft.2
+**Version:** 0.1.0-draft.3
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, Surface, Locale, Theme, Registry, Module
 Resolver, and AppGraphValidator
+**Schema:** `schemas/ui-graph-policy.schema.json` (`https://formspec.org/schemas/uiGraphPolicy/0.1`)
 
 ---
 
 ## Status of This Document
 
-This document is the prose-only interface contract for the app-graph UI policy
-families. It defines the app-graph policy boundary for Locale ownership, route
+This document is the interface contract for the app-graph UI policy families.
+It defines the app-graph policy boundary for Locale ownership, route
 accessibility, responsive collapse, and module widget Theme token slots.
 
-This document intentionally does not define a JSON Schema, App Manifest slot,
-generated types, conformance fixtures, runtime responsive behavior, renderer
-behavior, Studio wiring, or production `AppGraphValidator` implementation. Those
-land in later implementation gates after the prose boundary is stable.
-
-Architecture Decision Records may record provenance for this boundary, but
-this specification states the policy contract directly.
+The structural source contract is governed by
+`schemas/ui-graph-policy.schema.json`
+(`https://formspec.org/schemas/uiGraphPolicy/0.1`). This document intentionally
+does not define an App Manifest slot, generated types, runtime responsive
+behavior, renderer behavior, Studio wiring, ModuleResolver token-slot
+enforcement, or production `AppGraphValidator` implementation. Those land in
+later implementation gates after the source shape is stable.
 
 ## Bottom Line Up Front
 
-- UI Graph Policy is an app-graph policy boundary, not the existing shared UI
-  authoring policy artifact.
-- `specs/ui-policy.json` remains the source for component/widget vocabulary,
-  compatibility, fallback policy, responsive prop allowlists, breakpoint
-  namespace alignment, token warning hooks, and authoring/runtime helper policy.
-- UI Graph Policy targets loaded Surface routes and already resolved graph
-  artifacts. It does not define routes, slots, widgets, Locale strings, Theme
-  token values, module admission, or authorization.
-- The policy boundary covers module Locale key ownership, route-scoped
-  accessibility policy, responsive collapse order over route slots, optional
-  hidden Definition references, and Theme token assignments to module widget
-  token slots.
-- Future `AppGraphValidator` reports may import UI Graph Policy diagnostics with
-  `origin: "ui-graph-policy"` and `phase: "cross-artifact"`.
+<!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
+- UI Graph Policy is a host-loaded app-graph policy artifact for already resolved Surface routes and sibling graph evidence.
+- The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
+- This slice does not add an App Manifest slot, generated types, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
+- Policy identity comes from the loaded policy handle and `targetSurface`, never from fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
+- The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
+- Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
+<!-- bluf:end -->
 
 ## 1. Purpose and Scope
 
@@ -72,9 +67,9 @@ In scope:
 
 Out of scope:
 
-- JSON Schema for a policy document,
-- adding an App Manifest `uiPolicy` sibling slot,
+- adding an App Manifest `uiPolicy` / `uiGraphPolicy` sibling slot,
 - promoting `$wireframeUiPolicy` or the spike schema as production API,
+- generated types,
 - component/widget compatibility and responsive prop allowlists,
 - renderer layout algorithms or keyboard implementation details,
 - module admission and contribution ownership internals,
@@ -82,7 +77,7 @@ Out of scope:
 - Locale fallback and interpolation,
 - runtime hidden-state enforcement,
 - fine-grained authorization, and
-- production consumers or fixtures.
+- production consumers or semantic/runtime fixtures.
 
 ## 2. Relationship to Existing UI Policy
 
@@ -106,7 +101,44 @@ report, but they answer different questions:
 | Does this module Locale key have exactly one module owner? | UI Graph Policy |
 | Does this Theme token assignment target a module widget token slot? | UI Graph Policy plus ModuleResolver/Registry evidence |
 
-## 3. Conceptual Request
+## 3. Source Shape and Loading
+
+The UI Graph Policy source document is a host-supplied app-graph artifact with
+`$formspecUiGraphPolicy: "0.1"`. Its schema is a structural contract only. It
+does not prove that referenced routes, slots, Definitions, Locale keys, Theme
+tokens, modules, widgets, or token slots exist; those are graph semantics owned
+by later AppGraphValidator and ModuleResolver gates.
+
+This v0.1 slice does not add an App Manifest sibling slot or standardize a
+report artifact kind. A host MAY provide a loaded policy document as explicit
+evidence to a future UI Graph Policy evaluator. Until a future App Manifest
+version explicitly names a `uiGraphPolicy` sibling slot, `ArtifactResolver` MUST
+NOT discover UI Graph Policy documents from filenames, source paths, URL
+suffixes, Surface ids, route names, or the presence of `$wireframeUiPolicy`
+spike artifacts.
+
+The schema is closed by default. It intentionally has no authorization fields
+and no path-identity fields. Fine-grained actor, route, widget, field, source,
+operation, and artifact authorization remain outside this contract until a
+dedicated authorization specification supplies those semantics.
+
+### 3.1 Schema Reference
+
+<!-- schema-ref:start id=ui-graph-policy-top-level schema=schemas/ui-graph-policy.schema.json pointers=# -->
+<!-- generated:schema-ref id=ui-graph-policy-top-level -->
+| Pointer | Field | Type | Required | Notes | Description |
+|---|---|---|---|---|---|
+| `#/properties/$formspecUiGraphPolicy` | `$formspecUiGraphPolicy` | <code>string</code> | yes | const: <code>"0.1"</code>; critical | UI Graph Policy document version. MUST be '0.1'. |
+| `#/properties/description` | `description` | <code>string</code> | no | — | — |
+| `#/properties/localeKeyOwners` | `localeKeyOwners` | <code>array</code> | no | — | Module ownership declarations for $module.* Locale key prefixes. Prefix collisions, prefix-to-moduleId matching, and unresolved module ids are semantic app-graph checks, not structural schema checks. |
+| `#/properties/routePolicies` | `routePolicies` | <code>array</code> | yes | critical | Route-scoped policy entries keyed by Surface routes[].id. Full route coverage and duplicate route policy checks are semantic app-graph checks. |
+| `#/properties/targetSurface` | `targetSurface` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/SurfaceRef</code>; critical | Canonical Surface identity this UI Graph Policy document constrains. |
+| `#/properties/theme` | `theme` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ThemePolicy</code> | — |
+| `#/properties/title` | `title` | <code>string</code> | no | — | — |
+| `#/properties/version` | `version` | <code>string</code> | yes | pattern: <code>^(0&#124;[1-9][0-9]*)\.(0&#124;[1-9][0-9]*)\.(0&#124;[1-9][0-9]*)(?:-((?:0&#124;[1-9][0-9]*&#124;[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0&#124;[1-9][0-9]*&#124;[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?&#36;</code> | Version of this UI Graph Policy document. MUST be a strict SemVer 2.0.0 string. |
+<!-- schema-ref:end -->
+
+## 4. Conceptual Request
 
 A future UI Graph Policy evaluator consumes already resolved graph evidence. The
 minimum conceptual request has these fields:
@@ -114,7 +146,7 @@ minimum conceptual request has these fields:
 | Field | Required | Description |
 |---|---|---|
 | `surface` | yes | Loaded Surface artifact handle. Surface remains source truth for routes and slots. |
-| `policy` | yes | Policy object or document supplied by a future graph policy source. This v0.1 prose does not define the loading slot. |
+| `policy` | yes | Loaded UI Graph Policy document supplied by host evidence. This v0.1 slice does not define an App Manifest loading slot. |
 | `locales` | no | Loaded Locale artifact handles whose `strings` maps may contain `$module.*` keys. |
 | `theme` | no | Loaded Theme artifact handle whose token assignments or future graph-facing token references are checked. |
 | `registry` | no | Registry/module evidence used to resolve module widgets and token-slot declarations. |
@@ -123,12 +155,12 @@ minimum conceptual request has these fields:
 | `support` | yes | Supported policy version, route policy vocabulary, token-slot evidence shape, and diagnostic profile. |
 
 The evaluator MUST NOT fetch artifacts, infer policy from local filenames, or
-discover siblings outside the resolved app graph.
+discover siblings outside host-supplied loaded graph evidence.
 
-## 4. Conceptual Policy Shape
+## 5. Conceptual Policy Shape
 
-This document names the conceptual fields a future schema must cover. The names
-are a stable prose target, not a promoted copy of the v4 spike schema.
+This document names the conceptual fields the structural schema covers. The
+names are a stable source target, not a promoted copy of the v4 spike schema.
 
 | Field | Description |
 |---|---|
@@ -137,7 +169,7 @@ are a stable prose target, not a promoted copy of the v4 spike schema.
 | `routePolicies[]` | One route-scoped policy entry per targeted Surface route. |
 | `theme.assignments[]` | Theme token assignments to module widget token slots. |
 
-### 4.1 Target Surface
+### 5.1 Target Surface
 
 `targetSurface.url` identifies the Surface document to which the policy applies.
 `targetSurface.version`, when present, must be compatible with the loaded
@@ -147,7 +179,7 @@ A policy whose target Surface does not match the loaded Surface is invalid. A
 policy MUST NOT define routes or slots. It constrains routes and slots already
 declared by Surface.
 
-### 4.2 Locale Key Ownership
+### 5.2 Locale Key Ownership
 
 Module-contributed Locale string keys use the Locale spec's `$module.<moduleId>.`
 prefix family. UI Graph Policy assigns those prefixes to modules:
@@ -157,20 +189,25 @@ prefix family. UI Graph Policy assigns those prefixes to modules:
 | `keyPrefix` | Prefix beginning with `$module.<moduleId>.` or a stricter subtree under that module prefix. |
 | `moduleId` | `x-*` module id that owns the prefix. |
 
+The structural schema enforces the `$module.<x-module>.` prefix family and
+`moduleId` shape independently. The cross-field rule that the module segment in
+`keyPrefix` matches `moduleId` is an app-graph semantic check.
+
 Rules:
 
 1. Each `keyPrefix` MUST have exactly one owner.
 2. A prefix collision across different owners is invalid.
-3. `moduleId` MUST resolve through `ModuleResolver` when module evidence is
+3. The module segment in `keyPrefix` MUST match `moduleId`.
+4. `moduleId` MUST resolve through `ModuleResolver` when module evidence is
    supplied.
-4. Every loaded Locale string key that starts with `$module.` MUST match one
+5. Every loaded Locale string key that starts with `$module.` MUST match one
    declared owner prefix.
-5. Locale keys outside `$module.` remain governed by the Locale specification.
+6. Locale keys outside `$module.` remain governed by the Locale specification.
 
 UI Graph Policy does not define translation text, fallback cascade,
 interpolation, pluralization, or active-locale negotiation.
 
-### 4.3 Route Accessibility Policy
+### 5.3 Route Accessibility Policy
 
 Each target Surface route must have a route policy entry. The accessibility
 portion declares graph-visible obligations such as route landmark role and
@@ -194,7 +231,7 @@ Rules:
 This spec does not define keyboard event handling, focus movement algorithms,
 ARIA markup, or renderer implementation.
 
-### 4.4 Responsive Route Policy
+### 5.4 Responsive Route Policy
 
 Responsive route policy describes collapse order over route slots. The initial
 conceptual fields are:
@@ -213,7 +250,7 @@ Rules:
 4. UI Graph Policy MUST NOT mutate Component `responsive` props, Theme region
    breakpoints, or `specs/ui-policy.json` responsive allowlists.
 
-### 4.5 Hidden Definition References
+### 5.5 Hidden Definition References
 
 Route policy may optionally declare Definition refs hidden on a route:
 
@@ -232,7 +269,7 @@ Rules:
 Hidden Definition refs are not authorization. They describe route visibility and
 state availability, not actor permission.
 
-### 4.6 Theme Token Slot Assignments
+### 5.6 Theme Token Slot Assignments
 
 Theme token slot assignments connect Theme tokens to token slots declared by
 module-contributed widgets:
@@ -257,16 +294,17 @@ The exact Registry field for widget token-slot declarations is a support-profile
 choice until the Registry schema formally names it. The v4 spike's
 `semantics.themeTokenSlots` field is evidence, not production API.
 
-## 5. Diagnostic Import
+## 6. Diagnostic Import
 
 Future `AppGraphValidator` reports may include UI Graph Policy diagnostics as
-cross-artifact diagnostics:
+cross-artifact diagnostics after the validator report origin profile admits
+`ui-graph-policy`:
 
 | Field | Value |
 |---|---|
 | `origin` | `ui-graph-policy` |
 | `phase` | `cross-artifact` |
-| `artifactKind` | `uiGraphPolicy` or the future policy artifact kind |
+| policy artifact identity | Future report-profile work; not standardized by this slice. |
 
 Initial diagnostic codes:
 
@@ -285,13 +323,14 @@ Initial diagnostic codes:
 
 Diagnostics MUST preserve the policy source pointer and any related Surface,
 Locale, Theme, Registry, or ModuleResolver pointers needed for deterministic
-authoring feedback.
+authoring feedback. This v0.1 structural schema slice does not yet add those
+diagnostics to `AppGraphValidationReport`.
 
-## 6. Non-Goals and Boundaries
+## 7. Non-Goals and Boundaries
 
 UI Graph Policy MUST NOT:
 
-1. add a production App Manifest slot in this prose slice;
+1. add a production App Manifest slot in this source-shape slice;
 2. promote the v4 `$wireframeUiPolicy` discriminator, schema, or fixture files
    as production contract;
 3. infer graph policy from local fixture paths, filenames, URL suffixes, or
@@ -308,16 +347,15 @@ Fine-grained authorization remains outside this specification. UI Graph Policy
 may later provide route or widget identities as inputs to an authorization
 policy, but it does not supply permission semantics.
 
-## 7. Closure Requirements
+## 8. Closure Requirements
 
-This v0.1 draft defines only the prose interface contract for the UI graph
-policy families. Production closure still requires:
+This v0.1 draft defines the prose interface contract and structural source
+schema for the UI graph policy families. Production closure still requires:
 
-1. a schema or other accepted structural contract for the policy source,
-2. an App Manifest or host-supplied loading rule,
-3. generated types,
-4. fixture-backed conformance for positive and negative policy cases,
-5. `AppGraphValidator` integration,
-6. ModuleResolver/Registry token-slot evidence integration,
-7. Studio/authoring feedback, and
-8. runtime enforcement for hidden Definition state where applicable.
+1. an App Manifest loading slot or an accepted production host-loading rule,
+2. generated types,
+3. broader fixture-backed conformance beyond structural schema acceptance,
+4. `AppGraphValidator` integration,
+5. ModuleResolver/Registry token-slot evidence integration,
+6. Studio/authoring feedback, and
+7. runtime enforcement for hidden Definition state where applicable.

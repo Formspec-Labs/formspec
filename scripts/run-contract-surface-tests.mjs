@@ -55,6 +55,7 @@ runPython([
   'tests/conformance/schemas/test_data_sources_schema.py',
   'tests/conformance/spec/test_data_sources_contract.py',
   'tests/conformance/spec/test_surface_contract.py',
+  'tests/conformance/schemas/test_ui_graph_policy_schema.py',
 ]);
 
 if (metadataOnly) {

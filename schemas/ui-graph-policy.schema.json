@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+  "title": "Formspec UI Graph Policy",
+  "description": "Structural source contract for UI Graph Policy v0.1. This document constrains a loaded Surface graph with module Locale key ownership, route-level accessibility policy, responsive route slot collapse order, hidden Definition references, and Theme token assignments to module widget token slots. It is host-loaded evidence only in v0.1: it is not an App Manifest sibling slot, not an ArtifactResolver group, not an AppGraphValidator implementation, not ModuleResolver token-slot authority, not runtime hidden-state behavior, and not an authorization policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$formspecUiGraphPolicy", "version", "targetSurface", "routePolicies"],
+  "properties": {
+    "$formspecUiGraphPolicy": {
+      "type": "string",
+      "const": "0.1",
+      "description": "UI Graph Policy document version. MUST be '0.1'.",
+      "examples": ["0.1"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Version pin for UI Graph Policy document compatibility"
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Version of this UI Graph Policy document. MUST be a strict SemVer 2.0.0 string.",
+      "examples": ["1.0.0", "1.0.0-draft.1"]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "targetSurface": {
+      "$ref": "#/$defs/SurfaceRef",
+      "description": "Canonical Surface identity this UI Graph Policy document constrains.",
+      "examples": [
+        {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "1.0.0"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Surface identity anchor for policy-to-graph matching"
+      }
+    },
+    "localeKeyOwners": {
+      "type": "array",
+      "description": "Module ownership declarations for $module.* Locale key prefixes. Prefix collisions, prefix-to-moduleId matching, and unresolved module ids are semantic app-graph checks, not structural schema checks.",
+      "items": { "$ref": "#/$defs/LocaleKeyOwner" }
+    },
+    "routePolicies": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Route-scoped policy entries keyed by Surface routes[].id. Full route coverage and duplicate route policy checks are semantic app-graph checks.",
+      "items": { "$ref": "#/$defs/RoutePolicy" },
+      "examples": [
+        [
+          {
+            "routeId": "review",
+            "a11y": {
+              "landmark": "main",
+              "keyboardNavigation": true
+            }
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Route-scoped policy declarations consumed by later graph validation"
+      }
+    },
+    "theme": {
+      "$ref": "#/$defs/ThemePolicy"
+    }
+  },
+  "$defs": {
+    "SurfaceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical Surface URL this policy constrains. The policy document MUST NOT infer Surface identity from source path, filename, URL suffix, or route name."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional exact version or range expression. Compatibility is checked by app-graph semantics."
+        }
+      }
+    },
+    "LocaleKeyOwner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyPrefix", "moduleId"],
+      "properties": {
+        "keyPrefix": {
+          "type": "string",
+          "pattern": "^\\$module\\.x-[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*(?:\\.[A-Za-z0-9_@\\[\\]-]+)*\\.$",
+          "description": "Owned Locale key prefix beginning with $module.<moduleId>. and ending with a dot."
+        },
+        "moduleId": {
+          "$ref": "#/$defs/ModuleId"
+        }
+      }
+    },
+    "RoutePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeId"],
+      "properties": {
+        "routeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Surface routes[].id this policy entry targets."
+        },
+        "a11y": {
+          "$ref": "#/$defs/RouteA11yPolicy"
+        },
+        "responsive": {
+          "$ref": "#/$defs/ResponsiveRoutePolicy"
+        },
+        "definitionVisibility": {
+          "$ref": "#/$defs/DefinitionVisibilityPolicy"
+        }
+      }
+    },
+    "RouteA11yPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "landmark": {
+          "type": "string",
+          "enum": ["main", "navigation", "complementary", "region"],
+          "description": "Route-level landmark category. Renderer-specific ARIA or platform mapping is out of scope."
+        },
+        "keyboardNavigation": {
+          "type": "boolean",
+          "description": "Whether the route-level policy profile requires keyboard navigation support."
+        }
+      }
+    },
+    "ResponsiveRoutePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minColumns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "collapseOrder": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Ordered Surface route slot ids used by the route's responsive collapse policy. Slot resolution is an app-graph semantic check."
+        }
+      }
+    },
+    "DefinitionVisibilityPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hiddenDefinitionRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DefinitionRef" },
+          "uniqueItems": true,
+          "description": "Definition refs hidden by route policy. Loaded Definition resolution and route-local form-slot checks are semantic app-graph checks."
+        }
+      }
+    },
+    "DefinitionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ThemePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assignments": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ThemeTokenAssignment" },
+          "description": "Theme token assignments to module widget token slots. Widget and slot resolution is deferred to ModuleResolver/Registry evidence."
+        }
+      }
+    },
+    "ThemeTokenAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widgetRef", "slot", "token"],
+      "properties": {
+        "widgetRef": {
+          "$ref": "#/$defs/WidgetRef"
+        },
+        "slot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "WidgetRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["moduleId", "widgetName"],
+      "properties": {
+        "moduleId": {
+          "$ref": "#/$defs/ModuleId"
+        },
+        "widgetName": {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
+          "description": "Module-contributed widget name. Contribution ownership is resolved by ModuleResolver, not this schema."
+        }
+      }
+    },
+    "ModuleId": {
+      "type": "string",
+      "pattern": "^x-[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$"
+    }
+  }
+}
