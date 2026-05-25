@@ -17,6 +17,133 @@
     "authoredSignatures": ["id"]
   },
   "$defs": {
+    "ResponseMetadata": {
+      "type": "object",
+      "description": "Optional response metadata envelope keyed by Definition item path. The envelope records per-field provenance, derivation traces for calculated values, and respondent-visible disclosures shown during capture. Metadata is part of the Response document; processors that preserve it MUST keep entries path-keyed to the field or display item they explain.",
+      "additionalProperties": false,
+      "properties": {
+        "provenance": {
+          "type": "object",
+          "description": "Per-field value provenance keyed by item path.",
+          "additionalProperties": {
+            "$ref": "#/$defs/ResponseProvenanceEntry"
+          }
+        },
+        "derivations": {
+          "type": "object",
+          "description": "Per-field derivation traces keyed by item path. Entries usually correspond to calculated fields and preserve the FEL expression and trace used to produce the value.",
+          "additionalProperties": {
+            "$ref": "#/$defs/ResponseDerivationEntry"
+          }
+        },
+        "disclosuresShown": {
+          "type": "object",
+          "description": "Per-field disclosure evidence keyed by item path. Use this when a purpose, consequence, consent, or citation disclosure was shown to the respondent.",
+          "additionalProperties": {
+            "$ref": "#/$defs/ResponseDisclosureShownEntry"
+          }
+        }
+      }
+    },
+    "ResponseProvenanceEntry": {
+      "type": "object",
+      "description": "Provenance for one response value. `class` uses the shared value-class vocabulary; `sourceRef` identifies the source or adapter, including `assistant-suggested` for BYO-assistant suggestions confirmed by the respondent.",
+      "required": ["class", "sourceRef", "capturedAt", "attestedBy"],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ValueClass"
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source, adapter, or transport reference for this value. BYO-assistant suggestions SHOULD use `assistant-suggested` or a transport-qualified value such as `assistant-suggested:webmcp`."
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp when this provenance was captured."
+        },
+        "attestedBy": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Actor class or actor reference that confirmed the value, such as `respondent`, `filer`, `delegate`, `ai-agent`, or an implementation-specific URN."
+        }
+      }
+    },
+    "ResponseDerivationEntry": {
+      "type": "object",
+      "description": "Receipt-bindable derivation record for a calculated or otherwise derived value.",
+      "required": ["expression", "trace"],
+      "additionalProperties": false,
+      "properties": {
+        "expression": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FEL expression used to derive the value."
+        },
+        "dependsOn": {
+          "type": "array",
+          "description": "Input paths read by the expression when known.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "value": {
+          "description": "JSON-projected derived value."
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp when this derivation was captured."
+        },
+        "trace": {
+          "type": "array",
+          "description": "Ordered FEL trace steps as returned by the engine trace API. The schema keeps step payloads open because the Rust FEL trace enum owns the discriminated variants.",
+          "items": {
+            "type": "object",
+            "required": ["kind"],
+            "additionalProperties": true,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "ResponseDisclosureShownEntry": {
+      "type": "object",
+      "description": "Evidence that a respondent-visible disclosure was shown for a field, purpose, consequence, or consent moment.",
+      "required": ["disclosureRef", "shownAt"],
+      "additionalProperties": false,
+      "properties": {
+        "disclosureRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the disclosure text, citation, consent clause, purpose entry, or consequence entry shown to the respondent."
+        },
+        "shownAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 timestamp when the disclosure was shown."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the disclosure text when versioned."
+        },
+        "channel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Renderer or channel that showed the disclosure, such as `web`, `paper`, `voice`, or an implementation-specific value."
+        }
+      }
+    },
     "AuthoredSignatureIdentityBinding": {
       "type": "object",
       "description": "Provider-neutral identity-binding evidence attached to an authored signature. This records how the signer identity was bound to the signing act without baking one provider or ceremony vendor into the Response contract.",
@@ -363,6 +490,10 @@
         "critical": true,
         "intent": "Primary response payload captured from the form instance. Shape determined by the Definition's item tree."
       }
+    },
+    "metadata": {
+      "$ref": "#/$defs/ResponseMetadata",
+      "description": "Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown."
     },
     "authored": {
       "type": "string",

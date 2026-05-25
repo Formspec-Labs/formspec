@@ -14,12 +14,14 @@ from tests.unit.support.schema_fixtures import build_schema_registry, load_schem
 # ---------------------------------------------------------------------------
 
 RESPONSE_SCHEMA = load_schema("response.schema.json")
+COMMON_SCHEMA = load_schema("common.schema.json")
 VALIDATION_REPORT_SCHEMA = load_schema("validation-report.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
 SIGNATURE_FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "signature-responses"
+RESPONSE_FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "response"
 
 # Build a resolver/registry so schemas can resolve cross-schema $refs.
-_REGISTRY = build_schema_registry(RESPONSE_SCHEMA, VALIDATION_REPORT_SCHEMA, VALIDATION_RESULT_SCHEMA)
+_REGISTRY = build_schema_registry(COMMON_SCHEMA, RESPONSE_SCHEMA, VALIDATION_REPORT_SCHEMA, VALIDATION_RESULT_SCHEMA)
 
 
 def _validate_response(instance: dict) -> None:
@@ -131,6 +133,44 @@ class TestResponseMinimalValid:
         doc["id"] = "resp-2026-0001"
         doc["authoredSignatures"] = [_minimal_authored_signature()]
         _validate_response(doc)
+
+    @pytest.mark.parametrize("fixture_name", [
+        "provenance/assistant-suggested.response.json",
+        "derivations/fee-derivation.response.json",
+        "disclosures-shown/purpose-disclosure.response.json",
+    ])
+    def test_response_metadata_fixtures_validate(self, fixture_name):
+        doc = json.loads((RESPONSE_FIXTURE_DIR / fixture_name).read_text(encoding="utf-8"))
+        _validate_response(doc)
+
+    def test_response_metadata_provenance_validates_shared_value_class(self):
+        doc = _minimal_response()
+        doc["metadata"] = {
+            "provenance": {
+                "fieldA": {
+                    "class": "calculated",
+                    "sourceRef": "formspec-engine",
+                    "capturedAt": "2026-05-25T15:00:00Z",
+                    "attestedBy": "system",
+                }
+            }
+        }
+        _validate_response(doc)
+
+    def test_response_metadata_rejects_unknown_value_class(self):
+        doc = _minimal_response()
+        doc["metadata"] = {
+            "provenance": {
+                "fieldA": {
+                    "class": "ai-generated",
+                    "sourceRef": "assistant-suggested",
+                    "capturedAt": "2026-05-25T15:00:00Z",
+                    "attestedBy": "respondent",
+                }
+            }
+        }
+        with pytest.raises(ValidationError):
+            _validate_response(doc)
 
 
 class TestResponseEnums:

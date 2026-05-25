@@ -1,0 +1,20 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.gov/forms/assistant-provenance",
+  "definitionVersion": "1.0.0",
+  "status": "in-progress",
+  "data": {
+    "statement": "I need help renewing benefits."
+  },
+  "metadata": {
+    "provenance": {
+      "statement": {
+        "class": "user-input",
+        "sourceRef": "assistant-suggested:webmcp",
+        "capturedAt": "2026-05-25T15:00:00Z",
+        "attestedBy": "respondent"
+      }
+    }
+  },
+  "authored": "2026-05-25T15:00:00Z"
+}

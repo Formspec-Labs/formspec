@@ -483,6 +483,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/displayedIssuer` | `displayedIssuer` | <code>object</code> | no | critical | Submit-time pin of the resolved Issuer (post-cascade). Inside the signed-payload preimage by the existing authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state). |
 | `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
+| `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseMetadata</code> | Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown. |
 | `#/properties/status` | `status` | <code>string</code> | yes | enum: <code>"in-progress"</code>, <code>"completed"</code>, <code>"amended"</code>, <code>"stopped"</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
 | `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form). |
 | `#/properties/validationResults` | `validationResults` | <code>array</code> | no | — | The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run. |
@@ -496,6 +497,24 @@ A Response references exactly one Definition by the tuple
 `(definitionUrl, definitionVersion)`. A conformant processor MUST reject a
 Response whose `definitionVersion` does not match any known Definition at the
 given `definitionUrl`.
+
+A Response MAY carry a `metadata` envelope. The envelope is keyed by Definition
+item path and has three core maps:
+
+- `metadata.provenance[path]` records where a value came from, when it was
+  captured, and who attested it. The `class` field uses the shared value-class
+  vocabulary also used by respondent-ledger `ChangeSetEntry.valueClass`.
+- `metadata.derivations[path]` records the FEL expression, input paths, result,
+  and trace steps used to derive a calculated value. This is the receipt-bound
+  form of "show the math."
+- `metadata.disclosuresShown[path]` records that a purpose, consequence,
+  consent, or citation disclosure was shown to the respondent.
+
+When assistant-suggested values are confirmed by the respondent,
+`metadata.provenance[path].sourceRef` SHOULD carry `assistant-suggested` or a
+transport-qualified value such as `assistant-suggested:webmcp`; the value still
+requires respondent attestation. Processors MUST NOT compute or expose an
+aggregate "AI score" from per-field provenance.
 
 A Response MAY carry one or more `authoredSignatures` records. Each record
 binds one signer/document act to the Formspec Signed Response Payload, not
@@ -2426,10 +2445,19 @@ that omits a REQUIRED property.
   "derivedFrom": "https://example.gov/forms/annual-report|2024.1.0",
   "title": "Annual Financial Report",
   "description": "...",
+  "metadata": {
+    "assurance": { "ial": "L2", "aal": "L2", "jurisdiction": "US" }
+  },
   "items": [],
   "binds": [],
   "shapes": [],
   "instances": {},
+  "fees": {
+    "currency": "USD",
+    "lineItems": [
+      { "id": "baseFee", "label": "Base filing fee", "calculate": "25" }
+    ]
+  },
   "formPresentation": {
     "pageMode": "single",
     "labelPosition": "top",
@@ -2452,10 +2480,12 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/derivedFrom` | `derivedFrom` | <code>composite</code> | no | — | Parent definition this form is derived from. Informational only — does NOT imply behavioral inheritance or runtime linkage. Enables change analysis, pre-population from parent Responses, and lineage tracking. A plain URI string indicates derivation from the logical form in general; an object with url+version pins to a specific version. |
 | `#/properties/description` | `description` | <code>string</code> | no | — | Human-readable description of the form's purpose and scope. |
 | `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | Domain-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions without error. Extensions MUST NOT alter core semantics (required, relevant, readonly, calculate, validation). Preserved on round-trip. |
+| `#/properties/fees` | `fees` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Fees</code> | FEL-calculated fee line items for respondent-facing cost disclosure. |
 | `#/properties/formPresentation` | `formPresentation` | <code>object</code> | no | — | Form-wide presentation defaults. All properties OPTIONAL and advisory — a conforming processor MAY ignore any or all. These are Tier 1 baseline hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. MUST NOT affect data capture, validation, or submission semantics. |
 | `#/properties/instances` | `instances` | <code>object</code> | no | — | Named secondary data sources available to FEL expressions at runtime via @instance('name'). Instances provide lookup tables, prior-year data, and external reference data. The property name is the instance identifier used in @instance() references. Secondary instances are read-only by default during form completion. |
 | `#/properties/issuer` | `issuer` | <code>composite</code> | no | critical | Optional Issuer binding. Inline (full Issuer document) for individual/small-org case; ref ({url} only) for shared/agency case. Inverse cardinality from locale/references/ontology (Definition points OUT to Issuer). |
 | `#/properties/items` | `items` | <code>array</code> | yes | critical | Root item tree defining the form's structural content. Items form a tree: each Item may have 'children' (groups) creating nested hierarchy. Three item types exist: 'field' (captures data), 'group' (structural container, optionally repeatable), 'display' (read-only presentational content). The item tree determines the shape of the Instance (form data). |
+| `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/DefinitionMetadata</code> | Form-level metadata that affects respondent-facing explanation and policy resolution without changing the item tree. Current core entries cover preparation guidance and form-level assurance requirements. |
 | `#/properties/migrations` | `migrations` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Migrations</code> | Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped. |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
 | `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9\-]*&#36;</code> | Machine-readable short name for the definition. Must start with a letter, may contain letters, digits, and hyphens. Unlike 'url', this is a local identifier for tooling convenience, not a globally unique reference. |
@@ -2477,6 +2507,28 @@ Definitions are closed by default. Processors MUST reject unrecognized
 top-level properties unless the property name begins with `x-`. Processors
 MUST preserve `x-*` extension properties during round-tripping but MUST NOT
 assign core semantics to unrecognized extensions.
+
+#### Form Metadata and Fees
+
+The OPTIONAL `metadata` object carries form-level explanation and policy
+annotations that do not create response data fields and do not override Binds,
+Shapes, or access-control behavior.
+
+`metadata.preparation` describes what the respondent should have ready before
+starting the form. `documents[]` names needed documents, credentials,
+attachments, or facts; `expectedAcquisitionWindows{}` gives realistic
+acquisition-time estimates keyed by document id, item path, or preparation
+category.
+
+`metadata.assurance` declares the form-side identity and authentication
+assurance floor. `ial` and `aal` use the ordered `L1` through `L4` taxonomy
+defined by the respondent-ledger assurance model. `jurisdiction` names the
+policy namespace in which the requirement applies.
+
+The OPTIONAL top-level `fees` object declares respondent-facing fee line
+items. Every `fees.lineItems[]` entry MUST carry a FEL `calculate` expression
+so cost disclosures update as answers change. `fees` is explanatory and
+calculable; it does not by itself collect payment.
 
 #### 4.1.1 Form Presentation
 
@@ -2601,6 +2653,13 @@ The following properties are recognized on all Item types:
 | `description` | string | **0..1** (OPTIONAL) | Human-readable help text or description. Implementations SHOULD make this text available to users on demand (e.g., via tooltip or help icon). |
 | `hint` | string | **0..1** (OPTIONAL) | Short instructional text displayed alongside the input (e.g., below the label or as placeholder guidance). Distinct from `description`, which is typically shown on demand. |
 | `labels` | object | **0..1** (OPTIONAL) | Alternative display labels keyed by context name. Well-known context names include `"short"`, `"pdf"`, `"csv"`, and `"accessibility"`. Implementations MAY define additional context names. |
+| `purpose` | object | **0..1** (OPTIONAL) | Plain-language purpose and citation metadata explaining why this item is asked or shown. `purpose` MAY cite a References entry, PKAF authority chain, rule URI, or implementation-specific authority reference. It MUST NOT replace `accessControl.class` or privacy-profile audience policy. |
+| `consequences` | object | **0..1** (OPTIONAL) | Respondent-facing consequence metadata for this item, including triggered deadlines, lock-in effects, and external actions such as referrals, payments, credit checks, or mandatory reports. A consequence declaration explains and gates the action; it does not itself perform the action. |
+
+The retired EXT-1 `privacy` sibling block is not part of the Definition
+schema. Safe-address and other field-level protection semantics use
+`accessControl.class` and the Privacy Profile / Access-Class Registry
+companions, not an item-level `privacy` object.
 
 #### 4.2.2 Group Items
 

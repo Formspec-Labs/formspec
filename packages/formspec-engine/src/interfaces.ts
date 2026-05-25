@@ -29,6 +29,7 @@ import type { FieldViewModel } from './field-view-model.js';
 import type { FormViewModel } from './form-view-model.js';
 import type { IssuerFetcher } from './issuer/IssuerFetcher.js';
 import type { IssuerSource, ResolvedIssuer } from './issuer/types.js';
+import type { FelTraceStep } from './fel/fel-api-runtime.js';
 
 // ── FEL catalog types ────────────────────────────────────────────────
 
@@ -384,6 +385,13 @@ export interface EngineReplayResult {
     errors: Array<{ index: number; event: EngineReplayEvent; error: string }>;
 }
 
+export interface RelevanceExplanation {
+    bindId: string | null;
+    expression: string | null;
+    dependsOn: string[];
+    evaluatedAs: boolean;
+}
+
 // ── Main engine interface ───────────────────────────────────────────
 
 export interface IFormEngine {
@@ -434,6 +442,9 @@ export interface IFormEngine {
     getValidationReport(options: ValidationReportOptions): ValidationReport | null;
     evaluateShape(shapeId: string): ValidationResult[];
     isPathRelevant(path: string): boolean;
+    whyRelevant(path: string): RelevanceExplanation;
+    getDerivationTree(path: string): FelTraceStep[];
+    getDownstreamImpact(path: string): string[];
     getFieldPaths(): string[];
     getProgress(): FormProgress;
     getResponse(meta?: {

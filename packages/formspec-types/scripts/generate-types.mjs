@@ -335,6 +335,10 @@ function postProcess(ts, moduleName) {
 
   if (moduleName === 'common') {
     result = result.replace(
+      /export type ValueClass =\n  \| (\([^\n]+\))\n  \| string;/m,
+      'export type ValueClass =\n  | $1\n  | `x-${string}`;',
+    );
+    result = result.replace(
       'export type CustomWidgetName = string;',
       'export type CustomWidgetName = `x-${string}`;',
     );
@@ -392,6 +396,18 @@ function postProcess(ts, moduleName) {
     );
   }
 
+  if (moduleName === 'response') {
+    result = addCommonImport(result, ['ValueClass']);
+    result = result.replace(
+      /(export interface ResponseProvenanceEntry \{[\s\S]*?  \*\/\n  )class:[\s\S]*?;\n  \/\*\*/m,
+      '$1class: ValueClass;\n  /**',
+    );
+    result = result.replace(
+      /(export interface ResponseDerivationEntry \{[\s\S]*?  \*\/\n  )value\?: \{\s*\[k: string\]: unknown;\s*\};/m,
+      '$1value?: unknown;',
+    );
+  }
+
   if (moduleName === 'validation-mapping') {
     result = result.replace(
       'export type ValidationTuple = ValidationTuplePredicate;',
@@ -432,6 +448,13 @@ function postProcess(ts, moduleName) {
     result = result.replace(
       /document\?: \{\s*\[k: string\]: unknown;\s*\};/m,
       'document?: unknown;',
+    );
+  }
+
+  if (moduleName === 'module-resolution-report') {
+    result = result.replace(
+      /export interface ModuleResolutionExtensions \{\s*\[k: string\]: unknown;\s*\}/m,
+      'export interface ModuleResolutionExtensions {\n  [k: `x-${string}`]: unknown;\n}',
     );
   }
 

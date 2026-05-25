@@ -44,6 +44,8 @@ export type Item = {
   labels?: {
     [k: string]: string;
   };
+  consequences?: ConsequencesMetadata;
+  purpose?: PurposeMetadata;
   /**
    * Item-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics.
    */
@@ -237,6 +239,14 @@ export type OptionSet1 = {
   [k: string]: unknown;
 };
 /**
+ * Ordered assurance level taxonomy shared with respondent-ledger-spec.md §6.6.1.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "AssuranceLevel".
+ */
+export type AssuranceLevel = 'L1' | 'L2' | 'L3' | 'L4';
+
+/**
  * A Formspec Definition document per the Formspec v1.0 specification. A Definition is a versioned, self-contained JSON document that completely describes the structure, behavior, and constraints of a data-collection instrument. The tuple (url, version) uniquely identifies a Definition across all systems. Definitions are organized into three layers: Structure (Items), Behavior (Binds + Shapes), and Presentation (advisory hints). A conformant processor implements the four-phase processing cycle: Rebuild → Recalculate → Revalidate → Notify.
  */
 export interface FormDefinition {
@@ -289,6 +299,7 @@ export interface FormDefinition {
    * Publication or last-modified date of this Definition version, in ISO 8601 date format (YYYY-MM-DD).
    */
   date?: string;
+  metadata?: DefinitionMetadata;
   /**
    * Root item tree defining the form's structural content. Items form a tree: each Item may have 'children' (groups) creating nested hierarchy. Three item types exist: 'field' (captures data), 'group' (structural container, optionally repeatable), 'display' (read-only presentational content). The item tree determines the shape of the Instance (form data).
    */
@@ -322,6 +333,7 @@ export interface FormDefinition {
     [k: string]: OptionSet;
   };
   migrations?: Migrations;
+  fees?: Fees;
   /**
    * Optional Issuer binding. Inline (full Issuer document) for individual/small-org case; ref ({url} only) for shared/agency case. Inverse cardinality from locale/references/ontology (Definition points OUT to Issuer).
    */
@@ -381,6 +393,203 @@ export interface FormDefinition {
    * via the `patternProperty` "^x-".
    */
   [k: `x-${string}`]: unknown;
+}
+/**
+ * Form-level metadata that affects respondent-facing explanation and policy resolution without changing the item tree. Current core entries cover preparation guidance and form-level assurance requirements.
+ */
+export interface DefinitionMetadata {
+  preparation?: PreparationMetadata;
+  assurance?: AssuranceRequirement;
+  extensions?: Extensions;
+}
+/**
+ * Respondent-facing preparation guidance for trailhead pages: documents to have ready and realistic acquisition windows for those documents.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PreparationMetadata".
+ */
+export interface PreparationMetadata {
+  /**
+   * Documents, credentials, attachments, or facts the respondent should have available before starting.
+   */
+  documents?: PreparationDocument[];
+  /**
+   * Named acquisition windows keyed by document id, item path, or preparation category.
+   */
+  expectedAcquisitionWindows?: {
+    [k: string]: AcquisitionWindow;
+  };
+}
+/**
+ * One preparation item a respondent may need before completing the form.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PreparationDocument".
+ */
+export interface PreparationDocument {
+  /**
+   * Stable preparation document identifier.
+   */
+  id: string;
+  /**
+   * Human-readable document name.
+   */
+  label: string;
+  /**
+   * Optional plain-language explanation of why the respondent may need this item.
+   */
+  description?: string;
+  /**
+   * Whether this item is expected for all respondents. Conditional documents SHOULD explain the condition in description or itemPaths.
+   */
+  required?: boolean;
+  /**
+   * Definition item paths this preparation item supports.
+   */
+  itemPaths?: string[];
+  /**
+   * Reference to a rule, citation, or authority chain requiring or explaining this preparation item.
+   */
+  authorityRef?: string;
+}
+/**
+ * Expected time window for acquiring a preparation item.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "AcquisitionWindow".
+ */
+export interface AcquisitionWindow {
+  /**
+   * Plain-language acquisition estimate, such as `same day` or `2-5 business days`.
+   */
+  label: string;
+  /**
+   * Lower-bound calendar-day estimate.
+   */
+  minDays?: number;
+  /**
+   * Upper-bound calendar-day estimate.
+   */
+  maxDays?: number;
+  /**
+   * Reference supporting the estimate, when known.
+   */
+  sourceRef?: string;
+}
+/**
+ * Form-side identity and authentication assurance floor. Levels use the same L1-L4 taxonomy documented by the Respondent Ledger assurance model.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "AssuranceRequirement".
+ */
+export interface AssuranceRequirement {
+  /**
+   * Identity assurance level required for this form.
+   */
+  ial?: 'L1' | 'L2' | 'L3' | 'L4';
+  /**
+   * Authentication assurance level required for this form.
+   */
+  aal?: 'L1' | 'L2' | 'L3' | 'L4';
+  /**
+   * Jurisdiction or policy namespace in which this assurance requirement applies.
+   */
+  jurisdiction?: string;
+}
+/**
+ * Respondent-facing consequences associated with this item, including triggered deadlines, lock-in effects, and external actions such as referrals.
+ */
+export interface ConsequencesMetadata {
+  /**
+   * Plain-language consequence summary.
+   */
+  summary?: string;
+  /**
+   * Whether the action or answer creates an irreversible effect.
+   */
+  irreversible?: boolean;
+  /**
+   * Whether this item becomes locked after submission.
+   */
+  locksAfterSubmit?: boolean;
+  /**
+   * Deadlines or clocks triggered by this item or action.
+   */
+  deadlines?: ConsequenceDeadline[];
+  /**
+   * External actions triggered by this item or action, such as a referral, payment, or mandatory report.
+   */
+  externalActions?: ExternalAction[];
+  /**
+   * Reference to the rule, citation, or authority chain explaining the consequence.
+   */
+  authorityRef?: string;
+}
+/**
+ * One clock or deadline that starts when an answer or submission action occurs.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "ConsequenceDeadline".
+ */
+export interface ConsequenceDeadline {
+  label: string;
+  /**
+   * Absolute deadline when known.
+   */
+  due?: string;
+  /**
+   * Relative deadline such as `30 days after submission`.
+   */
+  offset?: string;
+  authorityRef?: string;
+}
+/**
+ * External act that may require its own deliberate consent moment.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "ExternalAction".
+ */
+export interface ExternalAction {
+  /**
+   * Closed core external-action kind. `referral` covers cross-agency referral warnings.
+   */
+  kind: 'referral' | 'payment' | 'credit-check' | 'mandatory-report' | 'identity-verification' | 'other';
+  label: string;
+  description?: string;
+  /**
+   * Agency, system, or recipient that receives the action.
+   */
+  recipient?: string;
+  /**
+   * Whether the renderer should collect a distinct deliberate consent act before this action fires.
+   */
+  consentRequired?: boolean;
+  authorityRef?: string;
+}
+/**
+ * Plain-language purpose and citation metadata explaining why this item is asked or shown.
+ */
+export interface PurposeMetadata {
+  /**
+   * Plain-language reason this item is asked or shown.
+   */
+  summary?: string;
+  /**
+   * Reference to a rule, citation, or PKAF authority chain supporting the question.
+   */
+  authorityRef?: string;
+  /**
+   * References to citations in a References document or external citation registry.
+   */
+  citationRefs?: string[];
+  /**
+   * Plain-language or registry-backed audience names that use this answer.
+   */
+  recipientAudiences?: string[];
+  /**
+   * Plain-language retention statement when known.
+   */
+  retention?: string;
 }
 /**
  * A behavioral declaration attached to one or more data nodes by path. Binds are the bridge between structure (Items) and behavior (reactive expressions). All FEL expressions within a Bind are evaluated in the context of the node identified by 'path'. Binds are evaluated reactively: when a referenced value changes, affected Binds are re-evaluated in dependency-graph order. Inheritance: relevant is AND-inherited (child is non-relevant if any ancestor is), readonly is OR-inherited (child is readonly if any ancestor is), required and constraint are NOT inherited.
@@ -578,6 +787,75 @@ export interface MigrationDescriptor {
    */
   defaults?: {};
   extensions?: Extensions;
+}
+/**
+ * FEL-calculated fee line items for respondent-facing cost disclosure.
+ */
+export interface Fees {
+  /**
+   * @minItems 1
+   */
+  lineItems: [FeeLineItem, ...FeeLineItem[]];
+  /**
+   * Default ISO 4217 currency for fee line items that do not declare their own currency.
+   */
+  currency?: string;
+}
+/**
+ * One fee, surcharge, processing cost, discount, or waiver line.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "FeeLineItem".
+ */
+export interface FeeLineItem {
+  /**
+   * Stable fee line identifier.
+   */
+  id: string;
+  /**
+   * Human-readable label for the fee line.
+   */
+  label: string;
+  /**
+   * Optional explanation of what triggers this fee line.
+   */
+  description?: string;
+  /**
+   * A Formspec Expression Language (FEL) v1.0 expression. FEL is a small, deterministic, side-effect-free language for form logic — no statements, loops, variable assignment, or I/O. Strictly typed: no truthy/falsy coercion.
+   *
+   * FIELD REFERENCES: '$' = current node value (used in constraint binds); '$field' = field value from nearest scope; '$group.field' = nested path; '$repeat[n].field' = 1-based index into repeat; '$repeat[*].field' = array of all values across repeat instances.
+   *
+   * CONTEXT REFERENCES: '@index' = 1-based repeat position; '@count' = repeat instance count; '@current' = current repeat instance object; '@instance("name")' = secondary data source by name; '@varName' = variable from definition's variables array.
+   *
+   * OPERATORS (lowest to highest precedence): (0) let x = e in e, if e then e else e; (1) ? : ternary; (2) or; (3) and; (4) = != equality; (5) < > <= >= comparison; (6) in, not in (right operand must be array); (7) ?? null-coalescing; (8) + - arithmetic, & string concatenation; (9) * / % multiply/divide/modulo; (10) not, - (unary prefix). Postfix .field and [index] bind tightest.
+   *
+   * KEY RULES: Arithmetic requires number operands. String concatenation uses '&' (not '+'). Logical operators require boolean operands. null = null is true. Division by zero produces null + diagnostic. Cross-type comparison is a type error.
+   *
+   * LITERALS: Strings in single or double quotes with backslash escapes for backslash, quotes, newline, return, tab, and unicode (4 hex digits). Numbers with decimal semantics (0.1 + 0.2 = 0.3), no leading/trailing dot. Booleans: true, false. null. Dates: @2025-01-15. DateTimes: @2025-01-15T09:30:00Z. Arrays: [1, 2, 3]. Objects: {key: expr}.
+   *
+   * BUILT-IN FUNCTIONS (~40+): Aggregates — sum, count, countWhere, avg, min, max (operate on arrays, skip nulls). String — length, contains, startsWith, endsWith, substring (1-based), replace (literal), upper, lower, trim, matches (regex), format (positional {0} {1}). Numeric — round (banker's rounding), floor, ceil, abs, power. Date — today, now, year, month, day, dateDiff (unit: 'years'/'months'/'days'), dateAdd, hours, minutes, seconds, time, timeDiff. Logical — if(cond, then, else) with short-circuit evaluation, coalesce (first non-null), empty (null/empty-string/empty-array), present (inverse), selected (multiChoice contains value). Type-checking — isNumber, isString, isDate, isNull, typeOf. Money — money(amount, currency), moneyAmount, moneyCurrency, moneyAdd (same currency required), moneySum. MIP queries — valid($path), relevant($path), readonly($path), required($path). Repeat navigation — prev(), next() return adjacent rows or null, parent() returns enclosing context.
+   *
+   * NULL PROPAGATION: null propagates through most operations (null + 5 is null, null < 5 is null). Bind-context defaults: relevant null treated as true (show), required null as false (not required), readonly null as false (editable), constraint null as true (passes). Special null handling: coalesce/empty/present/isNull/typeOf accept null; aggregates skip nulls; ?? returns right operand when left is null; string(null) yields empty string; boolean(null) yields false; length(null) yields 0.
+   *
+   * ARRAY OPS: Equal-length arrays with binary operator produce element-wise result. Scalar + array broadcasts scalar. Different-length arrays produce error. Example: sum($items[*].qty * $items[*].price).
+   *
+   * TYPES: Primitives: string, number (decimal, min 18 significant digits), boolean, date, money ({amount: string, currency: string}), null. Compound: array (homogeneous). No implicit coercion — use explicit casts: number(), string(), boolean(), date(). Empty string and null are distinct values.
+   *
+   * RESERVED WORDS (cannot be used as function names): true, false, null, and, or, not, in, if, then, else, let.
+   */
+  calculate: string;
+  /**
+   * ISO 4217 currency for this line item. Defaults to fees.currency when omitted.
+   */
+  currency?: string;
+  /**
+   * Fee category for grouping and display.
+   */
+  category?: 'base' | 'surcharge' | 'processing' | 'discount' | 'waiver' | 'other';
+  /**
+   * Reference to the rule, citation, or authority chain authorizing this fee.
+   */
+  authorityRef?: string;
 }
 /**
  * Shared base for entities that publish or issue Formspec documents. Issuer and Publisher both extend Party.

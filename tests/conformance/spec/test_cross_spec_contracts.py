@@ -205,7 +205,8 @@ class TestDefinitionTopLevel:
     def test_s4_1__optional_fields_not_required(self):
         optional = {"name", "description", "date", "derivedFrom", "versionAlgorithm",
                     "nonRelevantBehavior", "binds", "shapes", "instances",
-                    "variables", "optionSets", "migrations", "issuer", "extensions"}
+                    "variables", "optionSets", "migrations", "issuer", "metadata",
+                    "fees", "extensions"}
         for field in optional:
             assert field not in DEF_S["required"], f"{field} should not be required"
 
@@ -217,7 +218,7 @@ class TestDefinitionTopLevel:
             "derivedFrom", "name", "title", "description", "date",
             "items", "binds", "shapes", "instances", "variables",
             "nonRelevantBehavior", "optionSets", "migrations", "issuer",
-            "extensions", "formPresentation",
+            "metadata", "fees", "extensions", "formPresentation",
             "modules",
         }
         assert _prop_keys(DEF_S) == expected
@@ -569,7 +570,7 @@ class TestResponseSchema:
         expected = {
             "$formspecResponse", "definitionUrl", "definitionVersion", "status", "data",
             "authored", "displayedIssuer", "id", "author", "subject", "authoredSignatures",
-            "validationResults", "extensions",
+            "metadata", "validationResults", "extensions",
         }
         assert _prop_keys(RESP_S) == expected
 

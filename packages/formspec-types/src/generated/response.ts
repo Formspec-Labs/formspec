@@ -8,6 +8,7 @@
 /* eslint-disable */
 import type { VerificationReceipt as FormspecVerificationReceipt } from './verification-receipt.js';
 import type { ValidationResult as FormspecValidationResult } from './validation-result.js';
+import type { ValueClass } from './common.js';
 export type { FormspecVerificationReceipt, FormspecValidationResult };
 /**
  * A Formspec Response document — a completed or in-progress Instance pinned to a specific Definition version (§2.1.6). A Response is the canonical record of captured form data: the filled-in form. It references exactly one Definition by the immutable tuple (definitionUrl, definitionVersion). A conformant processor MUST reject a Response whose definitionVersion does not match any known Definition at the given definitionUrl. Responses are always validated against their pinned Definition version, even if a newer version exists (Response Pinning Rule VP-01). The tuple (definitionUrl, definitionVersion) identifies the Definition pin this Response is bound to (Response Pinning Rule VP-01); the Response record itself is identified by its 'id' when present, and byte identity of any signed-payload commitment is carried by the relevant signedPayload.digest, not by the Definition pin. A Response MAY also carry authored signature evidence records that bind one or more signer/document acts to the canonical response envelope.
@@ -35,6 +36,7 @@ export interface FormResponse {
   data: {
     [k: string]: unknown;
   };
+  metadata?: ResponseMetadata;
   /**
    * When the Response was last modified (ISO 8601 date-time with timezone). Updated on every save, not just on status transitions. Used for conflict detection, audit trails, and ordering Responses chronologically.
    */
@@ -90,6 +92,108 @@ export interface FormResponse {
    * Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state).
    */
   extensions?: {};
+}
+/**
+ * Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown.
+ */
+export interface ResponseMetadata {
+  /**
+   * Per-field value provenance keyed by item path.
+   */
+  provenance?: {
+    [k: string]: ResponseProvenanceEntry;
+  };
+  /**
+   * Per-field derivation traces keyed by item path. Entries usually correspond to calculated fields and preserve the FEL expression and trace used to produce the value.
+   */
+  derivations?: {
+    [k: string]: ResponseDerivationEntry;
+  };
+  /**
+   * Per-field disclosure evidence keyed by item path. Use this when a purpose, consequence, consent, or citation disclosure was shown to the respondent.
+   */
+  disclosuresShown?: {
+    [k: string]: ResponseDisclosureShownEntry;
+  };
+}
+/**
+ * Provenance for one response value. `class` uses the shared value-class vocabulary; `sourceRef` identifies the source or adapter, including `assistant-suggested` for BYO-assistant suggestions confirmed by the respondent.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "ResponseProvenanceEntry".
+ */
+export interface ResponseProvenanceEntry {
+  /**
+   * Shared origin class for response values and respondent-ledger changes. Closed-core values mirror respondent-ledger-event.schema.json ChangeSetEntry.valueClass; module-contributed extensions use the x-* registry lane.
+   */
+  class: ValueClass;
+  /**
+   * Source, adapter, or transport reference for this value. BYO-assistant suggestions SHOULD use `assistant-suggested` or a transport-qualified value such as `assistant-suggested:webmcp`.
+   */
+  sourceRef: string;
+  /**
+   * RFC 3339 timestamp when this provenance was captured.
+   */
+  capturedAt: string;
+  /**
+   * Actor class or actor reference that confirmed the value, such as `respondent`, `filer`, `delegate`, `ai-agent`, or an implementation-specific URN.
+   */
+  attestedBy: string;
+}
+/**
+ * Receipt-bindable derivation record for a calculated or otherwise derived value.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "ResponseDerivationEntry".
+ */
+export interface ResponseDerivationEntry {
+  /**
+   * FEL expression used to derive the value.
+   */
+  expression: string;
+  /**
+   * Input paths read by the expression when known.
+   */
+  dependsOn?: string[];
+  /**
+   * JSON-projected derived value.
+   */
+  value?: unknown;
+  /**
+   * RFC 3339 timestamp when this derivation was captured.
+   */
+  capturedAt?: string;
+  /**
+   * Ordered FEL trace steps as returned by the engine trace API. The schema keeps step payloads open because the Rust FEL trace enum owns the discriminated variants.
+   */
+  trace: {
+    kind: string;
+    [k: string]: unknown;
+  }[];
+}
+/**
+ * Evidence that a respondent-visible disclosure was shown for a field, purpose, consequence, or consent moment.
+ *
+ * This interface was referenced by `FormResponse`'s JSON-Schema
+ * via the `definition` "ResponseDisclosureShownEntry".
+ */
+export interface ResponseDisclosureShownEntry {
+  /**
+   * Reference to the disclosure text, citation, consent clause, purpose entry, or consequence entry shown to the respondent.
+   */
+  disclosureRef: string;
+  /**
+   * RFC 3339 timestamp when the disclosure was shown.
+   */
+  shownAt: string;
+  /**
+   * Version of the disclosure text when versioned.
+   */
+  version?: string;
+  /**
+   * Renderer or channel that showed the disclosure, such as `web`, `paper`, `voice`, or an implementation-specific value.
+   */
+  channel?: string;
 }
 /**
  * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act to the Formspec Signed Response Payload through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.

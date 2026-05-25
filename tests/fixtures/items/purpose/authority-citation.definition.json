@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/purpose-citation",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Purpose Citation Fixture",
+  "items": [
+    {
+      "key": "householdIncome",
+      "type": "field",
+      "label": "Household income",
+      "dataType": "decimal",
+      "purpose": {
+        "summary": "Used to determine eligibility and payment tier.",
+        "authorityRef": "urn:example.gov:authority:eligibility-income:v1",
+        "citationRefs": ["urn:example.gov:citation:income-rule-42"],
+        "recipientAudiences": ["issuer eligibility reviewer"],
+        "retention": "Retained with the case record for the statutory appeal window."
+      }
+    }
+  ]
+}

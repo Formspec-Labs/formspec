@@ -71,6 +71,95 @@ export interface Availability {
   until?: string;
 }
 /**
+ * Respondent-facing consequences associated with this item, including triggered deadlines, lock-in effects, and external actions such as referrals.
+ */
+export interface ConsequencesMetadata {
+  /**
+   * Plain-language consequence summary.
+   */
+  summary?: string;
+  /**
+   * Whether the action or answer creates an irreversible effect.
+   */
+  irreversible?: boolean;
+  /**
+   * Whether this item becomes locked after submission.
+   */
+  locksAfterSubmit?: boolean;
+  /**
+   * Deadlines or clocks triggered by this item or action.
+   */
+  deadlines?: ConsequenceDeadline[];
+  /**
+   * External actions triggered by this item or action, such as a referral, payment, or mandatory report.
+   */
+  externalActions?: ExternalAction[];
+  /**
+   * Reference to the rule, citation, or authority chain explaining the consequence.
+   */
+  authorityRef?: string;
+}
+/**
+ * One clock or deadline that starts when an answer or submission action occurs.
+ */
+export interface ConsequenceDeadline {
+  label: string;
+  /**
+   * Absolute deadline when known.
+   */
+  due?: string;
+  /**
+   * Relative deadline such as `30 days after submission`.
+   */
+  offset?: string;
+  authorityRef?: string;
+}
+/**
+ * External act that may require its own deliberate consent moment.
+ */
+export interface ExternalAction {
+  /**
+   * Closed core external-action kind. `referral` covers cross-agency referral warnings.
+   */
+  kind: 'referral' | 'payment' | 'credit-check' | 'mandatory-report' | 'identity-verification' | 'other';
+  label: string;
+  description?: string;
+  /**
+   * Agency, system, or recipient that receives the action.
+   */
+  recipient?: string;
+  /**
+   * Whether the renderer should collect a distinct deliberate consent act before this action fires.
+   */
+  consentRequired?: boolean;
+  authorityRef?: string;
+}
+/**
+ * Plain-language purpose and citation metadata explaining why this item is asked or shown.
+ */
+export interface PurposeMetadata {
+  /**
+   * Plain-language reason this item is asked or shown.
+   */
+  summary?: string;
+  /**
+   * Reference to a rule, citation, or PKAF authority chain supporting the question.
+   */
+  authorityRef?: string;
+  /**
+   * References to citations in a References document or external citation registry.
+   */
+  citationRefs?: string[];
+  /**
+   * Plain-language or registry-backed audience names that use this answer.
+   */
+  recipientAudiences?: string[];
+  /**
+   * Plain-language retention statement when known.
+   */
+  retention?: string;
+}
+/**
  * A single stage in the evaluation pipeline. Each phase declares a strategy that determines how its routes are evaluated. Phases execute in declaration order and produce independent results aggregated into the Determination Record.
  *
  * This interface was referenced by `ScreenerDocument`'s JSON-Schema

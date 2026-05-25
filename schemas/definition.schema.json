@@ -163,6 +163,10 @@
         "2025-07-10"
       ]
     },
+    "metadata": {
+      "$ref": "#/$defs/DefinitionMetadata",
+      "description": "Form-level metadata that affects respondent-facing explanation and policy resolution without changing the item tree. Current core entries cover preparation guidance and form-level assurance requirements."
+    },
     "items": {
       "type": "array",
       "items": {
@@ -315,6 +319,10 @@
       "$ref": "#/$defs/Migrations",
       "description": "Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped."
     },
+    "fees": {
+      "$ref": "#/$defs/Fees",
+      "description": "FEL-calculated fee line items for respondent-facing cost disclosure."
+    },
     "issuer": {
       "description": "Optional Issuer binding. Inline (full Issuer document) for individual/small-org case; ref ({url} only) for shared/agency case. Inverse cardinality from locale/references/ontology (Definition points OUT to Issuer).",
       "oneOf": [
@@ -452,6 +460,344 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "DefinitionMetadata": {
+      "type": "object",
+      "description": "Form-level metadata envelope. Metadata entries explain preparation and policy expectations; they do not create response data fields or override Bind, Shape, or access-control behavior.",
+      "additionalProperties": false,
+      "properties": {
+        "preparation": {
+          "$ref": "#/$defs/PreparationMetadata"
+        },
+        "assurance": {
+          "$ref": "#/$defs/AssuranceRequirement"
+        },
+        "extensions": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+        }
+      }
+    },
+    "PreparationMetadata": {
+      "type": "object",
+      "description": "Respondent-facing preparation guidance for trailhead pages: documents to have ready and realistic acquisition windows for those documents.",
+      "additionalProperties": false,
+      "properties": {
+        "documents": {
+          "type": "array",
+          "description": "Documents, credentials, attachments, or facts the respondent should have available before starting.",
+          "items": {
+            "$ref": "#/$defs/PreparationDocument"
+          }
+        },
+        "expectedAcquisitionWindows": {
+          "type": "object",
+          "description": "Named acquisition windows keyed by document id, item path, or preparation category.",
+          "additionalProperties": {
+            "$ref": "#/$defs/AcquisitionWindow"
+          }
+        }
+      },
+      "minProperties": 1
+    },
+    "PreparationDocument": {
+      "type": "object",
+      "description": "One preparation item a respondent may need before completing the form.",
+      "required": ["id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Stable preparation document identifier."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable document name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional plain-language explanation of why the respondent may need this item."
+        },
+        "required": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this item is expected for all respondents. Conditional documents SHOULD explain the condition in description or itemPaths."
+        },
+        "itemPaths": {
+          "type": "array",
+          "description": "Definition item paths this preparation item supports.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to a rule, citation, or authority chain requiring or explaining this preparation item."
+        }
+      }
+    },
+    "AcquisitionWindow": {
+      "type": "object",
+      "description": "Expected time window for acquiring a preparation item.",
+      "required": ["label"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-language acquisition estimate, such as `same day` or `2-5 business days`."
+        },
+        "minDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lower-bound calendar-day estimate."
+        },
+        "maxDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Upper-bound calendar-day estimate."
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference supporting the estimate, when known."
+        }
+      }
+    },
+    "AssuranceRequirement": {
+      "type": "object",
+      "description": "Form-side identity and authentication assurance floor. Levels use the same L1-L4 taxonomy documented by the Respondent Ledger assurance model.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "ial": {
+          "$ref": "#/$defs/AssuranceLevel",
+          "description": "Identity assurance level required for this form."
+        },
+        "aal": {
+          "$ref": "#/$defs/AssuranceLevel",
+          "description": "Authentication assurance level required for this form."
+        },
+        "jurisdiction": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Jurisdiction or policy namespace in which this assurance requirement applies."
+        }
+      }
+    },
+    "AssuranceLevel": {
+      "type": "string",
+      "enum": ["L1", "L2", "L3", "L4"],
+      "description": "Ordered assurance level taxonomy shared with respondent-ledger-spec.md §6.6.1."
+    },
+    "Fees": {
+      "type": "object",
+      "description": "Respondent-facing fee model. Each line item uses a FEL calculate expression so displayed cost updates as answers change.",
+      "required": ["lineItems"],
+      "additionalProperties": false,
+      "properties": {
+        "lineItems": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/FeeLineItem"
+          }
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "Default ISO 4217 currency for fee line items that do not declare their own currency."
+        }
+      }
+    },
+    "FeeLineItem": {
+      "type": "object",
+      "description": "One fee, surcharge, processing cost, discount, or waiver line.",
+      "required": ["id", "label", "calculate"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Stable fee line identifier."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable label for the fee line."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional explanation of what triggers this fee line."
+        },
+        "calculate": {
+          "$ref": "#/$defs/FELExpression",
+          "description": "FEL expression that evaluates the current line amount. Use `0` when a conditional line does not apply."
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 currency for this line item. Defaults to fees.currency when omitted."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["base", "surcharge", "processing", "discount", "waiver", "other"],
+          "default": "base",
+          "description": "Fee category for grouping and display."
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the rule, citation, or authority chain authorizing this fee."
+        }
+      }
+    },
+    "ConsequencesMetadata": {
+      "type": "object",
+      "description": "Respondent-facing consequences for an item or action. Used for pre-submit and just-in-time consent surfaces; it does not itself perform the external action.",
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-language consequence summary."
+        },
+        "irreversible": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the action or answer creates an irreversible effect."
+        },
+        "locksAfterSubmit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this item becomes locked after submission."
+        },
+        "deadlines": {
+          "type": "array",
+          "description": "Deadlines or clocks triggered by this item or action.",
+          "items": {
+            "$ref": "#/$defs/ConsequenceDeadline"
+          }
+        },
+        "externalActions": {
+          "type": "array",
+          "description": "External actions triggered by this item or action, such as a referral, payment, or mandatory report.",
+          "items": {
+            "$ref": "#/$defs/ExternalAction"
+          }
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the rule, citation, or authority chain explaining the consequence."
+        }
+      },
+      "minProperties": 1
+    },
+    "ConsequenceDeadline": {
+      "type": "object",
+      "description": "One clock or deadline that starts when an answer or submission action occurs.",
+      "required": ["label"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "due": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Absolute deadline when known."
+        },
+        "offset": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Relative deadline such as `30 days after submission`."
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ExternalAction": {
+      "type": "object",
+      "description": "External act that may require its own deliberate consent moment.",
+      "required": ["kind", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["referral", "payment", "credit-check", "mandatory-report", "identity-verification", "other"],
+          "description": "Closed core external-action kind. `referral` covers cross-agency referral warnings."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Agency, system, or recipient that receives the action."
+        },
+        "consentRequired": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the renderer should collect a distinct deliberate consent act before this action fires."
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "PurposeMetadata": {
+      "type": "object",
+      "description": "Plain-language purpose and citation metadata for an item. Purpose metadata explains why the question is asked; it does not replace accessControl.class or privacy-profile audience policy.",
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-language reason this item is asked or shown."
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to a rule, citation, or PKAF authority chain supporting the question."
+        },
+        "citationRefs": {
+          "type": "array",
+          "description": "References to citations in a References document or external citation registry.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "recipientAudiences": {
+          "type": "array",
+          "description": "Plain-language or registry-backed audience names that use this answer.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-language retention statement when known."
+        }
+      },
+      "minProperties": 1
+    },
     "Item": {
       "type": "object",
       "description": "A node in the form's structural tree. Every Item has a key (stable machine identifier unique across the entire Definition), a type ('field', 'group', or 'display'), and a label (human-readable). The type determines which additional properties apply. Items form a tree via the 'children' property on groups. The item tree determines the shape of the Instance (form data): fields produce values, groups produce JSON objects (or arrays if repeatable), display items produce nothing.",
@@ -508,6 +854,14 @@
             }
           ]
         },
+        "consequences": {
+          "$ref": "#/$defs/ConsequencesMetadata",
+          "description": "Respondent-facing consequences associated with this item, including triggered deadlines, lock-in effects, and external actions such as referrals."
+        },
+        "purpose": {
+          "$ref": "#/$defs/PurposeMetadata",
+          "description": "Plain-language purpose and citation metadata explaining why this item is asked or shown."
+        },
         "extensions": {
           "type": "object",
           "propertyNames": {
@@ -536,6 +890,8 @@
               "description": true,
               "hint": true,
               "labels": true,
+              "consequences": true,
+              "purpose": true,
               "extensions": true,
               "children": {
                 "type": "array",
@@ -621,6 +977,8 @@
               "description": true,
               "hint": true,
               "labels": true,
+              "consequences": true,
+              "purpose": true,
               "extensions": true,
               "dataType": {
                 "type": "string",
@@ -829,6 +1187,8 @@
               "description": true,
               "hint": true,
               "labels": true,
+              "consequences": true,
+              "purpose": true,
               "extensions": true,
               "presentation": {
                 "$ref": "#/$defs/Presentation"

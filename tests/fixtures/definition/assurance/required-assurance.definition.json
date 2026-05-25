@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/assurance-floor",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Assurance Floor Fixture",
+  "metadata": {
+    "assurance": {
+      "ial": "L2",
+      "aal": "L2",
+      "jurisdiction": "US"
+    }
+  },
+  "items": [
+    {
+      "key": "legalName",
+      "type": "field",
+      "label": "Legal name",
+      "dataType": "string"
+    }
+  ]
+}

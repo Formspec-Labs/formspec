@@ -134,6 +134,20 @@
       "propertyNames": { "pattern": "^x-" },
       "description": "Extension object whose keys must be prefixed with x-."
     },
+    "ValueClass": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["user-input", "prepopulated", "calculated", "imported", "attachment", "system-derived", "migration-derived"]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
+          "description": "Module-contributed value class per ADR 0150 §4.5/§4.9 (e.g. `x-ai-generated`)."
+        }
+      ],
+      "description": "Shared origin class for response values and respondent-ledger changes. Closed-core values mirror respondent-ledger-event.schema.json ChangeSetEntry.valueClass; module-contributed extensions use the x-* registry lane."
+    },
     "AccessibilityBlock": {
       "type": "object",
       "description": "Accessibility overrides applied to a rendered element.",

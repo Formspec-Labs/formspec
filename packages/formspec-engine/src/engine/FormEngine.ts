@@ -26,9 +26,11 @@ import type {
     JsonRecord,
     JsonValue,
     PinnedResponseReference,
+    RelevanceExplanation,
     RegistryEntry,
     RemoteOptionsState,
 } from '../interfaces.js';
+import { evalFELWithTrace, getFELDependencies, type FelTraceStep } from '../fel/fel-api-runtime.js';
 import { preactReactiveRuntime } from '../reactivity/preact-runtime.js';
 import type { EngineReactiveRuntime, EngineSignal, ReadonlyEngineSignal } from '../reactivity/types.js';
 import { LocaleStore, type LocaleDocument } from '../locale.js';
@@ -140,6 +142,7 @@ export class FormEngine implements IFormEngine {
     private readonly _instanceSourceTasks: Array<Promise<void>> = [];
     private readonly _variableDefs: FormVariable[];
     private readonly _variableSignalKeys = new Map<string, string[]>();
+    private readonly _derivationTraceCache = new Map<string, { version: number; trace: FelTraceStep[] }>();
     private readonly _externalValidation: ValidationResult[] = [];
     private readonly _issuerStore: IssuerStore;
     private readonly _validationProfileResolver: DefaultValidationProfileResolver;
@@ -549,6 +552,82 @@ export class FormEngine implements IFormEngine {
             }
         }
         return true;
+    }
+
+    public whyRelevant(path: string): RelevanceExplanation {
+        const basePath = toBasePath(path);
+        const bindPath = this.findRelevanceBindPath(basePath);
+        if (!bindPath) {
+            return {
+                bindId: null,
+                expression: null,
+                dependsOn: [],
+                evaluatedAs: this.isPathRelevant(path),
+            };
+        }
+
+        const expression = this._bindConfigs[bindPath]?.relevant ?? null;
+        return {
+            bindId: bindPath,
+            expression,
+            dependsOn: expression ? this.expressionDependencies(expression, bindPath) : [],
+            evaluatedAs: this.relevantSignals[bindPath]?.value ?? this.isPathRelevant(bindPath),
+        };
+    }
+
+    public getDerivationTree(path: string): FelTraceStep[] {
+        const basePath = toBasePath(path);
+        const calculate = this._bindConfigs[basePath]?.calculate;
+        if (!calculate) {
+            return [];
+        }
+
+        const version = this._evaluationVersion.value;
+        const cached = this._derivationTraceCache.get(basePath);
+        if (cached && cached.version === version) {
+            return cached.trace.map((step) => cloneValue(step) as FelTraceStep);
+        }
+
+        try {
+            const fields = this.traceFieldSnapshot();
+            const result = evalFELWithTrace(
+                this.normalizeExpressionForWasm(calculate, basePath),
+                fields,
+            );
+            const trace = Array.isArray(result.trace) ? result.trace : [];
+            this._derivationTraceCache.set(basePath, {
+                version,
+                trace: trace.map((step) => cloneValue(step) as FelTraceStep),
+            });
+            return trace.map((step) => cloneValue(step) as FelTraceStep);
+        } catch {
+            return [];
+        }
+    }
+
+    public getDownstreamImpact(path: string): string[] {
+        const source = toBasePath(path);
+        const edges = this.downstreamDependencyEdges();
+        const impacted = new Set<string>();
+        const queue = [source];
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            for (const [dependency, targets] of edges.entries()) {
+                if (!FormEngine.pathDependencyMatches(current, dependency)) {
+                    continue;
+                }
+                for (const target of targets) {
+                    if (target === source || impacted.has(target)) {
+                        continue;
+                    }
+                    impacted.add(target);
+                    queue.push(target);
+                }
+            }
+        }
+
+        return [...impacted].sort();
     }
 
     public getFieldPaths(): string[] {
@@ -1275,6 +1354,101 @@ export class FormEngine implements IFormEngine {
         return Object.fromEntries(
             Object.entries(this.repeats).map(([path, repeatSignal]) => [path, repeatSignal.value]),
         );
+    }
+
+    private findRelevanceBindPath(path: string): string | null {
+        const parts = splitIndexedPath(path);
+        const candidates: string[] = [];
+        let current = '';
+        for (const part of parts) {
+            current = current ? appendPath(current, part) : part;
+            candidates.push(toBasePath(current));
+        }
+        for (const candidate of candidates.reverse()) {
+            if (this._bindConfigs[candidate]?.relevant) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private expressionDependencies(expression: string, currentPath = ''): string[] {
+        try {
+            const normalized = this.normalizeExpressionForWasm(expression, currentPath);
+            return getFELDependencies(normalized)
+                .map(FormEngine.normalizeDependencyPath)
+                .filter((dependency) => dependency.length > 0)
+                .sort();
+        } catch {
+            return [];
+        }
+    }
+
+    private downstreamDependencyEdges(): Map<string, Set<string>> {
+        const edges = new Map<string, Set<string>>();
+        const addEdges = (targetPath: string, expressions: Array<string | boolean | undefined>): void => {
+            const target = targetPath === '#' ? '#' : toBasePath(targetPath);
+            for (const expression of expressions) {
+                if (typeof expression !== 'string' || expression.length === 0) {
+                    continue;
+                }
+                for (const dependency of this.expressionDependencies(expression, target)) {
+                    if (dependency === target) {
+                        continue;
+                    }
+                    const targets = edges.get(dependency) ?? new Set<string>();
+                    targets.add(target);
+                    edges.set(dependency, targets);
+                }
+            }
+        };
+
+        for (const bind of Object.values(this._bindConfigs)) {
+            addEdges(bind.path, [
+                bind.calculate,
+                bind.relevant,
+                bind.required,
+                bind.readonly,
+                bind.constraint,
+            ]);
+        }
+
+        for (const shape of this.definition.shapes ?? []) {
+            const composedExpressions = [
+                ...(shape.and ?? []),
+                ...(shape.or ?? []),
+                ...(shape.xone ?? []),
+                shape.not,
+            ].filter((entry): entry is string => typeof entry === 'string');
+            addEdges(shape.target, [
+                shape.constraint,
+                shape.activeWhen,
+                ...composedExpressions,
+            ]);
+        }
+
+        return edges;
+    }
+
+    private traceFieldSnapshot(): Record<string, unknown> {
+        const fields: Record<string, unknown> = {};
+        for (const [path, signalRef] of Object.entries(this.signals)) {
+            fields[path] = cloneValue(signalRef.value);
+        }
+        for (const [path, value] of Object.entries(this._data)) {
+            fields[path] = cloneValue(value);
+        }
+        return fields;
+    }
+
+    private static normalizeDependencyPath(path: string): string {
+        return toBasePath(path.replace(/^\$/, '').replace(/^\./, ''));
+    }
+
+    private static pathDependencyMatches(source: string, dependency: string): boolean {
+        return source === dependency
+            || source.startsWith(`${dependency}.`)
+            || dependency.startsWith(`${source}.`);
     }
 
     private assertNoRemovedModeOption(options: unknown, method: string): void {

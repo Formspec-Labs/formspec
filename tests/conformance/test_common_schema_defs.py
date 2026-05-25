@@ -15,6 +15,9 @@ from jsonschema import ValidationError, validate
 SCHEMA = json.loads(
     (Path(__file__).parents[2] / "schemas" / "common.schema.json").read_text()
 )
+LEDGER_SCHEMA = json.loads(
+    (Path(__file__).parents[2] / "schemas" / "respondent-ledger-event.schema.json").read_text()
+)
 
 
 def _validator_for(def_name: str) -> dict:
@@ -23,6 +26,22 @@ def _validator_for(def_name: str) -> dict:
         "$defs": SCHEMA["$defs"],
         "$ref": f"#/$defs/{def_name}",
     }
+
+
+def test_valueclass_closed_core_matches_respondent_ledger_changeset_entry():
+    common_values = SCHEMA["$defs"]["ValueClass"]["oneOf"][0]["enum"]
+    ledger_values = LEDGER_SCHEMA["$defs"]["ChangeSetEntry"]["properties"]["valueClass"]["oneOf"][0]["enum"]
+    assert common_values == ledger_values
+
+
+def test_valueclass_accepts_closed_core_and_x_extension():
+    validate("user-input", _validator_for("ValueClass"))
+    validate("x-ai-generated", _validator_for("ValueClass"))
+
+
+def test_valueclass_rejects_unregistered_bare_extension():
+    with pytest.raises(ValidationError):
+        validate("ai-generated", _validator_for("ValueClass"))
 
 
 # ─── ModuleRef (ADR §4.4) ────────────────────────────────────────────────────

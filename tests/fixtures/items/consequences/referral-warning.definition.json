@@ -1,0 +1,28 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/referral-warning",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Referral Warning Fixture",
+  "items": [
+    {
+      "key": "incomeChange",
+      "type": "field",
+      "label": "Income change",
+      "dataType": "boolean",
+      "consequences": {
+        "summary": "A yes answer may trigger a cross-agency referral.",
+        "irreversible": false,
+        "externalActions": [
+          {
+            "kind": "referral",
+            "label": "Notify benefits eligibility office",
+            "recipient": "Benefits eligibility office",
+            "consentRequired": true,
+            "authorityRef": "urn:example.gov:authority:benefits-referral:v1"
+          }
+        ]
+      }
+    }
+  ]
+}

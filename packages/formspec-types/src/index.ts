@@ -131,6 +131,7 @@ type FormDefinitionKnownFields = Pick<
   | 'title'
   | 'description'
   | 'date'
+  | 'metadata'
   | 'shapes'
   | 'instances'
   | 'variables'
@@ -138,6 +139,7 @@ type FormDefinitionKnownFields = Pick<
   | 'issuer'
   | 'optionSets'
   | 'migrations'
+  | 'fees'
   | 'extensions'
 >;
 

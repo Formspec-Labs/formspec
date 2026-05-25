@@ -7,6 +7,15 @@
 
 /* eslint-disable */
 /**
+ * Shared origin class for response values and respondent-ledger changes. Closed-core values mirror respondent-ledger-event.schema.json ChangeSetEntry.valueClass; module-contributed extensions use the x-* registry lane.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "ValueClass".
+ */
+export type ValueClass =
+  | ('user-input' | 'prepopulated' | 'calculated' | 'imported' | 'attachment' | 'system-derived' | 'migration-derived')
+  | `x-${string}`;
+/**
  * This interface was referenced by `CommonSchema`'s JSON-Schema
  * via the `definition` "BuiltInWidgetName".
  */

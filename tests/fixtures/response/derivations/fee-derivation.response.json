@@ -1,0 +1,33 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.gov/forms/trailhead-fees",
+  "definitionVersion": "1.0.0",
+  "status": "in-progress",
+  "data": {
+    "expedite": true,
+    "totalFee": 40
+  },
+  "metadata": {
+    "derivations": {
+      "totalFee": {
+        "expression": "25 + if($expedite = true, 15, 0)",
+        "dependsOn": ["expedite"],
+        "value": 40,
+        "capturedAt": "2026-05-25T15:05:00Z",
+        "trace": [
+          {
+            "kind": "FieldResolved",
+            "path": "expedite",
+            "value": true
+          },
+          {
+            "kind": "IfBranch",
+            "condition_value": true,
+            "branch_taken": "then"
+          }
+        ]
+      }
+    }
+  },
+  "authored": "2026-05-25T15:05:00Z"
+}

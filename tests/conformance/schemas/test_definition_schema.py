@@ -6,6 +6,8 @@ directly; every negative test asserts that ``ValidationError`` is raised.
 """
 
 import copy
+import json
+from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, ValidationError, validate
@@ -23,6 +25,7 @@ from tests.unit.support.schema_fixtures import load_schema, build_schema_registr
 # ---------------------------------------------------------------------------
 
 COMMON_SCHEMA = load_schema("common.schema.json")
+FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures"
 
 @pytest.fixture(scope="session")
 def schema():
@@ -40,8 +43,10 @@ def _validate(instance, schema):
 # Helpers – reusable document fragments
 # ---------------------------------------------------------------------------
 
-def _minimal_field(key="f1", dataType="string"):
-    return _shared_minimal_field(key=key, data_type=dataType, label="F")
+def _minimal_field(key="f1", dataType="string", **overrides):
+    item = _shared_minimal_field(key=key, data_type=dataType, label="F")
+    item.update(overrides)
+    return item
 
 
 # ===================================================================
@@ -71,6 +76,16 @@ class TestMinimalValid:
 
     def test_minimal_display_item(self, schema):
         doc = _base_doc(items=[_minimal_display()])
+        _validate(doc, schema)
+
+    @pytest.mark.parametrize("relative_path", [
+        "items/consequences/referral-warning.definition.json",
+        "items/purpose/authority-citation.definition.json",
+        "definition/preparation-fees/fel-fees.definition.json",
+        "definition/assurance/required-assurance.definition.json",
+    ])
+    def test_ext_ratification_fixtures_validate(self, schema, relative_path):
+        doc = json.loads((FIXTURE_DIR / relative_path).read_text(encoding="utf-8"))
         _validate(doc, schema)
 
     ALL_DATA_TYPES = [
@@ -109,6 +124,11 @@ class TestTopLevelEnums:
         with pytest.raises(ValidationError):
             _validate(doc, schema)
 
+    def test_invalid_assurance_level(self, schema):
+        doc = _base_doc(metadata={"assurance": {"ial": "L5"}})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
 
 # ===================================================================
 # TestTopLevelFormats
@@ -124,6 +144,35 @@ class TestTopLevelFormats:
     def test_valid_date(self, schema):
         doc = _base_doc(date="2025-01-15")
         _validate(doc, schema)
+
+
+class TestMetadataAndFees:
+    """EXT-7 and EXT-8 form-level metadata validation."""
+
+    def test_preparation_and_fel_fees_are_valid(self, schema):
+        doc = _base_doc(
+            metadata={
+                "preparation": {
+                    "documents": [{"id": "taxReturn", "label": "Prior-year tax return"}],
+                    "expectedAcquisitionWindows": {
+                        "taxReturn": {"label": "2-5 business days", "minDays": 2, "maxDays": 5}
+                    },
+                }
+            },
+            fees={
+                "currency": "USD",
+                "lineItems": [
+                    {"id": "baseFee", "label": "Base fee", "calculate": "25"},
+                    {"id": "rushFee", "label": "Rush fee", "calculate": "if($rush = true, 15, 0)"},
+                ],
+            },
+        )
+        _validate(doc, schema)
+
+    def test_fee_line_item_requires_calculate(self, schema):
+        doc = _base_doc(fees={"lineItems": [{"id": "baseFee", "label": "Base fee"}]})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
 
 
 # ===================================================================
@@ -171,6 +220,33 @@ class TestItemDiscrimination:
         doc = _base_doc(items=[item])
         with pytest.raises(ValidationError):
             _validate(doc, schema)
+
+    def test_retired_privacy_item_block_is_rejected(self, schema):
+        item = _minimal_field(privacy={"protectable": True, "class": "safe-address"})
+        doc = _base_doc(items=[item])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_item_consequences_referral_block_is_valid(self, schema):
+        item = _minimal_field(consequences={
+            "summary": "This answer may notify another agency.",
+            "externalActions": [{
+                "kind": "referral",
+                "label": "Notify downstream agency",
+                "recipient": "Downstream agency",
+            }],
+        })
+        doc = _base_doc(items=[item])
+        _validate(doc, schema)
+
+    def test_item_purpose_authority_block_is_valid(self, schema):
+        item = _minimal_field(purpose={
+            "summary": "Used to determine eligibility.",
+            "authorityRef": "urn:example.gov:authority:eligibility:v1",
+            "citationRefs": ["urn:example.gov:citation:eligibility-1"],
+        })
+        doc = _base_doc(items=[item])
+        _validate(doc, schema)
 
 
 # ===================================================================

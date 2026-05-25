@@ -136,6 +136,21 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(src).not.toMatch(/ActionIntent =[^;]*\) \| string;/);
   });
 
+  it('ValueClass preserves known classes plus x-* extensions', () => {
+    const commonSrc = readFileSync(
+      resolve(__dirname, '../src/generated/common.ts'),
+      'utf-8',
+    );
+    const responseSrc = readFileSync(
+      resolve(__dirname, '../src/generated/response.ts'),
+      'utf-8',
+    );
+    expect(commonSrc).toContain('| `x-${string}`;');
+    expect(commonSrc).not.toMatch(/export type ValueClass =[\s\S]*\| string;/);
+    expect(responseSrc).toContain('class: ValueClass;');
+    expect(responseSrc).toContain('value?: unknown;');
+  });
+
   it('ValidationMapping ValidationTuple remains a required closed triple', () => {
     // ValidationTuple is the exact override shape. It must not collapse to
     // ValidationTuplePredicate, whose axes are optional and whose object is

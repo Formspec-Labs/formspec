@@ -1,0 +1,59 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/trailhead-fees",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Trailhead Fees Fixture",
+  "metadata": {
+    "preparation": {
+      "documents": [
+        {
+          "id": "proofOfAddress",
+          "label": "Proof of address",
+          "description": "Needed when the respondent requests mailed notices.",
+          "itemPaths": ["mailNotice"],
+          "authorityRef": "urn:example.gov:authority:address-proof:v1"
+        }
+      ],
+      "expectedAcquisitionWindows": {
+        "proofOfAddress": {
+          "label": "same day",
+          "minDays": 0,
+          "maxDays": 1
+        }
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "expedite",
+      "type": "field",
+      "label": "Expedited processing",
+      "dataType": "boolean"
+    },
+    {
+      "key": "mailNotice",
+      "type": "field",
+      "label": "Mail notices",
+      "dataType": "boolean"
+    }
+  ],
+  "fees": {
+    "currency": "USD",
+    "lineItems": [
+      {
+        "id": "baseFee",
+        "label": "Base filing fee",
+        "calculate": "25",
+        "category": "base",
+        "authorityRef": "urn:example.gov:authority:filing-fee:v1"
+      },
+      {
+        "id": "expediteSurcharge",
+        "label": "Expedited processing surcharge",
+        "calculate": "if($expedite = true, 15, 0)",
+        "category": "surcharge"
+      }
+    ]
+  }
+}
