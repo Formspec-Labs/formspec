@@ -22,7 +22,11 @@ FIXTURE_PATH = (
 )
 
 REQUIRED_CASES = {
+    "ambiguous-loaded-theme-evidence",
     "valid-theme-widget-with-resolved-contribution",
+    "missing-loaded-theme-evidence",
+    "missing-theme-token-ref",
+    "theme-token-category-mismatch",
     "undeclared-theme-token-slot",
     "missing-theme-token-slot-evidence",
     "missing-theme-widget-ref",
@@ -35,6 +39,10 @@ REQUIRED_CASES = {
 }
 
 EXPECTED_CODES = {
+    "ambiguous-loaded-theme-evidence": ["THEME-TOKEN-REF"],
+    "missing-loaded-theme-evidence": ["THEME-TOKEN-REF"],
+    "missing-theme-token-ref": ["THEME-TOKEN-REF"],
+    "theme-token-category-mismatch": ["THEME-TOKEN-CATEGORY"],
     "undeclared-theme-token-slot": ["THEME-TOKEN-SLOT"],
     "missing-theme-token-slot-evidence": ["THEME-TOKEN-SLOT"],
     "missing-theme-widget-ref": ["THEME-TOKEN-WIDGET"],
@@ -142,6 +150,14 @@ def _assert_registry_pointer(source: dict[str, Any]) -> None:
     assert isinstance(source.get("jsonPointer"), str)
 
 
+def _assert_theme_pointer(source: dict[str, Any]) -> None:
+    assert source["artifactSlot"] == "theme"
+    assert source["artifactKind"] == "theme"
+    assert "ref" in source
+    assert "url" in source["ref"]
+    assert isinstance(source.get("jsonPointer"), str)
+
+
 def test_ui_graph_policy_theme_widget_fixture_covers_required_cases() -> None:
     ids = {case["id"] for case in _corpus()["cases"]}
     assert ids == REQUIRED_CASES
@@ -223,6 +239,45 @@ def test_ui_graph_policy_theme_widget_slot_diagnostics_are_policy_owned() -> Non
     }
 
 
+def test_ui_graph_policy_theme_widget_token_diagnostics_are_policy_owned() -> None:
+    missing_theme = _case("missing-loaded-theme-evidence")["expected"]["diagnostics"][0]
+    assert missing_theme["code"] == "THEME-TOKEN-REF"
+    assert missing_theme["primarySource"]["jsonPointer"] == "/theme/assignments/0/token"
+    assert "relatedSources" not in missing_theme
+    assert missing_theme["details"]["reason"] == "missing-theme-evidence"
+
+    ambiguous_theme = _case("ambiguous-loaded-theme-evidence")["expected"]["diagnostics"][0]
+    assert ambiguous_theme["code"] == "THEME-TOKEN-REF"
+    assert ambiguous_theme["details"]["reason"] == "ambiguous-theme-evidence"
+    assert len(ambiguous_theme["relatedSources"]) == 2
+    for related in ambiguous_theme["relatedSources"]:
+        _assert_theme_pointer(related)
+        assert related["jsonPointer"] == "/tokens"
+
+    missing_token = _case("missing-theme-token-ref")["expected"]["diagnostics"][0]
+    assert missing_token["code"] == "THEME-TOKEN-REF"
+    assert missing_token["details"]["reason"] == "missing-token"
+    assert len(missing_token["relatedSources"]) == 1
+    _assert_theme_pointer(missing_token["relatedSources"][0])
+
+    category = _case("theme-token-category-mismatch")["expected"]["diagnostics"][0]
+    assert category["code"] == "THEME-TOKEN-CATEGORY"
+    assert category["primarySource"]["jsonPointer"] == "/theme/assignments/0/token"
+    assert category["details"] == {
+        "moduleId": "x-reviewer",
+        "widgetName": "x-review-panel",
+        "slot": "accent",
+        "token": "spacing.md",
+        "reason": "category-not-accepted",
+        "acceptedTokenCategories": ["color"],
+    }
+    assert len(category["relatedSources"]) == 2
+    assert {source["artifactKind"] for source in category["relatedSources"]} == {
+        "registry",
+        "theme",
+    }
+
+
 def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() -> None:
     for case in _corpus()["cases"]:
         expected = case["expected"]
@@ -253,6 +308,8 @@ def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() ->
                     _assert_surface_pointer(related)
                 if related["artifactSlot"].startswith("registries["):
                     _assert_registry_pointer(related)
+                if related["artifactSlot"] == "theme":
+                    _assert_theme_pointer(related)
 
 
 def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> None:
@@ -273,6 +330,9 @@ def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> N
             if diagnostic["code"] == "THEME-TOKEN-SLOT":
                 assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
                 assert diagnostic["primarySource"]["jsonPointer"].endswith("/slot")
+            if diagnostic["code"] in {"THEME-TOKEN-REF", "THEME-TOKEN-CATEGORY"}:
+                assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
+                assert diagnostic["primarySource"]["jsonPointer"].endswith("/token")
             if diagnostic["code"] == "MODULE-CONTRIBUTION-UNADMITTED":
                 primary = diagnostic["primarySource"]
                 assert set(primary).issubset({"artifactSlot", "source", "jsonPointer"})

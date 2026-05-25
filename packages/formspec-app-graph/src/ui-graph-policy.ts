@@ -16,6 +16,7 @@ import type {
   ModuleResolutionModule,
   ModuleResolutionReport,
   SurfaceDocument,
+  ThemeDocument,
   UiGraphPolicyDocument,
 } from '@formspec-org/types';
 
@@ -63,6 +64,12 @@ interface IndexedThemeTokenAssignment {
   index: number;
 }
 
+interface ThemeTokenEvidence {
+  resolved: boolean;
+  tokenSource?: AppGraphSourcePointer;
+  diagnostics: AppGraphDiagnostic[];
+}
+
 interface UiGraphPolicyEvidence {
   evidenceSlot: string;
   source: string;
@@ -104,6 +111,7 @@ function diagnostic(
 type LoadedSurfaceHandle = ResolvedArtifactHandle<SurfaceDocument>;
 type LoadedLocaleHandle = ResolvedArtifactHandle<LocaleDocument>;
 type LoadedDefinitionHandle = ResolvedArtifactHandle;
+type LoadedThemeHandle = ResolvedArtifactHandle<ThemeDocument>;
 
 function loadedSurfaceHandles(handles: readonly ResolvedArtifactHandle[]): LoadedSurfaceHandle[] {
   return handles
@@ -120,6 +128,12 @@ function loadedLocaleHandles(handles: readonly ResolvedArtifactHandle[]): Loaded
 function loadedDefinitionHandles(handles: readonly ResolvedArtifactHandle[]): LoadedDefinitionHandle[] {
   return handles
     .filter((handle) => handle.artifactKind === 'definition' && handle.status === 'loaded');
+}
+
+function loadedThemeHandles(handles: readonly ResolvedArtifactHandle[]): LoadedThemeHandle[] {
+  return handles
+    .filter((handle) => handle.artifactKind === 'theme' && handle.status === 'loaded')
+    .map((handle) => handle as LoadedThemeHandle);
 }
 
 function surfaceRefUrl(handle: ResolvedArtifactHandle): string | undefined {
@@ -512,6 +526,7 @@ function validateThemeWidgetRefs(
   evidence: UiGraphPolicyEvidence,
   assignments: readonly IndexedThemeTokenAssignment[],
   moduleResolution: ModuleResolutionReport | undefined,
+  tokenEvidenceByAssignment: ReadonlyMap<number, ThemeTokenEvidence>,
 ): AppGraphDiagnostic[] {
   if (moduleResolution?.phase.status !== 'completed') return [];
 
@@ -524,7 +539,11 @@ function validateThemeWidgetRefs(
       contributionResolvedForModule(contribution, widgetRef.moduleId)
     );
     if (resolvedContributions.length > 0) {
-      return validateThemeTokenSlot(evidence, assignment, resolvedContributions);
+      const tokenSlotDiagnostics = validateThemeTokenSlot(evidence, assignment, resolvedContributions);
+      if (tokenSlotDiagnostics.length > 0) return tokenSlotDiagnostics;
+      const tokenEvidence = tokenEvidenceByAssignment.get(assignment.index);
+      if (!tokenEvidence?.resolved) return [];
+      return validateThemeTokenCategory(evidence, assignment, resolvedContributions, tokenEvidence);
     }
 
     const details: Record<string, unknown> = {
@@ -546,12 +565,114 @@ function validateThemeWidgetRefs(
   });
 }
 
+function themeTokens(handle: LoadedThemeHandle): Record<string, unknown> {
+  const tokens = handle.document?.tokens;
+  return tokens && typeof tokens === 'object' && !Array.isArray(tokens)
+    ? tokens as Record<string, unknown>
+    : {};
+}
+
+function hasToken(tokens: Record<string, unknown>, token: string): boolean {
+  return Object.prototype.hasOwnProperty.call(tokens, token);
+}
+
+function themeTokenSource(handle: LoadedThemeHandle, token: string): AppGraphSourcePointer {
+  return diagnosticSourceForHandle(handle, `/tokens/${escapeJsonPointerToken(token)}`);
+}
+
+function themeTokensSource(handle: LoadedThemeHandle): AppGraphSourcePointer {
+  return diagnosticSourceForHandle(handle, '/tokens');
+}
+
+function validateThemeTokenRef(
+  evidence: UiGraphPolicyEvidence,
+  assignment: IndexedThemeTokenAssignment,
+  themes: readonly LoadedThemeHandle[],
+): ThemeTokenEvidence {
+  const token = assignment.assignment.token;
+  const primarySource = evidenceSource(evidence, `/theme/assignments/${assignment.index}/token`);
+  const widgetRef = assignment.assignment.widgetRef;
+
+  const details: Record<string, unknown> = {
+    moduleId: widgetRef.moduleId,
+    widgetName: widgetRef.widgetName,
+    slot: assignment.assignment.slot,
+    token,
+  };
+
+  if (themes.length === 0) {
+    return {
+      resolved: false,
+      diagnostics: [diagnostic(
+        'THEME-TOKEN-REF',
+        'A Theme token assignment requires loaded Theme token evidence.',
+        primarySource,
+        undefined,
+        { ...details, reason: 'missing-theme-evidence' },
+      )],
+    };
+  }
+
+  if (themes.length > 1) {
+    return {
+      resolved: false,
+      diagnostics: [diagnostic(
+        'THEME-TOKEN-REF',
+        'A Theme token assignment has ambiguous loaded Theme token evidence.',
+        primarySource,
+        themes.map((theme) => themeTokensSource(theme)),
+        { ...details, reason: 'ambiguous-theme-evidence' },
+      )],
+    };
+  }
+
+  const [theme] = themes;
+  if (!hasToken(themeTokens(theme), token)) {
+    return {
+      resolved: false,
+      diagnostics: [diagnostic(
+        'THEME-TOKEN-REF',
+        'A Theme token assignment references a token absent from loaded Theme token evidence.',
+        primarySource,
+        [themeTokensSource(theme)],
+        { ...details, reason: 'missing-token' },
+      )],
+    };
+  }
+
+  return {
+    resolved: true,
+    tokenSource: themeTokenSource(theme, token),
+    diagnostics: [],
+  };
+}
+
+function themeTokenEvidenceByAssignment(
+  evidence: UiGraphPolicyEvidence,
+  assignments: readonly IndexedThemeTokenAssignment[],
+  themes: readonly LoadedThemeHandle[],
+): Map<number, ThemeTokenEvidence> {
+  return new Map(assignments.map((assignment) => [
+    assignment.index,
+    validateThemeTokenRef(evidence, assignment, themes),
+  ]));
+}
+
 function tokenSlotSources(
   tokenSlots: readonly ModuleResolutionWidgetTokenSlot[],
 ): AppGraphSourcePointer[] {
   return tokenSlots
     .map((tokenSlot) => appGraphSourceFromModuleSource(tokenSlot.source))
     .filter((source): source is AppGraphSourcePointer => source !== undefined);
+}
+
+function matchingThemeTokenSlots(
+  resolvedContributions: readonly ModuleResolutionContribution[],
+  slot: string,
+): ModuleResolutionWidgetTokenSlot[] {
+  return resolvedContributions
+    .flatMap((contribution) => contribution.widgetTokenSlots ?? [])
+    .filter((tokenSlot) => tokenSlot.name === slot);
 }
 
 function validateThemeTokenSlot(
@@ -561,7 +682,7 @@ function validateThemeTokenSlot(
 ): AppGraphDiagnostic[] {
   const tokenSlots = resolvedContributions.flatMap((contribution) => contribution.widgetTokenSlots ?? []);
   const slot = assignment.assignment.slot;
-  if (tokenSlots.some((tokenSlot) => tokenSlot.name === slot)) return [];
+  if (matchingThemeTokenSlots(resolvedContributions, slot).length > 0) return [];
 
   const widgetRef = assignment.assignment.widgetRef;
   const declaredSlots = [...new Set(tokenSlots.map((tokenSlot) => tokenSlot.name))].sort();
@@ -583,20 +704,62 @@ function validateThemeTokenSlot(
   )];
 }
 
+function validateThemeTokenCategory(
+  evidence: UiGraphPolicyEvidence,
+  assignment: IndexedThemeTokenAssignment,
+  resolvedContributions: readonly ModuleResolutionContribution[],
+  tokenEvidence: ThemeTokenEvidence,
+): AppGraphDiagnostic[] {
+  const slot = assignment.assignment.slot;
+  const matchingSlots = matchingThemeTokenSlots(resolvedContributions, slot);
+  const token = assignment.assignment.token;
+  if (matchingSlots.some((tokenSlot) =>
+    tokenSlot.acceptedTokenCategories.some((categoryPrefix) => token.startsWith(`${categoryPrefix}.`))
+  )) {
+    return [];
+  }
+
+  const widgetRef = assignment.assignment.widgetRef;
+  const acceptedTokenCategories = [...new Set(matchingSlots.flatMap((tokenSlot) => tokenSlot.acceptedTokenCategories))].sort();
+  const relatedSources = [
+    ...(tokenEvidence.tokenSource ? [tokenEvidence.tokenSource] : []),
+    ...tokenSlotSources(matchingSlots),
+  ];
+
+  return [diagnostic(
+    'THEME-TOKEN-CATEGORY',
+    'A Theme token assignment uses a token category not accepted by the declared widget token slot.',
+    evidenceSource(evidence, `/theme/assignments/${assignment.index}/token`),
+    relatedSources.length > 0 ? relatedSources : undefined,
+    {
+      moduleId: widgetRef.moduleId,
+      widgetName: widgetRef.widgetName,
+      slot,
+      token,
+      reason: 'category-not-accepted',
+      acceptedTokenCategories,
+    },
+  )];
+}
+
 export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnostic[] {
   const surfaces = loadedSurfaceHandles(context.handles);
   const locales = loadedLocaleHandles(context.handles);
   const definitions = loadedDefinitionHandles(context.handles);
+  const themes = loadedThemeHandles(context.handles);
   return policyEvidences(context).flatMap((evidence) => {
     const targetUrl = targetSurfaceUrl(evidence.document);
     const matchingSurfaces = surfaces.filter((surface) => surfaceRefUrl(surface) === targetUrl);
     if (matchingSurfaces.length !== 1) {
       return [targetSurfaceDiagnostic(evidence, surfaces, targetUrl)];
     }
+    const assignments = themeAssignments(evidence.document);
+    const tokenEvidenceByAssignment = themeTokenEvidenceByAssignment(evidence, assignments, themes);
     return [
       ...validateRoutePolicies(evidence, matchingSurfaces[0], definitions, routePolicies(evidence.document)),
       ...validateLocaleKeyOwners(evidence, locales, context.moduleResolution),
-      ...validateThemeWidgetRefs(evidence, themeAssignments(evidence.document), context.moduleResolution),
+      ...[...tokenEvidenceByAssignment.values()].flatMap((tokenEvidence) => tokenEvidence.diagnostics),
+      ...validateThemeWidgetRefs(evidence, assignments, context.moduleResolution, tokenEvidenceByAssignment),
     ];
   });
 }

@@ -44,6 +44,52 @@
           }
         ]
       }
+    },
+    "theme-default": {
+      "slot": "theme",
+      "artifactKind": "theme",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/theme/1.0",
+      "source": "memory://theme/default",
+      "ref": {
+        "url": "https://example.gov/apps/intake/themes/default",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecTheme": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake",
+          "version": "1.0.0"
+        },
+        "tokens": {
+          "color.accent": "#005ea8",
+          "spacing.md": "1rem",
+          "x-agency.seal-color": "#1a4480"
+        }
+      }
+    },
+    "theme-alternate": {
+      "slot": "theme",
+      "artifactKind": "theme",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/theme/1.0",
+      "source": "memory://theme/alternate",
+      "ref": {
+        "url": "https://example.gov/apps/intake/themes/alternate",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecTheme": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake",
+          "version": "1.0.0"
+        },
+        "tokens": {
+          "color.accent": "#005ea8"
+        }
+      }
     }
   },
   "policies": {
@@ -70,6 +116,62 @@
               },
               "slot": "accent",
               "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "missing-theme-token": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/missing-theme-token",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "color.missing"
+            }
+          ]
+        }
+      }
+    },
+    "theme-token-category-mismatch": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-token-category-mismatch",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": {
+                "moduleId": "x-reviewer",
+                "widgetName": "x-review-panel"
+              },
+              "slot": "accent",
+              "token": "spacing.md"
             }
           ]
         }
@@ -753,7 +855,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["valid-theme-widget"]
@@ -763,8 +866,8 @@
       "expected": {
         "ok": true,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 0,
@@ -779,12 +882,257 @@
       }
     },
     {
+      "id": "missing-loaded-theme-evidence",
+      "description": "A Theme token assignment fails closed when no loaded Theme evidence is supplied.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-theme-widget"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/valid-theme-widget",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "reason": "missing-theme-evidence"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiguous-loaded-theme-evidence",
+      "description": "A Theme token assignment fails closed when more than one loaded Theme handle is supplied.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default", "theme-alternate"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-theme-widget"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/valid-theme-widget",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/alternate",
+                "jsonPointer": "/tokens",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/alternate",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "reason": "ambiguous-theme-evidence"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing-theme-token-ref",
+      "description": "A Theme token assignment fails when the loaded Theme tokens map lacks the raw token key.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["missing-theme-token"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/missing-theme-token",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.missing",
+              "reason": "missing-token"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-token-category-mismatch",
+      "description": "A Theme token assignment fails when the resolved token key does not match the widget slot's accepted category prefixes.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-token-category-mismatch"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-CATEGORY",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-token-category-mismatch",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+              },
+              {
+                "artifactSlot": "theme",
+                "artifactKind": "theme",
+                "source": "memory://theme/default",
+                "jsonPointer": "/tokens/spacing.md",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/themes/default",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "spacing.md",
+              "reason": "category-not-accepted",
+              "acceptedTokenCategories": ["color"]
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "undeclared-theme-token-slot",
       "description": "A Theme assignment fails when the resolved module widget contribution does not declare the assigned token slot.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["undeclared-theme-token-slot"]
@@ -794,8 +1142,8 @@
       "expected": {
         "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 1,
@@ -839,7 +1187,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["missing-theme-token-slot-evidence"]
@@ -849,8 +1198,8 @@
       "expected": {
         "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 1,
@@ -885,7 +1234,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["missing-theme-widget"]
@@ -895,8 +1245,8 @@
       "expected": {
         "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 1,
@@ -930,7 +1280,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["unadmitted-theme-widget"]
@@ -940,8 +1291,8 @@
       "expected": {
         "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 1,
@@ -991,7 +1342,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["module-resolution-not-run-theme-widget"]
@@ -1001,8 +1353,8 @@
       "expected": {
         "ok": true,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 0,
@@ -1022,7 +1374,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["module-resolution-not-run-theme-widget"]
@@ -1031,8 +1384,8 @@
       "expected": {
         "ok": true,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 0,
@@ -1052,7 +1405,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["module-resolution-skipped-theme-widget"]
@@ -1062,8 +1416,8 @@
       "expected": {
         "ok": true,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 0,
@@ -1083,7 +1437,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["surface-target-mismatch-theme-widget"]
@@ -1093,8 +1448,8 @@
       "expected": {
         "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 1,
@@ -1138,7 +1493,8 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": ["surface-respondent"],
+          "theme": ["theme-default"]
         },
         "hostEvidence": {
           "uiGraphPolicies": ["owner-module-mismatch-theme-widget"]
@@ -1148,8 +1504,8 @@
       "expected": {
         "ok": false,
         "summary": {
-          "artifacts": 2,
-          "loadedArtifacts": 2,
+          "artifacts": 3,
+          "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 1,

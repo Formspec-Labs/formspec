@@ -35,11 +35,12 @@ This row spans:
 - Locale owner ModuleResolver-backed module-id resolution, Theme widgetRef,
   ModuleResolver/Registry token-slot evidence, and executable Theme token-slot
   diagnostics are landed.
-- Raw Theme token-key source shape and widget-slot category-prefix evidence are
-  pinned for future token-reference/category diagnostics.
-- Executable token-reference/category diagnostics, Registry token-category
-  contribution compatibility, runtime hidden-state, Studio, projection,
-  consumer, and optional future App Manifest slot work remains open.
+- Raw Theme token-key source shape, exactly-one loaded Theme evidence, and
+  widget-slot category-prefix evidence are pinned for executable
+  token-reference/category diagnostics.
+- Registry token-category contribution compatibility, runtime hidden-state,
+  Studio, projection, consumer, and optional future App Manifest slot work
+  remains open.
 
 ## Phase Order
 
@@ -69,6 +70,11 @@ This row spans:
   and category-prefix evidence while leaving executable `THEME-TOKEN-REF`,
   executable `THEME-TOKEN-CATEGORY`, and Registry `token-category` contribution
   compatibility deferred.
+- 2026-05-25: External architecture reviewers approved executable loaded-Theme
+  `THEME-TOKEN-REF` and `THEME-TOKEN-CATEGORY` only after pinning
+  exactly-one loaded Theme evidence and exact accepted-prefix-plus-dot matching.
+  Registry `token-category` contribution compatibility remains deferred until
+  ModuleResolver exposes normalized admitted category evidence.
 
 ## Closure Evidence
 
@@ -99,6 +105,8 @@ Current partial evidence:
 - `packages/formspec-app-graph/tests/ui-graph-policy-hidden-definition-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-theme-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
+- `thoughts/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
 
-Closure still requires token-category compatibility, runtime hidden-state
-behavior, consumer wiring, and final rollup gate transition.
+Closure still requires Registry token-category contribution compatibility,
+runtime hidden-state behavior, Studio/authoring feedback, consumer conformance,
+optional App Manifest slot decision, and final rollup gate transition.

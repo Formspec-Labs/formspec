@@ -522,8 +522,8 @@
       }
     },
     {
-      "id": "deferred-policy-families-not-emitted",
-      "description": "Locale ownership and Theme token-slot families are not emitted by the Surface route fixture when their required evidence is absent.",
+      "id": "deferred-widget-families-token-ref-fails-closed",
+      "description": "Locale ownership and Theme widget/slot families are not emitted by the Surface route fixture when their required evidence is absent, while missing loaded Theme token evidence fails closed.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
@@ -534,21 +534,37 @@
         }
       },
       "expected": {
-        "ok": true,
+        "ok": false,
         "summary": {
           "artifacts": 2,
           "loadedArtifacts": 2,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
-          "graphErrors": 0,
-          "errors": 0,
+          "graphErrors": 1,
+          "errors": 1,
           "warnings": 0,
           "infos": 0,
           "importedDiagnostics": 0,
           "unsupportedFeatures": 0,
           "skippedPhases": 0
         },
-        "diagnostics": []
+        "diagnostics": [
+          {
+            "code": "THEME-TOKEN-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/deferred-policy-families",
+              "jsonPointer": "/theme/assignments/0/token"
+            },
+            "details": {
+              "moduleId": "x-missing",
+              "widgetName": "x-missing-widget",
+              "slot": "accent",
+              "token": "color.accent",
+              "reason": "missing-theme-evidence"
+            }
+          }
+        ]
       }
     }
   ]

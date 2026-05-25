@@ -24,7 +24,7 @@ REQUIRED_CASES = {
     "unresolved-route-policy",
     "missing-route-policy",
     "unresolved-responsive-slot",
-    "deferred-policy-families-not-emitted",
+    "deferred-widget-families-token-ref-fails-closed",
 }
 
 EXPECTED_CODES = {
@@ -33,6 +33,7 @@ EXPECTED_CODES = {
     "unresolved-route-policy": "UI-POLICY-ROUTE-REF",
     "missing-route-policy": "UI-POLICY-ROUTE-MISSING",
     "unresolved-responsive-slot": "UI-POLICY-RESPONSIVE-SLOT",
+    "deferred-widget-families-token-ref-fails-closed": "THEME-TOKEN-REF",
 }
 
 FORBIDDEN_KEYS = {
