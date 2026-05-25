@@ -1995,7 +1995,7 @@
       "category": "module",
       "version": "1.0.0",
       "status": "stable",
-      "description": "Closed-core Respondent-Ledger closed-cores (27 EventType + 7 ChangeSetEntry.valueClass) republished as Registry property contributions per ADR 0150 \u00a74.9. EXCLUDED: the ^x- and ^(ai|user)\\. extension lanes (P4 ships those \u2014 `x-formspec-ai-runtime`). Validation flows through schemas/respondent-ledger-event.schema.json `oneOf [closed-core, x-pattern]` lanes; Registry contributions are descriptive metadata. EventType values use `.` separators (session.started); the Registry name regex translates dots to hyphens (x-formspec-core-ledger-event-type-session-started), with the original dotted value preserved verbatim in each entry's description for tool-side resolution.",
+      "description": "Closed-core Respondent-Ledger closed-cores (28 EventType + 7 ChangeSetEntry.valueClass) republished as Registry property contributions per ADR 0150 \u00a74.9. EXCLUDED: the ^x- and ^(ai|user)\\. extension lanes (P4 ships those \u2014 `x-formspec-ai-runtime`). Validation flows through schemas/respondent-ledger-event.schema.json `oneOf [closed-core, x-pattern]` lanes; Registry contributions are descriptive metadata. EventType values use `.` separators (session.started); the Registry name regex translates dots to hyphens (x-formspec-core-ledger-event-type-session-started), with the original value preserved verbatim in each entry's description for tool-side resolution.",
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
@@ -2028,6 +2028,7 @@
         "x-formspec-core-ledger-event-type-action-failed",
         "x-formspec-core-ledger-event-type-action-deferred",
         "x-formspec-core-ledger-event-type-action-replayed",
+        "x-formspec-core-ledger-event-type-bot-protection-cleared",
         "x-formspec-core-ledger-value-class-user-input",
         "x-formspec-core-ledger-value-class-prepopulated",
         "x-formspec-core-ledger-value-class-calculated",
@@ -2413,6 +2414,20 @@
       "license": "Apache-2.0",
       "extensions": {
         "x-formspec-kind-value": "action.replayed"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-bot-protection-cleared",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `bot-protection-cleared` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Original value `bot-protection-cleared` is kept verbatim in this description for tool-side resolution.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "bot-protection-cleared"
       }
     },
     {
