@@ -147,6 +147,7 @@ const SCHEMA_SOURCES = [
   { file: 'determination.schema.json', title: 'DeterminationRecord' },
   { file: 'surface.schema.json', title: 'SurfaceDocument' },
   { file: 'data-sources.schema.json', title: 'DataSourcesDocument' },
+  { file: 'artifact-resolution-report.schema.json', title: 'ArtifactResolutionReport' },
   { file: 'app-graph-validation-report.schema.json', title: 'AppGraphValidationReport' },
 ];
 
@@ -498,6 +499,17 @@ function postProcess(ts, moduleName) {
     result = result.replace(
       /export type Origin =\s*\|\s*\('app-graph-validator' \| 'artifact-resolver' \| 'module-resolver' \| 'surface-local-lint' \| 'schema-validator'\)\s*\|\s*string;/m,
       "export type Origin =\n  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator')\n  | `x-${string}`;",
+    );
+  }
+
+  if (moduleName === 'artifact-resolution-report') {
+    result = result.replace(
+      /export type ArtifactResolutionHandleStatus = \('loaded' \| 'missing' \| 'unsupported' \| 'invalid-discriminator'\) \| string;/,
+      "export type ArtifactResolutionHandleStatus =\n  | ('loaded' | 'missing' | 'unsupported' | 'invalid-discriminator')\n  | `x-${string}`;",
+    );
+    result = result.replace(
+      /document\?: \{\s*\[k: string\]: unknown;\s*\};/m,
+      'document?: unknown;',
     );
   }
 

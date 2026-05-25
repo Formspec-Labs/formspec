@@ -1,13 +1,13 @@
 ---
 title: Formspec ArtifactResolver Interface Specification
-version: 0.1.0-draft.2
+version: 0.1.0-draft.3
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec ArtifactResolver Interface Specification v0.1
 
-**Version:** 0.1.0-draft.2
+**Version:** 0.1.0-draft.3
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, AppGraphValidator, and Module Resolver
@@ -16,15 +16,18 @@ status: draft
 
 ## Status of This Document
 
-This document is the prose-only interface contract for the app-graph
+This document is the interface contract for the app-graph
 `ArtifactResolver` primitive. It defines the resolver request/response shape,
 loader boundary, manifest slot coverage, diagnostic vocabulary, and the handle
 metadata consumed by `AppGraphValidator`.
 
-This document intentionally does not define a JSON Schema, generated types,
-fixture-backed conformance, a shared package implementation, production
-consumer wiring, or runtime fetch/cache policy. Those land in later
-implementation gates after responsibilities are stable.
+The resolver output report is also pinned by
+`schemas/artifact-resolution-report.schema.json` with `$id`
+`https://formspec.org/schemas/artifactResolutionReport/0.1` and generated
+`@formspec-org/types` types. This document intentionally does not define a
+resolver request schema, fixture-backed resolver conformance, a shared package
+implementation, production consumer wiring, or runtime fetch/cache policy.
+Those land in later implementation gates after responsibilities are stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -213,7 +216,7 @@ Component-list handles and no fabricated catalog or Component membership list.
 | `manifest` | yes | Resolved handle for the App Manifest root. |
 | `artifacts` | yes | Handles grouped by manifest slot. |
 | `diagnostics` | yes | Resolver diagnostics normalized to the shared app-graph diagnostic shape. |
-| `summary` | yes | Counts for declared refs, loaded artifacts, missing artifacts, unsupported refs, discriminator mismatches, identity mismatches, errors, warnings, and infos. |
+| `summary` | yes | Counts for declared refs, loaded artifacts, missing artifacts, unsupported refs, discriminator mismatches, version mismatches, identity mismatches, errors, warnings, and infos. |
 | `phase` | yes | Artifact-resolution phase status and optional reason. |
 
 Downstream `AppGraphValidator` consumes the handles and imports diagnostics
@@ -259,16 +262,17 @@ Data Sources payloads at runtime.
 
 ## 10. Conformance
 
-This v0.1 draft is an interface and responsibility contract only. A conforming
-future implementation still needs:
+This v0.1 draft defines the interface and output report contract only. A
+conforming future implementation still needs:
 
-1. schema or generated type promotion if the report/handle surface is frozen,
-2. shared package extraction,
-3. fixture-backed conformance for missing, unsupported, discriminator, version,
+1. shared package extraction,
+2. fixture-backed conformance for missing, unsupported, discriminator, version,
    identity, v2.1 Data Sources gate failures, v2.2 Component version gate
    failures, and `ComponentRef.handle` preservation,
-4. integration with `AppGraphValidator` and `ModuleResolver`, and
-5. production consumer wiring.
+3. integration with `AppGraphValidator` and `ModuleResolver`,
+4. production consumer wiring, and
+5. a resolver request schema/generated type only if future implementation
+   inputs need a stable interchange artifact.
 
 Until those gates land, tools MAY use this document to align resolver
 interfaces and diagnostics, but MUST NOT claim production `ArtifactResolver`

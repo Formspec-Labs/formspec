@@ -20,6 +20,7 @@ import type {
   MappingDocument,
   ResponseActionsDocument,
   DataSourcesDocument,
+  ArtifactResolutionReport,
   AppGraphValidationReport,
   ValidationMappingDocument,
   ValidationReport,
@@ -61,6 +62,9 @@ describe('generated types smoke test', () => {
 
     const dataSources = {} as DataSourcesDocument;
     expect(dataSources).toBeDefined();
+
+    const artifactResolutionReport = {} as ArtifactResolutionReport;
+    expect(artifactResolutionReport).toBeDefined();
 
     const appGraphValidationReport = {} as AppGraphValidationReport;
     expect(appGraphValidationReport).toBeDefined();
@@ -169,5 +173,16 @@ describe('generated types — tightness against permissive intersections', () =>
     );
     expect(src).toContain('| `x-${string}`;');
     expect(src).not.toMatch(/export type Origin =[\s\S]*\| string;/);
+  });
+
+  it('ArtifactResolutionReport keeps resolver handles narrow and documents opaque', () => {
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/artifact-resolution-report.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('| `x-${string}`;');
+    expect(src).not.toMatch(/export type ArtifactResolutionHandleStatus =[\s\S]*\| string;/);
+    expect(src).toContain('document?: unknown;');
+    expect(src).toContain('[k: `x-${string}`]: unknown;');
   });
 });

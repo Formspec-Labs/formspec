@@ -1,5 +1,6 @@
 /** @filedesc Compile-time checks for generated schema type contracts. */
 import type {
+  ArtifactResolutionReport,
   AppGraphValidationReport,
   CustomComponentRef,
   CustomWidgetName,
@@ -105,6 +106,53 @@ const generatedAppGraphReport: AppGraphValidationReport = {
   diagnostics: [],
   phases: [{ phase: 'schema', status: 'completed' }],
 };
+const generatedArtifactResolutionReport: ArtifactResolutionReport = {
+  ok: true,
+  manifest: {
+    slot: 'app',
+    artifactKind: 'appManifest',
+    status: 'loaded',
+    document: 'opaque manifest payload',
+  },
+  artifacts: {
+    components: [
+      {
+        slot: 'components[0]',
+        artifactKind: 'component',
+        status: 'x-loader-cached',
+        ref: {
+          url: 'urn:test:component',
+          version: '1.0.0',
+          handle: 'review-panel',
+          'x-loader': 'memory',
+        },
+        document: [{ opaque: true }],
+      },
+    ],
+  },
+  diagnostics: [
+    {
+      code: 'ARTIFACT-LOAD-CACHED',
+      severity: 'info',
+      phase: 'artifact-resolution',
+      origin: 'artifact-resolver',
+      message: 'loaded from resolver cache',
+    },
+  ],
+  summary: {
+    declaredRefs: 1,
+    loadedArtifacts: 1,
+    missingArtifacts: 0,
+    unsupportedRefs: 0,
+    discriminatorMismatches: 0,
+    versionMismatches: 0,
+    identityMismatches: 0,
+    errors: 0,
+    warnings: 0,
+    infos: 1,
+  },
+  phase: { phase: 'artifact-resolution', status: 'completed' },
+};
 
 // @ts-expect-error Custom widgets must use the x-* extension prefix.
 const badCustomWidget: CustomWidgetName = 'camera';
@@ -156,6 +204,27 @@ const badThemeExtensions: ThemeDocument = { ...generatedTheme, extensions: { acm
 // @ts-expect-error Extension objects only accept x-* keys.
 const badExtensions: Extensions = { acme: true };
 
+const badArtifactResolutionStatus: ArtifactResolutionReport = {
+  ...generatedArtifactResolutionReport,
+  // @ts-expect-error ArtifactResolver extension statuses must use x-*.
+  manifest: { ...generatedArtifactResolutionReport.manifest, status: 'cached' },
+};
+
+const badArtifactResolutionRef: ArtifactResolutionReport = {
+  ...generatedArtifactResolutionReport,
+  artifacts: {
+    components: [
+      {
+        slot: 'components[0]',
+        artifactKind: 'component',
+        status: 'loaded',
+        // @ts-expect-error ArtifactResolver refs reject fixture/path-derived identity fields.
+        ref: { url: 'urn:test:component', fixture: 'component.json' },
+      },
+    ],
+  },
+};
+
 void customWidget;
 void customWidgetAsDefinitionWidget;
 void customWidgetAsThemeWidget;
@@ -172,6 +241,7 @@ void generatedDefinitionExtensions;
 void generatedThemeExtensions;
 void extensions;
 void generatedAppGraphReport;
+void generatedArtifactResolutionReport;
 void badCustomWidget;
 void badDefinitionWidget;
 void badCustomComponent;
@@ -185,3 +255,5 @@ void badThemeRoot;
 void badDefinitionExtensions;
 void badThemeExtensions;
 void badExtensions;
+void badArtifactResolutionStatus;
+void badArtifactResolutionRef;

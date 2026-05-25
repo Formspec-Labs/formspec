@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/artifactResolutionReport/0.1",
+  "title": "Formspec Artifact Resolution Report",
+  "description": "Deterministic ArtifactResolver output for the artifact-resolution phase. This schema covers resolved manifest and sibling artifact handles, resolver diagnostics, phase status, and summary counts. It is a data contract only: it does not schema resolver requests, source artifact payloads, loader implementations, runtime fetch/cache policy, rendered output, credentials, or local fixture paths.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "manifest", "artifacts", "diagnostics", "summary", "phase"],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "true only when the report contains no error-severity artifact-resolution diagnostics. JSON Schema cannot derive this from diagnostics; report producers enforce the invariant."
+    },
+    "manifest": {
+      "$ref": "#/$defs/ArtifactResolutionHandle"
+    },
+    "artifacts": {
+      "$ref": "#/$defs/ArtifactResolutionArtifacts"
+    },
+    "diagnostics": {
+      "type": "array",
+      "description": "Resolver diagnostics normalized to origin artifact-resolver and phase artifact-resolution.",
+      "items": { "$ref": "#/$defs/ArtifactResolutionDiagnostic" }
+    },
+    "summary": {
+      "$ref": "#/$defs/ArtifactResolutionSummary"
+    },
+    "phase": {
+      "$ref": "#/$defs/ArtifactResolutionPhaseStatus"
+    }
+  },
+  "$defs": {
+    "ArtifactResolutionSeverity": {
+      "type": "string",
+      "enum": ["error", "warning", "info"]
+    },
+    "ArtifactResolutionPhase": {
+      "type": "string",
+      "const": "artifact-resolution"
+    },
+    "ArtifactResolutionOrigin": {
+      "type": "string",
+      "const": "artifact-resolver"
+    },
+    "ArtifactResolutionPhaseStatusValue": {
+      "type": "string",
+      "enum": ["completed", "skipped", "not-run"]
+    },
+    "ArtifactResolutionHandleStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["loaded", "missing", "unsupported", "invalid-discriminator"]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-"
+        }
+      ]
+    },
+    "ArtifactResolutionRef": {
+      "type": "object",
+      "description": "App Manifest sibling reference evidence. The resolver preserves url/version plus slot-specific handle or locale evidence. Only x-* extension keys may extend this shape; local paths, fixture names, and path-derived identity flags are intentionally rejected.",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ComponentRef or MappingRef membership handle evidence supplied by the App Manifest."
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 1,
+          "description": "LocaleRef locale tag evidence supplied by the App Manifest."
+        }
+      },
+      "patternProperties": {
+        "^x-": true
+      }
+    },
+    "ArtifactResolutionIdentity": {
+      "type": "object",
+      "description": "Artifact-owned identity evidence extracted from loaded documents when the artifact family defines one. This evidence does not override App Manifest sibling ref identity.",
+      "additionalProperties": true
+    },
+    "ArtifactResolutionSourcePointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Diagnostic pointer to source evidence. The source string is for reporting only; local paths, filenames, fixture names, and URL suffixes are not production identity.",
+      "properties": {
+        "artifactSlot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jsonPointer": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/ArtifactResolutionRef"
+        }
+      }
+    },
+    "ArtifactResolutionDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "phase", "origin", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable machine-readable artifact-resolution diagnostic code."
+        },
+        "severity": {
+          "$ref": "#/$defs/ArtifactResolutionSeverity"
+        },
+        "phase": {
+          "$ref": "#/$defs/ArtifactResolutionPhase"
+        },
+        "origin": {
+          "$ref": "#/$defs/ArtifactResolutionOrigin"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primarySource": {
+          "$ref": "#/$defs/ArtifactResolutionSourcePointer"
+        },
+        "relatedSources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionSourcePointer" }
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity."
+        }
+      }
+    },
+    "ArtifactResolutionHandle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot", "artifactKind", "status"],
+      "properties": {
+        "slot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/ArtifactResolutionHandleStatus"
+        },
+        "ref": {
+          "$ref": "#/$defs/ArtifactResolutionRef"
+        },
+        "schemaId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "document": {
+          "description": "Opaque loaded source document. ArtifactResolutionReport preserves this only as data evidence and does not validate artifact-specific payload schemas here."
+        },
+        "identity": {
+          "$ref": "#/$defs/ArtifactResolutionIdentity"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Host source label for diagnostics only. It MUST NOT become identity authority."
+        },
+        "digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionDiagnostic" }
+        }
+      }
+    },
+    "ArtifactResolutionArtifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Resolved artifact handles grouped by App Manifest member name. No spike-only or fixture-local groups are allowed.",
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "experience": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "responseActions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "component": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "theme": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "ontology": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "registries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "surfaces": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "dataSources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "locales": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
+        "mappings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        }
+      }
+    },
+    "ArtifactResolutionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declaredRefs",
+        "loadedArtifacts",
+        "missingArtifacts",
+        "unsupportedRefs",
+        "discriminatorMismatches",
+        "versionMismatches",
+        "identityMismatches",
+        "errors",
+        "warnings",
+        "infos"
+      ],
+      "properties": {
+        "declaredRefs": { "type": "integer", "minimum": 0 },
+        "loadedArtifacts": { "type": "integer", "minimum": 0 },
+        "missingArtifacts": { "type": "integer", "minimum": 0 },
+        "unsupportedRefs": { "type": "integer", "minimum": 0 },
+        "discriminatorMismatches": { "type": "integer", "minimum": 0 },
+        "versionMismatches": { "type": "integer", "minimum": 0 },
+        "identityMismatches": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "infos": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ArtifactResolutionPhaseStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "status"],
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/ArtifactResolutionPhase"
+        },
+        "status": {
+          "$ref": "#/$defs/ArtifactResolutionPhaseStatusValue"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

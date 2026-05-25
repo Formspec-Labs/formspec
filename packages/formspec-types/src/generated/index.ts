@@ -31,5 +31,6 @@ export type { ScreenerDocument, Availability, Phase, Route } from './screener.js
 export type { DeterminationRecord, RouteResult, PhaseResult, InputEntry } from './determination.js';
 export type { Slot, SurfaceDocument, Transition } from './surface.js';
 export type { DataSource, DataSourceKind, RuntimeBehavior, CacheRule, DataSourcesDocument, ProvenanceRule } from './data-sources.js';
+export type { ArtifactResolutionHandleStatus, ArtifactResolutionSeverity, ArtifactResolutionPhase, ArtifactResolutionOrigin, ArtifactResolutionPhaseStatusValue, ArtifactResolutionReport, ArtifactResolutionHandle, ArtifactResolutionRef, ArtifactResolutionIdentity, ArtifactResolutionDiagnostic, ArtifactResolutionSourcePointer, ArtifactResolutionArtifacts, ArtifactResolutionSummary, ArtifactResolutionPhaseStatus } from './artifact-resolution-report.js';
 export type { SchemaResultStatus, Severity, Origin, PhaseStatusValue, AppGraphValidationReport, SchemaResult, Diagnostic, SourcePointer, ArtifactRef, PhaseStatus, SupportProfile } from './app-graph-validation-report.js';
 export { VALIDATION_MAPPING_MASTER_TABLE } from './validation-mapping-master-table.js';

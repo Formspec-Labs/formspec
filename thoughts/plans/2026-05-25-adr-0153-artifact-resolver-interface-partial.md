@@ -2,8 +2,8 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ArtifactResolver
-**Status:** Partial; prose/interface boundary defined and v2.2 Component slot
-coverage synced, extraction remains open
+**Status:** Partial; prose/interface boundary plus output report schema/type
+contract defined, extraction remains open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -11,10 +11,10 @@ coverage synced, extraction remains open
 Advance ADR 0153 gate 12 without claiming extraction closure. This slice
 defines the `ArtifactResolver` request/response boundary, loader port,
 manifest slot coverage through App Manifest v2.2, handle metadata, identity
-rules, and diagnostic vocabulary in prose.
+rules, diagnostic vocabulary, and output report schema/type contract.
 
-Not in this slice: resolver package code, report JSON Schema, generated types,
-fixture-backed conformance, production consumers, AppGraphValidator
+Not in this slice: resolver package code, resolver request JSON Schema,
+fixture-backed resolver conformance, production consumers, AppGraphValidator
 cross-artifact checks, ModuleResolver admission/contribution logic, runtime
 fetch/cache policy, Data Sources payload loading, or ADR 0152 fine-grained
 authorization.
@@ -40,6 +40,19 @@ authorization.
   `component` compatibility, `ComponentRef.handle` as manifest membership
   evidence only, no forbidden promotion, non-Closed gate status, and
   prose-only reservation of `ARTIFACT-COMPONENTS-VERSION-GATE`.
+- 2026-05-25 architecture checkpoint (Bernoulli): APPROVE for output-schema
+  promotion only. Required cautions: keep the contract as
+  `ArtifactResolutionReport`, group artifacts only by App Manifest member
+  names, keep `document` opaque JSON, reject spike-only ref fields, lock
+  diagnostics to `origin: "artifact-resolver"` and
+  `phase: "artifact-resolution"`, avoid resolver implementation/extraction,
+  consumers, runtime/projection wiring, and ADR 0152 semantics, and keep gate
+  12 Partial.
+- 2026-05-25 external review (Erdos): initial REVISE for missing explicit
+  tests for root required fields and diagnostic phase const; addressed with
+  schema tests. Re-review APPROVE with no findings, confirming output-only
+  schema `$id`, manifest-member artifact groups, ref shape, opaque
+  `document?: unknown`, `x-*` handle statuses, and non-Closed status docs.
 
 ## Work Completed
 
@@ -58,11 +71,19 @@ authorization.
 - [x] Define artifact-resolution diagnostics and imported-origin rules.
 - [x] Keep fixture paths, filenames, URL suffixes, and directory scans out of
   identity authority.
+- [x] Add `schemas/artifact-resolution-report.schema.json` as the resolver
+  output report contract with `$id`
+  `https://formspec.org/schemas/artifactResolutionReport/0.1`.
+- [x] Generate `@formspec-org/types` `ArtifactResolutionReport` types and keep
+  `document` opaque while preserving `x-*`-only extension lanes.
+- [x] Add schema/type tests for manifest-member artifact groups,
+  resolver-only diagnostic origin, opaque document payloads, and rejection of
+  fixture/path-derived identity fields.
 
 ## Still Open for Gate 12 Closure
 
-- [ ] Promote schema/generated type surfaces only after the prose contract is
-  stable and an implementation boundary is selected.
+- [ ] Define a resolver request schema/generated type only if future
+  implementation inputs need a stable interchange artifact.
 - [ ] Extract a shared resolver package or app-graph package module.
 - [ ] Add fixture-backed conformance for missing artifacts, unsupported schemes,
   discriminator mismatch, ref/version mismatch, identity mismatch, App
@@ -85,15 +106,36 @@ authorization.
   sync only. It reserves `ARTIFACT-COMPONENTS-VERSION-GATE` as an
   artifact-resolution diagnostic name for later extraction/conformance, but no
   production resolver emission is claimed in this slice.
+- 2026-05-25: The output report schema and generated type are promoted before
+  resolver extraction because they only pin the resolver output envelope. No
+  request schema, source artifact validation, loader implementation,
+  conformance fixture corpus, consumer wiring, runtime/projection behavior, or
+  ADR 0152 authorization semantics are promoted.
 
 ## Partial Evidence
 
 - Spec: `specs/app-graph/artifact-resolver-spec.md`.
+- Output schema: `schemas/artifact-resolution-report.schema.json`.
+- Generated type:
+  `packages/formspec-types/src/generated/artifact-resolution-report.ts`.
+- Schema tests:
+  `tests/conformance/schemas/test_artifact_resolution_report_schema.py`.
+- Type contract tests:
+  `packages/formspec-types/tests/schema-sync.test.ts` and
+  `packages/formspec-types/src/type-contracts.ts`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root
   `thoughts/2026-05-24-adr-0150-followons-and-gating.md`.
-- Verification: `npm run docs:filemap:check`; `npm run docs:check`;
+- Verification: `python -m pytest
+  tests/conformance/schemas/test_artifact_resolution_report_schema.py -q`;
+  `python -m pytest tests/conformance/schemas -q`;
+  `npm run --workspace @formspec-org/types test`;
+  `npm run --workspace @formspec-org/types build`;
+  `npm run docs:filemap:check`; `npm run docs:check`;
   `git -C formspec diff --check`; stack-root `git diff --check`.
 - Review: external review `019e5e04-93ef-73a3-97ce-5e738f382ffa`
   (Beauvoir), APPROVE with no findings.
+- Review: external review `019e5e21-4834-77c2-8cc9-f3062a2b55b9`
+  (Erdos), APPROVE with no findings after the root-required and diagnostic
+  phase tests were added.
