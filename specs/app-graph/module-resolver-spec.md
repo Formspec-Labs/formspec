@@ -26,12 +26,13 @@ schema, and diagnostics consumed by `AppGraphValidator`.
 contract, and `@formspec-org/types` publishes the generated
 `ModuleResolutionReport` TypeScript surface.
 `tests/conformance/fixtures/module-resolver/` defines source-oriented fixture
-cases and static expected reports for the required module-resolution families.
+cases and expected reports for the required module-resolution families;
+`@formspec-org/app-graph` executes them through a shared `resolveModules`
+kernel.
 This document intentionally does not define a resolver request JSON Schema,
-shared package implementation, executable fixture runner over a production
-resolver, Rust lint rewrite, production consumer wiring, renderer fallback
-policy, or fine-grained authorization. Those land in later implementation
-gates after the report surface and fixture corpus are stable.
+Rust lint rewrite, production consumer wiring, renderer fallback policy, or
+fine-grained authorization. Those land in later implementation gates after the
+report surface, shared kernel, and fixture corpus are stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -81,10 +82,11 @@ Out of scope:
 - Component bundle id collision ownership (E605),
 - fine-grained actor, route, widget, field, source, or operation authorization.
 
-## 2. Resolver Request
+## 2. Resolver Inputs
 
-A `ModuleResolverRequest` is assembled from already loaded source artifacts and
-Registry documents.
+ModuleResolver inputs are assembled from already loaded source artifacts and
+Registry documents. This is an implementation interface, not a JSON Schema
+request contract.
 
 | Field | Required | Description |
 |---|---|---|
@@ -278,14 +280,13 @@ Sources payloads, or decide Component Surface/route identity.
 
 ## 12. Conformance
 
-This v0.1 draft is an interface, report contract, and source fixture corpus
-only. A conforming future implementation still needs:
+This v0.1 draft is an interface, report contract, shared kernel contract, and
+source fixture corpus. The current `@formspec-org/app-graph` conformance runner
+executes the corpus through `resolveModules`. A conforming future implementation
+still needs:
 
-1. shared resolver package extraction,
-2. executable conformance wiring that runs the fixture corpus through the
-   shared resolver,
-3. integration with `ArtifactResolver` and `AppGraphValidator`, and
-4. production consumer wiring across lint, Studio, MCPs, runtime, and
+1. integration with `ArtifactResolver` and `AppGraphValidator`,
+2. production consumer wiring across lint, Studio, MCPs, runtime, and
    projection surfaces that consume module evidence.
 
 Until those gates land, tools MAY use this document to align resolver

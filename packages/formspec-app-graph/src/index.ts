@@ -24,6 +24,20 @@ export {
   type ArtifactResolverSupportProfile,
 } from './artifact-resolver.js';
 export {
+  resolveModules,
+  type ModulePayloadValidator,
+  type ModulePayloadValidatorInput,
+  type ModulePayloadValidatorResult,
+  type ModuleResolverAdmissionInput,
+  type ModuleResolverContributionUse,
+  type ModuleResolverDocumentInput,
+  type ModuleResolverInput,
+  type ModuleResolverModuleInput,
+  type ModuleResolverRegistryEntry,
+  type ModuleResolverRegistryInput,
+  type ModuleResolverSupportInput,
+} from './module-resolver.js';
+export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {

@@ -2,7 +2,7 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ModuleResolver
-**Status:** Partial; prose/interface boundary, report schema/type, and static source fixtures defined; shared extraction remains open
+**Status:** Partial; prose/interface boundary, report schema/type, shared kernel, and executable fixture conformance defined; consumer wiring remains open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -15,12 +15,11 @@ ownership, payload-schema hook boundary, module-resolution diagnostics in
 prose, the output report schema/type contract, and source-oriented
 fixture/report-shape evidence for required diagnostic families.
 
-Not in this slice: Rust lint changes, shared resolver package code,
-resolver request JSON Schema, executable conformance over a production
-resolver, production consumers, ArtifactResolver loading behavior,
-AppGraphValidator cross-artifact checks, runtime execution, renderer fallback,
-E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
-0152 fine-grained authorization.
+Not in this slice: Rust lint changes, resolver request JSON Schema, production
+consumers, ArtifactResolver loading behavior, AppGraphValidator cross-artifact
+checks, runtime execution, renderer fallback, E605 Component id collision
+ownership, v4 Posture sidecar promotion, or ADR 0152 fine-grained
+authorization.
 
 ## Review Checkpoints
 
@@ -43,6 +42,16 @@ E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
   cautions: no `resolveModules`, no simulated resolver logic, full
   `expectedReport` per case, recursive leakage guards, explicit required-family
   coverage, and gate 4 remains Partial.
+- 2026-05-25 architecture checkpoint (Cicero): APPROVE a narrow shared
+  `@formspec-org/app-graph` ModuleResolver kernel plus executable fixture
+  conformance. Required cautions: no request JSON Schema, no lint/runtime/Studio
+  consumer wiring, explicit fixture-adapter source evidence, no extraction of
+  Rust lint first-owner assumptions, coarse module-scoped admission only, and
+  payload validation through a hook boundary.
+- 2026-05-25 code review (Copernicus): REVISE for admitted-owner conflict
+  semantics, id-only sibling coherence, fabricated source-pointer fallbacks,
+  first-validator payload hook selection, and stale spec wording; APPROVE after
+  fixes and added coverage.
 
 ## Work Completed
 
@@ -73,13 +82,21 @@ E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
 - [x] Add fixture integrity tests that validate expected reports against
   `module-resolution-report.schema.json`, enforce resolver-owned diagnostics,
   and reject fixture/path identity or fine-grained authorization leakage.
+- [x] Add `packages/formspec-app-graph/src/module-resolver.ts` as the shared
+  pure ModuleResolver kernel for module admission, dependency checks,
+  contribution ownership/category checks, and payload-schema hook diagnostics.
+- [x] Export `resolveModules` and its TypeScript input/helper interfaces from
+  `@formspec-org/app-graph` without adding a resolver request JSON Schema.
+- [x] Add executable fixture conformance in
+  `packages/formspec-app-graph/tests/module-resolver-conformance.test.ts` so
+  the source fixture corpus runs through the shared resolver and compares exact
+  `ModuleResolutionReport` output.
+- [x] Make default module source evidence explicit in the fixture adapter and
+  fixture data rather than deriving identity from file paths, case ids, or URL
+  suffixes.
 
 ## Still Open for Gate 4 Closure
 
-- [ ] Extract a shared resolver package or app-graph package module from the
-  Rust lint and spike-local seeds without copying spike-only assumptions.
-- [ ] Execute the fixture corpus through the shared resolver as conformance,
-  rather than validating static expected reports only.
 - [ ] Wire lint, Studio, MCPs, runtime, and projection consumers to the shared
   resolver output.
 - [ ] Integrate `ModuleResolver` diagnostics into `AppGraphValidator` without
@@ -102,6 +119,16 @@ E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
 - 2026-05-25: The source fixture slice keeps gate 4 Partial. It pins the
   required diagnostic families and expected report shapes, but no production
   ModuleResolver executes the corpus yet.
+- 2026-05-25: The shared-kernel slice keeps gate 4 Partial. It executes the
+  fixture corpus through `resolveModules`, but does not wire lint, Studio, MCPs,
+  runtime/projection, or `AppGraphValidator` consumers.
+- 2026-05-25: The implementation uses a TypeScript input interface and fixture
+  adapter for explicit source pointers. No resolver request JSON Schema or
+  generated request type was added.
+- 2026-05-25: Payload validation remains a host-supplied hook boundary. The
+  conformance runner supplies a minimal `widgetShape.props` validator for the
+  committed fixture; the kernel does not become a general source-schema
+  validator or renderer fallback engine.
 
 ## Partial Evidence
 
@@ -110,11 +137,17 @@ E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
 - Generated type: `packages/formspec-types/src/generated/module-resolution-report.ts`.
 - Tests: `tests/conformance/schemas/test_module_resolution_report_schema.py`;
   `packages/formspec-types/tests/schema-sync.test.ts`;
-  `tests/conformance/test_module_resolver_fixture_corpus.py`.
+  `tests/conformance/test_module_resolver_fixture_corpus.py`;
+  `packages/formspec-app-graph/tests/module-resolver-conformance.test.ts`.
+- Shared package: `packages/formspec-app-graph/src/module-resolver.ts`;
+  `packages/formspec-app-graph/src/index.ts`.
 - Fixtures: `tests/conformance/fixtures/module-resolver/*.case.json`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root
   `thoughts/2026-05-24-adr-0150-followons-and-gating.md`.
-- Verification: `npm run docs:filemap:check`; `npm run docs:check`;
+- Verification: `npm run --workspace @formspec-org/app-graph test`;
+  `npx tsc -p packages/formspec-app-graph/tsconfig.json --noEmit`;
+  `python -m pytest tests/conformance/test_module_resolver_fixture_corpus.py -q`;
+  `npm run docs:filemap:check`; `npm run docs:check`;
   `git -C formspec diff --check`; stack-root `git diff --check`.
