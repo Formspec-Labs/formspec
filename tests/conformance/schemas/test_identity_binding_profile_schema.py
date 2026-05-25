@@ -69,12 +69,27 @@ def test_valid_webauthn_fixture_passes() -> None:
     _validator().validate(_fixture_doc("valid-webauthn-profile.json"))
 
 
+def test_webauthn_localhost_profile_passes() -> None:
+    doc = _fixture_doc("valid-webauthn-profile.json")
+    webauthn = doc["profiles"][0]["webAuthn"]
+    webauthn["rpId"] = "localhost"
+    webauthn["origins"] = ["https://localhost:3000"]
+
+    _validator().validate(doc)
+
+
 @pytest.mark.parametrize(
     "fixture_name",
     [
+        "invalid-extension-profile-native-evidence.json",
+        "invalid-extension-top-level-native-evidence.json",
+        "invalid-extension-webauthn-native-evidence.json",
         "invalid-webauthn-missing-binding.json",
+        "invalid-webauthn-origin-path-query.json",
         "invalid-webauthn-preferred-uv.json",
         "invalid-raw-webauthn-bytes.json",
+        "invalid-webauthn-rpid-space.json",
+        "invalid-webauthn-rpid-url.json",
     ],
 )
 def test_invalid_fixtures_fail_schema(fixture_name: str) -> None:

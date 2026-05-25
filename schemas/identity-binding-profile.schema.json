@@ -97,12 +97,53 @@
       }
     },
     "extensions": {
-      "$ref": "#/$defs/Extensions"
+      "$ref": "#/$defs/SidecarExtensions"
     }
   },
   "$defs": {
     "Extensions": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "SidecarExtensions": {
+      "type": "object",
+      "propertyNames": {
+        "allOf": [
+          { "pattern": "^x-" },
+          { "$ref": "#/$defs/NoNativeEvidencePropertyName" }
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/SidecarExtensionValue"
+      },
+      "description": "Identity Binding Profile extension object. Keys must be x-prefixed and MUST NOT carry provider-native tokens or method-native cryptographic evidence."
+    },
+    "SidecarExtensionValue": {
+      "anyOf": [
+        {
+          "type": ["string", "number", "integer", "boolean", "null"]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SidecarExtensionValue"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/NoNativeEvidencePropertyName"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/SidecarExtensionValue"
+          }
+        }
+      ]
+    },
+    "NoNativeEvidencePropertyName": {
+      "not": {
+        "pattern": "^(?:x-)?(?:authenticatorData|clientDataJSON|signature|credentialId|attestationObject|providerToken|rawProviderToken|providerNativeToken|assertionBytes)$"
+      },
+      "description": "Rejects extension keys that would smuggle provider-native tokens or method-native cryptographic evidence into the sidecar."
     },
     "TargetDefinition": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
@@ -172,7 +213,7 @@
           "description": "Required when bindingMethod is webauthn."
         },
         "extensions": {
-          "$ref": "#/$defs/Extensions"
+          "$ref": "#/$defs/SidecarExtensions"
         }
       },
       "allOf": [
@@ -320,7 +361,8 @@
         "rpId": {
           "type": "string",
           "minLength": 1,
-          "description": "WebAuthn relying-party identifier expected in authenticator data verification.",
+          "pattern": "^(?=.{1,253}$)(?:localhost|(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)$",
+          "description": "WebAuthn relying-party identifier expected in authenticator data verification. Must be a host-like RP ID, not a URL; localhost is allowed for local development.",
           "examples": ["springfield.gov"],
           "x-lm": {
             "critical": true,
@@ -332,11 +374,11 @@
           "items": {
             "type": "string",
             "format": "uri",
-            "pattern": "^https://"
+            "pattern": "^https://(?:localhost|(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?::(?:[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?$"
           },
           "minItems": 1,
           "uniqueItems": true,
-          "description": "Allowed HTTPS origins that may request this WebAuthn assertion.",
+          "description": "Allowed HTTPS origins that may request this WebAuthn assertion. Values must be origins only: scheme plus host and optional port, with no path, query, or fragment.",
           "examples": [["https://springfield.gov"]],
           "x-lm": {
             "critical": true,
@@ -386,7 +428,7 @@
           "description": "Artifact and Response-field bindings for verified WebAuthn assertions."
         },
         "extensions": {
-          "$ref": "#/$defs/Extensions"
+          "$ref": "#/$defs/SidecarExtensions"
         }
       }
     },

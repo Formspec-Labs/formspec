@@ -1,0 +1,45 @@
+{
+  "$formspecIdentityBindingProfile": "1.0",
+  "version": "1.0.0",
+  "profileId": "urn:formspec:identity-binding-profile:springfield:rpid-space",
+  "targetDefinition": {
+    "url": "https://springfield.gov/forms/benefits-renewal"
+  },
+  "profiles": [
+    {
+      "id": "respondent-passkey-signature",
+      "purpose": "respondent-signature",
+      "subjectKind": "human",
+      "bindingMethod": "webauthn",
+      "assuranceFloor": "high",
+      "evidenceBindings": {
+        "identityClaimEvidenceRef": "IdentityClaim.evidenceRef",
+        "authoredSignatureIdentityBinding": "AuthoredSignature.identityBinding",
+        "externalAttestationRef": "AuthoredSignature.identityBinding.externalAttestationRef"
+      },
+      "webAuthn": {
+        "rpId": "springfield gov",
+        "origins": ["https://springfield.gov"],
+        "userVerification": "required",
+        "challengeBinding": {
+          "domainSeparator": "formspec.webauthn.challenge.v1",
+          "challengeEncoding": "base64url(sha-256(jcs(canonicalChallengeStructure)))",
+          "signedPayloadDigestBinding": "AuthoredSignature.signedPayload.digest",
+          "includeOrigin": true,
+          "includeRpId": true,
+          "includeSignerId": true,
+          "includeSigningIntent": true,
+          "includeNonce": true,
+          "includePostureSnapshot": true,
+          "includeSignatureMethodRegistrySnapshot": true
+        },
+        "assertionBinding": {
+          "signatureMethod": "urn:formspec:sig-method:webauthn-fido2@1",
+          "signatureArtifactKind": "webauthn",
+          "validationArtifactKind": "webauthn-server-attestation",
+          "responseIdentityBindingMethod": "webauthn"
+        }
+      }
+    }
+  ]
+}

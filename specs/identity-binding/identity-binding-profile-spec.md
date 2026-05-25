@@ -102,7 +102,11 @@ Each `profiles[]` row declares:
 ## 3. Evidence Binding Discipline
 
 The sidecar records bindings to existing Formspec surfaces. It MUST NOT carry
-provider-native tokens or method-native cryptographic evidence.
+provider-native tokens or method-native cryptographic evidence, including through
+`extensions` at the document, profile, or method-specific level. Extension keys
+and nested extension payload keys MUST NOT be `authenticatorData`,
+`clientDataJSON`, `signature`, `credentialId`, `attestationObject`, or provider
+token aliases.
 
 For every profile:
 
@@ -136,6 +140,15 @@ The WebAuthn binding declares:
   Formspec signed-payload identity;
 - `assertionBinding`, which references the upstream artifact kinds that carry
   native WebAuthn evidence and verifier verdicts.
+
+`rpId` MUST be a WebAuthn relying-party identifier, not a URL. It MUST be a
+host-like domain name such as `springfield.gov`; `localhost` is allowed for
+local development. It MUST NOT include a scheme, path, query, fragment,
+whitespace, or other URL syntax.
+
+Each `origins[]` value MUST be an HTTPS origin only: `https://` plus host and an
+optional port. It MUST NOT include a path, query, fragment, credentials, or
+non-HTTPS scheme.
 
 The WebAuthn profile MUST NOT embed `authenticatorData`, `clientDataJSON`,
 `signature`, `credentialId`, `attestationObject`, or raw provider tokens in the
@@ -218,13 +231,16 @@ A conforming Identity Binding Profile processor:
    `schemas/identity-binding-profile.schema.json`.
 2. MUST reject a `bindingMethod: "webauthn"` profile that omits `webAuthn`.
 3. MUST reject a `webAuthn` profile whose `userVerification` is not `required`.
-4. MUST reject a `webAuthn` profile whose origins are not HTTPS URIs.
-5. MUST reject a profile that embeds raw WebAuthn assertion bytes or provider
-   tokens as sidecar fields.
-6. MUST bind WebAuthn challenges through
+4. MUST reject a `webAuthn` profile whose `rpId` is not a host-like WebAuthn RP
+   ID or is expressed as a URL.
+5. MUST reject a `webAuthn` profile whose origins are not HTTPS origins, or that
+   include path, query, fragment, credentials, or non-origin URL syntax.
+6. MUST reject a profile that embeds raw WebAuthn assertion bytes or provider
+   tokens as sidecar fields or inside any `extensions` payload.
+7. MUST bind WebAuthn challenges through
    `formspec.webauthn.challenge.v1` and
    `AuthoredSignature.signedPayload.digest`.
-7. MUST treat `duressCredentialSupport` only as a discovery/composition hint,
+8. MUST treat `duressCredentialSupport` only as a discovery/composition hint,
    not as routing, receipt, or safety-team policy.
-8. MUST NOT infer identity proofing, signer authority, or legal sufficiency from
+9. MUST NOT infer identity proofing, signer authority, or legal sufficiency from
    profile conformance alone.
