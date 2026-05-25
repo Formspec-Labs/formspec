@@ -128,6 +128,7 @@ def test_valid_report_shape_passes() -> None:
         "module-resolver",
         "surface-local-lint",
         "schema-validator",
+        "ui-graph-policy",
         "x-custom-origin",
     ],
 )

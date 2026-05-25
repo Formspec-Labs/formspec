@@ -297,15 +297,16 @@ choice until the Registry schema formally names it. The v4 spike's
 
 ## 6. Diagnostic Import
 
-Future `AppGraphValidator` reports may include UI Graph Policy diagnostics as
-cross-artifact diagnostics after the validator report origin profile admits
-`ui-graph-policy`:
+Future executable `AppGraphValidator` integrations may include UI Graph Policy
+diagnostics as cross-artifact diagnostics. The validator report origin profile
+admits `ui-graph-policy`, but this document does not require any current
+validator to emit these diagnostics:
 
 | Field | Value |
 |---|---|
 | `origin` | `ui-graph-policy` |
 | `phase` | `cross-artifact` |
-| policy artifact identity | Future report-profile work; not standardized by this slice. |
+| policy artifact identity | Future host-loading/source-pointer work; not standardized by this slice. |
 
 Initial diagnostic codes:
 
@@ -324,8 +325,9 @@ Initial diagnostic codes:
 
 Diagnostics MUST preserve the policy source pointer and any related Surface,
 Locale, Theme, Registry, or ModuleResolver pointers needed for deterministic
-authoring feedback. This v0.1 structural schema slice does not yet add those
-diagnostics to `AppGraphValidationReport`.
+authoring feedback. This v0.1 report-origin slice admits the diagnostic origin
+only; it does not add policy loading, executable validator emission, or full
+`AppGraphValidationReport` conformance for the semantic fixture corpus.
 
 ## 7. Non-Goals and Boundaries
 

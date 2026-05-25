@@ -169,7 +169,7 @@ Every diagnostic in the unified report MUST carry:
 | `code` | Stable machine-readable code. Native AppGraphValidator codes SHOULD use an `APP-GRAPH-` prefix unless a sibling spec already owns a code. |
 | `severity` | `error`, `warning`, or `info`. `ok` is false when any diagnostic has `severity: "error"`. |
 | `phase` | One of `artifact-resolution`, `schema`, `module-resolution`, `surface-local`, `cross-artifact`, `authorization-boundary`, or `unsupported`. |
-| `origin` | Producing component, such as `app-graph-validator`, `artifact-resolver`, `module-resolver`, `surface-local-lint`, or `schema-validator`. |
+| `origin` | Producing component, such as `app-graph-validator`, `artifact-resolver`, `module-resolver`, `surface-local-lint`, `schema-validator`, or `ui-graph-policy`. |
 | `message` | Human-readable explanation. |
 | `primarySource` | Artifact slot/source and JSON Pointer, when available. |
 | `relatedSources` | Optional list of other artifacts or pointers that explain a cross-artifact conflict. |
@@ -219,7 +219,7 @@ app-graph report.
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. |
 | Data Sources availability selectors to loaded Surfaces, routes, slots, Definitions, and modules | `AppGraphValidator` | `cross-artifact` | Payload fetching and cache behavior remain out of scope. |
-| UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme token slots | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary. Closure still requires schema, fixtures, and validator enforcement. |
+| UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme token slots | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary and `ui-graph-policy` is an admitted report origin. Closure still requires executable validator enforcement and host-loaded policy evidence. |
 | Fine-grained actor, route, operation, widget, field, or source authorization | Future authorization contract | `authorization-boundary` | Until a dedicated authorization contract lands, such fields fail closed rather than receiving semantics. |
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
 | Component Surface/route target resolution, duplicate route claims, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | Validator-owned only after Component spec/schema/fixture gates land. This v0.1 prose does not close that enforcement. |

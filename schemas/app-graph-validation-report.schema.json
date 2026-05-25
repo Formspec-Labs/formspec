@@ -59,7 +59,8 @@
             "artifact-resolver",
             "module-resolver",
             "surface-local-lint",
-            "schema-validator"
+            "schema-validator",
+            "ui-graph-policy"
           ]
         },
         {

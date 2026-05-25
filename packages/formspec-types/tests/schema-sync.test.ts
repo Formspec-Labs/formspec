@@ -190,6 +190,7 @@ describe('generated types — tightness against permissive intersections', () =>
       resolve(__dirname, '../src/generated/app-graph-validation-report.ts'),
       'utf-8',
     );
+    expect(src).toContain("'ui-graph-policy'");
     expect(src).toContain('| `x-${string}`;');
     expect(src).not.toMatch(/export type Origin =[\s\S]*\| string;/);
   });

@@ -73,6 +73,14 @@ ModuleResolver token-slot enforcement, runtime hidden-state behavior,
 Studio/MCP/projection/renderer/consumer wiring, ADR 0152 authorization fields,
 pseudo artifact kind, or path/document-shape identity.
 
+Cicero approved a report-origin readiness slice after the semantic fixture
+corpus. Required boundary: admit `ui-graph-policy` as a known
+`AppGraphValidationReport` diagnostic origin and update generated/local types
+and tests only; do not add a validator emitter, executable UI Graph Policy
+conformance, App Manifest slot, ArtifactResolver grouping, host-loading rule,
+ModuleResolver/Registry token-slot work, Studio/runtime/projection consumers, or
+ADR 0152 authorization semantics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -112,12 +120,17 @@ pseudo artifact kind, or path/document-shape identity.
   semantic fixture family coverage, local expected diagnostic shape, structural
   validity of each policy document, and no path-derived identity,
   App Manifest slot, spike discriminator, or ADR 0152 authorization leakage.
+- `schemas/app-graph-validation-report.schema.json`, generated
+  `packages/formspec-types/src/generated/app-graph-validation-report.ts`, and
+  `packages/formspec-app-graph/src/types.ts` admit `ui-graph-policy` as a known
+  report diagnostic origin while preserving the `x-*` extension lane and
+  rejecting arbitrary non-extension origins.
 
 ## Still Open For Closure
 
 - App Manifest loading slot or accepted production host-loading rule for the
   policy source.
-- AppGraphValidator integration.
+- Executable AppGraphValidator integration and diagnostic emission.
 - Executable AppGraphValidator conformance over the semantic fixture families.
 - ModuleResolver/Registry token-slot evidence integration.
 - Studio and authoring feedback.
@@ -126,7 +139,10 @@ pseudo artifact kind, or path/document-shape identity.
 ## Verification
 
 - `python -m pytest tests/conformance/schemas/test_ui_graph_policy_schema.py -q`
+- `python -m pytest tests/conformance/schemas/test_app_graph_validation_report_schema.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
+- `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`
+- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`

@@ -33,7 +33,7 @@ export type Phase =
  * via the `definition` "Origin".
  */
 export type Origin =
-  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator')
+  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator' | 'ui-graph-policy')
   | `x-${string}`;
 /**
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema

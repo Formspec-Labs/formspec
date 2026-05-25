@@ -438,8 +438,8 @@ function postProcess(ts, moduleName) {
 
   if (moduleName === 'app-graph-validation-report') {
     result = result.replace(
-      /export type Origin =\s*\|\s*\('app-graph-validator' \| 'artifact-resolver' \| 'module-resolver' \| 'surface-local-lint' \| 'schema-validator'\)\s*\|\s*string;/m,
-      "export type Origin =\n  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator')\n  | `x-${string}`;",
+      /export type Origin =[\s\S]*?\n\s*\|\s*string;/m,
+      "export type Origin =\n  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator' | 'ui-graph-policy')\n  | `x-${string}`;",
     );
   }
 

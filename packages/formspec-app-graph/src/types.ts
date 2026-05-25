@@ -18,6 +18,7 @@ export type AppGraphDiagnosticOrigin =
   | 'module-resolver'
   | 'surface-local-lint'
   | 'schema-validator'
+  | 'ui-graph-policy'
   | `x-${string}`;
 
 export type ResolvedArtifactStatus =
