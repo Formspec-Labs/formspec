@@ -27,6 +27,8 @@ or fine-grained authorization semantics.
   already exist, while the source fixture corpus lacks that family.
 - 2026-05-25 code review scout `019e6120-72f2-7323-8117-d99c7c317f58`
   returned APPROVE with zero findings for the A14 fixture slice.
+- 2026-05-25 code review scout `019e6123-b43d-7d73-9437-f80bb12f1768`
+  approved the A11 fixture slice after one LOW ledger-consistency cleanup.
 
 ## Evidence Map
 
@@ -42,7 +44,7 @@ or fine-grained authorization semantics.
 | A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held out of first slice |
 | A9 route/Definition ownership mismatch | Component route `bound-controls-route-definition-mismatch` fixture | Covered |
 | A10 undeclared Screener terminal hop | Surface schema documents `surface:<route-id>` but no app-graph source fixture | Open |
-| A11 duplicate Response Actions action id | Rust lint fixture exists; not promoted into source conformance corpus | Open |
+| A11 duplicate Response Actions action id | Source conformance fixture plus Rust lint `E1801` check | Covered |
 | A12 generated Component id collision | Component route `node-identity-duplicate-key` fixture | Covered |
 | A13 module-widget payload mismatch | `module-resolver/payload-mismatch.case.json` | Covered |
 | A14 module version conflict across sibling artifacts | Unit test exists; source fixture missing before this slice | First promotion |
@@ -69,8 +71,8 @@ or fine-grained authorization semantics.
 
 - [ ] Add a source conformance fixture for duplicate durable-effect idempotency
   keys or explicitly reject that as a static lint-only family after review.
-- [ ] Promote duplicate Response Actions `actions[*].id` into source conformance
-  fixtures or document why the lint fixture is the canonical source fixture.
+- [x] Promote duplicate Response Actions `actions[*].id` into source conformance
+  fixtures and pin the `E1801` static-processor diagnostic.
 
 ### Phase 3 - Route / Screener / Experience Gaps
 
@@ -94,6 +96,8 @@ or fine-grained authorization semantics.
   cross-artifact semantics and should not be bundled into the inventory commit.
 - 2026-05-25: A8 remains out of the first slice because Runtime Plan is not a
   promoted production source artifact under ADR 0153.
+- 2026-05-25: A11 uses a schema-valid fixture plus Rust lint check because the
+  Response Actions schema explicitly cannot enforce unique `actions[*].id`.
 
 ## Closure Evidence
 
@@ -110,9 +114,14 @@ Partial evidence after the first slice:
   `npm run --workspace @formspec-org/app-graph test -- tests/module-resolver-conformance.test.ts`
   passed 19/19 tests; `python -m pytest tests/conformance/test_module_resolver_fixture_corpus.py -q`
   passed 6/6 tests.
+- A11 fixture:
+  `tests/conformance/fixtures/response-actions/duplicate-action-id.json`.
+- A11 tests:
+  `tests/conformance/schemas/test_response_actions_schema.py` and
+  `tests/conformance/spec/test_response_actions_runtime.py`.
 
 Still open:
 
-- A5, A7, A10, A11, EC2, and EC12 runtime behavior need dedicated slices.
+- A5, A7, A10, EC2, and EC12 runtime behavior need dedicated slices.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.

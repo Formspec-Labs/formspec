@@ -75,6 +75,9 @@ class TestResponseActionsSchemaShape:
     def test_conformance_fixture_response_actions_validate(self, fixture_name: str) -> None:
         _validator().validate(_fixture_doc(fixture_name))
 
+    def test_duplicate_action_id_fixture_is_schema_valid_but_semantically_invalid(self) -> None:
+        _validator().validate(_fixture_doc("duplicate-action-id.json"))
+
 
 class TestResponseActionsValidationTuple:
     def test_x_intent_requires_explicit_full_validation_tuple(self) -> None:

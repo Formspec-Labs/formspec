@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from formspec._rust import lint
+
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES_DIR = ROOT / "tests" / "conformance" / "fixtures" / "response-actions"
 # Per ADR 0150 §4.2/§10 — MasterTable four-constraint demotion: schema's
@@ -239,3 +241,10 @@ def test_cross_spec_intake_handoff_does_not_author_case_created() -> None:
     assert "case.created" not in ledger_kinds
     assert not any(kind.startswith("case.") for kind in ledger_kinds)
     assert fixture["expected"]["caseCreatedEventEmitted"] is False
+
+
+def test_duplicate_action_ids_emit_e1801() -> None:
+    fixture = _fixture("duplicate-action-id.json")
+    codes = {diagnostic.code for diagnostic in lint(fixture["responseActions"])}
+
+    assert fixture["expected"]["lintCode"] in codes

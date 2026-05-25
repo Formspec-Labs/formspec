@@ -1,0 +1,30 @@
+{
+  "fixture": "duplicate-action-id",
+  "responseActions": {
+    "$formspecResponseActions": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": {
+      "url": "https://example.gov/forms/response-actions-base",
+      "compatibleVersions": ">=1.0.0"
+    },
+    "actions": [
+      {
+        "id": "send-application",
+        "intent": "submit",
+        "effects": [
+          { "type": "hostEvent", "eventName": "formspec-submit" }
+        ]
+      },
+      {
+        "id": "send-application",
+        "intent": "save-draft",
+        "effects": [
+          { "type": "hostEvent", "eventName": "formspec-save" }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "lintCode": "E1801"
+  }
+}
