@@ -3,4 +3,4 @@
 - Surface-local conformance requires schema validity, publish/export diagnostics clean enough for publication, E606-clean route reachability from `entry`, and E607-clean embed-route bindings.
 - `module-widget` slots bind declared module widgets by `moduleId` and `widgetName`; E603 owns module/widget admission and E604 owns `binding.config` validation against the contributing widget's `widgetShape.props`.
 - Surface declares navigation triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
-- Surface does not own Definition validation, Response Actions execution, Data Sources, Component route/node identity, authorization, local fixture path identity, or implicit sibling discovery; those stay with App Manifest resolution and app-graph validation.
+- Component 1.2 `targetSurfaceRoutes[]` may point at Surface routes and optional slot ids, but Surface does not list mounted Components or own Component route/node identity; those stay with App Manifest resolution and app-graph validation.

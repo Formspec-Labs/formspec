@@ -102,3 +102,13 @@ def test_surface_schema_describes_draft_and_transition_authority() -> None:
     transition = SURFACE_SCHEMA["$defs"]["Transition"]["properties"]
     assert "Surface declares the navigation trigger" in transition["trigger"]["description"]
     assert "validated bundle-state bindings" in transition["when"]["description"]
+
+
+def test_surface_spec_links_component_route_targets_without_ownership() -> None:
+    content = (ROOT / "specs" / "surface" / "surface-spec.md").read_text(encoding="utf-8")
+
+    assert "Component 1.2 documents MAY declare `targetSurfaceRoutes[]`" in content
+    assert "Surface provides the route and slot namespace" in content
+    assert "does not list mounted" in content
+    assert "Components" in content
+    assert "AppGraphValidator resolves Component route targets" in content

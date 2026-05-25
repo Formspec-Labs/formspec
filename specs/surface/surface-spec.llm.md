@@ -12,7 +12,7 @@ Source schema: `schemas/surface.schema.json`
 - Surface-local conformance requires schema validity, publish/export diagnostics clean enough for publication, E606-clean route reachability from `entry`, and E607-clean embed-route bindings.
 - `module-widget` slots bind declared module widgets by `moduleId` and `widgetName`; E603 owns module/widget admission and E604 owns `binding.config` validation against the contributing widget's `widgetShape.props`.
 - Surface declares navigation triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
-- Surface does not own Definition validation, Response Actions execution, Data Sources, Component route/node identity, authorization, local fixture path identity, or implicit sibling discovery; those stay with App Manifest resolution and app-graph validation.
+- Component 1.2 `targetSurfaceRoutes[]` may point at Surface routes and optional slot ids, but Surface does not list mounted Components or own Component route/node identity; those stay with App Manifest resolution and app-graph validation.
 
 ## Critical Schema Fields
 
@@ -27,7 +27,7 @@ Source schema: `schemas/surface.schema.json`
 - `readSurfaceDraft` may expose non-publishable state with diagnostics; `exportSurfaceDocument` is the fail-closed publication gate for schema shape and Surface-local rules.
 - Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, and unresolved embed-route bindings fail E607.
 - Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
-- Cross-artifact resolution for Definition, Experience, Response Actions, module contributions, Component identity, Data Sources, and authorization belongs to App Manifest resolution and app-graph validation.
+- Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation.
 
 ## Conformance Essentials
 
@@ -35,4 +35,5 @@ Source schema: `schemas/surface.schema.json`
 - Processors must reject or diagnose draft/export attempts with missing entry route, empty route set, duplicate route ids, routes without slots, duplicate slot ids, unresolved embed-route targets, or unreachable routes.
 - E606 covers unreachable routes and E607 covers unresolved embed-route slot targets.
 - Surface `module-widget` slots must resolve their declared `moduleId` and `widgetName` through loaded module contributions; `binding.config` validates against the contributing widget's `widgetShape.props`.
+- Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.
 - App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.

@@ -42,6 +42,15 @@ App Manifest `surfaces[]` entries name published Surface documents by sibling
 reference. A Surface document MUST NOT use local fixture paths, filenames, URL
 suffix conventions, or implicit sibling discovery as identity.
 
+Component 1.2 documents MAY declare `targetSurfaceRoutes[]` entries that point
+at a Surface by URL/version, a route by `routes[].id`, and optionally a slot by
+the slot's `id` within that route. Surface provides the route and slot namespace
+those external Component claims resolve against. Surface does not list mounted
+Components, does not own Component membership, and does not make Component
+selection decisions. App Manifest `components[]` names Component documents, and
+AppGraphValidator resolves Component route targets, duplicate route claims, and
+graph-wide node identity.
+
 ### Authoring Surface Draft
 
 A Surface draft is authoring state. It MAY be incomplete while an author adds
@@ -90,6 +99,10 @@ unreachable route.
 An `embed-route` slot's `binding.routeRef` MUST name a route declared in the
 same Surface document's `routes[]` array. A missing route target is invalid and
 MUST be reported as `E607` (`SURFACE-SLOT-BINDING-UNRESOLVED`).
+
+Component `targetSurfaceRoutes[].slot`, when present, names a slot `id` on the
+target route. That external target does not change the slot's `slotType`, typed
+`binding`, renderer hint, or Surface-local E607 behavior.
 
 Cross-document slot bindings, such as `definition-form.binding.definitionRef`
 and `experience-unit.binding.unitRef`, are resolved by the app/bundle graph and
@@ -195,6 +208,9 @@ A Surface document is conformance-coherent when:
    `module-widget.moduleId` against the document's `modules[]`
    declaration (E603); `module-widget.config` against the contributing
    module's `widgetShape.props` (E604).
+6. Component `targetSurfaceRoutes[]` claims resolve against Surface route and
+   slot ids in app-graph validation. Surface-local conformance does not require
+   or synthesize Component membership.
 
 A non-form app (a bundle with `definitions: []` and a `surfaces: [...]`
 declaring routes with `experience-unit` / `module-widget` /
