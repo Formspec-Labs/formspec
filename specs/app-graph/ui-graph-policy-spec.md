@@ -354,8 +354,8 @@ This v0.1 draft defines the prose interface contract and structural source
 schema for the UI graph policy families. Production closure still requires:
 
 1. an App Manifest loading slot or an accepted production host-loading rule,
-2. broader fixture-backed conformance beyond structural schema acceptance,
-3. `AppGraphValidator` integration,
+2. `AppGraphValidator` integration,
+3. executable validator conformance over the semantic fixture families,
 4. ModuleResolver/Registry token-slot evidence integration,
 5. Studio/authoring feedback, and
 6. runtime enforcement for hidden Definition state where applicable.

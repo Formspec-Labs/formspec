@@ -802,7 +802,8 @@
       "spec": "specs/app-graph/ui-graph-policy-spec.md",
       "schema": "schemas/ui-graph-policy.schema.json",
       "conformance": [
-        "tests/conformance/schemas/test_ui_graph_policy_schema.py"
+        "tests/conformance/schemas/test_ui_graph_policy_schema.py",
+        "tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py"
       ],
       "crates": [],
       "fixtures": [
@@ -812,6 +813,7 @@
       "checks": [
         "UI Graph Policy schema shape and host-loaded source boundary are pinned by schema conformance tests",
         "Fixture corpus covers positive route-policy shape, minimal route-policy shape, spike-discriminator rejection, path-identity rejection, invalid module Locale prefix rejection, and authorization-field rejection",
+        "Semantic fixture corpus covers future policy diagnostic families without executing validator logic or changing report origins",
         "Current App Manifest schema remains closed and does not admit uiPolicy or uiGraphPolicy slots"
       ],
       "runtimeScope": "spec-conformance-only",

@@ -1,0 +1,797 @@
+{
+  "version": "0.1",
+  "description": "Source-oriented UI Graph Policy semantic fixture families for future AppGraphValidator work. This fixture shape is conformance evidence only, not a public interchange schema.",
+  "cases": [
+    {
+      "caseId": "valid-policy-graph",
+      "family": "valid-policy-graph",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent",
+              "version": "1.0.0"
+            },
+            "localeKeyOwners": [
+              {
+                "keyPrefix": "$module.x-reviewer.",
+                "moduleId": "x-reviewer"
+              }
+            ],
+            "routePolicies": [
+              {
+                "routeId": "review",
+                "a11y": {
+                  "landmark": "main",
+                  "keyboardNavigation": true
+                },
+                "responsive": {
+                  "collapseOrder": ["summary", "details"]
+                },
+                "definitionVisibility": {
+                  "hiddenDefinitionRefs": [
+                    {
+                      "url": "https://example.gov/forms/intake",
+                      "version": "1.0.0"
+                    }
+                  ]
+                }
+              }
+            ],
+            "theme": {
+              "assignments": [
+                {
+                  "widgetRef": {
+                    "moduleId": "x-reviewer",
+                    "widgetName": "x-review-panel"
+                  },
+                  "slot": "accent",
+                  "token": "color.accent"
+                }
+              ]
+            }
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent",
+            "version": "1.0.0"
+          },
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "respondent",
+            "entry": "review",
+            "routes": [
+              {
+                "id": "review",
+                "slots": [
+                  {
+                    "id": "summary",
+                    "slotType": "definition-form",
+                    "binding": {
+                      "definitionRef": "https://example.gov/forms/intake"
+                    }
+                  },
+                  {
+                    "id": "details",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-reviewer",
+                      "widgetName": "x-review-panel"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "locales": [
+          {
+            "sourceId": "locale-en",
+            "document": {
+              "$formspecLocale": "1.0",
+              "locale": "en",
+              "strings": {
+                "$module.x-reviewer.heading": "Review"
+              }
+            }
+          }
+        ],
+        "definitions": [
+          {
+            "sourceId": "definition-intake",
+            "ref": {
+              "url": "https://example.gov/forms/intake",
+              "version": "1.0.0"
+            }
+          }
+        ],
+        "moduleResolution": {
+          "admittedModules": ["x-reviewer"],
+          "widgets": [
+            {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "tokenSlots": ["accent"]
+            }
+          ]
+        },
+        "theme": {
+          "tokens": ["color.accent"]
+        }
+      },
+      "expectedDiagnostics": []
+    },
+    {
+      "caseId": "surface-target-mismatch",
+      "family": "surface-target-mismatch",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/admin"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review"
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          },
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "respondent",
+            "entry": "review",
+            "routes": [
+              {
+                "id": "review",
+                "slots": []
+              }
+            ]
+          }
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-SURFACE-TARGET",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "Policy targets a different Surface than the loaded graph.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/targetSurface/url"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "surface",
+              "jsonPointer": "/ref/url"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "missing-route-coverage",
+      "family": "missing-route-coverage",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review"
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          },
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "respondent",
+            "entry": "review",
+            "routes": [
+              {
+                "id": "review",
+                "slots": []
+              },
+              {
+                "id": "details",
+                "slots": []
+              }
+            ]
+          }
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-ROUTE-MISSING",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "Required route policy coverage is missing for a Surface route.",
+          "primarySource": {
+            "sourceId": "surface",
+            "jsonPointer": "/document/routes/1/id"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "policy",
+              "jsonPointer": "/routePolicies"
+            }
+          ],
+          "details": {
+            "routeId": "details"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "duplicate-route-policy",
+      "family": "duplicate-route-policy",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review"
+              },
+              {
+                "routeId": "review",
+                "a11y": {
+                  "landmark": "region"
+                }
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          }
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-ROUTE-COLLISION",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "More than one policy entry targets the same route.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/routePolicies/1/routeId"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "policy",
+              "jsonPointer": "/routePolicies/0/routeId"
+            }
+          ],
+          "details": {
+            "routeId": "review"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "unresolved-route",
+      "family": "unresolved-route",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "missing"
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          },
+          "document": {
+            "routes": [
+              {
+                "id": "review",
+                "slots": []
+              }
+            ]
+          }
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-ROUTE-REF",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A route policy references a route absent from the target Surface.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/routePolicies/0/routeId"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "surface",
+              "jsonPointer": "/document/routes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "unresolved-responsive-slot",
+      "family": "unresolved-responsive-slot",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review",
+                "responsive": {
+                  "collapseOrder": ["summary", "missingSlot"]
+                }
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          },
+          "document": {
+            "routes": [
+              {
+                "id": "review",
+                "slots": [
+                  {
+                    "id": "summary"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-RESPONSIVE-SLOT",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A responsive collapse entry references a slot absent from the route.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/routePolicies/0/responsive/collapseOrder/1"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "surface",
+              "jsonPointer": "/document/routes/0/slots"
+            }
+          ],
+          "details": {
+            "routeId": "review",
+            "slotId": "missingSlot"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "unresolved-hidden-definition",
+      "family": "unresolved-hidden-definition",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review",
+                "definitionVisibility": {
+                  "hiddenDefinitionRefs": [
+                    {
+                      "url": "https://example.gov/forms/intake",
+                      "version": "1.0.0"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          },
+          "document": {
+            "routes": [
+              {
+                "id": "review",
+                "slots": [
+                  {
+                    "id": "summary",
+                    "slotType": "definition-form",
+                    "binding": {
+                      "definitionRef": "https://example.gov/forms/intake"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "definitions": []
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-HIDDEN-DEFINITION-REF",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A hidden Definition ref is not a loaded Definition.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/routePolicies/0/definitionVisibility/hiddenDefinitionRefs/0/url"
+          },
+          "details": {
+            "reason": "unresolved-definition"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "hidden-definition-not-route-local",
+      "family": "hidden-definition-not-route-local",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review",
+                "definitionVisibility": {
+                  "hiddenDefinitionRefs": [
+                    {
+                      "url": "https://example.gov/forms/intake"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          },
+          "document": {
+            "routes": [
+              {
+                "id": "review",
+                "slots": [
+                  {
+                    "id": "summary",
+                    "slotType": "static-content"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "definitions": [
+          {
+            "sourceId": "definition-intake",
+            "ref": {
+              "url": "https://example.gov/forms/intake"
+            }
+          }
+        ]
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "UI-POLICY-HIDDEN-DEFINITION-REF",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A hidden Definition ref is not present as a route-local form slot.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/routePolicies/0/definitionVisibility/hiddenDefinitionRefs/0/url"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "surface",
+              "jsonPointer": "/document/routes/0/slots"
+            }
+          ],
+          "details": {
+            "reason": "not-route-local"
+          }
+        }
+      ]
+    },
+    {
+      "caseId": "missing-locale-owner",
+      "family": "missing-locale-owner",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "localeKeyOwners": [
+              {
+                "keyPrefix": "$module.x-reviewer.",
+                "moduleId": "x-reviewer"
+              }
+            ],
+            "routePolicies": [
+              {
+                "routeId": "review"
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          }
+        },
+        "locales": [
+          {
+            "sourceId": "locale-en",
+            "document": {
+              "strings": {
+                "$module.x-helper.heading": "Helper"
+              }
+            }
+          }
+        ]
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "LOCALE-KEY-OWNER",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A $module.* Locale key has no declared owner.",
+          "primarySource": {
+            "sourceId": "locale-en",
+            "jsonPointer": "/document/strings/$module.x-helper.heading"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "policy",
+              "jsonPointer": "/localeKeyOwners"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "locale-owner-collision",
+      "family": "locale-owner-collision",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "localeKeyOwners": [
+              {
+                "keyPrefix": "$module.x-reviewer.case.",
+                "moduleId": "x-reviewer"
+              },
+              {
+                "keyPrefix": "$module.x-reviewer.case.",
+                "moduleId": "x-supervisor"
+              }
+            ],
+            "routePolicies": [
+              {
+                "routeId": "review"
+              }
+            ]
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          }
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "LOCALE-KEY-OWNER-COLLISION",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "One Locale key prefix is claimed by different modules.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/localeKeyOwners/1/keyPrefix"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "policy",
+              "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "unresolved-unadmitted-widget",
+      "family": "unresolved-unadmitted-widget",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review"
+              }
+            ],
+            "theme": {
+              "assignments": [
+                {
+                  "widgetRef": {
+                    "moduleId": "x-unknown",
+                    "widgetName": "x-review-panel"
+                  },
+                  "slot": "accent",
+                  "token": "color.accent"
+                }
+              ]
+            }
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          }
+        },
+        "moduleResolution": {
+          "admittedModules": ["x-reviewer"],
+          "widgets": []
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "THEME-TOKEN-WIDGET",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A Theme token assignment references an unresolved or unadmitted module widget.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/theme/assignments/0/widgetRef"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "moduleResolution",
+              "jsonPointer": "/admittedModules"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "undeclared-token-slot",
+      "family": "undeclared-token-slot",
+      "sources": {
+        "policy": {
+          "document": {
+            "$formspecUiGraphPolicy": "0.1",
+            "version": "1.0.0",
+            "targetSurface": {
+              "url": "https://example.gov/apps/intake/surfaces/respondent"
+            },
+            "routePolicies": [
+              {
+                "routeId": "review"
+              }
+            ],
+            "theme": {
+              "assignments": [
+                {
+                  "widgetRef": {
+                    "moduleId": "x-reviewer",
+                    "widgetName": "x-review-panel"
+                  },
+                  "slot": "accent",
+                  "token": "color.accent"
+                }
+              ]
+            }
+          }
+        },
+        "surface": {
+          "ref": {
+            "url": "https://example.gov/apps/intake/surfaces/respondent"
+          }
+        },
+        "moduleResolution": {
+          "admittedModules": ["x-reviewer"],
+          "widgets": [
+            {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "tokenSlots": ["background"]
+            }
+          ]
+        },
+        "theme": {
+          "tokens": ["color.accent"]
+        }
+      },
+      "expectedDiagnostics": [
+        {
+          "code": "THEME-TOKEN-SLOT",
+          "severity": "error",
+          "phase": "cross-artifact",
+          "origin": "ui-graph-policy",
+          "message": "A Theme token assignment targets a token slot not declared by the widget.",
+          "primarySource": {
+            "sourceId": "policy",
+            "jsonPointer": "/theme/assignments/0/slot"
+          },
+          "relatedSources": [
+            {
+              "sourceId": "moduleResolution",
+              "jsonPointer": "/widgets/0/tokenSlots"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

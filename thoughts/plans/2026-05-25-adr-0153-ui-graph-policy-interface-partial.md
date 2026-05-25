@@ -64,6 +64,15 @@ behavior, Studio/MCP/projection/renderer/production consumer wiring, ADR 0152
 authorization fields, pseudo artifact kind, or document-shape/path-derived
 identity.
 
+Cicero approved a static semantic fixture corpus before host-loaded validator
+enforcement. Required boundary: fixture/report-shape evidence only, using
+`origin: "ui-graph-policy"` as future diagnostic evidence without validating
+against the current `AppGraphValidationReport` schema; no App Manifest slot,
+ArtifactResolver grouping, AppGraphValidator enforcement/report-origin changes,
+ModuleResolver token-slot enforcement, runtime hidden-state behavior,
+Studio/MCP/projection/renderer/consumer wiring, ADR 0152 authorization fields,
+pseudo artifact kind, or path/document-shape identity.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -93,14 +102,23 @@ identity.
   contract only.
 - `packages/formspec-types/tests/schema-sync.test.ts` covers
   `UiGraphPolicyDocument` importability.
+- `tests/conformance/fixtures/ui-graph-policy/semantic/core-policy-families.case.json`
+  captures source-oriented semantic cases for valid policy graph, target Surface
+  mismatch, missing route coverage, duplicate route policy, unresolved route,
+  unresolved responsive slot, unresolved hidden Definition, non-route-local
+  hidden Definition, missing Locale owner, Locale owner collision, unresolved
+  or unadmitted widget, and undeclared token slot families.
+- `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py` validates
+  semantic fixture family coverage, local expected diagnostic shape, structural
+  validity of each policy document, and no path-derived identity,
+  App Manifest slot, spike discriminator, or ADR 0152 authorization leakage.
 
 ## Still Open For Closure
 
 - App Manifest loading slot or accepted production host-loading rule for the
   policy source.
-- Broader positive and negative conformance fixtures beyond structural schema
-  acceptance.
 - AppGraphValidator integration.
+- Executable AppGraphValidator conformance over the semantic fixture families.
 - ModuleResolver/Registry token-slot evidence integration.
 - Studio and authoring feedback.
 - Runtime hidden Definition state enforcement where applicable.
@@ -108,6 +126,7 @@ identity.
 ## Verification
 
 - `python -m pytest tests/conformance/schemas/test_ui_graph_policy_schema.py -q`
+- `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`
