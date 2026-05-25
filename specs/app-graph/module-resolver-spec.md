@@ -17,10 +17,10 @@ status: draft
 ## Status of This Document
 
 This document is the interface contract for the app-graph `ModuleResolver`
-primitive. It defines the request/response shape, registry index boundary, app
-and sibling `modules[]` evidence, admission model, contribution ownership
-checks, payload-schema hook boundary, resolver report schema, and diagnostics
-consumed by `AppGraphValidator`.
+primitive. It defines the input-evidence/output-report boundary, registry
+index boundary, app and sibling `modules[]` evidence, admission model,
+contribution ownership checks, payload-schema hook boundary, resolver report
+schema, and diagnostics consumed by `AppGraphValidator`.
 
 `schemas/module-resolution-report.schema.json` defines the output report data
 contract, and `@formspec-org/types` publishes the generated

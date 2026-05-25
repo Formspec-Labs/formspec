@@ -8,12 +8,12 @@
 ## Scope
 
 Advance ADR 0153 gate 4 without claiming resolver extraction closure. This
-slice defines the `ModuleResolver` request/response boundary, Registry index
-input, app and sibling `modules[]` evidence, default module set semantics,
-coarse admission evidence, version/dependency checks, contribution ownership,
-payload-schema hook boundary, module-resolution diagnostics in prose, and the
-output report schema/type contract, and source-oriented fixture/report-shape
-evidence for required diagnostic families.
+slice defines the `ModuleResolver` input-evidence/output-report boundary,
+Registry index input, app and sibling `modules[]` evidence, default module set
+semantics, coarse admission evidence, version/dependency checks, contribution
+ownership, payload-schema hook boundary, module-resolution diagnostics in
+prose, the output report schema/type contract, and source-oriented
+fixture/report-shape evidence for required diagnostic families.
 
 Not in this slice: Rust lint changes, shared resolver package code,
 resolver request JSON Schema, executable conformance over a production
@@ -48,7 +48,7 @@ E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
 
 - [x] Add `specs/app-graph/module-resolver-spec.md` as the prose-only
   interface contract.
-- [x] Define request/response concepts and the Registry index boundary.
+- [x] Define input-evidence/output-report concepts and the Registry index boundary.
 - [x] Define App Manifest `modules[]`, sibling `modules[]`, and default module
   set semantics.
 - [x] Define optional host coarse admission evidence without binding to a
