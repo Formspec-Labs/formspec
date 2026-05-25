@@ -116,8 +116,10 @@
     },
     "ModuleResolutionExtensions": {
       "type": "object",
-      "additionalProperties": true,
-      "propertyNames": { "pattern": "^x-" },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": true
+      },
       "description": "ModuleRef extension object whose keys must be prefixed with x-."
     },
     "ModuleResolutionArtifactRef": {

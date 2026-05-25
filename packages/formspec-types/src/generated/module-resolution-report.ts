@@ -134,7 +134,11 @@ export interface ModuleResolutionRef {
  * via the `definition` "ModuleResolutionExtensions".
  */
 export interface ModuleResolutionExtensions {
-  [k: string]: unknown;
+  /**
+   * This interface was referenced by `ModuleResolutionExtensions`'s JSON-Schema definition
+   * via the `patternProperty` "^x-".
+   */
+  [k: `x-${string}`]: unknown;
 }
 /**
  * Diagnostic pointer to source evidence. The source string is for reporting only; local paths, filenames, fixture names, and URL suffixes are not production identity.

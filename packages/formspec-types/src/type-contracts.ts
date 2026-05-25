@@ -7,6 +7,7 @@ import type {
   ComponentDocument,
   Extensions,
   FormDefinition,
+  ModuleResolutionExtensions,
   ThemeDocument,
   ThemeWidgetName,
   WidgetName,
@@ -87,6 +88,7 @@ const generatedThemeExtensions: ThemeDocument = {
   extensions: { 'x-acme': true },
 };
 const extensions: Extensions = { 'x-acme': true };
+const moduleResolutionExtensions: ModuleResolutionExtensions = { 'x-acme': true };
 const generatedAppGraphReport: AppGraphValidationReport = {
   ok: true,
   summary: {
@@ -204,6 +206,9 @@ const badThemeExtensions: ThemeDocument = { ...generatedTheme, extensions: { acm
 // @ts-expect-error Extension objects only accept x-* keys.
 const badExtensions: Extensions = { acme: true };
 
+// @ts-expect-error ModuleResolution extension objects only accept x-* keys.
+const badModuleResolutionExtensions: ModuleResolutionExtensions = { acme: true };
+
 const badArtifactResolutionStatus: ArtifactResolutionReport = {
   ...generatedArtifactResolutionReport,
   // @ts-expect-error ArtifactResolver extension statuses must use x-*.
@@ -240,6 +245,7 @@ void generatedThemeWithWidget;
 void generatedDefinitionExtensions;
 void generatedThemeExtensions;
 void extensions;
+void moduleResolutionExtensions;
 void generatedAppGraphReport;
 void generatedArtifactResolutionReport;
 void badCustomWidget;
@@ -255,5 +261,6 @@ void badThemeRoot;
 void badDefinitionExtensions;
 void badThemeExtensions;
 void badExtensions;
+void badModuleResolutionExtensions;
 void badArtifactResolutionStatus;
 void badArtifactResolutionRef;

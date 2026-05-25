@@ -214,6 +214,9 @@ describe('generated types — tightness against permissive intersections', () =>
     expect(src).toContain("export type ModuleResolutionPhase = 'module-resolution';");
     expect(src).not.toMatch(/export type ModuleResolutionOrigin =[^;]*\| string;/);
     expect(src).not.toMatch(/export type ModuleResolutionPhase =[^;]*\| string;/);
+    const extensionsBody = src.match(/export interface ModuleResolutionExtensions \{([\s\S]*?)\n\}/)?.[1] ?? '';
+    expect(extensionsBody).toContain('[k: `x-${string}`]: unknown;');
+    expect(extensionsBody).not.toContain('[k: string]: unknown;');
     expect(indexSrc).toContain('ModuleResolutionReport');
   });
 });
