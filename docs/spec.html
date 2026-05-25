@@ -1100,6 +1100,15 @@ present, id becomes REQUIRED so each authored signature can bind through
 signedPayload.responseId.</td>
 </tr>
 <tr>
+<td><code>#/properties/metadata</code></td>
+<td><code>metadata</code></td>
+<td><code>$ref</code></td>
+<td>no</td>
+<td><code>$ref</code>: <code>#/$defs/ResponseMetadata</code></td>
+<td>Optional response metadata envelope for per-field provenance,
+derivation traces, and disclosures shown.</td>
+</tr>
+<tr>
 <td><code>#/properties/status</code></td>
 <td><code>status</code></td>
 <td><code>string</code></td>
@@ -1150,6 +1159,26 @@ schema alone cannot express.</p>
 <code>(definitionUrl, definitionVersion)</code>. A conformant processor
 MUST reject a Response whose <code>definitionVersion</code> does not
 match any known Definition at the given <code>definitionUrl</code>.</p>
+<p>A Response MAY carry a <code>metadata</code> envelope. The envelope
+is keyed by Definition item path and has three core maps:</p>
+<ul>
+<li><code>metadata.provenance[path]</code> records where a value came
+from, when it was captured, and who attested it. The <code>class</code>
+field uses the shared value-class vocabulary also used by
+respondent-ledger <code>ChangeSetEntry.valueClass</code>.</li>
+<li><code>metadata.derivations[path]</code> records the FEL expression,
+input paths, result, and trace steps used to derive a calculated value.
+This is the receipt-bound form of “show the math.”</li>
+<li><code>metadata.disclosuresShown[path]</code> records that a purpose,
+consequence, consent, or citation disclosure was shown to the
+respondent.</li>
+</ul>
+<p>When assistant-suggested values are confirmed by the respondent,
+<code>metadata.provenance[path].sourceRef</code> SHOULD carry
+<code>assistant-suggested</code> or a transport-qualified value such as
+<code>assistant-suggested:webmcp</code>; the value still requires
+respondent attestation. Processors MUST NOT compute or expose an
+aggregate “AI score” from per-field provenance.</p>
 <p>A Response MAY carry one or more <code>authoredSignatures</code>
 records. Each record binds one signer/document act to the Formspec
 Signed Response Payload, not merely to a widget control in
@@ -4663,17 +4692,26 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb32-1"><a href=
 <span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;derivedFrom&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.gov/forms/annual-report|2024.1.0&quot;</span><span class="fu">,</span></span>
 <span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Annual Financial Report&quot;</span><span class="fu">,</span></span>
 <span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;binds&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;shapes&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;instances&quot;</span><span class="fu">:</span> <span class="fu">{},</span></span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;formPresentation&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;pageMode&quot;</span><span class="fu">:</span> <span class="st">&quot;single&quot;</span><span class="fu">,</span></span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;labelPosition&quot;</span><span class="fu">:</span> <span class="st">&quot;top&quot;</span><span class="fu">,</span></span>
-<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;density&quot;</span><span class="fu">:</span> <span class="st">&quot;comfortable&quot;</span></span>
-<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
-<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;extensions&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
-<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;metadata&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;assurance&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;ial&quot;</span><span class="fu">:</span> <span class="st">&quot;L2&quot;</span><span class="fu">,</span> <span class="dt">&quot;aal&quot;</span><span class="fu">:</span> <span class="st">&quot;L2&quot;</span><span class="fu">,</span> <span class="dt">&quot;jurisdiction&quot;</span><span class="fu">:</span> <span class="st">&quot;US&quot;</span> <span class="fu">}</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;binds&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;shapes&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;instances&quot;</span><span class="fu">:</span> <span class="fu">{},</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fees&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;currency&quot;</span><span class="fu">:</span> <span class="st">&quot;USD&quot;</span><span class="fu">,</span></span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;lineItems&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span> <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;baseFee&quot;</span><span class="fu">,</span> <span class="dt">&quot;label&quot;</span><span class="fu">:</span> <span class="st">&quot;Base filing fee&quot;</span><span class="fu">,</span> <span class="dt">&quot;calculate&quot;</span><span class="fu">:</span> <span class="st">&quot;25&quot;</span> <span class="fu">}</span></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;formPresentation&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;pageMode&quot;</span><span class="fu">:</span> <span class="st">&quot;single&quot;</span><span class="fu">,</span></span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;labelPosition&quot;</span><span class="fu">:</span> <span class="st">&quot;top&quot;</span><span class="fu">,</span></span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;density&quot;</span><span class="fu">:</span> <span class="st">&quot;comfortable&quot;</span></span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;extensions&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>The canonical structural contract for Definition top-level properties
 is generated from <code>schemas/definition.schema.json</code>:</p>
 <!-- schema-ref:start id=core-definition-top-level schema=schemas/definition.schema.json pointers=# -->
@@ -4762,6 +4800,15 @@ MUST NOT alter core semantics (required, relevant, readonly, calculate,
 validation). Preserved on round-trip.</td>
 </tr>
 <tr>
+<td><code>#/properties/fees</code></td>
+<td><code>fees</code></td>
+<td><code>$ref</code></td>
+<td>no</td>
+<td><code>$ref</code>: <code>#/$defs/Fees</code></td>
+<td>FEL-calculated fee line items for respondent-facing cost
+disclosure.</td>
+</tr>
+<tr>
 <td><code>#/properties/formPresentation</code></td>
 <td><code>formPresentation</code></td>
 <td><code>object</code></td>
@@ -4810,6 +4857,16 @@ Three item types exist: ‘field’ (captures data), ‘group’ (structural
 container, optionally repeatable), ‘display’ (read-only presentational
 content). The item tree determines the shape of the Instance (form
 data).</td>
+</tr>
+<tr>
+<td><code>#/properties/metadata</code></td>
+<td><code>metadata</code></td>
+<td><code>$ref</code></td>
+<td>no</td>
+<td><code>$ref</code>: <code>#/$defs/DefinitionMetadata</code></td>
+<td>Form-level metadata that affects respondent-facing explanation and
+policy resolution without changing the item tree. Current core entries
+cover preparation guidance and form-level assurance requirements.</td>
 </tr>
 <tr>
 <td><code>#/properties/migrations</code></td>
@@ -4966,6 +5023,27 @@ unrecognized top-level properties unless the property name begins with
 <code>x-</code>. Processors MUST preserve <code>x-*</code> extension
 properties during round-tripping but MUST NOT assign core semantics to
 unrecognized extensions.</p>
+<h4 id="form-metadata-and-fees">Form Metadata and Fees</h4>
+<p>The OPTIONAL <code>metadata</code> object carries form-level
+explanation and policy annotations that do not create response data
+fields and do not override Binds, Shapes, or access-control
+behavior.</p>
+<p><code>metadata.preparation</code> describes what the respondent
+should have ready before starting the form. <code>documents[]</code>
+names needed documents, credentials, attachments, or facts;
+<code>expectedAcquisitionWindows{}</code> gives realistic
+acquisition-time estimates keyed by document id, item path, or
+preparation category.</p>
+<p><code>metadata.assurance</code> declares the form-side identity and
+authentication assurance floor. <code>ial</code> and <code>aal</code>
+use the ordered <code>L1</code> through <code>L4</code> taxonomy defined
+by the respondent-ledger assurance model. <code>jurisdiction</code>
+names the policy namespace in which the requirement applies.</p>
+<p>The OPTIONAL top-level <code>fees</code> object declares
+respondent-facing fee line items. Every <code>fees.lineItems[]</code>
+entry MUST carry a FEL <code>calculate</code> expression so cost
+disclosures update as answers change. <code>fees</code> is explanatory
+and calculable; it does not by itself collect payment.</p>
 <h4 id="form-presentation">4.1.1 Form Presentation</h4>
 <p>The OPTIONAL <code>formPresentation</code> object on the Definition
 root provides form-wide presentation defaults. All properties within
@@ -5241,8 +5319,34 @@ names include <code>"short"</code>, <code>"pdf"</code>,
 <code>"csv"</code>, and <code>"accessibility"</code>. Implementations
 MAY define additional context names.</td>
 </tr>
+<tr>
+<td><code>purpose</code></td>
+<td>object</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Plain-language purpose and citation metadata explaining why this
+item is asked or shown. <code>purpose</code> MAY cite a References
+entry, PKAF authority chain, rule URI, or implementation-specific
+authority reference. It MUST NOT replace
+<code>accessControl.class</code> or privacy-profile audience
+policy.</td>
+</tr>
+<tr>
+<td><code>consequences</code></td>
+<td>object</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Respondent-facing consequence metadata for this item, including
+triggered deadlines, lock-in effects, and external actions such as
+referrals, payments, credit checks, or mandatory reports. A consequence
+declaration explains and gates the action; it does not itself perform
+the action.</td>
+</tr>
 </tbody>
 </table>
+<p>The retired EXT-1 <code>privacy</code> sibling block is not part of
+the Definition schema. Safe-address and other field-level protection
+semantics use <code>accessControl.class</code> and the Privacy Profile /
+Access-Class Registry companions, not an item-level <code>privacy</code>
+object.</p>
 <h4 id="group-items">4.2.2 Group Items</h4>
 <p>A <strong>Group</strong> Item is a structural container. It organizes
 child Items into logical sections and MAY represent repeatable
