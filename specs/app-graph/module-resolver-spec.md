@@ -1,22 +1,22 @@
 ---
 title: Formspec ModuleResolver Interface Specification
-version: 0.1.0-draft.1
+version: 0.1.0-draft.2
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec ModuleResolver Interface Specification v0.1
 
-**Version:** 0.1.0-draft.1
+**Version:** 0.1.0-draft.2
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
-**Companion to:** App Manifest, Registry, Surface, AppGraphValidator, and ADR 0153
+**Companion to:** App Manifest, Registry, Surface, and AppGraphValidator
 
 ---
 
 ## Status of This Document
 
-This document is the prose-only interface contract for the ADR 0153
+This document is the prose-only interface contract for the app-graph
 `ModuleResolver` primitive. It defines the request/response shape, registry
 index boundary, app and sibling `modules[]` evidence, admission model,
 contribution ownership checks, payload-schema hook boundary, and diagnostics
@@ -24,9 +24,12 @@ consumed by `AppGraphValidator`.
 
 This document intentionally does not define a JSON Schema, generated types,
 fixture-backed conformance, shared package implementation, Rust lint rewrite,
-production consumer wiring, renderer fallback policy, or ADR 0152
-fine-grained authorization. Those land in later ADR 0153 steps after the prose
+production consumer wiring, renderer fallback policy, or fine-grained
+authorization. Those land in later implementation gates after the prose
 responsibilities are stable.
+
+Architecture Decision Records may record provenance for this boundary, but
+this specification states the resolver contract directly.
 
 ## Bottom Line Up Front
 
@@ -71,8 +74,7 @@ Out of scope:
 - renderer fallback and widget rendering behavior,
 - the v4 spike Posture sidecar as a required input,
 - Component bundle id collision ownership (E605),
-- fine-grained actor, route, widget, field, source, or operation authorization,
-  which remains held behind ADR 0152.
+- fine-grained actor, route, widget, field, source, or operation authorization.
 
 ## 2. Resolver Request
 
@@ -152,7 +154,7 @@ allow or deny a module reference by field equality:
 
 The resolver may report binary module admission evidence, but it does not
 define per-actor, per-route, per-widget, per-field, or per-source policy. Those
-fine-grained policies remain ADR 0152 work.
+fine-grained policies require a separate authorization contract.
 
 ## 6. Resolution Order
 
@@ -209,8 +211,10 @@ requiring all consumers to be wired in this prose slice.
 | UI graph policy token slots | `token-category` | Future `categoryShape` hook. |
 
 Component bundle id collision diagnostics, including current E605 behavior,
-are not ModuleResolver-owned. They remain bundle-graph validation until ADR
-0154 or a later app-graph gate assigns them elsewhere.
+are not ModuleResolver-owned. They remain bundle-graph validation because they
+compare Component artifact identity across the resolved app graph rather than
+module declaration, admission, contribution, dependency, or payload-schema
+evidence.
 
 ## 9. Resolver Response
 
@@ -262,7 +266,7 @@ The resolver hands off:
 - source schema failures to the schema phase,
 - cross-artifact non-module invariants to `AppGraphValidator`,
 - rendering and fallback behavior to renderer/projection layers, and
-- fine-grained authorization to ADR 0152.
+- fine-grained authorization to a separate authorization contract.
 
 It does not absorb the v4 spike Posture sidecar, execute effects, fetch Data
 Sources payloads, or decide Component Surface/route identity.

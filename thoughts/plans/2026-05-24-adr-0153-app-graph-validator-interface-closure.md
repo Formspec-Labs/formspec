@@ -46,6 +46,12 @@ fine-grained authorization.
   identity, and Component route identity was described as not validator-owned
   even though ADR 0154 assigns future Component graph checks to
   `AppGraphValidator`.
+- 2026-05-25 architecture checkpoint (Planck): APPROVE a docs/status-only
+  self-authoring hygiene slice before more schema work. Required cautions:
+  include `AppGraphValidator` with ModuleResolver and UI Graph Policy; keep
+  specs direct-authority; do not add schemas, generated types, fixtures, lint
+  codes, behavior changes, production consumers, runtime/projection wiring, or
+  authorization semantics.
 
 ## Work Phases
 
@@ -72,6 +78,8 @@ fine-grained authorization.
   authorization semantics outside this row.
 - [x] State that imported diagnostics may appear in the final report only with
   their origin preserved.
+- [x] Clarify that the spec is self-authoring: ADRs record provenance, while
+  the spec states the `AppGraphValidator` contract directly.
 
 ### Phase 3 - Status Updates
 
@@ -93,6 +101,9 @@ fine-grained authorization.
 - 2026-05-24: Component projection/rendering stays outside the validator, but
   future ADR 0154 Component Surface/route graph identity checks are explicitly
   assigned to `AppGraphValidator` after ADR 0154 gates land.
+- 2026-05-25: The self-authoring hygiene pass changed only spec authority
+  wording. It did not reopen gate 3a or claim additional extraction,
+  conformance, consumer, runtime, projection, or authorization closure.
 
 ## Closure Evidence
 
@@ -111,6 +122,11 @@ Closed for ADR 0153 gate 3a:
   extraction, fixtures, conformance, production consumers, and ADR 0152
   fine-grained authorization remain outside this closure.
 - Review: architecture scout APPROVE for prose-only closure.
+- Hygiene review: architecture checkpoint `019e5e08-84f0-7100-beaa-fcd50852b3a1`
+  (Planck), APPROVE for direct spec authority before the next schema slice.
+- Hygiene code review: `019e5e0e-c05d-75c1-8d07-f7d6f98f8931` (Dalton),
+  REVISE for one remaining ModuleResolver ADR dependency, then APPROVE after
+  the E605 ownership wording became direct spec authority.
 
 Not part of this row's closure: shared `ArtifactResolver` / `ModuleResolver` /
 `AppGraphValidator` extraction and production consumer rewiring. Those remain

@@ -26,6 +26,15 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
   final API; exclude E605 Component id collision ownership; define optional
   host-supplied coarse admission evidence without requiring the v4 Posture
   sidecar.
+- 2026-05-25 architecture checkpoint (Planck): APPROVE a docs/status-only
+  self-authoring hygiene slice before schema work. Required cautions: keep the
+  spec contract direct; allow ADRs as provenance only; do not add schemas,
+  generated types, fixtures, lint codes, resolver extraction, AppGraphValidator
+  behavior, production consumers, runtime/projection wiring, or fine-grained
+  authorization semantics.
+- 2026-05-25 external review (Dalton): REVISE for one remaining normative ADR
+  dependency in the Component bundle id collision note, then APPROVE after the
+  note was rewritten as a direct bundle-graph ownership statement.
 
 ## Work Completed
 
@@ -41,6 +50,8 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
 - [x] Keep E605 Component bundle id collision out of `ModuleResolver`.
 - [x] Define module-resolution diagnostics and imported-origin rules for
   AppGraph reports.
+- [x] Clarify that the spec is self-authoring: ADRs record provenance, while
+  the spec states the `ModuleResolver` contract directly.
 
 ## Still Open for Gate 4 Closure
 
@@ -64,7 +75,8 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
   evidence for E603/E604 semantics only. E605 stays outside this resolver
   contract.
 - 2026-05-25: Host-supplied admission evidence replaces any dependency on the
-  v4 spike Posture sidecar. Fine-grained authorization remains ADR 0152 work.
+  v4 spike Posture sidecar. Fine-grained authorization remains a separate
+  authorization-contract concern.
 
 ## Partial Evidence
 

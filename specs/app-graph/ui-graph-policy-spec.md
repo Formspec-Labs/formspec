@@ -1,30 +1,33 @@
 ---
 title: Formspec UI Graph Policy Interface Specification
-version: 0.1.0-draft.1
+version: 0.1.0-draft.2
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec UI Graph Policy Interface Specification v0.1
 
-**Version:** 0.1.0-draft.1
+**Version:** 0.1.0-draft.2
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, Surface, Locale, Theme, Registry, Module
-Resolver, AppGraphValidator, and ADR 0153
+Resolver, and AppGraphValidator
 
 ---
 
 ## Status of This Document
 
-This document is the prose-only interface contract for ADR 0153 gates 9a-9d.
-It defines the app-graph policy boundary for Locale ownership, route
+This document is the prose-only interface contract for the app-graph UI policy
+families. It defines the app-graph policy boundary for Locale ownership, route
 accessibility, responsive collapse, and module widget Theme token slots.
 
 This document intentionally does not define a JSON Schema, App Manifest slot,
 generated types, conformance fixtures, runtime responsive behavior, renderer
 behavior, Studio wiring, or production `AppGraphValidator` implementation. Those
-land in later ADR 0153 gates after the prose boundary is stable.
+land in later implementation gates after the prose boundary is stable.
+
+Architecture Decision Records may record provenance for this boundary, but
+this specification states the policy contract directly.
 
 ## Bottom Line Up Front
 
@@ -64,7 +67,8 @@ In scope:
 - optional hidden Definition references for route-local form slots,
 - Theme token assignments to module widget token slots,
 - imported diagnostic identity for `AppGraphValidator`, and
-- explicit separation from `specs/ui-policy.json` and ADR 0152 authorization.
+- explicit separation from `specs/ui-policy.json` and fine-grained
+  authorization.
 
 Out of scope:
 
@@ -83,7 +87,7 @@ Out of scope:
 ## 2. Relationship to Existing UI Policy
 
 `specs/ui-policy.json` is the shared machine-readable UI authoring policy
-artifact governed by ADR 0064. It owns component and widget vocabulary,
+artifact. It owns component and widget vocabulary,
 retired names, input compatibility, fallback carry/drop/translate policy,
 responsive forbidden and allowed props, breakpoint namespace policy, page
 precedence mirror data, attention routing, extension discovery, and token
@@ -183,7 +187,7 @@ Rules:
 1. `routeId` MUST resolve to exactly one route in the target Surface.
 2. Duplicate route policy entries for the same route are invalid.
 3. A support profile MAY require policy coverage for every route in the target
-   Surface. The ADR 0153 production target does require full route coverage.
+   Surface. The production support profile requires full route coverage.
 4. Component-level and widget-level accessibility props remain Component/Theme
    concerns. UI Graph Policy only states route-level graph obligations.
 
@@ -300,14 +304,14 @@ UI Graph Policy MUST NOT:
    authorization; or
 9. replace `ModuleResolver` for module admission or contribution ownership.
 
-Fine-grained authorization remains held behind ADR 0152. UI Graph Policy may
-later provide route or widget identities as inputs to an authorization policy,
-but it does not supply permission semantics.
+Fine-grained authorization remains outside this specification. UI Graph Policy
+may later provide route or widget identities as inputs to an authorization
+policy, but it does not supply permission semantics.
 
 ## 7. Closure Requirements
 
-This v0.1 draft closes only the ADR 0153 gates 9a-9d prose partial. Production
-closure still requires:
+This v0.1 draft defines only the prose interface contract for the UI graph
+policy families. Production closure still requires:
 
 1. a schema or other accepted structural contract for the policy source,
 2. an App Manifest or host-supplied loading rule,

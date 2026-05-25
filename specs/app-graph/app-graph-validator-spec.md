@@ -1,23 +1,23 @@
 ---
 title: Formspec AppGraphValidator Interface Specification
-version: 0.1.0-draft.2
+version: 0.1.0-draft.3
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec AppGraphValidator Interface Specification v0.1
 
-**Version:** 0.1.0-draft.2
+**Version:** 0.1.0-draft.3
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
-**Companion to:** App Manifest, Surface, Data Sources, Response Actions, Module Resolver, Artifact Resolver, and ADR 0153
+**Companion to:** App Manifest, Surface, Data Sources, Response Actions, Module Resolver, and Artifact Resolver
 
 ---
 
 ## Status of This Document
 
-This document is the interface contract for ADR 0153 gate 3a and report-schema
-evidence for gate 3b. It defines the inputs, outputs, diagnostic shape,
+This document is the interface contract for the app-graph validator request
+and report boundary. It defines the inputs, outputs, diagnostic shape,
 schema-validation boundary, and cross-artifact ownership model for a production
 `AppGraphValidator`.
 
@@ -27,8 +27,11 @@ The report output shape is structurally governed by
 TypeScript exported by `@formspec-org/types`. This document intentionally does
 not define a JSON Schema for validator requests, resolver implementations,
 conformance fixtures, runtime invocation behavior, projection behavior, or
-production consumer wiring. Those land in later ADR 0153 gates after the report
+production consumer wiring. Those land in later implementation gates after the report
 boundary is stable.
+
+Architecture Decision Records may record provenance for this boundary, but
+this specification states the validator contract directly.
 
 ## Bottom Line Up Front
 
@@ -41,7 +44,7 @@ boundary is stable.
 - Outputs are deterministic validation reports with `ok`, summary counts,
   per-artifact schema results, diagnostics, skipped phases, and source pointers.
 - Native validator diagnostics cover source schema validation, cross-artifact
-  invariants, unsupported graph features, and ADR 0152 fail-closed authorization
+  invariants, unsupported graph features, and fail-closed authorization
   boundaries. Resolver, module, and Surface-local diagnostics may be surfaced in
   the report only as imported diagnostics with their origin preserved.
 - The validator does not render Components, execute Response Actions, evaluate
@@ -62,7 +65,7 @@ In scope:
 - per-artifact schema validation over loaded artifacts,
 - cross-artifact invariants that require more than one artifact,
 - imported upstream diagnostics from resolver/module/surface-local checks, and
-- fail-closed handling for unsupported features and ADR 0152 authorization
+- fail-closed handling for unsupported features and fine-grained authorization
   placeholders.
 
 Out of scope:
@@ -128,7 +131,7 @@ The validator runs in deterministic phases:
 5. Skip cross-artifact validation when required source schemas fail or do not
    run, and emit an informational skipped-phase diagnostic.
 6. Evaluate cross-artifact invariants for the remaining schema-valid graph.
-7. Apply fail-closed checks for unsupported features and ADR 0152 authorization
+7. Apply fail-closed checks for unsupported features and fine-grained authorization
    placeholders.
 8. Return one report sorted deterministically by severity, phase, artifact slot,
    JSON Pointer, and code.
@@ -216,9 +219,9 @@ app-graph report.
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. |
 | Data Sources availability selectors to loaded Surfaces, routes, slots, Definitions, and modules | `AppGraphValidator` | `cross-artifact` | Payload fetching and cache behavior remain out of scope. |
 | UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme token slots | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary. Closure still requires schema, fixtures, and validator enforcement. |
-| Fine-grained actor, route, operation, widget, field, or source authorization | ADR 0152 | `authorization-boundary` | Until ADR 0152 lands, such fields fail closed rather than receiving semantics. |
+| Fine-grained actor, route, operation, widget, field, or source authorization | Future authorization contract | `authorization-boundary` | Until a dedicated authorization contract lands, such fields fail closed rather than receiving semantics. |
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
-| Component Surface/route target resolution, duplicate route claims, fake `targetDefinition` rejection, and node identity disambiguation | ADR 0154 plus future `AppGraphValidator` gates | `cross-artifact` | Validator-owned only after ADR 0154 spec/schema/fixture gates land. This v0.1 prose does not close that enforcement. |
+| Component Surface/route target resolution, duplicate route claims, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | Validator-owned only after Component spec/schema/fixture gates land. This v0.1 prose does not close that enforcement. |
 | Component projection output and renderer fallback | Projection/runtime/renderer gates | not validator-owned | The validator may check future Component graph identity, but it must not render Components or choose fallback behavior. |
 
 ## 8. Unsupported Features and Authorization
@@ -228,17 +231,18 @@ version, sibling slot, or feature outside the supplied support profile. It MUST
 NOT silently ignore unknown non-extension graph features in order to produce a
 partial app.
 
-Fine-grained authorization remains held behind ADR 0152. Until that ADR supplies
-the contract, the validator MAY carry binary admission evidence supplied by the
-host or session boundary, but MUST reject fields that attempt to define
+Fine-grained authorization remains outside this specification. Until a
+dedicated authorization contract lands, the validator MAY carry binary
+admission evidence supplied by the host or session boundary, but MUST reject
+fields that attempt to define
 per-actor, per-route, per-artifact, per-operation, per-widget-class, per-field,
 or per-source authorization semantics.
 
 ## 9. Conformance
 
-This v0.1 draft closes the ADR 0153 gate 3a prose contract and provides the
-gate 3b report-schema/generation evidence. A conforming future implementation
-will need later gates to provide:
+This v0.1 draft defines the prose validator contract and provides the
+report-schema/generation evidence currently available. A conforming future
+implementation will need later gates to provide:
 
 1. fixture-backed conformance cases,
 2. broader extraction from lint, studio-core, and spike-local lessons without fixture

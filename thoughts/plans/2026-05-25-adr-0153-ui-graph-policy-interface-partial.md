@@ -38,17 +38,27 @@ Component 1.2 prose partial. The review boundary was:
   per-widget implementation policy, authorization semantics, and Surface
   ownership inversion.
 
+Planck approved a docs/status-only self-authoring hygiene slice before schema
+work. The checkpoint required direct spec authority, ADRs as provenance only,
+and no schema, generated types, fixtures, lint codes, AppGraphValidator
+behavior, App Manifest policy slot, production consumers, runtime/projection
+wiring, or authorization semantics.
+
+Dalton approved the hygiene slice after one ModuleResolver wording revision;
+there were no UI Graph Policy findings.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
   boundary over already resolved Surface, Locale, Theme, Registry,
   ModuleResolver, and Definition evidence.
-- The spec distinguishes UI Graph Policy from `specs/ui-policy.json` and ADR
-  0064.
+- The spec distinguishes UI Graph Policy from `specs/ui-policy.json`.
 - The spec defines conceptual policy fields for `targetSurface`,
   `localeKeyOwners[]`, `routePolicies[]`, and `theme.assignments[]`.
 - The spec names initial imported diagnostic codes with
   `origin: "ui-graph-policy"` and `phase: "cross-artifact"`.
+- The spec is self-authoring: ADRs record provenance, while the spec states the
+  UI Graph Policy contract directly.
 - ADR 0153 and the stack rollup record gates 9a-9d as Partial.
 
 ## Still Open For Closure
