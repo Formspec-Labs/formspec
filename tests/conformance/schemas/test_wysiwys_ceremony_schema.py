@@ -53,6 +53,7 @@ def test_valid_fixture_passes() -> None:
     [
         "invalid-bulk-apply.json",
         "invalid-local-preimage-fork.json",
+        "invalid-preimage-extension-fork.json",
         "invalid-scroll-gate-disabled.json",
     ],
 )

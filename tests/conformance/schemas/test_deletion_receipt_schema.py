@@ -61,6 +61,7 @@ def test_verification_receipt_reference_can_carry_signed_evidence() -> None:
     "fixture_name",
     [
         "invalid-empty-receipt-bytes.json",
+        "invalid-extension-erased-values.json",
         "invalid-raw-erased-value.json",
         "invalid-respondent-signer.json",
         "invalid-unsigned-receipt.json",

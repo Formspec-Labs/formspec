@@ -32,7 +32,8 @@ Source schema: `schemas/identity-binding-profile.schema.json`
 ## Behavioral Essentials
 
 - Identity Binding Profile documents declare how identity evidence binds into existing Formspec identity surfaces without carrying provider-native tokens or cryptographic assertion bytes.
-- WebAuthn profiles require per-act userVerification=required and HTTPS origin pinning.
+- Identity Binding Profile documents are closed sidecars with no extensions payloads, so raw native evidence cannot be hidden under innocuous x-* keys.
+- WebAuthn profiles require per-act userVerification=required, HTTPS origin pinning, and origin hosts inside the RP ID scope.
 - The WebAuthn challenge commits to AuthoredSignature.signedPayload.digest through the formspec.webauthn.challenge.v1 domain separator.
 - Native WebAuthn assertion bytes live in SignatureArtifact(kind=webauthn), and server verdicts live in ValidationArtifact(kind=webauthn-server-attestation); this sidecar only references those contracts.
 - duressCredentialSupport is only a FW-0048 discovery/composition hint and does not define routing, receipt, or safety-team policy.
@@ -41,5 +42,6 @@ Source schema: `schemas/identity-binding-profile.schema.json`
 
 - A conforming Identity Binding Profile must include $formspecIdentityBindingProfile=1.0, version, profileId, targetDefinition, and at least one profile row.
 - Processors must reject webauthn profiles that omit webAuthn or set userVerification to any value other than required.
-- Processors must reject non-HTTPS origins and any sidecar attempt to embed raw WebAuthn assertion bytes.
+- Processors must reject non-HTTPS origins, origins outside the RP ID scope, and any sidecar attempt to embed raw WebAuthn assertion bytes.
+- Processors must reject extensions payloads on Identity Binding Profile documents, profile rows, and method-specific records.
 - Processors must bind WebAuthn profiles to urn:formspec:sig-method:webauthn-fido2@1, SignatureArtifact(kind=webauthn), ValidationArtifact(kind=webauthn-server-attestation), and AuthoredSignature.identityBinding.method=webauthn.

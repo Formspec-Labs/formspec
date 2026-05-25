@@ -19,6 +19,7 @@ VALIDATION_REPORT_SCHEMA = load_schema("validation-report.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
 SIGNATURE_FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "signature-responses"
 RESPONSE_FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "response"
+DEFINITION_FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "definition"
 
 # Build a resolver/registry so schemas can resolve cross-schema $refs.
 _REGISTRY = build_schema_registry(COMMON_SCHEMA, RESPONSE_SCHEMA, VALIDATION_REPORT_SCHEMA, VALIDATION_RESULT_SCHEMA)
@@ -36,6 +37,15 @@ def _validate_report(instance: dict) -> None:
 
 def _load_signature_fixture(name: str) -> dict:
     return json.loads((SIGNATURE_FIXTURE_DIR / name).read_text())
+
+
+def _definition_item_paths(items: list[dict], prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    for item in items:
+        path = f"{prefix}.{item['key']}" if prefix else item["key"]
+        paths.add(path)
+        paths.update(_definition_item_paths(item.get("children", []), path))
+    return paths
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +181,73 @@ class TestResponseMinimalValid:
         }
         with pytest.raises(ValidationError):
             _validate_response(doc)
+
+    @pytest.mark.parametrize(
+        "bad_key",
+        [
+            "",
+            "not a path!",
+            "fee total",
+            "/fee total",
+            "/categories/0/row total",
+            "fee-total",
+            "/fee-total",
+            "_privateField",
+            "/_privateField",
+            "/0",
+            "/*",
+        ],
+    )
+    def test_response_metadata_rejects_non_path_keys(self, bad_key):
+        doc = _minimal_response()
+        doc["metadata"] = {
+            "provenance": {
+                bad_key: {
+                    "class": "calculated",
+                    "sourceRef": "formspec-engine",
+                    "capturedAt": "2026-05-25T15:00:00Z",
+                    "attestedBy": "system",
+                }
+            }
+        }
+
+        with pytest.raises(ValidationError):
+            _validate_response(doc)
+
+    def test_response_metadata_accepts_nested_and_pointer_path_keys(self):
+        doc = _minimal_response()
+        doc["metadata"] = {
+            "derivations": {
+                "categories[*].row_total": {
+                    "expression": "$personnel_costs + $travel_costs",
+                    "dependsOn": ["categories[*].personnel_costs", "/categories/0/travel_costs"],
+                    "value": 100,
+                    "trace": [{"kind": "FieldResolved"}],
+                }
+            }
+        }
+
+        _validate_response(doc)
+
+    def test_fee_derivation_fixture_targets_definition_item_paths(self):
+        definition = json.loads(
+            (DEFINITION_FIXTURE_DIR / "preparation-fees" / "fel-fees.definition.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        response = json.loads(
+            (RESPONSE_FIXTURE_DIR / "derivations" / "fee-derivation.response.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        item_paths = _definition_item_paths(definition["items"])
+
+        assert "totalFee" in item_paths
+        assert set(response["data"]) <= item_paths
+        for metadata_map in response["metadata"].values():
+            assert set(metadata_map) <= item_paths
+            for entry in metadata_map.values():
+                assert set(entry.get("dependsOn", [])) <= item_paths
 
 
 class TestResponseEnums:

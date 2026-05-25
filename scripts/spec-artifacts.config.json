@@ -49,11 +49,13 @@
         "Response documents are bound to an exact definition identity tuple and must be interpreted against that pinned version.",
         "Response status transitions are business-process concerns, but completed responses must satisfy error-level validation expectations.",
         "Validation findings can be carried inline through validationResults without changing the canonical response data payload.",
+        "Response metadata maps are keyed by non-empty Definition item paths; explanatory fee line items are not metadata keys unless represented by an actual item.",
         "Optional metadata fields (author, subject, id) should not alter structural validity of required response content."
       ],
       "conformanceEssentials": [
         "A conforming response must include definitionUrl, definitionVersion, status, data, and authored.",
         "Processors must reject responses that do not conform to the response schema shape.",
+        "Processors must reject response metadata maps with empty, label-like, pointer-form label-like, root index or wildcard pointer, leading-underscore, hyphenated, or non-path keys.",
         "Pinned definition references must not be silently substituted with different versions during processing."
       ]
     },
@@ -329,12 +331,14 @@
       "behaviorEssentials": [
         "Deletion Receipt documents are issuer attestations that an abandoned draft or erase request completed for a draft identifier and declared data classes.",
         "Receipts are class-level evidence only; they MUST NOT embed erased response values, attachments, identity attributes, or raw draft payloads.",
+        "Deletion Receipt objects are closed sidecars with no extensions payloads, so arbitrary x-* fields cannot replay erased material.",
         "Receipt signing uses the ADR-0111 receipt-method URI subspace and either inline receiptBytes or a verificationReceiptRef to existing signed receipt evidence.",
         "The receiptSigner role is issuer-only; respondent-signed deletion receipts are non-conforming."
       ],
       "conformanceEssentials": [
         "A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, classesErased, retentionWaived, cryptographicMethod, and receiptSigner.",
         "Processors must reject receipts without cryptographicMethod.receiptBytes or cryptographicMethod.verificationReceiptRef.",
+        "Processors must reject extensions payloads on Deletion Receipt documents and nested receipt records.",
         "Processors must reject raw erased values and signer roles other than issuer."
       ]
     },
@@ -346,12 +350,14 @@
       "behaviorEssentials": [
         "WYSIWYS Ceremony documents are UI-requirements annexes over existing ADR-0136 SignatureSurface and DocumentArtifact contracts.",
         "The sidecar references upstream artifact and surface identifiers and selected hash fields; it does not define a new digest, preimage, rendering-service, or signature-surface shape.",
+        "The ceremony sidecar is closed and has no extensions payloads, preventing extension-defined local preimage or surface forks.",
         "Every ceremony surface requires exact-preimage display, a scroll gate, and per-field affirmative action before signature capture.",
         "Single-click adopt-and-sign, bulk apply, and typed-name-only as the sole act are non-conforming."
       ],
       "conformanceEssentials": [
         "A conforming WYSIWYS Ceremony must include $formspecWysiwysCeremony=1.0, version, targetDefinition, and at least one signatureSurfaces annex row.",
         "Each annex row must bind to ADR-0136.SignatureSurface and ADR-0136.DocumentArtifact through explicit contract identifiers.",
+        "Processors must reject extensions payloads that attempt to define local preimage, digest, rendering-service, or signature-surface shapes.",
         "Processors must reject disabled scroll gates, allowed bulk apply, missing required ceremony fields, and local preimage/surface forks."
       ]
     },
@@ -364,13 +370,16 @@
         "Review Thread documents are SC-6 sidecars for trusted-reviewer comments, suggestions, share lifecycle records, and respondent decisions.",
         "The thread is bound to a draft and lives outside the signed Response bytes; comments and suggestions MUST NOT alter the Response canonical signed-payload preimage.",
         "The policy snapshot distinguishes comment-only threads from suggestion-capable threads and pins respondent-only field pointers for adapter enforcement.",
+        "Review Thread share records store authorization metadata and optional capabilityUrlDigest, never live capability URLs.",
         "Suggestion application and share lifecycle decisions are respondent-authored events; reviewer suggestions are proposals only.",
         "Events are append-only, with optional hash-chain rows for verifier-grade continuity."
       ],
       "conformanceEssentials": [
         "A conforming Review Thread document must include $formspecReviewThread=1.0, threadId, draftRef, createdAt, policySnapshot, shares, and events.",
-        "Processors must reject suggestion events under comment-allowed policy snapshots.",
+        "Processors must reject all suggestion event types under comment-allowed policy snapshots.",
         "Processors must reject reviewer-authored suggestion acceptance or decline, and respondent-authored suggestion creation.",
+        "Processors must reject reviewer events whose share is unknown, bound to another thread, or lacks the event's required scope.",
+        "Processors must reject raw values on respondent-only draft snapshot fields and must reject stored live capability URLs.",
         "Processors must preserve the sidecar/Response separation and enforce respondent-only suggestion refusal in the adapter layer."
       ]
     },
@@ -381,7 +390,8 @@
       "llm": "specs/identity-binding/identity-binding-profile-spec.llm.md",
       "behaviorEssentials": [
         "Identity Binding Profile documents declare how identity evidence binds into existing Formspec identity surfaces without carrying provider-native tokens or cryptographic assertion bytes.",
-        "WebAuthn profiles require per-act userVerification=required and HTTPS origin pinning.",
+        "Identity Binding Profile documents are closed sidecars with no extensions payloads, so raw native evidence cannot be hidden under innocuous x-* keys.",
+        "WebAuthn profiles require per-act userVerification=required, HTTPS origin pinning, and origin hosts inside the RP ID scope.",
         "The WebAuthn challenge commits to AuthoredSignature.signedPayload.digest through the formspec.webauthn.challenge.v1 domain separator.",
         "Native WebAuthn assertion bytes live in SignatureArtifact(kind=webauthn), and server verdicts live in ValidationArtifact(kind=webauthn-server-attestation); this sidecar only references those contracts.",
         "duressCredentialSupport is only a FW-0048 discovery/composition hint and does not define routing, receipt, or safety-team policy."
@@ -389,7 +399,8 @@
       "conformanceEssentials": [
         "A conforming Identity Binding Profile must include $formspecIdentityBindingProfile=1.0, version, profileId, targetDefinition, and at least one profile row.",
         "Processors must reject webauthn profiles that omit webAuthn or set userVerification to any value other than required.",
-        "Processors must reject non-HTTPS origins and any sidecar attempt to embed raw WebAuthn assertion bytes.",
+        "Processors must reject non-HTTPS origins, origins outside the RP ID scope, and any sidecar attempt to embed raw WebAuthn assertion bytes.",
+        "Processors must reject extensions payloads on Identity Binding Profile documents, profile rows, and method-specific records.",
         "Processors must bind WebAuthn profiles to urn:formspec:sig-method:webauthn-fido2@1, SignatureArtifact(kind=webauthn), ValidationArtifact(kind=webauthn-server-attestation), and AuthoredSignature.identityBinding.method=webauthn."
       ]
     },

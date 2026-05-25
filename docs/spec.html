@@ -1173,6 +1173,17 @@ This is the receipt-bound form of “show the math.”</li>
 consequence, consent, or citation disclosure was shown to the
 respondent.</li>
 </ul>
+<p>Metadata keys MUST be non-empty Definition item paths, using dot
+notation with repeat wildcards or JSON Pointer form. Each item-key
+segment MUST use the Definition item key syntax
+(<code>^[a-zA-Z][a-zA-Z0-9_]*$</code>). JSON Pointer form MUST start
+with a Definition item key; later pointer segments are limited to
+Definition item keys, numeric repeat indices, or <code>*</code> repeat
+wildcards. UI labels, translated strings, root index or wildcard
+pointers, leading-underscore names, hyphenated names, and space-bearing
+display text are not path keys. Metadata keys MUST NOT name explanatory
+root objects such as <code>fees.lineItems[]</code> unless the value is
+also represented by an actual Definition item path in the item tree.</p>
 <p>When assistant-suggested values are confirmed by the respondent,
 <code>metadata.provenance[path].sourceRef</code> SHOULD carry
 <code>assistant-suggested</code> or a transport-qualified value such as

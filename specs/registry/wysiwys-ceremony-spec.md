@@ -23,6 +23,10 @@ This is a UI-requirements annex over existing signature and rendering contracts.
 It does not define a new cryptographic signature method, rendering service,
 Response wire format, `DocumentArtifact`, or `SignatureSurface`.
 
+The sidecar is intentionally closed. It does not define `extensions` slots,
+because arbitrary extension payloads could recreate the local preimage, digest,
+or signature-surface forks that this annex is designed to avoid.
+
 ## 1. Purpose and Scope
 
 A WYSIWYS Ceremony document declares the signature surfaces and user-action
@@ -47,6 +51,8 @@ Out of scope:
 - rendering-service implementation;
 - biometric, passkey, or identity-provider UX;
 - formspec-web runtime behavior.
+- extension-defined local preimage, digest, rendering-service, or signature-surface
+  shapes.
 
 ## 2. Document Structure
 
@@ -119,4 +125,6 @@ A conforming WYSIWYS Ceremony processor:
 4. MUST reject a ceremony surface that permits single-click adopt-and-sign.
 5. MUST reject a ceremony surface whose scroll gate is absent or disabled.
 6. MUST reject a ceremony surface with no required ceremony fields.
-7. MUST NOT infer cryptographic validity from UI ceremony conformance.
+7. MUST reject `extensions` payloads that attempt to define local preimage,
+   digest, rendering-service, or signature-surface shapes.
+8. MUST NOT infer cryptographic validity from UI ceremony conformance.

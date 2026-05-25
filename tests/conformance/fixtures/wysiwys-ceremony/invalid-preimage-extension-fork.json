@@ -1,0 +1,48 @@
+{
+  "$formspecWysiwysCeremony": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://springfield.gov/forms/benefits-renewal"
+  },
+  "signatureSurfaces": [
+    {
+      "surfaceRef": "preimage_extension_fork",
+      "signatureSurfaceContract": "ADR-0136.SignatureSurface",
+      "surfaceName": "Preimage extension fork",
+      "preimageBinding": {
+        "documentArtifactRef": "pdf-preview-001",
+        "documentArtifactContract": "ADR-0136.DocumentArtifact",
+        "hashField": "presentationHash",
+        "authoredSignatureBinding": "AuthoredSignature.documentHash",
+        "extensions": {
+          "x-local-preimage": {
+            "digest": {
+              "algorithm": "sha-256",
+              "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          }
+        }
+      },
+      "requirements": {
+        "displayExactPreimage": true,
+        "scrollGate": {
+          "required": true,
+          "completion": "end-of-surface"
+        },
+        "affirmativeAction": {
+          "mode": "per-field"
+        },
+        "singleClickAdoptAndSign": "forbidden",
+        "bulkApply": "forbidden",
+        "typedNameAsSoleAct": "forbidden"
+      },
+      "fields": [
+        {
+          "fieldRef": "/signatures/applicant",
+          "act": "sign",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

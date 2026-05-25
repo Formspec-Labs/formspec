@@ -98,7 +98,7 @@ Example:
       "shareId": "urn:formspec:review-share:demo:001",
       "threadId": "urn:formspec:review-thread:demo:001",
       "grantedScope": "view+comment+suggest",
-      "capabilityUrl": "https://review.example.gov/r/demo-token",
+      "capabilityUrlDigest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "audienceHint": "CPA reviewer",
       "createdAt": "2026-05-25T16:05:00Z",
       "expiresAt": "2026-05-28T16:05:00Z"
@@ -147,6 +147,13 @@ comments and suggestions in the thread. They do not author Response values, do
 not submit, and do not sign. A conforming processor MUST NOT merge review-thread
 events into the Response canonical signed-payload preimage.
 
+The Review Thread document is intentionally closed to arbitrary extension
+payloads. Conforming documents MUST NOT add `extensions` at the document, share,
+author, anchor, event, payload, snapshot, policy, draft-ref, or hash-chain levels.
+This prevents live capability URLs, raw respondent-only values, alternate
+authority claims, or privacy-sensitive evidence from being smuggled through
+unreviewed extension slots.
+
 Suggestion application is respondent-only. The `suggestion-accepted` and
 `suggestion-declined` payloads MUST be paired with `author.kind: "respondent"`.
 Accepting a suggestion records a respondent decision in the thread; the actual
@@ -163,24 +170,35 @@ thread was created:
 
 | Posture | Meaning |
 |---|---|
-| `comment-allowed` | Reviewers may read and comment. Suggestion events are schema-invalid under this posture. |
+| `comment-allowed` | Reviewers may read and comment. All suggestion events (`suggestion-added`, `suggestion-accepted`, and `suggestion-declined`) are schema-invalid under this posture. |
 | `suggest-allowed` | Reviewers may read, comment, and author suggestion records. |
 
 `forbidden` is intentionally absent from the thread posture enum. A conforming
 runtime MUST NOT create a Review Thread when the resolved trusted-reviewer
 policy is forbidden.
 
-`respondentOnlyFieldPointers` pins the field pointers hidden from reviewers.
-The schema cannot compare a suggestion anchor against this dynamic array; the
-ReviewThreadStore adapter MUST reject reviewer suggestions on those pointers.
+`respondentOnlyFieldPointers` pins the field pointers hidden from reviewers. A
+`draftSnapshot.fields[]` row with `respondentOnly: true` MUST NOT carry `value`;
+only labels, pointers, and optional hashes may remain. The schema cannot compare
+a suggestion anchor against this dynamic array; the ReviewThreadStore adapter
+MUST reject reviewer suggestions on those pointers.
 
 ## 5. Shares
 
 `shares[]` records capability shares ever minted for the thread. The share record
-does not store reviewer comments; it stores the authorization envelope that let
-the reviewer reach the thread. Capability URL syntax, HMAC verification, and
-redemption semantics belong to the ReviewerSession port. The Review Thread
-stores only the resulting share metadata needed for audit and revocation.
+does not store reviewer comments or the live capability URL; it stores only the
+authorization metadata that lets auditors explain why reviewer events were
+accepted. Capability URL syntax, HMAC verification, and redemption semantics
+belong to the ReviewerSession port. The Review Thread MAY store
+`capabilityUrlDigest` for audit correlation, but the scoped bearer URL itself
+MUST NOT be stored.
+
+Every share row's `threadId` MUST equal the parent Review Thread `threadId`.
+Every reviewer-authored event MUST reference a known share in the same thread.
+Reviewer-authored comments and comment resolutions require a share with at least
+`view+comment`; reviewer-authored suggestions require `view+comment+suggest`.
+The schema validates the row shape, and conformance processors MUST enforce
+these cross-record authorization relationships before accepting a thread.
 
 A revoked share remains in `shares[]` with `revokedAt` and optional
 `revokedReason`. Review events remain append-only; a share revocation is also
@@ -245,7 +263,6 @@ A conforming Review Thread processor:
 | `#/properties/draftRef` | `draftRef` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/DraftRef</code>; critical | Draft and form binding for the draft under review. |
 | `#/properties/draftSnapshot` | `draftSnapshot` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/DraftSnapshot</code> | Optional bounded snapshot used by reviewer shells to render field labels, visible values, respondent-only masks, and anchors. |
 | `#/properties/events` | `events` | <code>array</code> | yes | critical | Append-only review event log. Processors append events rather than rewriting comments, suggestions, or decisions. |
-| `#/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
 | `#/properties/hashChain` | `hashChain` | <code>array</code> | no | — | Optional event-level continuity records for verifier-grade threads. |
 | `#/properties/policySnapshot` | `policySnapshot` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/PolicySnapshot</code>; critical | Trusted-reviewer resolved-policy snapshot captured when the thread is created. |
 | `#/properties/shares` | `shares` | <code>array</code> | yes | critical | Capability shares ever minted for this thread. Revoked shares remain listed with revokedAt. |
@@ -253,7 +270,6 @@ A conforming Review Thread processor:
 | `#/properties/updatedAt` | `updatedAt` | <code>string</code> | no | — | RFC 3339 timestamp of the last thread update. |
 | `#/$defs/PolicySnapshot/properties/allowedRoles` | `allowedRoles` | <code>array</code> | no | — | Optional resolved reviewer roles after form/org policy intersection. |
 | `#/$defs/PolicySnapshot/properties/defaultShareExpiresAtRule` | `defaultShareExpiresAtRule` | <code>string</code> | no | — | Optional human-readable or implementation-defined expiry rule captured from policy. |
-| `#/$defs/PolicySnapshot/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
 | `#/$defs/PolicySnapshot/properties/maxActiveSharesPerDraft` | `maxActiveSharesPerDraft` | <code>integer</code> | no | — | Optional active-share limit captured from policy. |
 | `#/$defs/PolicySnapshot/properties/posture` | `posture` | <code>string</code> | yes | enum: <code>"comment-allowed"</code>, <code>"suggest-allowed"</code>; critical | Trusted-reviewer posture captured when the thread was created. Forbidden forms do not create threads. |
 | `#/$defs/PolicySnapshot/properties/respondentOnlyFieldPointers` | `respondentOnlyFieldPointers` | <code>array</code> | yes | critical | Field pointers masked from reviewers. Adapters must reject suggestions anchored to these pointers. |
@@ -262,7 +278,6 @@ A conforming Review Thread processor:
 | `#/$defs/PolicySnapshot/properties/reviewerSessionBindingRef` | `reviewerSessionBindingRef` | <code>string</code> | no | — | Optional runtime binding reference for the ReviewerSession adapter. |
 | `#/$defs/ReviewThreadEvent/properties/author` | `author` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ReviewThreadAuthor</code> | — |
 | `#/$defs/ReviewThreadEvent/properties/eventId` | `eventId` | <code>string</code> | yes | — | Stable URI identifying this event. |
-| `#/$defs/ReviewThreadEvent/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Extensions</code> | — |
 | `#/$defs/ReviewThreadEvent/properties/occurredAt` | `occurredAt` | <code>string</code> | yes | — | — |
 | `#/$defs/ReviewThreadEvent/properties/payload` | `payload` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ReviewThreadPayload</code> | — |
 | `#/$defs/ReviewThreadEvent/properties/threadId` | `threadId` | <code>string</code> | yes | — | Thread this event belongs to. |

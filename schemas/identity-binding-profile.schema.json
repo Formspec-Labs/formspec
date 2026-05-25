@@ -95,56 +95,9 @@
         "critical": true,
         "intent": "Declares the available identity binding contracts for the Definition"
       }
-    },
-    "extensions": {
-      "$ref": "#/$defs/SidecarExtensions"
     }
   },
   "$defs": {
-    "Extensions": {
-      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
-    },
-    "SidecarExtensions": {
-      "type": "object",
-      "propertyNames": {
-        "allOf": [
-          { "pattern": "^x-" },
-          { "$ref": "#/$defs/NoNativeEvidencePropertyName" }
-        ]
-      },
-      "additionalProperties": {
-        "$ref": "#/$defs/SidecarExtensionValue"
-      },
-      "description": "Identity Binding Profile extension object. Keys must be x-prefixed and MUST NOT carry provider-native tokens or method-native cryptographic evidence."
-    },
-    "SidecarExtensionValue": {
-      "anyOf": [
-        {
-          "type": ["string", "number", "integer", "boolean", "null"]
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/SidecarExtensionValue"
-          }
-        },
-        {
-          "type": "object",
-          "propertyNames": {
-            "$ref": "#/$defs/NoNativeEvidencePropertyName"
-          },
-          "additionalProperties": {
-            "$ref": "#/$defs/SidecarExtensionValue"
-          }
-        }
-      ]
-    },
-    "NoNativeEvidencePropertyName": {
-      "not": {
-        "pattern": "^(?:x-)?(?:authenticatorData|clientDataJSON|signature|credentialId|attestationObject|providerToken|rawProviderToken|providerNativeToken|assertionBytes)$"
-      },
-      "description": "Rejects extension keys that would smuggle provider-native tokens or method-native cryptographic evidence into the sidecar."
-    },
     "TargetDefinition": {
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
     },
@@ -211,9 +164,6 @@
         "webAuthn": {
           "$ref": "#/$defs/WebAuthnBinding",
           "description": "Required when bindingMethod is webauthn."
-        },
-        "extensions": {
-          "$ref": "#/$defs/SidecarExtensions"
         }
       },
       "allOf": [
@@ -426,9 +376,6 @@
         "assertionBinding": {
           "$ref": "#/$defs/WebAuthnAssertionBinding",
           "description": "Artifact and Response-field bindings for verified WebAuthn assertions."
-        },
-        "extensions": {
-          "$ref": "#/$defs/SidecarExtensions"
         }
       }
     },

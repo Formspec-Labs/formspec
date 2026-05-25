@@ -108,15 +108,9 @@
     "evidence": {
       "$ref": "#/$defs/DeletionEvidence",
       "description": "Optional claim-check references or digests for the deletion job and logs."
-    },
-    "extensions": {
-      "$ref": "#/$defs/Extensions"
     }
   },
   "$defs": {
-    "Extensions": {
-      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
-    },
     "IssuerRef": {
       "type": "object",
       "required": ["name"],
@@ -136,9 +130,6 @@
           "type": "string",
           "format": "uri",
           "description": "Issuer document URL or organization homepage."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -185,9 +176,6 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional policy, law, regulation, or internal authority reference."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -285,9 +273,6 @@
         "displayName": {
           "type": "string",
           "description": "Optional signer display name."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -311,9 +296,6 @@
         },
         "evidenceDigest": {
           "$ref": "#/$defs/Digest"
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -336,9 +318,6 @@
         },
         "recipientNoticeDigest": {
           "$ref": "#/$defs/Digest"
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     }

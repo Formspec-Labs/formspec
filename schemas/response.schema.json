@@ -17,6 +17,18 @@
     "authoredSignatures": ["id"]
   },
   "$defs": {
+    "ResponseMetadataPathKey": {
+      "type": "string",
+      "description": "Definition item path used as a Response metadata map key. Supports dot notation, repeat wildcards, or JSON Pointer form whose first segment is a Definition item key and whose remaining segments are Definition item keys, numeric indices, or repeat wildcards; empty strings and free-form labels are not valid item paths.",
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[\\*\\])?(?:\\.[A-Za-z][A-Za-z0-9_]*(?:\\[\\*\\])?)*$"
+        },
+        {
+          "pattern": "^/[A-Za-z][A-Za-z0-9_]*(?:/(?:[A-Za-z][A-Za-z0-9_]*|[0-9]+|\\*))*$"
+        }
+      ]
+    },
     "ResponseMetadata": {
       "type": "object",
       "description": "Optional response metadata envelope keyed by Definition item path. The envelope records per-field provenance, derivation traces for calculated values, and respondent-visible disclosures shown during capture. Metadata is part of the Response document; processors that preserve it MUST keep entries path-keyed to the field or display item they explain.",
@@ -25,6 +37,9 @@
         "provenance": {
           "type": "object",
           "description": "Per-field value provenance keyed by item path.",
+          "propertyNames": {
+            "$ref": "#/$defs/ResponseMetadataPathKey"
+          },
           "additionalProperties": {
             "$ref": "#/$defs/ResponseProvenanceEntry"
           }
@@ -32,6 +47,9 @@
         "derivations": {
           "type": "object",
           "description": "Per-field derivation traces keyed by item path. Entries usually correspond to calculated fields and preserve the FEL expression and trace used to produce the value.",
+          "propertyNames": {
+            "$ref": "#/$defs/ResponseMetadataPathKey"
+          },
           "additionalProperties": {
             "$ref": "#/$defs/ResponseDerivationEntry"
           }
@@ -39,6 +57,9 @@
         "disclosuresShown": {
           "type": "object",
           "description": "Per-field disclosure evidence keyed by item path. Use this when a purpose, consequence, consent, or citation disclosure was shown to the respondent.",
+          "propertyNames": {
+            "$ref": "#/$defs/ResponseMetadataPathKey"
+          },
           "additionalProperties": {
             "$ref": "#/$defs/ResponseDisclosureShownEntry"
           }
@@ -86,8 +107,7 @@
           "type": "array",
           "description": "Input paths read by the expression when known.",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/ResponseMetadataPathKey"
           },
           "uniqueItems": true
         },

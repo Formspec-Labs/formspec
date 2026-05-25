@@ -13,7 +13,7 @@
       "shareId": "urn:formspec:review-share:demo:invalid-reviewer-accepts",
       "threadId": "urn:formspec:review-thread:demo:invalid-reviewer-accepts",
       "grantedScope": "view+comment+suggest",
-      "capabilityUrl": "https://review.example.gov/r/invalid-reviewer-accepts",
+      "capabilityUrlDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "createdAt": "2026-05-25T16:05:00Z"
     }
   ],

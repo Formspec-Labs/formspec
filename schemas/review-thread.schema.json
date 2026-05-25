@@ -38,7 +38,11 @@
                   "payload": {
                     "properties": {
                       "type": {
-                        "const": "suggestion-added"
+                        "enum": [
+                          "suggestion-added",
+                          "suggestion-accepted",
+                          "suggestion-declined"
+                        ]
                       }
                     },
                     "required": ["type"]
@@ -118,7 +122,7 @@
             "shareId": "urn:formspec:review-share:demo:001",
             "threadId": "urn:formspec:review-thread:demo:001",
             "grantedScope": "view+comment",
-            "capabilityUrl": "https://review.example.gov/r/demo-token",
+            "capabilityUrlDigest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             "createdAt": "2026-05-25T16:05:00Z"
           }
         ]
@@ -177,15 +181,9 @@
       "type": "string",
       "format": "date-time",
       "description": "RFC 3339 timestamp of the last thread update."
-    },
-    "extensions": {
-      "$ref": "#/$defs/Extensions"
     }
   },
   "$defs": {
-    "Extensions": {
-      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
-    },
     "UriString": {
       "type": "string",
       "format": "uri"
@@ -224,9 +222,6 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional party scope for multi-party drafts."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -291,9 +286,6 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional runtime binding reference for the ReviewThreadStore adapter."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -303,7 +295,7 @@
     },
     "ReviewerShare": {
       "type": "object",
-      "required": ["shareId", "threadId", "grantedScope", "capabilityUrl", "createdAt"],
+      "required": ["shareId", "threadId", "grantedScope", "createdAt"],
       "additionalProperties": false,
       "properties": {
         "shareId": {
@@ -320,10 +312,9 @@
           "$ref": "#/$defs/ReviewerScope",
           "description": "Scope granted by the capability URL after policy bounding."
         },
-        "capabilityUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Capability URL minted by ReviewerSession. The URL is a scoped bearer credential."
+        "capabilityUrlDigest": {
+          "$ref": "#/$defs/HashString",
+          "description": "Optional digest of the capability URL minted by ReviewerSession. The live bearer URL itself MUST NOT be stored in the Review Thread."
         },
         "audienceHint": {
           "type": "string",
@@ -350,9 +341,6 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional party scope for multi-party drafts."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -374,9 +362,6 @@
           "items": {
             "$ref": "#/$defs/FieldSnapshot"
           }
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -384,6 +369,23 @@
       "type": "object",
       "required": ["fieldPointer", "fieldKey", "label", "respondentOnly"],
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "respondentOnly": {
+                "const": true
+              }
+            },
+            "required": ["respondentOnly"]
+          },
+          "then": {
+            "not": {
+              "required": ["value"]
+            }
+          }
+        }
+      ],
       "properties": {
         "fieldPointer": {
           "$ref": "#/$defs/JsonPointer"
@@ -402,9 +404,6 @@
         "value": true,
         "valueHashAtSnapshot": {
           "$ref": "#/$defs/HashString"
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -425,9 +424,6 @@
             "displayName": {
               "type": "string",
               "minLength": 1
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         },
@@ -452,9 +448,6 @@
               "type": "string",
               "format": "uri",
               "description": "Optional reference to Tier-2 identity-binding evidence."
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         }
@@ -472,9 +465,6 @@
         "valueHashAtAnchor": {
           "$ref": "#/$defs/HashString",
           "description": "Optional hash of the field value at anchor time for stale-marker computation."
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -495,9 +485,6 @@
             "audienceHint": {
               "type": "string",
               "minLength": 1
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         },
@@ -516,9 +503,6 @@
             "reason": {
               "type": "string",
               "minLength": 1
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         },
@@ -541,9 +525,6 @@
               "type": "string",
               "format": "uri",
               "description": "Optional eventId this comment replies to."
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         },
@@ -563,9 +544,6 @@
             "resolution": {
               "type": "string",
               "minLength": 1
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         },
@@ -584,9 +562,6 @@
             "rationale": {
               "type": "string",
               "minLength": 1
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         },
@@ -602,10 +577,7 @@
               "type": "string",
               "format": "uri"
             },
-            "appliedValue": true,
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
-            }
+            "appliedValue": true
           }
         },
         {
@@ -623,9 +595,6 @@
             "reason": {
               "type": "string",
               "minLength": 1
-            },
-            "extensions": {
-              "$ref": "#/$defs/Extensions"
             }
           }
         }
@@ -716,9 +685,6 @@
         },
         "payload": {
           "$ref": "#/$defs/ReviewThreadPayload"
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     },
@@ -743,9 +709,6 @@
               "type": "null"
             }
           ]
-        },
-        "extensions": {
-          "$ref": "#/$defs/Extensions"
         }
       }
     }

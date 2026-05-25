@@ -34,6 +34,7 @@ Source schema: `schemas/response.schema.json`
 - Response documents are bound to an exact definition identity tuple and must be interpreted against that pinned version.
 - Response status transitions are business-process concerns, but completed responses must satisfy error-level validation expectations.
 - Validation findings can be carried inline through validationResults without changing the canonical response data payload.
+- Response metadata maps are keyed by non-empty Definition item paths; explanatory fee line items are not metadata keys unless represented by an actual item.
 - Optional metadata fields (author, subject, id) should not alter structural validity of required response content.
 
 ## Semantic Capsule
@@ -50,4 +51,5 @@ Source schema: `schemas/response.schema.json`
 
 - A conforming response must include definitionUrl, definitionVersion, status, data, and authored.
 - Processors must reject responses that do not conform to the response schema shape.
+- Processors must reject response metadata maps with empty, label-like, pointer-form label-like, root index or wildcard pointer, leading-underscore, hyphenated, or non-path keys.
 - Pinned definition references must not be silently substituted with different versions during processing.

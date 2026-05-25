@@ -510,6 +510,16 @@ item path and has three core maps:
 - `metadata.disclosuresShown[path]` records that a purpose, consequence,
   consent, or citation disclosure was shown to the respondent.
 
+Metadata keys MUST be non-empty Definition item paths, using dot notation with
+repeat wildcards or JSON Pointer form. Each item-key segment MUST use the
+Definition item key syntax (`^[a-zA-Z][a-zA-Z0-9_]*$`). JSON Pointer form MUST
+start with a Definition item key; later pointer segments are limited to
+Definition item keys, numeric repeat indices, or `*` repeat wildcards. UI labels,
+translated strings, root index or wildcard pointers, leading-underscore names,
+hyphenated names, and space-bearing display text are not path keys. Metadata
+keys MUST NOT name explanatory root objects such as `fees.lineItems[]` unless
+the value is also represented by an actual Definition item path in the item tree.
+
 When assistant-suggested values are confirmed by the respondent,
 `metadata.provenance[path].sourceRef` SHOULD carry `assistant-suggested` or a
 transport-qualified value such as `assistant-suggested:webmcp`; the value still

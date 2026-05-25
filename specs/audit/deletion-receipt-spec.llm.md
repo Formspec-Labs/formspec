@@ -30,6 +30,7 @@ Source schema: `schemas/deletion-receipt.schema.json`
 
 - Deletion Receipt documents are issuer attestations that an abandoned draft or erase request completed for a draft identifier and declared data classes.
 - Receipts are class-level evidence only; they MUST NOT embed erased response values, attachments, identity attributes, or raw draft payloads.
+- Deletion Receipt objects are closed sidecars with no extensions payloads, so arbitrary x-* fields cannot replay erased material.
 - Receipt signing uses the ADR-0111 receipt-method URI subspace and either inline receiptBytes or a verificationReceiptRef to existing signed receipt evidence.
 - The receiptSigner role is issuer-only; respondent-signed deletion receipts are non-conforming.
 
@@ -37,4 +38,5 @@ Source schema: `schemas/deletion-receipt.schema.json`
 
 - A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, classesErased, retentionWaived, cryptographicMethod, and receiptSigner.
 - Processors must reject receipts without cryptographicMethod.receiptBytes or cryptographicMethod.verificationReceiptRef.
+- Processors must reject extensions payloads on Deletion Receipt documents and nested receipt records.
 - Processors must reject raw erased values and signer roles other than issuer.

@@ -41,7 +41,7 @@
       "shareId": "urn:formspec:review-share:demo:001",
       "threadId": "urn:formspec:review-thread:demo:001",
       "grantedScope": "view+comment+suggest",
-      "capabilityUrl": "https://review.example.gov/r/demo-token",
+      "capabilityUrlDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "audienceHint": "CPA reviewer",
       "createdAt": "2026-05-25T16:05:00Z",
       "expiresAt": "2026-05-28T16:05:00Z"

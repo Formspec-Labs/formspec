@@ -15,7 +15,7 @@
       "shareId": "urn:formspec:review-share:demo:comment-only",
       "threadId": "urn:formspec:review-thread:demo:comment-only",
       "grantedScope": "view+comment",
-      "capabilityUrl": "https://review.example.gov/r/comment-only",
+      "capabilityUrlDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "createdAt": "2026-05-25T16:05:00Z"
     }
   ],

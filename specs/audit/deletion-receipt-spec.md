@@ -24,6 +24,11 @@ The receipt is evidence of the issuer's deletion operation. It is not the data
 that was deleted, and it MUST NOT embed erased response values, attachments,
 identity attributes, or raw draft payloads.
 
+Deletion Receipt documents are closed sidecars: they do not define `extensions`
+slots at the document level or inside nested receipt records. Deployment-specific
+erasure metadata belongs in opaque references or digests such as `evidence`, not
+inside arbitrary payload fields that could replay erased material.
+
 ## Prior-Art Pass
 
 The shape is deliberately small and borrows only broad evidence patterns:
@@ -54,6 +59,7 @@ In scope:
 - issuer signer identity;
 - cryptographic receipt-signing method and signed-payload digest;
 - optional evidence digests for an erasure job, recipient notices, or erasure log.
+- closed receipt objects with no `extensions` payloads.
 
 Out of scope:
 
@@ -182,7 +188,9 @@ A conforming Deletion Receipt processor:
 3. MUST reject receipt documents whose `receiptSigner.role` is not `issuer`.
 4. MUST reject receipt documents that carry non-schema raw erased values.
 5. MUST treat `classesErased` as class-level evidence, not value-level replay.
-6. MUST NOT imply that receipt validity alone establishes jurisdiction-specific
+6. MUST reject `extensions` payloads at the document level and within nested
+   receipt records.
+7. MUST NOT imply that receipt validity alone establishes jurisdiction-specific
    legal sufficiency.
-7. SHOULD preserve the receipt independently from the erased draft material so
+8. SHOULD preserve the receipt independently from the erased draft material so
    erasure does not delete the respondent's proof of erasure.

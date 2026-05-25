@@ -102,11 +102,11 @@ Each `profiles[]` row declares:
 ## 3. Evidence Binding Discipline
 
 The sidecar records bindings to existing Formspec surfaces. It MUST NOT carry
-provider-native tokens or method-native cryptographic evidence, including through
-`extensions` at the document, profile, or method-specific level. Extension keys
-and nested extension payload keys MUST NOT be `authenticatorData`,
-`clientDataJSON`, `signature`, `credentialId`, `attestationObject`, or provider
-token aliases.
+provider-native tokens or method-native cryptographic evidence. Identity Binding
+Profile documents are closed sidecars: they do not define `extensions` slots at
+the document, profile, or method-specific level, because arbitrary extension
+payloads could smuggle raw WebAuthn assertions, credential identifiers, provider
+tokens, or other native evidence under innocuous keys.
 
 For every profile:
 
@@ -149,6 +149,13 @@ whitespace, or other URL syntax.
 Each `origins[]` value MUST be an HTTPS origin only: `https://` plus host and an
 optional port. It MUST NOT include a path, query, fragment, credentials, or
 non-HTTPS scheme.
+
+Each origin host MUST be inside the RP ID scope: it MUST equal `rpId` or be a
+subdomain of `rpId`. The only local-development exception is `rpId:
+"localhost"`, which allows `https://localhost` origins with optional ports. This
+profile does not authorize unrelated-origin WebAuthn Level 3 related-origin
+validation; deployments that need that feature require a future explicit profile
+field and verifier rule.
 
 The WebAuthn profile MUST NOT embed `authenticatorData`, `clientDataJSON`,
 `signature`, `credentialId`, `attestationObject`, or raw provider tokens in the

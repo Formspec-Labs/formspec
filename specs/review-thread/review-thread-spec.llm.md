@@ -31,12 +31,15 @@ Source schema: `schemas/review-thread.schema.json`
 - Review Thread documents are SC-6 sidecars for trusted-reviewer comments, suggestions, share lifecycle records, and respondent decisions.
 - The thread is bound to a draft and lives outside the signed Response bytes; comments and suggestions MUST NOT alter the Response canonical signed-payload preimage.
 - The policy snapshot distinguishes comment-only threads from suggestion-capable threads and pins respondent-only field pointers for adapter enforcement.
+- Review Thread share records store authorization metadata and optional capabilityUrlDigest, never live capability URLs.
 - Suggestion application and share lifecycle decisions are respondent-authored events; reviewer suggestions are proposals only.
 - Events are append-only, with optional hash-chain rows for verifier-grade continuity.
 
 ## Conformance Essentials
 
 - A conforming Review Thread document must include $formspecReviewThread=1.0, threadId, draftRef, createdAt, policySnapshot, shares, and events.
-- Processors must reject suggestion events under comment-allowed policy snapshots.
+- Processors must reject all suggestion event types under comment-allowed policy snapshots.
 - Processors must reject reviewer-authored suggestion acceptance or decline, and respondent-authored suggestion creation.
+- Processors must reject reviewer events whose share is unknown, bound to another thread, or lacks the event's required scope.
+- Processors must reject raw values on respondent-only draft snapshot fields and must reject stored live capability URLs.
 - Processors must preserve the sidecar/Response separation and enforce respondent-only suggestion refusal in the adapter layer.

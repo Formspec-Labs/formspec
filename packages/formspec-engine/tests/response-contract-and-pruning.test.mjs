@@ -22,6 +22,9 @@ const STRUCTURED_RECEIPT = Object.freeze({
 const responseSchema = JSON.parse(
   readFileSync(new URL('../../../schemas/response.schema.json', import.meta.url), 'utf8')
 );
+const commonSchema = JSON.parse(
+  readFileSync(new URL('../../../schemas/common.schema.json', import.meta.url), 'utf8')
+);
 const validationResultSchema = JSON.parse(
   readFileSync(new URL('../../../schemas/validation-result.schema.json', import.meta.url), 'utf8')
 );
@@ -30,6 +33,7 @@ const verificationReceiptSchema = JSON.parse(
 );
 const ajv = new Ajv2020({ strict: false, allErrors: true });
 addFormats(ajv);
+ajv.addSchema(commonSchema);
 ajv.addSchema(validationResultSchema);
 ajv.addSchema(verificationReceiptSchema);
 const validateResponse = ajv.compile(responseSchema);

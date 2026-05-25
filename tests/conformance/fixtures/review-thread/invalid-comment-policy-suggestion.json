@@ -13,7 +13,7 @@
       "shareId": "urn:formspec:review-share:demo:invalid-comment-suggestion",
       "threadId": "urn:formspec:review-thread:demo:invalid-comment-suggestion",
       "grantedScope": "view+comment",
-      "capabilityUrl": "https://review.example.gov/r/invalid-comment-suggestion",
+      "capabilityUrlDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "createdAt": "2026-05-25T16:05:00Z"
     }
   ],

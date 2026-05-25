@@ -31,6 +31,7 @@ Source schema: `schemas/wysiwys-ceremony.schema.json`
 
 - WYSIWYS Ceremony documents are UI-requirements annexes over existing ADR-0136 SignatureSurface and DocumentArtifact contracts.
 - The sidecar references upstream artifact and surface identifiers and selected hash fields; it does not define a new digest, preimage, rendering-service, or signature-surface shape.
+- The ceremony sidecar is closed and has no extensions payloads, preventing extension-defined local preimage or surface forks.
 - Every ceremony surface requires exact-preimage display, a scroll gate, and per-field affirmative action before signature capture.
 - Single-click adopt-and-sign, bulk apply, and typed-name-only as the sole act are non-conforming.
 
@@ -38,4 +39,5 @@ Source schema: `schemas/wysiwys-ceremony.schema.json`
 
 - A conforming WYSIWYS Ceremony must include $formspecWysiwysCeremony=1.0, version, targetDefinition, and at least one signatureSurfaces annex row.
 - Each annex row must bind to ADR-0136.SignatureSurface and ADR-0136.DocumentArtifact through explicit contract identifiers.
+- Processors must reject extensions payloads that attempt to define local preimage, digest, rendering-service, or signature-surface shapes.
 - Processors must reject disabled scroll gates, allowed bulk apply, missing required ceremony fields, and local preimage/surface forks.

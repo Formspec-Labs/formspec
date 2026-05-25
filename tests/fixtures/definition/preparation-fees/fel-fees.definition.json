@@ -36,6 +36,20 @@
       "type": "field",
       "label": "Mail notices",
       "dataType": "boolean"
+    },
+    {
+      "key": "totalFee",
+      "type": "field",
+      "label": "Total fee",
+      "dataType": "integer",
+      "hint": "Calculated from the selected fee options."
+    }
+  ],
+  "binds": [
+    {
+      "path": "totalFee",
+      "calculate": "25 + if($expedite = true, 15, 0)",
+      "readonly": "true"
     }
   ],
   "fees": {
