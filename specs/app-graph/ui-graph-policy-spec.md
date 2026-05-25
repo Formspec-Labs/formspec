@@ -347,8 +347,9 @@ The Registry field for widget token-slot declarations is
 the Registry slot declarations. Processors MUST NOT read the v4 spike
 `semantics.themeTokenSlots` field as production authority or report evidence.
 
-The current executable `AppGraphValidator` slice enforces rules 1 and 2. It uses
-a completed `ModuleResolutionReport` contribution at consuming site
+The current executable `AppGraphValidator` slice enforces the loaded-evidence
+parts of rules 1 through 5. For widget and token-slot evidence, it uses a
+completed `ModuleResolutionReport` contribution at consuming site
 `ui-graph-policy.theme.assignments.widgetRef` with `expectedCategory: "widget"`
 as evidence for the policy `widgetRef`, then checks the assignment `slot`
 against the resolved contribution's completed `widgetTokenSlots[]` evidence. If
