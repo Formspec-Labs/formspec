@@ -235,9 +235,12 @@ evidence.
 | `summary` | yes | Counts for modules, admitted modules, denied modules, unresolved dependencies, unresolved contributions, payload failures, errors, warnings, and infos. |
 | `phase` | yes | Module-resolution phase status and optional reason. |
 
-Downstream `AppGraphValidator` imports these diagnostics with
+Downstream `AppGraphValidator` consumes the full `ModuleResolutionReport` as
+typed context evidence and imports only the report's top-level diagnostics with
 `origin: "module-resolver"` and `phase: "module-resolution"`. It MUST NOT
-duplicate them as native cross-artifact findings.
+duplicate them as native cross-artifact findings. If a resolver source pointer
+carries module evidence, the AppGraph report import adapts the pointer to the
+AppGraph `SourcePointer` shape rather than widening the AppGraph report schema.
 
 ## 10. Diagnostics
 

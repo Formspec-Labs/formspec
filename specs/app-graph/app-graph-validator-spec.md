@@ -93,7 +93,7 @@ request has these conceptual fields:
 | `artifacts` | yes | Resolved artifact handles grouped by manifest slot, for example `definitions[]`, `surfaces[]`, `dataSources[]`, `responseActions[]`, `experiences[]`, `registries[]`, `locales[]`, `theme`, `component`, and future graph siblings. |
 | `schemaRegistry` | yes | Closed support profile for schema IDs, artifact kinds, and versions the validator can evaluate without network lookup. |
 | `artifactResolution` | yes | `ArtifactResolver` result, including imported diagnostics for missing artifacts, unsupported references, discriminator drift, and ref/version mismatches. |
-| `moduleResolution` | no | `ModuleResolver` result when modules are present or module-contributed values must be checked. |
+| `moduleResolution` | no | Full `ModuleResolutionReport` result when modules are present or module-contributed values must be checked. |
 | `hostEvidence` | no | Host-supplied evidence collections that are not App Manifest siblings, such as `uiGraphPolicies[]`. This evidence is never discovered by `ArtifactResolver`. |
 | `evidenceSchemaValidators` | no | Schema validators for host-supplied evidence. These validators are separate from artifact schema validators because host evidence is not an artifact handle. |
 | `options` | no | Validator controls such as supported bundle versions, diagnostic severity policy, phase selection for tools, and compatibility profile. Options MUST NOT authorize fetching, rendering, or effect execution. |
@@ -148,7 +148,7 @@ ref.
 The validator runs in deterministic phases:
 
 1. Import `artifactResolution` diagnostics and mark unresolved handles.
-2. Import `moduleResolution` diagnostics when supplied.
+2. Import top-level `moduleResolution.diagnostics` when supplied.
 3. Validate loaded artifacts and supplied host evidence against their selected
    source schemas.
 4. Record loaded artifacts without an available artifact schema validator as
@@ -204,7 +204,12 @@ Every diagnostic in the unified report MUST carry:
 Imported diagnostics MUST preserve their origin. The validator MAY normalize
 their envelope into this shape, but it MUST NOT recode an `ArtifactResolver`
 diagnostic as native validator authority or duplicate `ModuleResolver` findings
-as independent module checks.
+as independent module checks. When importing diagnostics from a
+`ModuleResolutionReport`, the validator imports only the report's top-level
+`diagnostics[]` and adapts resolver source pointers to the
+`AppGraphValidationReport` `SourcePointer` shape. Resolver-only module evidence
+stays available on the typed `moduleResolution` context input; it is not copied
+into the AppGraph report source pointer and does not widen the report schema.
 
 ## 6. Source Schema Validation Boundary
 
@@ -239,7 +244,7 @@ app-graph report.
 | Manifest sibling ref vs loaded artifact discriminator/version/identity | `ArtifactResolver`, surfaced through validator report | `artifact-resolution` | The resolver proves the handle matches the ref. The validator MUST NOT recover by guessing from filenames or URL suffixes. |
 | App Manifest schema shape and supported `$formspecBundle` versions | `AppGraphValidator` schema phase | `schema` / `unsupported` | v2.0 and v2.1 support is profile-driven. Unsupported future versions fail loud. |
 | Per-artifact source schemas | `AppGraphValidator` schema phase | `schema` | Runs only on loaded documents with selected schemas. |
-| Module admission, module dependency, contribution ownership, widget prop schema | `ModuleResolver` | `module-resolution` | Imported. The validator does not duplicate module resolution logic. |
+| Module admission, module dependency, contribution ownership, widget prop schema | `ModuleResolver` | `module-resolution` | Imported from the typed `ModuleResolutionReport`. The validator passes the full report to cross-artifact validators as context evidence, imports only top-level resolver diagnostics, and does not duplicate module resolution logic. |
 | Surface draft publishability, local route reachability, unresolved embed-route targets, duplicate route/slot ids | Surface export/local lint | `surface-local` | Imported or pre-run by Surface tools. Cross-artifact checks remain separate. |
 | Surface slots to loaded Definitions, Experience units, Response Actions, and Data Sources | `AppGraphValidator` | `cross-artifact` | Validates relationships across already loaded artifacts. |
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
@@ -274,7 +279,8 @@ validator families. A conforming future implementation will need later gates to
 provide:
 
 1. broader fixture-backed conformance beyond the Component route-target, UI
-   Graph Policy Surface/route, and UI Graph Policy Locale-owner families,
+   Graph Policy Surface/route, UI Graph Policy Locale-owner families, and typed
+   `ModuleResolutionReport` diagnostic handoff,
 2. broader extraction from lint, studio-core, and spike-local lessons without fixture
    assumptions, and
 3. production consumers wired to shared validator output.

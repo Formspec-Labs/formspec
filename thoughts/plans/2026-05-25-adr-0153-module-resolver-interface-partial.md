@@ -52,6 +52,18 @@ authorization.
   semantics, id-only sibling coherence, fabricated source-pointer fallbacks,
   first-validator payload hook selection, and stale spec wording; APPROVE after
   fixes and added coverage.
+- 2026-05-25 architecture checkpoints (Cicero and Pasteur): APPROVE WITH
+  CHANGES for typed `ModuleResolutionReport` handoff into `AppGraphValidator`.
+  Required changes: sanitize resolver source pointers before importing
+  diagnostics into `AppGraphValidationReport`, derive the AppGraph
+  `module-resolution` phase status from `ModuleResolutionReport.phase`, pass the
+  full report through `AppGraphContext`, import only top-level resolver
+  diagnostics, preserve the original resolver report unmodified, and defer
+  Locale-owner module-id and Theme token-slot diagnostics.
+- 2026-05-25 code review checkpoints (Copernicus and Carson): APPROVE with no
+  open findings for the typed handoff diff. Copernicus noted one low residual
+  risk around nested `modules[].diagnostics`; a follow-up unit test now pins that
+  nested diagnostics are not imported into the AppGraph report.
 
 ## Work Completed
 
@@ -96,13 +108,23 @@ authorization.
   conformance adapter only injects the executable payload validator function;
   it no longer derives report identity from file paths, case ids, URL suffixes,
   document kind defaults, or payload-presence heuristics.
+- [x] Type `AppGraphValidationRequest.moduleResolution` and
+  `AppGraphContext.moduleResolution` as the generated `ModuleResolutionReport`.
+- [x] Import top-level ModuleResolver diagnostics into
+  `AppGraphValidationReport` through a sanitizer that preserves
+  `module-resolver` / `module-resolution` ownership while dropping
+  resolver-only `source.module` evidence from AppGraph report pointers.
+- [x] Reflect `ModuleResolutionReport.phase.status` / `reason` in the
+  AppGraph report phase table instead of treating request presence as
+  completion.
 
 ## Still Open for Gate 4 Closure
 
 - [ ] Wire lint, Studio, MCPs, runtime, and projection consumers to the shared
   resolver output.
-- [ ] Integrate `ModuleResolver` diagnostics into `AppGraphValidator` without
-  duplicating module findings as native cross-artifact checks.
+- [ ] Use typed module evidence for module-consuming graph semantics such as
+  UI Graph Policy Locale-owner module-id resolution and Theme token-slot
+  validation without duplicating ModuleResolver findings as native module checks.
 
 ## Deviations
 
@@ -131,6 +153,14 @@ authorization.
   conformance runner supplies a minimal `widgetShape.props` validator for the
   committed fixture; the kernel does not become a general source-schema
   validator or renderer fallback engine.
+- 2026-05-25: The AppGraphValidator handoff imports only top-level resolver
+  diagnostics and sanitizes AppGraph report pointers by dropping resolver-only
+  `source.module` evidence. The full `ModuleResolutionReport` remains available
+  on validator context for later policy semantics; the AppGraph report schema is
+  not widened.
+- 2026-05-25: Module evidence availability does not yet emit new Locale-owner
+  module-id or Theme token-slot diagnostics. Those remain separate UI Graph
+  Policy gates after this typed handoff.
 
 ## Partial Evidence
 
@@ -142,14 +172,22 @@ authorization.
   `tests/conformance/test_module_resolver_fixture_corpus.py`;
   `packages/formspec-app-graph/tests/module-resolver-conformance.test.ts`.
 - Shared package: `packages/formspec-app-graph/src/module-resolver.ts`;
-  `packages/formspec-app-graph/src/index.ts`.
+  `packages/formspec-app-graph/src/index.ts`;
+  `packages/formspec-app-graph/src/types.ts`;
+  `packages/formspec-app-graph/src/validator.ts`.
+- AppGraph handoff tests:
+  `packages/formspec-app-graph/tests/app-graph-validator.test.ts`;
+  `tests/conformance/schemas/test_app_graph_validation_report_schema.py`.
 - Fixtures: `tests/conformance/fixtures/module-resolver/*.case.json`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root
   `thoughts/2026-05-24-adr-0150-followons-and-gating.md`.
 - Verification: `npm run --workspace @formspec-org/app-graph test`;
+  `npm run --workspace @formspec-org/app-graph build`;
   `npx tsc -p packages/formspec-app-graph/tsconfig.json --noEmit`;
+  `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`;
   `python -m pytest tests/conformance/test_module_resolver_fixture_corpus.py -q`;
+  `python -m pytest tests/conformance/schemas/test_app_graph_validation_report_schema.py tests/conformance/test_module_resolver_fixture_corpus.py tests/conformance/schemas/test_module_resolution_report_schema.py -q`;
   `npm run docs:filemap:check`; `npm run docs:check`;
   `git -C formspec diff --check`; stack-root `git diff --check`.

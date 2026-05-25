@@ -1,5 +1,7 @@
 /** @filedesc Shared AppGraphValidator interface and report types. */
 
+import type { ModuleResolutionReport } from '@formspec-org/types';
+
 export const APP_GRAPH_PHASES = [
   'artifact-resolution',
   'schema',
@@ -148,6 +150,7 @@ export interface AppGraphContext {
   schemaResults: AppGraphSchemaResult[];
   evidenceResults: AppGraphEvidenceSchemaResult[];
   hostEvidence?: AppGraphHostEvidence;
+  moduleResolution?: ModuleResolutionReport;
 }
 
 export type AppGraphCrossArtifactValidator = (context: AppGraphContext) => AppGraphDiagnostic[];
@@ -165,7 +168,7 @@ export interface AppGraphValidationRequest {
   artifacts?: Record<string, ResolvedArtifactHandle[] | undefined>;
   hostEvidence?: AppGraphHostEvidence;
   artifactResolution?: AppGraphDiagnosticReport;
-  moduleResolution?: AppGraphDiagnosticReport;
+  moduleResolution?: ModuleResolutionReport;
   surfaceLocal?: AppGraphDiagnosticReport;
   schemaValidators?: AppGraphSchemaValidators;
   evidenceSchemaValidators?: AppGraphEvidenceSchemaValidators;

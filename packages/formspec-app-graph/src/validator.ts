@@ -1,9 +1,14 @@
 /** @filedesc Shared AppGraphValidator report kernel. */
 
+import type {
+  ModuleResolutionDiagnostic,
+  ModuleResolutionSourcePointer,
+} from '@formspec-org/types';
 import {
   APP_GRAPH_PHASES,
   type AppGraphCrossArtifactValidator,
   type AppGraphDiagnostic,
+  type AppGraphSourcePointer,
   type AppGraphEvidenceSchemaDiagnostic,
   type AppGraphEvidenceSchemaValidator,
   type AppGraphEvidenceSchemaResult,
@@ -273,13 +278,43 @@ function runCrossArtifactValidators(
     schemaResults: [...schemaResults],
     evidenceResults: [...evidenceResults],
     hostEvidence: request.hostEvidence,
+    moduleResolution: request.moduleResolution,
   }));
+}
+
+function appGraphSourceFromModuleSource(
+  source: ModuleResolutionSourcePointer | undefined,
+): AppGraphSourcePointer | undefined {
+  if (!source) return undefined;
+  return {
+    artifactSlot: source.artifactSlot,
+    artifactKind: source.artifactKind,
+    source: source.source,
+    jsonPointer: source.jsonPointer,
+    ref: source.ref ? { ...source.ref } : undefined,
+  };
+}
+
+function moduleResolutionDiagnostic(diagnostic: ModuleResolutionDiagnostic): AppGraphDiagnostic {
+  const relatedSources = diagnostic.relatedSources
+    ?.map((source) => appGraphSourceFromModuleSource(source))
+    .filter((source): source is AppGraphSourcePointer => source !== undefined);
+  return {
+    code: diagnostic.code,
+    severity: diagnostic.severity,
+    phase: diagnostic.phase,
+    origin: diagnostic.origin,
+    message: diagnostic.message,
+    primarySource: appGraphSourceFromModuleSource(diagnostic.primarySource),
+    relatedSources,
+    details: diagnostic.details ? { ...diagnostic.details } : undefined,
+  };
 }
 
 function importedDiagnostics(request: AppGraphValidationRequest, handles: readonly ResolvedArtifactHandle[]): AppGraphDiagnostic[] {
   return [
     ...(request.artifactResolution?.diagnostics ?? []),
-    ...(request.moduleResolution?.diagnostics ?? []),
+    ...(request.moduleResolution?.diagnostics ?? []).map(moduleResolutionDiagnostic),
     ...(request.surfaceLocal?.diagnostics ?? []),
     ...handles.flatMap((handle) => handle.diagnostics ?? []),
   ];
@@ -303,7 +338,9 @@ function phaseStatuses(
     statuses.set(phase, phaseStatus(phase, 'not-run'));
   }
   statuses.set('artifact-resolution', phaseStatus('artifact-resolution', request.artifactResolution ? 'completed' : 'not-run'));
-  statuses.set('module-resolution', phaseStatus('module-resolution', request.moduleResolution ? 'completed' : 'not-run'));
+  statuses.set('module-resolution', request.moduleResolution
+    ? phaseStatus('module-resolution', request.moduleResolution.phase.status, request.moduleResolution.phase.reason)
+    : phaseStatus('module-resolution', 'not-run'));
   statuses.set('surface-local', phaseStatus('surface-local', request.surfaceLocal ? 'completed' : 'not-run'));
   statuses.set('schema', schemaStatus);
   statuses.set('cross-artifact', crossArtifactStatus);

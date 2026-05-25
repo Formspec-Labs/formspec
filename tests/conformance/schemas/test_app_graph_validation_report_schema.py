@@ -302,3 +302,13 @@ def test_source_pointer_keeps_source_diagnostic_only() -> None:
     report["diagnostics"][0]["primarySource"]["identityFromPath"] = True
     with pytest.raises(ValidationError):
         _validator().validate(report)
+
+
+def test_source_pointer_rejects_module_resolution_module_leakage() -> None:
+    report = copy.deepcopy(_valid_report())
+    report["diagnostics"][1]["primarySource"]["module"] = {
+        "id": "x-denied",
+        "version": "1.0.0",
+    }
+    with pytest.raises(ValidationError):
+        _validator().validate(report)

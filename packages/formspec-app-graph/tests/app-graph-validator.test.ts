@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import type {
+  ModuleResolutionDiagnostic,
+  ModuleResolutionReport,
+} from '@formspec-org/types';
 import {
   artifactIdentityKey,
   createAppGraphReport,
@@ -33,6 +37,32 @@ function diagnostic(partial: Partial<AppGraphDiagnostic> = {}): AppGraphDiagnost
     primarySource: partial.primarySource,
     relatedSources: partial.relatedSources,
     details: partial.details,
+  };
+}
+
+function moduleResolutionReport(partial: Partial<ModuleResolutionReport> = {}): ModuleResolutionReport {
+  const diagnostics = partial.diagnostics ?? [];
+  return {
+    ok: partial.ok ?? diagnostics.every((entry) => entry.severity !== 'error'),
+    modules: partial.modules ?? [],
+    documents: partial.documents ?? [],
+    contributions: partial.contributions ?? [],
+    diagnostics,
+    summary: partial.summary ?? {
+      modules: 0,
+      admittedModules: 0,
+      deniedModules: 0,
+      documents: 0,
+      contributions: 0,
+      unresolvedDependencies: diagnostics.filter((entry) => entry.code === 'MODULE-DEPENDENCY-UNRESOLVED').length,
+      unresolvedContributions: 0,
+      payloadFailures: 0,
+      errors: diagnostics.filter((entry) => entry.severity === 'error').length,
+      warnings: diagnostics.filter((entry) => entry.severity === 'warning').length,
+      infos: diagnostics.filter((entry) => entry.severity === 'info').length,
+    },
+    phase: partial.phase ?? { phase: 'module-resolution', status: 'completed' },
+    ...(partial.support ? { support: partial.support } : {}),
   };
 }
 
@@ -83,6 +113,127 @@ describe('validateAppGraph', () => {
 
     expect(report.diagnostics).toContainEqual(imported);
     expect(report.summary.importedDiagnostics).toBe(1);
+  });
+
+  it('passes typed ModuleResolutionReport evidence to cross-artifact validators and reflects its phase', () => {
+    const moduleResolution = moduleResolutionReport({
+      phase: { phase: 'module-resolution', status: 'skipped', reason: 'support-disabled' },
+    });
+    const crossArtifact = vi.fn(() => []);
+
+    const report = validateAppGraph({
+      manifest: loadedHandle(),
+      moduleResolution,
+      schemaValidators: () => ({ ok: true }),
+      crossArtifactValidators: [crossArtifact],
+    });
+
+    expect(crossArtifact).toHaveBeenCalledWith(expect.objectContaining({
+      moduleResolution,
+    }));
+    expect(report.phases).toContainEqual({
+      phase: 'module-resolution',
+      status: 'skipped',
+      reason: 'support-disabled',
+    });
+  });
+
+  it('sanitizes imported ModuleResolver source pointers without mutating the resolver report', () => {
+    const moduleDiagnostic: ModuleResolutionDiagnostic = {
+      code: 'MODULE-ADMISSION-DENIED',
+      severity: 'error',
+      phase: 'module-resolution',
+      origin: 'module-resolver',
+      message: 'Module x-denied is not admitted.',
+      primarySource: {
+        artifactSlot: 'app',
+        artifactKind: 'appManifest',
+        source: 'memory://app',
+        jsonPointer: '/modules/0',
+        ref: { url: 'https://example.gov/app', version: '2.2' },
+        module: { id: 'x-denied', version: '1.0.0' },
+      },
+      relatedSources: [{
+        artifactSlot: 'registries[0]',
+        artifactKind: 'registry',
+        source: 'memory://registry',
+        jsonPointer: '/entries/0',
+        ref: { url: 'https://example.gov/registry', version: '1.0.0' },
+        module: { id: 'x-denied', version: '1.0.0' },
+      }],
+      details: { moduleId: 'x-denied' },
+    };
+    const moduleResolution = moduleResolutionReport({
+      ok: false,
+      diagnostics: [moduleDiagnostic],
+    });
+
+    const report = validateAppGraph({
+      manifest: loadedHandle(),
+      moduleResolution,
+    });
+
+    const imported = report.diagnostics.find((entry) => entry.code === 'MODULE-ADMISSION-DENIED');
+    expect(imported).toMatchObject({
+      origin: 'module-resolver',
+      phase: 'module-resolution',
+      primarySource: {
+        artifactSlot: 'app',
+        artifactKind: 'appManifest',
+        source: 'memory://app',
+        jsonPointer: '/modules/0',
+        ref: { url: 'https://example.gov/app', version: '2.2' },
+      },
+      relatedSources: [expect.objectContaining({
+        artifactSlot: 'registries[0]',
+        artifactKind: 'registry',
+        source: 'memory://registry',
+        jsonPointer: '/entries/0',
+      })],
+      details: { moduleId: 'x-denied' },
+    });
+    expect(imported?.primarySource).not.toHaveProperty('module');
+    expect(imported?.relatedSources?.[0]).not.toHaveProperty('module');
+    expect(moduleDiagnostic.primarySource).toHaveProperty('module');
+    expect(moduleDiagnostic.relatedSources?.[0]).toHaveProperty('module');
+    expect(report.summary.importedDiagnostics).toBe(1);
+  });
+
+  it('does not duplicate nested ModuleResolutionReport diagnostics', () => {
+    const nestedDiagnostic: ModuleResolutionDiagnostic = {
+      code: 'MODULE-NESTED-SHOULD-NOT-IMPORT',
+      severity: 'error',
+      phase: 'module-resolution',
+      origin: 'module-resolver',
+      message: 'nested module diagnostic',
+      primarySource: {
+        artifactSlot: 'app',
+        artifactKind: 'appManifest',
+        source: 'memory://app',
+        jsonPointer: '/modules/0',
+      },
+    };
+    const moduleResolution = moduleResolutionReport({
+      modules: [{
+        ref: { id: 'x-review', version: '1.0.0' },
+        status: 'admitted',
+        source: {
+          artifactSlot: 'app',
+          artifactKind: 'appManifest',
+          source: 'memory://app',
+          jsonPointer: '/modules/0',
+        },
+        diagnostics: [nestedDiagnostic],
+      }],
+    });
+
+    const report = validateAppGraph({
+      manifest: loadedHandle(),
+      moduleResolution,
+    });
+
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('MODULE-NESTED-SHOULD-NOT-IMPORT');
+    expect(report.summary.importedDiagnostics).toBe(0);
   });
 
   it('skips cross-artifact validation when any handle is unresolved', () => {
