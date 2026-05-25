@@ -218,7 +218,7 @@ requiring all consumers to be wired in this prose slice.
 | Response Actions intents | `action-intent` | Validation tuple authority remains Response Actions and validation mapping. |
 | Validation Mapping rows | `validation-mapping-row` | `row` payload schema. |
 | UI Graph Policy token slots | `widget` | AppGraphValidator consumes completed widget contribution evidence plus `widgetTokenSlots[]` copied from Registry `widgetShape.tokenSlots[]`; `THEME-TOKEN-SLOT` remains UI Graph Policy-owned. |
-| UI Graph Policy token-category compatibility | `token-category` | Future `categoryShape` hook after the token-category compatibility gate names exact category matching rules. |
+| UI Graph Policy token-category compatibility | `token-category` | Future `categoryShape` hook after ModuleResolver exposes normalized admitted token-category evidence. The current `widgetTokenSlots[].acceptedTokenCategories[]` values are category prefixes for loaded Theme token checks, not Registry entry names. |
 
 Component bundle id collision diagnostics, including current E605 behavior,
 are not ModuleResolver-owned. They remain bundle-graph validation because they

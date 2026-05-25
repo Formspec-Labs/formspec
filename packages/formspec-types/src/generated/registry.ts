@@ -256,7 +256,7 @@ export interface WidgetTokenSlot {
    */
   name: string;
   /**
-   * Accepted Theme token category prefixes or Registry token-category contribution names for this slot. Compatibility is validated by a later UI Graph Policy gate.
+   * Accepted Theme token category prefixes for this slot, such as 'color', 'spacing', or 'x-agency'. These values are category prefixes, not Registry entry names. Compatibility is validated by a later UI Graph Policy gate using loaded Theme token evidence; Registry token-category contribution compatibility remains deferred until ModuleResolver exposes normalized category evidence.
    *
    * @minItems 1
    */

@@ -118,6 +118,27 @@ def test_locale_owner_module_match_is_semantic_not_structural() -> None:
     _validator().validate(policy)
 
 
+def test_theme_assignment_token_is_raw_theme_token_key() -> None:
+    policy = _load_fixture("valid-minimal-policy.json")
+    policy["theme"] = {
+        "assignments": [
+            {
+                "widgetRef": {
+                    "moduleId": "x-reviewer",
+                    "widgetName": "x-review-panel",
+                },
+                "slot": "accent",
+                "token": "color.accent",
+            }
+        ]
+    }
+    _validator().validate(policy)
+
+    policy["theme"]["assignments"][0]["token"] = "$token.color.accent"
+    with pytest.raises(ValidationError):
+        _validator().validate(policy)
+
+
 def test_ui_graph_policy_schema_rejects_auth_and_path_identity_fields() -> None:
     for key, value in _walk(SCHEMA):
         assert key not in FORBIDDEN_SCHEMA_TERMS, f"forbidden schema key {key}"

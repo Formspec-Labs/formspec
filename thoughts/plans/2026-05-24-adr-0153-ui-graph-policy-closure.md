@@ -35,7 +35,10 @@ This row spans:
 - Locale owner ModuleResolver-backed module-id resolution, Theme widgetRef,
   ModuleResolver/Registry token-slot evidence, and executable Theme token-slot
   diagnostics are landed.
-- Token-category compatibility, runtime hidden-state, Studio, projection,
+- Raw Theme token-key source shape and widget-slot category-prefix evidence are
+  pinned for future token-reference/category diagnostics.
+- Executable token-reference/category diagnostics, Registry token-category
+  contribution compatibility, runtime hidden-state, Studio, projection,
   consumer, and optional future App Manifest slot work remains open.
 
 ## Phase Order
@@ -61,6 +64,11 @@ This row spans:
   `THEME-TOKEN-SLOT` validator slice over completed ModuleResolver
   `widgetTokenSlots[]` evidence. Token-category compatibility remains open
   because the exact compatibility rule and source evidence are not yet pinned.
+- 2026-05-25: External architecture reviewers rejected a broad immediate
+  token-category diagnostic. The prerequisite slice pins raw Theme token keys
+  and category-prefix evidence while leaving executable `THEME-TOKEN-REF`,
+  executable `THEME-TOKEN-CATEGORY`, and Registry `token-category` contribution
+  compatibility deferred.
 
 ## Closure Evidence
 
@@ -68,6 +76,8 @@ Current partial evidence:
 
 - `specs/app-graph/ui-graph-policy-spec.md`
 - `schemas/ui-graph-policy.schema.json`
+- `schemas/registry.schema.json`
+- `schemas/module-resolution-report.schema.json`
 - `schemas/app-graph-validation-report.schema.json`
 - `packages/formspec-types/src/generated/ui-graph-policy.ts`
 - `packages/formspec-app-graph/src/validator.ts`

@@ -253,7 +253,7 @@ export interface ModuleResolutionWidgetTokenSlot {
    */
   name: string;
   /**
-   * Accepted Theme token category prefixes or Registry token-category contribution names for this slot. Token-category compatibility remains a later UI Graph Policy gate.
+   * Accepted Theme token category prefixes for this slot, copied from Registry widgetShape.tokenSlots[].acceptedTokenCategories. These values are category prefixes, not Registry entry names. Token-category compatibility remains a later UI Graph Policy gate using loaded Theme token evidence; Registry token-category contribution compatibility remains deferred until ModuleResolver exposes normalized category evidence.
    *
    * @minItems 1
    */

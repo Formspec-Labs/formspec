@@ -136,6 +136,9 @@ export interface ThemePolicy {
 export interface ThemeTokenAssignment {
   widgetRef: WidgetRef;
   slot: string;
+  /**
+   * Raw Theme token key from a loaded Theme tokens map, such as 'color.accent'. UI Graph Policy does not use '$token.<key>' reference syntax in this field.
+   */
   token: string;
 }
 /**

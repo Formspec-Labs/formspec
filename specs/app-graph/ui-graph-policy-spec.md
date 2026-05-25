@@ -320,17 +320,23 @@ module-contributed widgets:
 |---|---|
 | `widgetRef` | Module-contributed widget name resolved through `ModuleResolver` and Registry evidence. |
 | `slot` | Token slot declared by that widget's token-slot evidence. |
-| `token` | Theme token name or token-category-compatible token reference. |
+| `token` | Raw Theme token key, such as `color.accent`; this field does not use `$token.<key>` reference syntax. |
 
 Rules:
 
 1. `widgetRef` MUST resolve to an admitted module widget contribution owned by
    the referenced `moduleId`.
 2. `slot` MUST resolve against the widget's declared token-slot evidence.
-3. `token` MUST resolve against the loaded Theme tokens or an admitted
-   token-category contribution accepted by the support profile.
+3. `token` MUST resolve as a raw key in a loaded Theme artifact's `tokens` map
+   when token compatibility checks are executable.
 4. Assignments to undeclared widget slots are invalid.
-5. UI Graph Policy does not define Theme token values, token cascade, or widget
+5. The resolved Theme token's category prefix MUST be accepted by the declared
+   widget token slot when token compatibility checks are executable. A category
+   prefix match is exact on the category prefix plus a dot: token key
+   `color.accent` is in category `color`, and `x-agency.seal-color` is in
+   category `x-agency`. `acceptedTokenCategories[]` values are category
+   prefixes, not Registry entry names.
+6. UI Graph Policy does not define Theme token values, token cascade, or widget
    rendering. Theme and renderer support remain separate.
 
 The Registry field for widget token-slot declarations is
@@ -339,14 +345,21 @@ The Registry field for widget token-slot declarations is
 the Registry slot declarations. Processors MUST NOT read the v4 spike
 `semantics.themeTokenSlots` field as production authority or report evidence.
 
-The current executable `AppGraphValidator` slice enforces rules 1 and 2. It uses a
-completed `ModuleResolutionReport` contribution at consuming site
+The current executable `AppGraphValidator` slice enforces rules 1 and 2. It uses
+a completed `ModuleResolutionReport` contribution at consuming site
 `ui-graph-policy.theme.assignments.widgetRef` with `expectedCategory: "widget"`
 as evidence for the policy `widgetRef`, then checks the assignment `slot`
 against the resolved contribution's completed `widgetTokenSlots[]` evidence. If
 ModuleResolver is absent, not run, or skipped, the Theme widget and token-slot
-checks emit no diagnostic. Token-category validation remains deferred until a
-later UI Graph Policy gate pins token resolution and compatibility evidence.
+checks emit no diagnostic. This contract now pins the prerequisite
+token-category evidence shape: the policy assignment token is a raw Theme token
+key, loaded Theme tokens prove token existence, optional `theme.tokenMeta`
+categories may provide metadata for custom categories, and
+`widgetTokenSlots[].acceptedTokenCategories[]` is the widget slot allow-list.
+Executable `THEME-TOKEN-REF` / `THEME-TOKEN-CATEGORY` diagnostics remain
+deferred until a later validator slice consumes loaded Theme evidence. Registry
+`token-category` contributions remain deferred until ModuleResolver exposes
+normalized admitted category evidence.
 
 ## 6. Diagnostic Import
 
@@ -356,8 +369,9 @@ and Theme widgetRef ModuleResolver evidence diagnostics as cross-artifact
 diagnostics after policy host evidence and loaded artifacts pass source schema
 validation. ModuleResolver may now carry Registry token-slot evidence, and the
 shared validator emits Theme token-slot diagnostics from that evidence.
-Token-category, runtime hidden-state, Studio, MCP, projection, and consumer
-diagnostics remain later gates.
+Token-reference, token-category compatibility, Registry `token-category`
+contribution compatibility, runtime hidden-state, Studio, MCP, projection, and
+consumer diagnostics remain later gates.
 
 | Field | Value |
 |---|---|
@@ -381,6 +395,8 @@ Initial diagnostic codes:
 | `UI-POLICY-HIDDEN-DEFINITION-REF` | error | A hidden Definition ref is not a loaded Definition or is not present as a route-local form slot. |
 | `THEME-TOKEN-WIDGET` | error | A Theme token assignment references an unresolved or unadmitted module widget. |
 | `THEME-TOKEN-SLOT` | error | A Theme token assignment targets a token slot not declared by the widget. |
+| `THEME-TOKEN-REF` | error | A Theme token assignment references a token absent from loaded Theme token evidence. |
+| `THEME-TOKEN-CATEGORY` | error | A Theme token assignment uses a token category not accepted by the declared widget token slot. |
 
 Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
@@ -406,8 +422,10 @@ against that resolved contribution's `widgetTokenSlots[]` evidence. It emits
 `THEME-TOKEN-WIDGET` for missing, unadmitted, or wrong-owner widget evidence and
 `THEME-TOKEN-SLOT` for slots not declared by the resolved same-module widget
 contribution. It does not read Registry directly or consume v4
-`semantics.themeTokenSlots`. Token-category, runtime hidden-state, and
-authorization diagnostics are not emitted by this slice.
+`semantics.themeTokenSlots`. It does not yet emit `THEME-TOKEN-REF` or
+`THEME-TOKEN-CATEGORY`; loaded Theme token existence, token-category
+compatibility, Registry token-category contribution compatibility, runtime
+hidden-state, and authorization diagnostics are not emitted by this slice.
 
 ## 7. Non-Goals and Boundaries
 
@@ -441,9 +459,12 @@ contribution evidence, and Theme token-slot checks against completed
 ModuleResolver `widgetTokenSlots[]` evidence. Production closure still requires
 the remaining gates:
 
-1. token-category compatibility,
-2. Studio/authoring feedback,
-3. runtime enforcement for hidden Definition state where applicable,
-4. consumer conformance for any future promoted UI Graph Policy gate, and
-5. an optional future App Manifest loading slot if the app package contract
+1. executable Theme token reference and token-category compatibility checks over
+   loaded Theme evidence,
+2. Registry token-category contribution compatibility after ModuleResolver
+   exposes normalized category evidence,
+3. Studio/authoring feedback,
+4. runtime enforcement for hidden Definition state where applicable,
+5. consumer conformance for any future promoted UI Graph Policy gate, and
+6. an optional future App Manifest loading slot if the app package contract
    later chooses one.
