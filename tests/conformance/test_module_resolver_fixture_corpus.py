@@ -139,3 +139,42 @@ def test_fixture_inputs_remain_source_oriented_without_request_schema_claim() ->
         assert set(inputs) <= {"appModules", "documents", "registries", "admission", "support"}
         assert "posture" not in inputs
         assert "$schema" not in inputs
+
+
+def _assert_source_pointer(source: Any, require_module: bool = False) -> None:
+    assert isinstance(source, dict)
+    assert isinstance(source.get("artifactSlot"), str)
+    assert isinstance(source.get("artifactKind"), str)
+    assert isinstance(source.get("source"), str)
+    assert isinstance(source.get("jsonPointer"), str)
+    if require_module:
+        module = source.get("module")
+        assert isinstance(module, dict)
+        assert isinstance(module.get("id"), str)
+        assert isinstance(module.get("version"), str)
+
+
+def test_fixture_inputs_carry_explicit_source_evidence() -> None:
+    for _, case in _fixture_cases():
+        inputs = case["inputs"]
+
+        for module in inputs.get("appModules", []):
+            _assert_source_pointer(module.get("source"), require_module=True)
+
+        support = inputs.get("support") or {}
+        for module in support.get("defaultModules", []):
+            _assert_source_pointer(module.get("source"), require_module=True)
+
+        for registry in inputs.get("registries", []):
+            assert isinstance(registry.get("artifactSlot"), str)
+            assert isinstance(registry.get("artifactKind"), str)
+            assert isinstance(registry.get("source"), str)
+
+        for document in inputs.get("documents", []):
+            assert isinstance(document.get("source"), str)
+            for module in document.get("modules", []):
+                _assert_source_pointer(module.get("source"), require_module=True)
+            for use in document.get("uses", []):
+                _assert_source_pointer(use.get("source"))
+                if "payload" in use:
+                    _assert_source_pointer(use.get("payloadSource"))

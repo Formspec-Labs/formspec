@@ -2,7 +2,22 @@
   "id": "payload-mismatch",
   "description": "Rejects a payload-bearing contribution whose payload fails the owning schema hook.",
   "inputs": {
-    "appModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+    "appModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        }
+      }
+    ],
     "documents": [
       {
         "artifactSlot": "surfaces[0]",
@@ -12,9 +27,24 @@
             "site": "surface.module-widget.binding.widgetName",
             "name": "x-counter-widget",
             "expectedCategory": "widget",
-            "payload": { "count": "not-a-number" }
+            "payload": {
+              "count": "not-a-number"
+            },
+            "source": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface",
+              "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+            },
+            "payloadSource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface",
+              "jsonPointer": "/routes/0/slots/main/0/binding/config"
+            }
           }
-        ]
+        ],
+        "source": "memory://surface"
       }
     ],
     "registries": [
@@ -24,7 +54,9 @@
             "name": "x-formspec-presentation",
             "category": "module",
             "version": "0.1.0",
-            "contributes": ["x-counter-widget"]
+            "contributes": [
+              "x-counter-widget"
+            ]
           },
           {
             "name": "x-counter-widget",
@@ -33,23 +65,47 @@
             "widgetShape": {
               "props": {
                 "type": "object",
-                "required": ["count"],
-                "properties": { "count": { "type": "number" } }
+                "required": [
+                  "count"
+                ],
+                "properties": {
+                  "count": {
+                    "type": "number"
+                  }
+                }
               }
             }
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ],
-    "support": { "payloadSchemaValidators": ["widgetShape.props"] }
+    "support": {
+      "payloadSchemaValidators": [
+        "widgetShape.props"
+      ]
+    }
   },
-  "expectedDiagnostics": [{ "code": "MODULE-PAYLOAD-SCHEMA-MISMATCH", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "payloadFailures": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-PAYLOAD-SCHEMA-MISMATCH",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "payloadFailures": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-formspec-presentation", "version": "0.1.0" },
+        "ref": {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0"
+        },
         "status": "admitted",
         "registryVersion": "0.1.0",
         "source": {
@@ -57,7 +113,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
         }
       }
     ],
@@ -69,14 +128,19 @@
         "expectedCategory": "widget",
         "registryCategory": "widget",
         "entryVersion": "0.1.0",
-        "owningModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "owningModules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        ],
         "status": "payload-schema-mismatch",
         "payloadStatus": "failed",
         "source": {
           "artifactSlot": "surfaces[0]",
           "artifactKind": "surface",
           "source": "memory://surface",
-          "jsonPointer": "/routes/0/slots/main/0/binding/config"
+          "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
         }
       }
     ],
@@ -101,7 +165,10 @@
             "jsonPointer": "/entries/1/widgetShape/props"
           }
         ],
-        "details": { "contribution": "x-counter-widget", "validator": "widgetShape.props" }
+        "details": {
+          "contribution": "x-counter-widget",
+          "validator": "widgetShape.props"
+        }
       }
     ],
     "summary": {
@@ -117,7 +184,14 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" },
-    "support": { "payloadSchemaValidators": ["widgetShape.props"] }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    },
+    "support": {
+      "payloadSchemaValidators": [
+        "widgetShape.props"
+      ]
+    }
   }
 }

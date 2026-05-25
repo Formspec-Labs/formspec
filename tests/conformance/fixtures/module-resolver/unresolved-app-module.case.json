@@ -2,24 +2,60 @@
   "id": "unresolved-app-module",
   "description": "Rejects an App Manifest module absent from Registry module entries.",
   "inputs": {
-    "appModules": [{ "id": "x-missing-module", "version": "1.0.0" }],
+    "appModules": [
+      {
+        "id": "x-missing-module",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-missing-module",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
     "documents": [],
-    "registries": [{ "entries": [] }]
+    "registries": [
+      {
+        "entries": [],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
+      }
+    ]
   },
-  "expectedDiagnostics": [{ "code": "MODULE-UNRESOLVED", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "modules": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-UNRESOLVED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "modules": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-missing-module", "version": "1.0.0" },
+        "ref": {
+          "id": "x-missing-module",
+          "version": "1.0.0"
+        },
         "status": "unresolved",
         "source": {
           "artifactSlot": "app",
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-missing-module", "version": "1.0.0" }
+          "module": {
+            "id": "x-missing-module",
+            "version": "1.0.0"
+          }
         },
         "diagnostics": [
           {
@@ -33,7 +69,10 @@
               "artifactKind": "appManifest",
               "source": "memory://app",
               "jsonPointer": "/modules/0",
-              "module": { "id": "x-missing-module", "version": "1.0.0" }
+              "module": {
+                "id": "x-missing-module",
+                "version": "1.0.0"
+              }
             }
           }
         ]
@@ -53,7 +92,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-missing-module", "version": "1.0.0" }
+          "module": {
+            "id": "x-missing-module",
+            "version": "1.0.0"
+          }
         }
       }
     ],
@@ -70,6 +112,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }

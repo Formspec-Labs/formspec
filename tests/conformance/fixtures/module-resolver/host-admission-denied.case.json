@@ -6,7 +6,18 @@
       {
         "id": "x-formspec-presentation",
         "version": "0.1.0",
-        "lockHash": "sha256:module"
+        "lockHash": "sha256:module",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "lockHash": "sha256:module"
+          }
+        }
       }
     ],
     "documents": [],
@@ -19,7 +30,10 @@
             "version": "0.1.0",
             "contributes": []
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ],
     "admission": {
@@ -32,8 +46,16 @@
       ]
     }
   },
-  "expectedDiagnostics": [{ "code": "MODULE-ADMISSION-DENIED", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "deniedModules": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-ADMISSION-DENIED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "deniedModules": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
@@ -78,7 +100,10 @@
             "lockHash": "sha256:module"
           }
         },
-        "details": { "expectedLockHash": "sha256:other", "actualLockHash": "sha256:module" }
+        "details": {
+          "expectedLockHash": "sha256:other",
+          "actualLockHash": "sha256:module"
+        }
       }
     ],
     "summary": {
@@ -94,6 +119,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }

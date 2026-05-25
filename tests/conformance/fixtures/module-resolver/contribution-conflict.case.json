@@ -3,8 +3,34 @@
   "description": "Rejects duplicate ownership instead of selecting a Registry-order winner.",
   "inputs": {
     "appModules": [
-      { "id": "x-owner-a", "version": "1.0.0" },
-      { "id": "x-owner-b", "version": "1.0.0" }
+      {
+        "id": "x-owner-a",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-owner-a",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "id": "x-owner-b",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-owner-b",
+            "version": "1.0.0"
+          }
+        }
+      }
     ],
     "documents": [
       {
@@ -14,9 +40,16 @@
           {
             "site": "surface.module-widget.binding.widgetName",
             "name": "x-conflict-widget",
-            "expectedCategory": "widget"
+            "expectedCategory": "widget",
+            "source": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface",
+              "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+            }
           }
-        ]
+        ],
+        "source": "memory://surface"
       }
     ],
     "registries": [
@@ -26,30 +59,48 @@
             "name": "x-owner-a",
             "category": "module",
             "version": "1.0.0",
-            "contributes": ["x-conflict-widget"]
+            "contributes": [
+              "x-conflict-widget"
+            ]
           },
           {
             "name": "x-owner-b",
             "category": "module",
             "version": "1.0.0",
-            "contributes": ["x-conflict-widget"]
+            "contributes": [
+              "x-conflict-widget"
+            ]
           },
           {
             "name": "x-conflict-widget",
             "category": "widget",
             "version": "1.0.0"
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ]
   },
-  "expectedDiagnostics": [{ "code": "MODULE-CONTRIBUTION-CONFLICT", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "unresolvedContributions": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-CONTRIBUTION-CONFLICT",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "unresolvedContributions": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-owner-a", "version": "1.0.0" },
+        "ref": {
+          "id": "x-owner-a",
+          "version": "1.0.0"
+        },
         "status": "admitted",
         "registryVersion": "1.0.0",
         "source": {
@@ -57,11 +108,17 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-owner-a", "version": "1.0.0" }
+          "module": {
+            "id": "x-owner-a",
+            "version": "1.0.0"
+          }
         }
       },
       {
-        "ref": { "id": "x-owner-b", "version": "1.0.0" },
+        "ref": {
+          "id": "x-owner-b",
+          "version": "1.0.0"
+        },
         "status": "admitted",
         "registryVersion": "1.0.0",
         "source": {
@@ -69,7 +126,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/1",
-          "module": { "id": "x-owner-b", "version": "1.0.0" }
+          "module": {
+            "id": "x-owner-b",
+            "version": "1.0.0"
+          }
         }
       }
     ],
@@ -82,8 +142,14 @@
         "registryCategory": "widget",
         "entryVersion": "1.0.0",
         "owningModules": [
-          { "id": "x-owner-a", "version": "1.0.0" },
-          { "id": "x-owner-b", "version": "1.0.0" }
+          {
+            "id": "x-owner-a",
+            "version": "1.0.0"
+          },
+          {
+            "id": "x-owner-b",
+            "version": "1.0.0"
+          }
         ],
         "status": "conflict",
         "payloadStatus": "not-run",
@@ -108,7 +174,13 @@
           "source": "memory://registry",
           "jsonPointer": "/entries/2"
         },
-        "details": { "contribution": "x-conflict-widget", "owners": ["x-owner-a", "x-owner-b"] }
+        "details": {
+          "contribution": "x-conflict-widget",
+          "owners": [
+            "x-owner-a",
+            "x-owner-b"
+          ]
+        }
       }
     ],
     "summary": {
@@ -124,6 +196,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }

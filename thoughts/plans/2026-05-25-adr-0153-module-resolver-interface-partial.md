@@ -91,9 +91,11 @@ authorization.
   `packages/formspec-app-graph/tests/module-resolver-conformance.test.ts` so
   the source fixture corpus runs through the shared resolver and compares exact
   `ModuleResolutionReport` output.
-- [x] Make default module source evidence explicit in the fixture adapter and
-  fixture data rather than deriving identity from file paths, case ids, or URL
-  suffixes.
+- [x] Make app module, default module, sibling document module, Registry,
+  contribution-site, and payload source evidence explicit in fixture data. The
+  conformance adapter only injects the executable payload validator function;
+  it no longer derives report identity from file paths, case ids, URL suffixes,
+  document kind defaults, or payload-presence heuristics.
 
 ## Still Open for Gate 4 Closure
 
@@ -122,9 +124,9 @@ authorization.
 - 2026-05-25: The shared-kernel slice keeps gate 4 Partial. It executes the
   fixture corpus through `resolveModules`, but does not wire lint, Studio, MCPs,
   runtime/projection, or `AppGraphValidator` consumers.
-- 2026-05-25: The implementation uses a TypeScript input interface and fixture
-  adapter for explicit source pointers. No resolver request JSON Schema or
-  generated request type was added.
+- 2026-05-25: The implementation uses a TypeScript input interface with
+  explicit source pointers in fixture input data. No resolver request JSON
+  Schema or generated request type was added.
 - 2026-05-25: Payload validation remains a host-supplied hook boundary. The
   conformance runner supplies a minimal `widgetShape.props` validator for the
   committed fixture; the kernel does not become a general source-schema

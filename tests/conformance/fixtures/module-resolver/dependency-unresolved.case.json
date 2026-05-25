@@ -2,7 +2,22 @@
   "id": "dependency-unresolved",
   "description": "Rejects a module whose Registry dependency is absent from the admitted app module set.",
   "inputs": {
-    "appModules": [{ "id": "x-dependent-module", "version": "1.0.0" }],
+    "appModules": [
+      {
+        "id": "x-dependent-module",
+        "version": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-dependent-module",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
     "documents": [],
     "registries": [
       {
@@ -11,20 +26,39 @@
             "name": "x-dependent-module",
             "category": "module",
             "version": "1.0.0",
-            "dependencies": [{ "id": "x-required-base", "version": "^1.0.0" }],
+            "dependencies": [
+              {
+                "id": "x-required-base",
+                "version": "^1.0.0"
+              }
+            ],
             "contributes": []
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ]
   },
-  "expectedDiagnostics": [{ "code": "MODULE-DEPENDENCY-UNRESOLVED", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "unresolvedDependencies": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-DEPENDENCY-UNRESOLVED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "unresolvedDependencies": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-dependent-module", "version": "1.0.0" },
+        "ref": {
+          "id": "x-dependent-module",
+          "version": "1.0.0"
+        },
         "status": "dependency-unresolved",
         "registryVersion": "1.0.0",
         "source": {
@@ -32,7 +66,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-dependent-module", "version": "1.0.0" }
+          "module": {
+            "id": "x-dependent-module",
+            "version": "1.0.0"
+          }
         }
       }
     ],
@@ -50,7 +87,10 @@
           "artifactKind": "registry",
           "source": "memory://registry",
           "jsonPointer": "/entries/0/dependencies/0",
-          "module": { "id": "x-required-base", "version": "^1.0.0" }
+          "module": {
+            "id": "x-required-base",
+            "version": "^1.0.0"
+          }
         },
         "relatedSources": [
           {
@@ -58,7 +98,10 @@
             "artifactKind": "appManifest",
             "source": "memory://app",
             "jsonPointer": "/modules/0",
-            "module": { "id": "x-dependent-module", "version": "1.0.0" }
+            "module": {
+              "id": "x-dependent-module",
+              "version": "1.0.0"
+            }
           }
         ]
       }
@@ -76,6 +119,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }

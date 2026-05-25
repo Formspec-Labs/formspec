@@ -2,7 +2,22 @@
   "id": "version-mismatch",
   "description": "Rejects a module ref whose requested range is not satisfied by Registry evidence.",
   "inputs": {
-    "appModules": [{ "id": "x-versioned-module", "version": "^2.0.0" }],
+    "appModules": [
+      {
+        "id": "x-versioned-module",
+        "version": "^2.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-versioned-module",
+            "version": "^2.0.0"
+          }
+        }
+      }
+    ],
     "documents": [],
     "registries": [
       {
@@ -13,17 +28,31 @@
             "version": "1.0.0",
             "contributes": []
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ]
   },
-  "expectedDiagnostics": [{ "code": "MODULE-VERSION-UNRESOLVED", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "modules": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-VERSION-UNRESOLVED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "modules": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-versioned-module", "version": "^2.0.0" },
+        "ref": {
+          "id": "x-versioned-module",
+          "version": "^2.0.0"
+        },
         "status": "unresolved",
         "registryVersion": "1.0.0",
         "source": {
@@ -31,7 +60,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-versioned-module", "version": "^2.0.0" }
+          "module": {
+            "id": "x-versioned-module",
+            "version": "^2.0.0"
+          }
         }
       }
     ],
@@ -49,9 +81,15 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-versioned-module", "version": "^2.0.0" }
+          "module": {
+            "id": "x-versioned-module",
+            "version": "^2.0.0"
+          }
         },
-        "details": { "registryVersion": "1.0.0", "requestedVersion": "^2.0.0" }
+        "details": {
+          "registryVersion": "1.0.0",
+          "requestedVersion": "^2.0.0"
+        }
       }
     ],
     "summary": {
@@ -67,6 +105,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }

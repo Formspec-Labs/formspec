@@ -49,7 +49,7 @@ export interface ModuleResolverContributionUse {
 export interface ModuleResolverDocumentInput {
   artifactSlot: string;
   artifactKind: string;
-  modules?: ModuleResolutionRef[];
+  modules?: ModuleResolverModuleInput[];
   uses?: ModuleResolverContributionUse[];
   source?: string;
 }
@@ -393,10 +393,11 @@ function resolveDocuments(
       })
       : -1;
     const problemIndex = [missingIndex, deniedIndex, versionMismatchIndex].find((index) => index >= 0) ?? -1;
-    const source = documentSource(
+    const sourceModule = document.modules[problemIndex >= 0 ? problemIndex : 0];
+    const source = sourceModule.source ?? documentSource(
       document,
       problemIndex >= 0 ? `/modules/${problemIndex}` : '/modules/0',
-      document.modules[problemIndex >= 0 ? problemIndex : 0],
+      sourceModule,
     );
     const report: ModuleResolutionDocument = {
       artifactSlot: document.artifactSlot,
@@ -471,6 +472,19 @@ function payloadValidatorName(
   return input.support?.payloadSchemaValidators?.find((validator) => payloadSchemaFor(entry.entry, validator) !== undefined);
 }
 
+function payloadDiagnosticSource(
+  use: ModuleResolverContributionUse,
+  fallback: ModuleResolutionSourcePointer,
+  path: string | undefined,
+): ModuleResolutionSourcePointer {
+  const source = use.payloadSource ?? fallback;
+  if (!path) return source;
+  return {
+    ...source,
+    jsonPointer: `${source.jsonPointer}/${path}`,
+  };
+}
+
 function resolvePayload(
   use: ModuleResolverContributionUse,
   entry: RegistryEntryRecord,
@@ -491,7 +505,7 @@ function resolvePayload(
     diagnostic: diagnostic(
       'MODULE-PAYLOAD-SCHEMA-MISMATCH',
       `Payload for contribution '${use.name}' does not match ${validatorName}.`,
-      use.payloadSource ?? { ...source, jsonPointer: `${source.jsonPointer}${result.path ? `/${result.path}` : ''}` },
+      payloadDiagnosticSource(use, source, result.path),
       {
         relatedSources: [registrySource(entry, input, `/entries/${entry.entryIndex}/widgetShape/props`)],
         details: { contribution: use.name, validator: validatorName },

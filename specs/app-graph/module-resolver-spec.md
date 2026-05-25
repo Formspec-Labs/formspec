@@ -282,8 +282,12 @@ Sources payloads, or decide Component Surface/route identity.
 
 This v0.1 draft is an interface, report contract, shared kernel contract, and
 source fixture corpus. The current `@formspec-org/app-graph` conformance runner
-executes the corpus through `resolveModules`. A conforming future implementation
-still needs:
+executes the corpus through `resolveModules`. Fixture inputs carry explicit
+source evidence for app modules, default modules, sibling-document modules,
+Registry artifacts, contribution sites, and payload-bearing contribution
+payloads; the runner does not derive report identity from fixture filenames,
+case ids, artifact paths, or payload-presence heuristics. A conforming future
+implementation still needs:
 
 1. integration with `ArtifactResolver` and `AppGraphValidator`,
 2. production consumer wiring across lint, Studio, MCPs, runtime, and

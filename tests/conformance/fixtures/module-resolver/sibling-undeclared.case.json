@@ -2,12 +2,43 @@
   "id": "sibling-undeclared",
   "description": "Rejects a sibling document module outside the app module set and default module set.",
   "inputs": {
-    "appModules": [{ "id": "x-formspec-core-task", "version": "^1.0.0" }],
+    "appModules": [
+      {
+        "id": "x-formspec-core-task",
+        "version": "^1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-core-task",
+            "version": "^1.0.0"
+          }
+        }
+      }
+    ],
     "documents": [
       {
         "artifactSlot": "experience",
         "artifactKind": "experience",
-        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }]
+        "modules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "source": {
+              "artifactSlot": "experience",
+              "artifactKind": "experience",
+              "source": "memory://experience",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-formspec-presentation",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ],
+        "source": "memory://experience"
       }
     ],
     "registries": [
@@ -25,17 +56,31 @@
             "version": "0.1.0",
             "contributes": []
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ]
   },
-  "expectedDiagnostics": [{ "code": "MODULE-SIBLING-UNDECLARED", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "documents": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-SIBLING-UNDECLARED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "documents": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-formspec-core-task", "version": "^1.0.0" },
+        "ref": {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
         "status": "admitted",
         "registryVersion": "1.0.0",
         "source": {
@@ -43,7 +88,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-core-task", "version": "^1.0.0" }
+          "module": {
+            "id": "x-formspec-core-task",
+            "version": "^1.0.0"
+          }
         }
       }
     ],
@@ -52,13 +100,21 @@
         "artifactSlot": "experience",
         "artifactKind": "experience",
         "status": "undeclared-module",
-        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "modules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        ],
         "source": {
           "artifactSlot": "experience",
           "artifactKind": "experience",
           "source": "memory://experience",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
         }
       }
     ],
@@ -75,7 +131,10 @@
           "artifactKind": "experience",
           "source": "memory://experience",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
         }
       }
     ],
@@ -92,6 +151,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }

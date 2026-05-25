@@ -2,19 +2,56 @@
   "id": "valid-module-graph",
   "description": "Admits an app module set and resolves a module-owned widget contribution.",
   "inputs": {
-    "appModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+    "appModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        }
+      }
+    ],
     "documents": [
       {
         "artifactSlot": "surfaces[0]",
         "artifactKind": "surface",
-        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "modules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "source": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-formspec-presentation",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ],
         "uses": [
           {
             "site": "surface.module-widget.binding.widgetName",
             "name": "x-formspec-presentation-widget-shell",
-            "expectedCategory": "widget"
+            "expectedCategory": "widget",
+            "source": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface",
+              "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+            }
           }
-        ]
+        ],
+        "source": "memory://surface"
       }
     ],
     "registries": [
@@ -30,27 +67,54 @@
             "name": "x-formspec-presentation",
             "category": "module",
             "version": "0.1.0",
-            "contributes": ["x-formspec-presentation-widget-shell"]
+            "contributes": [
+              "x-formspec-presentation-widget-shell"
+            ]
           },
           {
             "name": "x-formspec-presentation-widget-shell",
             "category": "widget",
             "version": "0.1.0"
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ],
     "support": {
-      "defaultModules": [{ "id": "x-formspec-core-task", "version": "^1.0.0" }]
+      "defaultModules": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/default/x-formspec-core-task",
+            "module": {
+              "id": "x-formspec-core-task",
+              "version": "^1.0.0"
+            }
+          }
+        }
+      ]
     }
   },
   "expectedDiagnostics": [],
-  "expectedSummary": { "errors": 0, "modules": 2, "contributions": 1 },
+  "expectedSummary": {
+    "errors": 0,
+    "modules": 2,
+    "contributions": 1
+  },
   "expectedReport": {
     "ok": true,
     "modules": [
       {
-        "ref": { "id": "x-formspec-core-task", "version": "^1.0.0" },
+        "ref": {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        },
         "status": "admitted",
         "registryVersion": "1.0.0",
         "defaulted": true,
@@ -59,11 +123,17 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/default/x-formspec-core-task",
-          "module": { "id": "x-formspec-core-task", "version": "^1.0.0" }
+          "module": {
+            "id": "x-formspec-core-task",
+            "version": "^1.0.0"
+          }
         }
       },
       {
-        "ref": { "id": "x-formspec-presentation", "version": "0.1.0" },
+        "ref": {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0"
+        },
         "status": "admitted",
         "registryVersion": "0.1.0",
         "source": {
@@ -71,7 +141,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
         }
       }
     ],
@@ -80,14 +153,27 @@
         "artifactSlot": "surfaces[0]",
         "artifactKind": "surface",
         "status": "coherent",
-        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
-        "effectiveModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "modules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        ],
+        "effectiveModules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        ],
         "source": {
           "artifactSlot": "surfaces[0]",
           "artifactKind": "surface",
           "source": "memory://surface",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
         }
       }
     ],
@@ -98,7 +184,12 @@
         "expectedCategory": "widget",
         "registryCategory": "widget",
         "entryVersion": "0.1.0",
-        "owningModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "owningModules": [
+          {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        ],
         "status": "resolved",
         "payloadStatus": "not-run",
         "source": {
@@ -123,9 +214,17 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    },
     "support": {
-      "defaultModules": [{ "id": "x-formspec-core-task", "version": "^1.0.0" }]
+      "defaultModules": [
+        {
+          "id": "x-formspec-core-task",
+          "version": "^1.0.0"
+        }
+      ]
     }
   }
 }

@@ -2,7 +2,22 @@
   "id": "contribution-unowned",
   "description": "Rejects a Registry entry that no module contributes.",
   "inputs": {
-    "appModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+    "appModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
+        }
+      }
+    ],
     "documents": [
       {
         "artifactSlot": "surfaces[0]",
@@ -11,9 +26,16 @@
           {
             "site": "surface.module-widget.binding.widgetName",
             "name": "x-orphan-widget",
-            "expectedCategory": "widget"
+            "expectedCategory": "widget",
+            "source": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface",
+              "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+            }
           }
-        ]
+        ],
+        "source": "memory://surface"
       }
     ],
     "registries": [
@@ -30,17 +52,31 @@
             "category": "widget",
             "version": "0.1.0"
           }
-        ]
+        ],
+        "artifactSlot": "registries[0]",
+        "artifactKind": "registry",
+        "source": "memory://registry"
       }
     ]
   },
-  "expectedDiagnostics": [{ "code": "MODULE-CONTRIBUTION-UNOWNED", "severity": "error" }],
-  "expectedSummary": { "errors": 1, "unresolvedContributions": 1 },
+  "expectedDiagnostics": [
+    {
+      "code": "MODULE-CONTRIBUTION-UNOWNED",
+      "severity": "error"
+    }
+  ],
+  "expectedSummary": {
+    "errors": 1,
+    "unresolvedContributions": 1
+  },
   "expectedReport": {
     "ok": false,
     "modules": [
       {
-        "ref": { "id": "x-formspec-presentation", "version": "0.1.0" },
+        "ref": {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0"
+        },
         "status": "admitted",
         "registryVersion": "0.1.0",
         "source": {
@@ -48,7 +84,10 @@
           "artifactKind": "appManifest",
           "source": "memory://app",
           "jsonPointer": "/modules/0",
-          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0"
+          }
         }
       }
     ],
@@ -84,7 +123,9 @@
           "source": "memory://registry",
           "jsonPointer": "/entries/1"
         },
-        "details": { "contribution": "x-orphan-widget" }
+        "details": {
+          "contribution": "x-orphan-widget"
+        }
       }
     ],
     "summary": {
@@ -100,6 +141,9 @@
       "warnings": 0,
       "infos": 0
     },
-    "phase": { "phase": "module-resolution", "status": "completed" }
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
   }
 }
