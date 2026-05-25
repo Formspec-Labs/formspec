@@ -32,9 +32,11 @@ This row spans:
   `LOCALE-KEY-OWNER-COLLISION`, and
   `LOCALE-KEY-OWNER-MODULE-MISMATCH`, plus
   `UI-POLICY-HIDDEN-DEFINITION-REF`.
-- Locale owner ModuleResolver-backed module-id resolution, Theme token-slot,
-  ModuleResolver/Registry, runtime hidden-state, Studio, projection, consumer,
-  and optional future App Manifest slot work remains open.
+- Locale owner ModuleResolver-backed module-id resolution, Theme widgetRef,
+  ModuleResolver/Registry token-slot evidence, and executable Theme token-slot
+  diagnostics are landed.
+- Token-category compatibility, runtime hidden-state, Studio, projection,
+  consumer, and optional future App Manifest slot work remains open.
 
 ## Phase Order
 
@@ -55,6 +57,10 @@ This row spans:
   origin because the shared kernel emits those diagnostics after schema-valid
   host evidence; resolver, module, surface-local, and extension origins remain
   imported.
+- 2026-05-25: External architecture reviewers approved a slot-only
+  `THEME-TOKEN-SLOT` validator slice over completed ModuleResolver
+  `widgetTokenSlots[]` evidence. Token-category compatibility remains open
+  because the exact compatibility rule and source evidence are not yet pinned.
 
 ## Closure Evidence
 
@@ -69,6 +75,7 @@ Current partial evidence:
 - `tests/conformance/fixtures/ui-graph-policy/`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-hidden-definitions.case.json`
+- `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-theme-widgets.case.json`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-surface-routes.case.json`
 - `tests/conformance/schemas/test_ui_graph_policy_schema.py`
 - `tests/conformance/schemas/test_app_graph_validation_report_schema.py`
@@ -76,11 +83,12 @@ Current partial evidence:
 - `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py`
 - `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`
 - `tests/conformance/test_app_graph_ui_policy_hidden_definition_fixture_corpus.py`
+- `tests/conformance/test_app_graph_ui_policy_theme_widget_fixture_corpus.py`
 - `tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py`
 - `packages/formspec-app-graph/tests/ui-graph-policy-locale-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-hidden-definition-conformance.test.ts`
+- `packages/formspec-app-graph/tests/ui-graph-policy-theme-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
 
-Closure still requires Locale owner ModuleResolver-backed module-id resolution,
-Theme token-slot, ModuleResolver/Registry token-slot evidence, runtime
-hidden-state behavior, consumer wiring, and final rollup gate transition.
+Closure still requires token-category compatibility, runtime hidden-state
+behavior, consumer wiring, and final rollup gate transition.

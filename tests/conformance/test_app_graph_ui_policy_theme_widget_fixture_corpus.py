@@ -23,6 +23,8 @@ FIXTURE_PATH = (
 
 REQUIRED_CASES = {
     "valid-theme-widget-with-resolved-contribution",
+    "undeclared-theme-token-slot",
+    "missing-theme-token-slot-evidence",
     "missing-theme-widget-ref",
     "unadmitted-theme-widget-ref",
     "module-resolution-absent-skips-theme-widget",
@@ -33,6 +35,8 @@ REQUIRED_CASES = {
 }
 
 EXPECTED_CODES = {
+    "undeclared-theme-token-slot": ["THEME-TOKEN-SLOT"],
+    "missing-theme-token-slot-evidence": ["THEME-TOKEN-SLOT"],
     "missing-theme-widget-ref": ["THEME-TOKEN-WIDGET"],
     "unadmitted-theme-widget-ref": [
         "MODULE-CONTRIBUTION-UNADMITTED",
@@ -87,7 +91,6 @@ FORBIDDEN_STRING_FRAGMENTS = (
 )
 
 DEFERRED_CODES = {
-    "THEME-TOKEN-SLOT",
     "AUTHORIZATION-BOUNDARY",
 }
 
@@ -132,6 +135,13 @@ def _assert_surface_pointer(source: dict[str, Any]) -> None:
     assert "url" in source["ref"]
 
 
+def _assert_registry_pointer(source: dict[str, Any]) -> None:
+    assert source["artifactSlot"].startswith("registries[")
+    assert source["artifactKind"] == "registry"
+    assert "module" not in source
+    assert isinstance(source.get("jsonPointer"), str)
+
+
 def test_ui_graph_policy_theme_widget_fixture_covers_required_cases() -> None:
     ids = {case["id"] for case in _corpus()["cases"]}
     assert ids == REQUIRED_CASES
@@ -170,7 +180,7 @@ def test_ui_graph_policy_theme_widget_module_resolution_reports_are_valid() -> N
         MODULE_REPORT_VALIDATOR.validate(report)
 
 
-def test_ui_graph_policy_theme_widget_fixtures_may_carry_deferred_token_slot_evidence() -> None:
+def test_ui_graph_policy_theme_widget_fixtures_carry_token_slot_evidence() -> None:
     report = _corpus()["moduleResolutionReports"]["resolved-theme-widget"]
     token_slots = report["contributions"][0].get("widgetTokenSlots")
     assert token_slots == [
@@ -185,7 +195,32 @@ def test_ui_graph_policy_theme_widget_fixtures_may_carry_deferred_token_slot_evi
             },
         }
     ]
-    assert "THEME-TOKEN-SLOT" in DEFERRED_CODES
+
+
+def test_ui_graph_policy_theme_widget_slot_diagnostics_are_policy_owned() -> None:
+    undeclared = _case("undeclared-theme-token-slot")["expected"]["diagnostics"][0]
+    assert undeclared["code"] == "THEME-TOKEN-SLOT"
+    assert undeclared["primarySource"]["jsonPointer"] == "/theme/assignments/0/slot"
+    assert undeclared["details"] == {
+        "moduleId": "x-reviewer",
+        "widgetName": "x-review-panel",
+        "slot": "surface",
+        "reason": "undeclared-slot",
+        "declaredSlots": ["accent"],
+    }
+    assert len(undeclared["relatedSources"]) == 1
+    _assert_registry_pointer(undeclared["relatedSources"][0])
+
+    missing_evidence = _case("missing-theme-token-slot-evidence")["expected"]["diagnostics"][0]
+    assert missing_evidence["code"] == "THEME-TOKEN-SLOT"
+    assert missing_evidence["primarySource"]["jsonPointer"] == "/theme/assignments/0/slot"
+    assert "relatedSources" not in missing_evidence
+    assert missing_evidence["details"] == {
+        "moduleId": "x-reviewer",
+        "widgetName": "x-review-panel",
+        "slot": "accent",
+        "reason": "no-token-slot-evidence",
+    }
 
 
 def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() -> None:
@@ -216,6 +251,8 @@ def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() ->
                     _assert_policy_pointer(related)
                 if related["artifactSlot"].startswith("surfaces["):
                     _assert_surface_pointer(related)
+                if related["artifactSlot"].startswith("registries["):
+                    _assert_registry_pointer(related)
 
 
 def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> None:
@@ -233,6 +270,9 @@ def test_ui_graph_policy_theme_widget_fixture_keeps_deferred_families_out() -> N
             if diagnostic["code"] == "THEME-TOKEN-WIDGET":
                 assert "relatedSources" not in diagnostic
                 assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
+            if diagnostic["code"] == "THEME-TOKEN-SLOT":
+                assert diagnostic["primarySource"]["jsonPointer"].startswith("/theme/assignments/")
+                assert diagnostic["primarySource"]["jsonPointer"].endswith("/slot")
             if diagnostic["code"] == "MODULE-CONTRIBUTION-UNADMITTED":
                 primary = diagnostic["primarySource"]
                 assert set(primary).issubset({"artifactSlot", "source", "jsonPointer"})

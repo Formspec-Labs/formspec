@@ -23,6 +23,7 @@ type HiddenDefinitionRef = NonNullable<
   NonNullable<UiGraphPolicyDocument['routePolicies'][number]['definitionVisibility']>['hiddenDefinitionRefs']
 >[number];
 type ThemeTokenAssignment = NonNullable<NonNullable<UiGraphPolicyDocument['theme']>['assignments']>[number];
+type ModuleResolutionWidgetTokenSlot = NonNullable<ModuleResolutionContribution['widgetTokenSlots']>[number];
 
 interface SurfaceRoute {
   id: string;
@@ -519,10 +520,11 @@ function validateThemeWidgetRefs(
     const matchingContributions = moduleResolution.contributions.filter((contribution) =>
       contributionMatchesThemeWidgetAssignment(contribution, evidence, assignment)
     );
-    if (matchingContributions.some((contribution) =>
+    const resolvedContributions = matchingContributions.filter((contribution) =>
       contributionResolvedForModule(contribution, widgetRef.moduleId)
-    )) {
-      return [];
+    );
+    if (resolvedContributions.length > 0) {
+      return validateThemeTokenSlot(evidence, assignment, resolvedContributions);
     }
 
     const details: Record<string, unknown> = {
@@ -542,6 +544,43 @@ function validateThemeWidgetRefs(
       details,
     )];
   });
+}
+
+function tokenSlotSources(
+  tokenSlots: readonly ModuleResolutionWidgetTokenSlot[],
+): AppGraphSourcePointer[] {
+  return tokenSlots
+    .map((tokenSlot) => appGraphSourceFromModuleSource(tokenSlot.source))
+    .filter((source): source is AppGraphSourcePointer => source !== undefined);
+}
+
+function validateThemeTokenSlot(
+  evidence: UiGraphPolicyEvidence,
+  assignment: IndexedThemeTokenAssignment,
+  resolvedContributions: readonly ModuleResolutionContribution[],
+): AppGraphDiagnostic[] {
+  const tokenSlots = resolvedContributions.flatMap((contribution) => contribution.widgetTokenSlots ?? []);
+  const slot = assignment.assignment.slot;
+  if (tokenSlots.some((tokenSlot) => tokenSlot.name === slot)) return [];
+
+  const widgetRef = assignment.assignment.widgetRef;
+  const declaredSlots = [...new Set(tokenSlots.map((tokenSlot) => tokenSlot.name))].sort();
+  const details: Record<string, unknown> = {
+    moduleId: widgetRef.moduleId,
+    widgetName: widgetRef.widgetName,
+    slot,
+    reason: declaredSlots.length > 0 ? 'undeclared-slot' : 'no-token-slot-evidence',
+  };
+  if (declaredSlots.length > 0) details.declaredSlots = declaredSlots;
+
+  const relatedSources = tokenSlotSources(tokenSlots);
+  return [diagnostic(
+    'THEME-TOKEN-SLOT',
+    'A Theme token assignment targets a token slot not declared by the widget.',
+    evidenceSource(evidence, `/theme/assignments/${assignment.index}/slot`),
+    relatedSources.length > 0 ? relatedSources : undefined,
+    details,
+  )];
 }
 
 export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnostic[] {

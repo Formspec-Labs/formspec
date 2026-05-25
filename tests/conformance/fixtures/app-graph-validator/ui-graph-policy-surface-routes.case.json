@@ -523,7 +523,7 @@
     },
     {
       "id": "deferred-policy-families-not-emitted",
-      "description": "Locale ownership and Theme token-slot families remain deferred when Surface route policy checks pass.",
+      "description": "Locale ownership and Theme token-slot families are not emitted by the Surface route fixture when their required evidence is absent.",
       "request": {
         "manifest": "manifest",
         "artifacts": {

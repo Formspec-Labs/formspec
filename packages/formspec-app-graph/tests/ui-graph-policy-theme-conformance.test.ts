@@ -134,7 +134,6 @@ describe('UI Graph Policy Theme widget source conformance fixtures', () => {
       expect(report.phases).toContainEqual({ phase: 'cross-artifact', status: 'completed' });
       expect(report.summary.skippedPhases).toBe(testCase.expected.summary.skippedPhases);
       expect(report.diagnostics).toHaveLength(testCase.expected.diagnostics.length);
-      expect(report.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain('THEME-TOKEN-SLOT');
 
       for (const [index, expected] of testCase.expected.diagnostics.entries()) {
         const actual = report.diagnostics[index];
