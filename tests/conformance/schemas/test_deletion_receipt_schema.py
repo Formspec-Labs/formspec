@@ -41,6 +41,7 @@ def test_cryptographic_method_requires_signed_receipt_evidence() -> None:
 
     assert {"required": ["receiptBytes"]} in cryptographic_method["anyOf"]
     assert {"required": ["verificationReceiptRef"]} in cryptographic_method["anyOf"]
+    assert cryptographic_method["properties"]["receiptBytes"]["minLength"] == 1
 
 
 def test_valid_fixture_passes() -> None:
@@ -59,6 +60,7 @@ def test_verification_receipt_reference_can_carry_signed_evidence() -> None:
 @pytest.mark.parametrize(
     "fixture_name",
     [
+        "invalid-empty-receipt-bytes.json",
         "invalid-raw-erased-value.json",
         "invalid-respondent-signer.json",
         "invalid-unsigned-receipt.json",
