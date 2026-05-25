@@ -18,6 +18,7 @@ import {
   diagnosticSourceForHandle,
   normalizeDiagnostics,
 } from './report.js';
+import { validateComponentRouteTargets } from './component-routes.js';
 
 export function artifactHandlesFor(request: AppGraphValidationRequest): ResolvedArtifactHandle[] {
   const siblings = Object.values(request.artifacts ?? {}).flatMap((handles) => handles ?? []);
@@ -116,7 +117,11 @@ function runCrossArtifactValidators(
   handles: readonly ResolvedArtifactHandle[],
   schemaResults: readonly AppGraphSchemaResult[],
 ): AppGraphDiagnostic[] {
-  return (validators ?? []).flatMap((validator) => validator({
+  const allValidators = [
+    validateComponentRouteTargets,
+    ...(validators ?? []),
+  ];
+  return allValidators.flatMap((validator) => validator({
     manifest: request.manifest,
     handles: [...handles],
     schemaResults: [...schemaResults],
@@ -185,10 +190,8 @@ export function validateAppGraph(request: AppGraphValidationRequest) {
     crossArtifactStatus = phaseStatus('cross-artifact', 'skipped', 'unresolved-artifacts');
   } else if (schemaFailures) {
     crossArtifactStatus = phaseStatus('cross-artifact', 'skipped', 'schema-errors');
-  } else if (schemaNotRun && request.crossArtifactValidators?.length) {
+  } else if (schemaNotRun) {
     crossArtifactStatus = phaseStatus('cross-artifact', 'skipped', schemaStatus.reason ?? 'schema-not-run');
-  } else if (!request.crossArtifactValidators?.length) {
-    crossArtifactStatus = phaseStatus('cross-artifact', 'not-run', 'no-cross-artifact-validators');
   } else {
     crossArtifactStatus = phaseStatus('cross-artifact', 'completed');
     crossDiagnostics = runCrossArtifactValidators(request.crossArtifactValidators, request, handles, schemaResults);
