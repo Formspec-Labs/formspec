@@ -1,0 +1,131 @@
+{
+  "$formspecReviewThread": "1.0",
+  "threadId": "urn:formspec:review-thread:demo:001",
+  "draftRef": {
+    "formUrl": "https://example.gov/forms/benefits-intake",
+    "formVersion": "1.2.0",
+    "subjectRef": "draft-7f6a"
+  },
+  "draftSnapshot": {
+    "capturedAt": "2026-05-25T16:00:00Z",
+    "responseHash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "fields": [
+      {
+        "fieldPointer": "/income/annualGross",
+        "fieldKey": "income.annualGross",
+        "label": "Annual gross income",
+        "respondentOnly": false,
+        "value": 41000,
+        "valueHashAtSnapshot": "sha256:abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+      },
+      {
+        "fieldPointer": "/household/ssn",
+        "fieldKey": "household.ssn",
+        "label": "Social Security number",
+        "respondentOnly": true
+      }
+    ]
+  },
+  "policySnapshot": {
+    "posture": "suggest-allowed",
+    "allowedRoles": ["cpa", "advocate"],
+    "reviewerAssuranceFloor": "L2",
+    "maxActiveSharesPerDraft": 3,
+    "defaultShareExpiresAtRule": "72h",
+    "respondentOnlyFieldPointers": ["/household/ssn"],
+    "reviewerSessionBindingRef": "trusted-reviewer/reviewer-session/default",
+    "reviewThreadStoreBindingRef": "trusted-reviewer/review-thread-store/default"
+  },
+  "shares": [
+    {
+      "shareId": "urn:formspec:review-share:demo:001",
+      "threadId": "urn:formspec:review-thread:demo:001",
+      "grantedScope": "view+comment+suggest",
+      "capabilityUrl": "https://review.example.gov/r/demo-token",
+      "audienceHint": "CPA reviewer",
+      "createdAt": "2026-05-25T16:05:00Z",
+      "expiresAt": "2026-05-28T16:05:00Z"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "urn:formspec:review-event:demo:001",
+      "threadId": "urn:formspec:review-thread:demo:001",
+      "occurredAt": "2026-05-25T16:06:00Z",
+      "author": {
+        "kind": "respondent",
+        "displayName": "Applicant"
+      },
+      "payload": {
+        "type": "share-minted",
+        "shareId": "urn:formspec:review-share:demo:001",
+        "audienceHint": "CPA reviewer"
+      }
+    },
+    {
+      "eventId": "urn:formspec:review-event:demo:002",
+      "threadId": "urn:formspec:review-thread:demo:001",
+      "occurredAt": "2026-05-25T16:20:00Z",
+      "author": {
+        "kind": "reviewer",
+        "shareId": "urn:formspec:review-share:demo:001",
+        "displayName": "CPA reviewer",
+        "identityBindingRef": "urn:formspec:identity-binding:reviewer:001"
+      },
+      "payload": {
+        "type": "comment-added",
+        "anchor": {
+          "fieldPointer": "/income/annualGross",
+          "valueHashAtAnchor": "sha256:abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+        },
+        "body": "Confirm this amount matches the W-2 total."
+      }
+    },
+    {
+      "eventId": "urn:formspec:review-event:demo:003",
+      "threadId": "urn:formspec:review-thread:demo:001",
+      "occurredAt": "2026-05-25T16:21:00Z",
+      "author": {
+        "kind": "reviewer",
+        "shareId": "urn:formspec:review-share:demo:001",
+        "displayName": "CPA reviewer"
+      },
+      "payload": {
+        "type": "suggestion-added",
+        "anchor": {
+          "fieldPointer": "/income/annualGross"
+        },
+        "proposedValue": 42000,
+        "rationale": "W-2 box 1 shows 42000."
+      }
+    },
+    {
+      "eventId": "urn:formspec:review-event:demo:004",
+      "threadId": "urn:formspec:review-thread:demo:001",
+      "occurredAt": "2026-05-25T16:30:00Z",
+      "author": {
+        "kind": "respondent",
+        "displayName": "Applicant"
+      },
+      "payload": {
+        "type": "suggestion-accepted",
+        "suggestionEventId": "urn:formspec:review-event:demo:003",
+        "appliedValue": 42000
+      }
+    }
+  ],
+  "hashChain": [
+    {
+      "eventIndex": 0,
+      "eventHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "priorEventHash": null
+    },
+    {
+      "eventIndex": 1,
+      "eventHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "priorEventHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "createdAt": "2026-05-25T16:00:00Z",
+  "updatedAt": "2026-05-25T16:30:00Z"
+}

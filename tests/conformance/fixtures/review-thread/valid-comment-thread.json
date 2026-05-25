@@ -1,0 +1,42 @@
+{
+  "$formspecReviewThread": "1.0",
+  "threadId": "urn:formspec:review-thread:demo:comment-only",
+  "draftRef": {
+    "formUrl": "https://example.gov/forms/benefits-intake",
+    "formVersion": "1.2.0",
+    "subjectRef": "draft-comment-only"
+  },
+  "policySnapshot": {
+    "posture": "comment-allowed",
+    "respondentOnlyFieldPointers": []
+  },
+  "shares": [
+    {
+      "shareId": "urn:formspec:review-share:demo:comment-only",
+      "threadId": "urn:formspec:review-thread:demo:comment-only",
+      "grantedScope": "view+comment",
+      "capabilityUrl": "https://review.example.gov/r/comment-only",
+      "createdAt": "2026-05-25T16:05:00Z"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "urn:formspec:review-event:demo:comment-only-1",
+      "threadId": "urn:formspec:review-thread:demo:comment-only",
+      "occurredAt": "2026-05-25T16:20:00Z",
+      "author": {
+        "kind": "reviewer",
+        "shareId": "urn:formspec:review-share:demo:comment-only",
+        "displayName": "Family reviewer"
+      },
+      "payload": {
+        "type": "comment-added",
+        "anchor": {
+          "fieldPointer": "/mailingAddress"
+        },
+        "body": "This address looks like the old apartment."
+      }
+    }
+  ],
+  "createdAt": "2026-05-25T16:00:00Z"
+}

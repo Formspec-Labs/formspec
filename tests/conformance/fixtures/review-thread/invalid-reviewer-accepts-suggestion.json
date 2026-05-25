@@ -1,0 +1,38 @@
+{
+  "$formspecReviewThread": "1.0",
+  "threadId": "urn:formspec:review-thread:demo:invalid-reviewer-accepts",
+  "draftRef": {
+    "formUrl": "https://example.gov/forms/benefits-intake"
+  },
+  "policySnapshot": {
+    "posture": "suggest-allowed",
+    "respondentOnlyFieldPointers": []
+  },
+  "shares": [
+    {
+      "shareId": "urn:formspec:review-share:demo:invalid-reviewer-accepts",
+      "threadId": "urn:formspec:review-thread:demo:invalid-reviewer-accepts",
+      "grantedScope": "view+comment+suggest",
+      "capabilityUrl": "https://review.example.gov/r/invalid-reviewer-accepts",
+      "createdAt": "2026-05-25T16:05:00Z"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "urn:formspec:review-event:demo:invalid-reviewer-accepts-1",
+      "threadId": "urn:formspec:review-thread:demo:invalid-reviewer-accepts",
+      "occurredAt": "2026-05-25T16:22:00Z",
+      "author": {
+        "kind": "reviewer",
+        "shareId": "urn:formspec:review-share:demo:invalid-reviewer-accepts",
+        "displayName": "Reviewer"
+      },
+      "payload": {
+        "type": "suggestion-accepted",
+        "suggestionEventId": "urn:formspec:review-event:demo:suggestion-1",
+        "appliedValue": "reviewer-applied"
+      }
+    }
+  ],
+  "createdAt": "2026-05-25T16:00:00Z"
+}

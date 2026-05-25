@@ -356,6 +356,25 @@
       ]
     },
     {
+      "spec": "specs/review-thread/review-thread-spec.md",
+      "schema": "schemas/review-thread.schema.json",
+      "bluf": "specs/review-thread/review-thread-spec.bluf.md",
+      "llm": "specs/review-thread/review-thread-spec.llm.md",
+      "behaviorEssentials": [
+        "Review Thread documents are SC-6 sidecars for trusted-reviewer comments, suggestions, share lifecycle records, and respondent decisions.",
+        "The thread is bound to a draft and lives outside the signed Response bytes; comments and suggestions MUST NOT alter the Response canonical signed-payload preimage.",
+        "The policy snapshot distinguishes comment-only threads from suggestion-capable threads and pins respondent-only field pointers for adapter enforcement.",
+        "Suggestion application and share lifecycle decisions are respondent-authored events; reviewer suggestions are proposals only.",
+        "Events are append-only, with optional hash-chain rows for verifier-grade continuity."
+      ],
+      "conformanceEssentials": [
+        "A conforming Review Thread document must include $formspecReviewThread=1.0, threadId, draftRef, createdAt, policySnapshot, shares, and events.",
+        "Processors must reject suggestion events under comment-allowed policy snapshots.",
+        "Processors must reject reviewer-authored suggestion acceptance or decline, and respondent-authored suggestion creation.",
+        "Processors must preserve the sidecar/Response separation and enforce respondent-only suggestion refusal in the adapter layer."
+      ]
+    },
+    {
       "spec": "specs/experience/experience-spec.md",
       "schema": "schemas/experience.schema.json",
       "bluf": "specs/experience/experience-spec.bluf.md",

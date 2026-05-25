@@ -1,0 +1,5 @@
+- Review Thread is the SC-6 sidecar for trusted-reviewer comments, suggestions, share lifecycle, and respondent decisions; it lives outside the signed Response bytes.
+- A valid Review Thread document requires `$formspecReviewThread`, `threadId`, `draftRef`, `createdAt`, `policySnapshot`, `shares`, and append-only `events`.
+- Reviewer shares are scoped capability records; review content lives in the thread event log, while capability URL minting and redemption remain a ReviewerSession concern.
+- Suggestion application and share lifecycle decisions are respondent-authored events; reviewer-authored suggestions are proposals only and never mutate the Response directly.
+- Processors must preserve the sidecar/Response separation: deleting, rotating, or hashing the thread must not invalidate a signed Response unless the respondent separately opts into a receipt hook.

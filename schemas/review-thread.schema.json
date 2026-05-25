@@ -1,0 +1,753 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/review-thread/1.0",
+  "title": "Formspec Review Thread",
+  "description": "A draft-scoped sidecar for FW-0042 / SC-6 trusted-reviewer comments, suggestions, share lifecycle records, and respondent decisions. Review Thread documents live outside signed Response bytes and bind to a draft, not to the signed Response payload.",
+  "type": "object",
+  "required": [
+    "$formspecReviewThread",
+    "threadId",
+    "draftRef",
+    "policySnapshot",
+    "shares",
+    "events",
+    "createdAt"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "policySnapshot": {
+            "properties": {
+              "posture": {
+                "const": "comment-allowed"
+              }
+            },
+            "required": ["posture"]
+          }
+        },
+        "required": ["policySnapshot"]
+      },
+      "then": {
+        "properties": {
+          "events": {
+            "items": {
+              "not": {
+                "properties": {
+                  "payload": {
+                    "properties": {
+                      "type": {
+                        "const": "suggestion-added"
+                      }
+                    },
+                    "required": ["type"]
+                  }
+                },
+                "required": ["payload"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "$formspecReviewThread": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Review Thread specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Document marker for the SC-6 Review Thread sidecar"
+      }
+    },
+    "threadId": {
+      "type": "string",
+      "format": "uri",
+      "description": "Stable URI identifying this review thread. Slice 1 uses one thread per draft.",
+      "examples": ["urn:formspec:review-thread:demo:001"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Portable thread identity bound to a draft, not a signed Response"
+      }
+    },
+    "draftRef": {
+      "$ref": "#/$defs/DraftRef",
+      "description": "Draft and form binding for the draft under review.",
+      "examples": [
+        {
+          "formUrl": "https://example.gov/forms/benefits-intake",
+          "formVersion": "1.2.0",
+          "subjectRef": "draft-7f6a"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Binds the sidecar to the draft/form context without embedding Response bytes"
+      }
+    },
+    "draftSnapshot": {
+      "$ref": "#/$defs/DraftSnapshot",
+      "description": "Optional bounded snapshot used by reviewer shells to render field labels, visible values, respondent-only masks, and anchors."
+    },
+    "policySnapshot": {
+      "$ref": "#/$defs/PolicySnapshot",
+      "description": "Trusted-reviewer resolved-policy snapshot captured when the thread is created.",
+      "examples": [
+        {
+          "posture": "suggest-allowed",
+          "respondentOnlyFieldPointers": ["/household/ssn"]
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Pins reviewer posture and respondent-only field pointers for the lifetime of the share"
+      }
+    },
+    "shares": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReviewerShare"
+      },
+      "description": "Capability shares ever minted for this thread. Revoked shares remain listed with revokedAt.",
+      "examples": [
+        [
+          {
+            "shareId": "urn:formspec:review-share:demo:001",
+            "threadId": "urn:formspec:review-thread:demo:001",
+            "grantedScope": "view+comment",
+            "capabilityUrl": "https://review.example.gov/r/demo-token",
+            "createdAt": "2026-05-25T16:05:00Z"
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Records share lifecycle metadata separately from review content"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReviewThreadEvent"
+      },
+      "description": "Append-only review event log. Processors append events rather than rewriting comments, suggestions, or decisions.",
+      "examples": [
+        [
+          {
+            "eventId": "urn:formspec:review-event:demo:001",
+            "threadId": "urn:formspec:review-thread:demo:001",
+            "occurredAt": "2026-05-25T16:20:00Z",
+            "author": {
+              "kind": "reviewer",
+              "shareId": "urn:formspec:review-share:demo:001",
+              "displayName": "Reviewer"
+            },
+            "payload": {
+              "type": "comment-added",
+              "anchor": {
+                "fieldPointer": "/income/annualGross"
+              },
+              "body": "Confirm this amount."
+            }
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Carries comments, suggestions, respondent decisions, and share lifecycle events outside signed Response bytes"
+      }
+    },
+    "hashChain": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/HashChainEntry"
+      },
+      "description": "Optional event-level continuity records for verifier-grade threads."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp when the thread was created.",
+      "examples": ["2026-05-25T16:00:00Z"]
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp of the last thread update."
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "UriString": {
+      "type": "string",
+      "format": "uri"
+    },
+    "HashString": {
+      "type": "string",
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$",
+      "description": "Algorithm-prefixed SHA-256 digest string."
+    },
+    "JsonPointer": {
+      "type": "string",
+      "pattern": "^(?:|/(?:[^~/]|~0|~1)*)*$",
+      "description": "RFC 6901 JSON Pointer."
+    },
+    "DraftRef": {
+      "type": "object",
+      "required": ["formUrl"],
+      "additionalProperties": false,
+      "properties": {
+        "formUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URL of the Formspec Definition used by the draft."
+        },
+        "formVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Definition version pinned when the thread was created."
+        },
+        "subjectRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Draft identifier or subject reference in the host runtime."
+        },
+        "partyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional party scope for multi-party drafts."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "PolicySnapshot": {
+      "type": "object",
+      "required": ["posture", "respondentOnlyFieldPointers"],
+      "additionalProperties": false,
+      "properties": {
+        "posture": {
+          "type": "string",
+          "enum": ["comment-allowed", "suggest-allowed"],
+          "description": "Trusted-reviewer posture captured when the thread was created. Forbidden forms do not create threads.",
+          "examples": ["comment-allowed", "suggest-allowed"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Distinguishes comment-only threads from suggestion-capable threads"
+          }
+        },
+        "allowedRoles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "description": "Optional resolved reviewer roles after form/org policy intersection."
+        },
+        "reviewerAssuranceFloor": {
+          "type": "string",
+          "enum": ["L1", "L2", "L3", "L4"],
+          "description": "Optional reviewer identity assurance floor required by policy."
+        },
+        "maxActiveSharesPerDraft": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optional active-share limit captured from policy."
+        },
+        "defaultShareExpiresAtRule": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional human-readable or implementation-defined expiry rule captured from policy."
+        },
+        "respondentOnlyFieldPointers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonPointer"
+          },
+          "uniqueItems": true,
+          "description": "Field pointers masked from reviewers. Adapters must reject suggestions anchored to these pointers.",
+          "examples": [["/household/ssn", "/safeAddress/street"]],
+          "x-lm": {
+            "critical": true,
+            "intent": "Pins safe/respondent-only fields where reviewer suggestions are forbidden"
+          }
+        },
+        "reviewerSessionBindingRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional runtime binding reference for the ReviewerSession adapter."
+        },
+        "reviewThreadStoreBindingRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional runtime binding reference for the ReviewThreadStore adapter."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ReviewerScope": {
+      "type": "string",
+      "enum": ["view", "view+comment", "view+comment+suggest"]
+    },
+    "ReviewerShare": {
+      "type": "object",
+      "required": ["shareId", "threadId", "grantedScope", "capabilityUrl", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "shareId": {
+          "type": "string",
+          "format": "uri",
+          "description": "Stable URI identifying the share."
+        },
+        "threadId": {
+          "type": "string",
+          "format": "uri",
+          "description": "Thread this share grants access to."
+        },
+        "grantedScope": {
+          "$ref": "#/$defs/ReviewerScope",
+          "description": "Scope granted by the capability URL after policy bounding."
+        },
+        "capabilityUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Capability URL minted by ReviewerSession. The URL is a scoped bearer credential."
+        },
+        "audienceHint": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Free-text respondent-supplied reviewer hint; not authoritative identity."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revokedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revokedReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "partyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional party scope for multi-party drafts."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "DraftSnapshot": {
+      "type": "object",
+      "required": ["capturedAt", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "responseHash": {
+          "$ref": "#/$defs/HashString",
+          "description": "Optional hash of the bounded draft snapshot used by reviewer rendering."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldSnapshot"
+          }
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "FieldSnapshot": {
+      "type": "object",
+      "required": ["fieldPointer", "fieldKey", "label", "respondentOnly"],
+      "additionalProperties": false,
+      "properties": {
+        "fieldPointer": {
+          "$ref": "#/$defs/JsonPointer"
+        },
+        "fieldKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "respondentOnly": {
+          "type": "boolean"
+        },
+        "value": true,
+        "valueHashAtSnapshot": {
+          "$ref": "#/$defs/HashString"
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ReviewThreadAuthor": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "respondent"
+            },
+            "subjectRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "displayName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "shareId", "displayName"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "reviewer"
+            },
+            "shareId": {
+              "type": "string",
+              "format": "uri",
+              "description": "ReviewerShare that authorized this reviewer-authored event."
+            },
+            "displayName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "identityBindingRef": {
+              "type": "string",
+              "format": "uri",
+              "description": "Optional reference to Tier-2 identity-binding evidence."
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        }
+      ]
+    },
+    "FieldAnchor": {
+      "type": "object",
+      "required": ["fieldPointer"],
+      "additionalProperties": false,
+      "properties": {
+        "fieldPointer": {
+          "$ref": "#/$defs/JsonPointer",
+          "description": "JSON Pointer to the field in the Response value space."
+        },
+        "valueHashAtAnchor": {
+          "$ref": "#/$defs/HashString",
+          "description": "Optional hash of the field value at anchor time for stale-marker computation."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ReviewThreadPayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "shareId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "share-minted"
+            },
+            "shareId": {
+              "type": "string",
+              "format": "uri"
+            },
+            "audienceHint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "shareId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "share-revoked"
+            },
+            "shareId": {
+              "type": "string",
+              "format": "uri"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "anchor", "body"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "comment-added"
+            },
+            "anchor": {
+              "$ref": "#/$defs/FieldAnchor"
+            },
+            "body": {
+              "type": "string",
+              "minLength": 1
+            },
+            "replyTo": {
+              "type": "string",
+              "format": "uri",
+              "description": "Optional eventId this comment replies to."
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "eventId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "comment-resolved"
+            },
+            "eventId": {
+              "type": "string",
+              "format": "uri",
+              "description": "Comment event being resolved."
+            },
+            "resolution": {
+              "type": "string",
+              "minLength": 1
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "anchor", "proposedValue"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "suggestion-added"
+            },
+            "anchor": {
+              "$ref": "#/$defs/FieldAnchor"
+            },
+            "proposedValue": true,
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "suggestionEventId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "suggestion-accepted"
+            },
+            "suggestionEventId": {
+              "type": "string",
+              "format": "uri"
+            },
+            "appliedValue": true,
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "suggestionEventId"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "suggestion-declined"
+            },
+            "suggestionEventId": {
+              "type": "string",
+              "format": "uri"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "extensions": {
+              "$ref": "#/$defs/Extensions"
+            }
+          }
+        }
+      ]
+    },
+    "ReviewThreadEvent": {
+      "type": "object",
+      "required": ["eventId", "threadId", "occurredAt", "author", "payload"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "type": {
+                    "enum": [
+                      "share-minted",
+                      "share-revoked",
+                      "suggestion-accepted",
+                      "suggestion-declined"
+                    ]
+                  }
+                },
+                "required": ["type"]
+              }
+            },
+            "required": ["payload"]
+          },
+          "then": {
+            "properties": {
+              "author": {
+                "properties": {
+                  "kind": {
+                    "const": "respondent"
+                  }
+                },
+                "required": ["kind"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "type": {
+                    "const": "suggestion-added"
+                  }
+                },
+                "required": ["type"]
+              }
+            },
+            "required": ["payload"]
+          },
+          "then": {
+            "properties": {
+              "author": {
+                "properties": {
+                  "kind": {
+                    "const": "reviewer"
+                  }
+                },
+                "required": ["kind", "shareId"]
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uri",
+          "description": "Stable URI identifying this event."
+        },
+        "threadId": {
+          "type": "string",
+          "format": "uri",
+          "description": "Thread this event belongs to."
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "author": {
+          "$ref": "#/$defs/ReviewThreadAuthor"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReviewThreadPayload"
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "HashChainEntry": {
+      "type": "object",
+      "required": ["eventIndex", "eventHash", "priorEventHash"],
+      "additionalProperties": false,
+      "properties": {
+        "eventIndex": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eventHash": {
+          "$ref": "#/$defs/HashString"
+        },
+        "priorEventHash": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HashString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    }
+  }
+}

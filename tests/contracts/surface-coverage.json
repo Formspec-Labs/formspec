@@ -534,6 +534,23 @@
         "disabled scroll gates, bulk apply, and local preimage forks are rejected"
       ]
     },
+    "review-thread": {
+      "status": "enforced",
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "W1.7 Review Thread is the SC-6 formspec-side sidecar contract consumed by FW-0113. This slice proves schema, fixtures, generated spec artifacts, and contract metadata; runtime ports and adapters live in formspec-web.",
+      "spec": "specs/review-thread/review-thread-spec.md",
+      "schema": "schemas/review-thread.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_review_thread_schema.py"
+      ],
+      "crates": [],
+      "packages": {},
+      "checks": [
+        "Review Thread schema and fixtures are exercised by conformance tests",
+        "the schema preserves sidecar separation from signed Response bytes",
+        "comment-only policy rejects suggestion events and respondent-only decisions are respondent-authored"
+      ]
+    },
     "experience": {
       "status": "enforced",
       "spec": "specs/experience/experience-spec.md",

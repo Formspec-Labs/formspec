@@ -1,0 +1,31 @@
+{
+  "$formspecReviewThread": "1.0",
+  "threadId": "urn:formspec:review-thread:demo:invalid-missing-share",
+  "draftRef": {
+    "formUrl": "https://example.gov/forms/benefits-intake"
+  },
+  "policySnapshot": {
+    "posture": "suggest-allowed",
+    "respondentOnlyFieldPointers": []
+  },
+  "shares": [],
+  "events": [
+    {
+      "eventId": "urn:formspec:review-event:demo:invalid-missing-share-1",
+      "threadId": "urn:formspec:review-thread:demo:invalid-missing-share",
+      "occurredAt": "2026-05-25T16:22:00Z",
+      "author": {
+        "kind": "reviewer",
+        "displayName": "Reviewer"
+      },
+      "payload": {
+        "type": "comment-added",
+        "anchor": {
+          "fieldPointer": "/income/annualGross"
+        },
+        "body": "Looks good."
+      }
+    }
+  ],
+  "createdAt": "2026-05-25T16:00:00Z"
+}
