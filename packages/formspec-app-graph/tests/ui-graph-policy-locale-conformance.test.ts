@@ -9,6 +9,7 @@ import {
   type AppGraphValidationRequest,
   type ResolvedArtifactHandle,
 } from '../src/index.js';
+import type { ModuleResolutionReport } from '@formspec-org/types';
 
 interface FixturePolicy {
   schemaId: string;
@@ -18,6 +19,9 @@ interface FixturePolicy {
 
 interface FixtureDiagnostic {
   code: string;
+  severity?: AppGraphDiagnostic['severity'];
+  phase?: AppGraphDiagnostic['phase'];
+  origin?: AppGraphDiagnostic['origin'];
   primarySource?: AppGraphDiagnostic['primarySource'];
   relatedSources?: AppGraphDiagnostic['relatedSources'];
   details?: AppGraphDiagnostic['details'];
@@ -38,6 +42,7 @@ interface FixtureCase {
     hostEvidence?: {
       uiGraphPolicies?: string[];
     };
+    moduleResolution?: string;
   };
   expected: FixtureExpected;
 }
@@ -46,6 +51,7 @@ interface FixtureCorpus {
   id: string;
   handles: Record<string, ResolvedArtifactHandle>;
   policies: Record<string, FixturePolicy>;
+  moduleResolutionReports?: Record<string, ModuleResolutionReport>;
   cases: FixtureCase[];
 }
 
@@ -69,6 +75,12 @@ function policyFor(corpus: FixtureCorpus, key: string): FixturePolicy {
   return structuredClone(policy);
 }
 
+function moduleResolutionFor(corpus: FixtureCorpus, key: string): ModuleResolutionReport {
+  const report = corpus.moduleResolutionReports?.[key];
+  expect(report, `missing fixture module resolution report ${key}`).toBeDefined();
+  return structuredClone(report);
+}
+
 function requestFor(corpus: FixtureCorpus, testCase: FixtureCase): AppGraphValidationRequest {
   return {
     manifest: handleFor(corpus, testCase.request.manifest),
@@ -84,19 +96,30 @@ function requestFor(corpus: FixtureCorpus, testCase: FixtureCase): AppGraphValid
     },
     schemaValidators: () => ({ ok: true }),
     evidenceSchemaValidators: () => ({ ok: true }),
+    moduleResolution: testCase.request.moduleResolution
+      ? moduleResolutionFor(corpus, testCase.request.moduleResolution)
+      : undefined,
   };
 }
 
 function expectDiagnostic(actual: AppGraphDiagnostic, expected: FixtureDiagnostic): void {
   expect(actual).toMatchObject({
     code: expected.code,
-    severity: 'error',
-    phase: 'cross-artifact',
-    origin: 'ui-graph-policy',
+    severity: expected.severity ?? 'error',
+    phase: expected.phase ?? 'cross-artifact',
+    origin: expected.origin ?? 'ui-graph-policy',
   });
   expect(actual.primarySource).toEqual(expected.primarySource);
   expect(actual.relatedSources).toEqual(expected.relatedSources);
   expect(actual.details).toEqual(expected.details);
+  expect(actual.primarySource).toEqual(expect.not.objectContaining({
+    module: expect.anything(),
+  }));
+  for (const relatedSource of actual.relatedSources ?? []) {
+    expect(relatedSource).toEqual(expect.not.objectContaining({
+      module: expect.anything(),
+    }));
+  }
 }
 
 describe('UI Graph Policy Locale-owner source conformance fixtures', () => {
@@ -109,7 +132,7 @@ describe('UI Graph Policy Locale-owner source conformance fixtures', () => {
       expect(report.ok).toBe(testCase.expected.ok);
       expect(report.summary).toEqual(testCase.expected.summary);
       expect(report.phases).toContainEqual({ phase: 'cross-artifact', status: 'completed' });
-      expect(report.summary.skippedPhases).toBe(0);
+      expect(report.summary.skippedPhases).toBe(testCase.expected.summary.skippedPhases);
       expect(report.diagnostics).toHaveLength(testCase.expected.diagnostics.length);
 
       for (const [index, expected] of testCase.expected.diagnostics.entries()) {

@@ -6,8 +6,17 @@ import {
   type AppGraphSourcePointer,
   type ResolvedArtifactHandle,
 } from './types.js';
-import { diagnosticSourceForHandle } from './report.js';
-import type { LocaleDocument, SurfaceDocument, UiGraphPolicyDocument } from '@formspec-org/types';
+import {
+  appGraphSourceFromModuleSource,
+  diagnosticSourceForHandle,
+} from './report.js';
+import type {
+  LocaleDocument,
+  ModuleResolutionModule,
+  ModuleResolutionReport,
+  SurfaceDocument,
+  UiGraphPolicyDocument,
+} from '@formspec-org/types';
 
 type HiddenDefinitionRef = NonNullable<
   NonNullable<UiGraphPolicyDocument['routePolicies'][number]['definitionVisibility']>['hiddenDefinitionRefs']
@@ -330,10 +339,12 @@ function escapeJsonPointerToken(value: string): string {
 function validateLocaleKeyOwners(
   evidence: UiGraphPolicyEvidence,
   locales: readonly LoadedLocaleHandle[],
+  moduleResolution: ModuleResolutionReport | undefined,
 ): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const owners = localeKeyOwners(evidence.document);
   const collidingOwnerIndexes = new Set<number>();
+  const mismatchedOwnerIndexes = new Set<number>();
 
   for (const [rightIndex, right] of owners.entries()) {
     for (const left of owners.slice(0, rightIndex)) {
@@ -358,6 +369,7 @@ function validateLocaleKeyOwners(
   for (const owner of owners) {
     if (owner.keyPrefixModuleId === undefined || owner.keyPrefixModuleId === owner.moduleId) continue;
     if (collidingOwnerIndexes.has(owner.index)) continue;
+    mismatchedOwnerIndexes.add(owner.index);
     diagnostics.push(diagnostic(
       'LOCALE-KEY-OWNER-MODULE-MISMATCH',
       'A Locale key owner moduleId does not match its $module.* key prefix segment.',
@@ -370,6 +382,13 @@ function validateLocaleKeyOwners(
       },
     ));
   }
+
+  diagnostics.push(...validateLocaleOwnerModuleRefs(
+    evidence,
+    owners,
+    moduleResolution,
+    new Set([...collidingOwnerIndexes, ...mismatchedOwnerIndexes]),
+  ));
 
   for (const locale of locales) {
     const strings = locale.document?.strings ?? {};
@@ -389,6 +408,49 @@ function validateLocaleKeyOwners(
   return diagnostics;
 }
 
+function validateLocaleOwnerModuleRefs(
+  evidence: UiGraphPolicyEvidence,
+  owners: readonly IndexedLocaleKeyOwner[],
+  moduleResolution: ModuleResolutionReport | undefined,
+  skippedOwnerIndexes: ReadonlySet<number>,
+): AppGraphDiagnostic[] {
+  if (moduleResolution?.phase.status !== 'completed') return [];
+
+  const modulesById = new Map<string, ModuleResolutionModule[]>();
+  for (const entry of moduleResolution.modules) {
+    const matches = modulesById.get(entry.ref.id) ?? [];
+    matches.push(entry);
+    modulesById.set(entry.ref.id, matches);
+  }
+
+  return owners.flatMap((owner) => {
+    if (skippedOwnerIndexes.has(owner.index)) return [];
+    const matches = modulesById.get(owner.moduleId) ?? [];
+    if (matches.some((entry) => entry.status === 'admitted')) return [];
+
+    const reason = matches.length > 0 ? 'unadmitted-module' : 'missing-module';
+    const relatedSources = matches
+      .map((entry) => appGraphSourceFromModuleSource(entry.source))
+      .filter((source): source is AppGraphSourcePointer => source !== undefined);
+    const details: Record<string, unknown> = {
+      keyPrefix: owner.keyPrefix,
+      moduleId: owner.moduleId,
+      reason,
+    };
+    if (matches.length > 0) {
+      details.moduleStatuses = [...new Set(matches.map((entry) => entry.status))].sort();
+    }
+
+    return [diagnostic(
+      'LOCALE-KEY-OWNER-MODULE-REF',
+      'A Locale key owner moduleId is not admitted by ModuleResolver evidence.',
+      evidenceSource(evidence, `/localeKeyOwners/${owner.index}/moduleId`),
+      relatedSources.length > 0 ? relatedSources : undefined,
+      details,
+    )];
+  });
+}
+
 export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnostic[] {
   const surfaces = loadedSurfaceHandles(context.handles);
   const locales = loadedLocaleHandles(context.handles);
@@ -401,7 +463,7 @@ export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnos
     }
     return [
       ...validateRoutePolicies(evidence, matchingSurfaces[0], definitions, routePolicies(evidence.document)),
-      ...validateLocaleKeyOwners(evidence, locales),
+      ...validateLocaleKeyOwners(evidence, locales, context.moduleResolution),
     ];
   });
 }

@@ -26,11 +26,11 @@ The structural source contract is governed by
 `schemas/ui-graph-policy.schema.json`
 (`https://formspec.org/schemas/uiGraphPolicy/0.1`). This document intentionally
 does not define an App Manifest slot, runtime responsive behavior, renderer
-behavior, Studio wiring, ModuleResolver token-slot enforcement, Locale-owner
-module-id resolution, Theme token-slot enforcement, or hidden Definition
-runtime behavior. The shared AppGraphValidator kernel validates host-supplied UI
-Graph Policy evidence structurally and reports `evidenceResults[]`; it also
-emits the Surface/route, Locale-owner, and hidden Definition reference semantic
+behavior, Studio wiring, ModuleResolver token-slot enforcement, Theme token-slot
+enforcement, or hidden Definition runtime behavior. The shared AppGraphValidator
+kernel validates host-supplied UI Graph Policy evidence structurally and reports
+`evidenceResults[]`; it also emits the Surface/route, Locale-owner,
+Locale-owner ModuleResolver evidence, and hidden Definition reference semantic
 diagnostics named in this document.
 
 ## Bottom Line Up Front
@@ -38,7 +38,7 @@ diagnostics named in this document.
 <!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
 - UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice adds host-evidence schema result reporting plus Surface/route, Locale-owner, and hidden Definition AppGraphValidator enforcement; Theme token-slot, ModuleResolver, runtime hidden-state, and consumer checks remain later gates.
+- This slice adds host-evidence schema result reporting plus Surface/route, Locale-owner, Locale-owner ModuleResolver evidence, and hidden Definition AppGraphValidator enforcement; Theme token-slot, Registry token-slot, runtime hidden-state, and consumer checks remain later gates.
 - Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
@@ -338,10 +338,11 @@ choice until the Registry schema formally names it. The v4 spike's
 ## 6. Diagnostic Import
 
 The shared `AppGraphValidator` emits UI Graph Policy Surface/route,
-Locale-owner, and hidden Definition reference diagnostics as cross-artifact
-diagnostics after policy host evidence and loaded artifacts pass source schema
-validation. Theme token-slot, ModuleResolver/Registry, runtime hidden-state,
-Studio, MCP, projection, and consumer diagnostics remain later gates.
+Locale-owner, Locale-owner ModuleResolver evidence, and hidden Definition
+reference diagnostics as cross-artifact diagnostics after policy host evidence
+and loaded artifacts pass source schema validation. Theme token-slot, Registry
+token-slot, runtime hidden-state, Studio, MCP, projection, and consumer
+diagnostics remain later gates.
 
 | Field | Value |
 |---|---|
@@ -357,6 +358,7 @@ Initial diagnostic codes:
 | `LOCALE-KEY-OWNER` | error | A `$module.*` Locale key has no declared owner. |
 | `LOCALE-KEY-OWNER-COLLISION` | error | One Locale key prefix is claimed by different modules. |
 | `LOCALE-KEY-OWNER-MODULE-MISMATCH` | error | A Locale key owner `moduleId` does not match its `$module.*` key prefix segment. |
+| `LOCALE-KEY-OWNER-MODULE-REF` | error | A Locale key owner `moduleId` does not resolve to an admitted module in supplied ModuleResolver evidence. |
 | `UI-POLICY-ROUTE-MISSING` | error | Required route policy coverage is missing for a Surface route. |
 | `UI-POLICY-ROUTE-COLLISION` | error | More than one policy entry targets the same route. |
 | `UI-POLICY-ROUTE-REF` | error | A route policy references a route absent from the target Surface. |
@@ -369,17 +371,20 @@ Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
 `UI-POLICY-ROUTE-REF`, `UI-POLICY-RESPONSIVE-SLOT`,
 `UI-POLICY-HIDDEN-DEFINITION-REF`, `LOCALE-KEY-OWNER`,
-`LOCALE-KEY-OWNER-COLLISION`, and `LOCALE-KEY-OWNER-MODULE-MISMATCH`. Policy
-source pointers MUST use
+`LOCALE-KEY-OWNER-COLLISION`, `LOCALE-KEY-OWNER-MODULE-MISMATCH`, and
+`LOCALE-KEY-OWNER-MODULE-REF`. Policy source pointers MUST use
 `artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, opaque `source`, and
 `jsonPointer` only. Surface and Locale related sources may use normal resolved
-artifact handle pointers. The current Locale-owner executable slice checks
-loaded Locale `strings` keys with `$module.` prefixes for declared owner prefix
-coverage, checks policy-local owner prefix overlap across different `moduleId`
-values, and checks that a policy owner `moduleId` matches the module segment in
-its `keyPrefix`. It does not yet resolve module ids through ModuleResolver.
-Theme, Registry, ModuleResolver, runtime hidden-state, and authorization
-diagnostics are not emitted by this slice.
+artifact handle pointers. ModuleResolver related sources may use sanitized
+module-resolution source pointers that omit resolver-only `source.module`
+evidence. The current Locale-owner executable slice checks loaded Locale
+`strings` keys with `$module.` prefixes for declared owner prefix coverage,
+checks policy-local owner prefix overlap across different `moduleId` values,
+checks that a policy owner `moduleId` matches the module segment in its
+`keyPrefix`, and, when a completed `ModuleResolutionReport` is supplied, checks
+that each policy owner `moduleId` resolves to an admitted module. Theme,
+Registry token-slot, runtime hidden-state, and authorization diagnostics are not
+emitted by this slice.
 
 ## 7. Non-Goals and Boundaries
 
@@ -405,13 +410,14 @@ policy, but it does not supply permission semantics.
 ## 8. Closure Requirements
 
 This v0.1 draft defines the prose interface contract and structural source
-schema for the UI graph policy families. Production closure still requires:
+schema for the UI graph policy families. Current `AppGraphValidator` integration
+covers host-supplied policy evidence, Surface/route diagnostics, Locale-owner
+diagnostics including completed ModuleResolver evidence, and hidden Definition
+reference diagnostics. Production closure still requires the remaining gates:
 
-1. executable `AppGraphValidator` integration over host-supplied policy
-   evidence,
-2. executable validator conformance over the semantic fixture families,
-3. ModuleResolver/Registry token-slot evidence integration,
-4. Studio/authoring feedback,
-5. runtime enforcement for hidden Definition state where applicable, and
-6. an optional future App Manifest loading slot if the app package contract
+1. ModuleResolver/Registry token-slot evidence integration for Theme token slots,
+2. Studio/authoring feedback,
+3. runtime enforcement for hidden Definition state where applicable,
+4. consumer conformance for any future promoted UI Graph Policy gate, and
+5. an optional future App Manifest loading slot if the app package contract
    later chooses one.

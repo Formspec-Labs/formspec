@@ -667,6 +667,7 @@ describe('validateAppGraph', () => {
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('UI-POLICY-SURFACE-TARGET');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-MISMATCH');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-REF');
     expect(report.diagnostics).toContainEqual(expect.objectContaining({
       code: 'APP-GRAPH-SCHEMA',
       phase: 'schema',
@@ -732,6 +733,7 @@ describe('validateAppGraph', () => {
     });
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-MISMATCH');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-REF');
     expect(report.phases).toContainEqual({
       phase: 'cross-artifact',
       status: 'skipped',

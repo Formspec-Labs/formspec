@@ -1,5 +1,6 @@
 /** @filedesc Deterministic report helpers for AppGraphValidator output. */
 
+import type { ModuleResolutionSourcePointer } from '@formspec-org/types';
 import {
   APP_GRAPH_PHASES,
   type AppGraphDiagnostic,
@@ -73,6 +74,19 @@ export function diagnosticSourceForHandle(
     source: handle.source,
     jsonPointer,
     ref: handle.ref ? { ...handle.ref } : undefined,
+  };
+}
+
+export function appGraphSourceFromModuleSource(
+  source: ModuleResolutionSourcePointer | undefined,
+): AppGraphSourcePointer | undefined {
+  if (!source) return undefined;
+  return {
+    artifactSlot: source.artifactSlot,
+    artifactKind: source.artifactKind,
+    source: source.source,
+    jsonPointer: source.jsonPointer,
+    ref: source.ref ? { ...source.ref } : undefined,
   };
 }
 

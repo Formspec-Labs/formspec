@@ -2,7 +2,6 @@
 
 import type {
   ModuleResolutionDiagnostic,
-  ModuleResolutionSourcePointer,
 } from '@formspec-org/types';
 import {
   APP_GRAPH_PHASES,
@@ -23,6 +22,7 @@ import {
   type SchemaValidationOutcome,
 } from './types.js';
 import {
+  appGraphSourceFromModuleSource,
   compareDiagnostics,
   createAppGraphReport,
   diagnosticSourceForHandle,
@@ -280,19 +280,6 @@ function runCrossArtifactValidators(
     hostEvidence: request.hostEvidence,
     moduleResolution: request.moduleResolution,
   }));
-}
-
-function appGraphSourceFromModuleSource(
-  source: ModuleResolutionSourcePointer | undefined,
-): AppGraphSourcePointer | undefined {
-  if (!source) return undefined;
-  return {
-    artifactSlot: source.artifactSlot,
-    artifactKind: source.artifactKind,
-    source: source.source,
-    jsonPointer: source.jsonPointer,
-    ref: source.ref ? { ...source.ref } : undefined,
-  };
 }
 
 function moduleResolutionDiagnostic(diagnostic: ModuleResolutionDiagnostic): AppGraphDiagnostic {

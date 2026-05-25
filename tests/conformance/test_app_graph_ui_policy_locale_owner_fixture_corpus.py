@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from jsonschema import Draft202012Validator
+
+from tests.unit.support.schema_fixtures import load_schema
+
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_PATH = (
@@ -19,11 +23,18 @@ FIXTURE_PATH = (
 
 REQUIRED_CASES = {
     "valid-locale-owner",
+    "valid-locale-owner-with-admitted-module",
+    "missing-owner-module-ref",
+    "unadmitted-owner-module-ref",
+    "module-resolution-not-run-skips-module-ref",
+    "module-resolution-skipped-skips-module-ref",
     "missing-locale-owner",
     "exact-prefix-collision",
+    "prefix-collision-skips-module-ref",
     "overlap-prefix-collision",
     "same-module-overlap",
     "module-segment-mismatch",
+    "module-segment-mismatch-skips-module-ref",
     "non-module-locale-keys-ignored",
     "no-loaded-locales-no-missing-owner",
     "module-segment-mismatch-without-loaded-locales",
@@ -31,12 +42,19 @@ REQUIRED_CASES = {
 }
 
 EXPECTED_CODES = {
-    "missing-locale-owner": "LOCALE-KEY-OWNER",
-    "exact-prefix-collision": "LOCALE-KEY-OWNER-COLLISION",
-    "overlap-prefix-collision": "LOCALE-KEY-OWNER-COLLISION",
-    "module-segment-mismatch": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
-    "module-segment-mismatch-without-loaded-locales": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
-    "surface-target-mismatch-skips-locale-owner": "UI-POLICY-SURFACE-TARGET",
+    "missing-owner-module-ref": ["LOCALE-KEY-OWNER-MODULE-REF"],
+    "unadmitted-owner-module-ref": [
+        "MODULE-ADMISSION-DENIED",
+        "LOCALE-KEY-OWNER-MODULE-REF",
+    ],
+    "missing-locale-owner": ["LOCALE-KEY-OWNER"],
+    "exact-prefix-collision": ["LOCALE-KEY-OWNER-COLLISION"],
+    "prefix-collision-skips-module-ref": ["LOCALE-KEY-OWNER-COLLISION"],
+    "overlap-prefix-collision": ["LOCALE-KEY-OWNER-COLLISION"],
+    "module-segment-mismatch": ["LOCALE-KEY-OWNER-MODULE-MISMATCH"],
+    "module-segment-mismatch-skips-module-ref": ["LOCALE-KEY-OWNER-MODULE-MISMATCH"],
+    "module-segment-mismatch-without-loaded-locales": ["LOCALE-KEY-OWNER-MODULE-MISMATCH"],
+    "surface-target-mismatch-skips-locale-owner": ["UI-POLICY-SURFACE-TARGET"],
 }
 
 FORBIDDEN_KEYS = {
@@ -56,7 +74,6 @@ FORBIDDEN_KEYS = {
     "sourcePath",
     "trace",
     "traceIndex",
-    "moduleResolution",
     "uiGraphPolicy",
     "uiPolicy",
     "widgetPolicy",
@@ -88,9 +105,11 @@ DEFERRED_CODES = {
     "THEME-TOKEN-WIDGET",
     "THEME-TOKEN-SLOT",
     "UI-POLICY-HIDDEN-DEFINITION-REF",
-    "MODULE-RESOLVER-REF",
     "AUTHORIZATION-BOUNDARY",
 }
+
+MODULE_REPORT_SCHEMA = load_schema("module-resolution-report.schema.json")
+MODULE_REPORT_VALIDATOR = Draft202012Validator(MODULE_REPORT_SCHEMA)
 
 
 def _corpus() -> dict[str, Any]:
@@ -142,6 +161,13 @@ def _assert_locale_pointer(source: dict[str, Any]) -> None:
     assert "url" in source["ref"]
 
 
+def _assert_module_resolution_pointer(source: dict[str, Any]) -> None:
+    assert source["artifactSlot"] == "app"
+    assert source["artifactKind"] == "appManifest"
+    assert source["jsonPointer"].startswith("/modules/")
+    assert "module" not in source
+
+
 def test_ui_graph_policy_locale_owner_fixture_covers_required_cases() -> None:
     ids = {case["id"] for case in _corpus()["cases"]}
     assert ids == REQUIRED_CASES
@@ -151,6 +177,7 @@ def test_ui_graph_policy_locale_owner_fixture_sources_are_explicit() -> None:
     corpus = _corpus()
     handles = corpus["handles"]
     policies = corpus["policies"]
+    module_reports = corpus["moduleResolutionReports"]
     for handle in handles.values():
         _assert_loaded_handle(handle)
     for policy in policies.values():
@@ -165,6 +192,14 @@ def test_ui_graph_policy_locale_owner_fixture_sources_are_explicit() -> None:
                 assert handle_ref in handles
         for policy_ref in case["request"]["hostEvidence"]["uiGraphPolicies"]:
             assert policy_ref in policies
+        module_report_ref = case["request"].get("moduleResolution")
+        if module_report_ref is not None:
+            assert module_report_ref in module_reports
+
+
+def test_ui_graph_policy_locale_owner_module_resolution_reports_are_valid() -> None:
+    for report in _corpus()["moduleResolutionReports"].values():
+        MODULE_REPORT_VALIDATOR.validate(report)
 
 
 def test_ui_graph_policy_locale_owner_expected_diagnostics_are_policy_owned() -> None:
@@ -175,20 +210,30 @@ def test_ui_graph_policy_locale_owner_expected_diagnostics_are_policy_owned() ->
         assert set(expected["summary"]) == SUMMARY_KEYS
         diagnostics = expected["diagnostics"]
         if case["id"] in EXPECTED_CODES:
-            assert len(diagnostics) == 1
-            assert diagnostics[0]["code"] == EXPECTED_CODES[case["id"]]
+            assert [diagnostic["code"] for diagnostic in diagnostics] == EXPECTED_CODES[case["id"]]
         else:
             assert diagnostics == []
         for diagnostic in diagnostics:
+            origin = diagnostic.get("origin", "ui-graph-policy")
+            phase = diagnostic.get("phase", "cross-artifact")
+            if origin == "module-resolver":
+                assert phase == "module-resolution"
+            else:
+                assert origin == "ui-graph-policy"
+                assert phase == "cross-artifact"
             primary = diagnostic.get("primarySource")
             assert isinstance(primary, dict)
             if primary["artifactSlot"].startswith("hostEvidence."):
                 _assert_policy_pointer(primary)
             if primary["artifactSlot"].startswith("locales["):
                 _assert_locale_pointer(primary)
+            if primary["artifactSlot"] == "app":
+                _assert_module_resolution_pointer(primary)
             for related in diagnostic.get("relatedSources", []):
                 if related["artifactSlot"].startswith("hostEvidence."):
                     _assert_policy_pointer(related)
+                if related["artifactSlot"] == "app":
+                    _assert_module_resolution_pointer(related)
 
 
 def test_ui_graph_policy_locale_owner_fixture_keeps_deferred_families_out() -> None:
@@ -203,6 +248,9 @@ def test_ui_graph_policy_locale_owner_fixture_keeps_deferred_families_out() -> N
     )
     assert _case("module-segment-mismatch-without-loaded-locales")["expected"]["diagnostics"][0]["code"] == (
         "LOCALE-KEY-OWNER-MODULE-MISMATCH"
+    )
+    assert _case("missing-owner-module-ref")["expected"]["diagnostics"][0]["code"] == (
+        "LOCALE-KEY-OWNER-MODULE-REF"
     )
 
 

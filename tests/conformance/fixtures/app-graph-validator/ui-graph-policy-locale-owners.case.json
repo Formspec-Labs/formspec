@@ -300,6 +300,187 @@
       }
     }
   },
+  "moduleResolutionReports": {
+    "admitted-reviewer": {
+      "ok": true,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "admitted",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0",
+            "module": {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 1,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "missing-reviewer": {
+      "ok": true,
+      "modules": [],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 0,
+        "admittedModules": 0,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "denied-reviewer": {
+      "ok": false,
+      "modules": [
+        {
+          "ref": {
+            "id": "x-reviewer",
+            "version": "1.0.0"
+          },
+          "status": "denied",
+          "source": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0",
+            "module": {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          }
+        }
+      ],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [
+        {
+          "code": "MODULE-ADMISSION-DENIED",
+          "severity": "error",
+          "phase": "module-resolution",
+          "origin": "module-resolver",
+          "message": "Module x-reviewer is denied by host admission evidence.",
+          "primarySource": {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0",
+            "module": {
+              "id": "x-reviewer",
+              "version": "1.0.0"
+            }
+          },
+          "details": {
+            "moduleId": "x-reviewer"
+          }
+        }
+      ],
+      "summary": {
+        "modules": 1,
+        "admittedModules": 0,
+        "deniedModules": 1,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 1,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "completed"
+      }
+    },
+    "not-run-reviewer": {
+      "ok": true,
+      "modules": [],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 0,
+        "admittedModules": 0,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "not-run",
+        "reason": "no-module-evidence"
+      }
+    },
+    "skipped-reviewer": {
+      "ok": true,
+      "modules": [],
+      "documents": [],
+      "contributions": [],
+      "diagnostics": [],
+      "summary": {
+        "modules": 0,
+        "admittedModules": 0,
+        "deniedModules": 0,
+        "documents": 0,
+        "contributions": 0,
+        "unresolvedDependencies": 0,
+        "unresolvedContributions": 0,
+        "payloadFailures": 0,
+        "errors": 0,
+        "warnings": 0,
+        "infos": 0
+      },
+      "phase": {
+        "phase": "module-resolution",
+        "status": "skipped",
+        "reason": "support-disabled"
+      }
+    }
+  },
   "cases": [
     {
       "id": "valid-locale-owner",
@@ -307,11 +488,17 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"],
-          "locales": ["locale-reviewer"]
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["valid-owner"]
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
         }
       },
       "expected": {
@@ -333,16 +520,266 @@
       }
     },
     {
+      "id": "valid-locale-owner-with-admitted-module",
+      "description": "A policy owner whose moduleId resolves to an admitted ModuleResolver module emits no diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
+        },
+        "moduleResolution": "admitted-reviewer"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "missing-owner-module-ref",
+      "description": "A completed ModuleResolutionReport with no matching admitted module rejects the policy owner moduleId.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
+        },
+        "moduleResolution": "missing-reviewer"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-MODULE-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/valid-owner",
+              "jsonPointer": "/localeKeyOwners/0/moduleId"
+            },
+            "details": {
+              "keyPrefix": "$module.x-reviewer.",
+              "moduleId": "x-reviewer",
+              "reason": "missing-module"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unadmitted-owner-module-ref",
+      "description": "A policy owner moduleId that appears only as a non-admitted ModuleResolver module emits a policy diagnostic without duplicating resolver ownership.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
+        },
+        "moduleResolution": "denied-reviewer"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 2,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 1,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-ADMISSION-DENIED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "memory://app",
+              "jsonPointer": "/modules/0"
+            },
+            "details": {
+              "moduleId": "x-reviewer"
+            }
+          },
+          {
+            "code": "LOCALE-KEY-OWNER-MODULE-REF",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/valid-owner",
+              "jsonPointer": "/localeKeyOwners/0/moduleId"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "app",
+                "artifactKind": "appManifest",
+                "source": "memory://app",
+                "jsonPointer": "/modules/0"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.",
+              "moduleId": "x-reviewer",
+              "reason": "unadmitted-module",
+              "moduleStatuses": [
+                "denied"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "module-resolution-not-run-skips-module-ref",
+      "description": "A not-run ModuleResolutionReport does not trigger policy-local moduleId resolution diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
+        },
+        "moduleResolution": "not-run-reviewer"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "module-resolution-skipped-skips-module-ref",
+      "description": "A skipped ModuleResolutionReport does not trigger policy-local moduleId resolution diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
+        },
+        "moduleResolution": "skipped-reviewer"
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 1
+        },
+        "diagnostics": []
+      }
+    },
+    {
       "id": "missing-locale-owner",
       "description": "A loaded Locale $module.* key must match a declared owner prefix.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"],
-          "locales": ["locale-helper"]
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-helper"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["missing-owner"]
+          "uiGraphPolicies": [
+            "missing-owner"
+          ]
         }
       },
       "expected": {
@@ -394,11 +831,72 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": [
+            "surface-respondent"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["exact-prefix-collision"]
+          "uiGraphPolicies": [
+            "exact-prefix-collision"
+          ]
         }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-COLLISION",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/exact-prefix-collision",
+              "jsonPointer": "/localeKeyOwners/1/keyPrefix"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/exact-prefix-collision",
+                "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.case.",
+              "moduleId": "x-supervisor",
+              "conflictingKeyPrefix": "$module.x-reviewer.case.",
+              "conflictingModuleId": "x-reviewer"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "prefix-collision-skips-module-ref",
+      "description": "Policy-local prefix collision takes precedence over ModuleResolver-backed module ref diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "exact-prefix-collision"
+          ]
+        },
+        "moduleResolution": "missing-reviewer"
       },
       "expected": {
         "ok": false,
@@ -446,10 +944,14 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": [
+            "surface-respondent"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["overlap-prefix-collision"]
+          "uiGraphPolicies": [
+            "overlap-prefix-collision"
+          ]
         }
       },
       "expected": {
@@ -498,11 +1000,17 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"],
-          "locales": ["locale-reviewer"]
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["same-module-overlap"]
+          "uiGraphPolicies": [
+            "same-module-overlap"
+          ]
         }
       },
       "expected": {
@@ -529,12 +1037,77 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"],
-          "locales": ["locale-reviewer"]
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["module-segment-mismatch"]
+          "uiGraphPolicies": [
+            "module-segment-mismatch"
+          ]
         }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/module-segment-mismatch",
+              "jsonPointer": "/localeKeyOwners/0/moduleId"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/module-segment-mismatch",
+                "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.",
+              "moduleId": "x-helper",
+              "keyPrefixModuleId": "x-reviewer"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "module-segment-mismatch-skips-module-ref",
+      "description": "Policy-local keyPrefix/moduleId mismatch takes precedence over ModuleResolver-backed module ref diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-reviewer"
+          ]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": [
+            "module-segment-mismatch"
+          ]
+        },
+        "moduleResolution": "missing-reviewer"
       },
       "expected": {
         "ok": false,
@@ -581,11 +1154,17 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"],
-          "locales": ["locale-core-only"]
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-core-only"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["no-module-keys"]
+          "uiGraphPolicies": [
+            "no-module-keys"
+          ]
         }
       },
       "expected": {
@@ -612,10 +1191,14 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": [
+            "surface-respondent"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["valid-owner"]
+          "uiGraphPolicies": [
+            "valid-owner"
+          ]
         }
       },
       "expected": {
@@ -642,10 +1225,14 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"]
+          "surfaces": [
+            "surface-respondent"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["module-segment-mismatch"]
+          "uiGraphPolicies": [
+            "module-segment-mismatch"
+          ]
         }
       },
       "expected": {
@@ -693,12 +1280,19 @@
       "request": {
         "manifest": "manifest",
         "artifacts": {
-          "surfaces": ["surface-respondent"],
-          "locales": ["locale-helper"]
+          "surfaces": [
+            "surface-respondent"
+          ],
+          "locales": [
+            "locale-helper"
+          ]
         },
         "hostEvidence": {
-          "uiGraphPolicies": ["target-mismatch-with-locale-gap"]
-        }
+          "uiGraphPolicies": [
+            "target-mismatch-with-locale-gap"
+          ]
+        },
+        "moduleResolution": "missing-reviewer"
       },
       "expected": {
         "ok": false,
