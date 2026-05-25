@@ -7,17 +7,15 @@
   },
   "signatureSurfaces": [
     {
-      "id": "primary-applicant-signature",
+      "surfaceRef": "applicant_signature_box",
+      "signatureSurfaceContract": "ADR-0136.SignatureSurface",
       "surfaceName": "Benefits renewal signature page",
-      "preimage": {
-        "documentArtifactRef": "urn:formspec:document-artifact:benefits-renewal:signature-page",
-        "digest": {
-          "algorithm": "sha-256",
-          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-        },
-        "mediaType": "application/pdf",
-        "renderingServiceRef": "urn:formspec:rendering-service:chromium@1",
-        "variant": "pdf"
+      "preimageBinding": {
+        "documentArtifactRef": "pdf-preview-001",
+        "documentArtifactContract": "ADR-0136.DocumentArtifact",
+        "hashField": "presentationHash",
+        "authoredSignatureBinding": "AuthoredSignature.documentHash",
+        "renderingServiceContract": "ADR-0141.RenderingService"
       },
       "requirements": {
         "displayExactPreimage": true,

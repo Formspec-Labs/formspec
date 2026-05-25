@@ -1,0 +1,4 @@
+- Deletion Receipts are issuer-signed evidence that draft erasure completed for a draft id and declared classes of erased material.
+- Receipts are class-level evidence only and must never include raw erased values.
+- Signed evidence is mandatory: carry ADR-0111 `receiptBytes` inline or reference an existing signed Verification Receipt / receipt artifact.
+- The signer role is issuer-only; respondent-signed deletion receipts are non-conforming.

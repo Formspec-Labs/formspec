@@ -322,6 +322,40 @@
       }
     },
     {
+      "spec": "specs/audit/deletion-receipt-spec.md",
+      "schema": "schemas/deletion-receipt.schema.json",
+      "bluf": "specs/audit/deletion-receipt-spec.bluf.md",
+      "llm": "specs/audit/deletion-receipt-spec.llm.md",
+      "behaviorEssentials": [
+        "Deletion Receipt documents are issuer attestations that an abandoned draft or erase request completed for a draft identifier and declared data classes.",
+        "Receipts are class-level evidence only; they MUST NOT embed erased response values, attachments, identity attributes, or raw draft payloads.",
+        "Receipt signing uses the ADR-0111 receipt-method URI subspace and either inline receiptBytes or a verificationReceiptRef to existing signed receipt evidence.",
+        "The receiptSigner role is issuer-only; respondent-signed deletion receipts are non-conforming."
+      ],
+      "conformanceEssentials": [
+        "A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, classesErased, retentionWaived, cryptographicMethod, and receiptSigner.",
+        "Processors must reject receipts without cryptographicMethod.receiptBytes or cryptographicMethod.verificationReceiptRef.",
+        "Processors must reject raw erased values and signer roles other than issuer."
+      ]
+    },
+    {
+      "spec": "specs/registry/wysiwys-ceremony-spec.md",
+      "schema": "schemas/wysiwys-ceremony.schema.json",
+      "bluf": "specs/registry/wysiwys-ceremony-spec.bluf.md",
+      "llm": "specs/registry/wysiwys-ceremony-spec.llm.md",
+      "behaviorEssentials": [
+        "WYSIWYS Ceremony documents are UI-requirements annexes over existing ADR-0136 SignatureSurface and DocumentArtifact contracts.",
+        "The sidecar references upstream artifact and surface identifiers and selected hash fields; it does not define a new digest, preimage, rendering-service, or signature-surface shape.",
+        "Every ceremony surface requires exact-preimage display, a scroll gate, and per-field affirmative action before signature capture.",
+        "Single-click adopt-and-sign, bulk apply, and typed-name-only as the sole act are non-conforming."
+      ],
+      "conformanceEssentials": [
+        "A conforming WYSIWYS Ceremony must include $formspecWysiwysCeremony=1.0, version, targetDefinition, and at least one signatureSurfaces annex row.",
+        "Each annex row must bind to ADR-0136.SignatureSurface and ADR-0136.DocumentArtifact through explicit contract identifiers.",
+        "Processors must reject disabled scroll gates, allowed bulk apply, missing required ceremony fields, and local preimage/surface forks."
+      ]
+    },
+    {
       "spec": "specs/experience/experience-spec.md",
       "schema": "schemas/experience.schema.json",
       "bluf": "specs/experience/experience-spec.bluf.md",

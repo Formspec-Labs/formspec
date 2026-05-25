@@ -15,7 +15,8 @@
     "signedPayloadDigest": {
       "algorithm": "sha-256",
       "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    }
+    },
+    "receiptBytes": "0oRWoQExiQEFQnNpZ25lZA=="
   },
   "receiptSigner": {
     "role": "respondent",

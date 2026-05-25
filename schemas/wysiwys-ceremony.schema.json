@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/wysiwys-ceremony/1.0",
   "title": "Formspec WYSIWYS Ceremony",
-  "description": "A UI-requirements sidecar for signer ceremonies that must display the exact signed preimage, require a scroll gate, and collect per-field affirmative action before signature capture.",
+  "description": "A UI-requirements sidecar for signer ceremonies. The sidecar is an annex over ADR-0136 DocumentArtifact and SignatureSurface contracts and ADR-0141 rendering-service output; it records display and affirmative-action requirements without redefining signed preimage or signature-surface shapes.",
   "type": "object",
   "required": [
     "$formspecWysiwysCeremony",
@@ -35,13 +35,47 @@
     "signatureSurfaces": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/SignatureSurface"
+        "$ref": "#/$defs/SignatureSurfaceAnnex"
       },
       "minItems": 1,
-      "description": "Named surfaces that can be signed through this ceremony.",
+      "description": "Ceremony annex rows for existing ADR-0136 SignatureSurface contracts. Each row binds UI requirements to a referenced surface and DocumentArtifact without redefining either contract.",
+      "examples": [
+        [
+          {
+            "surfaceRef": "applicant_signature_box",
+            "signatureSurfaceContract": "ADR-0136.SignatureSurface",
+            "preimageBinding": {
+              "documentArtifactRef": "pdf-preview-001",
+              "documentArtifactContract": "ADR-0136.DocumentArtifact",
+              "hashField": "presentationHash",
+              "authoredSignatureBinding": "AuthoredSignature.documentHash"
+            },
+            "requirements": {
+              "displayExactPreimage": true,
+              "scrollGate": {
+                "required": true,
+                "completion": "end-of-surface"
+              },
+              "affirmativeAction": {
+                "mode": "per-field"
+              },
+              "singleClickAdoptAndSign": "forbidden",
+              "bulkApply": "forbidden",
+              "typedNameAsSoleAct": "forbidden"
+            },
+            "fields": [
+              {
+                "fieldRef": "/signatures/applicant",
+                "act": "sign",
+                "required": true
+              }
+            ]
+          }
+        ]
+      ],
       "x-lm": {
         "critical": true,
-        "intent": "Each surface binds the visible preimage to required signer actions"
+        "intent": "Each ceremony row binds UI controls to an existing signature surface and document artifact"
       }
     },
     "extensions": {
@@ -53,75 +87,59 @@
       "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
     },
     "TargetDefinition": {
-      "type": "object",
-      "required": ["url"],
-      "additionalProperties": false,
-      "properties": {
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Canonical Formspec Definition URL."
-        },
-        "compatibleVersions": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Optional semver range for compatible Definition versions."
-        },
-        "version": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Pinned Definition version when the ceremony targets one exact version."
-        }
-      }
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
     },
-    "Digest": {
+    "PreimageBinding": {
       "type": "object",
-      "required": ["algorithm", "value"],
-      "additionalProperties": false,
-      "properties": {
-        "algorithm": {
-          "type": "string",
-          "const": "sha-256"
-        },
-        "value": {
-          "type": "string",
-          "pattern": "^[A-Fa-f0-9]{64}$",
-          "description": "Lowercase hex is RECOMMENDED."
-        }
-      }
-    },
-    "Preimage": {
-      "type": "object",
-      "required": ["documentArtifactRef", "digest"],
+      "required": [
+        "documentArtifactRef",
+        "documentArtifactContract",
+        "hashField",
+        "authoredSignatureBinding"
+      ],
       "additionalProperties": false,
       "properties": {
         "documentArtifactRef": {
           "type": "string",
-          "format": "uri",
-          "description": "URI of the rendered document artifact whose bytes are shown and signed.",
+          "minLength": 1,
+          "description": "Reference to the existing ADR-0136 DocumentArtifact artifactId or artifactRef whose rendered bytes are shown during ceremony.",
+          "examples": ["pdf-preview-001"],
           "x-lm": {
             "critical": true,
-            "intent": "Names the exact document artifact shown during ceremony"
+            "intent": "Names the existing rendered document artifact shown during ceremony"
           }
         },
-        "digest": {
-          "$ref": "#/$defs/Digest",
-          "description": "Digest of the rendered document artifact."
-        },
-        "mediaType": {
+        "documentArtifactContract": {
           "type": "string",
-          "minLength": 1,
-          "description": "IANA media type or profile media type of the rendered artifact."
+          "const": "ADR-0136.DocumentArtifact",
+          "description": "Contract identifier for the referenced document artifact. This sidecar does not define a local DocumentArtifact shape.",
+          "examples": ["ADR-0136.DocumentArtifact"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Binds the reference to the upstream DocumentArtifact contract instead of a local fork"
+          }
         },
-        "renderingServiceRef": {
+        "hashField": {
           "type": "string",
-          "format": "uri",
-          "description": "Optional rendering-service profile or adapter reference."
+          "enum": ["contentHash", "presentationHash"],
+          "description": "Existing ADR-0136 DocumentArtifact hash field used as the visual preimage commitment for AuthoredSignature.documentHash.",
+          "examples": ["presentationHash"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Selects the upstream artifact hash field rather than redefining a digest object"
+          }
         },
-        "variant": {
+        "authoredSignatureBinding": {
           "type": "string",
-          "enum": ["html", "pdf", "image", "other"],
-          "description": "Rendered variant being signed."
+          "const": "AuthoredSignature.documentHash",
+          "description": "Existing Formspec authored-signature field that consumes the referenced DocumentArtifact hash commitment.",
+          "examples": ["AuthoredSignature.documentHash"]
+        },
+        "renderingServiceContract": {
+          "type": "string",
+          "const": "ADR-0141.RenderingService",
+          "description": "Optional contract identifier for the rendering-service adapter that produced the DocumentArtifact.",
+          "examples": ["ADR-0141.RenderingService"]
         },
         "extensions": {
           "$ref": "#/$defs/Extensions"
@@ -137,6 +155,7 @@
           "type": "boolean",
           "const": true,
           "description": "A WYSIWYS ceremony MUST require a scroll gate.",
+          "examples": [true],
           "x-lm": {
             "critical": true,
             "intent": "Prevents signature capture before full-surface review opportunity"
@@ -145,7 +164,8 @@
         "completion": {
           "type": "string",
           "enum": ["end-of-surface", "all-pages-observed"],
-          "description": "Completion rule for the scroll gate."
+          "description": "Completion rule for the scroll gate.",
+          "examples": ["end-of-surface"]
         }
       }
     },
@@ -158,6 +178,7 @@
           "type": "string",
           "const": "per-field",
           "description": "Each ceremony field requires its own affirmative act.",
+          "examples": ["per-field"],
           "x-lm": {
             "critical": true,
             "intent": "Forbids bulk signature application"
@@ -180,10 +201,11 @@
         "displayExactPreimage": {
           "type": "boolean",
           "const": true,
-          "description": "The signer MUST see the exact document artifact that will be signed.",
+          "description": "The signer MUST see the exact referenced DocumentArtifact whose hash is bound through AuthoredSignature.documentHash.",
+          "examples": [true],
           "x-lm": {
             "critical": true,
-            "intent": "Binds visual review to the signed preimage"
+            "intent": "Binds visual review to the existing signed-preimage contract"
           }
         },
         "scrollGate": {
@@ -217,7 +239,7 @@
         "fieldRef": {
           "type": "string",
           "minLength": 1,
-          "description": "Formspec path, item key, or signature-field reference for this act."
+          "description": "Formspec path, item key, or ADR-0136 SignatureSurface bindPath covered by this ceremony act."
         },
         "act": {
           "type": "string",
@@ -238,23 +260,44 @@
         }
       }
     },
-    "SignatureSurface": {
+    "SignatureSurfaceAnnex": {
       "type": "object",
-      "required": ["id", "surfaceName", "preimage", "requirements", "fields"],
+      "required": [
+        "surfaceRef",
+        "signatureSurfaceContract",
+        "preimageBinding",
+        "requirements",
+        "fields"
+      ],
       "additionalProperties": false,
       "properties": {
-        "id": {
+        "surfaceRef": {
           "type": "string",
           "minLength": 1,
-          "description": "Stable id for this signature surface within the ceremony document."
+          "description": "Reference to the existing ADR-0136 SignatureSurface.surfaceId or URI this ceremony row governs.",
+          "examples": ["applicant_signature_box"],
+          "x-lm": {
+            "critical": true,
+            "intent": "References the upstream signature surface instead of declaring a local replacement"
+          }
+        },
+        "signatureSurfaceContract": {
+          "type": "string",
+          "const": "ADR-0136.SignatureSurface",
+          "description": "Contract identifier for the referenced signature surface. This sidecar does not define a local SignatureSurface shape.",
+          "examples": ["ADR-0136.SignatureSurface"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Binds the ceremony row to the upstream SignatureSurface contract"
+          }
         },
         "surfaceName": {
           "type": "string",
           "minLength": 1,
-          "description": "Human-readable surface name."
+          "description": "Human-readable surface name for ceremony display and audit reports."
         },
-        "preimage": {
-          "$ref": "#/$defs/Preimage"
+        "preimageBinding": {
+          "$ref": "#/$defs/PreimageBinding"
         },
         "requirements": {
           "$ref": "#/$defs/Requirements"

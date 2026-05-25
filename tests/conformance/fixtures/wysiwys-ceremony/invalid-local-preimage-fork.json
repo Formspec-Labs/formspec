@@ -6,14 +6,15 @@
   },
   "signatureSurfaces": [
     {
-      "surfaceRef": "bulk_signature",
+      "surfaceRef": "local_preimage_fork",
       "signatureSurfaceContract": "ADR-0136.SignatureSurface",
-      "surfaceName": "Bulk signature page",
-      "preimageBinding": {
-        "documentArtifactRef": "pdf-preview-002",
-        "documentArtifactContract": "ADR-0136.DocumentArtifact",
-        "hashField": "presentationHash",
-        "authoredSignatureBinding": "AuthoredSignature.documentHash"
+      "surfaceName": "Local preimage fork",
+      "preimage": {
+        "documentArtifactRef": "urn:formspec:document-artifact:benefits-renewal:signature-page",
+        "digest": {
+          "algorithm": "sha-256",
+          "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
       },
       "requirements": {
         "displayExactPreimage": true,
@@ -25,7 +26,7 @@
           "mode": "per-field"
         },
         "singleClickAdoptAndSign": "forbidden",
-        "bulkApply": "allowed",
+        "bulkApply": "forbidden",
         "typedNameAsSoleAct": "forbidden"
       },
       "fields": [

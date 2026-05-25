@@ -500,6 +500,40 @@
         "webcomponent and React render Definition issuer chrome, host embed override, and allowlisted query override"
       ]
     },
+    "deletion-receipt": {
+      "status": "enforced",
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "W1.5 Deletion Receipt is a standalone issuer-signed evidence sidecar. This slice proves the schema, fixtures, signed-receipt obligation, and generated spec artifacts; no runtime producer or verifier is introduced here.",
+      "spec": "specs/audit/deletion-receipt-spec.md",
+      "schema": "schemas/deletion-receipt.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_deletion_receipt_schema.py"
+      ],
+      "crates": [],
+      "packages": {},
+      "checks": [
+        "deletion receipt schema and fixtures are exercised by conformance tests",
+        "unsigned receipts are rejected unless signed evidence is carried inline or by Verification Receipt reference",
+        "raw erased values and non-issuer signer roles are rejected"
+      ]
+    },
+    "wysiwys-ceremony": {
+      "status": "enforced",
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "W1.5 WYSIWYS Ceremony is a UI-requirements annex over existing ADR-0136/ADR-0141 contracts. This slice proves schema, fixtures, and generated spec artifacts without adding a runtime ceremony engine.",
+      "spec": "specs/registry/wysiwys-ceremony-spec.md",
+      "schema": "schemas/wysiwys-ceremony.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_wysiwys_ceremony_schema.py"
+      ],
+      "crates": [],
+      "packages": {},
+      "checks": [
+        "WYSIWYS schema and fixtures are exercised by conformance tests",
+        "the schema binds to ADR-0136 DocumentArtifact and SignatureSurface identifiers rather than forking their shapes",
+        "disabled scroll gates, bulk apply, and local preimage forks are rejected"
+      ]
+    },
     "experience": {
       "status": "enforced",
       "spec": "specs/experience/experience-spec.md",

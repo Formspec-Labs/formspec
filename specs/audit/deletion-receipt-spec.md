@@ -11,7 +11,7 @@ status: draft
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Schema:** `schemas/deletion-receipt.schema.json` (`https://formspec.org/schemas/deletion-receipt/1.0`)
-**Companion to:** Formspec Response, Respondent Ledger, Verification Receipt, and Signature Method Registry
+**Companion to:** Formspec Response, Respondent Ledger, Verification Receipt, Signature Method Registry, and ADR-0111 receipt signing
 
 ## Status of This Document
 
@@ -81,7 +81,7 @@ Required fields:
 | `issuer` | Issuer that signs and stands behind the deletion attestation. |
 | `classesErased` | Non-empty list of erased data classes. |
 | `retentionWaived` | List of retention classes the issuer waived for this erasure. Empty means no waiver was declared. |
-| `cryptographicMethod` | Receipt-signing method and signed-payload digest. |
+| `cryptographicMethod` | Receipt-signing method, signed-payload digest, and signed receipt evidence. |
 | `receiptSigner` | Issuer signing key reference. `role` MUST be `issuer`. |
 
 Example:
@@ -111,7 +111,8 @@ Example:
     "signedPayloadDigest": {
       "algorithm": "sha-256",
       "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-    }
+    },
+    "receiptBytes": "0oRWoQExiQEFQnNpZ25lZA=="
   },
   "receiptSigner": {
     "role": "issuer",
@@ -157,20 +158,31 @@ jurisdictions.
 `cryptographicMethod.method` MUST use the receipt-method value space from
 `specs/registry/signature-method-registry.md`.
 
-The signed payload is the canonical Deletion Receipt document with any detached
+The signed payload is the canonical Deletion Receipt document with detached
 receipt bytes omitted. `signedPayloadDigest` records the digest of that payload.
-Receipts MAY link to a separate Verification Receipt or timestamp evidence by
-digest or URI, but those objects remain separate artifacts.
+`cryptographicMethod.receiptBytes`, when present, is base64-encoded COSE_Sign1
+signed receipt evidence produced by the ADR-0111 receipt-signing profile over
+that canonical payload.
+
+A conforming Deletion Receipt MUST carry signed evidence. It MUST include either
+`cryptographicMethod.receiptBytes` or `cryptographicMethod.verificationReceiptRef`.
+`verificationReceiptRef` points to an existing repo-native structured
+Verification Receipt or receipt artifact that carries the signed receipt bytes;
+it is not a new signature discipline. Receipts MAY also link to timestamp
+evidence by digest or URI, but timestamp evidence does not replace the signed
+receipt requirement.
 
 ## 6. Conformance
 
 A conforming Deletion Receipt processor:
 
 1. MUST validate the receipt against `schemas/deletion-receipt.schema.json`.
-2. MUST reject receipt documents whose `receiptSigner.role` is not `issuer`.
-3. MUST reject receipt documents that carry non-schema raw erased values.
-4. MUST treat `classesErased` as class-level evidence, not value-level replay.
-5. MUST NOT imply that receipt validity alone establishes jurisdiction-specific
+2. MUST reject receipt documents without `cryptographicMethod.receiptBytes` or
+   `cryptographicMethod.verificationReceiptRef`.
+3. MUST reject receipt documents whose `receiptSigner.role` is not `issuer`.
+4. MUST reject receipt documents that carry non-schema raw erased values.
+5. MUST treat `classesErased` as class-level evidence, not value-level replay.
+6. MUST NOT imply that receipt validity alone establishes jurisdiction-specific
    legal sufficiency.
-6. SHOULD preserve the receipt independently from the erased draft material so
+7. SHOULD preserve the receipt independently from the erased draft material so
    erasure does not delete the respondent's proof of erasure.

@@ -39,6 +39,8 @@ runPython([
   'tests/conformance/test_issuer_fixtures.py',
   'tests/conformance/test_definition_issuer_binding.py',
   'tests/conformance/test_response_displayed_issuer.py',
+  'tests/conformance/schemas/test_deletion_receipt_schema.py',
+  'tests/conformance/schemas/test_wysiwys_ceremony_schema.py',
   'tests/conformance/schemas/test_validation_mapping_schema.py',
   'tests/conformance/spec/test_validation_mapping_table.py',
   'tests/conformance/spec/test_actionbutton_binding.py',

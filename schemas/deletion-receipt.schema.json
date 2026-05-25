@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/deletion-receipt/1.0",
   "title": "Formspec Deletion Receipt",
-  "description": "Issuer-signed evidence that an abandoned draft or erase request completed for a draft id and declared classes of draft material. The receipt is class-level evidence and must not embed erased values.",
+  "description": "Issuer-signed evidence that an abandoned draft or erase request completed for a draft id and declared classes of draft material. The receipt is class-level evidence and must not embed erased values. Production receipts carry ADR-0111 signed receipt bytes or reference an existing repo-native Verification Receipt / receipt artifact.",
   "type": "object",
   "required": [
     "$formspecDeletionReceipt",
@@ -76,6 +76,7 @@
       "minItems": 1,
       "uniqueItems": true,
       "description": "Class-level categories of draft material erased. MUST NOT contain erased values.",
+      "examples": [["draft-response", "attachments", "autosave-cache"]],
       "x-lm": {
         "critical": true,
         "intent": "Declares what classes were erased while avoiding value replay"
@@ -91,7 +92,7 @@
     },
     "cryptographicMethod": {
       "$ref": "#/$defs/CryptographicMethod",
-      "description": "Receipt-signing method and signed-payload digest."
+      "description": "Receipt-signing method, signed-payload digest, and signed receipt evidence."
     },
     "receiptSigner": {
       "$ref": "#/$defs/ReceiptSigner",
@@ -210,6 +211,10 @@
       "type": "object",
       "required": ["method", "canonicalization", "signedPayloadDigest"],
       "additionalProperties": false,
+      "anyOf": [
+        { "required": ["receiptBytes"] },
+        { "required": ["verificationReceiptRef"] }
+      ],
       "properties": {
         "method": {
           "type": "string",
@@ -230,10 +235,25 @@
           "$ref": "#/$defs/Digest",
           "description": "Digest of the canonical receipt payload with detached receipt bytes omitted."
         },
+        "receiptBytes": {
+          "type": "string",
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+          "description": "Base64-encoded COSE_Sign1 signed receipt bytes produced by the ADR-0111 receipt-signing profile over the canonical deletion-receipt payload with receiptBytes omitted.",
+          "examples": ["0oRWoQExiQEFQnNpZ25lZA=="],
+          "x-lm": {
+            "critical": true,
+            "intent": "Carries issuer-signed detached receipt bytes instead of accepting unsigned deletion attestations"
+          }
+        },
         "verificationReceiptRef": {
           "type": "string",
           "format": "uri",
-          "description": "Optional URI for a detached Verification Receipt."
+          "description": "URI for an existing repo-native structured Verification Receipt or receipt artifact carrying the signed receipt bytes for this deletion receipt.",
+          "examples": ["urn:formspec:verification-receipt:deletion:demo:001"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Allows signed receipt evidence to be held by reference without inventing a second signature artifact shape"
+          }
         },
         "timestampDigest": {
           "$ref": "#/$defs/Digest",
@@ -250,6 +270,7 @@
           "type": "string",
           "const": "issuer",
           "description": "Deletion receipts are issuer attestations, not respondent signatures.",
+          "examples": ["issuer"],
           "x-lm": {
             "critical": true,
             "intent": "Prevents respondent-signed deletion receipts from masquerading as issuer attestations"

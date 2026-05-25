@@ -11,7 +11,7 @@ status: draft
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Schema:** `schemas/wysiwys-ceremony.schema.json` (`https://formspec.org/schemas/wysiwys-ceremony/1.0`)
-**Companion to:** Signature Method Registry, Verification Receipt, and the stack rendering-service contracts
+**Companion to:** Signature Method Registry, Verification Receipt, ADR-0136 `DocumentArtifact` / `SignatureSurface`, and ADR-0141 rendering-service contracts
 
 ## Status of This Document
 
@@ -20,8 +20,8 @@ see is what you sign": the signer sees the exact signature surface whose bytes
 are committed by the signature artifact.
 
 This is a UI-requirements annex over existing signature and rendering contracts.
-It does not define a new cryptographic signature method, rendering service, or
-Response wire format.
+It does not define a new cryptographic signature method, rendering service,
+Response wire format, `DocumentArtifact`, or `SignatureSurface`.
 
 ## 1. Purpose and Scope
 
@@ -31,8 +31,8 @@ signature.
 
 In scope:
 
-- named signature surfaces;
-- document-artifact references and digests for the signed preimage;
+- ceremony requirements for named ADR-0136 `SignatureSurface` references;
+- references to ADR-0136 `DocumentArtifact` identities and hash fields for the signed preimage;
 - exact-preimage display requirement;
 - scroll-to-end gate;
 - per-field affirmative action;
@@ -63,9 +63,14 @@ Required fields:
 | `targetDefinition` | Formspec Definition this sidecar applies to. |
 | `signatureSurfaces` | One or more named surfaces that can be signed. |
 
-Each signature surface declares:
+Each signature-surface annex row declares:
 
-- `preimage.documentArtifactRef` and `preimage.digest`;
+- `signatureSurfaceContract: "ADR-0136.SignatureSurface"`;
+- `surfaceRef`, which resolves to an existing ADR-0136 `SignatureSurface.surfaceId` or URI;
+- `preimageBinding.documentArtifactContract: "ADR-0136.DocumentArtifact"`;
+- `preimageBinding.documentArtifactRef`, which resolves to an existing ADR-0136 `DocumentArtifact.artifactId` or `artifactRef`;
+- `preimageBinding.hashField`, which is the existing `contentHash` or `presentationHash` field used for the visual preimage commitment;
+- `preimageBinding.authoredSignatureBinding: "AuthoredSignature.documentHash"`;
 - `requirements.displayExactPreimage: true`;
 - `requirements.scrollGate.required: true`;
 - `requirements.affirmativeAction.mode: "per-field"`;
@@ -76,12 +81,16 @@ Each signature surface declares:
 
 ## 3. Exact Preimage
 
-The ceremony MUST display the same document artifact whose digest is committed
-by the signature artifact. If the renderer produces multiple media variants
-such as HTML and PDF, the ceremony document MUST name the variant being signed.
+The ceremony MUST display the same ADR-0136 `DocumentArtifact` whose selected
+hash field is bound through `AuthoredSignature.documentHash`. If a renderer
+produces multiple media variants such as HTML and PDF, the referenced
+`DocumentArtifact` determines which artifact is being signed.
 
-The ceremony sidecar does not decide how a renderer computes bytes. It records
-the artifact reference and digest the ceremony is accountable for showing.
+The ceremony sidecar does not decide how a renderer computes bytes and does not
+define its own digest object. It records the upstream artifact reference and the
+upstream hash-field name (`contentHash` or `presentationHash`) the ceremony is
+accountable for showing. Rendering-service provenance, when declared, uses the
+contract identifier `ADR-0141.RenderingService`.
 
 ## 4. Scroll Gate
 
@@ -104,8 +113,10 @@ MUST NOT be the sole affirmative act for a WYSIWYS ceremony.
 A conforming WYSIWYS Ceremony processor:
 
 1. MUST validate the sidecar against `schemas/wysiwys-ceremony.schema.json`.
-2. MUST reject a ceremony surface that permits bulk apply.
-3. MUST reject a ceremony surface that permits single-click adopt-and-sign.
-4. MUST reject a ceremony surface whose scroll gate is absent or disabled.
-5. MUST reject a ceremony surface with no required ceremony fields.
-6. MUST NOT infer cryptographic validity from UI ceremony conformance.
+2. MUST reject a ceremony row that does not bind to
+   `ADR-0136.SignatureSurface` and `ADR-0136.DocumentArtifact`.
+3. MUST reject a ceremony surface that permits bulk apply.
+4. MUST reject a ceremony surface that permits single-click adopt-and-sign.
+5. MUST reject a ceremony surface whose scroll gate is absent or disabled.
+6. MUST reject a ceremony surface with no required ceremony fields.
+7. MUST NOT infer cryptographic validity from UI ceremony conformance.

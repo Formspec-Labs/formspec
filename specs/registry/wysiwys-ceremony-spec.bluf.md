@@ -1,0 +1,4 @@
+- WYSIWYS Ceremony is a UI annex over existing ADR-0136 `SignatureSurface` and `DocumentArtifact` contracts.
+- The sidecar references upstream surface and artifact identifiers; it does not define a new preimage, digest, rendering-service, or signature-surface shape.
+- Each ceremony row requires exact-preimage display, a scroll gate, and per-field affirmative action.
+- Bulk apply, single-click adopt-and-sign, and typed-name-only as the sole act are forbidden.

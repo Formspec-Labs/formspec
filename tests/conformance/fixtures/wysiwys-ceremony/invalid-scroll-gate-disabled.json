@@ -6,14 +6,14 @@
   },
   "signatureSurfaces": [
     {
-      "id": "no-scroll-gate",
+      "surfaceRef": "no_scroll_gate",
+      "signatureSurfaceContract": "ADR-0136.SignatureSurface",
       "surfaceName": "Signature page without scroll gate",
-      "preimage": {
-        "documentArtifactRef": "urn:formspec:document-artifact:benefits-renewal:signature-page",
-        "digest": {
-          "algorithm": "sha-256",
-          "value": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-        }
+      "preimageBinding": {
+        "documentArtifactRef": "pdf-preview-003",
+        "documentArtifactContract": "ADR-0136.DocumentArtifact",
+        "hashField": "presentationHash",
+        "authoredSignatureBinding": "AuthoredSignature.documentHash"
       },
       "requirements": {
         "displayExactPreimage": true,
