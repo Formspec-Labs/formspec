@@ -20,7 +20,7 @@ Source schema: `schemas/component.schema.json`
 | `#/$defs/ComponentBase/properties/conceptRefs` | no | array | Reuses Experience ConceptRef for host-policy metadata while keeping validation and mapping semantics elsewhere. | Optional concept references using the Experience ConceptRef shape. Host-policy metadata; does not execute validation or mapping logic. |
 | `#/$defs/ComponentBase/properties/taskRefs` | no | array | Records advisory Experience Task links without ordering, workflow, validation, or rendering effects. | Optional references to Experience Task.id values. Report-only metadata; order is authoring/reporting order only. |
 | `#/$defs/ComponentBase/properties/unitRef` | no | string | Links a component node to its primary Experience Unit without changing runtime behavior. | Optional reference to an Experience Unit.id. Report-only metadata; does not affect rendering, binding, validation, or Response semantics. |
-| `#/$defs/ComponentBase/properties/x-generation` | no | object | Records provenance and source anchors only; renderers must ignore it and merge behavior is out of scope. | Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output. |
+| `#/$defs/ComponentBase/properties/x-generation` | no | $ref | Records provenance and source anchors only; renderers must ignore it and merge behavior is out of scope. | Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output. |
 
 ## Behavioral Essentials
 

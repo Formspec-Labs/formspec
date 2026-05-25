@@ -80,11 +80,16 @@ def test_reference_field_shapes() -> None:
     assert props["conceptRefs"]["items"] == {"$ref": EXPERIENCE_CONCEPT_REF}
 
     generation = props["x-generation"]
-    assert generation["type"] == "object"
-    assert generation["additionalProperties"] is True
-    assert "required" not in generation
-    generation_props = generation["properties"]
-    assert set(generation_props) == {"source", "strategy", "generatedBy", "generatedAt", "anchors"}
+    assert generation["$ref"] == "https://formspec.org/schemas/common/1.0#/$defs/Generation"
+    assert "type" not in generation
+
+    common_generation = COMMON_SCHEMA["$defs"]["Generation"]
+    assert common_generation["type"] == "object"
+    assert "required" not in common_generation
+    generation_props = common_generation["properties"]
+    assert {"source", "strategy", "generatedBy", "generatedAt", "anchors"}.issubset(
+        generation_props
+    )
     assert generation_props["generatedAt"]["type"] == "string"
     assert "format" not in generation_props["generatedAt"]
     assert generation_props["anchors"]["type"] == "array"
@@ -156,3 +161,55 @@ def test_generation_generated_at_is_not_format_enforced() -> None:
     doc["tree"]["x-generation"] = {"generatedAt": "not an RFC 3339 timestamp"}
 
     COMPONENT_VALIDATOR.validate(copy.deepcopy(doc))
+
+
+def test_generation_accepts_graph_wide_component_provenance() -> None:
+    doc = _minimal_component_doc()
+    doc["tree"]["x-generation"] = {
+        "copiedFrom": {
+            "component": {
+                "handle": "reviewRoute",
+                "url": "https://example.gov/apps/workspace/components/review-route",
+                "version": "1.0.0",
+            },
+            "surface": {
+                "url": "https://example.gov/apps/workspace/surfaces/respondent",
+                "version": "1.0.0",
+            },
+            "route": "review",
+            "nodePath": "/reviewLayout/submit",
+            "id": "submitButton",
+            "nodeId": "submitNode",
+        },
+        "movedFrom": {
+            "component": {"handle": "reviewRoute"},
+            "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+            "route": "review",
+            "nodePath": "/reviewLayout",
+        },
+    }
+
+    COMPONENT_VALIDATOR.validate(copy.deepcopy(doc))
+
+
+def test_generation_keeps_legacy_same_runtime_provenance_subset() -> None:
+    doc = _minimal_component_doc()
+    doc["tree"]["x-generation"] = {
+        "copiedFrom": {"route": "review", "nodePath": "reviewLayout.submit"}
+    }
+
+    COMPONENT_VALIDATOR.validate(copy.deepcopy(doc))
+
+
+def test_generation_rejects_graph_wide_provenance_with_relative_node_path() -> None:
+    doc = _minimal_component_doc()
+    doc["tree"]["x-generation"] = {
+        "copiedFrom": {
+            "component": {"handle": "reviewRoute"},
+            "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+            "route": "review",
+            "nodePath": "reviewLayout",
+        }
+    }
+
+    _assert_invalid(doc)

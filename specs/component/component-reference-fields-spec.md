@@ -394,6 +394,9 @@ The object has the following standard members. All members are OPTIONAL:
 | `generatedBy` | string | Generator name and version, service id, or other producer identifier. |
 | `generatedAt` | string | Generation timestamp. When present, authors SHOULD use an RFC 3339 date-time string. |
 | `anchors` | array of string | Source anchors used to explain or review the generated node. |
+| `sourceModule` | ModuleRef | Optional module/template provenance. It identifies which admitted module supplied the template or generation strategy, not the actor who authored the operation. |
+| `movedFrom` | Component provenance ref | Optional provenance for a move operation. Graph-wide references use §5.4 `ComponentNodeIdentityRef`; legacy same-runtime references use §5.5 `CrossComponentRef`. |
+| `copiedFrom` | Component provenance ref | Optional provenance for a copy operation. Graph-wide references use §5.4 `ComponentNodeIdentityRef`; legacy same-runtime references use §5.5 `CrossComponentRef`. |
 
 Generators MAY include additional members for private provenance. Unknown
 members are extension metadata. Processors MUST preserve them when they preserve
@@ -431,7 +434,60 @@ incomplete.
 When source context is absent, processors MAY preserve anchors without resolving
 them. Missing source context MUST NOT be treated as a runtime error.
 
-### 5.4 Runtime Semantics
+### 5.4 Graph-Wide Component Provenance
+
+When `x-generation.movedFrom` or `x-generation.copiedFrom` identifies a node
+outside the current single-runtime Component context, producers MUST use a
+graph-wide Component node identity reference with this shape:
+
+```json
+{
+  "component": {
+    "handle": "reviewRoute",
+    "url": "https://agency.gov/apps/workspace/components/review-route",
+    "version": "1.0.0"
+  },
+  "surface": {
+    "url": "https://agency.gov/apps/workspace/surfaces/respondent",
+    "version": "1.0.0"
+  },
+  "route": "review",
+  "nodePath": "/reviewLayout/submit",
+  "id": "submitButton",
+  "nodeId": "submitButton"
+}
+```
+
+The required graph-wide fields are:
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `component.handle` | Yes | App Manifest `components[]` membership handle. |
+| `surface.url` | Yes | Canonical Surface sibling URL. |
+| `route` | Yes | Surface `routes[].id`. |
+| `nodePath` | Yes | Absolute route-scoped Component node path, built from stable node segments per Component §11.6. |
+| `component.url` / `component.version` | No | Component document identity evidence when available. |
+| `surface.version` | No | Surface document version evidence when available. |
+| `id` / `nodeId` | No | Optional public and structural node identity evidence. |
+
+This reference mirrors the Component §11.6 graph-wide node identity tuple. It is
+provenance metadata only. Processors MUST NOT treat it as authorization,
+runtime routing, Trace content, Response Actions execution input, or proof that
+the referenced node still exists.
+
+### 5.5 Legacy Same-Runtime Provenance
+
+Legacy Studio/kernel writers may still emit:
+
+```json
+{ "route": "review", "nodePath": "reviewLayout.submit" }
+```
+
+This shape is valid only as same-runtime compatibility evidence. It is not
+sufficient graph-wide provenance once multiple Surfaces or Component documents
+are loaded, because it lacks Component membership and Surface identity.
+
+### 5.6 Runtime Semantics
 
 `x-generation` is provenance metadata. Renderers MUST ignore it for default
 runtime output. The presence, absence, or content of `x-generation` MUST NOT

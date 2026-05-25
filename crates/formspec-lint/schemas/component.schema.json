@@ -375,7 +375,7 @@
           "description": "Typed slot for ^x-* extension payloads on every component node. This gives extension payloads a typed home even when component variants use `unevaluatedProperties: false`."
         },
         "x-generation": {
-          "type": "object",
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
           "description": "Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.",
           "examples": [
             {
@@ -388,34 +388,7 @@
           "x-lm": {
             "critical": true,
             "intent": "Records provenance and source anchors only; renderers must ignore it and merge behavior is out of scope."
-          },
-          "properties": {
-            "source": {
-              "type": "string",
-              "description": "Generator source label, such as an Experience Unit, prompt, template, or generator input bundle."
-            },
-            "strategy": {
-              "type": "string",
-              "description": "Generator strategy identifier, such as unit-to-section or a host-defined strategy name."
-            },
-            "generatedBy": {
-              "type": "string",
-              "description": "Generator name and version, service id, or other producer identifier."
-            },
-            "generatedAt": {
-              "type": "string",
-              "description": "Generation timestamp. Authors SHOULD use an RFC 3339 date-time string."
-            },
-            "anchors": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "pattern": "^(item|unit|task|action|concept):.+$"
-              },
-              "description": "Source anchors with a standard prefix and source-layer-owned suffix."
-            }
-          },
-          "additionalProperties": true
+          }
         },
         "component": {
           "type": "string",

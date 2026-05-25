@@ -321,12 +321,69 @@ export interface Generation {
    */
   generatedBy?: string | AuthorActor;
   sourceModule?: ModuleRef;
-  movedFrom?: CrossComponentRef;
-  copiedFrom?: CrossComponentRef;
+  /**
+   * Set by tooling on cross-Component move per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence.
+   */
+  movedFrom?: ComponentNodeIdentityRef | CrossComponentRef;
+  /**
+   * Set by tooling on cross-Component copy per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence.
+   */
+  copiedFrom?: ComponentNodeIdentityRef | CrossComponentRef;
   extensions?: Extensions;
 }
 /**
- * Set by tooling on cross-Component move per §5.3.
+ * Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "ComponentNodeIdentityRef".
+ */
+export interface ComponentNodeIdentityRef {
+  component: {
+    /**
+     * App Manifest components[] membership handle.
+     */
+    handle: string;
+    /**
+     * Canonical URL of the Component document when available.
+     */
+    url?: string;
+    /**
+     * Component document version evidence when available.
+     */
+    version?: string;
+  };
+  surface: {
+    /**
+     * Canonical URL of the Surface document.
+     */
+    url: string;
+    /**
+     * Surface document version evidence when available.
+     */
+    version?: string;
+  };
+  /**
+   * Surface routes[].id for the route-scoped node.
+   */
+  route: string;
+  /**
+   * Absolute route-scoped Component node path built from stable node segments.
+   */
+  nodePath: string;
+  /**
+   * Optional ComponentBase.id evidence for the node.
+   */
+  id?: string;
+  /**
+   * Optional structural authoring identity for the node.
+   */
+  nodeId?: string;
+}
+/**
+ * Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "CrossComponentRef".
  */
 export interface CrossComponentRef {
   route: string;

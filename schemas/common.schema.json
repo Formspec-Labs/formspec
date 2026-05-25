@@ -349,19 +349,92 @@
           "description": "Module/template provenance per §5.3. Orthogonal to generatedBy — answers 'which module supplied this template' not 'who authored this op'."
         },
         "movedFrom": {
-          "$ref": "#/$defs/CrossComponentRef",
-          "description": "Set by tooling on cross-Component move per §5.3."
+          "oneOf": [
+            { "$ref": "#/$defs/ComponentNodeIdentityRef" },
+            { "$ref": "#/$defs/CrossComponentRef" }
+          ],
+          "description": "Set by tooling on cross-Component move per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence."
         },
         "copiedFrom": {
-          "$ref": "#/$defs/CrossComponentRef",
-          "description": "Set by tooling on cross-Component copy per §5.3."
+          "oneOf": [
+            { "$ref": "#/$defs/ComponentNodeIdentityRef" },
+            { "$ref": "#/$defs/CrossComponentRef" }
+          ],
+          "description": "Set by tooling on cross-Component copy per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence."
         },
         "extensions": { "$ref": "#/$defs/Extensions" }
       }
     },
+    "ComponentNodeIdentityRef": {
+      "type": "object",
+      "description": "Graph-wide Component node identity for x-generation movedFrom/copiedFrom provenance. Mirrors the app-graph Component node identity tuple: Component membership, Surface sibling identity, route, absolute route-scoped nodePath, and optional public/structural node ids. This is provenance metadata only; it does not authorize, execute, or resolve runtime behavior.",
+      "required": ["component", "surface", "route", "nodePath"],
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "type": "object",
+          "required": ["handle"],
+          "additionalProperties": false,
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+              "description": "App Manifest components[] membership handle."
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Canonical URL of the Component document when available."
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Component document version evidence when available."
+            }
+          }
+        },
+        "surface": {
+          "type": "object",
+          "required": ["url"],
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "Canonical URL of the Surface document."
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Surface document version evidence when available."
+            }
+          }
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Surface routes[].id for the route-scoped node."
+        },
+        "nodePath": {
+          "type": "string",
+          "pattern": "^/.+",
+          "description": "Absolute route-scoped Component node path built from stable node segments."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional ComponentBase.id evidence for the node."
+        },
+        "nodeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional structural authoring identity for the node."
+        }
+      }
+    },
     "CrossComponentRef": {
       "type": "object",
-      "description": "Surface-route + intra-document node path. Used by Generation.movedFrom / Generation.copiedFrom for tool-layer cross-Component stitching per ADR 0150 §5.3.",
+      "description": "Legacy same-runtime route + intra-document node path. Retained for Studio/kernel compatibility; it is not sufficient graph-wide Component provenance once multiple Surfaces or Component documents are loaded.",
       "required": ["route", "nodePath"],
       "additionalProperties": false,
       "properties": {

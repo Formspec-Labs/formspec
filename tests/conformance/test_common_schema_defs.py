@@ -333,6 +333,133 @@ def test_generation_anchors_accepts_all_prefix_kinds():
     )
 
 
+def test_generation_accepts_graph_wide_component_identity_provenance():
+    validate(
+        {
+            "movedFrom": {
+                "component": {
+                    "handle": "reviewRoute",
+                    "url": "https://example.gov/apps/workspace/components/review-route",
+                    "version": "1.0.0",
+                },
+                "surface": {
+                    "url": "https://example.gov/apps/workspace/surfaces/respondent",
+                    "version": "1.0.0",
+                },
+                "route": "review",
+                "nodePath": "/reviewLayout/submit",
+                "id": "submitButton",
+                "nodeId": "submitNode",
+            },
+            "copiedFrom": {
+                "component": {"handle": "reviewRoute"},
+                "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+                "route": "review",
+                "nodePath": "/reviewLayout",
+            },
+        },
+        _validator_for("Generation"),
+    )
+
+
+def test_generation_graph_wide_component_identity_requires_scope():
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+                    "route": "review",
+                    "nodePath": "/reviewLayout",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "component": {"handle": "reviewRoute"},
+                    "route": "review",
+                    "nodePath": "/reviewLayout",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "component": {"handle": "reviewRoute"},
+                    "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+                    "nodePath": "/reviewLayout",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "component": {"handle": "reviewRoute"},
+                    "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+                    "route": "review",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "component": {},
+                    "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+                    "route": "review",
+                    "nodePath": "/reviewLayout",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "component": {"handle": "reviewRoute"},
+                    "surface": {},
+                    "route": "review",
+                    "nodePath": "/reviewLayout",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+
+def test_generation_graph_wide_component_identity_requires_absolute_nodepath():
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "copiedFrom": {
+                    "component": {"handle": "reviewRoute"},
+                    "surface": {"url": "https://example.gov/apps/workspace/surfaces/respondent"},
+                    "route": "review",
+                    "nodePath": "reviewLayout",
+                }
+            },
+            _validator_for("Generation"),
+        )
+
+
+def test_generation_accepts_legacy_same_runtime_component_provenance():
+    validate(
+        {"copiedFrom": {"route": "dashboard", "nodePath": "header.logo"}},
+        _validator_for("Generation"),
+    )
+
+
 # ─── CrossComponentRef (helper used by Generation.movedFrom/copiedFrom) ──────
 
 

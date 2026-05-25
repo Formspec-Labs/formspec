@@ -1,0 +1,68 @@
+{
+  "$formspecComponent": "1.2",
+  "version": "1.0.0",
+  "targetSurfaceRoutes": [
+    {
+      "surface": {
+        "url": "https://example.gov/apps/component-reference-fields/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "route": "review",
+      "role": "route"
+    }
+  ],
+  "tree": {
+    "component": "Section",
+    "id": "reviewLayout",
+    "title": "Review",
+    "x-generation": {
+      "source": "unit:review",
+      "strategy": "route-copy",
+      "generatedBy": "component-reference-fields-fixture/1.0.0",
+      "generatedAt": "2026-05-25T00:00:00Z",
+      "copiedFrom": {
+        "component": {
+          "handle": "sourceReviewRoute",
+          "url": "https://example.gov/apps/component-reference-fields/components/source-review-route",
+          "version": "1.0.0"
+        },
+        "surface": {
+          "url": "https://example.gov/apps/component-reference-fields/surfaces/respondent",
+          "version": "1.0.0"
+        },
+        "route": "review",
+        "nodePath": "/sourceReviewLayout",
+        "id": "sourceReviewLayout",
+        "nodeId": "sourceReviewLayout"
+      },
+      "movedFrom": {
+        "component": {
+          "handle": "draftRoute"
+        },
+        "surface": {
+          "url": "https://example.gov/apps/component-reference-fields/surfaces/respondent"
+        },
+        "route": "draft",
+        "nodePath": "/draftLayout/reviewSummary"
+      },
+      "anchors": ["unit:review"]
+    },
+    "children": [
+      {
+        "component": "Text",
+        "id": "reviewSummary",
+        "text": "Review the application before submission.",
+        "x-generation": {
+          "source": "unit:review",
+          "strategy": "same-runtime-copy",
+          "generatedBy": "component-reference-fields-fixture/1.0.0",
+          "copiedFrom": {
+            "route": "review",
+            "nodePath": "reviewLayout.summary"
+          },
+          "anchors": ["unit:review"]
+        }
+      }
+    ]
+  }
+}
