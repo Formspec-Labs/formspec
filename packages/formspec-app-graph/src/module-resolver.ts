@@ -1152,6 +1152,8 @@ function resolveContributions(
       const expectedOwners = use.expectedOwnerModuleId
         ? owners.filter((owner) => owner.entry.name === use.expectedOwnerModuleId)
         : owners;
+      const allAdmittedOwners = owners
+        .filter((owner) => moduleStates.get(owner.entry.name)?.report.status === 'admitted');
       const admittedOwners = expectedOwners
         .filter((owner) => moduleStates.get(owner.entry.name)?.report.status === 'admitted');
       const source = useSource(use);
@@ -1200,6 +1202,15 @@ function resolveContributions(
           registrySource(entry, input),
           { details: { contribution: use.name } },
         ));
+      } else if (allAdmittedOwners.length > 1) {
+        contribution.owningModules = allAdmittedOwners.map(ownerRef);
+        contribution.status = 'conflict';
+        diagnostics.push(diagnostic(
+          'MODULE-CONTRIBUTION-CONFLICT',
+          `Contribution '${use.name}' is claimed by more than one admitted module.`,
+          registrySource(entry, input),
+          { details: { contribution: use.name, owners: allAdmittedOwners.map((owner) => owner.entry.name) } },
+        ));
       } else if (expectedOwners.length === 0 && use.expectedOwnerModuleId) {
         contribution.owningModules = owners.map(ownerRef);
         contribution.status = 'owner-mismatch';
@@ -1218,15 +1229,6 @@ function resolveContributions(
               owningModules: owners.map((owner) => owner.entry.name),
             },
           },
-        ));
-      } else if (admittedOwners.length > 1) {
-        contribution.owningModules = admittedOwners.map(ownerRef);
-        contribution.status = 'conflict';
-        diagnostics.push(diagnostic(
-          'MODULE-CONTRIBUTION-CONFLICT',
-          `Contribution '${use.name}' is claimed by more than one admitted module.`,
-          registrySource(entry, input),
-          { details: { contribution: use.name, owners: admittedOwners.map((owner) => owner.entry.name) } },
         ));
       } else {
         const owner = admittedOwners[0] ?? expectedOwners[0];

@@ -205,8 +205,10 @@ authorization.
   `widgetShape.widgetName` matches. Otherwise it preserves the authored value
   so the shared resolver emits the normal contribution diagnostics. The
   contribution use also carries the expected owner module id so same-name
-  widgets owned by other admitted modules fail as `MODULE-CONTRIBUTION-OWNER`
-  instead of resolving falsely.
+  widgets owned only by other admitted modules fail as
+  `MODULE-CONTRIBUTION-OWNER` instead of resolving falsely. If the expected
+  owner and another admitted module both claim the contribution, the resolver
+  still emits `MODULE-CONTRIBUTION-CONFLICT`.
 - 2026-05-25: Mapping transforms and Validation Mapping rows remain documented
   future contribution families. The graph collector does not collect them in
   this slice.

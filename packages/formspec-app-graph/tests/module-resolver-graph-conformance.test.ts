@@ -32,6 +32,7 @@ interface GraphCollectorFixture {
     fallbackDiagnosticCode: string;
     wrongOwnerSurfaceWidgetUseName: string;
     wrongOwnerDiagnosticCode: string;
+    duplicateOwnerDiagnosticCode: string;
     contributionNames: string[];
     absentAppGraphDiagnostics: string[];
   };
@@ -83,6 +84,49 @@ function graphWithSurfaceWidgetName(
   }> | undefined;
   expect(surface, 'missing fallback surface fixture handle').toBeDefined();
   surface!.document!.routes[0].slots[0].binding.widgetName = widgetName;
+  return cloned;
+}
+
+function graphWithDuplicateSurfaceWidgetOwner(
+  graph: GraphCollectorFixture['graph'],
+): GraphCollectorFixture['graph'] {
+  const cloned = structuredClone(graph);
+  const manifest = cloned.manifest as ResolvedArtifactHandle<{
+    modules: Array<{ id: string; version: string }>;
+  }>;
+  manifest.document!.modules.push({ id: 'x-other-surface', version: '1.0.0' });
+  const registry = cloned.handles.find((handle) => handle.artifactKind === 'registry') as ResolvedArtifactHandle<{
+    entries: Array<Record<string, unknown>>;
+  }> | undefined;
+  expect(registry, 'missing duplicate-owner registry fixture handle').toBeDefined();
+  registry!.document!.entries.push({
+    name: 'x-other-surface',
+    category: 'module',
+    version: '1.0.0',
+    contributes: ['x-acme-surface-widget-case-status'],
+  });
+  return cloned;
+}
+
+function graphWithDuplicateWrongSurfaceWidgetOwners(
+  graph: GraphCollectorFixture['graph'],
+  widgetName: string,
+): GraphCollectorFixture['graph'] {
+  const cloned = graphWithSurfaceWidgetName(graph, widgetName);
+  const manifest = cloned.manifest as ResolvedArtifactHandle<{
+    modules: Array<{ id: string; version: string }>;
+  }>;
+  manifest.document!.modules.push({ id: 'x-alt-reviewer', version: '1.0.0' });
+  const registry = cloned.handles.find((handle) => handle.artifactKind === 'registry') as ResolvedArtifactHandle<{
+    entries: Array<Record<string, unknown>>;
+  }> | undefined;
+  expect(registry, 'missing duplicate-wrong-owner registry fixture handle').toBeDefined();
+  registry!.document!.entries.push({
+    name: 'x-alt-reviewer',
+    category: 'module',
+    version: '1.0.0',
+    contributes: [widgetName],
+  });
   return cloned;
 }
 
@@ -283,6 +327,63 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
         contribution: testCase.expected.wrongOwnerSurfaceWidgetUseName,
         expectedOwnerModuleId: testCase.expected.surfaceWidgetExpectedOwnerModuleId,
         owningModules: ['x-reviewer'],
+      }),
+    }));
+  });
+
+  it('keeps duplicate admitted-owner conflicts for owner-scoped Surface widgets', () => {
+    const testCase = fixture();
+    const duplicateOwnerGraph = graphWithDuplicateSurfaceWidgetOwner(testCase.graph);
+    const resolverInput = moduleResolverInputFromAppGraph(duplicateOwnerGraph);
+
+    const moduleResolution = resolveModules(resolverInput);
+    expect(moduleResolution.ok).toBe(false);
+    expect(moduleResolution.contributions.find((contribution) =>
+      contribution.site === 'surface.module-widget.binding.widgetName'
+    )).toMatchObject({
+      name: testCase.expected.surfaceWidgetUseName,
+      status: 'conflict',
+      owningModules: [
+        { id: 'x-acme-surface', version: '1.0.0' },
+        { id: 'x-other-surface', version: '1.0.0' },
+      ],
+    });
+    expect(moduleResolution.diagnostics).toContainEqual(expect.objectContaining({
+      code: testCase.expected.duplicateOwnerDiagnosticCode,
+      origin: 'module-resolver',
+      phase: 'module-resolution',
+      details: expect.objectContaining({
+        contribution: testCase.expected.surfaceWidgetUseName,
+        owners: ['x-acme-surface', 'x-other-surface'],
+      }),
+    }));
+  });
+
+  it('keeps duplicate admitted-owner conflicts ahead of owner-mismatch precedence', () => {
+    const testCase = fixture();
+    const duplicateWrongOwnerGraph = graphWithDuplicateWrongSurfaceWidgetOwners(
+      testCase.graph,
+      testCase.expected.wrongOwnerSurfaceWidgetUseName,
+    );
+    const resolverInput = moduleResolverInputFromAppGraph(duplicateWrongOwnerGraph);
+
+    const moduleResolution = resolveModules(resolverInput);
+    expect(moduleResolution.ok).toBe(false);
+    expect(moduleResolution.contributions.find((contribution) =>
+      contribution.site === 'surface.module-widget.binding.widgetName'
+    )).toMatchObject({
+      name: testCase.expected.wrongOwnerSurfaceWidgetUseName,
+      status: 'conflict',
+      owningModules: [
+        { id: 'x-reviewer', version: '1.0.0' },
+        { id: 'x-alt-reviewer', version: '1.0.0' },
+      ],
+    });
+    expect(moduleResolution.diagnostics).toContainEqual(expect.objectContaining({
+      code: testCase.expected.duplicateOwnerDiagnosticCode,
+      details: expect.objectContaining({
+        contribution: testCase.expected.wrongOwnerSurfaceWidgetUseName,
+        owners: ['x-reviewer', 'x-alt-reviewer'],
       }),
     }));
   });

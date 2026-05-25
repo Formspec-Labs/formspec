@@ -305,6 +305,7 @@
     "fallbackDiagnosticCode": "MODULE-CONTRIBUTION-MISSING",
     "wrongOwnerSurfaceWidgetUseName": "x-review-panel",
     "wrongOwnerDiagnosticCode": "MODULE-CONTRIBUTION-OWNER",
+    "duplicateOwnerDiagnosticCode": "MODULE-CONTRIBUTION-CONFLICT",
     "contributionNames": [
       "x-acme-surface-widget-case-status",
       "x-special-unit",

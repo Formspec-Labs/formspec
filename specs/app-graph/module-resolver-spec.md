@@ -330,18 +330,20 @@ Policy `widgetRef` host evidence into the same `ModuleResolverInput` shape. It
 does not fetch artifacts, validate schemas, admit modules, emit diagnostics, or
 execute runtime behavior; `resolveModules()` remains the admission and
 contribution authority. Surface widget evidence remains owner-scoped by
-`binding.moduleId`; a fallback `widgetName` that resolves under another
+`binding.moduleId`; a fallback `widgetName` that resolves only under another
 admitted module produces resolver-owned owner-mismatch diagnostics rather than a
-false positive. It does not collect future-only Mapping transform or Validation
-Mapping row contributions until those contribution categories are promoted into
-the Registry contract.
+false positive, while duplicate admitted owners still produce the resolver's
+normal contribution-conflict diagnostic. It does not collect future-only
+Mapping transform or Validation Mapping row contributions until those
+contribution categories are promoted into the Registry contract.
 
 The graph-collector conformance fixture feeds the completed
 `ModuleResolutionReport` into `AppGraphValidator` UI Graph Policy semantics so
 the handoff is executable without promoting production runtime consumers. The
 fixture covers positive Surface, Experience, Response Actions, Theme, and UI
 Graph Policy contribution collection plus negative Surface missing/wrong-owner
-fallback behavior. The runner does not derive report identity from fixture
+fallback and duplicate-owner conflict behavior. The runner does not derive
+report identity from fixture
 filenames, case ids, artifact paths, or payload-presence heuristics. A
 conforming future
 implementation still needs:
