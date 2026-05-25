@@ -54,6 +54,7 @@ export interface ModuleResolverContributionUse {
   site: string;
   name: string;
   expectedCategory: string;
+  expectedOwnerModuleId?: string;
   payload?: unknown;
   source: ModuleResolutionSourcePointer;
   payloadSource?: ModuleResolutionSourcePointer;
@@ -352,6 +353,7 @@ function surfaceUses(
         site: 'surface.module-widget.binding.widgetName',
         name,
         expectedCategory: 'widget',
+        expectedOwnerModuleId: moduleId,
         source: sourceForGraphHandle(handle, `/routes/${routeIndex}/slots/${slotIndex}/binding/widgetName`),
       };
       if (binding.config !== undefined) {
@@ -499,10 +501,12 @@ function uiGraphPolicyUses(
   return recordArray(theme?.assignments).flatMap((assignment, index) => {
     const widgetRef = asRecord(assignment.widgetRef);
     const name = stringValue(widgetRef?.widgetName);
+    const moduleId = stringValue(widgetRef?.moduleId);
     return name ? [{
       site: 'ui-graph-policy.theme.assignments.widgetRef',
       name,
       expectedCategory: 'widget',
+      ...(moduleId ? { expectedOwnerModuleId: moduleId } : {}),
       source: sourceForHostEvidence(evidenceIndex, evidence.source, `/theme/assignments/${index}/widgetRef`),
     }] : [];
   });
@@ -1145,7 +1149,11 @@ function resolveContributions(
     for (const use of document.uses ?? []) {
       const entry = index.entriesByName.get(use.name);
       const owners = index.contributedBy.get(use.name) ?? [];
-      const admittedOwners = owners.filter((owner) => moduleStates.get(owner.entry.name)?.report.status === 'admitted');
+      const expectedOwners = use.expectedOwnerModuleId
+        ? owners.filter((owner) => owner.entry.name === use.expectedOwnerModuleId)
+        : owners;
+      const admittedOwners = expectedOwners
+        .filter((owner) => moduleStates.get(owner.entry.name)?.report.status === 'admitted');
       const source = useSource(use);
       const contribution: ModuleResolutionContribution = {
         site: use.site,
@@ -1192,6 +1200,25 @@ function resolveContributions(
           registrySource(entry, input),
           { details: { contribution: use.name } },
         ));
+      } else if (expectedOwners.length === 0 && use.expectedOwnerModuleId) {
+        contribution.owningModules = owners.map(ownerRef);
+        contribution.status = 'owner-mismatch';
+        diagnostics.push(diagnostic(
+          'MODULE-CONTRIBUTION-OWNER',
+          `Contribution '${use.name}' is not contributed by expected module '${use.expectedOwnerModuleId}'.`,
+          source,
+          {
+            relatedSources: owners.map((owner) => ({
+              ...registrySource(owner, input),
+              module: ownerRef(owner),
+            })),
+            details: {
+              contribution: use.name,
+              expectedOwnerModuleId: use.expectedOwnerModuleId,
+              owningModules: owners.map((owner) => owner.entry.name),
+            },
+          },
+        ));
       } else if (admittedOwners.length > 1) {
         contribution.owningModules = admittedOwners.map(ownerRef);
         contribution.status = 'conflict';
@@ -1202,10 +1229,10 @@ function resolveContributions(
           { details: { contribution: use.name, owners: admittedOwners.map((owner) => owner.entry.name) } },
         ));
       } else {
-        const owner = admittedOwners[0] ?? owners[0];
+        const owner = admittedOwners[0] ?? expectedOwners[0];
         const ownerState = moduleStates.get(owner.entry.name);
         if (ownerState?.report.status !== 'admitted') {
-          contribution.owningModules = owners.map(ownerRef);
+          contribution.owningModules = expectedOwners.map(ownerRef);
           contribution.status = 'unadmitted';
           diagnostics.push(diagnostic(
             'MODULE-CONTRIBUTION-UNADMITTED',
@@ -1277,6 +1304,7 @@ function summaryFor(
       'category-mismatch',
       'unowned',
       'conflict',
+      'owner-mismatch',
       'unadmitted',
     ].includes(entry.status)).length,
     payloadFailures: contributions.filter((entry) => entry.status === 'payload-schema-mismatch').length,

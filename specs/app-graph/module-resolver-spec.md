@@ -214,7 +214,7 @@ requiring all consumers to be wired in this prose slice.
 | Site | Expected contribution category | Payload boundary |
 |---|---|---|
 | Experience `units[].kind` | `unit-kind` | Future unit payload schema hook. |
-| Surface `module-widget.binding.moduleId` and `widgetName` | `widget` | `binding.config` validates against `widgetShape.props`. |
+| Surface `module-widget.binding.moduleId` and `widgetName` | `widget` owned by `binding.moduleId` | `binding.config` validates against `widgetShape.props`. `widgetName` is translated through the owning module's contributed Registry widget whose `widgetShape.widgetName` matches; a same-name widget owned by another admitted module MUST NOT satisfy the Surface binding. |
 | Theme widget configuration | `widget` | `widgetConfig` validates against `widgetShape.props`. |
 | UI Graph Policy `theme.assignments[].widgetRef` | `widget` | AppGraphValidator consumes completed contribution evidence only; token slots remain separate. |
 | Mapping transforms | transform contribution family when promoted | Future transform payload hook. |
@@ -285,6 +285,7 @@ the shared app-graph diagnostic envelope.
 | `MODULE-CONTRIBUTION-CATEGORY` | error | A Registry entry category does not match the consuming site. |
 | `MODULE-CONTRIBUTION-UNOWNED` | error | No module contributes the Registry entry. |
 | `MODULE-CONTRIBUTION-CONFLICT` | error | More than one module contributes the same Registry entry. |
+| `MODULE-CONTRIBUTION-OWNER` | error | A contribution entry exists, but it is not contributed by the module required by the consuming site evidence. |
 | `MODULE-CONTRIBUTION-UNADMITTED` | error | The owning module is not admitted by app or host evidence. |
 | `MODULE-PAYLOAD-SCHEMA-MISMATCH` | error | A payload-bearing use fails the owning contribution's payload schema. |
 | `MODULE-TOKEN-CATEGORY-SHAPE` | error | An admitted Registry token-category contribution has missing, invalid, or internally inconsistent `categoryShape.prefix` evidence. |
@@ -328,15 +329,21 @@ module-consuming sites, Surface `module-widget` payload evidence, and UI Graph
 Policy `widgetRef` host evidence into the same `ModuleResolverInput` shape. It
 does not fetch artifacts, validate schemas, admit modules, emit diagnostics, or
 execute runtime behavior; `resolveModules()` remains the admission and
-contribution authority. It does not collect future-only Mapping transform or
-Validation Mapping row contributions until those contribution categories are
-promoted into the Registry contract.
+contribution authority. Surface widget evidence remains owner-scoped by
+`binding.moduleId`; a fallback `widgetName` that resolves under another
+admitted module produces resolver-owned owner-mismatch diagnostics rather than a
+false positive. It does not collect future-only Mapping transform or Validation
+Mapping row contributions until those contribution categories are promoted into
+the Registry contract.
 
 The graph-collector conformance fixture feeds the completed
 `ModuleResolutionReport` into `AppGraphValidator` UI Graph Policy semantics so
 the handoff is executable without promoting production runtime consumers. The
-runner does not derive report identity from fixture filenames, case ids,
-artifact paths, or payload-presence heuristics. A conforming future
+fixture covers positive Surface, Experience, Response Actions, Theme, and UI
+Graph Policy contribution collection plus negative Surface missing/wrong-owner
+fallback behavior. The runner does not derive report identity from fixture
+filenames, case ids, artifact paths, or payload-presence heuristics. A
+conforming future
 implementation still needs:
 
 1. integration with `ArtifactResolver` output in production graph-loading

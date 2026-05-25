@@ -22,10 +22,16 @@ interface GraphCollectorFixture {
   expected: {
     appModuleIds: string[];
     surfaceWidgetUseName: string;
+    surfaceWidgetExpectedOwnerModuleId: string;
+    experienceUnitUseName: string;
     responseActionUseName: string;
+    themeWidgetUseNames: string[];
     uiPolicyWidgetUseName: string;
+    uiPolicyExpectedOwnerModuleId: string;
     fallbackSurfaceWidgetUseName: string;
     fallbackDiagnosticCode: string;
+    wrongOwnerSurfaceWidgetUseName: string;
+    wrongOwnerDiagnosticCode: string;
     contributionNames: string[];
     absentAppGraphDiagnostics: string[];
   };
@@ -101,6 +107,7 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
       site: 'surface.module-widget.binding.widgetName',
       name: testCase.expected.surfaceWidgetUseName,
       expectedCategory: 'widget',
+      expectedOwnerModuleId: testCase.expected.surfaceWidgetExpectedOwnerModuleId,
       source: {
         artifactSlot: 'surfaces[0]',
         artifactKind: 'surface',
@@ -112,6 +119,19 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
         artifactKind: 'surface',
         source: 'memory://surface/review',
         jsonPointer: '/routes/0/slots/0/binding/config',
+      },
+    });
+
+    const experienceDocument = resolverInput.documents?.find((document) => document.artifactSlot === 'experiences[0]');
+    expect(experienceDocument?.uses?.[0]).toMatchObject({
+      site: 'experience.units.kind',
+      name: testCase.expected.experienceUnitUseName,
+      expectedCategory: 'unit-kind',
+      source: {
+        artifactSlot: 'experiences[0]',
+        artifactKind: 'experience',
+        source: 'memory://experience/review',
+        jsonPointer: '/units/0/kind',
       },
     });
 
@@ -128,6 +148,32 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
       },
     });
 
+    const themeDocument = resolverInput.documents?.find((document) => document.artifactSlot === 'themes[0]');
+    expect(themeDocument?.uses?.map((use) => use.name)).toEqual(testCase.expected.themeWidgetUseNames);
+    expect(themeDocument?.uses).toEqual([
+      expect.objectContaining({
+        site: 'theme.presentation.widget',
+        name: 'x-theme-money',
+        expectedCategory: 'widget',
+        source: expect.objectContaining({ jsonPointer: '/defaults/widget' }),
+        payloadSource: expect.objectContaining({ jsonPointer: '/defaults/widgetConfig' }),
+      }),
+      expect.objectContaining({
+        site: 'theme.presentation.widget',
+        name: 'x-theme-date',
+        expectedCategory: 'widget',
+        source: expect.objectContaining({ jsonPointer: '/selectors/0/apply/widget' }),
+        payloadSource: expect.objectContaining({ jsonPointer: '/selectors/0/apply/widgetConfig' }),
+      }),
+      expect.objectContaining({
+        site: 'theme.presentation.widget',
+        name: 'x-theme-case-id',
+        expectedCategory: 'widget',
+        source: expect.objectContaining({ jsonPointer: '/items/caseId/widget' }),
+        payloadSource: expect.objectContaining({ jsonPointer: '/items/caseId/widgetConfig' }),
+      }),
+    ]);
+
     const uiPolicyDocument = resolverInput.documents?.find((document) =>
       document.artifactSlot === 'hostEvidence.uiGraphPolicies[0]'
     );
@@ -135,6 +181,7 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
       site: 'ui-graph-policy.theme.assignments.widgetRef',
       name: testCase.expected.uiPolicyWidgetUseName,
       expectedCategory: 'widget',
+      expectedOwnerModuleId: testCase.expected.uiPolicyExpectedOwnerModuleId,
       source: {
         artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
         artifactKind: 'hostEvidence',
@@ -187,6 +234,7 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
       site: 'surface.module-widget.binding.widgetName',
       name: testCase.expected.fallbackSurfaceWidgetUseName,
       expectedCategory: 'widget',
+      expectedOwnerModuleId: testCase.expected.surfaceWidgetExpectedOwnerModuleId,
       source: {
         artifactSlot: 'surfaces[0]',
         artifactKind: 'surface',
@@ -206,6 +254,35 @@ describe('ModuleResolver graph collector conformance fixtures', () => {
         artifactKind: 'surface',
         source: 'memory://surface/review',
         jsonPointer: '/routes/0/slots/0/binding/widgetName',
+      }),
+    }));
+  });
+
+  it('does not resolve a Surface widget through the wrong admitted owner', () => {
+    const testCase = fixture();
+    const wrongOwnerGraph = graphWithSurfaceWidgetName(
+      testCase.graph,
+      testCase.expected.wrongOwnerSurfaceWidgetUseName,
+    );
+    const resolverInput = moduleResolverInputFromAppGraph(wrongOwnerGraph);
+
+    const moduleResolution = resolveModules(resolverInput);
+    expect(moduleResolution.ok).toBe(false);
+    expect(moduleResolution.contributions.find((contribution) =>
+      contribution.site === 'surface.module-widget.binding.widgetName'
+    )).toMatchObject({
+      name: testCase.expected.wrongOwnerSurfaceWidgetUseName,
+      status: 'owner-mismatch',
+      owningModules: [{ id: 'x-reviewer', version: '1.0.0' }],
+    });
+    expect(moduleResolution.diagnostics).toContainEqual(expect.objectContaining({
+      code: testCase.expected.wrongOwnerDiagnosticCode,
+      origin: 'module-resolver',
+      phase: 'module-resolution',
+      details: expect.objectContaining({
+        contribution: testCase.expected.wrongOwnerSurfaceWidgetUseName,
+        expectedOwnerModuleId: testCase.expected.surfaceWidgetExpectedOwnerModuleId,
+        owningModules: ['x-reviewer'],
       }),
     }));
   });

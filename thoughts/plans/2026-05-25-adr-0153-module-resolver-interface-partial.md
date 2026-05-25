@@ -137,6 +137,12 @@ authorization.
 - [x] Add a graph-collector source conformance fixture that runs the collected
   input through `resolveModules()` and passes the completed report into
   `validateAppGraph()` UI Graph Policy semantics.
+- [x] Add owner-scoped Surface widget resolution so an authored
+  `binding.widgetName` cannot resolve through a same-name widget owned by a
+  different admitted module.
+- [x] Expand graph-collector fixture coverage for positive Experience
+  `units[].kind`, Theme `defaults` / `selectors[]` / `items` widget evidence,
+  and negative Surface missing/wrong-owner fallback behavior.
 - [x] Cover the Surface widget-name fallback path: when loaded Registry
   evidence cannot translate `binding.widgetName` through
   `widgetShape.widgetName`, the collector preserves the authored value and
@@ -197,7 +203,13 @@ authorization.
   `binding.widgetName` to a Registry contribution entry only when loaded
   Registry evidence connects the route's `binding.moduleId` to a widget whose
   `widgetShape.widgetName` matches. Otherwise it preserves the authored value
-  so the shared resolver emits the normal contribution diagnostics.
+  so the shared resolver emits the normal contribution diagnostics. The
+  contribution use also carries the expected owner module id so same-name
+  widgets owned by other admitted modules fail as `MODULE-CONTRIBUTION-OWNER`
+  instead of resolving falsely.
+- 2026-05-25: Mapping transforms and Validation Mapping rows remain documented
+  future contribution families. The graph collector does not collect them in
+  this slice.
 - 2026-05-25: Mapping transform collection remains out of scope. The Module
   Resolver spec still marks transform contributions as future promotion work,
   and the Registry schema does not yet admit a `transform` contribution

@@ -46,6 +46,7 @@ export type ModuleResolutionContributionStatus =
   | 'category-mismatch'
   | 'unowned'
   | 'conflict'
+  | 'owner-mismatch'
   | 'unadmitted'
   | 'payload-schema-mismatch';
 /**
