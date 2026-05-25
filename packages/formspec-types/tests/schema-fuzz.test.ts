@@ -140,6 +140,79 @@ const HARD_SCHEMAS = new Set(['mapping', 'theme']);
 const EXAMPLE_BACKED_SCHEMAS = new Set(['verification-receipt']);
 
 const CUSTOM_VALID_INSTANCES: Record<string, any[]> = {
+  definition: [
+    {
+      $formspec: '1.0',
+      url: 'https://example.gov/forms/simple',
+      version: '1.0.0',
+      status: 'draft',
+      title: 'Simple Definition',
+      items: [
+        { key: 'name', type: 'field', label: 'Name', dataType: 'string' },
+      ],
+    },
+    {
+      $formspec: '1.0',
+      url: 'https://example.gov/forms/preparation',
+      version: '2026.1.0',
+      status: 'active',
+      title: 'Preparation Definition',
+      metadata: {
+        preparation: {
+          documents: [
+            {
+              id: 'proofOfIdentity',
+              label: 'Proof of identity',
+              required: true,
+              itemPaths: ['applicantName'],
+            },
+          ],
+          expectedAcquisitionWindows: {
+            proofOfIdentity: {
+              label: 'same day',
+              minDays: 0,
+              maxDays: 0,
+            },
+          },
+        },
+        assurance: {
+          ial: 'L2',
+          aal: 'L2',
+          jurisdiction: 'example.gov',
+        },
+      },
+      items: [
+        { key: 'applicantName', type: 'field', label: 'Applicant name', dataType: 'string' },
+      ],
+    },
+    {
+      $formspec: '1.0',
+      url: 'https://example.gov/forms/fee',
+      version: '1.2.0',
+      status: 'draft',
+      title: 'Fee Definition',
+      items: [
+        { key: 'income', type: 'field', label: 'Income', dataType: 'decimal' },
+        { key: 'filingFee', type: 'field', label: 'Filing fee', dataType: 'decimal' },
+      ],
+      variables: [
+        { name: 'feeBase', expression: '$income', scope: '#' },
+      ],
+      binds: [
+        { path: 'filingFee', calculate: '@feeBase * 0.1' },
+      ],
+      fees: {
+        currency: 'USD',
+        lineItems: [
+          {
+            id: 'filingFee',
+            label: 'Filing fee',
+            calculate: '@feeBase * 0.1',
+          },
+        ],
+      },
+    },
+  ],
   'response-actions': [
     {
       $formspecResponseActions: '1.0',
@@ -256,7 +329,15 @@ describe('schema fuzz: random instances validate against resolved schema', () =>
       const failures: string[] = [];
 
       for (let i = 0; i < attempts; i++) {
-        const instance = await activeGen.generate(resolved);
+        let instance: unknown;
+        try {
+          instance = await activeGen.generate(resolved);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failures.push(`  attempt ${i}: generator error: ${message}`);
+          continue;
+        }
+
         if (validate(instance)) {
           validCount++;
         } else {
