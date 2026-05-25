@@ -25,13 +25,14 @@ This row spans:
 
 - Structural source contract, generated TypeScript type, host-evidence boundary,
   report-origin readiness, and host-evidence schema result reporting are landed.
-- Surface/route-only executable diagnostics are in progress for
+- Surface/route and Locale-owner executable diagnostics are in progress for
   `UI-POLICY-SURFACE-TARGET`, `UI-POLICY-ROUTE-COLLISION`,
   `UI-POLICY-ROUTE-REF`, `UI-POLICY-ROUTE-MISSING`, and
-  `UI-POLICY-RESPONSIVE-SLOT`.
-- Locale owner, hidden Definition, Theme token-slot, ModuleResolver/Registry,
-  runtime, Studio, projection, consumer, and optional future App Manifest slot
-  work remains open.
+  `UI-POLICY-RESPONSIVE-SLOT`, plus `LOCALE-KEY-OWNER` and
+  `LOCALE-KEY-OWNER-COLLISION`.
+- Locale owner module-segment/module-id resolution, hidden Definition, Theme
+  token-slot, ModuleResolver/Registry, runtime, Studio, projection, consumer,
+  and optional future App Manifest slot work remains open.
 
 ## Phase Order
 
@@ -64,14 +65,17 @@ Current partial evidence:
 - `packages/formspec-app-graph/src/validator.ts`
 - `packages/formspec-app-graph/src/ui-graph-policy.ts`
 - `tests/conformance/fixtures/ui-graph-policy/`
+- `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-surface-routes.case.json`
 - `tests/conformance/schemas/test_ui_graph_policy_schema.py`
 - `tests/conformance/schemas/test_app_graph_validation_report_schema.py`
 - `tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py`
 - `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py`
+- `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`
 - `tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py`
+- `packages/formspec-app-graph/tests/ui-graph-policy-locale-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
 
-Closure still requires executable Locale owner, hidden Definition, Theme
-token-slot, ModuleResolver/Registry token-slot evidence, consumer wiring, and
-final rollup gate transition.
+Closure still requires Locale owner module-segment/module-id resolution, hidden
+Definition, Theme token-slot, ModuleResolver/Registry token-slot evidence,
+consumer wiring, and final rollup gate transition.

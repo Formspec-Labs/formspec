@@ -14,12 +14,12 @@ to module widget token slots.
 
 The current slices promote the structural source schema, generated TypeScript
 type, host-supplied loading evidence, executable host-evidence schema result
-reporting, and Surface/route-only semantic diagnostics in the shared
-AppGraphValidator kernel. They do not promote an App Manifest slot,
-ArtifactResolver group, Locale-owner checks, Theme token-slot checks, hidden
-Definition behavior, ModuleResolver token-slot enforcement, runtime responsive
-behavior, renderer behavior, Studio wiring, or ADR 0152 authorization
-semantics.
+reporting, Surface/route semantic diagnostics, and Locale-owner prefix
+coverage/collision diagnostics in the shared AppGraphValidator kernel. They do
+not promote an App Manifest slot, ArtifactResolver group, Theme token-slot
+checks, hidden Definition behavior, ModuleResolver token-slot or module-id
+resolution, runtime responsive behavior, renderer behavior, Studio wiring, or
+ADR 0152 authorization semantics.
 
 ## Review Checkpoint
 
@@ -110,6 +110,17 @@ pointers evidence-only; do not emit Locale owner, Theme token-slot, hidden
 Definition, ModuleResolver/Registry, runtime, consumer, App Manifest slot, or
 ADR 0152 authorization diagnostics.
 
+Pasteur and Cicero approved the follow-on Locale-owner semantic slice. Required
+boundary: after schema-valid host evidence and exact target Surface resolution,
+emit only `LOCALE-KEY-OWNER` for loaded Locale `$module.*` keys not covered by
+declared prefixes and `LOCALE-KEY-OWNER-COLLISION` for exact or proper-prefix
+overlap across different `moduleId` values; do not fold keyPrefix/moduleId
+module-segment mismatch into `LOCALE-KEY-OWNER`; same-module overlap is valid;
+no loaded Locale evidence means no missing-owner diagnostic; keep policy
+pointers evidence-only and Locale pointers as normal artifact pointers; do not
+emit Theme, hidden Definition, ModuleResolver, runtime, App Manifest slot, or
+ADR 0152 authorization diagnostics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -180,12 +191,23 @@ ADR 0152 authorization diagnostics.
   pins the executable fixture corpus and verifies that Locale owner, Theme
   token-slot, hidden Definition, path-identity, and ADR 0152 authorization
   families remain out of this slice.
+- `packages/formspec-app-graph/src/ui-graph-policy.ts`,
+  `packages/formspec-app-graph/tests/ui-graph-policy-locale-conformance.test.ts`,
+  and
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
+  add executable Locale-owner diagnostics for missing owner coverage and
+  exact/proper-prefix owner collisions over loaded Locale evidence.
+- `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`
+  pins the executable Locale-owner fixture corpus, policy evidence-only
+  pointers, Locale artifact pointers, zero-loaded-Locale behavior,
+  keyPrefix/moduleId mismatch deferral, and no TraceIndex/path/auth leakage.
 
 ## Still Open For Closure
 
 - Optional future App Manifest loading slot if the package contract later
   chooses one.
-- Locale-owner semantic diagnostics.
+- Locale-owner keyPrefix/moduleId module-segment diagnostics and module-id
+  resolution through ModuleResolver evidence.
 - Hidden Definition semantic diagnostics and runtime behavior.
 - Theme token-slot semantic diagnostics.
 - ModuleResolver/Registry token-slot evidence integration.
@@ -197,10 +219,11 @@ ADR 0152 authorization diagnostics.
 - `python -m pytest tests/conformance/schemas/test_ui_graph_policy_schema.py -q`
 - `python -m pytest tests/conformance/schemas/test_app_graph_validation_report_schema.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_host_loaded_fixture_corpus.py -q`
+- `python -m pytest tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py -q`
 - `python -m pytest tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py -q`
 - `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`
-- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts`
+- `npm run --workspace @formspec-org/app-graph test -- app-graph-validator.test.ts ui-graph-policy-conformance.test.ts ui-graph-policy-locale-conformance.test.ts`
 - `npm run docs:filemap`
 - `npm run docs:filemap:check`
 - `npm run docs:check`

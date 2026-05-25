@@ -469,8 +469,23 @@ describe('validateAppGraph', () => {
         surfaces: [loadedHandle({
           slot: 'surfaces[0]',
           artifactKind: 'surface',
+          schemaId: 'surface',
           ref: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
           document: { routes: [{ id: 'review', slots: [] }] },
+        })],
+        locales: [loadedHandle({
+          slot: 'locales[0]',
+          artifactKind: 'locale',
+          schemaId: 'locale',
+          source: 'memory://locale/en',
+          document: {
+            $formspecLocale: '1.0',
+            version: '1.0.0',
+            locale: 'en',
+            strings: {
+              '$module.x-reviewer.heading': 'Review',
+            },
+          },
         })],
       },
       hostEvidence: {
@@ -481,6 +496,7 @@ describe('validateAppGraph', () => {
             $formspecUiGraphPolicy: '0.1',
             version: '1.0.0',
             targetSurface: { url: 'https://example.gov/apps/intake/surfaces/admin' },
+            localeKeyOwners: [],
             routePolicies: [{ routeId: 'review' }],
           },
         }],
@@ -495,6 +511,7 @@ describe('validateAppGraph', () => {
     });
 
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('UI-POLICY-SURFACE-TARGET');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
     expect(report.diagnostics).toContainEqual(expect.objectContaining({
       code: 'APP-GRAPH-SCHEMA',
       phase: 'schema',
@@ -504,6 +521,62 @@ describe('validateAppGraph', () => {
       phase: 'cross-artifact',
       status: 'skipped',
       reason: 'schema-errors',
+    });
+  });
+
+  it('skips UI Graph Policy semantics when policy evidence schema validation is not run', () => {
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      artifacts: {
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          schemaId: 'surface',
+          ref: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
+          document: { routes: [{ id: 'review', slots: [] }] },
+        })],
+        locales: [loadedHandle({
+          slot: 'locales[0]',
+          artifactKind: 'locale',
+          schemaId: 'locale',
+          source: 'memory://locale/en',
+          document: {
+            $formspecLocale: '1.0',
+            version: '1.0.0',
+            locale: 'en',
+            strings: {
+              '$module.x-reviewer.heading': 'Review',
+            },
+          },
+        })],
+      },
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+          source: 'host://policy/respondent-ui-policy',
+          document: {
+            $formspecUiGraphPolicy: '0.1',
+            version: '1.0.0',
+            targetSurface: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
+            localeKeyOwners: [],
+            routePolicies: [{ routeId: 'review' }],
+          },
+        }],
+      },
+      schemaValidators: () => ({ ok: true }),
+    });
+
+    expect(report.evidenceResults[0]).toMatchObject({
+      evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+      status: 'not-run',
+      reason: 'missing-schema-validator',
+      ok: true,
+    });
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
+    expect(report.phases).toContainEqual({
+      phase: 'cross-artifact',
+      status: 'skipped',
+      reason: 'missing-schema-validators',
     });
   });
 });

@@ -608,9 +608,9 @@
         "A conforming UI Graph Policy document must include `$formspecUiGraphPolicy='0.1'`, strict SemVer `version`, `targetSurface`, and at least one `routePolicies[]` entry.",
         "Host-supplied UI Graph Policy evidence uses `hostEvidence.uiGraphPolicies[]` with fixed schemaId, opaque source, and schema-valid document; it is not an App Manifest sibling slot or resolver artifact kind.",
         "AppGraphValidator reports host-evidence schema validation through `evidenceResults[]`; artifact `schemaValidators` and `schemaResults[]` remain artifact-only.",
-        "AppGraphValidator emits Surface/route-only UI Graph Policy diagnostics for target Surface mismatch, route coverage, duplicate route policies, unresolved routes, and responsive slot references.",
+        "AppGraphValidator emits UI Graph Policy diagnostics for target Surface mismatch, route coverage, duplicate route policies, unresolved routes, responsive slot references, loaded Locale $module.* keys without declared owners, and overlapping Locale owner prefixes across different modules.",
         "Structural conformance rejects `$wireframeUiPolicy` spike documents, path-identity fields, authorization fields, invalid module Locale prefixes, and App Manifest `uiPolicy` or `uiGraphPolicy` slots in the current manifest schema.",
-        "This slice proves schema shape, generated types, structural fixture acceptance, host-evidence boundary, host-evidence schema result reporting, Surface/route semantic diagnostics, semantic fixture evidence, and report-origin readiness only; Locale-owner checks, Theme token-slot checks, hidden Definition behavior, ModuleResolver/Registry token-slot checks, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates."
+        "This slice proves schema shape, generated types, structural fixture acceptance, host-evidence boundary, host-evidence schema result reporting, Surface/route semantic diagnostics, Locale-owner executable diagnostics, semantic fixture evidence, and report-origin readiness only; Theme token-slot checks, hidden Definition behavior, ModuleResolver/Registry token-slot checks, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates."
       ]
     },
     {

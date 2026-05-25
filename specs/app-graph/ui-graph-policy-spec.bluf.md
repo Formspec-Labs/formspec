@@ -1,6 +1,6 @@
 - UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice adds host-evidence schema result reporting and Surface/route-only AppGraphValidator enforcement; Locale-owner, Theme token-slot, and hidden Definition checks remain later gates.
+- This slice adds host-evidence schema result reporting plus Surface/route and Locale-owner AppGraphValidator enforcement; Theme token-slot, hidden Definition, ModuleResolver, runtime, and consumer checks remain later gates.
 - Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.

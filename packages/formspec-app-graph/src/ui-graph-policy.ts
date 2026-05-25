@@ -1,4 +1,4 @@
-/** @filedesc Built-in UI Graph Policy validation for loaded Surface route evidence. */
+/** @filedesc Built-in UI Graph Policy validation for loaded app-graph evidence. */
 
 import {
   type AppGraphContext,
@@ -7,7 +7,7 @@ import {
   type ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
-import type { SurfaceDocument, UiGraphPolicyDocument } from '@formspec-org/types';
+import type { LocaleDocument, SurfaceDocument, UiGraphPolicyDocument } from '@formspec-org/types';
 
 interface SurfaceRoute {
   id: string;
@@ -19,6 +19,12 @@ interface IndexedRoutePolicy {
   routeId: string;
   index: number;
   collapseOrder: string[];
+}
+
+interface IndexedLocaleKeyOwner {
+  keyPrefix: string;
+  moduleId: string;
+  index: number;
 }
 
 interface UiGraphPolicyEvidence {
@@ -58,11 +64,18 @@ function diagnostic(
 }
 
 type LoadedSurfaceHandle = ResolvedArtifactHandle<SurfaceDocument>;
+type LoadedLocaleHandle = ResolvedArtifactHandle<LocaleDocument>;
 
 function loadedSurfaceHandles(handles: readonly ResolvedArtifactHandle[]): LoadedSurfaceHandle[] {
   return handles
     .filter((handle) => handle.artifactKind === 'surface' && handle.status === 'loaded')
     .map((handle) => handle as LoadedSurfaceHandle);
+}
+
+function loadedLocaleHandles(handles: readonly ResolvedArtifactHandle[]): LoadedLocaleHandle[] {
+  return handles
+    .filter((handle) => handle.artifactKind === 'locale' && handle.status === 'loaded')
+    .map((handle) => handle as LoadedLocaleHandle);
 }
 
 function surfaceRefUrl(handle: ResolvedArtifactHandle): string | undefined {
@@ -105,6 +118,14 @@ function routePolicies(policy: UiGraphPolicyDocument): IndexedRoutePolicy[] {
     routeId: entry.routeId,
     index,
     collapseOrder: entry.responsive?.collapseOrder ?? [],
+  }));
+}
+
+function localeKeyOwners(policy: UiGraphPolicyDocument): IndexedLocaleKeyOwner[] {
+  return (policy.localeKeyOwners ?? []).map((entry, index) => ({
+    keyPrefix: entry.keyPrefix,
+    moduleId: entry.moduleId,
+    index,
   }));
 }
 
@@ -193,14 +214,69 @@ function validateRoutePolicies(
   return diagnostics;
 }
 
-export function validateUiGraphPolicySurfaceRoutes(context: AppGraphContext): AppGraphDiagnostic[] {
+function prefixesOverlap(left: string, right: string): boolean {
+  return left === right || left.startsWith(right) || right.startsWith(left);
+}
+
+function escapeJsonPointerToken(value: string): string {
+  return value.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+
+function validateLocaleKeyOwners(
+  evidence: UiGraphPolicyEvidence,
+  locales: readonly LoadedLocaleHandle[],
+): AppGraphDiagnostic[] {
+  const diagnostics: AppGraphDiagnostic[] = [];
+  const owners = localeKeyOwners(evidence.document);
+
+  for (const [rightIndex, right] of owners.entries()) {
+    for (const left of owners.slice(0, rightIndex)) {
+      if (left.moduleId === right.moduleId || !prefixesOverlap(left.keyPrefix, right.keyPrefix)) continue;
+      diagnostics.push(diagnostic(
+        'LOCALE-KEY-OWNER-COLLISION',
+        'One Locale key prefix is claimed by different modules.',
+        evidenceSource(evidence, `/localeKeyOwners/${right.index}/keyPrefix`),
+        [evidenceSource(evidence, `/localeKeyOwners/${left.index}/keyPrefix`)],
+        {
+          keyPrefix: right.keyPrefix,
+          moduleId: right.moduleId,
+          conflictingKeyPrefix: left.keyPrefix,
+          conflictingModuleId: left.moduleId,
+        },
+      ));
+    }
+  }
+
+  for (const locale of locales) {
+    const strings = locale.document?.strings ?? {};
+    for (const key of Object.keys(strings)) {
+      if (!key.startsWith('$module.')) continue;
+      if (owners.some((owner) => key.startsWith(owner.keyPrefix))) continue;
+      diagnostics.push(diagnostic(
+        'LOCALE-KEY-OWNER',
+        'A $module.* Locale key has no declared owner.',
+        diagnosticSourceForHandle(locale, `/strings/${escapeJsonPointerToken(key)}`),
+        [evidenceSource(evidence, '/localeKeyOwners')],
+        { localeKey: key },
+      ));
+    }
+  }
+
+  return diagnostics;
+}
+
+export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnostic[] {
   const surfaces = loadedSurfaceHandles(context.handles);
+  const locales = loadedLocaleHandles(context.handles);
   return policyEvidences(context).flatMap((evidence) => {
     const targetUrl = targetSurfaceUrl(evidence.document);
     const matchingSurfaces = surfaces.filter((surface) => surfaceRefUrl(surface) === targetUrl);
     if (matchingSurfaces.length !== 1) {
       return [targetSurfaceDiagnostic(evidence, surfaces, targetUrl)];
     }
-    return validateRoutePolicies(evidence, matchingSurfaces[0], routePolicies(evidence.document));
+    return [
+      ...validateRoutePolicies(evidence, matchingSurfaces[0], routePolicies(evidence.document)),
+      ...validateLocaleKeyOwners(evidence, locales),
+    ];
   });
 }

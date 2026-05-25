@@ -1,0 +1,668 @@
+{
+  "id": "ui-graph-policy-locale-owners",
+  "description": "Executable AppGraphValidator conformance for UI Graph Policy Locale-owner semantic families.",
+  "handles": {
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.2",
+      "source": "memory://app",
+      "document": {
+        "$formspecApp": "2.2",
+        "id": "intake-app"
+      }
+    },
+    "surface-respondent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/intake/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "summary",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "locale-reviewer": {
+      "slot": "locales[0]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/locale/1.0",
+      "source": "memory://locale/reviewer",
+      "ref": {
+        "url": "https://example.gov/apps/intake/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US"
+      },
+      "document": {
+        "$formspecLocale": "1.0",
+        "version": "1.0.0",
+        "locale": "en-US",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "strings": {
+          "$module.x-reviewer.heading": "Review",
+          "$form.title": "Intake"
+        }
+      }
+    },
+    "locale-helper": {
+      "slot": "locales[0]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/locale/1.0",
+      "source": "memory://locale/helper",
+      "ref": {
+        "url": "https://example.gov/apps/intake/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US"
+      },
+      "document": {
+        "$formspecLocale": "1.0",
+        "version": "1.0.0",
+        "locale": "en-US",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "strings": {
+          "$module.x-helper.heading": "Helper"
+        }
+      }
+    },
+    "locale-core-only": {
+      "slot": "locales[0]",
+      "artifactKind": "locale",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/locale/1.0",
+      "source": "memory://locale/core-only",
+      "ref": {
+        "url": "https://example.gov/apps/intake/locales/en-us",
+        "version": "1.0.0",
+        "locale": "en-US"
+      },
+      "document": {
+        "$formspecLocale": "1.0",
+        "version": "1.0.0",
+        "locale": "en-US",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/intake"
+        },
+        "strings": {
+          "$form.title": "Intake",
+          "$component.submit.label": "Submit"
+        }
+      }
+    }
+  },
+  "policies": {
+    "valid-owner": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/valid-owner",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-reviewer"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "missing-owner": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/missing-owner",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-reviewer"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "exact-prefix-collision": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/exact-prefix-collision",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.case.",
+            "moduleId": "x-reviewer"
+          },
+          {
+            "keyPrefix": "$module.x-reviewer.case.",
+            "moduleId": "x-supervisor"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "overlap-prefix-collision": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/overlap-prefix-collision",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-reviewer"
+          },
+          {
+            "keyPrefix": "$module.x-reviewer.case.",
+            "moduleId": "x-supervisor"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "same-module-overlap": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/same-module-overlap",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-reviewer"
+          },
+          {
+            "keyPrefix": "$module.x-reviewer.case.",
+            "moduleId": "x-reviewer"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "module-segment-mismatch": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/module-segment-mismatch",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-helper"
+          }
+        ],
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "no-module-keys": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/no-module-keys",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    },
+    "target-mismatch-with-locale-gap": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/target-mismatch-with-locale-gap",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/admin"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          }
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-locale-owner",
+      "description": "A loaded Locale $module.* key covered by a policy owner emits no diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "locales": ["locale-reviewer"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-owner"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "missing-locale-owner",
+      "description": "A loaded Locale $module.* key must match a declared owner prefix.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "locales": ["locale-helper"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["missing-owner"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER",
+            "primarySource": {
+              "artifactSlot": "locales[0]",
+              "artifactKind": "locale",
+              "source": "memory://locale/helper",
+              "jsonPointer": "/strings/$module.x-helper.heading",
+              "ref": {
+                "url": "https://example.gov/apps/intake/locales/en-us",
+                "version": "1.0.0",
+                "locale": "en-US"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/missing-owner",
+                "jsonPointer": "/localeKeyOwners"
+              }
+            ],
+            "details": {
+              "localeKey": "$module.x-helper.heading"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "exact-prefix-collision",
+      "description": "Two different modules may not claim the same Locale key prefix.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["exact-prefix-collision"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-COLLISION",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/exact-prefix-collision",
+              "jsonPointer": "/localeKeyOwners/1/keyPrefix"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/exact-prefix-collision",
+                "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.case.",
+              "moduleId": "x-supervisor",
+              "conflictingKeyPrefix": "$module.x-reviewer.case.",
+              "conflictingModuleId": "x-reviewer"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "overlap-prefix-collision",
+      "description": "Two different modules may not claim overlapping Locale key prefix families.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["overlap-prefix-collision"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-COLLISION",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/overlap-prefix-collision",
+              "jsonPointer": "/localeKeyOwners/1/keyPrefix"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/overlap-prefix-collision",
+                "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.case.",
+              "moduleId": "x-supervisor",
+              "conflictingKeyPrefix": "$module.x-reviewer.",
+              "conflictingModuleId": "x-reviewer"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "same-module-overlap",
+      "description": "A single module may own a broad prefix and a stricter subtree without producing a collision.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "locales": ["locale-reviewer"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["same-module-overlap"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "module-segment-mismatch-deferred",
+      "description": "A policy owner whose keyPrefix module segment differs from moduleId is not diagnosed until a dedicated code is named.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "locales": ["locale-reviewer"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["module-segment-mismatch"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "non-module-locale-keys-ignored",
+      "description": "Locale keys outside the $module. prefix family remain Locale-owned and emit no UI policy diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "locales": ["locale-core-only"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["no-module-keys"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "no-loaded-locales-no-missing-owner",
+      "description": "Missing-owner checks require loaded Locale evidence; no loaded Locale handles produce no owner diagnostic.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["valid-owner"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-target-mismatch-skips-locale-owner",
+      "description": "Unresolved policy target Surface emits only the Surface target diagnostic and skips Locale-owner checks.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"],
+          "locales": ["locale-helper"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["target-mismatch-with-locale-gap"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/target-mismatch-with-locale-gap",
+              "jsonPointer": "/targetSurface/url"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/ref/url",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/admin"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
