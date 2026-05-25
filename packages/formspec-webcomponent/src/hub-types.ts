@@ -119,7 +119,7 @@ export interface RenderHost {
         emitEvent?: boolean;
     }): SubmitDetail | null;
     resolveActionRef(actionRef: string, nodeId?: string): ActionResolution;
-    invokeAction(actionRef: string, nodeId?: string): SubmitDetail | null;
+    invokeAction(actionRef: string, nodeId?: string): SubmitDetail | null | Promise<SubmitDetail | null>;
     resolveValidationTarget(resultOrPath: string | ValidationResult): ValidationTargetMetadata;
     focusField(path: string): boolean;
     setSubmitPending(pending: boolean): void;

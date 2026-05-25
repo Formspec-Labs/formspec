@@ -705,6 +705,87 @@ describe('ActionButton plugin', () => {
         await expect(received).resolves.toBeDefined();
     });
 
+    it('routes clicks through a host invoker without also invoking the default action', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:form',
+            version: '1.0.0',
+            title: 'Test',
+            items: [],
+        };
+        el.responseActionsDocument = responseActions('submit');
+        el.componentDocument = minimalComponentDoc({
+            component: 'ActionButton',
+            id: 'submitButton',
+            actionRef: 'submit',
+        });
+        const submitEvents: CustomEvent[] = [];
+        el.addEventListener('formspec-submit', (event: CustomEvent) => submitEvents.push(event));
+        el.responseActionInvoker = vi.fn(({ document, actionRef, nodeId }) => ({
+            status: 'completed',
+            resolution: { resolved: true, action: document?.actions?.[0] ?? null },
+            validationTuple: null,
+            detail: null,
+            effectTrace: [],
+            finding: undefined,
+            actionRef,
+            nodeId,
+        }));
+        const resultReceived = new Promise<any>((resolve) => {
+            el.addEventListener('formspec-action-result', (event: CustomEvent) => resolve(event.detail.result), { once: true });
+        });
+        el.render();
+
+        (el.querySelector('.formspec-submit') as HTMLButtonElement).click();
+
+        await expect(resultReceived).resolves.toMatchObject({ status: 'completed' });
+        expect(el.responseActionInvoker).toHaveBeenCalledOnce();
+        expect(el.responseActionInvoker).toHaveBeenCalledWith(expect.objectContaining({
+            actionRef: 'submit',
+            nodeId: 'submitButton',
+            document: el.responseActionsDocument,
+        }));
+        expect(submitEvents).toHaveLength(0);
+    });
+
+    it('accepts async host invokers that return bridge-style invocation results', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0',
+            url: 'urn:test:form',
+            version: '1.0.0',
+            title: 'Test',
+            items: [],
+        };
+        el.responseActionsDocument = responseActions('submit');
+        el.componentDocument = minimalComponentDoc({
+            component: 'ActionButton',
+            id: 'asyncSubmitButton',
+            actionRef: 'submit',
+        });
+        el.responseActionInvoker = vi.fn(async ({ document }) => ({
+            invocation: {
+                status: 'completed',
+                resolution: { resolved: true, action: document?.actions?.[0] ?? null },
+                validationTuple: null,
+                detail: null,
+                effectTrace: [],
+            },
+        }));
+        const resultReceived = new Promise<any>((resolve) => {
+            el.addEventListener('formspec-action-result', (event: CustomEvent) => resolve(event.detail.result), { once: true });
+        });
+        el.render();
+
+        (el.querySelector('.formspec-submit') as HTMLButtonElement).click();
+
+        await expect(resultReceived).resolves.toMatchObject({ status: 'completed' });
+        expect(el.responseActionInvoker).toHaveBeenCalledOnce();
+    });
+
     it('dispatches durable-effect adapter events and action terminal results', async () => {
         const el = document.createElement('formspec-render') as any;
         document.body.appendChild(el);

@@ -87,10 +87,16 @@ path is:
 
 ### Phase 4 — Production Consumer Wiring
 
-- [ ] Wire the actual runtime/product consumer to call the bridge.
-- [ ] Inject a Trellis-backed `LedgerPort` in production host configuration.
-- [ ] Add end-to-end consumer tests proving anchored publication rather than
-  only adapter-level append.
+- [x] Add a public async `<formspec-render>.responseActionInvoker` hook so
+  product hosts can route `ActionButton` clicks through the bridge without
+  coupling the public web component to studio-core.
+- [x] Sync the loaded Response Actions document into Studio Preview's
+  `<formspec-render>` host.
+- [x] Add a renderer-level seam test that injects a fake host `LedgerPort`,
+  records a session, routes an `ActionButton` click through
+  `invokeResponseActionWithLedger`, and observes an anchored receipt.
+- [ ] Wire production host/runtime configuration to supply the real
+  Trellis-backed `LedgerPort` and bridge-backed invoker.
 - [ ] Keep ADR 0153 gate 7 open until route state, session state, Response
   instance state, and invocation state are separately specified and tested.
 
@@ -105,6 +111,13 @@ path is:
 - 2026-05-25: No AppGraphValidator hook was added. Validation reports may name
   Response Actions references, but invocation, replay, effects, and Ledger
   append remain runtime/Ledger responsibilities.
+- 2026-05-25: The public renderer seam is a host invoker hook, not a
+  studio-core dependency. Studio/product hosts own Ledger authority; the
+  webcomponent remains the renderer/runtime adapter.
+- 2026-05-25: A test colocated with Studio Preview uses a raw
+  `<formspec-render>` plus fake host `LedgerPort` to prove the renderer seam.
+  It is anchored-mode proof for the bridge hook, not evidence that Studio
+  Preview installs an invoker or that a production Trellis-backed port exists.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -121,9 +134,21 @@ Partial for ADR 0153 gate 6b.
   `../formspec-studio/packages/formspec-studio-core/tests/response-action-ledger.test.ts`.
 - Package surface: `@formspec-org/studio-core@0.8.0` exports
   `invokeResponseActionWithLedger` and response-action semantic-op types.
+- Public renderer seam:
+  `packages/formspec-webcomponent/src/action-invocation.ts`,
+  `packages/formspec-webcomponent/src/element.ts`, and
+  `packages/formspec-webcomponent/tests/components/interactive-plugins.test.ts`.
+- Studio Preview document sync and renderer seam proof:
+  `../formspec-studio/packages/formspec-studio/src/workspaces/preview/FormspecPreviewHost.tsx`
+  and
+  `../formspec-studio/packages/formspec-studio/tests/workspaces/preview/preview-tab.test.tsx`.
 - Verification:
   `npm run --workspace @formspec-org/studio-core build`;
-  `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger.test.ts`.
+  `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger.test.ts`;
+  `npm run --workspace @formspec-org/webcomponent build`;
+  `npm run --workspace @formspec-org/webcomponent test -- tests/components/interactive-plugins.test.ts`;
+  `npm run --workspace @formspec-org/studio test -- tests/workspaces/preview/preview-tab.test.tsx`;
+  `npm run --workspace @formspec-org/studio build`.
 
 Not closed yet: production runtime/product consumer wiring, host
 Trellis-backed `LedgerPort` injection, and ADR 0153 gate 7 runtime ownership

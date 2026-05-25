@@ -21,6 +21,7 @@ import type {
 import type { EngineReplayEvent, Issuer, IssuerSource } from '@formspec-org/engine';
 import type {
     ActionHost,
+    ResponseActionInvoker,
     ResponseActionsDocument,
 } from './action-invocation';
 import { globalRegistry } from './registry';
@@ -176,6 +177,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ _componentDocument: ComponentDocument | null = null;
     /** @internal */ _themeDocument: ThemeDocument | null = null;
     /** @internal */ _responseActionsDocument: ResponseActionsDocument | null = null;
+    /** @internal */ _responseActionInvoker: ResponseActionInvoker | null = null;
     /** @internal */ _registryEntries: Map<string, RegistryEntry> = new Map();
     /** @internal */ engine: IFormEngine | null = null;
     /** @internal */ cleanupFns: Array<() => void> = [];
@@ -515,6 +517,16 @@ export class FormspecRender extends HTMLElement {
     /** The currently loaded Response Actions document, or null if none is loaded. */
     get responseActionsDocument(): ResponseActionsDocument | null {
         return this._responseActionsDocument;
+    }
+
+    /** Set a host-provided Response Actions invocation hook. Defaults to the built-in engine path. */
+    set responseActionInvoker(val: ResponseActionInvoker | null | undefined) {
+        this._responseActionInvoker = val ?? null;
+    }
+
+    /** The host-provided Response Actions invocation hook, or null when using the built-in engine path. */
+    get responseActionInvoker(): ResponseActionInvoker | null {
+        return this._responseActionInvoker;
     }
 
     /**

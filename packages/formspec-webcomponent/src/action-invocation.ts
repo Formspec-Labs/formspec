@@ -8,6 +8,7 @@ import {
     type ResponseActionEffectDispatchContext,
     type ResponseActionEffectOutcome,
     type ResponseActionInvocationResult,
+    type ResponseActionInvocationPorts,
     type ResponseActionIdempotencyKeyContext,
     type ResponseActionPreconditionResult,
     type ResponseActionsDocumentInput,
@@ -20,8 +21,24 @@ export type ResponseActionEffect = NonNullable<ResponseAction['effects']>[number
 export type ResponseActionsDocument = ResponseActionsDocumentInput;
 export type { ActionRefFinding, ActionResolution, ResponseAction };
 
+export interface ResponseActionInvokerInput<TDetail = SubmitDetail> {
+    document: ResponseActionsDocument | null;
+    actionRef: string;
+    nodeId?: string;
+    ports: ResponseActionInvocationPorts<TDetail>;
+}
+
+export type ResponseActionInvokerResult<TDetail = SubmitDetail> =
+    | ResponseActionInvocationResult<TDetail>
+    | { invocation: ResponseActionInvocationResult<TDetail> };
+
+export type ResponseActionInvoker<TDetail = SubmitDetail> = (
+    input: ResponseActionInvokerInput<TDetail>,
+) => ResponseActionInvokerResult<TDetail> | Promise<ResponseActionInvokerResult<TDetail>>;
+
 export interface ActionHost extends SubmitHost {
     _responseActionsDocument: ResponseActionsDocument | null;
+    _responseActionInvoker: ResponseActionInvoker<SubmitDetail> | null;
     dispatchEvent(event: Event): boolean;
 }
 
@@ -118,28 +135,62 @@ function emitActionResult(
     }));
 }
 
-export function invokeAction(host: ActionHost, actionRef: string, nodeId?: string): SubmitDetail | null {
-    const result = invokeResponseAction(
-        host._responseActionsDocument,
-        actionRef,
-        {
-            submit: ({ profile, validationTuple }) => submit(host, { profile, validationTuple, emitEvent: false }),
-            dispatchHostEvent: (eventName, detail) => {
-                host.dispatchEvent(new CustomEvent(eventName, {
-                    detail,
-                    bubbles: true,
-                    composed: true,
-                }));
-            },
-            evaluatePrecondition: (precondition, action) => evaluatePrecondition(host, precondition, action),
-            dispatchEffect: (effect, detail, action, context) => dispatchDurableEffect(host, effect, detail, action, context),
-            resolveIdempotencyKey: (effect, action, context) => resolveIdempotencyKey(host, effect, action, context),
+function buildActionPorts(host: ActionHost): ResponseActionInvocationPorts<SubmitDetail> {
+    return {
+        submit: ({ profile, validationTuple }) => submit(host, { profile, validationTuple, emitEvent: false }),
+        dispatchHostEvent: (eventName, detail) => {
+            host.dispatchEvent(new CustomEvent(eventName, {
+                detail,
+                bubbles: true,
+                composed: true,
+            }));
         },
-        nodeId,
-    );
+        evaluatePrecondition: (precondition, action) => evaluatePrecondition(host, precondition, action),
+        dispatchEffect: (effect, detail, action, context) => dispatchDurableEffect(host, effect, detail, action, context),
+        resolveIdempotencyKey: (effect, action, context) => resolveIdempotencyKey(host, effect, action, context),
+    };
+}
+
+function isPromiseLike<T>(value: T | Promise<T>): value is Promise<T> {
+    return !!value && typeof (value as Promise<T>).then === 'function';
+}
+
+function normalizeInvokerResult<TDetail>(
+    result: ResponseActionInvokerResult<TDetail>,
+): ResponseActionInvocationResult<TDetail> {
+    return 'invocation' in result ? result.invocation : result;
+}
+
+function finishInvocation(
+    host: ActionHost,
+    result: ResponseActionInvocationResult<SubmitDetail>,
+): SubmitDetail | null {
     emitActionResult(host, result);
     if (result.finding) {
         emitActionFinding(host, result.finding);
     }
     return result.detail;
+}
+
+export function invokeAction(
+    host: ActionHost,
+    actionRef: string,
+    nodeId?: string,
+): SubmitDetail | null | Promise<SubmitDetail | null> {
+    const ports = buildActionPorts(host);
+    if (host._responseActionInvoker) {
+        const result = host._responseActionInvoker({
+            document: host._responseActionsDocument,
+            actionRef,
+            nodeId,
+            ports,
+        });
+        if (isPromiseLike(result)) {
+            return result.then(value => finishInvocation(host, normalizeInvokerResult(value)));
+        }
+        return finishInvocation(host, normalizeInvokerResult(result));
+    }
+
+    const result = invokeResponseAction(host._responseActionsDocument, actionRef, ports, nodeId);
+    return finishInvocation(host, result);
 }

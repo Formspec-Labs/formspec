@@ -60,7 +60,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
                         button.disabled = !actionResolved || (disableWhenPending ? pending : false);
                     });
                     const handleClick = () => {
-                        ctx.invokeAction(actionRef, comp.id);
+                        void ctx.invokeAction(actionRef, comp.id);
                     };
                     button.addEventListener('click', handleClick);
                     return () => {
@@ -90,7 +90,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
             button.disabled = !actionResolved || (disableWhenPending ? pending : false);
         }));
         button.addEventListener('click', () => {
-            ctx.invokeAction(actionRef, comp.id);
+            void ctx.invokeAction(actionRef, comp.id);
         });
         parent.appendChild(button);
     },

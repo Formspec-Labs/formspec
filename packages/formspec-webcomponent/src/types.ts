@@ -75,7 +75,7 @@ export interface RenderContext {
     resolveActionRef: (actionRef: string, nodeId?: string) => ActionResolution;
 
     /** Invoke a resolved Action, including hostEvent effects. */
-    invokeAction: (actionRef: string, nodeId?: string) => SubmitDetail | null;
+    invokeAction: (actionRef: string, nodeId?: string) => SubmitDetail | null | Promise<SubmitDetail | null>;
 
     /** Resolve a validation result/path to a target path + label + jump metadata. */
     resolveValidationTarget: (resultOrPath: string | ValidationResult) => ValidationTargetMetadata;

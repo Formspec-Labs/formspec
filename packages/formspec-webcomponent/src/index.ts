@@ -39,6 +39,9 @@ export type {
     ResponseAction,
     ResponseActionsDocument,
     ResponseActionEffect,
+    ResponseActionInvoker,
+    ResponseActionInvokerInput,
+    ResponseActionInvokerResult,
 } from './action-invocation';
 
 // Default theme
