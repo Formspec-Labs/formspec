@@ -57,6 +57,7 @@ def _valid_report() -> dict:
                 ],
             }
         ],
+        "evidenceResults": [],
         "diagnostics": [
             {
                 "code": "APP-GRAPH-SCHEMA",
@@ -155,6 +156,136 @@ def test_report_does_not_require_runtime_metadata() -> None:
 def test_required_report_arrays_are_required() -> None:
     report = _valid_report()
     del report["diagnostics"]
+    with pytest.raises(ValidationError):
+        _validator().validate(report)
+
+
+def test_evidence_results_do_not_require_artifact_kind() -> None:
+    report = _valid_report()
+    report["evidenceResults"] = [
+        {
+            "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+            "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+            "source": "host://policy/respondent-ui-policy",
+            "status": "completed",
+            "ok": True,
+            "diagnostics": [],
+        }
+    ]
+    _validator().validate(report)
+
+
+def test_evidence_result_diagnostics_use_evidence_source_pointer() -> None:
+    report = _valid_report()
+    report["evidenceResults"] = [
+        {
+            "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+            "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+            "source": "host://policy/respondent-ui-policy",
+            "status": "completed",
+            "ok": False,
+            "diagnostics": [
+                {
+                    "code": "APP-GRAPH-SCHEMA",
+                    "severity": "error",
+                    "phase": "schema",
+                    "origin": "schema-validator",
+                    "message": "families is required",
+                    "primarySource": {
+                        "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                        "source": "host://policy/respondent-ui-policy",
+                        "jsonPointer": "/families",
+                    },
+                }
+            ],
+        }
+    ]
+    _validator().validate(report)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected_error"),
+    [
+        (
+            lambda diagnostic: diagnostic.update({"phase": "cross-artifact"}),
+            "phase",
+        ),
+        (
+            lambda diagnostic: diagnostic.update({"origin": "ui-graph-policy"}),
+            "origin",
+        ),
+        (
+            lambda diagnostic: diagnostic["primarySource"].update({"artifactKind": "uiGraphPolicy"}),
+            "artifactKind",
+        ),
+        (
+            lambda diagnostic: diagnostic["primarySource"].update({"ref": {"url": "https://example.gov/policy"}}),
+            "ref",
+        ),
+        (
+            lambda diagnostic: diagnostic.update({"relatedSources": []}),
+            "relatedSources",
+        ),
+    ],
+)
+def test_evidence_result_diagnostics_reject_semantic_or_artifact_source_leakage(
+    mutate,
+    expected_error: str,
+) -> None:
+    report = _valid_report()
+    diagnostic = {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "families is required",
+        "primarySource": {
+            "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+            "source": "host://policy/respondent-ui-policy",
+            "jsonPointer": "/families",
+        },
+    }
+    mutate(diagnostic)
+    report["evidenceResults"] = [
+        {
+            "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+            "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+            "source": "host://policy/respondent-ui-policy",
+            "status": "completed",
+            "ok": False,
+            "diagnostics": [diagnostic],
+        }
+    ]
+    with pytest.raises(ValidationError) as error:
+        _validator().validate(report)
+    assert expected_error in str(error.value)
+
+
+@pytest.mark.parametrize(
+    ("forbidden_key", "forbidden_value"),
+    [
+        ("artifactKind", "uiGraphPolicy"),
+        ("ref", {"url": "https://example.gov/policy"}),
+        ("identity", {"id": "policy-from-path"}),
+        ("slot", "uiGraphPolicies[0]"),
+    ],
+)
+def test_evidence_results_reject_artifact_identity_fields(
+    forbidden_key: str,
+    forbidden_value: object,
+) -> None:
+    report = _valid_report()
+    report["evidenceResults"] = [
+        {
+            "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+            "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+            "source": "host://policy/respondent-ui-policy",
+            "status": "completed",
+            "ok": True,
+            "diagnostics": [],
+            forbidden_key: forbidden_value,
+        }
+    ]
     with pytest.raises(ValidationError):
         _validator().validate(report)
 

@@ -55,6 +55,10 @@ export interface AppGraphValidationReport {
    */
   schemaResults: SchemaResult[];
   /**
+   * Per-host-evidence source schema validation results. These are not App Manifest artifacts and do not carry artifactKind.
+   */
+  evidenceResults: EvidenceSchemaResult[];
+  /**
    * Unified native and imported diagnostics sorted deterministically by the report producer.
    */
   diagnostics: Diagnostic[];
@@ -139,6 +143,57 @@ export interface ArtifactRef {
   url?: string;
   version?: string;
   [k: string]: unknown;
+}
+/**
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "EvidenceSchemaResult".
+ */
+export interface EvidenceSchemaResult {
+  /**
+   * Request evidence slot, such as hostEvidence.uiGraphPolicies[0]. This is diagnostic evidence only, not an App Manifest slot.
+   */
+  evidenceSlot: string;
+  schemaId: string;
+  /**
+   * Opaque host source pointer for diagnostics. Local paths and filenames are not identity authority.
+   */
+  source: string;
+  status: SchemaResultStatus;
+  reason?: string;
+  ok: boolean;
+  diagnostics: EvidenceDiagnostic[];
+}
+/**
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "EvidenceDiagnostic".
+ */
+export interface EvidenceDiagnostic {
+  /**
+   * Stable machine-readable diagnostic code.
+   */
+  code: string;
+  severity: Severity;
+  phase: 'schema';
+  origin: 'schema-validator';
+  message: string;
+  primarySource?: EvidenceSourcePointer;
+  /**
+   * Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity.
+   */
+  details?: {
+    [k: string]: unknown;
+  };
+}
+/**
+ * Diagnostic pointer for host request evidence. This pointer is evidence-only and cannot carry artifact identity fields.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "EvidenceSourcePointer".
+ */
+export interface EvidenceSourcePointer {
+  artifactSlot?: string;
+  source?: string;
+  jsonPointer?: string;
 }
 /**
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema

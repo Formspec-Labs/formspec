@@ -26,19 +26,19 @@ The structural source contract is governed by
 `schemas/ui-graph-policy.schema.json`
 (`https://formspec.org/schemas/uiGraphPolicy/0.1`). This document intentionally
 does not define an App Manifest slot, runtime responsive behavior, renderer
-behavior, Studio wiring, ModuleResolver token-slot enforcement, or production
-`AppGraphValidator` implementation. Generated TypeScript types are published by
-`@formspec-org/types` for the structural source contract only. Runtime and
-validator behavior land in later implementation gates after the source shape is
-stable.
+behavior, Studio wiring, ModuleResolver token-slot enforcement, or semantic UI
+Graph Policy enforcement. The shared AppGraphValidator kernel can validate
+host-supplied UI Graph Policy evidence structurally and report
+`evidenceResults[]`; cross-artifact policy diagnostics land in later
+implementation gates.
 
 ## Bottom Line Up Front
 
 <!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
-- UI Graph Policy is a host-loaded app-graph policy artifact for already resolved Surface routes and sibling graph evidence.
+- UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice does not add an App Manifest slot, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
-- Policy identity comes from the loaded policy handle and `targetSurface`, never from fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
+- This slice adds host-evidence schema result reporting, not semantic AppGraphValidator policy enforcement.
+- Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
 <!-- bluf:end -->
@@ -154,9 +154,12 @@ Surface evidence.
 Host evidence MUST NOT carry `artifactKind`, `ref`, `identity`, `slot`,
 path-derived identity fields, App Manifest `uiPolicy` / `uiGraphPolicy` slots,
 the `$wireframeUiPolicy` spike discriminator, or ADR 0152 authorization fields.
-Future diagnostics for this evidence may point at
-`artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, `source`, and a
-document-relative `jsonPointer`, but MUST NOT invent a policy artifact kind.
+The shared AppGraphValidator kernel may validate this evidence structurally
+through explicit `evidenceSchemaValidators`. Schema diagnostics for this
+evidence may point at `artifactSlot: "hostEvidence.uiGraphPolicies[N]"`,
+`source`, and an evidence-entry or document-relative `jsonPointer`, but MUST
+NOT invent a policy artifact kind. Artifact `schemaValidators` MUST NOT be used
+for UI Graph Policy host evidence.
 
 ### 3.2 Schema Reference
 
@@ -176,8 +179,9 @@ document-relative `jsonPointer`, but MUST NOT invent a policy artifact kind.
 
 ## 4. Conceptual Request
 
-A future UI Graph Policy evaluator consumes already resolved graph evidence. The
-minimum conceptual request has these fields:
+A future semantic UI Graph Policy evaluator consumes already resolved graph
+evidence after host-evidence schema validation succeeds. The minimum conceptual
+request has these fields:
 
 | Field | Required | Description |
 |---|---|---|

@@ -53,6 +53,12 @@ export interface AppGraphSourcePointer {
   ref?: AppGraphArtifactRef;
 }
 
+export interface AppGraphEvidenceSourcePointer {
+  artifactSlot?: string;
+  source?: string;
+  jsonPointer?: string;
+}
+
 export interface AppGraphDiagnostic {
   code: string;
   severity: AppGraphSeverity;
@@ -63,6 +69,15 @@ export interface AppGraphDiagnostic {
   relatedSources?: AppGraphSourcePointer[];
   details?: Record<string, unknown>;
 }
+
+export type AppGraphEvidenceSchemaDiagnostic = Omit<
+  AppGraphDiagnostic,
+  'phase' | 'origin' | 'primarySource' | 'relatedSources'
+> & {
+  phase: 'schema';
+  origin: 'schema-validator';
+  primarySource?: AppGraphEvidenceSourcePointer;
+};
 
 export interface ResolvedArtifactHandle<TDocument = unknown> {
   slot: string;
@@ -108,6 +123,14 @@ export interface SchemaValidatorInput<TDocument = unknown> {
   schemaId?: string;
 }
 
+export interface EvidenceSchemaValidatorInput<TDocument = unknown> {
+  evidenceSlot: string;
+  evidenceKind: 'uiGraphPolicy';
+  schemaId: string;
+  source: string;
+  document: TDocument;
+}
+
 export interface SchemaValidationOutcome {
   ok: boolean;
   issues?: SchemaValidationIssue[];
@@ -115,11 +138,16 @@ export interface SchemaValidationOutcome {
 }
 
 export type AppGraphSchemaValidator = (input: SchemaValidatorInput) => SchemaValidationOutcome;
+export type AppGraphEvidenceSchemaValidator = (
+  input: EvidenceSchemaValidatorInput
+) => SchemaValidationOutcome;
 
 export interface AppGraphContext {
   manifest: ResolvedArtifactHandle;
   handles: ResolvedArtifactHandle[];
   schemaResults: AppGraphSchemaResult[];
+  evidenceResults: AppGraphEvidenceSchemaResult[];
+  hostEvidence?: AppGraphHostEvidence;
 }
 
 export type AppGraphCrossArtifactValidator = (context: AppGraphContext) => AppGraphDiagnostic[];
@@ -128,13 +156,19 @@ export type AppGraphSchemaValidators =
   | AppGraphSchemaValidator
   | Record<string, AppGraphSchemaValidator | undefined>;
 
+export type AppGraphEvidenceSchemaValidators =
+  | AppGraphEvidenceSchemaValidator
+  | Record<string, AppGraphEvidenceSchemaValidator | undefined>;
+
 export interface AppGraphValidationRequest {
   manifest: ResolvedArtifactHandle;
   artifacts?: Record<string, ResolvedArtifactHandle[] | undefined>;
+  hostEvidence?: AppGraphHostEvidence;
   artifactResolution?: AppGraphDiagnosticReport;
   moduleResolution?: AppGraphDiagnosticReport;
   surfaceLocal?: AppGraphDiagnosticReport;
   schemaValidators?: AppGraphSchemaValidators;
+  evidenceSchemaValidators?: AppGraphEvidenceSchemaValidators;
   crossArtifactValidators?: AppGraphCrossArtifactValidator[];
   options?: AppGraphValidationOptions;
 }
@@ -147,6 +181,26 @@ export interface AppGraphSchemaResult {
   reason?: string;
   ok: boolean;
   diagnostics: AppGraphDiagnostic[];
+}
+
+export interface AppGraphHostEvidenceDocument<TDocument = unknown> {
+  schemaId: string;
+  source: string;
+  document: TDocument;
+}
+
+export interface AppGraphHostEvidence {
+  uiGraphPolicies?: AppGraphHostEvidenceDocument[];
+}
+
+export interface AppGraphEvidenceSchemaResult {
+  evidenceSlot: string;
+  schemaId: string;
+  source: string;
+  status: AppGraphSchemaResultStatus;
+  reason?: string;
+  ok: boolean;
+  diagnostics: AppGraphEvidenceSchemaDiagnostic[];
 }
 
 export interface AppGraphPhaseStatus {
@@ -173,6 +227,7 @@ export interface AppGraphValidationReport {
   ok: boolean;
   summary: AppGraphValidationSummary;
   schemaResults: AppGraphSchemaResult[];
+  evidenceResults: AppGraphEvidenceSchemaResult[];
   diagnostics: AppGraphDiagnostic[];
   phases: AppGraphPhaseStatus[];
   support?: AppGraphSupportProfile;

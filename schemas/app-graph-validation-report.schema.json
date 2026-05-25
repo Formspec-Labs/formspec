@@ -5,7 +5,7 @@
   "description": "Deterministic AppGraphValidator output report. This schema covers the report envelope emitted by @formspec-org/app-graph after artifact-resolution, schema, module-resolution, surface-local, cross-artifact, authorization-boundary, and unsupported-feature phases. It is a data contract only: it does not schema validator requests, resolver implementations, runtime execution, rendered output, credentials, fetched payloads, or host cache contents.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["ok", "summary", "schemaResults", "diagnostics", "phases"],
+  "required": ["ok", "summary", "schemaResults", "evidenceResults", "diagnostics", "phases"],
   "properties": {
     "ok": {
       "type": "boolean",
@@ -18,6 +18,11 @@
       "type": "array",
       "description": "Per-loaded-artifact source schema validation results.",
       "items": { "$ref": "#/$defs/SchemaResult" }
+    },
+    "evidenceResults": {
+      "type": "array",
+      "description": "Per-host-evidence source schema validation results. These are not App Manifest artifacts and do not carry artifactKind.",
+      "items": { "$ref": "#/$defs/EvidenceSchemaResult" }
     },
     "diagnostics": {
       "type": "array",
@@ -117,6 +122,24 @@
         }
       }
     },
+    "EvidenceSourcePointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Diagnostic pointer for host request evidence. This pointer is evidence-only and cannot carry artifact identity fields.",
+      "properties": {
+        "artifactSlot": {
+          "type": "string",
+          "pattern": "^hostEvidence\\.uiGraphPolicies\\[[0-9]+\\]$"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jsonPointer": {
+          "type": "string"
+        }
+      }
+    },
     "Diagnostic": {
       "type": "object",
       "additionalProperties": false,
@@ -154,6 +177,39 @@
         }
       }
     },
+    "EvidenceDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "phase", "origin", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable machine-readable diagnostic code."
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "phase": {
+          "const": "schema"
+        },
+        "origin": {
+          "const": "schema-validator"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primarySource": {
+          "$ref": "#/$defs/EvidenceSourcePointer"
+        },
+        "details": {
+          "type": "object",
+          "description": "Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity.",
+          "additionalProperties": true
+        }
+      }
+    },
     "SchemaResult": {
       "type": "object",
       "additionalProperties": false,
@@ -184,6 +240,42 @@
         "diagnostics": {
           "type": "array",
           "items": { "$ref": "#/$defs/Diagnostic" }
+        }
+      }
+    },
+    "EvidenceSchemaResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceSlot", "schemaId", "source", "status", "ok", "diagnostics"],
+      "properties": {
+        "evidenceSlot": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^hostEvidence\\.uiGraphPolicies\\[[0-9]+\\]$",
+          "description": "Request evidence slot, such as hostEvidence.uiGraphPolicies[0]. This is diagnostic evidence only, not an App Manifest slot."
+        },
+        "schemaId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque host source pointer for diagnostics. Local paths and filenames are not identity authority."
+        },
+        "status": {
+          "$ref": "#/$defs/SchemaResultStatus"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/EvidenceDiagnostic" }
         }
       }
     },

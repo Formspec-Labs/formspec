@@ -95,6 +95,7 @@ request has these conceptual fields:
 | `artifactResolution` | yes | `ArtifactResolver` result, including imported diagnostics for missing artifacts, unsupported references, discriminator drift, and ref/version mismatches. |
 | `moduleResolution` | no | `ModuleResolver` result when modules are present or module-contributed values must be checked. |
 | `hostEvidence` | no | Host-supplied evidence collections that are not App Manifest siblings, such as `uiGraphPolicies[]`. This evidence is never discovered by `ArtifactResolver`. |
+| `evidenceSchemaValidators` | no | Schema validators for host-supplied evidence. These validators are separate from artifact schema validators because host evidence is not an artifact handle. |
 | `options` | no | Validator controls such as supported bundle versions, diagnostic severity policy, phase selection for tools, and compatibility profile. Options MUST NOT authorize fetching, rendering, or effect execution. |
 
 ### 2.1 Host Evidence
@@ -105,10 +106,14 @@ The v0.1 UI Graph Policy boundary defines
 `hostEvidence.uiGraphPolicies[]` entries with required `schemaId`, `source`, and
 `document` fields. `source` is diagnostic evidence only, not identity authority.
 
-A future executable validator that consumes host evidence MUST run source schema
-validation for those documents before using them in cross-artifact checks. This
-specification does not define a request JSON Schema or require the current
-shared kernel to emit UI Graph Policy diagnostics.
+The shared validator kernel validates host evidence through explicit
+`evidenceSchemaValidators` before using that evidence in cross-artifact checks.
+Missing or failing host-evidence schema validation MUST produce
+`evidenceResults[]` entries and MUST skip dependent cross-artifact evaluation.
+Artifact `schemaValidators` MUST NOT be used for host evidence.
+
+This specification does not define a request JSON Schema and does not require
+semantic UI Graph Policy diagnostics in this slice.
 
 ### 2.2 Artifact Handle
 
@@ -140,11 +145,13 @@ The validator runs in deterministic phases:
 
 1. Import `artifactResolution` diagnostics and mark unresolved handles.
 2. Import `moduleResolution` diagnostics when supplied.
-3. Validate loaded artifacts against their selected source schemas.
-4. Record loaded artifacts without an available schema validator as `not-run`
-   schema results.
+3. Validate loaded artifacts and supplied host evidence against their selected
+   source schemas.
+4. Record loaded artifacts without an available artifact schema validator as
+   `not-run` schema results, and host evidence without an available evidence
+   schema validator as `not-run` evidence results.
 5. Skip cross-artifact validation when required source schemas fail or do not
-   run, and emit an informational skipped-phase diagnostic.
+   run, and record the skipped phase status.
 6. Evaluate cross-artifact invariants for the remaining schema-valid graph.
 7. Apply fail-closed checks for unsupported features and fine-grained authorization
    placeholders.
@@ -153,8 +160,8 @@ The validator runs in deterministic phases:
 
 Schema validation is a precondition for cross-artifact interpretation. A schema
 valid graph can still be graph-invalid. A schema-invalid or schema-unvalidated
-artifact can still produce imported resolver diagnostics, but graph checks
-depending on that artifact MUST be skipped rather than guessed.
+artifact or host-evidence document can still produce imported diagnostics, but
+graph checks depending on that input MUST be skipped rather than guessed.
 
 ## 4. Validation Report
 
@@ -164,8 +171,9 @@ data report, not an execution plan.
 | Field | Required | Description |
 |---|---|---|
 | `ok` | yes | `true` only when no error-severity diagnostic exists in the report. |
-| `summary` | yes | Counts for artifacts, schema failures, schema-unvalidated artifacts, graph errors, warnings, infos, imported diagnostics, unsupported features, and skipped phases. |
-| `schemaResults` | yes | Per-loaded-artifact schema validation results, including schema ID, artifact source pointer, status, and schema diagnostics. |
+| `summary` | yes | Counts for artifacts, schema failures, schema-unvalidated artifacts, graph errors, warnings, infos, imported diagnostics, unsupported features, and skipped phases. `unvalidatedArtifacts` counts artifact schema results only; host-evidence not-run state is represented in `evidenceResults[]` and phase status. |
+| `schemaResults` | yes | Per-loaded-artifact schema validation results, including schema ID, artifact source pointer, status, and schema diagnostics. This array is artifact-only. |
+| `evidenceResults` | yes | Per-host-evidence schema validation results, including evidence slot, schema ID, opaque source, status, and schema diagnostics. Entries MUST NOT carry `artifactKind`, `ref`, `identity`, or App Manifest slot identity. |
 | `diagnostics` | yes | Unified diagnostics from native validator phases and imported resolver/module/surface-local phases. |
 | `phases` | yes | Ordered phase statuses with `completed`, `skipped`, or `not-run` status and skip reason when applicable. |
 | `support` | no | Optional echo of supported bundle versions, artifact kinds, schema versions, and feature flags used for the run. |

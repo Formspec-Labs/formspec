@@ -3,6 +3,7 @@
 import {
   APP_GRAPH_PHASES,
   type AppGraphDiagnostic,
+  type AppGraphEvidenceSchemaResult,
   type AppGraphPhase,
   type AppGraphPhaseStatus,
   type AppGraphSchemaResult,
@@ -96,6 +97,7 @@ export interface CreateAppGraphReportInput {
   loadedArtifactCount: number;
   diagnostics?: AppGraphDiagnostic[];
   schemaResults?: AppGraphSchemaResult[];
+  evidenceResults?: AppGraphEvidenceSchemaResult[];
   phases?: AppGraphPhaseStatus[];
   support?: AppGraphSupportProfile;
 }
@@ -105,11 +107,17 @@ export function createAppGraphReport(input: CreateAppGraphReportInput): AppGraph
   const schemaResults = [...(input.schemaResults ?? [])].sort((left, right) =>
     left.slot.localeCompare(right.slot) || left.artifactKind.localeCompare(right.artifactKind),
   );
+  const evidenceResults = [...(input.evidenceResults ?? [])].sort((left, right) =>
+    left.evidenceSlot.localeCompare(right.evidenceSlot),
+  );
   const phases = [...(input.phases ?? [])].sort((left, right) => PHASE_RANK[left.phase] - PHASE_RANK[right.phase]);
   const summary: AppGraphValidationSummary = {
     artifacts: input.artifactCount,
     loadedArtifacts: input.loadedArtifactCount,
-    schemaFailures: schemaResults.filter((result) => result.status === 'completed' && !result.ok).length,
+    schemaFailures: [
+      ...schemaResults,
+      ...evidenceResults,
+    ].filter((result) => result.status === 'completed' && !result.ok).length,
     unvalidatedArtifacts: schemaResults.filter((result) => result.status !== 'completed').length,
     graphErrors: diagnostics.filter((diagnostic) => diagnostic.phase === 'cross-artifact' && diagnostic.severity === 'error').length,
     errors: countDiagnostics(diagnostics, 'error'),
@@ -126,6 +134,7 @@ export function createAppGraphReport(input: CreateAppGraphReportInput): AppGraph
     ok: summary.errors === 0,
     summary,
     schemaResults,
+    evidenceResults,
     diagnostics,
     phases,
     support: input.support ? { ...input.support } : undefined,

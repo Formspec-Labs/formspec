@@ -7,6 +7,8 @@ import {
   type ResolvedArtifactHandle,
 } from '../src/index.js';
 
+const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
+
 function loadedHandle(partial: Partial<ResolvedArtifactHandle> = {}): ResolvedArtifactHandle {
   return {
     slot: partial.slot ?? 'app',
@@ -201,6 +203,238 @@ describe('validateAppGraph', () => {
       code: 'APP-GRAPH-CROSS-TEST',
       message: 'checked 2 handles',
     }));
+  });
+
+  it('validates UI Graph Policy host evidence with explicit evidence validators', () => {
+    const evidenceSchemaValidator = vi.fn(() => ({ ok: true }));
+    const crossArtifact = vi.fn(() => []);
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+          source: 'host://policy/respondent-ui-policy',
+          document: { uiGraphPolicy: '0.1', families: [] },
+        }],
+      },
+      schemaValidators: { 'app-manifest': () => ({ ok: true }) },
+      evidenceSchemaValidators: { [UI_GRAPH_POLICY_SCHEMA_ID]: evidenceSchemaValidator },
+      crossArtifactValidators: [crossArtifact],
+    });
+
+    expect(evidenceSchemaValidator).toHaveBeenCalledWith({
+      evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+      evidenceKind: 'uiGraphPolicy',
+      schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+      source: 'host://policy/respondent-ui-policy',
+      document: { uiGraphPolicy: '0.1', families: [] },
+    });
+    expect(crossArtifact).toHaveBeenCalledWith(expect.objectContaining({
+      evidenceResults: [expect.objectContaining({
+        evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+        ok: true,
+        status: 'completed',
+      })],
+      hostEvidence: expect.objectContaining({
+        uiGraphPolicies: expect.any(Array),
+      }),
+    }));
+    expect(report.schemaResults).toHaveLength(1);
+    expect(report.schemaResults[0]).toMatchObject({ slot: 'app', artifactKind: 'appManifest' });
+    expect(report.evidenceResults[0]).toEqual(expect.not.objectContaining({ artifactKind: expect.anything() }));
+    expect(report.phases).toContainEqual({ phase: 'cross-artifact', status: 'completed' });
+  });
+
+  it('reports invalid UI Graph Policy host evidence without artifact identity fields', () => {
+    const crossArtifact = vi.fn(() => [diagnostic({ code: 'SHOULD-NOT-RUN' })]);
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+          source: 'host://policy/respondent-ui-policy',
+          document: { uiGraphPolicy: '0.1' },
+        }],
+      },
+      schemaValidators: { 'app-manifest': () => ({ ok: true }) },
+      evidenceSchemaValidators: {
+        [UI_GRAPH_POLICY_SCHEMA_ID]: () => ({
+          ok: false,
+          issues: [{
+            keyword: 'required',
+            path: '/families',
+            message: 'families is required',
+          }],
+        }),
+      },
+      crossArtifactValidators: [crossArtifact],
+    });
+
+    expect(crossArtifact).not.toHaveBeenCalled();
+    expect(report.summary.schemaFailures).toBe(1);
+    expect(report.summary.unvalidatedArtifacts).toBe(0);
+    expect(report.evidenceResults[0]).toMatchObject({
+      evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+      status: 'completed',
+      ok: false,
+    });
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'APP-GRAPH-SCHEMA',
+      origin: 'schema-validator',
+      phase: 'schema',
+      primarySource: {
+        artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+        source: 'host://policy/respondent-ui-policy',
+        jsonPointer: '/families',
+      },
+    });
+    expect(report.diagnostics[0].primarySource).toEqual(expect.not.objectContaining({
+      artifactKind: expect.anything(),
+      ref: expect.anything(),
+    }));
+    expect(report.phases).toContainEqual({
+      phase: 'cross-artifact',
+      status: 'skipped',
+      reason: 'schema-errors',
+    });
+  });
+
+  it('rejects UI Graph Policy host evidence with the wrong schema id', () => {
+    const evidenceSchemaValidator = vi.fn(() => ({ ok: true }));
+    const crossArtifact = vi.fn(() => [diagnostic({ code: 'SHOULD-NOT-RUN' })]);
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: 'https://formspec.org/schemas/uiGraphPolicy/9.9',
+          source: 'host://policy/respondent-ui-policy',
+          document: { uiGraphPolicy: '0.1', families: [] },
+        }],
+      },
+      schemaValidators: { 'app-manifest': () => ({ ok: true }) },
+      evidenceSchemaValidators: { '*': evidenceSchemaValidator },
+      crossArtifactValidators: [crossArtifact],
+    });
+
+    expect(evidenceSchemaValidator).not.toHaveBeenCalled();
+    expect(crossArtifact).not.toHaveBeenCalled();
+    expect(report.summary.schemaFailures).toBe(1);
+    expect(report.evidenceResults[0]).toMatchObject({
+      evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+      schemaId: 'https://formspec.org/schemas/uiGraphPolicy/9.9',
+      status: 'completed',
+      ok: false,
+    });
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'APP-GRAPH-EVIDENCE-SCHEMA-ID',
+      primarySource: {
+        artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+        source: 'host://policy/respondent-ui-policy',
+        jsonPointer: '/schemaId',
+      },
+    });
+    expect(report.diagnostics[0].primarySource).toEqual(expect.not.objectContaining({
+      artifactKind: expect.anything(),
+      ref: expect.anything(),
+    }));
+  });
+
+  it('clamps caller-supplied host evidence diagnostics to schema evidence pointers', () => {
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+          source: 'host://policy/respondent-ui-policy',
+          document: { uiGraphPolicy: '0.1', families: [] },
+        }],
+      },
+      schemaValidators: { 'app-manifest': () => ({ ok: true }) },
+      evidenceSchemaValidators: {
+        [UI_GRAPH_POLICY_SCHEMA_ID]: () => ({
+          ok: false,
+          diagnostics: [
+            diagnostic({
+              code: 'LEAKY-EVIDENCE-DIAGNOSTIC',
+              phase: 'cross-artifact',
+              origin: 'ui-graph-policy',
+              message: 'do not preserve semantic diagnostic fields',
+              primarySource: {
+                artifactSlot: 'uiGraphPolicies[0]',
+                artifactKind: 'uiGraphPolicy',
+                ref: { url: 'https://example.gov/policy' },
+                source: '/tmp/policy.json',
+                jsonPointer: '/families',
+              },
+              relatedSources: [{
+                artifactSlot: 'surfaces[0]',
+                artifactKind: 'surface',
+              }],
+            }),
+          ],
+        }),
+      },
+    });
+
+    expect(report.summary.schemaFailures).toBe(1);
+    expect(report.summary.graphErrors).toBe(0);
+    expect(report.evidenceResults[0].diagnostics[0]).toMatchObject({
+      code: 'LEAKY-EVIDENCE-DIAGNOSTIC',
+      phase: 'schema',
+      origin: 'schema-validator',
+      primarySource: {
+        artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+        source: 'host://policy/respondent-ui-policy',
+        jsonPointer: '/families',
+      },
+    });
+    expect(report.evidenceResults[0].diagnostics[0]).not.toHaveProperty('relatedSources');
+    expect(report.evidenceResults[0].diagnostics[0].primarySource).toEqual(expect.not.objectContaining({
+      artifactKind: expect.anything(),
+      ref: expect.anything(),
+    }));
+    expect(report.diagnostics[0]).toMatchObject({
+      code: 'LEAKY-EVIDENCE-DIAGNOSTIC',
+      phase: 'schema',
+      origin: 'schema-validator',
+    });
+  });
+
+  it('keeps artifact schema validators separate from host evidence validators', () => {
+    const artifactSchemaValidator = vi.fn(() => ({ ok: true }));
+    const crossArtifact = vi.fn(() => [diagnostic({ code: 'SHOULD-NOT-RUN' })]);
+    const report = validateAppGraph({
+      manifest: loadedHandle({ schemaId: 'app-manifest' }),
+      hostEvidence: {
+        uiGraphPolicies: [{
+          schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+          source: 'host://policy/respondent-ui-policy',
+          document: { uiGraphPolicy: '0.1', families: [] },
+        }],
+      },
+      schemaValidators: artifactSchemaValidator,
+      crossArtifactValidators: [crossArtifact],
+    });
+
+    expect(artifactSchemaValidator).toHaveBeenCalledTimes(1);
+    expect(crossArtifact).not.toHaveBeenCalled();
+    expect(report.evidenceResults[0]).toMatchObject({
+      evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+      status: 'not-run',
+      reason: 'missing-schema-validator',
+      ok: true,
+    });
+    expect(report.summary.unvalidatedArtifacts).toBe(0);
+    expect(report.phases).toContainEqual({
+      phase: 'schema',
+      status: 'skipped',
+      reason: 'missing-schema-validators',
+    });
+    expect(report.phases).toContainEqual({
+      phase: 'cross-artifact',
+      status: 'skipped',
+      reason: 'missing-schema-validators',
+    });
   });
 });
 

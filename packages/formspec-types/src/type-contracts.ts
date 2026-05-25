@@ -105,6 +105,7 @@ const generatedAppGraphReport: AppGraphValidationReport = {
     skippedPhases: 0,
   },
   schemaResults: [],
+  evidenceResults: [],
   diagnostics: [],
   phases: [{ phase: 'schema', status: 'completed' }],
 };

@@ -190,8 +190,18 @@ describe('generated types — tightness against permissive intersections', () =>
       resolve(__dirname, '../src/generated/app-graph-validation-report.ts'),
       'utf-8',
     );
+    const indexSrc = readFileSync(
+      resolve(__dirname, '../src/generated/index.ts'),
+      'utf-8',
+    );
     expect(src).toContain("'ui-graph-policy'");
     expect(src).toContain('| `x-${string}`;');
+    expect(src).toContain('evidenceResults: EvidenceSchemaResult[];');
+    expect(src).toContain('export interface EvidenceSchemaResult');
+    expect(src).toContain('evidenceSlot: string;');
+    const evidenceSchemaResult = src.match(/export interface EvidenceSchemaResult \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(evidenceSchemaResult).not.toContain('artifactKind');
+    expect(indexSrc).toContain('EvidenceSchemaResult');
     expect(src).not.toMatch(/export type Origin =[\s\S]*\| string;/);
   });
 

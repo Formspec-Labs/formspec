@@ -7,10 +7,10 @@ Source schema: `schemas/ui-graph-policy.schema.json`
 
 ## Bottom Line Up Front
 
-- UI Graph Policy is a host-loaded app-graph policy artifact for already resolved Surface routes and sibling graph evidence.
+- UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice does not add an App Manifest slot, ArtifactResolver group, AppGraphValidator enforcement, ModuleResolver token-slot enforcement, renderer behavior, or runtime hidden-state behavior.
-- Policy identity comes from the loaded policy handle and `targetSurface`, never from fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
+- This slice adds host-evidence schema result reporting, not semantic AppGraphValidator policy enforcement.
+- Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
 
@@ -24,7 +24,7 @@ Source schema: `schemas/ui-graph-policy.schema.json`
 
 ## Behavioral Essentials
 
-- Treat UI Graph Policy as a host-loaded app-graph artifact over already resolved Surface routes and sibling graph evidence.
+- Treat UI Graph Policy as host-supplied app-graph evidence over already resolved Surface routes and sibling graph evidence.
 - Use `$formspecUiGraphPolicy='0.1'` and `targetSurface` as the structural policy identity anchor; do not derive policy identity from local paths, filenames, URL suffixes, route names, or spike discriminators.
 - Keep `specs/ui-policy.json` as the owner for component/widget vocabulary, fallback policy, responsive prop allowlists, breakpoint alignment, and token warning hooks.
 - Interpret route accessibility, responsive collapse, hidden Definition references, Locale key ownership, and Theme token-slot assignments as graph policy declarations, not renderer execution rules.
@@ -34,5 +34,6 @@ Source schema: `schemas/ui-graph-policy.schema.json`
 
 - A conforming UI Graph Policy document must include `$formspecUiGraphPolicy='0.1'`, strict SemVer `version`, `targetSurface`, and at least one `routePolicies[]` entry.
 - Host-supplied UI Graph Policy evidence uses `hostEvidence.uiGraphPolicies[]` with fixed schemaId, opaque source, and schema-valid document; it is not an App Manifest sibling slot or resolver artifact kind.
+- AppGraphValidator reports host-evidence schema validation through `evidenceResults[]`; artifact `schemaValidators` and `schemaResults[]` remain artifact-only.
 - Structural conformance rejects `$wireframeUiPolicy` spike documents, path-identity fields, authorization fields, invalid module Locale prefixes, and App Manifest `uiPolicy` or `uiGraphPolicy` slots in the current manifest schema.
-- This slice proves schema shape, generated types, structural fixture acceptance, host-evidence boundary, semantic fixture evidence, and report-origin readiness only; executable AppGraphValidator integration, ModuleResolver/Registry token-slot checks, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates.
+- This slice proves schema shape, generated types, structural fixture acceptance, host-evidence boundary, host-evidence schema result reporting, semantic fixture evidence, and report-origin readiness only; semantic UI Graph Policy diagnostics, ModuleResolver/Registry token-slot checks, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates.

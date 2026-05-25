@@ -13,8 +13,9 @@ responsive collapse order, hidden Definition refs, and Theme token assignments
 to module widget token slots.
 
 The current slices promote the structural source schema, generated TypeScript
-type, and host-supplied loading evidence. They do not promote an App Manifest
-slot, ArtifactResolver group, `AppGraphValidator` implementation,
+type, host-supplied loading evidence, and executable host-evidence schema
+result reporting in the shared AppGraphValidator kernel. They do not promote an
+App Manifest slot, ArtifactResolver group, semantic UI Graph Policy diagnostics,
 ModuleResolver token-slot enforcement, runtime responsive behavior, renderer
 behavior, Studio wiring, or ADR 0152 authorization semantics.
 
@@ -89,6 +90,14 @@ grouping, fake policy `artifactKind`, validator emission, request JSON Schema,
 ModuleResolver/Registry token-slot work, runtime behavior, Studio/projection
 consumers, path/document-shape discovery, or ADR 0152 authorization semantics.
 
+Cicero approved a host-evidence schema result refinement for the executable
+AppGraphValidator slice. Required boundary: keep artifact `schemaValidators`
+and `schemaResults[]` artifact-only; add explicit `evidenceSchemaValidators`
+and `evidenceResults[]` for `hostEvidence.uiGraphPolicies[]`; do not count
+host-evidence not-run state under `summary.unvalidatedArtifacts`; keep evidence
+diagnostics limited to `artifactSlot`, `source`, and `jsonPointer`; do not add
+semantic UI Graph Policy diagnostics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -140,12 +149,21 @@ consumers, path/document-shape discovery, or ADR 0152 authorization semantics.
   define and pin `hostEvidence.uiGraphPolicies[]` as explicit host-supplied
   request evidence, not App Manifest loading, ArtifactResolver grouping,
   path-derived identity, or ADR 0152 authorization policy.
+- `packages/formspec-app-graph/src/validator.ts`,
+  `packages/formspec-app-graph/src/types.ts`,
+  `packages/formspec-app-graph/src/report.ts`,
+  `schemas/app-graph-validation-report.schema.json`, and generated
+  `packages/formspec-types/src/generated/app-graph-validation-report.ts` add
+  executable host-evidence schema result reporting through
+  `evidenceSchemaValidators` and `evidenceResults[]` while preserving
+  artifact-only `schemaValidators`, artifact-only `schemaResults[]`, and
+  artifact-only `summary.unvalidatedArtifacts`.
 
 ## Still Open For Closure
 
 - Optional future App Manifest loading slot if the package contract later
   chooses one.
-- Executable AppGraphValidator integration and diagnostic emission.
+- Semantic AppGraphValidator UI Graph Policy diagnostic emission.
 - Executable AppGraphValidator conformance over the semantic fixture families.
 - ModuleResolver/Registry token-slot evidence integration.
 - Studio and authoring feedback.
