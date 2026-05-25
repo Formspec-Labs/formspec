@@ -1,0 +1,38 @@
+{
+  "$formspecDeletionReceipt": "1.0",
+  "version": "1.0.0",
+  "receiptId": "urn:formspec:deletion-receipt:demo:001",
+  "deletedDraftId": "draft-7f6a",
+  "deletedAt": "2026-05-25T15:42:00Z",
+  "issuer": {
+    "name": "Springfield Benefits Office",
+    "identifier": "https://springfield.gov/benefits"
+  },
+  "classesErased": ["draft-response", "attachments", "autosave-cache"],
+  "retentionWaived": [
+    {
+      "class": "analytics-linkage",
+      "basis": "user-request",
+      "authorityRef": "GDPR-Article-17"
+    }
+  ],
+  "cryptographicMethod": {
+    "method": "urn:formspec:receipt-method:ed25519-cose-sign1@1",
+    "canonicalization": "jcs-rfc8785",
+    "signedPayloadDigest": {
+      "algorithm": "sha-256",
+      "value": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  },
+  "receiptSigner": {
+    "role": "issuer",
+    "keyRef": "did:web:springfield.gov#receipt-2026"
+  },
+  "evidence": {
+    "jobRef": "urn:formspec:erasure-job:demo:001",
+    "erasureLogDigest": {
+      "algorithm": "sha-256",
+      "value": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+    }
+  }
+}

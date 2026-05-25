@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/deletion-receipt/1.0",
+  "title": "Formspec Deletion Receipt",
+  "description": "Issuer-signed evidence that an abandoned draft or erase request completed for a draft id and declared classes of draft material. The receipt is class-level evidence and must not embed erased values.",
+  "type": "object",
+  "required": [
+    "$formspecDeletionReceipt",
+    "version",
+    "receiptId",
+    "deletedDraftId",
+    "deletedAt",
+    "issuer",
+    "classesErased",
+    "retentionWaived",
+    "cryptographicMethod",
+    "receiptSigner"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecDeletionReceipt": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Deletion Receipt specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Document marker for the Deletion Receipt sidecar"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Deletion Receipt document. SemVer is RECOMMENDED.",
+      "examples": ["1.0.0"]
+    },
+    "receiptId": {
+      "type": "string",
+      "format": "uri",
+      "description": "Stable URI identifying this deletion receipt.",
+      "examples": ["urn:formspec:deletion-receipt:demo:001"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Portable receipt identity"
+      }
+    },
+    "deletedDraftId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the draft whose retained material was erased.",
+      "examples": ["draft-7f6a"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Binds the receipt to the erased draft without embedding draft contents"
+      }
+    },
+    "deletedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp when the issuer recorded deletion completion.",
+      "examples": ["2026-05-25T15:42:00Z"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Completion timestamp for the erasure operation"
+      }
+    },
+    "issuer": {
+      "$ref": "#/$defs/IssuerRef",
+      "description": "Issuer that signs and stands behind the deletion attestation."
+    },
+    "classesErased": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DataClass"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Class-level categories of draft material erased. MUST NOT contain erased values.",
+      "x-lm": {
+        "critical": true,
+        "intent": "Declares what classes were erased while avoiding value replay"
+      }
+    },
+    "retentionWaived": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RetentionWaiver"
+      },
+      "default": [],
+      "description": "Retention classes the issuer waived for this erasure. Empty means no waiver was declared."
+    },
+    "cryptographicMethod": {
+      "$ref": "#/$defs/CryptographicMethod",
+      "description": "Receipt-signing method and signed-payload digest."
+    },
+    "receiptSigner": {
+      "$ref": "#/$defs/ReceiptSigner",
+      "description": "Issuer signer for the receipt."
+    },
+    "recipientNotifications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RecipientNotification"
+      },
+      "description": "Optional class-level record of downstream recipients notified about erasure."
+    },
+    "evidence": {
+      "$ref": "#/$defs/DeletionEvidence",
+      "description": "Optional claim-check references or digests for the deletion job and logs."
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "IssuerRef": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable issuer name."
+        },
+        "identifier": {
+          "type": "string",
+          "format": "uri",
+          "description": "Stable issuer identifier such as an own-domain URI or DID."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Issuer document URL or organization homepage."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "DataClass": {
+      "description": "Class of draft material. Deployment-specific classes MUST use x- prefix.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "draft-response",
+            "draft-metadata",
+            "attachments",
+            "identity-session",
+            "prepopulation-cache",
+            "autosave-cache",
+            "client-cache",
+            "analytics-linkage",
+            "review-thread",
+            "notification-contact",
+            "other"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[A-Za-z0-9._:-]+$"
+        }
+      ]
+    },
+    "RetentionWaiver": {
+      "type": "object",
+      "required": ["class", "basis"],
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/DataClass",
+          "description": "Data class whose retention was waived."
+        },
+        "basis": {
+          "type": "string",
+          "enum": ["user-request", "retention-period-expired", "controller-policy", "legal-review", "other"],
+          "description": "Why the issuer waived retention for this class."
+        },
+        "authorityRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional policy, law, regulation, or internal authority reference."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "Digest": {
+      "type": "object",
+      "required": ["algorithm", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "sha-256"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$",
+          "description": "Lowercase hex is RECOMMENDED."
+        }
+      }
+    },
+    "CryptographicMethod": {
+      "type": "object",
+      "required": ["method", "canonicalization", "signedPayloadDigest"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "pattern": "^urn:formspec:receipt-method:[a-z0-9-]+@\\d+$",
+          "description": "Receipt-signing method URI from the signature-method registry receipt-method subspace.",
+          "examples": ["urn:formspec:receipt-method:ed25519-cose-sign1@1"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Pins the receipt-signing method independently from response-signing methods"
+          }
+        },
+        "canonicalization": {
+          "type": "string",
+          "const": "jcs-rfc8785",
+          "description": "Canonicalization profile used before digesting the signed payload."
+        },
+        "signedPayloadDigest": {
+          "$ref": "#/$defs/Digest",
+          "description": "Digest of the canonical receipt payload with detached receipt bytes omitted."
+        },
+        "verificationReceiptRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional URI for a detached Verification Receipt."
+        },
+        "timestampDigest": {
+          "$ref": "#/$defs/Digest",
+          "description": "Optional digest of timestamp evidence."
+        }
+      }
+    },
+    "ReceiptSigner": {
+      "type": "object",
+      "required": ["role", "keyRef"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "const": "issuer",
+          "description": "Deletion receipts are issuer attestations, not respondent signatures.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Prevents respondent-signed deletion receipts from masquerading as issuer attestations"
+          }
+        },
+        "keyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Issuer signing key reference."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Optional signer display name."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "RecipientNotification": {
+      "type": "object",
+      "required": ["recipientRef", "notifiedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "recipientRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque recipient reference. Do not embed recipient personal data unless policy allows it."
+        },
+        "notifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["api", "email", "portal", "manual", "other"]
+        },
+        "evidenceDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "DeletionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jobRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque deletion job reference."
+        },
+        "processorRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque processor, service, or adapter reference."
+        },
+        "erasureLogDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "recipientNoticeDigest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    }
+  }
+}

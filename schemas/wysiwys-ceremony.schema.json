@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/wysiwys-ceremony/1.0",
+  "title": "Formspec WYSIWYS Ceremony",
+  "description": "A UI-requirements sidecar for signer ceremonies that must display the exact signed preimage, require a scroll gate, and collect per-field affirmative action before signature capture.",
+  "type": "object",
+  "required": [
+    "$formspecWysiwysCeremony",
+    "version",
+    "targetDefinition",
+    "signatureSurfaces"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecWysiwysCeremony": {
+      "type": "string",
+      "const": "1.0",
+      "description": "WYSIWYS Ceremony specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Document marker for the WYSIWYS Ceremony sidecar"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this WYSIWYS Ceremony document. SemVer is RECOMMENDED.",
+      "examples": ["1.0.0"]
+    },
+    "targetDefinition": {
+      "$ref": "#/$defs/TargetDefinition",
+      "description": "The Formspec Definition this ceremony document applies to."
+    },
+    "signatureSurfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SignatureSurface"
+      },
+      "minItems": 1,
+      "description": "Named surfaces that can be signed through this ceremony.",
+      "x-lm": {
+        "critical": true,
+        "intent": "Each surface binds the visible preimage to required signer actions"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "TargetDefinition": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical Formspec Definition URL."
+        },
+        "compatibleVersions": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional semver range for compatible Definition versions."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pinned Definition version when the ceremony targets one exact version."
+        }
+      }
+    },
+    "Digest": {
+      "type": "object",
+      "required": ["algorithm", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "sha-256"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$",
+          "description": "Lowercase hex is RECOMMENDED."
+        }
+      }
+    },
+    "Preimage": {
+      "type": "object",
+      "required": ["documentArtifactRef", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "documentArtifactRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI of the rendered document artifact whose bytes are shown and signed.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Names the exact document artifact shown during ceremony"
+          }
+        },
+        "digest": {
+          "$ref": "#/$defs/Digest",
+          "description": "Digest of the rendered document artifact."
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "IANA media type or profile media type of the rendered artifact."
+        },
+        "renderingServiceRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional rendering-service profile or adapter reference."
+        },
+        "variant": {
+          "type": "string",
+          "enum": ["html", "pdf", "image", "other"],
+          "description": "Rendered variant being signed."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "ScrollGate": {
+      "type": "object",
+      "required": ["required", "completion"],
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "const": true,
+          "description": "A WYSIWYS ceremony MUST require a scroll gate.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Prevents signature capture before full-surface review opportunity"
+          }
+        },
+        "completion": {
+          "type": "string",
+          "enum": ["end-of-surface", "all-pages-observed"],
+          "description": "Completion rule for the scroll gate."
+        }
+      }
+    },
+    "AffirmativeAction": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "per-field",
+          "description": "Each ceremony field requires its own affirmative act.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Forbids bulk signature application"
+          }
+        }
+      }
+    },
+    "Requirements": {
+      "type": "object",
+      "required": [
+        "displayExactPreimage",
+        "scrollGate",
+        "affirmativeAction",
+        "singleClickAdoptAndSign",
+        "bulkApply",
+        "typedNameAsSoleAct"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "displayExactPreimage": {
+          "type": "boolean",
+          "const": true,
+          "description": "The signer MUST see the exact document artifact that will be signed.",
+          "x-lm": {
+            "critical": true,
+            "intent": "Binds visual review to the signed preimage"
+          }
+        },
+        "scrollGate": {
+          "$ref": "#/$defs/ScrollGate"
+        },
+        "affirmativeAction": {
+          "$ref": "#/$defs/AffirmativeAction"
+        },
+        "singleClickAdoptAndSign": {
+          "type": "string",
+          "const": "forbidden",
+          "description": "A single click that adopts all fields and signs is non-conforming."
+        },
+        "bulkApply": {
+          "type": "string",
+          "const": "forbidden",
+          "description": "Bulk application of signature or initial fields is non-conforming."
+        },
+        "typedNameAsSoleAct": {
+          "type": "string",
+          "const": "forbidden",
+          "description": "Typed-name capture MUST NOT be the sole affirmative act."
+        }
+      }
+    },
+    "CeremonyField": {
+      "type": "object",
+      "required": ["fieldRef", "act", "required"],
+      "additionalProperties": false,
+      "properties": {
+        "fieldRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Formspec path, item key, or signature-field reference for this act."
+        },
+        "act": {
+          "type": "string",
+          "enum": ["sign", "initial", "acknowledge"],
+          "description": "Affirmative act required for this field."
+        },
+        "required": {
+          "type": "boolean",
+          "const": true,
+          "description": "WYSIWYS ceremony fields are required."
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable field label."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "SignatureSurface": {
+      "type": "object",
+      "required": ["id", "surfaceName", "preimage", "requirements", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable id for this signature surface within the ceremony document."
+        },
+        "surfaceName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable surface name."
+        },
+        "preimage": {
+          "$ref": "#/$defs/Preimage"
+        },
+        "requirements": {
+          "$ref": "#/$defs/Requirements"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CeremonyField"
+          },
+          "minItems": 1,
+          "description": "Per-field affirmative acts required on this surface."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    }
+  }
+}
