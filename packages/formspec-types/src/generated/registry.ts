@@ -152,9 +152,26 @@ export type RegistryEntry = {
    */
   semantics?: {};
   /**
-   * Widget contract (props, children policy, fallback chain). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. Per ADR 0150 §4.2 / Component §progressive-to-core.
+   * Widget contract (props, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.
    */
-  widgetShape?: {};
+  widgetShape?: {
+    /**
+     * JSON Schema fragment for widget configuration payloads such as Theme widgetConfig or Surface module-widget binding.config.
+     */
+    props?: {};
+    /**
+     * Renderer-facing child composition policy for the widget.
+     */
+    childrenPolicy?: string;
+    /**
+     * Fallback core widget or rendering strategy used when this widget is unavailable.
+     */
+    fallback?: string;
+    /**
+     * Graph-visible Theme token slots accepted by this widget. ModuleResolver normalizes this evidence into ModuleResolutionReport.widgetTokenSlots for UI Graph Policy validators; this field does not define token values, cascade, or renderer behavior.
+     */
+    tokenSlots?: WidgetTokenSlot[];
+  };
   /**
    * Full ValidationTuple per VM §6.1. REQUIRED when category is 'action-intent'. Per ADR 0150 §4.2.
    */
@@ -227,6 +244,32 @@ export interface RegistryDocument {
  * Extension object whose keys must be prefixed with x-.
  */
 export interface Extensions {}
+/**
+ * A Theme token slot declared by a module widget. Slot declarations are Registry evidence for UI Graph Policy checks only; they do not define token values, Theme cascade, renderer fallback, runtime state, or authorization.
+ *
+ * This interface was referenced by `RegistryDocument`'s JSON-Schema
+ * via the `definition` "WidgetTokenSlot".
+ */
+export interface WidgetTokenSlot {
+  /**
+   * Token slot name as referenced by UI Graph Policy theme.assignments[].slot.
+   */
+  name: string;
+  /**
+   * Accepted Theme token category prefixes or Registry token-category contribution names for this slot. Compatibility is validated by a later UI Graph Policy gate.
+   *
+   * @minItems 1
+   */
+  acceptedTokenCategories: [string, ...string[]];
+  /**
+   * Whether the widget contract expects this slot to be assigned by policy.
+   */
+  required?: boolean;
+  /**
+   * Human-readable purpose of the token slot.
+   */
+  description?: string;
+}
 /**
  * Declares that the bound concept is equivalent to a concept in another system. Relationship types follow SKOS (Simple Knowledge Organization System) semantics.
  *

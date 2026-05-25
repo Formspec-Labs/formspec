@@ -631,9 +631,11 @@ Experience UnitKind</td>
 <tr>
 <td><code>widget</code></td>
 <td><code>widgetShape</code> — widget contract
-(props/childrenPolicy/fallback); the <code>props</code> sub-schema
-validates Theme <code>widgetConfig</code> for module-supplied
-widgets</td>
+(props/childrenPolicy/fallback plus optional <code>tokenSlots[]</code>);
+the <code>props</code> sub-schema validates Theme
+<code>widgetConfig</code> for module-supplied widgets, and
+<code>tokenSlots[]</code> supplies Registry evidence for UI Graph Policy
+Theme token-slot checks</td>
 </tr>
 <tr>
 <td><code>action-intent</code></td>
@@ -857,7 +859,8 @@ rule governs the §4.9 guarantee — without it, future maintainers may
 wonder why adding a <code>unit.kind</code> value to the Registry does
 not affect validation.</p></li>
 <li><p><strong><code>semantics</code> payload key convention (also
-applies where structurally appropriate to <code>widgetShape</code>,
+applies where structurally appropriate to
+<code>widgetShape.props</code>, <code>widgetShape.tokenSlots[]</code>,
 <code>validation</code>, <code>slotShape</code>, and <code>row</code>
 payloads).</strong> Closed shape pinned at this revision:</p>
 <ul>
@@ -1209,7 +1212,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="
 <span id="cb5-106"><a href="#cb5-106" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;items&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;$ref&quot;</span><span class="fu">:</span> <span class="st">&quot;https://formspec.org/schemas/common/1.0#/$defs/ModuleRef&quot;</span> <span class="fu">}</span></span>
 <span id="cb5-107"><a href="#cb5-107" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
 <span id="cb5-108"><a href="#cb5-108" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;semantics&quot;</span><span class="fu">:</span>      <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `unit-kind`.&quot;</span> <span class="fu">},</span></span>
-<span id="cb5-109"><a href="#cb5-109" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;widgetShape&quot;</span><span class="fu">:</span>    <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `widget`.&quot;</span> <span class="fu">},</span></span>
+<span id="cb5-109"><a href="#cb5-109" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;widgetShape&quot;</span><span class="fu">:</span>    <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `widget`; may include `tokenSlots[]` evidence for UI Graph Policy Theme token-slot checks.&quot;</span> <span class="fu">},</span></span>
 <span id="cb5-110"><a href="#cb5-110" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;validation&quot;</span><span class="fu">:</span>     <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `action-intent` (full ValidationTuple per VM §6.1).&quot;</span> <span class="fu">},</span></span>
 <span id="cb5-111"><a href="#cb5-111" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;slotShape&quot;</span><span class="fu">:</span>      <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `slot-type`.&quot;</span> <span class="fu">},</span></span>
 <span id="cb5-112"><a href="#cb5-112" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;row&quot;</span><span class="fu">:</span>            <span class="fu">{</span> <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;object&quot;</span><span class="fu">,</span> <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;REQUIRED for `validation-mapping-row` (closed MappingEntry shape per VM §6).&quot;</span> <span class="fu">},</span></span>

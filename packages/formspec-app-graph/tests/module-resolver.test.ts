@@ -164,4 +164,77 @@ describe('resolveModules', () => {
       details: { validator: 'widgetShape.props' },
     });
   });
+
+  it('normalizes widget token-slot evidence for resolved widget contributions', () => {
+    const report = resolveModules({
+      appModules: [{
+        id: 'x-reviewer',
+        version: '1.0.0',
+        source: {
+          artifactSlot: 'app',
+          artifactKind: 'appManifest',
+          source: 'memory://app',
+          jsonPointer: '/modules/0',
+          module: { id: 'x-reviewer', version: '1.0.0' },
+        },
+      }],
+      documents: [{
+        artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+        artifactKind: 'hostEvidence',
+        uses: [{
+          site: 'ui-graph-policy.theme.assignments.widgetRef',
+          name: 'x-review-panel',
+          expectedCategory: 'widget',
+          source: {
+            artifactSlot: 'hostEvidence.uiGraphPolicies[0]',
+            artifactKind: 'hostEvidence',
+            source: 'host://policy/review',
+            jsonPointer: '/theme/assignments/0/widgetRef',
+          },
+        }],
+      }],
+      registries: registry([
+        { name: 'x-reviewer', category: 'module', version: '1.0.0', contributes: ['x-review-panel'] },
+        {
+          name: 'x-review-panel',
+          category: 'widget',
+          version: '1.0.0',
+          widgetShape: {
+            tokenSlots: [
+              { name: 'accent', acceptedTokenCategories: ['color'] },
+              { name: 'gap', acceptedTokenCategories: ['spacing', 'x-agency-spacing'] },
+            ],
+          },
+        },
+      ]),
+    });
+
+    expect(report.ok).toBe(true);
+    expect(report.contributions[0]).toMatchObject({
+      status: 'resolved',
+      widgetTokenSlots: [
+        {
+          name: 'accent',
+          acceptedTokenCategories: ['color'],
+          source: {
+            artifactSlot: 'registries[0]',
+            artifactKind: 'registry',
+            source: 'memory://registry',
+            jsonPointer: '/entries/1/widgetShape/tokenSlots/0',
+          },
+        },
+        {
+          name: 'gap',
+          acceptedTokenCategories: ['spacing', 'x-agency-spacing'],
+          source: {
+            artifactSlot: 'registries[0]',
+            artifactKind: 'registry',
+            source: 'memory://registry',
+            jsonPointer: '/entries/1/widgetShape/tokenSlots/1',
+          },
+        },
+      ],
+    });
+    expect(report.diagnostics).toEqual([]);
+  });
 });

@@ -177,6 +177,56 @@ class TestEntryCategory:
             _validate(_minimal_registry(entries=[entry]))
 
 
+class TestWidgetShapeTokenSlots:
+
+    def test_widget_shape_token_slots_are_valid_registry_evidence(self):
+        entry = _minimal_entry(
+            "widget",
+            widgetShape={
+                "props": {"type": "object"},
+                "tokenSlots": [
+                    {
+                        "name": "accent",
+                        "acceptedTokenCategories": ["color", "x-agency-color"],
+                        "description": "Accent color slot",
+                    }
+                ],
+            },
+        )
+        _validate(_minimal_registry(entries=[entry]))
+
+    def test_widget_shape_token_slots_require_categories(self):
+        entry = _minimal_entry(
+            "widget",
+            widgetShape={
+                "tokenSlots": [
+                    {
+                        "name": "accent",
+                        "acceptedTokenCategories": [],
+                    }
+                ],
+            },
+        )
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+    def test_widget_shape_token_slots_reject_unknown_slot_fields(self):
+        entry = _minimal_entry(
+            "widget",
+            widgetShape={
+                "tokenSlots": [
+                    {
+                        "name": "accent",
+                        "acceptedTokenCategories": ["color"],
+                        "semantics.themeTokenSlots": ["legacy"],
+                    }
+                ],
+            },
+        )
+        with pytest.raises(ValidationError):
+            _validate(_minimal_registry(entries=[entry]))
+
+
 # ===================================================================
 # TestEntryVersion
 # ===================================================================

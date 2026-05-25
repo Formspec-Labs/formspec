@@ -342,8 +342,51 @@
         "diagnostics": {
           "type": "array",
           "items": { "$ref": "#/$defs/ModuleResolutionDiagnostic" }
+        },
+        "widgetTokenSlots": {
+          "type": "array",
+          "description": "Normalized Registry widgetShape.tokenSlots evidence for resolved widget contributions. Present only for widget contribution reports that expose graph-visible Theme token-slot declarations. Consumers such as UI Graph Policy validators consume this evidence; ModuleResolver does not emit UI Graph Policy diagnostics.",
+          "items": { "$ref": "#/$defs/ModuleResolutionWidgetTokenSlot" }
         }
       }
+    },
+    "ModuleResolutionWidgetTokenSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Normalized Theme token-slot evidence from a resolved Registry widget contribution.",
+      "required": ["name", "acceptedTokenCategories", "source"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Widget token-slot name as referenced by UI Graph Policy theme.assignments[].slot."
+        },
+        "acceptedTokenCategories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Accepted Theme token category prefixes or Registry token-category contribution names for this slot. Token-category compatibility remains a later UI Graph Policy gate."
+        },
+        "source": {
+          "$ref": "#/$defs/ModuleResolutionRegistrySourcePointer"
+        }
+      }
+    },
+    "ModuleResolutionRegistrySourcePointer": {
+      "allOf": [
+        { "$ref": "#/$defs/ModuleResolutionSourcePointer" },
+        {
+          "type": "object",
+          "required": ["artifactKind"],
+          "properties": {
+            "artifactKind": { "const": "registry" }
+          }
+        }
+      ],
+      "description": "Source pointer constrained to Registry evidence."
     },
     "ModuleResolutionSummary": {
       "type": "object",

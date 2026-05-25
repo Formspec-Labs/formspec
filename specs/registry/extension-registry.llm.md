@@ -36,6 +36,7 @@ Source schema: `schemas/registry.schema.json`
 - Registry documents describe extension metadata and compatibility, but do not prescribe centralized hosting or governance.
 - Entry lifecycle states should guide consumer behavior for adoption, warning surfaces, and retirement handling.
 - Naming conventions and uniqueness constraints prevent collision and support cross-organization interoperability.
+- Widget entries may declare graph-visible Theme token slots at widgetShape.tokenSlots[]; processors must not treat v4 semantics.themeTokenSlots as production authority.
 
 ## Semantic Capsule
 
@@ -54,4 +55,5 @@ Source schema: `schemas/registry.schema.json`
 
 - A conforming registry document must include $formspecRegistry, publisher, published, and entries.
 - Registry entry names must follow x-prefixed naming rules and category-specific requirements.
+- Widget token-slot declarations use widgetShape.tokenSlots[] with a slot name and accepted token categories, and feed ModuleResolver report evidence for UI Graph Policy.
 - Processors should reject malformed registries and conflicting duplicate name/version entry pairs.

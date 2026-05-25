@@ -29,6 +29,7 @@ REQUIRED_FAMILIES = {
     "contribution-conflict",
     "contribution-unadmitted",
     "payload-mismatch",
+    "widget-token-slots",
 }
 
 FORBIDDEN_KEYS = {
@@ -87,6 +88,14 @@ def _diagnostics(report: dict[str, Any]) -> list[dict[str, Any]]:
     return diagnostics
 
 
+def _widget_token_slots(report: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        token_slot
+        for contribution in report.get("contributions", [])
+        for token_slot in contribution.get("widgetTokenSlots", [])
+    ]
+
+
 def _assert_summary_contains(report: dict[str, Any], expected: dict[str, Any]) -> None:
     for key, value in expected.items():
         assert report["summary"][key] == value
@@ -122,6 +131,12 @@ def test_expected_reports_validate_and_preserve_module_resolver_ownership() -> N
         summary = case.get("expectedSummary")
         if summary is not None:
             _assert_summary_contains(report, summary)
+
+        for token_slot in _widget_token_slots(report):
+            assert isinstance(token_slot["name"], str)
+            assert isinstance(token_slot["acceptedTokenCategories"], list)
+            assert token_slot["acceptedTokenCategories"]
+            _assert_source_pointer(token_slot["source"])
 
 
 def test_fixtures_do_not_encode_path_identity_or_fine_grained_auth() -> None:

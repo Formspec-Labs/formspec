@@ -135,6 +135,7 @@ The resolver builds or consumes a deterministic Registry index:
 | `latestEntryByName` | Deterministic latest compatible entry when multiple versions exist. |
 | `contributedBy` | Contribution name to owning module ids. |
 | `payloadSchemas` | Contribution name to payload schema fragments such as `widgetShape.props`, `slotShape`, `semantics`, `row`, or `categoryShape`. |
+| `widgetTokenSlots` | Resolved widget contribution to Registry `widgetShape.tokenSlots[]` evidence. This is the production source for UI Graph Policy Theme token-slot checks; the resolver MUST NOT read v4 spike `semantics.themeTokenSlots` as authority. |
 
 Each module entry's `contributes[]` names Registry entries bundled by that
 module. Each `dependencies[]` entry is a `ModuleRef` that must resolve against
@@ -216,7 +217,8 @@ requiring all consumers to be wired in this prose slice.
 | Mapping transforms | transform contribution family when promoted | Future transform payload hook. |
 | Response Actions intents | `action-intent` | Validation tuple authority remains Response Actions and validation mapping. |
 | Validation Mapping rows | `validation-mapping-row` | `row` payload schema. |
-| UI Graph Policy token slots and token-category compatibility | `token-category` | Future `categoryShape` hook after Registry/report evidence names stable token-slot fields. |
+| UI Graph Policy token slots | `widget` | AppGraphValidator consumes completed widget contribution evidence plus `widgetTokenSlots[]` copied from Registry `widgetShape.tokenSlots[]`; `THEME-TOKEN-SLOT` remains UI Graph Policy-owned. |
+| UI Graph Policy token-category compatibility | `token-category` | Future `categoryShape` hook after the token-category compatibility gate names exact category matching rules. |
 
 Component bundle id collision diagnostics, including current E605 behavior,
 are not ModuleResolver-owned. They remain bundle-graph validation because they
@@ -235,6 +237,13 @@ evidence.
 | `diagnostics` | yes | Module-resolution diagnostics in the shared app-graph envelope. |
 | `summary` | yes | Counts for modules, admitted modules, denied modules, unresolved dependencies, unresolved contributions, payload failures, errors, warnings, and infos. |
 | `phase` | yes | Module-resolution phase status and optional reason. |
+
+Resolved widget contribution entries MAY include `widgetTokenSlots[]`, copied
+from Registry `widgetShape.tokenSlots[]` with source pointers to the Registry
+slot declarations. This report evidence is inert by itself: ModuleResolver does
+not emit `THEME-TOKEN-SLOT`, validate Theme tokens, decide token category
+compatibility, execute renderer fallback, or infer policy from v4 spike
+`semantics.themeTokenSlots` data.
 
 Downstream `AppGraphValidator` consumes the full `ModuleResolutionReport` as
 typed context evidence and imports only the report's top-level diagnostics with
@@ -289,9 +298,11 @@ source fixture corpus. The current `@formspec-org/app-graph` conformance runner
 executes the corpus through `resolveModules`. Fixture inputs carry explicit
 source evidence for app modules, default modules, sibling-document modules,
 Registry artifacts, contribution sites, and payload-bearing contribution
-payloads; the runner does not derive report identity from fixture filenames,
-case ids, artifact paths, or payload-presence heuristics. A conforming future
-implementation still needs:
+payloads. The corpus also covers resolved widget token-slot evidence from
+Registry `widgetShape.tokenSlots[]` without promoting v4
+`semantics.themeTokenSlots`. The runner does not derive report identity from
+fixture filenames, case ids, artifact paths, or payload-presence heuristics. A
+conforming future implementation still needs:
 
 1. integration with `ArtifactResolver` and `AppGraphValidator`,
 2. production consumer wiring across lint, Studio, MCPs, runtime, and

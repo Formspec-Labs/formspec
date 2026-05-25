@@ -170,6 +170,24 @@ def test_ui_graph_policy_theme_widget_module_resolution_reports_are_valid() -> N
         MODULE_REPORT_VALIDATOR.validate(report)
 
 
+def test_ui_graph_policy_theme_widget_fixtures_may_carry_deferred_token_slot_evidence() -> None:
+    report = _corpus()["moduleResolutionReports"]["resolved-theme-widget"]
+    token_slots = report["contributions"][0].get("widgetTokenSlots")
+    assert token_slots == [
+        {
+            "name": "accent",
+            "acceptedTokenCategories": ["color"],
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0",
+            },
+        }
+    ]
+    assert "THEME-TOKEN-SLOT" in DEFERRED_CODES
+
+
 def test_ui_graph_policy_theme_widget_expected_diagnostics_are_policy_owned() -> None:
     for case in _corpus()["cases"]:
         expected = case["expected"]

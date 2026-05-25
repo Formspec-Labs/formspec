@@ -54,6 +54,15 @@ export type ModuleResolutionContributionStatus =
  */
 export type ModuleResolutionPayloadStatus = 'not-run' | 'passed' | 'failed' | 'missing-validator';
 /**
+ * Source pointer constrained to Registry evidence.
+ *
+ * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema
+ * via the `definition` "ModuleResolutionRegistrySourcePointer".
+ */
+export type ModuleResolutionRegistrySourcePointer = ModuleResolutionSourcePointer & {
+  artifactKind: 'registry';
+};
+/**
  * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema
  * via the `definition` "ModuleResolutionPhaseStatusValue".
  */
@@ -227,6 +236,29 @@ export interface ModuleResolutionContribution {
   payloadStatus?: ModuleResolutionPayloadStatus;
   source: ModuleResolutionSourcePointer;
   diagnostics?: ModuleResolutionDiagnostic[];
+  /**
+   * Normalized Registry widgetShape.tokenSlots evidence for resolved widget contributions. Present only for widget contribution reports that expose graph-visible Theme token-slot declarations. Consumers such as UI Graph Policy validators consume this evidence; ModuleResolver does not emit UI Graph Policy diagnostics.
+   */
+  widgetTokenSlots?: ModuleResolutionWidgetTokenSlot[];
+}
+/**
+ * Normalized Theme token-slot evidence from a resolved Registry widget contribution.
+ *
+ * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema
+ * via the `definition` "ModuleResolutionWidgetTokenSlot".
+ */
+export interface ModuleResolutionWidgetTokenSlot {
+  /**
+   * Widget token-slot name as referenced by UI Graph Policy theme.assignments[].slot.
+   */
+  name: string;
+  /**
+   * Accepted Theme token category prefixes or Registry token-category contribution names for this slot. Token-category compatibility remains a later UI Graph Policy gate.
+   *
+   * @minItems 1
+   */
+  acceptedTokenCategories: [string, ...string[]];
+  source: ModuleResolutionRegistrySourcePointer;
 }
 /**
  * This interface was referenced by `ModuleResolutionReport`'s JSON-Schema

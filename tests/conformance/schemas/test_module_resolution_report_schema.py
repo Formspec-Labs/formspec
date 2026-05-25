@@ -242,3 +242,76 @@ def test_fine_grained_authorization_fields_are_not_report_surface() -> None:
     report["modules"][0]["routePolicy"] = {"route": "dashboard"}
     with pytest.raises(ValidationError):
         _validator().validate(report)
+
+
+def test_widget_token_slot_evidence_shape_passes() -> None:
+    report = _valid_report()
+    report["contributions"][0]["widgetTokenSlots"] = [
+        {
+            "name": "accent",
+            "acceptedTokenCategories": ["color"],
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0",
+            },
+        }
+    ]
+    _validator().validate(report)
+
+
+def test_widget_token_slot_evidence_requires_registry_source() -> None:
+    report = _valid_report()
+    report["contributions"][0]["widgetTokenSlots"] = [
+        {
+            "name": "accent",
+            "acceptedTokenCategories": ["color"],
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0",
+            },
+        }
+    ]
+    report["contributions"][0]["widgetTokenSlots"][0]["source"] = {}
+    with pytest.raises(ValidationError):
+        _validator().validate(report)
+
+
+def test_widget_token_slot_evidence_rejects_empty_categories() -> None:
+    report = _valid_report()
+    report["contributions"][0]["widgetTokenSlots"] = [
+        {
+            "name": "accent",
+            "acceptedTokenCategories": ["color"],
+            "source": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "memory://registry",
+                "jsonPointer": "/entries/1/widgetShape/tokenSlots/0",
+            },
+        }
+    ]
+    report["contributions"][0]["widgetTokenSlots"][0]["acceptedTokenCategories"] = []
+    with pytest.raises(ValidationError):
+        _validator().validate(report)
+
+
+def test_widget_token_slot_evidence_requires_registry_artifact_kind() -> None:
+    report = _valid_report()
+    report["contributions"][0]["widgetTokenSlots"] = [
+        {
+            "name": "accent",
+            "acceptedTokenCategories": ["color"],
+            "source": {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface",
+                "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+            },
+        }
+    ]
+    with pytest.raises(ValidationError):
+        _validator().validate(report)

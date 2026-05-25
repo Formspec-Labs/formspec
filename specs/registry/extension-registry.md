@@ -197,7 +197,7 @@ No additional required properties. The `schemaUrl` is RECOMMENDED.
 | Category | Required category-specific property |
 |---|---|
 | `unit-kind` | `semantics` — processor/renderer obligations for Experience UnitKind |
-| `widget` | `widgetShape` — widget contract (props/childrenPolicy/fallback); the `props` sub-schema validates Theme `widgetConfig` for module-supplied widgets |
+| `widget` | `widgetShape` — widget contract (props/childrenPolicy/fallback plus optional `tokenSlots[]`); the `props` sub-schema validates Theme `widgetConfig` for module-supplied widgets, and `tokenSlots[]` supplies Registry evidence for UI Graph Policy Theme token-slot checks |
 | `action-intent` | `validation` — full ValidationTuple per Validation Mapping §6.1 |
 | `slot-type` | `slotShape` — Surface slot binding contract |
 | `validation-mapping-row` | `row` — closed MappingEntry shape per VM §6 (contributes a row after the MasterTable four-constraint demotion) |
@@ -312,7 +312,8 @@ and AI tooling auditable. Three conventions govern this republishing:
    does not affect validation.
 
 3. **`semantics` payload key convention (also applies where structurally
-   appropriate to `widgetShape`, `validation`, `slotShape`, and `row`
+   appropriate to `widgetShape.props`, `widgetShape.tokenSlots[]`,
+   `validation`, `slotShape`, and `row`
    payloads).** Closed shape pinned at this revision:
    - `kindValue` — REQUIRED string; the unprefixed closed-core enum value
      (e.g. `"data-entry"`). Load-bearing: AI authoring tools resolve
@@ -639,7 +640,7 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
       "items": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ModuleRef" }
     },
     "semantics":      { "type": "object", "description": "REQUIRED for `unit-kind`." },
-    "widgetShape":    { "type": "object", "description": "REQUIRED for `widget`." },
+    "widgetShape":    { "type": "object", "description": "REQUIRED for `widget`; may include `tokenSlots[]` evidence for UI Graph Policy Theme token-slot checks." },
     "validation":     { "type": "object", "description": "REQUIRED for `action-intent` (full ValidationTuple per VM §6.1)." },
     "slotShape":      { "type": "object", "description": "REQUIRED for `slot-type`." },
     "row":            { "type": "object", "description": "REQUIRED for `validation-mapping-row` (closed MappingEntry shape per VM §6)." },

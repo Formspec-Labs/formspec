@@ -20,6 +20,7 @@ export interface ModuleResolverRegistryEntry {
   dependencies?: ModuleResolutionRef[];
   widgetShape?: {
     props?: unknown;
+    tokenSlots?: unknown;
   };
   [key: string]: unknown;
 }
@@ -462,6 +463,31 @@ function payloadSchemaFor(entry: ModuleResolverRegistryEntry, validator: string)
   return entry[validator];
 }
 
+function tokenSlotEvidenceFor(
+  record: RegistryEntryRecord,
+  input: ModuleResolverInput,
+): ModuleResolutionContribution['widgetTokenSlots'] | undefined {
+  const tokenSlots = record.entry.widgetShape?.tokenSlots;
+  if (!Array.isArray(tokenSlots)) return undefined;
+
+  const evidence = tokenSlots.flatMap((slot, index): NonNullable<ModuleResolutionContribution['widgetTokenSlots']> => {
+    if (!slot || typeof slot !== 'object') return [];
+    const candidate = slot as { name?: unknown; acceptedTokenCategories?: unknown };
+    if (typeof candidate.name !== 'string') return [];
+    if (!Array.isArray(candidate.acceptedTokenCategories)) return [];
+    if (!candidate.acceptedTokenCategories.every((category) => typeof category === 'string')) return [];
+    if (candidate.acceptedTokenCategories.length === 0) return [];
+    const acceptedTokenCategories = candidate.acceptedTokenCategories as [string, ...string[]];
+    return [{
+      name: candidate.name,
+      acceptedTokenCategories: [acceptedTokenCategories[0], ...acceptedTokenCategories.slice(1)],
+      source: registrySource(record, input, `/entries/${record.entryIndex}/widgetShape/tokenSlots/${index}`),
+    }];
+  });
+
+  return evidence.length > 0 ? evidence : undefined;
+}
+
 function payloadValidatorName(
   use: ModuleResolverContributionUse,
   entry: RegistryEntryRecord,
@@ -606,6 +632,11 @@ function resolveContributions(
           if (payload.status === 'failed' && payload.diagnostic) {
             contribution.status = 'payload-schema-mismatch';
             diagnostics.push(payload.diagnostic);
+          } else if (entry.entry.category === 'widget') {
+            const tokenSlotEvidence = tokenSlotEvidenceFor(entry, input);
+            if (tokenSlotEvidence) {
+              contribution.widgetTokenSlots = tokenSlotEvidence;
+            }
           }
         }
       }

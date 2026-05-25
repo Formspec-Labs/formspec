@@ -478,9 +478,37 @@
         },
         "widgetShape": {
           "type": "object",
-          "description": "Widget contract (props, children policy, fallback chain). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. Per ADR 0150 §4.2 / Component §progressive-to-core.",
+          "description": "Widget contract (props, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.",
+          "properties": {
+            "props": {
+              "type": "object",
+              "description": "JSON Schema fragment for widget configuration payloads such as Theme widgetConfig or Surface module-widget binding.config."
+            },
+            "childrenPolicy": {
+              "type": "string",
+              "description": "Renderer-facing child composition policy for the widget."
+            },
+            "fallback": {
+              "type": "string",
+              "description": "Fallback core widget or rendering strategy used when this widget is unavailable."
+            },
+            "tokenSlots": {
+              "type": "array",
+              "description": "Graph-visible Theme token slots accepted by this widget. ModuleResolver normalizes this evidence into ModuleResolutionReport.widgetTokenSlots for UI Graph Policy validators; this field does not define token values, cascade, or renderer behavior.",
+              "items": {
+                "$ref": "#/$defs/WidgetTokenSlot"
+              }
+            }
+          },
           "examples": [
-            {"props": {"type": "object"}, "childrenPolicy": "no-children", "fallback": "Stack"}
+            {
+              "props": {"type": "object"},
+              "childrenPolicy": "no-children",
+              "fallback": "Stack",
+              "tokenSlots": [
+                {"name": "accent", "acceptedTokenCategories": ["color"]}
+              ]
+            }
           ]
         },
         "validation": {
@@ -770,6 +798,36 @@
           }
         }
       ]
+    },
+    "WidgetTokenSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A Theme token slot declared by a module widget. Slot declarations are Registry evidence for UI Graph Policy checks only; they do not define token values, Theme cascade, renderer fallback, runtime state, or authorization.",
+      "required": ["name", "acceptedTokenCategories"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Token slot name as referenced by UI Graph Policy theme.assignments[].slot."
+        },
+        "acceptedTokenCategories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Accepted Theme token category prefixes or Registry token-category contribution names for this slot. Compatibility is validated by a later UI Graph Policy gate."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether the widget contract expects this slot to be assigned by policy."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable purpose of the token slot."
+        }
+      }
     },
     "ConceptEquivalent": {
       "type": "object",
