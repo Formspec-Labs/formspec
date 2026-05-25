@@ -1,0 +1,245 @@
+---
+title: Formspec AppGraphValidator Interface Specification
+version: 0.1.0-draft.1
+date: 2026-05-24
+status: draft
+---
+
+# Formspec AppGraphValidator Interface Specification v0.1
+
+**Version:** 0.1.0-draft.1
+**Date:** 2026-05-24
+**Editors:** Formspec Working Group
+**Companion to:** App Manifest, Surface, Data Sources, Response Actions, Module Resolver, Artifact Resolver, and ADR 0153
+
+---
+
+## Status of This Document
+
+This document is the prose-only interface contract for ADR 0153 gate 3a. It
+defines the inputs, outputs, diagnostic shape, schema-validation boundary, and
+cross-artifact ownership model for a production `AppGraphValidator`.
+
+This document intentionally does not define a JSON Schema for validation
+reports, generated TypeScript types, a shared package, conformance fixtures,
+runtime invocation behavior, projection behavior, or production consumer wiring.
+Those land in later ADR 0153 gates after the prose boundary is stable.
+
+## Bottom Line Up Front
+
+- `AppGraphValidator` validates an already resolved app graph. It does not fetch
+  URLs, discover siblings, read local fixture paths, or synthesize missing
+  artifacts.
+- Inputs are an App Manifest, `ArtifactResolver`-provided artifact handles,
+  `ModuleResolver` output, a schema registry/support profile, and validator
+  options.
+- Outputs are deterministic validation reports with `ok`, summary counts,
+  per-artifact schema results, diagnostics, skipped phases, and source pointers.
+- Native validator diagnostics cover source schema validation, cross-artifact
+  invariants, unsupported graph features, and ADR 0152 fail-closed authorization
+  boundaries. Resolver, module, and Surface-local diagnostics may be surfaced in
+  the report only as imported diagnostics with their origin preserved.
+- The validator does not render Components, execute Response Actions, evaluate
+  durable effects, author ledger events, or decide fine-grained authorization.
+
+## 1. Purpose and Scope
+
+The App Manifest names an app graph. `ArtifactResolver` loads that graph's
+referenced artifacts. `ModuleResolver` decides module admission and contribution
+ownership. `AppGraphValidator` then validates the resolved graph as a graph
+rather than as unrelated JSON files.
+
+In scope:
+
+- the validator request shape,
+- the validator report shape,
+- diagnostic identity and source pointers,
+- per-artifact schema validation over loaded artifacts,
+- cross-artifact invariants that require more than one artifact,
+- imported upstream diagnostics from resolver/module/surface-local checks, and
+- fail-closed handling for unsupported features and ADR 0152 authorization
+  placeholders.
+
+Out of scope:
+
+- fetching, loading, or discovering artifacts,
+- using fixture paths, filenames, URL suffixes, or directory conventions as
+  identity,
+- module admission/contribution resolution internals,
+- Surface draft authoring and export-local lint rules,
+- schema definitions for the report payload,
+- package extraction and generated types,
+- Studio, MCP, runtime, projection, or renderer wiring,
+- source payload fetching/caching/subscription behavior, and
+- Response Actions invocation or durable effect execution.
+
+## 2. Validator Request
+
+A validator request MUST be assembled from already resolved inputs. The minimum
+request has these conceptual fields:
+
+| Field | Required | Description |
+|---|---|---|
+| `manifest` | yes | Artifact handle for the App Manifest that roots the graph. |
+| `artifacts` | yes | Resolved artifact handles grouped by manifest slot, for example `definitions[]`, `surfaces[]`, `dataSources[]`, `responseActions[]`, `experiences[]`, `registries[]`, `locales[]`, `theme`, `component`, and future graph siblings. |
+| `schemaRegistry` | yes | Closed support profile for schema IDs, artifact kinds, and versions the validator can evaluate without network lookup. |
+| `artifactResolution` | yes | `ArtifactResolver` result, including imported diagnostics for missing artifacts, unsupported references, discriminator drift, and ref/version mismatches. |
+| `moduleResolution` | no | `ModuleResolver` result when modules are present or module-contributed values must be checked. |
+| `options` | no | Validator controls such as supported bundle versions, diagnostic severity policy, phase selection for tools, and compatibility profile. Options MUST NOT authorize fetching, rendering, or effect execution. |
+
+### 2.1 Artifact Handle
+
+An artifact handle is not just a JSON document. It carries enough source and
+identity metadata for deterministic diagnostics:
+
+| Field | Description |
+|---|---|
+| `slot` | Manifest slot and ordinal, such as `definitions[0]` or `dataSources[1]`. |
+| `ref` | The App Manifest sibling reference, when the artifact came from a sibling slot. |
+| `artifactKind` | Expected artifact family, such as `definition`, `surface`, `dataSources`, or `responseActions`. |
+| `schemaId` | Schema selected for source validation. |
+| `document` | Parsed JSON value when loading succeeded. |
+| `identity` | Canonical document identity extracted from the document when that artifact family defines one, such as Definition `url`/`version` or Data Sources `id`/`version`. For Surface, this records the local Surface `id` for route namespace diagnostics only; canonical sibling identity remains the App Manifest `surfaces[]` ref URL/version carried in `ref`. |
+| `source` | Diagnostic source pointer, such as URI, package resource, or host object ID. It is evidence for error reporting, not production identity. |
+| `digest` | Optional content digest for tools that need stale-input checks. |
+| `status` | Resolver status, such as `loaded`, `missing`, `unsupported`, or `invalid-discriminator`. Non-`loaded` statuses are reported by `ArtifactResolver`; the validator skips dependent graph phases. |
+
+The validator MUST NOT derive identity from `source`, local paths, filenames, or
+fixture metadata. Production graph identity is anchored by App Manifest refs and
+checked against loaded artifact identity fields only where the artifact family
+defines global identity. Surface route namespaces use Surface `id` locally, but
+a Surface sibling is identified by the App Manifest `surfaces[]` URL/version
+ref.
+
+## 3. Validation Order
+
+The validator runs in deterministic phases:
+
+1. Import `artifactResolution` diagnostics and mark unresolved handles.
+2. Import `moduleResolution` diagnostics when supplied.
+3. Validate loaded artifacts against their selected source schemas.
+4. Skip cross-artifact validation when required source schemas fail, and emit an
+   informational skipped-phase diagnostic.
+5. Evaluate cross-artifact invariants for the remaining schema-valid graph.
+6. Apply fail-closed checks for unsupported features and ADR 0152 authorization
+   placeholders.
+7. Return one report sorted deterministically by severity, phase, artifact slot,
+   JSON Pointer, and code.
+
+Schema validation is a precondition for cross-artifact interpretation. A schema
+valid graph can still be graph-invalid. A schema-invalid artifact can still
+produce imported resolver diagnostics, but graph checks depending on that
+artifact MUST be skipped rather than guessed.
+
+## 4. Validation Report
+
+An `AppGraphValidationReport` is the validator's only output contract. It is a
+data report, not an execution plan.
+
+| Field | Required | Description |
+|---|---|---|
+| `ok` | yes | `true` only when no error-severity diagnostic exists in the report. |
+| `summary` | yes | Counts for artifacts, schema failures, graph errors, warnings, infos, imported diagnostics, unsupported features, and skipped phases. |
+| `schemaResults` | yes | Per-loaded-artifact schema validation results, including schema ID, artifact source pointer, status, and schema diagnostics. |
+| `diagnostics` | yes | Unified diagnostics from native validator phases and imported resolver/module/surface-local phases. |
+| `phases` | yes | Ordered phase statuses with `completed`, `skipped`, or `not-run` status and skip reason when applicable. |
+| `support` | no | Optional echo of supported bundle versions, artifact kinds, schema versions, and feature flags used for the run. |
+
+Reports MUST be deterministic for the same request and support profile. They
+MUST NOT contain fetched source payloads, rendered Component output, effect
+results, private credentials, or host-only cache contents.
+
+## 5. Diagnostic Shape
+
+Every diagnostic in the unified report MUST carry:
+
+| Field | Description |
+|---|---|
+| `code` | Stable machine-readable code. Native AppGraphValidator codes SHOULD use an `APP-GRAPH-` prefix unless a sibling spec already owns a code. |
+| `severity` | `error`, `warning`, or `info`. `ok` is false when any diagnostic has `severity: "error"`. |
+| `phase` | One of `artifact-resolution`, `schema`, `module-resolution`, `surface-local`, `cross-artifact`, `authorization-boundary`, or `unsupported`. |
+| `origin` | Producing component, such as `app-graph-validator`, `artifact-resolver`, `module-resolver`, `surface-local-lint`, or `schema-validator`. |
+| `message` | Human-readable explanation. |
+| `primarySource` | Artifact slot/source and JSON Pointer, when available. |
+| `relatedSources` | Optional list of other artifacts or pointers that explain a cross-artifact conflict. |
+| `details` | Optional stable JSON object for machine consumers. It MUST NOT contain executable code or local fixture-path identity. |
+
+Imported diagnostics MUST preserve their origin. The validator MAY normalize
+their envelope into this shape, but it MUST NOT recode an `ArtifactResolver`
+diagnostic as native validator authority or duplicate `ModuleResolver` findings
+as independent module checks.
+
+## 6. Source Schema Validation Boundary
+
+The validator owns source schema validation for loaded artifacts in the request.
+It selects schemas from the supplied schema registry and support profile. It
+MUST reject or diagnose artifacts whose version/discriminator is unsupported by
+that profile.
+
+The validator does not own:
+
+- artifact fetching,
+- local path containment checks,
+- remote retrieval policy,
+- sibling discovery,
+- module contribution resolution internals,
+- renderability of generated Components,
+- Response Actions invocation state, or
+- Data Sources payload availability at runtime.
+
+Source schema validation answers whether each loaded artifact has the correct
+shape for its declared family. Cross-artifact validation answers whether the
+schema-valid artifacts are coherent together.
+
+## 7. Cross-Artifact Invariant Ownership
+
+The following table assigns ownership for invariants that may appear in a final
+app-graph report.
+
+| Invariant family | Owner | Report phase | Notes |
+|---|---|---|---|
+| Manifest sibling fetch/load, missing artifacts, local path containment, unsupported URI scheme | `ArtifactResolver` | `artifact-resolution` | Imported. The validator consumes the result and skips dependent phases. |
+| Manifest sibling ref vs loaded artifact discriminator/version/identity | `ArtifactResolver`, surfaced through validator report | `artifact-resolution` | The resolver proves the handle matches the ref. The validator MUST NOT recover by guessing from filenames or URL suffixes. |
+| App Manifest schema shape and supported `$formspecBundle` versions | `AppGraphValidator` schema phase | `schema` / `unsupported` | v2.0 and v2.1 support is profile-driven. Unsupported future versions fail loud. |
+| Per-artifact source schemas | `AppGraphValidator` schema phase | `schema` | Runs only on loaded documents with selected schemas. |
+| Module admission, module dependency, contribution ownership, widget prop schema | `ModuleResolver` | `module-resolution` | Imported. The validator does not duplicate module resolution logic. |
+| Surface draft publishability, local route reachability, unresolved embed-route targets, duplicate route/slot ids | Surface export/local lint | `surface-local` | Imported or pre-run by Surface tools. Cross-artifact checks remain separate. |
+| Surface slots to loaded Definitions, Experience units, Response Actions, and Data Sources | `AppGraphValidator` | `cross-artifact` | Validates relationships across already loaded artifacts. |
+| Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
+| Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. |
+| Data Sources availability selectors to loaded Surfaces, routes, slots, Definitions, and modules | `AppGraphValidator` | `cross-artifact` | Payload fetching and cache behavior remain out of scope. |
+| UI graph policy to routes, locale keys, responsive rules, and Theme token slots | Future UI graph policy spec plus `AppGraphValidator` | `cross-artifact` | Closed only after the UI graph policy rows land. |
+| Fine-grained actor, route, operation, widget, field, or source authorization | ADR 0152 | `authorization-boundary` | Until ADR 0152 lands, such fields fail closed rather than receiving semantics. |
+| Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
+| Component Surface/route target resolution, duplicate route claims, fake `targetDefinition` rejection, and node identity disambiguation | ADR 0154 plus future `AppGraphValidator` gates | `cross-artifact` | Validator-owned only after ADR 0154 spec/schema/fixture gates land. This v0.1 prose does not close that enforcement. |
+| Component projection output and renderer fallback | Projection/runtime/renderer gates | not validator-owned | The validator may check future Component graph identity, but it must not render Components or choose fallback behavior. |
+
+## 8. Unsupported Features and Authorization
+
+A processor MUST fail loud when a graph uses an artifact version, manifest
+version, sibling slot, or feature outside the supplied support profile. It MUST
+NOT silently ignore unknown non-extension graph features in order to produce a
+partial app.
+
+Fine-grained authorization remains held behind ADR 0152. Until that ADR supplies
+the contract, the validator MAY carry binary admission evidence supplied by the
+host or session boundary, but MUST reject fields that attempt to define
+per-actor, per-route, per-artifact, per-operation, per-widget-class, per-field,
+or per-source authorization semantics.
+
+## 9. Conformance
+
+This v0.1 draft closes only the ADR 0153 gate 3a prose contract. A conforming
+future implementation will need later gates to provide:
+
+1. a report JSON Schema,
+2. generated types,
+3. a shared package boundary,
+4. fixture-backed conformance cases,
+5. extraction from lint, studio-core, and spike-local lessons without fixture
+   assumptions, and
+6. production consumers wired to shared validator output.
+
+Until those gates land, tools MAY use this document to align interfaces and
+diagnostic vocabulary, but MUST NOT claim production `AppGraphValidator`
+conformance from this prose alone.
