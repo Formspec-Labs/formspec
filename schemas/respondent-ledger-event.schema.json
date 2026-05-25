@@ -463,17 +463,7 @@
           "description": "Logical Formspec response path identifying the changed node."
         },
         "valueClass": {
-          "oneOf": [
-            {
-              "type": "string",
-              "enum": ["user-input", "prepopulated", "calculated", "imported", "attachment", "system-derived", "migration-derived"]
-            },
-            {
-              "type": "string",
-              "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$",
-              "description": "Module-contributed valueClass per ADR 0150 §4.5/§4.9 (e.g. `x-ai-generated`). Lint E603 enforces module-declaration resolution."
-            }
-          ],
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/ValueClass",
           "description": "Origin class of the changed value: closed-core (user-input, prepopulated, calculated, imported, attachment, system-derived, migration-derived) OR an `x-` module-contributed extension (ADR 0150 §4.5)."
         },
         "itemKey": {

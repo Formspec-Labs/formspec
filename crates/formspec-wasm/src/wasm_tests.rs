@@ -2,9 +2,9 @@
 
 #[cfg(test)]
 mod tests {
-    use fel_core::{Value as FelVal, fel_to_json, json_to_fel};
+    use fel_core::{fel_to_json, json_to_fel, Value as FelVal};
     use rust_decimal::Decimal;
-    use serde_json::{Value, json};
+    use serde_json::{json, Value};
 
     #[cfg(feature = "changelog-api")]
     use crate::changelog::generate_changelog_inner;
@@ -12,7 +12,10 @@ mod tests {
         apply_migrations_to_response_data_wasm, resolve_option_sets_on_definition_wasm,
     };
     use crate::evaluate::evaluate_definition_inner;
-    use crate::fel::{eval_fel_inner, eval_fel_with_trace_inner, prepare_expression_inner};
+    use crate::fel::{
+        eval_fel_inner, eval_fel_with_context_trace_inner, eval_fel_with_trace_inner,
+        prepare_expression_inner,
+    };
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
     #[cfg(feature = "mapping-api")]
@@ -21,9 +24,9 @@ mod tests {
     use crate::registry::find_registry_entry_inner;
     use crate::value_coerce::coerce_field_value_inner;
     use formspec_core::{
-        DocumentType, detect_document_type, parse_coerce_type,
+        detect_document_type, parse_coerce_type,
         parse_mapping_document_from_value as parse_mapping_document_inner,
-        parse_mapping_rules_from_value as parse_mapping_rules_inner,
+        parse_mapping_rules_from_value as parse_mapping_rules_inner, DocumentType,
     };
 
     fn fel_eval_value(result_json: &str) -> Value {
@@ -159,6 +162,26 @@ mod tests {
             .iter()
             .any(|s| s["kind"] == "ShortCircuit" && s["op"] == "and");
         assert!(has_short, "expected ShortCircuit step: {:?}", trace);
+    }
+
+    /// Full-context tracing resolves variables like normal Formspec evaluation.
+    #[test]
+    fn eval_fel_with_context_trace_inner_variables() {
+        let context = json!({
+            "fields": { "income": 200 },
+            "variables": { "taxableIncome": 200 }
+        })
+        .to_string();
+        let result = eval_fel_with_context_trace_inner("@taxableIncome * 0.1", &context).unwrap();
+        let val: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(val["value"], json!(20));
+        let trace = val["trace"].as_array().unwrap();
+        let multiply = trace
+            .iter()
+            .find(|s| s["kind"] == "BinaryOp" && s["op"] == "*")
+            .expect("expected multiply trace");
+        assert_eq!(multiply["lhs"], json!(200));
+        assert_eq!(multiply["result"], json!(20));
     }
 
     // ── Finding 68: evaluate_definition_inner output shape ──────
@@ -769,11 +792,9 @@ mod tests {
         let rules = json!([{"transform": "teleport", "targetPath": "x"}]);
         let result = parse_mapping_rules_inner(&rules);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .contains("unknown transform type: teleport")
-        );
+        assert!(result
+            .unwrap_err()
+            .contains("unknown transform type: teleport"));
     }
 
     // ── Finding 74: fel_to_json Decimal::MAX ────────────────────

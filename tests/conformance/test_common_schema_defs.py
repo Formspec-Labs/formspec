@@ -30,8 +30,17 @@ def _validator_for(def_name: str) -> dict:
 
 def test_valueclass_closed_core_matches_respondent_ledger_changeset_entry():
     common_values = SCHEMA["$defs"]["ValueClass"]["oneOf"][0]["enum"]
-    ledger_values = LEDGER_SCHEMA["$defs"]["ChangeSetEntry"]["properties"]["valueClass"]["oneOf"][0]["enum"]
-    assert common_values == ledger_values
+    value_class_schema = LEDGER_SCHEMA["$defs"]["ChangeSetEntry"]["properties"]["valueClass"]
+    assert value_class_schema["$ref"] == "https://formspec.org/schemas/common/1.0#/$defs/ValueClass"
+    assert common_values == [
+        "user-input",
+        "prepopulated",
+        "calculated",
+        "imported",
+        "attachment",
+        "system-derived",
+        "migration-derived",
+    ]
 
 
 def test_valueclass_accepts_closed_core_and_x_extension():

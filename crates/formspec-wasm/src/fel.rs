@@ -7,23 +7,23 @@
 //! siblings, which native `cargo nextest` tests in [`crate::wasm_tests`] can drive without
 //! linking the `wasm-bindgen` runtime. The wrappers only wrap `String` → `JsError`.
 
-use fel_core::{
-    EvaluatorOptions, Trace, evaluate, evaluate_with, expr_is_interpolation_static_literal,
-    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
-    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
-    prepare, reject_undefined_functions,
-};
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
     builtin_function_catalog_json_value, dependencies_to_json_value, extract_dependencies,
     print_expr, tokenize_to_json_value,
 };
+use fel_core::{
+    evaluate, evaluate_with, expr_is_interpolation_static_literal, fel_diagnostics_to_json_value,
+    fel_to_ui_json, field_map_from_json_str, formspec_environment_from_json_map,
+    has_error_diagnostics, host_options_from_json, parse, prepare, reject_undefined_functions,
+    EvaluatorOptions, Trace,
+};
 #[cfg(feature = "fel-authoring")]
 use formspec_core::try_lift_condition_group;
 use formspec_core::{
-    JsonWireStyle, analyze_fel, analyze_fel_with_field_types,
-    definition_item_location_to_json_value, fel_analysis_to_json_value, get_fel_dependencies,
-    json_definition_item_at_path, normalize_indexed_path,
+    analyze_fel, analyze_fel_with_field_types, definition_item_location_to_json_value,
+    fel_analysis_to_json_value, get_fel_dependencies, json_definition_item_at_path,
+    normalize_indexed_path, JsonWireStyle,
 };
 #[cfg(feature = "fel-authoring")]
 use formspec_core::{
@@ -103,6 +103,42 @@ pub(crate) fn eval_fel_with_trace_inner(
             ..EvaluatorOptions::default()
         },
     );
+    let payload = serde_json::json!({
+        "value": fel_to_ui_json(&result.value),
+        "hasErrorDiagnostics": has_error_diagnostics(&result.diagnostics),
+        "diagnostics": fel_diagnostics_to_json_value(&result.diagnostics),
+        "trace": trace.steps,
+    });
+    to_json_string(&payload)
+}
+
+/// Evaluate a FEL expression with full context and trace each evaluation step.
+#[wasm_bindgen(js_name = "evalFELWithContextTrace")]
+pub fn eval_fel_with_context_trace(
+    expression: &str,
+    context_json: &str,
+) -> Result<String, JsError> {
+    eval_fel_with_context_trace_inner(expression, context_json).map_err(|e| JsError::new(&e))
+}
+
+pub(crate) fn eval_fel_with_context_trace_inner(
+    expression: &str,
+    context_json: &str,
+) -> Result<String, String> {
+    let expr = parse_fel_source(expression)?;
+    let ctx: Value = parse_value_str(context_json, "context JSON")?;
+    let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
+    let env = formspec_environment_from_json_map(ctx_obj);
+    let mut trace = Trace::new();
+    let result = evaluate_with(
+        &expr,
+        &env,
+        EvaluatorOptions {
+            trace: Some(&mut trace),
+            ..EvaluatorOptions::default()
+        },
+    );
+    reject_undefined_functions(&result.diagnostics)?;
     let payload = serde_json::json!({
         "value": fel_to_ui_json(&result.value),
         "hasErrorDiagnostics": has_error_diagnostics(&result.diagnostics),

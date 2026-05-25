@@ -174,6 +174,11 @@ class TestMetadataAndFees:
         with pytest.raises(ValidationError):
             _validate(doc, schema)
 
+    def test_metadata_rejects_extension_seam(self, schema):
+        doc = _base_doc(metadata={"extensions": {"x-vendor": True}})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
 
 # ===================================================================
 # TestItemDiscrimination

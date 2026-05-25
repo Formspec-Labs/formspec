@@ -400,7 +400,6 @@ export interface FormDefinition {
 export interface DefinitionMetadata {
   preparation?: PreparationMetadata;
   assurance?: AssuranceRequirement;
-  extensions?: Extensions;
 }
 /**
  * Respondent-facing preparation guidance for trailhead pages: documents to have ready and realistic acquisition windows for those documents.

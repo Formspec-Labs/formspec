@@ -13,8 +13,9 @@ from tests.unit.support.schema_fixtures import ROOT_DIR, build_schema_registry, 
 LEDGER_SCHEMA = load_schema("respondent-ledger.schema.json")
 EVENT_SCHEMA = load_schema("respondent-ledger-event.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
+COMMON_SCHEMA = load_schema("common.schema.json")
 
-_REGISTRY = build_schema_registry(LEDGER_SCHEMA, EVENT_SCHEMA, VALIDATION_RESULT_SCHEMA)
+_REGISTRY = build_schema_registry(LEDGER_SCHEMA, EVENT_SCHEMA, VALIDATION_RESULT_SCHEMA, COMMON_SCHEMA)
 
 
 def _validate_event(instance: dict) -> None:

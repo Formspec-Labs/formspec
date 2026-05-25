@@ -44,9 +44,10 @@ REGISTRY_SCHEMA = json.loads((SCHEMAS_DIR / "registry.schema.json").read_text())
 COMMON_SCHEMA = json.loads((SCHEMAS_DIR / "common.schema.json").read_text())
 
 # Live re-probe at module-load (plan Task 1.5 Step 1) — catches schema drift
-# between r1-write and execution.
+# between r1-write and execution. EventType remains ledger-event-owned;
+# valueClass now resolves through the shared common ValueClass definition.
 CLOSED_CORE_EVENT_TYPES = tuple(LEDGER_SCHEMA["$defs"]["EventType"]["oneOf"][0]["enum"])
-CLOSED_CORE_VALUE_CLASSES = tuple(LEDGER_SCHEMA["$defs"]["ChangeSetEntry"]["properties"]["valueClass"]["oneOf"][0]["enum"])
+CLOSED_CORE_VALUE_CLASSES = tuple(COMMON_SCHEMA["$defs"]["ValueClass"]["oneOf"][0]["enum"])
 
 MODULE_ID = "x-formspec-core-ledger"
 

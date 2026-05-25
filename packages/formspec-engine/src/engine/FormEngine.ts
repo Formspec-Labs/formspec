@@ -30,7 +30,12 @@ import type {
     RegistryEntry,
     RemoteOptionsState,
 } from '../interfaces.js';
-import { evalFELWithTrace, getFELDependencies, type FelTraceStep } from '../fel/fel-api-runtime.js';
+import {
+    analyzeFEL,
+    evalFELWithContextTrace,
+    getFELDependencies,
+    type FelTraceStep,
+} from '../fel/fel-api-runtime.js';
 import { preactReactiveRuntime } from '../reactivity/preact-runtime.js';
 import type { EngineReactiveRuntime, EngineSignal, ReadonlyEngineSignal } from '../reactivity/types.js';
 import { LocaleStore, type LocaleDocument } from '../locale.js';
@@ -556,7 +561,7 @@ export class FormEngine implements IFormEngine {
 
     public whyRelevant(path: string): RelevanceExplanation {
         const basePath = toBasePath(path);
-        const bindPath = this.findRelevanceBindPath(basePath);
+        const bindPath = this.findGoverningRelevanceBindPath(basePath);
         if (!bindPath) {
             return {
                 bindId: null,
@@ -589,10 +594,27 @@ export class FormEngine implements IFormEngine {
         }
 
         try {
-            const fields = this.traceFieldSnapshot();
-            const result = evalFELWithTrace(
+            const result = evalFELWithContextTrace(
                 this.normalizeExpressionForWasm(calculate, basePath),
-                fields,
+                buildWasmFelExpressionContext({
+                    currentItemPath: basePath,
+                    data: this._data,
+                    fullResult: this._fullResult,
+                    fieldSignals: this.signals,
+                    validationResults: this.validationResults,
+                    relevantSignals: this.relevantSignals,
+                    readonlySignals: this.readonlySignals,
+                    requiredSignals: this.requiredSignals,
+                    repeats: this.repeats,
+                    bindConfigs: this._bindConfigs,
+                    fieldDataTypes: this.fieldDataTypesSnapshot(),
+                    variableDefs: this._variableDefs,
+                    variableSignals: this.variableSignals,
+                    instanceData: this.instanceData,
+                    nowIso: this.nowISO(),
+                    locale: this._runtimeContext.locale,
+                    meta: this._runtimeContext.meta,
+                }),
             );
             const trace = Array.isArray(result.trace) ? result.trace : [];
             this._derivationTraceCache.set(basePath, {
@@ -1356,13 +1378,23 @@ export class FormEngine implements IFormEngine {
         );
     }
 
-    private findRelevanceBindPath(path: string): string | null {
+    private relevanceBindPathCandidates(path: string): string[] {
         const parts = splitIndexedPath(path);
         const candidates: string[] = [];
         let current = '';
         for (const part of parts) {
             current = current ? appendPath(current, part) : part;
             candidates.push(toBasePath(current));
+        }
+        return candidates;
+    }
+
+    private findGoverningRelevanceBindPath(path: string): string | null {
+        const candidates = this.relevanceBindPathCandidates(path);
+        for (const candidate of candidates) {
+            if (this._bindConfigs[candidate]?.relevant && this.relevantSignals[candidate]?.value === false) {
+                return candidate;
+            }
         }
         for (const candidate of candidates.reverse()) {
             if (this._bindConfigs[candidate]?.relevant) {
@@ -1373,15 +1405,70 @@ export class FormEngine implements IFormEngine {
     }
 
     private expressionDependencies(expression: string, currentPath = ''): string[] {
+        return [...this.collectExpressionDependencies(expression, currentPath, new Set())].sort();
+    }
+
+    private collectExpressionDependencies(
+        expression: string,
+        currentPath: string,
+        seenVariables: Set<string>,
+    ): Set<string> {
+        const dependencies = new Set<string>();
         try {
             const normalized = this.normalizeExpressionForWasm(expression, currentPath);
-            return getFELDependencies(normalized)
+            for (const dependency of getFELDependencies(normalized)
                 .map(FormEngine.normalizeDependencyPath)
-                .filter((dependency) => dependency.length > 0)
-                .sort();
+                .filter((dependency) => dependency.length > 0)) {
+                dependencies.add(dependency);
+            }
+        } catch {
+            // Static dependency extraction is best-effort; callers treat missing deps as no impact.
+        }
+
+        for (const variableDef of this.visibleVariableDefinitions(expression, currentPath)) {
+            const scope = variableDef.scope ?? '#';
+            const key = `${scope}:${variableDef.name}`;
+            if (seenVariables.has(key)) {
+                continue;
+            }
+            seenVariables.add(key);
+            const variablePath = scope === '#' ? '' : scope;
+            for (const dependency of this.collectExpressionDependencies(
+                variableDef.expression,
+                variablePath,
+                seenVariables,
+            )) {
+                dependencies.add(dependency);
+            }
+        }
+
+        return dependencies;
+    }
+
+    private visibleVariableDefinitions(expression: string, currentPath: string): FormVariable[] {
+        let names: string[];
+        try {
+            const analysis = analyzeFEL(expression);
+            names = Array.isArray(analysis.variables) ? analysis.variables : [];
         } catch {
             return [];
         }
+        const definitions: FormVariable[] = [];
+        const scopes = ['#', ...getScopeAncestors(currentPath)];
+        for (const name of names) {
+            let visible: FormVariable | undefined;
+            for (const scope of scopes) {
+                for (const variableDef of this._variableDefs) {
+                    if (variableDef.name === name && (variableDef.scope ?? '#') === scope) {
+                        visible = variableDef;
+                    }
+                }
+            }
+            if (visible) {
+                definitions.push(visible);
+            }
+        }
+        return definitions;
     }
 
     private downstreamDependencyEdges(): Map<string, Set<string>> {
@@ -1428,17 +1515,6 @@ export class FormEngine implements IFormEngine {
         }
 
         return edges;
-    }
-
-    private traceFieldSnapshot(): Record<string, unknown> {
-        const fields: Record<string, unknown> = {};
-        for (const [path, signalRef] of Object.entries(this.signals)) {
-            fields[path] = cloneValue(signalRef.value);
-        }
-        for (const [path, value] of Object.entries(this._data)) {
-            fields[path] = cloneValue(value);
-        }
-        return fields;
     }
 
     private static normalizeDependencyPath(path: string): string {

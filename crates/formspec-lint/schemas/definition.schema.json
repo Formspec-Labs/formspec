@@ -470,9 +470,6 @@
         },
         "assurance": {
           "$ref": "#/$defs/AssuranceRequirement"
-        },
-        "extensions": {
-          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
         }
       }
     },

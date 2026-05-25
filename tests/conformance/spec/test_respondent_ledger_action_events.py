@@ -12,7 +12,8 @@ from tests.unit.support.schema_fixtures import ROOT_DIR, build_schema_registry, 
 
 EVENT_SCHEMA = load_schema("respondent-ledger-event.schema.json")
 VALIDATION_RESULT_SCHEMA = load_schema("validation-result.schema.json")
-_REGISTRY = build_schema_registry(EVENT_SCHEMA, VALIDATION_RESULT_SCHEMA)
+COMMON_SCHEMA = load_schema("common.schema.json")
+_REGISTRY = build_schema_registry(EVENT_SCHEMA, VALIDATION_RESULT_SCHEMA, COMMON_SCHEMA)
 _VALIDATOR = Draft202012Validator(EVENT_SCHEMA, registry=_REGISTRY)
 _FIXTURE_DIR = ROOT_DIR / "tests/conformance/fixtures/respondent-ledger/action-events"
 

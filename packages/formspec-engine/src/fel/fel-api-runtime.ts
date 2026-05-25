@@ -8,6 +8,7 @@ import {
     wasmAnalyzeFELWithFieldTypes,
     wasmComputeDependencyGroups,
     wasmEvalFELWithTrace,
+    wasmEvalFELWithContextTrace,
     wasmEvaluateDefinition,
     wasmGetFELDependencies,
     wasmIsValidFelIdentifier,
@@ -97,6 +98,7 @@ export function getFELDependencies(expression: string): string[] {
  * See `FelTraceStep` for the step variants; wire format matches Rust `fel_core::TraceStep`.
  */
 export const evalFELWithTrace = wasmEvalFELWithTrace;
+export const evalFELWithContextTrace = wasmEvalFELWithContextTrace;
 
 export const evaluateDefinition = wasmEvaluateDefinition;
 
