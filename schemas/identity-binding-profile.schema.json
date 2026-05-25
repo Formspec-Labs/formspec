@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/identity-binding-profile/1.0",
+  "title": "Formspec Identity Binding Profile",
+  "description": "A sidecar profile declaring how a Formspec deployment binds signer, filer, or agent identity evidence into provider-neutral Formspec identity surfaces. The v1 profile includes a WebAuthn/FIDO2/passkey binding that references upstream WebAuthn assertion and verification artifacts without embedding raw authenticator bytes in the sidecar.",
+  "type": "object",
+  "required": [
+    "$formspecIdentityBindingProfile",
+    "version",
+    "profileId",
+    "targetDefinition",
+    "profiles"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$formspecIdentityBindingProfile": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Identity Binding Profile specification version. MUST be '1.0'.",
+      "examples": ["1.0"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Document marker for the Identity Binding Profile sidecar"
+      }
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of this Identity Binding Profile document. SemVer is RECOMMENDED.",
+      "examples": ["1.0.0"]
+    },
+    "profileId": {
+      "type": "string",
+      "format": "uri",
+      "description": "Stable URI identifying this profile document.",
+      "examples": ["urn:formspec:identity-binding-profile:springfield:benefits-renewal:1"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Portable profile-set identity"
+      }
+    },
+    "targetDefinition": {
+      "$ref": "#/$defs/TargetDefinition",
+      "description": "The Formspec Definition this identity-binding profile applies to."
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BindingProfile"
+      },
+      "minItems": 1,
+      "description": "One or more identity-binding profiles available for the target Definition.",
+      "examples": [
+        [
+          {
+            "id": "respondent-passkey-signature",
+            "purpose": "respondent-signature",
+            "subjectKind": "human",
+            "bindingMethod": "webauthn",
+            "assuranceFloor": "high",
+            "identityProviderRef": "https://springfield.gov/identity/passkeys",
+            "evidenceBindings": {
+              "identityClaimEvidenceRef": "IdentityClaim.evidenceRef",
+              "authoredSignatureIdentityBinding": "AuthoredSignature.identityBinding",
+              "externalAttestationRef": "AuthoredSignature.identityBinding.externalAttestationRef"
+            },
+            "webAuthn": {
+              "rpId": "springfield.gov",
+              "origins": ["https://springfield.gov"],
+              "userVerification": "required",
+              "credentialRegistryRef": "https://springfield.gov/identity/passkeys/credentials",
+              "challengeBinding": {
+                "domainSeparator": "formspec.webauthn.challenge.v1",
+                "challengeEncoding": "base64url(sha-256(jcs(canonicalChallengeStructure)))",
+                "signedPayloadDigestBinding": "AuthoredSignature.signedPayload.digest",
+                "includeOrigin": true,
+                "includeRpId": true,
+                "includeSignerId": true,
+                "includeSigningIntent": true,
+                "includeNonce": true,
+                "includePostureSnapshot": true,
+                "includeSignatureMethodRegistrySnapshot": true
+              },
+              "assertionBinding": {
+                "signatureMethod": "urn:formspec:sig-method:webauthn-fido2@1",
+                "signatureArtifactKind": "webauthn",
+                "validationArtifactKind": "webauthn-server-attestation",
+                "responseIdentityBindingMethod": "webauthn"
+              }
+            }
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Declares the available identity binding contracts for the Definition"
+      }
+    },
+    "extensions": {
+      "$ref": "#/$defs/Extensions"
+    }
+  },
+  "$defs": {
+    "Extensions": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
+    },
+    "TargetDefinition": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
+    },
+    "BindingProfile": {
+      "type": "object",
+      "required": [
+        "id",
+        "purpose",
+        "subjectKind",
+        "bindingMethod",
+        "assuranceFloor",
+        "evidenceBindings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$",
+          "description": "Stable local profile identifier unique within this document.",
+          "examples": ["respondent-passkey-signature"]
+        },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "respondent-signature",
+            "filer-authentication",
+            "reviewer-authentication",
+            "agent-filing",
+            "session-continuity"
+          ],
+          "description": "Identity-binding use case this profile supports.",
+          "examples": ["respondent-signature"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Separates signer, filer, reviewer, agent, and session identity concerns"
+          }
+        },
+        "subjectKind": {
+          "$ref": "#/$defs/SubjectKind",
+          "description": "Kind of subject the profile is allowed to authenticate."
+        },
+        "bindingMethod": {
+          "$ref": "#/$defs/BindingMethod",
+          "description": "Provider-neutral identity-binding method family."
+        },
+        "assuranceFloor": {
+          "$ref": "#/$defs/AssuranceLevel",
+          "description": "Minimum assurance level this profile is intended to satisfy."
+        },
+        "nistAssuranceFloor": {
+          "$ref": "#/$defs/NistAssurance",
+          "description": "Optional NIST SP 800-63 IAL/AAL/FAL floor mapped from the normalized identity-attestation shape."
+        },
+        "identityProviderRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI for the provider, relying party, issuer, or adapter family that supplies this profile.",
+          "examples": ["https://springfield.gov/identity/passkeys"]
+        },
+        "evidenceBindings": {
+          "$ref": "#/$defs/EvidenceBindings",
+          "description": "Provider-neutral Formspec fields where captured identity evidence is referenced."
+        },
+        "webAuthn": {
+          "$ref": "#/$defs/WebAuthnBinding",
+          "description": "Required when bindingMethod is webauthn."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "bindingMethod": {
+                "const": "webauthn"
+              }
+            },
+            "required": ["bindingMethod"]
+          },
+          "then": {
+            "required": ["webAuthn"]
+          }
+        },
+        {
+          "if": {
+            "required": ["webAuthn"]
+          },
+          "then": {
+            "properties": {
+              "bindingMethod": {
+                "const": "webauthn"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SubjectKind": {
+      "description": "Identity subject class. Deployment-specific classes MUST use x- prefix.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": ["human", "agent", "organization", "device", "service"]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[a-z0-9][a-z0-9-]*$"
+        }
+      ]
+    },
+    "BindingMethod": {
+      "description": "Identity-binding method family. Deployment-specific methods MUST use x- prefix.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "webauthn",
+            "oidc",
+            "credential",
+            "provider-assertion",
+            "in-person",
+            "notary"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-[a-z0-9][a-z0-9-]*$"
+        }
+      ]
+    },
+    "AssuranceLevel": {
+      "type": "string",
+      "enum": ["none", "low", "standard", "high", "very-high"],
+      "description": "Provider-neutral assurance level aligned with AuthoredSignature.identityBinding.assuranceLevel.",
+      "examples": ["high"]
+    },
+    "NistAssurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ial": {
+          "type": "string",
+          "enum": ["IAL1", "IAL2", "IAL3"],
+          "description": "NIST identity assurance level floor."
+        },
+        "aal": {
+          "type": "string",
+          "enum": ["AAL1", "AAL2", "AAL3"],
+          "description": "NIST authenticator assurance level floor."
+        },
+        "fal": {
+          "type": ["string", "null"],
+          "enum": ["FAL1", "FAL2", "FAL3", null],
+          "description": "NIST federation assurance level floor when federation applies."
+        }
+      }
+    },
+    "EvidenceBindings": {
+      "type": "object",
+      "required": [
+        "identityClaimEvidenceRef",
+        "authoredSignatureIdentityBinding",
+        "externalAttestationRef"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identityClaimEvidenceRef": {
+          "type": "string",
+          "const": "IdentityClaim.evidenceRef",
+          "description": "formspec-web IdentityProvider evidence pointer that captures provider evidence by reference.",
+          "examples": ["IdentityClaim.evidenceRef"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Binds adapter evidence into the normalized IdentityProvider claim instead of provider-native fields"
+          }
+        },
+        "authoredSignatureIdentityBinding": {
+          "type": "string",
+          "const": "AuthoredSignature.identityBinding",
+          "description": "Response authored-signature field that records the provider-neutral binding result.",
+          "examples": ["AuthoredSignature.identityBinding"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Binds profile output to the existing Response authored-signature identityBinding field"
+          }
+        },
+        "externalAttestationRef": {
+          "type": "string",
+          "const": "AuthoredSignature.identityBinding.externalAttestationRef",
+          "description": "Response authored-signature field that references external identity-attestation evidence.",
+          "examples": ["AuthoredSignature.identityBinding.externalAttestationRef"]
+        },
+        "ledgerAttestationEvidenceRef": {
+          "type": "string",
+          "const": "RespondentLedger.identityAttestation.evidenceRef",
+          "description": "Optional respondent-ledger evidence reference for deployments that emit identity-attestation ledger events.",
+          "examples": ["RespondentLedger.identityAttestation.evidenceRef"]
+        }
+      }
+    },
+    "WebAuthnBinding": {
+      "type": "object",
+      "required": [
+        "rpId",
+        "origins",
+        "userVerification",
+        "challengeBinding",
+        "assertionBinding"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "rpId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "WebAuthn relying-party identifier expected in authenticator data verification.",
+          "examples": ["springfield.gov"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Pins the WebAuthn relying-party boundary for verifier checks"
+          }
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Allowed HTTPS origins that may request this WebAuthn assertion.",
+          "examples": [["https://springfield.gov"]],
+          "x-lm": {
+            "critical": true,
+            "intent": "Pins the browser origin set for WebAuthn clientDataJSON verification"
+          }
+        },
+        "userVerification": {
+          "type": "string",
+          "const": "required",
+          "description": "SC-4 WebAuthn profiles require per-act user verification for signer identity binding.",
+          "examples": ["required"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Requires PIN, biometric, or equivalent authenticator-local verification"
+          }
+        },
+        "credentialRegistryRef": {
+          "type": "string",
+          "format": "uri",
+          "description": "Registry or provider endpoint that maps credential IDs to normalized subject identity and assurance metadata.",
+          "examples": ["https://springfield.gov/identity/passkeys/credentials"]
+        },
+        "authenticatorAttachment": {
+          "type": "string",
+          "enum": ["platform", "cross-platform", "either"],
+          "default": "either",
+          "description": "Authenticator attachment posture accepted by this profile."
+        },
+        "attestationConveyance": {
+          "type": "string",
+          "enum": ["none", "indirect", "direct", "enterprise"],
+          "default": "none",
+          "description": "WebAuthn attestation conveyance preference for enrollment."
+        },
+        "duressCredentialSupport": {
+          "type": "string",
+          "enum": ["unsupported", "dual-passkey-convention"],
+          "default": "unsupported",
+          "description": "Optional FW-0048 composition hint. dual-passkey-convention means the provider registry can distinguish normal and duress credentials after an otherwise standard WebAuthn ceremony."
+        },
+        "challengeBinding": {
+          "$ref": "#/$defs/WebAuthnChallengeBinding",
+          "description": "Canonical challenge preimage binding used for assertion verification."
+        },
+        "assertionBinding": {
+          "$ref": "#/$defs/WebAuthnAssertionBinding",
+          "description": "Artifact and Response-field bindings for verified WebAuthn assertions."
+        },
+        "extensions": {
+          "$ref": "#/$defs/Extensions"
+        }
+      }
+    },
+    "WebAuthnChallengeBinding": {
+      "type": "object",
+      "required": [
+        "domainSeparator",
+        "challengeEncoding",
+        "signedPayloadDigestBinding",
+        "includeOrigin",
+        "includeRpId",
+        "includeSignerId",
+        "includeSigningIntent",
+        "includeNonce",
+        "includePostureSnapshot",
+        "includeSignatureMethodRegistrySnapshot"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "domainSeparator": {
+          "type": "string",
+          "const": "formspec.webauthn.challenge.v1",
+          "description": "Domain separator for the WebAuthn challenge preimage.",
+          "examples": ["formspec.webauthn.challenge.v1"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Keeps WebAuthn challenge bytes disjoint from other Formspec signature preimages"
+          }
+        },
+        "challengeEncoding": {
+          "type": "string",
+          "const": "base64url(sha-256(jcs(canonicalChallengeStructure)))",
+          "description": "Encoding rule for clientDataJSON.challenge.",
+          "examples": ["base64url(sha-256(jcs(canonicalChallengeStructure)))"]
+        },
+        "signedPayloadDigestBinding": {
+          "type": "string",
+          "const": "AuthoredSignature.signedPayload.digest",
+          "description": "Existing signed-payload digest field committed by the WebAuthn challenge.",
+          "examples": ["AuthoredSignature.signedPayload.digest"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Binds the WebAuthn assertion to the existing Formspec signed-payload digest"
+          }
+        },
+        "includeOrigin": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include the expected origin.",
+          "examples": [true]
+        },
+        "includeRpId": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include the expected RP ID.",
+          "examples": [true]
+        },
+        "includeSignerId": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include the signer identifier.",
+          "examples": [true]
+        },
+        "includeSigningIntent": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include the signing intent URI.",
+          "examples": [true]
+        },
+        "includeNonce": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include a fresh single-use nonce.",
+          "examples": [true]
+        },
+        "includePostureSnapshot": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include a posture snapshot identifier when posture gates apply.",
+          "examples": [true]
+        },
+        "includeSignatureMethodRegistrySnapshot": {
+          "type": "boolean",
+          "const": true,
+          "description": "The canonical challenge structure MUST include the signature-method registry snapshot identifier.",
+          "examples": [true]
+        }
+      }
+    },
+    "WebAuthnAssertionBinding": {
+      "type": "object",
+      "required": [
+        "signatureMethod",
+        "signatureArtifactKind",
+        "validationArtifactKind",
+        "responseIdentityBindingMethod"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "signatureMethod": {
+          "type": "string",
+          "const": "urn:formspec:sig-method:webauthn-fido2@1",
+          "description": "Signature-method registry URI for the WebAuthn/FIDO2/passkey profile.",
+          "examples": ["urn:formspec:sig-method:webauthn-fido2@1"],
+          "x-lm": {
+            "critical": true,
+            "intent": "Pins the SC-4 WebAuthn method URI"
+          }
+        },
+        "signatureArtifactKind": {
+          "type": "string",
+          "const": "webauthn",
+          "description": "Existing polymorphic signature artifact kind that stores raw WebAuthn assertion bytes outside this sidecar.",
+          "examples": ["webauthn"]
+        },
+        "validationArtifactKind": {
+          "type": "string",
+          "const": "webauthn-server-attestation",
+          "description": "Verifier-attested validation artifact kind for COSE-only downstream consumers.",
+          "examples": ["webauthn-server-attestation"]
+        },
+        "responseIdentityBindingMethod": {
+          "type": "string",
+          "const": "webauthn",
+          "description": "AuthoredSignature.identityBinding.method value produced for this profile.",
+          "examples": ["webauthn"]
+        }
+      }
+    }
+  }
+}

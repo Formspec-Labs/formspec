@@ -1,0 +1,22 @@
+{
+  "$formspecIdentityBindingProfile": "1.0",
+  "version": "1.0.0",
+  "profileId": "urn:formspec:identity-binding-profile:springfield:missing-webauthn",
+  "targetDefinition": {
+    "url": "https://springfield.gov/forms/benefits-renewal"
+  },
+  "profiles": [
+    {
+      "id": "respondent-passkey-signature",
+      "purpose": "respondent-signature",
+      "subjectKind": "human",
+      "bindingMethod": "webauthn",
+      "assuranceFloor": "high",
+      "evidenceBindings": {
+        "identityClaimEvidenceRef": "IdentityClaim.evidenceRef",
+        "authoredSignatureIdentityBinding": "AuthoredSignature.identityBinding",
+        "externalAttestationRef": "AuthoredSignature.identityBinding.externalAttestationRef"
+      }
+    }
+  ]
+}

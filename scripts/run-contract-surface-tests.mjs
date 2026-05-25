@@ -42,6 +42,7 @@ runPython([
   'tests/conformance/schemas/test_deletion_receipt_schema.py',
   'tests/conformance/schemas/test_wysiwys_ceremony_schema.py',
   'tests/conformance/schemas/test_review_thread_schema.py',
+  'tests/conformance/schemas/test_identity_binding_profile_schema.py',
   'tests/conformance/schemas/test_validation_mapping_schema.py',
   'tests/conformance/spec/test_validation_mapping_table.py',
   'tests/conformance/spec/test_actionbutton_binding.py',

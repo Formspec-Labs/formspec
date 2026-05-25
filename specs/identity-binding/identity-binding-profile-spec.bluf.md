@@ -1,0 +1,4 @@
+- Identity Binding Profile is a sidecar that tells processors how to bind signer, filer, reviewer, or agent identity evidence into existing Formspec identity surfaces.
+- The sidecar is declarative profile metadata; it does not carry provider tokens, WebAuthn assertion bytes, credential private material, or a new Response wire shape.
+- The SC-4 WebAuthn binding requires per-act `userVerification: "required"` and binds `clientDataJSON.challenge` to `AuthoredSignature.signedPayload.digest` through `formspec.webauthn.challenge.v1`.
+- WebAuthn assertion bytes live in upstream `SignatureArtifact(kind="webauthn")` evidence, while server verdicts live in `ValidationArtifact(kind="webauthn-server-attestation")`; this sidecar references those contracts instead of forking them.

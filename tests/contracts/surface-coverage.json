@@ -551,6 +551,24 @@
         "comment-only policy rejects suggestion events and respondent-only decisions are respondent-authored"
       ]
     },
+    "identity-binding-profile": {
+      "status": "enforced",
+      "runtimeScope": "spec-conformance-only",
+      "runtimeRationale": "W1.6 SC-4 defines the Identity Binding Profile sidecar and its WebAuthn binding. This slice proves schema, fixtures, and generated spec artifacts; concrete IdentityProvider, passkey, verifier, and safety-routing adapters land in downstream FW rows.",
+      "spec": "specs/identity-binding/identity-binding-profile-spec.md",
+      "schema": "schemas/identity-binding-profile.schema.json",
+      "conformance": [
+        "tests/conformance/schemas/test_identity_binding_profile_schema.py"
+      ],
+      "crates": [],
+      "packages": {},
+      "checks": [
+        "identity binding profile schema and fixtures are exercised by conformance tests",
+        "WebAuthn profiles require userVerification=required and HTTPS origins",
+        "the schema references SignatureArtifact and ValidationArtifact contract identifiers rather than forking their shapes",
+        "raw WebAuthn assertion bytes embedded in the sidecar are rejected"
+      ]
+    },
     "experience": {
       "status": "enforced",
       "spec": "specs/experience/experience-spec.md",

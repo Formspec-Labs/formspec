@@ -375,6 +375,25 @@
       ]
     },
     {
+      "spec": "specs/identity-binding/identity-binding-profile-spec.md",
+      "schema": "schemas/identity-binding-profile.schema.json",
+      "bluf": "specs/identity-binding/identity-binding-profile-spec.bluf.md",
+      "llm": "specs/identity-binding/identity-binding-profile-spec.llm.md",
+      "behaviorEssentials": [
+        "Identity Binding Profile documents declare how identity evidence binds into existing Formspec identity surfaces without carrying provider-native tokens or cryptographic assertion bytes.",
+        "WebAuthn profiles require per-act userVerification=required and HTTPS origin pinning.",
+        "The WebAuthn challenge commits to AuthoredSignature.signedPayload.digest through the formspec.webauthn.challenge.v1 domain separator.",
+        "Native WebAuthn assertion bytes live in SignatureArtifact(kind=webauthn), and server verdicts live in ValidationArtifact(kind=webauthn-server-attestation); this sidecar only references those contracts.",
+        "duressCredentialSupport is only a FW-0048 discovery/composition hint and does not define routing, receipt, or safety-team policy."
+      ],
+      "conformanceEssentials": [
+        "A conforming Identity Binding Profile must include $formspecIdentityBindingProfile=1.0, version, profileId, targetDefinition, and at least one profile row.",
+        "Processors must reject webauthn profiles that omit webAuthn or set userVerification to any value other than required.",
+        "Processors must reject non-HTTPS origins and any sidecar attempt to embed raw WebAuthn assertion bytes.",
+        "Processors must bind WebAuthn profiles to urn:formspec:sig-method:webauthn-fido2@1, SignatureArtifact(kind=webauthn), ValidationArtifact(kind=webauthn-server-attestation), and AuthoredSignature.identityBinding.method=webauthn."
+      ]
+    },
+    {
       "spec": "specs/experience/experience-spec.md",
       "schema": "schemas/experience.schema.json",
       "bluf": "specs/experience/experience-spec.bluf.md",
