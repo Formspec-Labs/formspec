@@ -3,21 +3,22 @@
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ArtifactResolver
 **Status:** Partial; prose/interface boundary, output report schema/type
-contract, and shared resolver kernel defined; conformance and consumers remain
-open
+contract, shared resolver kernel, and source conformance fixtures defined;
+validator integration and consumers remain open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
 
-Advance ADR 0153 gate 12 without claiming extraction closure. This slice
-defines the `ArtifactResolver` request/response boundary, loader port,
-manifest slot coverage through App Manifest v2.2, handle metadata, identity
-rules, diagnostic vocabulary, and output report schema/type contract.
+Advance ADR 0153 gate 12 without claiming full closure. This plan tracks the
+`ArtifactResolver` request/response boundary, loader port, manifest slot
+coverage through App Manifest v2.2, handle metadata, identity rules, diagnostic
+vocabulary, output report schema/type contract, shared resolver kernel, and
+source conformance fixtures.
 
-Not in this slice: resolver request JSON Schema, fixture-backed source
-conformance corpus, production consumers, AppGraphValidator cross-artifact
-checks, ModuleResolver admission/contribution logic, runtime fetch/cache
-policy, Data Sources payload loading, or ADR 0152 fine-grained authorization.
+Not in the completed slices: resolver request JSON Schema, production
+consumers, AppGraphValidator request integration, ModuleResolver
+admission/contribution logic, runtime fetch/cache policy, Data Sources payload
+loading, or ADR 0152 fine-grained authorization.
 
 ## Review Checkpoints
 
@@ -69,11 +70,19 @@ policy, Data Sources payload loading, or ADR 0152 fine-grained authorization.
   `ARTIFACT-DISCRIMINATOR-MISMATCH`, aligned the spec request table with the
   exported API, removed stale future-only Component version-gate prose, and
   corrected plan deviations. Re-review APPROVE with no findings.
+- 2026-05-25 architecture checkpoint (Carson): APPROVE for the source
+  conformance fixture slice. Required constraints: keep fixture evidence under
+  `tests/conformance/fixtures/artifact-resolver/`, use the real TypeScript
+  `resolveArtifacts` kernel through a Vitest runner instead of duplicating
+  resolver semantics in Python, keep fixtures source-oriented and canonical-URL
+  based, avoid public schema for the harness format, assert diagnostics,
+  summary, loader call order, no `modules[]` / `sessions[]` loader calls,
+  `ComponentRef.handle` preservation, and no fixture/path-derived identity.
 
 ## Extraction Slice Plan
 
-The next Gate 12 slice extracts a shared pure TypeScript resolver kernel into
-`packages/formspec-app-graph` without closing the gate.
+The completed extraction slice added a shared pure TypeScript resolver kernel
+to `packages/formspec-app-graph` without closing the gate.
 
 Planned API:
 
@@ -115,6 +124,26 @@ Required tests before commit:
   preservation, and
 - `modules[]` / `sessions[]` are not loader inputs.
 
+## Source Conformance Slice Plan
+
+The source conformance slice adds audit-friendly JSON scenario files under
+`tests/conformance/fixtures/artifact-resolver/` and a package-local Vitest
+runner that executes those fixtures through the real shared
+`resolveArtifacts` kernel.
+
+Fixture boundaries:
+
+- Scenario files carry source App Manifest JSON, canonical URL-keyed loaded
+  documents, loader outcome controls, and expected report evidence.
+- The harness format is not a public interchange schema.
+- Fixture refs use `url`, optional `version`, `handle`, `locale`, and `x-*`
+  only. Local filenames, fixture names, URL suffix conventions, and directory
+  scans remain outside identity authority.
+- The runner asserts diagnostic code/severity, `origin: "artifact-resolver"`,
+  `phase: "artifact-resolution"`, `ok`, summary counts, loader call order,
+  handle statuses, ref evidence preservation, and no loader calls for
+  `modules[]` or `sessions[]`.
+
 ## Work Completed
 
 - [x] Add `specs/app-graph/artifact-resolver-spec.md` as the prose-only
@@ -150,15 +179,19 @@ Required tests before commit:
   mismatch, URL identity mismatch, `dataSources[]` / `components[]` version
   gates, support-profile failures, summary/`ok` derivation, ref evidence
   preservation, and no loader calls for `modules[]` / `sessions[]`.
+- [x] Add source conformance fixtures for happy-path loading, malformed refs,
+  missing artifacts, unsupported schemes, loader failures, discriminator
+  mismatch, exact version mismatch, URL identity mismatch, `dataSources[]`
+  v2.0 gating, `components[]` v2.0/v2.1 gating, `ComponentRef.handle`
+  preservation, and no `modules[]` / `sessions[]` loader inputs.
+- [x] Add
+  `packages/formspec-app-graph/tests/artifact-resolver-conformance.test.ts`
+  to execute the fixture corpus through the real shared resolver kernel.
 
 ## Still Open for Gate 12 Closure
 
 - [ ] Define a resolver request schema/generated type only if future
   implementation inputs need a stable interchange artifact.
-- [ ] Add fixture-backed source conformance for missing artifacts, unsupported schemes,
-  discriminator mismatch, ref/version mismatch, identity mismatch, App
-  Manifest v2.1 `dataSources[]` gating, App Manifest v2.2 `components[]`
-  gating, and `ComponentRef.handle` preservation.
 - [ ] Wire the resolver output into the shared `AppGraphValidator` request.
 - [ ] Wire production consumers only after shared resolver and validator
   contracts are stable.
@@ -167,8 +200,9 @@ Required tests before commit:
 
 - 2026-05-25: Gate 12 is marked Partial, not Closed. The initial
   prose/interface contract was the first ordered step; the later shared kernel
-  extracts manifest-ref loading and resolver diagnostic emission, but source
-  conformance, AppGraphValidator/ModuleResolver integration, and production
+  extracts manifest-ref loading and resolver diagnostic emission; source
+  conformance now covers the resolver load/failure/version-gate/ref-evidence
+  families, but AppGraphValidator/ModuleResolver integration and production
   consumers remain open.
 - 2026-05-25: `modules[]` and `sessions[]` remain manifest declarations rather
   than resolver-loaded artifact documents. The shared resolver kernel does not
@@ -176,18 +210,23 @@ Required tests before commit:
   their semantics.
 - 2026-05-25: App Manifest v2.2 `components[]` slot coverage started as a
   prose/status sync. The shared resolver kernel now emits
-  `ARTIFACT-COMPONENTS-VERSION-GATE`, but source conformance fixtures and
-  production consumer evidence for that failure family remain open.
+  `ARTIFACT-COMPONENTS-VERSION-GATE`; source conformance fixtures now cover the
+  v2.0/v2.1 failure family. Production consumer evidence remains open.
 - 2026-05-25: The output report schema and generated type are promoted before
   resolver extraction because they only pin the resolver output envelope. No
   request schema, source artifact validation, host I/O loader implementation,
   conformance fixture corpus, consumer wiring, runtime/projection behavior, or
   ADR 0152 authorization semantics are promoted.
-- 2026-05-25: The shared resolver kernel uses in-memory package tests for the
-  extraction slice. These tests prove API behavior but do not replace the
-  source conformance fixture families required for Gate 12 closure. No lint,
-  Studio, MCP, runtime, projection, AppGraphValidator request, or ModuleResolver
-  consumer is wired to the kernel in this slice.
+- 2026-05-25: The shared resolver kernel extraction slice used in-memory
+  package tests to prove API behavior before source conformance was added. No
+  lint, Studio, MCP, runtime, projection, AppGraphValidator request, or
+  ModuleResolver consumer is wired to the kernel in these slices.
+- 2026-05-25: Source conformance fixtures intentionally use a harness-local
+  JSON case shape executed by a TypeScript/Vitest runner. This avoids a second
+  resolver implementation in Python and does not promote the harness format as
+  a public schema. Gate 12 remains Partial because AppGraphValidator request
+  integration, ModuleResolver handoff, production consumers, and full
+  production wiring remain open.
 
 ## Partial Evidence
 
@@ -204,6 +243,10 @@ Required tests before commit:
   `packages/formspec-app-graph/src/artifact-resolver.ts`.
 - Shared resolver tests:
   `packages/formspec-app-graph/tests/artifact-resolver.test.ts`.
+- Source conformance fixtures:
+  `tests/conformance/fixtures/artifact-resolver/`.
+- Source conformance runner:
+  `packages/formspec-app-graph/tests/artifact-resolver-conformance.test.ts`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root

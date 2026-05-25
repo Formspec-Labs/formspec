@@ -1,0 +1,51 @@
+{
+  "id": "components-version-gate-2-0",
+  "description": "Rejects components[] on App Manifest v2.0 before invoking the loader.",
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "id": "https://example.gov/apps/components-too-early-v2-0",
+    "version": "1.0.0",
+    "definitions": [],
+    "components": [
+      {
+        "url": "https://example.gov/apps/components-too-early-v2-0/components/summary",
+        "version": "1.0.0",
+        "handle": "summary"
+      }
+    ]
+  },
+  "documents": {
+    "https://example.gov/apps/components-too-early-v2-0/components/summary": {
+      "$formspecComponent": "1.2",
+      "url": "https://example.gov/apps/components-too-early-v2-0/components/summary",
+      "version": "1.0.0",
+      "tree": {
+        "component": "Stack",
+        "children": []
+      }
+    }
+  },
+  "expected": {
+    "ok": false,
+    "summary": {
+      "declaredRefs": 1,
+      "loadedArtifacts": 0,
+      "unsupportedRefs": 1,
+      "errors": 1
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-COMPONENTS-VERSION-GATE",
+        "severity": "error"
+      }
+    ],
+    "loaderCalls": [],
+    "handles": [
+      {
+        "slot": "components[0]",
+        "artifactKind": "component",
+        "status": "unsupported"
+      }
+    ]
+  }
+}

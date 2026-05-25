@@ -26,10 +26,11 @@ The resolver output report is also pinned by
 `https://formspec.org/schemas/artifactResolutionReport/0.1` and generated
 `@formspec-org/types` types. A shared pure TypeScript resolver kernel now lives
 in `@formspec-org/app-graph` and uses a host-injected loader port. This
-document intentionally does not define a resolver request schema,
-fixture-backed source conformance corpus, production consumer wiring, or
-runtime fetch/cache policy. Those land in later implementation gates after
-responsibilities are stable.
+document intentionally does not define a resolver request schema, production
+consumer wiring, or runtime fetch/cache policy. A source conformance corpus now
+executes the shared kernel against scenario fixtures; request interchange and
+consumer wiring land in later implementation gates after responsibilities are
+stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -248,8 +249,9 @@ Diagnostics MAY include host-specific `details`, but details MUST NOT promote
 local path, fixture, cache, or fetch metadata to identity authority.
 
 The shared resolver kernel emits the Data Sources and Component version-gate
-diagnostics above. Gate 12 closure still requires fixture-backed source
-conformance for those failure families and production consumer integration.
+diagnostics above. Source conformance fixtures cover those failure families.
+Gate 12 closure still requires AppGraphValidator/ModuleResolver integration and
+production consumer integration.
 
 ## 9. Non-Goals and Handoff
 
@@ -266,15 +268,13 @@ Data Sources payloads at runtime.
 
 ## 10. Conformance
 
-This v0.1 draft defines the interface and output report contract only. A
-conforming future implementation still needs:
+This v0.1 draft defines the interface, output report contract, shared kernel,
+and source conformance fixture families. A conforming production implementation
+still needs:
 
-1. fixture-backed conformance for missing, unsupported, discriminator, version,
-   identity, v2.1 Data Sources gate failures, v2.2 Component version gate
-   failures, and `ComponentRef.handle` preservation,
-2. integration with `AppGraphValidator` and `ModuleResolver`,
-3. production consumer wiring, and
-4. a resolver request schema/generated type only if future implementation
+1. integration with `AppGraphValidator` and `ModuleResolver`,
+2. production consumer wiring, and
+3. a resolver request schema/generated type only if future implementation
    inputs need a stable interchange artifact.
 
 Until those gates land, tools MAY use this document to align resolver

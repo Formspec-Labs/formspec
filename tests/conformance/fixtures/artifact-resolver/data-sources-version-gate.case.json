@@ -1,0 +1,47 @@
+{
+  "id": "data-sources-version-gate",
+  "description": "Rejects dataSources[] on App Manifest v2.0 before invoking the loader.",
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "id": "https://example.gov/apps/data-sources-too-early",
+    "version": "1.0.0",
+    "definitions": [],
+    "dataSources": [
+      {
+        "url": "https://example.gov/apps/data-sources-too-early/data-sources",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "documents": {
+    "https://example.gov/apps/data-sources-too-early/data-sources": {
+      "$formspecDataSources": "1.0",
+      "url": "https://example.gov/apps/data-sources-too-early/data-sources",
+      "version": "1.0.0",
+      "sources": []
+    }
+  },
+  "expected": {
+    "ok": false,
+    "summary": {
+      "declaredRefs": 1,
+      "loadedArtifacts": 0,
+      "unsupportedRefs": 1,
+      "errors": 1
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-DATASOURCES-VERSION-GATE",
+        "severity": "error"
+      }
+    ],
+    "loaderCalls": [],
+    "handles": [
+      {
+        "slot": "dataSources[0]",
+        "artifactKind": "dataSources",
+        "status": "unsupported"
+      }
+    ]
+  }
+}

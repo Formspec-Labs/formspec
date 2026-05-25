@@ -1,0 +1,43 @@
+{
+  "id": "load-failure",
+  "description": "Normalizes thrown loader failures into x-load-failed handles.",
+  "manifest": {
+    "$formspecBundle": "2.2",
+    "id": "https://example.gov/apps/load-failure",
+    "version": "1.0.0",
+    "definitions": [
+      {
+        "url": "https://example.gov/apps/load-failure/definition",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "documents": {},
+  "loader": {
+    "throws": ["https://example.gov/apps/load-failure/definition"]
+  },
+  "expected": {
+    "ok": false,
+    "summary": {
+      "declaredRefs": 1,
+      "loadedArtifacts": 0,
+      "errors": 1
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-LOAD-FAILED",
+        "severity": "error"
+      }
+    ],
+    "loaderCalls": [
+      "definitions[0]:definition:https://example.gov/apps/load-failure/definition"
+    ],
+    "handles": [
+      {
+        "slot": "definitions[0]",
+        "artifactKind": "definition",
+        "status": "x-load-failed"
+      }
+    ]
+  }
+}
