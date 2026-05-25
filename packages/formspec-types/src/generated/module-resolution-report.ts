@@ -134,7 +134,7 @@ export interface ModuleResolutionRef {
  * via the `definition` "ModuleResolutionExtensions".
  */
 export interface ModuleResolutionExtensions {
-  [k: `x-${string}`]: unknown;
+  [k: string]: unknown;
 }
 /**
  * Diagnostic pointer to source evidence. The source string is for reporting only; local paths, filenames, fixture names, and URL suffixes are not production identity.

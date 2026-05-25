@@ -452,13 +452,6 @@ function postProcess(ts, moduleName) {
     );
   }
 
-  if (moduleName === 'module-resolution-report') {
-    result = result.replace(
-      /export interface ModuleResolutionExtensions \{\s*\[k: string\]: unknown;\s*\}/m,
-      'export interface ModuleResolutionExtensions {\n  [k: `x-${string}`]: unknown;\n}',
-    );
-  }
-
   return result;
 }
 
