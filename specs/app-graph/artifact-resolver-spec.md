@@ -1,30 +1,33 @@
 ---
 title: Formspec ArtifactResolver Interface Specification
-version: 0.1.0-draft.1
+version: 0.1.0-draft.2
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec ArtifactResolver Interface Specification v0.1
 
-**Version:** 0.1.0-draft.1
+**Version:** 0.1.0-draft.2
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
-**Companion to:** App Manifest, AppGraphValidator, Module Resolver, and ADR 0153
+**Companion to:** App Manifest, AppGraphValidator, and Module Resolver
 
 ---
 
 ## Status of This Document
 
-This document is the prose-only interface contract for the ADR 0153
+This document is the prose-only interface contract for the app-graph
 `ArtifactResolver` primitive. It defines the resolver request/response shape,
 loader boundary, manifest slot coverage, diagnostic vocabulary, and the handle
 metadata consumed by `AppGraphValidator`.
 
 This document intentionally does not define a JSON Schema, generated types,
 fixture-backed conformance, a shared package implementation, production
-consumer wiring, or runtime fetch/cache policy. Those land in later ADR 0153
-steps after responsibilities are stable.
+consumer wiring, or runtime fetch/cache policy. Those land in later
+implementation gates after responsibilities are stable.
+
+Architecture Decision Records may record provenance for this boundary, but
+this specification states the resolver contract directly.
 
 ## Bottom Line Up Front
 
@@ -51,7 +54,7 @@ In scope:
 
 - resolver request and response concepts,
 - host-supplied loader port boundary,
-- App Manifest v2.0/v2.1 sibling slot coverage,
+- App Manifest v2.0/v2.1/v2.2 sibling slot coverage,
 - artifact handle identity and status metadata,
 - discriminator, ref, version, and identity mismatch diagnostics, and
 - imported diagnostic origin rules for `AppGraphValidator`.
@@ -64,7 +67,7 @@ Out of scope:
 - Response Actions invocation or durable effect execution,
 - Data Sources payload fetching, caching, subscriptions, or staleness policy,
 - runtime session ownership,
-- fine-grained authorization semantics held behind ADR 0152,
+- fine-grained authorization semantics,
 - local fixture-path identity or directory scanning, and
 - production consumer wiring.
 
@@ -97,7 +100,7 @@ Conceptual loader input:
 | Field | Description |
 |---|---|
 | `slot` | Manifest slot and ordinal, such as `definitions[0]` or `surfaces[1]`. |
-| `ref` | The manifest `SiblingRef`, `LocaleRef`, or `MappingRef` entry. |
+| `ref` | The manifest `SiblingRef`, `LocaleRef`, `MappingRef`, or `ComponentRef` entry. |
 | `artifactKind` | Expected artifact family for discriminator and identity checks. |
 | `support` | Supported schemes and version policy supplied by the request. |
 
@@ -117,8 +120,8 @@ when other declared siblings can still be represented as handles.
 
 ## 4. Manifest Slot Coverage
 
-The resolver covers App Manifest v2.0 and v2.1 sibling references that identify
-loadable source artifacts.
+The resolver covers App Manifest v2.0, v2.1, and v2.2 sibling references that
+identify loadable source artifacts.
 
 | Manifest member | Cardinality | Artifact kind | Expected discriminator |
 |---|---|---|---|
@@ -126,12 +129,13 @@ loadable source artifacts.
 | `experience` | optional single | `experience` | `$formspecExperience` |
 | `responseActions` | optional single | `responseActions` | `$formspecResponseActions` |
 | `component` | optional single | `component` | `$formspecComponent` |
+| `components[]` | optional array, App Manifest v2.2 only | `component` | `$formspecComponent` |
 | `theme` | optional single | `theme` | `$formspecTheme` |
 | `references` | optional single | `references` | `$formspecReferences` |
 | `ontology` | optional single | `ontology` | `$formspecOntology` |
 | `registries[]` | optional array | `registry` | `$formspecRegistry` |
 | `surfaces[]` | optional array | `surface` | `$formspecSurface` |
-| `dataSources[]` | optional array, App Manifest v2.1 only | `dataSources` | `$formspecDataSources` |
+| `dataSources[]` | optional array, App Manifest v2.1+ | `dataSources` | `$formspecDataSources` |
 | `locales[]` | optional array | `locale` | `$formspecLocale` |
 | `mappings[]` | optional array | `mapping` | `$formspecMapping` |
 
@@ -141,9 +145,19 @@ manifest evidence to later phases, but `ModuleResolver` owns module admission,
 dependencies, contribution ownership, and widget payload authority. Runtime
 session state remains outside artifact resolution.
 
-The resolver MUST reject or diagnose `dataSources[]` on App Manifest v2.0. It
-MUST fail loud on manifest slots outside the supplied support profile unless
-the member is an allowed `x-*` extension ignored by App Manifest rules.
+The resolver MUST reject or diagnose `dataSources[]` on App Manifest v2.0 and
+`components[]` on App Manifest v2.0/v2.1. It MUST fail loud on manifest slots
+outside the supplied support profile unless the member is an allowed `x-*`
+extension ignored by App Manifest rules.
+
+For `components[]`, `ComponentRef.handle` is App Manifest membership evidence
+carried on the manifest ref. The resolver preserves that ref evidence for
+downstream identity and route checks. It MUST NOT derive a Component handle
+from local source labels, filenames, URL suffixes, Surface ids, route names, or
+loaded Component document structure. The singular `component` member remains a
+legacy compatibility loadable slot; revised import paths may normalize it
+downstream as membership handle `default`, but the resolver keeps the declared
+slot and ref evidence explicit.
 
 ## 5. Artifact Handles
 
@@ -169,6 +183,11 @@ or URL suffix conventions. For Surface artifacts, the App Manifest
 `surfaces[]` ref is canonical sibling identity; the Surface document's local
 `id` is route-namespace evidence only.
 
+For Component artifacts loaded through `components[]`, `ref.handle` is
+membership evidence. The loaded Component document's own fields may contribute
+document evidence for later phases, but they do not replace the App Manifest
+membership handle.
+
 ## 6. Resolution Order
 
 The resolver runs deterministically:
@@ -183,8 +202,8 @@ The resolver runs deterministically:
 7. Emit one deterministic response with handles, diagnostics, and phase status.
 
 The resolver does not synthesize absent siblings. A manifest without
-`dataSources[]`, for example, produces no Data Sources handle and no fabricated
-catalog.
+`dataSources[]` or `components[]`, for example, produces no Data Sources or
+Component-list handles and no fabricated catalog or Component membership list.
 
 ## 7. Resolver Response
 
@@ -216,9 +235,14 @@ the shared app-graph diagnostic envelope.
 | `ARTIFACT-VERSION-MISMATCH` | error | The manifest ref version is incompatible with loaded artifact version evidence. |
 | `ARTIFACT-IDENTITY-MISMATCH` | error | Loaded artifact identity contradicts the manifest ref URL. |
 | `ARTIFACT-DATASOURCES-VERSION-GATE` | error | `dataSources[]` appears on an App Manifest version below v2.1. |
+| `ARTIFACT-COMPONENTS-VERSION-GATE` | error | `components[]` appears on an App Manifest version below v2.2. |
 
 Diagnostics MAY include host-specific `details`, but details MUST NOT promote
 local path, fixture, cache, or fetch metadata to identity authority.
+
+`ARTIFACT-COMPONENTS-VERSION-GATE` is reserved by this prose contract for the
+future shared resolver extraction and conformance slice; this draft does not
+claim production emission of that diagnostic.
 
 ## 9. Non-Goals and Handoff
 
@@ -241,7 +265,8 @@ future implementation still needs:
 1. schema or generated type promotion if the report/handle surface is frozen,
 2. shared package extraction,
 3. fixture-backed conformance for missing, unsupported, discriminator, version,
-   identity, and v2.1 Data Sources gate failures,
+   identity, v2.1 Data Sources gate failures, v2.2 Component version gate
+   failures, and `ComponentRef.handle` preservation,
 4. integration with `AppGraphValidator` and `ModuleResolver`, and
 5. production consumer wiring.
 
