@@ -1,14 +1,14 @@
 ---
 title: Formspec AppGraphValidator Interface Specification
-version: 0.1.0-draft.1
-date: 2026-05-24
+version: 0.1.0-draft.2
+date: 2026-05-25
 status: draft
 ---
 
 # Formspec AppGraphValidator Interface Specification v0.1
 
-**Version:** 0.1.0-draft.1
-**Date:** 2026-05-24
+**Version:** 0.1.0-draft.2
+**Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, Surface, Data Sources, Response Actions, Module Resolver, Artifact Resolver, and ADR 0153
 
@@ -16,14 +16,19 @@ status: draft
 
 ## Status of This Document
 
-This document is the prose-only interface contract for ADR 0153 gate 3a. It
-defines the inputs, outputs, diagnostic shape, schema-validation boundary, and
-cross-artifact ownership model for a production `AppGraphValidator`.
+This document is the interface contract for ADR 0153 gate 3a and report-schema
+evidence for gate 3b. It defines the inputs, outputs, diagnostic shape,
+schema-validation boundary, and cross-artifact ownership model for a production
+`AppGraphValidator`.
 
-This document intentionally does not define a JSON Schema for validation
-reports, generated TypeScript types, a shared package, conformance fixtures,
-runtime invocation behavior, projection behavior, or production consumer wiring.
-Those land in later ADR 0153 gates after the prose boundary is stable.
+The report output shape is structurally governed by
+`schemas/app-graph-validation-report.schema.json`
+(`https://formspec.org/schemas/appGraphValidationReport/0.1`) with generated
+TypeScript exported by `@formspec-org/types`. This document intentionally does
+not define a JSON Schema for validator requests, resolver implementations,
+conformance fixtures, runtime invocation behavior, projection behavior, or
+production consumer wiring. Those land in later ADR 0153 gates after the report
+boundary is stable.
 
 ## Bottom Line Up Front
 
@@ -67,8 +72,8 @@ Out of scope:
   identity,
 - module admission/contribution resolution internals,
 - Surface draft authoring and export-local lint rules,
-- schema definitions for the report payload,
-- package extraction and generated types,
+- schema definitions for validator request payloads,
+- validator request generated types and production consumer wiring,
 - Studio, MCP, runtime, projection, or renderer wiring,
 - source payload fetching/caching/subscription behavior, and
 - Response Actions invocation or durable effect execution.
@@ -231,17 +236,15 @@ or per-source authorization semantics.
 
 ## 9. Conformance
 
-This v0.1 draft closes only the ADR 0153 gate 3a prose contract. A conforming
-future implementation will need later gates to provide:
+This v0.1 draft closes the ADR 0153 gate 3a prose contract and provides the
+gate 3b report-schema/generation evidence. A conforming future implementation
+will need later gates to provide:
 
-1. a report JSON Schema,
-2. generated types,
-3. a shared package boundary,
-4. fixture-backed conformance cases,
-5. extraction from lint, studio-core, and spike-local lessons without fixture
+1. fixture-backed conformance cases,
+2. broader extraction from lint, studio-core, and spike-local lessons without fixture
    assumptions, and
-6. production consumers wired to shared validator output.
+3. production consumers wired to shared validator output.
 
 Until those gates land, tools MAY use this document to align interfaces and
 diagnostic vocabulary, but MUST NOT claim production `AppGraphValidator`
-conformance from this prose alone.
+conformance from this prose and report schema alone.

@@ -20,6 +20,7 @@ import type {
   MappingDocument,
   ResponseActionsDocument,
   DataSourcesDocument,
+  AppGraphValidationReport,
   ValidationMappingDocument,
   ValidationReport,
 } from '../src/index.js';
@@ -60,6 +61,9 @@ describe('generated types smoke test', () => {
 
     const dataSources = {} as DataSourcesDocument;
     expect(dataSources).toBeDefined();
+
+    const appGraphValidationReport = {} as AppGraphValidationReport;
+    expect(appGraphValidationReport).toBeDefined();
 
     const experience = {} as ExperienceDocument;
     expect(experience).toBeDefined();
@@ -156,5 +160,14 @@ describe('generated types — tightness against permissive intersections', () =>
       );
     }
     expect(src).toContain('[k: `x-${string}`]: unknown;');
+  });
+
+  it('AppGraphValidationReport Origin preserves known origins plus x-* extensions', () => {
+    const src = readFileSync(
+      resolve(__dirname, '../src/generated/app-graph-validation-report.ts'),
+      'utf-8',
+    );
+    expect(src).toContain('| `x-${string}`;');
+    expect(src).not.toMatch(/export type Origin =[\s\S]*\| string;/);
   });
 });

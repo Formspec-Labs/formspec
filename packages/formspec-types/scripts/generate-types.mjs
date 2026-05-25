@@ -34,7 +34,8 @@ const URI_TO_LOCAL = {};
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
   'ontology', 'references', 'validation-mapping', 'experience', 'changelog',
   'response-actions', 'response', 'intake-handoff', 'validation-report', 'validation-result',
-  'fel-functions', 'screener', 'determination', 'surface', 'data-sources', 'verification-receipt']) {
+  'fel-functions', 'screener', 'determination', 'surface', 'data-sources',
+  'app-graph-validation-report', 'verification-receipt']) {
   const filePath = resolve(SCHEMAS_DIR, `${f}.schema.json`);
   if (existsSync(filePath)) {
     const s = JSON.parse(readFileSync(filePath, 'utf-8'));
@@ -146,6 +147,7 @@ const SCHEMA_SOURCES = [
   { file: 'determination.schema.json', title: 'DeterminationRecord' },
   { file: 'surface.schema.json', title: 'SurfaceDocument' },
   { file: 'data-sources.schema.json', title: 'DataSourcesDocument' },
+  { file: 'app-graph-validation-report.schema.json', title: 'AppGraphValidationReport' },
 ];
 
 const FILE_BANNER = `/**
@@ -490,6 +492,13 @@ function postProcess(ts, moduleName) {
         `export type ${name} = $1;`
       );
     }
+  }
+
+  if (moduleName === 'app-graph-validation-report') {
+    result = result.replace(
+      /export type Origin =\s*\|\s*\('app-graph-validator' \| 'artifact-resolver' \| 'module-resolver' \| 'surface-local-lint' \| 'schema-validator'\)\s*\|\s*string;/m,
+      "export type Origin =\n  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator')\n  | `x-${string}`;",
+    );
   }
 
   return result;

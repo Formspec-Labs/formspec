@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/appGraphValidationReport/0.1",
+  "title": "Formspec App Graph Validation Report",
+  "description": "Deterministic AppGraphValidator output report. This schema covers the report envelope emitted by @formspec-org/app-graph after artifact-resolution, schema, module-resolution, surface-local, cross-artifact, authorization-boundary, and unsupported-feature phases. It is a data contract only: it does not schema validator requests, resolver implementations, runtime execution, rendered output, credentials, fetched payloads, or host cache contents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "summary", "schemaResults", "diagnostics", "phases"],
+  "properties": {
+    "ok": {
+      "type": "boolean",
+      "description": "true only when the report contains no error-severity diagnostics. JSON Schema cannot derive this from diagnostics; report producers enforce the invariant."
+    },
+    "summary": {
+      "$ref": "#/$defs/Summary"
+    },
+    "schemaResults": {
+      "type": "array",
+      "description": "Per-loaded-artifact source schema validation results.",
+      "items": { "$ref": "#/$defs/SchemaResult" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "description": "Unified native and imported diagnostics sorted deterministically by the report producer.",
+      "items": { "$ref": "#/$defs/Diagnostic" }
+    },
+    "phases": {
+      "type": "array",
+      "description": "Ordered phase statuses for the validation run.",
+      "items": { "$ref": "#/$defs/PhaseStatus" }
+    },
+    "support": {
+      "$ref": "#/$defs/SupportProfile"
+    }
+  },
+  "$defs": {
+    "Severity": {
+      "type": "string",
+      "enum": ["error", "warning", "info"]
+    },
+    "Phase": {
+      "type": "string",
+      "enum": [
+        "artifact-resolution",
+        "schema",
+        "module-resolution",
+        "surface-local",
+        "cross-artifact",
+        "authorization-boundary",
+        "unsupported"
+      ]
+    },
+    "Origin": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "app-graph-validator",
+            "artifact-resolver",
+            "module-resolver",
+            "surface-local-lint",
+            "schema-validator"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^x-"
+        }
+      ]
+    },
+    "PhaseStatusValue": {
+      "type": "string",
+      "enum": ["completed", "skipped", "not-run"]
+    },
+    "SchemaResultStatus": {
+      "type": "string",
+      "enum": ["completed", "not-run"]
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "description": "App Manifest sibling reference evidence. Extra keys are preserved as diagnostic evidence only and MUST NOT become identity authority.",
+      "additionalProperties": true,
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SourcePointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Diagnostic pointer to source evidence. The source string is for reporting only; local paths, filenames, fixture names, and URL suffixes are not production identity.",
+      "properties": {
+        "artifactSlot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "jsonPointer": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      }
+    },
+    "Diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "phase", "origin", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable machine-readable diagnostic code. Native AppGraphValidator codes SHOULD use APP-GRAPH-* unless a sibling spec owns the code."
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primarySource": {
+          "$ref": "#/$defs/SourcePointer"
+        },
+        "relatedSources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SourcePointer" }
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity."
+        }
+      }
+    },
+    "SchemaResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot", "artifactKind", "status", "ok", "diagnostics"],
+      "properties": {
+        "slot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schemaId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/SchemaResultStatus"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Diagnostic" }
+        }
+      }
+    },
+    "PhaseStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "status"],
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "status": {
+          "$ref": "#/$defs/PhaseStatusValue"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifacts",
+        "loadedArtifacts",
+        "schemaFailures",
+        "unvalidatedArtifacts",
+        "graphErrors",
+        "errors",
+        "warnings",
+        "infos",
+        "importedDiagnostics",
+        "unsupportedFeatures",
+        "skippedPhases"
+      ],
+      "properties": {
+        "artifacts": { "type": "integer", "minimum": 0 },
+        "loadedArtifacts": { "type": "integer", "minimum": 0 },
+        "schemaFailures": { "type": "integer", "minimum": 0 },
+        "unvalidatedArtifacts": { "type": "integer", "minimum": 0 },
+        "graphErrors": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "infos": { "type": "integer", "minimum": 0 },
+        "importedDiagnostics": { "type": "integer", "minimum": 0 },
+        "unsupportedFeatures": { "type": "integer", "minimum": 0 },
+        "skippedPhases": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "SupportProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bundleVersions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "artifactKinds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "schemaIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "featureFlags": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

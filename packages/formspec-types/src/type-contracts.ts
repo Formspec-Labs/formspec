@@ -1,5 +1,6 @@
 /** @filedesc Compile-time checks for generated schema type contracts. */
 import type {
+  AppGraphValidationReport,
   CustomComponentRef,
   CustomWidgetName,
   ComponentDocument,
@@ -85,6 +86,25 @@ const generatedThemeExtensions: ThemeDocument = {
   extensions: { 'x-acme': true },
 };
 const extensions: Extensions = { 'x-acme': true };
+const generatedAppGraphReport: AppGraphValidationReport = {
+  ok: true,
+  summary: {
+    artifacts: 1,
+    loadedArtifacts: 1,
+    schemaFailures: 0,
+    unvalidatedArtifacts: 0,
+    graphErrors: 0,
+    errors: 0,
+    warnings: 0,
+    infos: 0,
+    importedDiagnostics: 0,
+    unsupportedFeatures: 0,
+    skippedPhases: 0,
+  },
+  schemaResults: [],
+  diagnostics: [],
+  phases: [{ phase: 'schema', status: 'completed' }],
+};
 
 // @ts-expect-error Custom widgets must use the x-* extension prefix.
 const badCustomWidget: CustomWidgetName = 'camera';
@@ -151,6 +171,7 @@ void generatedThemeWithWidget;
 void generatedDefinitionExtensions;
 void generatedThemeExtensions;
 void extensions;
+void generatedAppGraphReport;
 void badCustomWidget;
 void badDefinitionWidget;
 void badCustomComponent;

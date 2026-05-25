@@ -2,7 +2,7 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** AppGraphValidator extraction
-**Status:** Partial; shared report kernel and first Component route-target checks extracted, broader validator-owned cross-artifact checks remain
+**Status:** Partial; shared report kernel, report schema, generated report type, and first Component route-target checks extracted; broader validator-owned cross-artifact checks remain
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -13,10 +13,10 @@ creates a shared `@formspec-org/app-graph` package for the
 status derivation, imported diagnostic preservation, schema hook execution, and
 cross-artifact hook gating.
 
-Not in this slice: report JSON Schema, generated types, concrete production
-cross-artifact invariant implementations, ArtifactResolver extraction,
-ModuleResolver extraction, lint/Studio/MCP/runtime/projection consumers, or
-fine-grained authorization.
+Original kernel slice exclusions: report JSON Schema, generated types, concrete
+production cross-artifact invariant implementations, ArtifactResolver
+extraction, ModuleResolver extraction, lint/Studio/MCP/runtime/projection
+consumers, or fine-grained authorization.
 
 ## Review Checkpoints
 
@@ -32,6 +32,13 @@ fine-grained authorization.
   from source paths, filenames, URL suffixes, Surface ids, or route names; do not
   wire lint, Studio, MCP, runtime, projection, ArtifactResolver, or
   ModuleResolver consumers.
+- 2026-05-25 architecture scout: APPROVE report schema as a narrow schema-step
+  slice. Required cautions: schema only the `AppGraphValidationReport` output
+  and nested report shapes; add no report timestamp/run id/discriminator,
+  payload snapshots, rendered output, credentials, or cache contents; preserve
+  imported diagnostic origins; keep `source` diagnostic-only; leave request,
+  resolver, UI graph policy, runtime/projection, production consumers, and ADR
+  0152 authorization out of scope; keep gate 3b Partial.
 
 ## Work Completed
 
@@ -77,11 +84,18 @@ fine-grained authorization.
   Component handles, limited fake `targetDefinition`, mixed route/form
   acceptance, exact-only version mismatch, range deferral, and node identity key
   scope.
+- [x] Add `schemas/app-graph-validation-report.schema.json` for the existing
+  `AppGraphValidationReport` output contract only.
+- [x] Generate `@formspec-org/types` TypeScript for
+  `AppGraphValidationReport`.
+- [x] Add schema conformance tests for required report fields, diagnostic
+  origins including imported and `x-*`, phase/status enums, and closed
+  diagnostic source-pointer shape.
+- [x] Update `specs/app-graph/app-graph-validator-spec.md` so it no longer says
+  the report schema/generated type are absent.
 
 ## Still Open for Gate 3b Closure
 
-- [ ] Promote the report JSON Schema or explicitly ratify a no-schema report
-  contract in the ordered ADR 0153 schema step.
 - [ ] Broaden validator-owned cross-artifact checks beyond the initial
   Component route-target family, including Surface slots to loaded Definitions,
   Experience units, Response Actions, Data Sources, and UI graph policy.
@@ -97,14 +111,18 @@ fine-grained authorization.
   extraction, but it is still a report kernel and hook boundary; it does not yet
   consolidate concrete cross-artifact invariant implementations from lint,
   studio-core, and v4.
-- 2026-05-24: No report schema or generated types were added. That keeps this
-  slice aligned with ADR 0153 ordering and the gate 3a prose contract.
+- 2026-05-24: The initial report-kernel slice added no report schema or
+  generated types. That kept the first extraction slice aligned with ADR 0153
+  ordering and the gate 3a prose contract.
 - 2026-05-25: ADR 0154 gate 5 remains Partial, not Closed. The shared validator
   now owns route-target checks, but full graph-wide node identity
   disambiguation, Studio/kernel identity, provenance, and source conformance
   fixtures remain outside this slice.
 - 2026-05-25: Surface version compatibility is exact-only in this package until
   a shared SemVer/range policy lands. Range expressions are not false-rejected.
+- 2026-05-25: The report schema slice does not add `$formspec...` marker,
+  timestamp, run id, request shape, or consumer wiring. It schemas the current
+  output contract only and keeps `source` as diagnostic evidence, not identity.
 
 ## Partial Evidence
 
@@ -114,6 +132,11 @@ fine-grained authorization.
 - Validator kernel: `packages/formspec-app-graph/src/validator.ts`.
 - Component route validator: `packages/formspec-app-graph/src/component-routes.ts`.
 - Component node identity helper: `packages/formspec-app-graph/src/component-identity.ts`.
+- Report schema: `schemas/app-graph-validation-report.schema.json`.
+- Generated report type:
+  `packages/formspec-types/src/generated/app-graph-validation-report.ts`.
+- Report schema tests:
+  `tests/conformance/schemas/test_app_graph_validation_report_schema.py`.
 - Tests: `packages/formspec-app-graph/tests/app-graph-validator.test.ts`.
 - Component route tests:
   `packages/formspec-app-graph/tests/component-route-validator.test.ts`.
