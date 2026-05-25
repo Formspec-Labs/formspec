@@ -286,6 +286,12 @@
         "targetSurface": {
           "url": "https://example.gov/apps/intake/surfaces/admin"
         },
+        "localeKeyOwners": [
+          {
+            "keyPrefix": "$module.x-reviewer.",
+            "moduleId": "x-helper"
+          }
+        ],
         "routePolicies": [
           {
             "routeId": "review"
@@ -518,8 +524,8 @@
       }
     },
     {
-      "id": "module-segment-mismatch-deferred",
-      "description": "A policy owner whose keyPrefix module segment differs from moduleId is not diagnosed until a dedicated code is named.",
+      "id": "module-segment-mismatch",
+      "description": "A policy owner whose keyPrefix module segment differs from moduleId emits a dedicated mismatch diagnostic.",
       "request": {
         "manifest": "manifest",
         "artifacts": {
@@ -531,21 +537,42 @@
         }
       },
       "expected": {
-        "ok": true,
+        "ok": false,
         "summary": {
           "artifacts": 3,
           "loadedArtifacts": 3,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
-          "graphErrors": 0,
-          "errors": 0,
+          "graphErrors": 1,
+          "errors": 1,
           "warnings": 0,
           "infos": 0,
           "importedDiagnostics": 0,
           "unsupportedFeatures": 0,
           "skippedPhases": 0
         },
-        "diagnostics": []
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/module-segment-mismatch",
+              "jsonPointer": "/localeKeyOwners/0/moduleId"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/module-segment-mismatch",
+                "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.",
+              "moduleId": "x-helper",
+              "keyPrefixModuleId": "x-reviewer"
+            }
+          }
+        ]
       }
     },
     {
@@ -607,6 +634,57 @@
           "skippedPhases": 0
         },
         "diagnostics": []
+      }
+    },
+    {
+      "id": "module-segment-mismatch-without-loaded-locales",
+      "description": "Policy-local keyPrefix/moduleId mismatch does not require loaded Locale handles.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["module-segment-mismatch"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/module-segment-mismatch",
+              "jsonPointer": "/localeKeyOwners/0/moduleId"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/module-segment-mismatch",
+                "jsonPointer": "/localeKeyOwners/0/keyPrefix"
+              }
+            ],
+            "details": {
+              "keyPrefix": "$module.x-reviewer.",
+              "moduleId": "x-helper",
+              "keyPrefixModuleId": "x-reviewer"
+            }
+          }
+        ]
       }
     },
     {

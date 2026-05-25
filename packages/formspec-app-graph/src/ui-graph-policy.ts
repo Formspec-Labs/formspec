@@ -25,6 +25,7 @@ interface IndexedLocaleKeyOwner {
   keyPrefix: string;
   moduleId: string;
   index: number;
+  keyPrefixModuleId?: string;
 }
 
 interface UiGraphPolicyEvidence {
@@ -126,6 +127,7 @@ function localeKeyOwners(policy: UiGraphPolicyDocument): IndexedLocaleKeyOwner[]
     keyPrefix: entry.keyPrefix,
     moduleId: entry.moduleId,
     index,
+    keyPrefixModuleId: keyPrefixModuleId(entry.keyPrefix),
   }));
 }
 
@@ -218,6 +220,10 @@ function prefixesOverlap(left: string, right: string): boolean {
   return left === right || left.startsWith(right) || right.startsWith(left);
 }
 
+function keyPrefixModuleId(keyPrefix: string): string | undefined {
+  return /^\$module\.([^.]+)\./.exec(keyPrefix)?.[1];
+}
+
 function escapeJsonPointerToken(value: string): string {
   return value.replace(/~/g, '~0').replace(/\//g, '~1');
 }
@@ -228,10 +234,13 @@ function validateLocaleKeyOwners(
 ): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const owners = localeKeyOwners(evidence.document);
+  const collidingOwnerIndexes = new Set<number>();
 
   for (const [rightIndex, right] of owners.entries()) {
     for (const left of owners.slice(0, rightIndex)) {
       if (left.moduleId === right.moduleId || !prefixesOverlap(left.keyPrefix, right.keyPrefix)) continue;
+      collidingOwnerIndexes.add(left.index);
+      collidingOwnerIndexes.add(right.index);
       diagnostics.push(diagnostic(
         'LOCALE-KEY-OWNER-COLLISION',
         'One Locale key prefix is claimed by different modules.',
@@ -245,6 +254,22 @@ function validateLocaleKeyOwners(
         },
       ));
     }
+  }
+
+  for (const owner of owners) {
+    if (owner.keyPrefixModuleId === undefined || owner.keyPrefixModuleId === owner.moduleId) continue;
+    if (collidingOwnerIndexes.has(owner.index)) continue;
+    diagnostics.push(diagnostic(
+      'LOCALE-KEY-OWNER-MODULE-MISMATCH',
+      'A Locale key owner moduleId does not match its $module.* key prefix segment.',
+      evidenceSource(evidence, `/localeKeyOwners/${owner.index}/moduleId`),
+      [evidenceSource(evidence, `/localeKeyOwners/${owner.index}/keyPrefix`)],
+      {
+        keyPrefix: owner.keyPrefix,
+        moduleId: owner.moduleId,
+        keyPrefixModuleId: owner.keyPrefixModuleId,
+      },
+    ));
   }
 
   for (const locale of locales) {

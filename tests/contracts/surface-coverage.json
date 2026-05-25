@@ -823,13 +823,13 @@
         "UI Graph Policy schema shape and host-loaded source boundary are pinned by schema conformance tests",
         "Host-loaded fixture corpus pins hostEvidence.uiGraphPolicies[] as request evidence rather than an App Manifest slot, resolver artifact kind, path identity, or ADR 0152 authorization policy",
         "AppGraphValidator evidenceResults[] pins executable host-evidence schema validation without routing host evidence through artifact schemaValidators or schemaResults",
-        "AppGraphValidator fixtures pin executable UI-POLICY-SURFACE-TARGET, ROUTE-COLLISION, ROUTE-REF, ROUTE-MISSING, RESPONSIVE-SLOT, LOCALE-KEY-OWNER, and LOCALE-KEY-OWNER-COLLISION diagnostics without promoting Theme, hidden Definition, runtime, or authorization families",
+        "AppGraphValidator fixtures pin executable UI-POLICY-SURFACE-TARGET, ROUTE-COLLISION, ROUTE-REF, ROUTE-MISSING, RESPONSIVE-SLOT, LOCALE-KEY-OWNER, LOCALE-KEY-OWNER-COLLISION, and LOCALE-KEY-OWNER-MODULE-MISMATCH diagnostics without promoting ModuleResolver-backed module-id resolution, Theme, hidden Definition, runtime, or authorization families",
         "Fixture corpus covers positive route-policy shape, minimal route-policy shape, spike-discriminator rejection, path-identity rejection, invalid module Locale prefix rejection, and authorization-field rejection",
         "Semantic fixture corpus covers future policy diagnostic families without executing validator logic or requiring report emission",
         "Current App Manifest schema remains closed and does not admit uiPolicy or uiGraphPolicy slots"
       ],
       "runtimeScope": "spec-conformance-only",
-      "runtimeRationale": "UI Graph Policy v0.1 defines the normative host-loaded structural policy document, schema, generated types, host evidence boundary, host-evidence schema result reporting, Surface/route semantic diagnostics, Locale-owner executable diagnostics, report-origin readiness, and fixture corpus only. Theme token-slot checks, hidden Definition behavior, ModuleResolver/Registry token-slot integration, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates and must add crate/package surfaces when they consume this contract."
+      "runtimeRationale": "UI Graph Policy v0.1 defines the normative host-loaded structural policy document, schema, generated types, host evidence boundary, host-evidence schema result reporting, Surface/route semantic diagnostics, policy-local Locale-owner executable diagnostics, report-origin readiness, and fixture corpus only. ModuleResolver-backed module-id resolution, Theme token-slot checks, hidden Definition behavior, ModuleResolver/Registry token-slot integration, Studio feedback, runtime hidden-state behavior, and any future App Manifest policy slot remain later gates and must add crate/package surfaces when they consume this contract."
     },
     "surface": {
       "status": "enforced",

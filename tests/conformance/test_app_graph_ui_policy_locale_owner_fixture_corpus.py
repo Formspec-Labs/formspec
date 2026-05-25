@@ -23,9 +23,10 @@ REQUIRED_CASES = {
     "exact-prefix-collision",
     "overlap-prefix-collision",
     "same-module-overlap",
-    "module-segment-mismatch-deferred",
+    "module-segment-mismatch",
     "non-module-locale-keys-ignored",
     "no-loaded-locales-no-missing-owner",
+    "module-segment-mismatch-without-loaded-locales",
     "surface-target-mismatch-skips-locale-owner",
 }
 
@@ -33,6 +34,8 @@ EXPECTED_CODES = {
     "missing-locale-owner": "LOCALE-KEY-OWNER",
     "exact-prefix-collision": "LOCALE-KEY-OWNER-COLLISION",
     "overlap-prefix-collision": "LOCALE-KEY-OWNER-COLLISION",
+    "module-segment-mismatch": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
+    "module-segment-mismatch-without-loaded-locales": "LOCALE-KEY-OWNER-MODULE-MISMATCH",
     "surface-target-mismatch-skips-locale-owner": "UI-POLICY-SURFACE-TARGET",
 }
 
@@ -53,6 +56,7 @@ FORBIDDEN_KEYS = {
     "sourcePath",
     "trace",
     "traceIndex",
+    "moduleResolution",
     "uiGraphPolicy",
     "uiPolicy",
     "widgetPolicy",
@@ -194,7 +198,12 @@ def test_ui_graph_policy_locale_owner_fixture_keeps_deferred_families_out() -> N
         for diagnostic in case["expected"]["diagnostics"]
     }
     assert emitted_codes.isdisjoint(DEFERRED_CODES)
-    assert _case("module-segment-mismatch-deferred")["expected"]["diagnostics"] == []
+    assert _case("module-segment-mismatch")["expected"]["diagnostics"][0]["code"] == (
+        "LOCALE-KEY-OWNER-MODULE-MISMATCH"
+    )
+    assert _case("module-segment-mismatch-without-loaded-locales")["expected"]["diagnostics"][0]["code"] == (
+        "LOCALE-KEY-OWNER-MODULE-MISMATCH"
+    )
 
 
 def test_ui_graph_policy_locale_owner_fixtures_do_not_encode_path_trace_or_auth() -> None:

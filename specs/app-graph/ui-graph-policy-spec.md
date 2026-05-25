@@ -356,6 +356,7 @@ Initial diagnostic codes:
 | `UI-POLICY-SURFACE-TARGET` | error | Policy targets a different Surface than the loaded graph. |
 | `LOCALE-KEY-OWNER` | error | A `$module.*` Locale key has no declared owner. |
 | `LOCALE-KEY-OWNER-COLLISION` | error | One Locale key prefix is claimed by different modules. |
+| `LOCALE-KEY-OWNER-MODULE-MISMATCH` | error | A Locale key owner `moduleId` does not match its `$module.*` key prefix segment. |
 | `UI-POLICY-ROUTE-MISSING` | error | Required route policy coverage is missing for a Surface route. |
 | `UI-POLICY-ROUTE-COLLISION` | error | More than one policy entry targets the same route. |
 | `UI-POLICY-ROUTE-REF` | error | A route policy references a route absent from the target Surface. |
@@ -367,17 +368,17 @@ Initial diagnostic codes:
 Current executable diagnostics cover `UI-POLICY-SURFACE-TARGET`,
 `UI-POLICY-ROUTE-MISSING`, `UI-POLICY-ROUTE-COLLISION`,
 `UI-POLICY-ROUTE-REF`, `UI-POLICY-RESPONSIVE-SLOT`, `LOCALE-KEY-OWNER`, and
-`LOCALE-KEY-OWNER-COLLISION`. Policy source pointers MUST use
+`LOCALE-KEY-OWNER-COLLISION`, and
+`LOCALE-KEY-OWNER-MODULE-MISMATCH`. Policy source pointers MUST use
 `artifactSlot: "hostEvidence.uiGraphPolicies[N]"`, opaque `source`, and
 `jsonPointer` only. Surface and Locale related sources may use normal resolved
 artifact handle pointers. The current Locale-owner executable slice checks
 loaded Locale `strings` keys with `$module.` prefixes for declared owner prefix
-coverage and checks policy-local owner prefix overlap across different
-`moduleId` values. It does not yet emit the dedicated semantic diagnostic for a
-`keyPrefix` module segment that differs from `moduleId`, nor does it resolve
-module ids through ModuleResolver. Theme, Registry, ModuleResolver, hidden
-Definition, runtime, and authorization diagnostics are not emitted by this
-slice.
+coverage, checks policy-local owner prefix overlap across different `moduleId`
+values, and checks that a policy owner `moduleId` matches the module segment in
+its `keyPrefix`. It does not yet resolve module ids through ModuleResolver.
+Theme, Registry, ModuleResolver, hidden Definition, runtime, and authorization
+diagnostics are not emitted by this slice.
 
 ## 7. Non-Goals and Boundaries
 

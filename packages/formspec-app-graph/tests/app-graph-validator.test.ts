@@ -496,7 +496,10 @@ describe('validateAppGraph', () => {
             $formspecUiGraphPolicy: '0.1',
             version: '1.0.0',
             targetSurface: { url: 'https://example.gov/apps/intake/surfaces/admin' },
-            localeKeyOwners: [],
+            localeKeyOwners: [{
+              keyPrefix: '$module.x-reviewer.',
+              moduleId: 'x-helper',
+            }],
             routePolicies: [{ routeId: 'review' }],
           },
         }],
@@ -512,6 +515,7 @@ describe('validateAppGraph', () => {
 
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('UI-POLICY-SURFACE-TARGET');
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-MISMATCH');
     expect(report.diagnostics).toContainEqual(expect.objectContaining({
       code: 'APP-GRAPH-SCHEMA',
       phase: 'schema',
@@ -558,7 +562,10 @@ describe('validateAppGraph', () => {
             $formspecUiGraphPolicy: '0.1',
             version: '1.0.0',
             targetSurface: { url: 'https://example.gov/apps/intake/surfaces/respondent' },
-            localeKeyOwners: [],
+            localeKeyOwners: [{
+              keyPrefix: '$module.x-reviewer.',
+              moduleId: 'x-helper',
+            }],
             routePolicies: [{ routeId: 'review' }],
           },
         }],
@@ -573,6 +580,7 @@ describe('validateAppGraph', () => {
       ok: true,
     });
     expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER');
+    expect(report.diagnostics.map((entry) => entry.code)).not.toContain('LOCALE-KEY-OWNER-MODULE-MISMATCH');
     expect(report.phases).toContainEqual({
       phase: 'cross-artifact',
       status: 'skipped',

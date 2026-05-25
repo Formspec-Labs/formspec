@@ -29,10 +29,11 @@ This row spans:
   `UI-POLICY-SURFACE-TARGET`, `UI-POLICY-ROUTE-COLLISION`,
   `UI-POLICY-ROUTE-REF`, `UI-POLICY-ROUTE-MISSING`, and
   `UI-POLICY-RESPONSIVE-SLOT`, plus `LOCALE-KEY-OWNER` and
-  `LOCALE-KEY-OWNER-COLLISION`.
-- Locale owner module-segment/module-id resolution, hidden Definition, Theme
-  token-slot, ModuleResolver/Registry, runtime, Studio, projection, consumer,
-  and optional future App Manifest slot work remains open.
+  `LOCALE-KEY-OWNER-COLLISION`, and
+  `LOCALE-KEY-OWNER-MODULE-MISMATCH`.
+- Locale owner ModuleResolver-backed module-id resolution, hidden Definition,
+  Theme token-slot, ModuleResolver/Registry, runtime, Studio, projection,
+  consumer, and optional future App Manifest slot work remains open.
 
 ## Phase Order
 
@@ -76,6 +77,6 @@ Current partial evidence:
 - `packages/formspec-app-graph/tests/ui-graph-policy-locale-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
 
-Closure still requires Locale owner module-segment/module-id resolution, hidden
-Definition, Theme token-slot, ModuleResolver/Registry token-slot evidence,
-consumer wiring, and final rollup gate transition.
+Closure still requires Locale owner ModuleResolver-backed module-id resolution,
+hidden Definition, Theme token-slot, ModuleResolver/Registry token-slot
+evidence, consumer wiring, and final rollup gate transition.

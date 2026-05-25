@@ -14,12 +14,12 @@ to module widget token slots.
 
 The current slices promote the structural source schema, generated TypeScript
 type, host-supplied loading evidence, executable host-evidence schema result
-reporting, Surface/route semantic diagnostics, and Locale-owner prefix
-coverage/collision diagnostics in the shared AppGraphValidator kernel. They do
-not promote an App Manifest slot, ArtifactResolver group, Theme token-slot
-checks, hidden Definition behavior, ModuleResolver token-slot or module-id
-resolution, runtime responsive behavior, renderer behavior, Studio wiring, or
-ADR 0152 authorization semantics.
+reporting, Surface/route semantic diagnostics, and policy-local Locale-owner
+diagnostics in the shared AppGraphValidator kernel. They do not promote an App
+Manifest slot, ArtifactResolver group, Theme token-slot checks, hidden
+Definition behavior, ModuleResolver token-slot or module-id resolution, runtime
+responsive behavior, renderer behavior, Studio wiring, or ADR 0152
+authorization semantics.
 
 ## Review Checkpoint
 
@@ -121,6 +121,17 @@ pointers evidence-only and Locale pointers as normal artifact pointers; do not
 emit Theme, hidden Definition, ModuleResolver, runtime, App Manifest slot, or
 ADR 0152 authorization diagnostics.
 
+Pasteur and Cicero approved a policy-local Locale-owner module-segment slice
+before ModuleResolver integration. Required boundary: emit
+`LOCALE-KEY-OWNER-MODULE-MISMATCH` for owner declarations whose `moduleId`
+does not match the module segment in `keyPrefix`; primary pointer is policy
+evidence `/localeKeyOwners/{i}/moduleId`, related pointer is policy evidence
+`/localeKeyOwners/{i}/keyPrefix`; run only after schema-valid host evidence and
+exact target Surface resolution; require no loaded Locale handles; do not
+consume `ModuleResolutionReport`, widen AppGraph source pointers, emit Theme,
+hidden Definition, runtime, App Manifest slot, TraceIndex, or ADR 0152
+authorization diagnostics.
+
 ## Completed
 
 - `specs/app-graph/ui-graph-policy-spec.md` defines the UI Graph Policy request
@@ -197,17 +208,21 @@ ADR 0152 authorization diagnostics.
   `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
   add executable Locale-owner diagnostics for missing owner coverage and
   exact/proper-prefix owner collisions over loaded Locale evidence.
+- `packages/formspec-app-graph/src/ui-graph-policy.ts`,
+  `packages/formspec-app-graph/tests/ui-graph-policy-locale-conformance.test.ts`,
+  and
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
+  add executable policy-local Locale-owner module-segment mismatch diagnostics.
 - `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`
   pins the executable Locale-owner fixture corpus, policy evidence-only
   pointers, Locale artifact pointers, zero-loaded-Locale behavior,
-  keyPrefix/moduleId mismatch deferral, and no TraceIndex/path/auth leakage.
+  keyPrefix/moduleId mismatch behavior, and no TraceIndex/path/auth leakage.
 
 ## Still Open For Closure
 
 - Optional future App Manifest loading slot if the package contract later
   chooses one.
-- Locale-owner keyPrefix/moduleId module-segment diagnostics and module-id
-  resolution through ModuleResolver evidence.
+- Locale-owner module-id resolution through ModuleResolver evidence.
 - Hidden Definition semantic diagnostics and runtime behavior.
 - Theme token-slot semantic diagnostics.
 - ModuleResolver/Registry token-slot evidence integration.
