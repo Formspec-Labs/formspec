@@ -1,0 +1,75 @@
+{
+  "id": "unresolved-app-module",
+  "description": "Rejects an App Manifest module absent from Registry module entries.",
+  "inputs": {
+    "appModules": [{ "id": "x-missing-module", "version": "1.0.0" }],
+    "documents": [],
+    "registries": [{ "entries": [] }]
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-UNRESOLVED", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "modules": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-missing-module", "version": "1.0.0" },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-missing-module", "version": "1.0.0" }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-missing-module' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "memory://app",
+              "jsonPointer": "/modules/0",
+              "module": { "id": "x-missing-module", "version": "1.0.0" }
+            }
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-missing-module' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-missing-module", "version": "1.0.0" }
+        }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

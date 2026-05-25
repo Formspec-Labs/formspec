@@ -1,0 +1,72 @@
+{
+  "id": "version-mismatch",
+  "description": "Rejects a module ref whose requested range is not satisfied by Registry evidence.",
+  "inputs": {
+    "appModules": [{ "id": "x-versioned-module", "version": "^2.0.0" }],
+    "documents": [],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-versioned-module",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": []
+          }
+        ]
+      }
+    ]
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-VERSION-UNRESOLVED", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "modules": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-versioned-module", "version": "^2.0.0" },
+        "status": "unresolved",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-versioned-module", "version": "^2.0.0" }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-VERSION-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Registry module 'x-versioned-module@1.0.0' does not satisfy requested range '^2.0.0'.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-versioned-module", "version": "^2.0.0" }
+        },
+        "details": { "registryVersion": "1.0.0", "requestedVersion": "^2.0.0" }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

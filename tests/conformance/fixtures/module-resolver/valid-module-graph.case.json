@@ -1,0 +1,129 @@
+{
+  "id": "valid-module-graph",
+  "description": "Admits an app module set and resolves a module-owned widget contribution.",
+  "inputs": {
+    "appModules": [
+      { "id": "x-formspec-core-task", "version": "^1.0.0" },
+      { "id": "x-formspec-presentation", "version": "0.1.0" }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "surfaces[0]",
+        "artifactKind": "surface",
+        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "uses": [
+          {
+            "site": "surface.module-widget.binding.widgetName",
+            "name": "x-formspec-presentation-widget-shell",
+            "expectedCategory": "widget"
+          }
+        ]
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-core-task",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": []
+          },
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": ["x-formspec-presentation-widget-shell"]
+          },
+          {
+            "name": "x-formspec-presentation-widget-shell",
+            "category": "widget",
+            "version": "0.1.0"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedDiagnostics": [],
+  "expectedSummary": { "errors": 0, "modules": 2, "contributions": 1 },
+  "expectedReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": { "id": "x-formspec-core-task", "version": "^1.0.0" },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "defaulted": true,
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/default/x-formspec-core-task",
+          "module": { "id": "x-formspec-core-task", "version": "^1.0.0" }
+        }
+      },
+      {
+        "ref": { "id": "x-formspec-presentation", "version": "0.1.0" },
+        "status": "admitted",
+        "registryVersion": "0.1.0",
+        "defaulted": false,
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/1",
+          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+        }
+      }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "surfaces[0]",
+        "artifactKind": "surface",
+        "status": "coherent",
+        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "effectiveModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+        }
+      }
+    ],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-formspec-presentation-widget-shell",
+        "expectedCategory": "widget",
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+        }
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 2,
+      "admittedModules": 2,
+      "deniedModules": 0,
+      "documents": 1,
+      "contributions": 1,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

@@ -24,11 +24,14 @@ consumed by `AppGraphValidator`.
 
 `schemas/module-resolution-report.schema.json` defines the output report data
 contract, and `@formspec-org/types` publishes the generated
-`ModuleResolutionReport` TypeScript surface. This document intentionally does
-not define a resolver request JSON Schema, fixture-backed conformance, shared
-package implementation, Rust lint rewrite, production consumer wiring,
-renderer fallback policy, or fine-grained authorization. Those land in later
-implementation gates after the report surface is stable.
+`ModuleResolutionReport` TypeScript surface.
+`tests/conformance/fixtures/module-resolver/` defines source-oriented fixture
+cases and static expected reports for the required module-resolution families.
+This document intentionally does not define a resolver request JSON Schema,
+shared package implementation, executable fixture runner over a production
+resolver, Rust lint rewrite, production consumer wiring, renderer fallback
+policy, or fine-grained authorization. Those land in later implementation
+gates after the report surface and fixture corpus are stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the resolver contract directly.
@@ -275,12 +278,12 @@ Sources payloads, or decide Component Surface/route identity.
 
 ## 12. Conformance
 
-This v0.1 draft is an interface and report contract only. A conforming future
-implementation still needs:
+This v0.1 draft is an interface, report contract, and source fixture corpus
+only. A conforming future implementation still needs:
 
 1. shared resolver package extraction,
-2. fixture-backed conformance for module admission, dependency, contribution,
-   category, conflict, and payload failures,
+2. executable conformance wiring that runs the fixture corpus through the
+   shared resolver,
 3. integration with `ArtifactResolver` and `AppGraphValidator`, and
 4. production consumer wiring across lint, Studio, MCPs, runtime, and
    projection surfaces that consume module evidence.

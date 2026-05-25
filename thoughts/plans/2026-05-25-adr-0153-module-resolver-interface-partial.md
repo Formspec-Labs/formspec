@@ -2,7 +2,7 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** ModuleResolver
-**Status:** Partial; prose/interface boundary plus report schema/type defined, shared extraction remains open
+**Status:** Partial; prose/interface boundary, report schema/type, and static source fixtures defined; shared extraction remains open
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -12,13 +12,15 @@ slice defines the `ModuleResolver` request/response boundary, Registry index
 input, app and sibling `modules[]` evidence, default module set semantics,
 coarse admission evidence, version/dependency checks, contribution ownership,
 payload-schema hook boundary, module-resolution diagnostics in prose, and the
-output report schema/type contract.
+output report schema/type contract, and source-oriented fixture/report-shape
+evidence for required diagnostic families.
 
 Not in this slice: Rust lint changes, shared resolver package code,
-resolver request JSON Schema, fixture-backed conformance, production consumers,
-ArtifactResolver loading behavior, AppGraphValidator cross-artifact checks,
-runtime execution, renderer fallback, E605 Component id collision ownership, v4
-Posture sidecar promotion, or ADR 0152 fine-grained authorization.
+resolver request JSON Schema, executable conformance over a production
+resolver, production consumers, ArtifactResolver loading behavior,
+AppGraphValidator cross-artifact checks, runtime execution, renderer fallback,
+E605 Component id collision ownership, v4 Posture sidecar promotion, or ADR
+0152 fine-grained authorization.
 
 ## Review Checkpoints
 
@@ -36,6 +38,11 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
 - 2026-05-25 external review (Dalton): REVISE for one remaining normative ADR
   dependency in the Component bundle id collision note, then APPROVE after the
   note was rewritten as a direct bundle-graph ownership statement.
+- 2026-05-25 architecture checkpoint (Carson): APPROVE a fixture corpus /
+  report-shape evidence slice before resolver implementation. Required
+  cautions: no `resolveModules`, no simulated resolver logic, full
+  `expectedReport` per case, recursive leakage guards, explicit required-family
+  coverage, and gate 4 remains Partial.
 
 ## Work Completed
 
@@ -59,13 +66,20 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
   `@formspec-org/types`.
 - [x] Add focused schema acceptance tests for report shape, resolver-only
   origin/phase, closed `ModuleRef`, and fixture/path-identity rejection.
+- [x] Add source-oriented fixture cases for valid graph, unresolved app module,
+  module version mismatch, dependency unresolved, sibling undeclared, host
+  admission denied, contribution missing/category/unowned/conflict/unadmitted,
+  and payload mismatch families.
+- [x] Add fixture integrity tests that validate expected reports against
+  `module-resolution-report.schema.json`, enforce resolver-owned diagnostics,
+  and reject fixture/path identity or fine-grained authorization leakage.
 
 ## Still Open for Gate 4 Closure
 
 - [ ] Extract a shared resolver package or app-graph package module from the
   Rust lint and spike-local seeds without copying spike-only assumptions.
-- [ ] Add fixture-backed conformance for admission, dependency, contribution,
-  category, conflict, and payload failure families.
+- [ ] Execute the fixture corpus through the shared resolver as conformance,
+  rather than validating static expected reports only.
 - [ ] Wire lint, Studio, MCPs, runtime, and projection consumers to the shared
   resolver output.
 - [ ] Integrate `ModuleResolver` diagnostics into `AppGraphValidator` without
@@ -85,6 +99,9 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
 - 2026-05-25: The report schema/type slice keeps gate 4 Partial. It freezes the
   resolver output envelope, not resolver execution, source fixture conformance,
   or production consumer wiring.
+- 2026-05-25: The source fixture slice keeps gate 4 Partial. It pins the
+  required diagnostic families and expected report shapes, but no production
+  ModuleResolver executes the corpus yet.
 
 ## Partial Evidence
 
@@ -92,7 +109,9 @@ Posture sidecar promotion, or ADR 0152 fine-grained authorization.
 - Schema: `schemas/module-resolution-report.schema.json`.
 - Generated type: `packages/formspec-types/src/generated/module-resolution-report.ts`.
 - Tests: `tests/conformance/schemas/test_module_resolution_report_schema.py`;
-  `packages/formspec-types/tests/schema-sync.test.ts`.
+  `packages/formspec-types/tests/schema-sync.test.ts`;
+  `tests/conformance/test_module_resolver_fixture_corpus.py`.
+- Fixtures: `tests/conformance/fixtures/module-resolver/*.case.json`.
 - Parent ADR gate update: stack-root
   `thoughts/adr/0153-formspec-app-graph-production-boundary.md`.
 - Rollup update: stack-root

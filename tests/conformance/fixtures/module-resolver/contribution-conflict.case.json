@@ -1,0 +1,129 @@
+{
+  "id": "contribution-conflict",
+  "description": "Rejects duplicate ownership instead of selecting a Registry-order winner.",
+  "inputs": {
+    "appModules": [
+      { "id": "x-owner-a", "version": "1.0.0" },
+      { "id": "x-owner-b", "version": "1.0.0" }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "surfaces[0]",
+        "artifactKind": "surface",
+        "uses": [
+          {
+            "site": "surface.module-widget.binding.widgetName",
+            "name": "x-conflict-widget",
+            "expectedCategory": "widget"
+          }
+        ]
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-owner-a",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": ["x-conflict-widget"]
+          },
+          {
+            "name": "x-owner-b",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": ["x-conflict-widget"]
+          },
+          {
+            "name": "x-conflict-widget",
+            "category": "widget",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-CONTRIBUTION-CONFLICT", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "unresolvedContributions": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-owner-a", "version": "1.0.0" },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-owner-a", "version": "1.0.0" }
+        }
+      },
+      {
+        "ref": { "id": "x-owner-b", "version": "1.0.0" },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/1",
+          "module": { "id": "x-owner-b", "version": "1.0.0" }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-conflict-widget",
+        "expectedCategory": "widget",
+        "registryCategory": "widget",
+        "entryVersion": "1.0.0",
+        "owningModules": [
+          { "id": "x-owner-a", "version": "1.0.0" },
+          { "id": "x-owner-b", "version": "1.0.0" }
+        ],
+        "status": "conflict",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-CONTRIBUTION-CONFLICT",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'x-conflict-widget' is claimed by more than one admitted module.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "memory://registry",
+          "jsonPointer": "/entries/2"
+        },
+        "details": { "contribution": "x-conflict-widget", "owners": ["x-owner-a", "x-owner-b"] }
+      }
+    ],
+    "summary": {
+      "modules": 2,
+      "admittedModules": 2,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 1,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 1,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

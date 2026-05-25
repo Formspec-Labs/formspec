@@ -1,0 +1,123 @@
+{
+  "id": "payload-mismatch",
+  "description": "Rejects a payload-bearing contribution whose payload fails the owning schema hook.",
+  "inputs": {
+    "appModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+    "documents": [
+      {
+        "artifactSlot": "surfaces[0]",
+        "artifactKind": "surface",
+        "uses": [
+          {
+            "site": "surface.module-widget.binding.widgetName",
+            "name": "x-counter-widget",
+            "expectedCategory": "widget",
+            "payload": { "count": "not-a-number" }
+          }
+        ]
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": ["x-counter-widget"]
+          },
+          {
+            "name": "x-counter-widget",
+            "category": "widget",
+            "version": "0.1.0",
+            "widgetShape": {
+              "props": {
+                "type": "object",
+                "required": ["count"],
+                "properties": { "count": { "type": "number" } }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "support": { "payloadSchemaValidators": ["widgetShape.props"] }
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-PAYLOAD-SCHEMA-MISMATCH", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "payloadFailures": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-formspec-presentation", "version": "0.1.0" },
+        "status": "admitted",
+        "registryVersion": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-counter-widget",
+        "expectedCategory": "widget",
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "status": "payload-schema-mismatch",
+        "payloadStatus": "failed",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/routes/0/slots/main/0/binding/config"
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-PAYLOAD-SCHEMA-MISMATCH",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Payload for contribution 'x-counter-widget' does not match widgetShape.props.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/routes/0/slots/main/0/binding/config/count"
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/1/widgetShape/props"
+          }
+        ],
+        "details": { "contribution": "x-counter-widget", "validator": "widgetShape.props" }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 1,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 1,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" },
+    "support": { "payloadSchemaValidators": ["widgetShape.props"] }
+  }
+}

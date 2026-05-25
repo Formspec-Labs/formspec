@@ -1,0 +1,113 @@
+{
+  "id": "contribution-category",
+  "description": "Rejects a Registry entry whose category does not match the consuming site.",
+  "inputs": {
+    "appModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+    "documents": [
+      {
+        "artifactSlot": "surfaces[0]",
+        "artifactKind": "surface",
+        "uses": [
+          {
+            "site": "surface.module-widget.binding.widgetName",
+            "name": "x-formspec-presentation-gallery",
+            "expectedCategory": "widget"
+          }
+        ]
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": ["x-formspec-presentation-gallery"]
+          },
+          {
+            "name": "x-formspec-presentation-gallery",
+            "category": "unit-kind",
+            "version": "0.1.0"
+          }
+        ]
+      }
+    ]
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-CONTRIBUTION-CATEGORY", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "unresolvedContributions": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-formspec-presentation", "version": "0.1.0" },
+        "status": "admitted",
+        "registryVersion": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-formspec-presentation-gallery",
+        "expectedCategory": "widget",
+        "registryCategory": "unit-kind",
+        "entryVersion": "0.1.0",
+        "owningModules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "status": "category-mismatch",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-CONTRIBUTION-CATEGORY",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'x-formspec-presentation-gallery' is category 'unit-kind', expected 'widget'.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "memory://surface",
+          "jsonPointer": "/routes/0/slots/main/0/binding/widgetName"
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "registries[0]",
+            "artifactKind": "registry",
+            "source": "memory://registry",
+            "jsonPointer": "/entries/1"
+          }
+        ],
+        "details": { "registryCategory": "unit-kind", "expectedCategory": "widget" }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 1,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 1,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

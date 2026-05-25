@@ -1,0 +1,97 @@
+{
+  "id": "sibling-undeclared",
+  "description": "Rejects a sibling document module outside the app module set and default module set.",
+  "inputs": {
+    "appModules": [{ "id": "x-formspec-core-task", "version": "^1.0.0" }],
+    "documents": [
+      {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }]
+      }
+    ],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-core-task",
+            "category": "module",
+            "version": "1.0.0",
+            "contributes": []
+          },
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": []
+          }
+        ]
+      }
+    ]
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-SIBLING-UNDECLARED", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "documents": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-formspec-core-task", "version": "^1.0.0" },
+        "status": "admitted",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-formspec-core-task", "version": "^1.0.0" }
+        }
+      }
+    ],
+    "documents": [
+      {
+        "artifactSlot": "experience",
+        "artifactKind": "experience",
+        "status": "undeclared-module",
+        "modules": [{ "id": "x-formspec-presentation", "version": "0.1.0" }],
+        "source": {
+          "artifactSlot": "experience",
+          "artifactKind": "experience",
+          "source": "memory://experience",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+        }
+      }
+    ],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-SIBLING-UNDECLARED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Sibling document declares module 'x-formspec-presentation' outside the app module set.",
+        "primarySource": {
+          "artifactSlot": "experience",
+          "artifactKind": "experience",
+          "source": "memory://experience",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-formspec-presentation", "version": "0.1.0" }
+        }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 1,
+      "deniedModules": 0,
+      "documents": 1,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

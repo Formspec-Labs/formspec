@@ -1,0 +1,81 @@
+{
+  "id": "dependency-unresolved",
+  "description": "Rejects a module whose Registry dependency is absent from the admitted app module set.",
+  "inputs": {
+    "appModules": [{ "id": "x-dependent-module", "version": "1.0.0" }],
+    "documents": [],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-dependent-module",
+            "category": "module",
+            "version": "1.0.0",
+            "dependencies": [{ "id": "x-required-base", "version": "^1.0.0" }],
+            "contributes": []
+          }
+        ]
+      }
+    ]
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-DEPENDENCY-UNRESOLVED", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "unresolvedDependencies": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": { "id": "x-dependent-module", "version": "1.0.0" },
+        "status": "dependency-unresolved",
+        "registryVersion": "1.0.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": { "id": "x-dependent-module", "version": "1.0.0" }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-DEPENDENCY-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Module 'x-dependent-module' depends on 'x-required-base@^1.0.0', but the app module set does not admit it.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "memory://registry",
+          "jsonPointer": "/entries/0/dependencies/0",
+          "module": { "id": "x-required-base", "version": "^1.0.0" }
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "memory://app",
+            "jsonPointer": "/modules/0",
+            "module": { "id": "x-dependent-module", "version": "1.0.0" }
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 1,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}

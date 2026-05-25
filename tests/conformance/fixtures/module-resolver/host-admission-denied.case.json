@@ -1,0 +1,99 @@
+{
+  "id": "host-admission-denied",
+  "description": "Rejects an app module denied by host-supplied coarse admission evidence.",
+  "inputs": {
+    "appModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "lockHash": "sha256:module"
+      }
+    ],
+    "documents": [],
+    "registries": [
+      {
+        "entries": [
+          {
+            "name": "x-formspec-presentation",
+            "category": "module",
+            "version": "0.1.0",
+            "contributes": []
+          }
+        ]
+      }
+    ],
+    "admission": {
+      "allowedModules": [
+        {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0",
+          "lockHash": "sha256:other"
+        }
+      ]
+    }
+  },
+  "expectedDiagnostics": [{ "code": "MODULE-ADMISSION-DENIED", "severity": "error" }],
+  "expectedSummary": { "errors": 1, "deniedModules": 1 },
+  "expectedReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-formspec-presentation",
+          "version": "0.1.0",
+          "lockHash": "sha256:module"
+        },
+        "status": "denied",
+        "registryVersion": "0.1.0",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "lockHash": "sha256:module"
+          }
+        }
+      }
+    ],
+    "documents": [],
+    "contributions": [],
+    "diagnostics": [
+      {
+        "code": "MODULE-ADMISSION-DENIED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Host admission evidence denies module 'x-formspec-presentation@0.1.0'.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "memory://app",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-presentation",
+            "version": "0.1.0",
+            "lockHash": "sha256:module"
+          }
+        },
+        "details": { "expectedLockHash": "sha256:other", "actualLockHash": "sha256:module" }
+      }
+    ],
+    "summary": {
+      "modules": 1,
+      "admittedModules": 0,
+      "deniedModules": 1,
+      "documents": 0,
+      "contributions": 0,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": { "phase": "module-resolution", "status": "completed" }
+  }
+}
