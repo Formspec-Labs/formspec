@@ -39,6 +39,12 @@ export function uiGraphRoutePolicyAttrs(
         ...(policy.a11y?.landmark ? {
             'data-formspec-ui-policy-a11y-landmark': policy.a11y.landmark,
         } : {}),
+        ...(policy.a11y?.landmarkLabel ? {
+            'data-formspec-ui-policy-a11y-landmark-label': policy.a11y.landmarkLabel,
+        } : {}),
+        ...(policy.a11y?.landmarkSuppressed ? {
+            'data-formspec-ui-policy-a11y-landmark-suppressed': 'true',
+        } : {}),
         ...(policy.a11y?.keyboardNavigation !== undefined ? {
             'data-formspec-ui-policy-keyboard-navigation': String(policy.a11y.keyboardNavigation),
         } : {}),

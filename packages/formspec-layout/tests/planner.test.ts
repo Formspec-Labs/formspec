@@ -317,6 +317,96 @@ describe('planComponentTree', () => {
         expect(node.children[0].uiGraphRoutePolicy).toBeUndefined();
     });
 
+    it('projects region landmarkLabel through UI Graph Policy route metadata', () => {
+        const tree = { component: 'Stack', nodeId: 'reviewLayout' };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                appGraphReport: completedUiGraphPolicyReport(),
+                uiGraphPolicies: [{
+                    schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                            version: '1.0.0',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: {
+                                landmark: 'region',
+                                landmarkLabel: 'Application review',
+                            },
+                        }],
+                    },
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy?.a11y).toEqual({
+            landmark: 'region',
+            landmarkLabel: 'Application review',
+        });
+    });
+
+    it('marks route landmark suppressed when host reserves the same landmark', () => {
+        const tree = { component: 'Stack', nodeId: 'reviewLayout' };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                appGraphReport: completedUiGraphPolicyReport(),
+                hostLandmarks: { reserved: ['main'] },
+                uiGraphPolicies: [{
+                    schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                            version: '1.0.0',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy?.a11y).toEqual({
+            landmark: 'main',
+            landmarkSuppressed: true,
+        });
+    });
+
     it('does not project UI Graph Policy route metadata for a different surface or route', () => {
         const tree = {
             component: 'Stack',

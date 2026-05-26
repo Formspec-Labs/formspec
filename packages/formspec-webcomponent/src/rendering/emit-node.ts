@@ -9,6 +9,7 @@ import {
     PresentationBlock,
     ItemDescriptor,
     mergeFormPresentationForPlanning,
+    resolveRouteLandmark,
     type LayoutNode,
 } from '@formspec-org/layout';
 import type { ValidationResult } from '@formspec-org/types';
@@ -31,7 +32,27 @@ function applyComponentGraphIdentity(el: HTMLElement, identity: LayoutNode['comp
     if (identity.nodeId) el.dataset.formspecComponentNodeStructuralId = identity.nodeId;
 }
 
-function applyUiGraphRoutePolicy(el: HTMLElement, policy: LayoutNode['uiGraphRoutePolicy']): void {
+const NON_LAYOUT_ROUTE_LANDMARK_COMPONENTS = new Set(['Modal', 'Dialog', 'Popover']);
+
+function routeLandmarkElementAttrs(
+    component: string,
+    policy: LayoutNode['uiGraphRoutePolicy'],
+): { role?: string; ariaLabel?: string } {
+    if (!policy || NON_LAYOUT_ROUTE_LANDMARK_COMPONENTS.has(component)) {
+        return {};
+    }
+    const resolved = resolveRouteLandmark(policy);
+    return {
+        ...(resolved.role ? { role: resolved.role } : {}),
+        ...(resolved.ariaLabel ? { ariaLabel: resolved.ariaLabel } : {}),
+    };
+}
+
+function applyUiGraphRoutePolicy(
+    el: HTMLElement,
+    component: string,
+    policy: LayoutNode['uiGraphRoutePolicy'],
+): void {
     if (!policy) return;
     el.dataset.formspecUiPolicySchema = policy.schemaId;
     el.dataset.formspecUiPolicySource = policy.source;
@@ -39,9 +60,18 @@ function applyUiGraphRoutePolicy(el: HTMLElement, policy: LayoutNode['uiGraphRou
     if (policy.targetSurface.version) el.dataset.formspecUiPolicySurfaceVersion = policy.targetSurface.version;
     el.dataset.formspecUiPolicyRoute = policy.routeId;
     if (policy.a11y?.landmark) el.dataset.formspecUiPolicyA11yLandmark = policy.a11y.landmark;
+    if (policy.a11y?.landmarkLabel) {
+        el.dataset.formspecUiPolicyA11yLandmarkLabel = policy.a11y.landmarkLabel;
+    }
+    if (policy.a11y?.landmarkSuppressed) {
+        el.dataset.formspecUiPolicyA11yLandmarkSuppressed = 'true';
+    }
     if (policy.a11y?.keyboardNavigation !== undefined) {
         el.dataset.formspecUiPolicyKeyboardNavigation = String(policy.a11y.keyboardNavigation);
     }
+    const landmarkAttrs = routeLandmarkElementAttrs(component, policy);
+    if (landmarkAttrs.role) el.setAttribute('role', landmarkAttrs.role);
+    if (landmarkAttrs.ariaLabel) el.setAttribute('aria-label', landmarkAttrs.ariaLabel);
     if (policy.responsive?.minColumns !== undefined) {
         el.dataset.formspecUiPolicyResponsiveMinColumns = String(policy.responsive.minColumns);
     }
@@ -52,10 +82,10 @@ function applyUiGraphRoutePolicy(el: HTMLElement, policy: LayoutNode['uiGraphRou
 
 function applyProjectionMetadata(
     el: HTMLElement,
-    metadata: Pick<LayoutNode, 'componentGraphIdentity' | 'uiGraphRoutePolicy'>,
+    metadata: Pick<LayoutNode, 'component' | 'componentGraphIdentity' | 'uiGraphRoutePolicy'>,
 ): void {
     applyComponentGraphIdentity(el, metadata.componentGraphIdentity);
-    applyUiGraphRoutePolicy(el, metadata.uiGraphRoutePolicy);
+    applyUiGraphRoutePolicy(el, metadata.component, metadata.uiGraphRoutePolicy);
 }
 
 function renderActualComponentWithProjectionMetadata(

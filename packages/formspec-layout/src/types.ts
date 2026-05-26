@@ -35,6 +35,12 @@ export interface ComponentGraphProjectionEvidence {
     document: ComponentGraphProjectionContext;
 }
 
+export type LayoutHostLandmarkRole = 'main' | 'navigation' | 'complementary';
+
+export interface LayoutHostLandmarks {
+    reserved: LayoutHostLandmarkRole[];
+}
+
 /** Projection-only host evidence. Layout does not fetch, validate, or discover these documents. */
 export interface LayoutHostEvidence {
     /** Completed AppGraphValidator report for the supplied host evidence. */
@@ -43,7 +49,16 @@ export interface LayoutHostEvidence {
     uiGraphPolicies?: UiGraphPolicyProjectionEvidence[];
 
     componentGraphContexts?: ComponentGraphProjectionEvidence[];
+
+    hostLandmarks?: LayoutHostLandmarks;
 }
+
+/** Route-policy a11y metadata copied from policy plus projection-only suppression. */
+export type UiGraphRoutePolicyA11yProjection =
+    NonNullable<UiGraphPolicyDocument['routePolicies'][number]['a11y']> & {
+        landmarkLabel?: string;
+        landmarkSuppressed?: boolean;
+    };
 
 /** Route-policy metadata copied from a matching UI Graph Policy document. */
 export interface UiGraphRoutePolicyProjection {
@@ -51,7 +66,7 @@ export interface UiGraphRoutePolicyProjection {
     source: string;
     targetSurface: UiGraphPolicyDocument['targetSurface'];
     routeId: string;
-    a11y?: NonNullable<UiGraphPolicyDocument['routePolicies'][number]['a11y']>;
+    a11y?: UiGraphRoutePolicyA11yProjection;
     responsive?: NonNullable<UiGraphPolicyDocument['routePolicies'][number]['responsive']>;
 }
 

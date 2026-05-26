@@ -1,23 +1,22 @@
 /** @filedesc Active UI Graph Policy route-landmark attribute helper. */
+import { resolveRouteLandmark, type ResolvedRouteLandmarkRole } from '@formspec-org/layout';
 import type { AriaRole } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 
-type RouteLandmarkRole = Extract<AriaRole, 'main' | 'navigation' | 'complementary'>;
-
 export type RouteLandmarkAttrs = {
-    role?: RouteLandmarkRole;
+    role?: Extract<AriaRole, ResolvedRouteLandmarkRole>;
+    'aria-label'?: string;
 };
 
 export function routeLandmarkAttrs(
     node: Pick<LayoutNode, 'uiGraphRoutePolicy'>,
 ): RouteLandmarkAttrs {
-    const landmark = node.uiGraphRoutePolicy?.a11y?.landmark;
-    switch (landmark) {
-        case 'main':
-        case 'navigation':
-        case 'complementary':
-            return { role: landmark };
-        default:
-            return {};
+    const resolved = resolveRouteLandmark(node.uiGraphRoutePolicy);
+    if (!resolved.role) {
+        return {};
     }
+    return {
+        role: resolved.role,
+        ...(resolved.ariaLabel ? { 'aria-label': resolved.ariaLabel } : {}),
+    };
 }

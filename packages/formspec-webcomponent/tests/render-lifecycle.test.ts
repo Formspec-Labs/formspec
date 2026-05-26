@@ -201,6 +201,176 @@ describe('render lifecycle', () => {
         expect(stack.dataset.formspecUiPolicyResponsiveCollapseOrder).toBe('["summary","details"]');
         expect(stack.dataset.formspecUiPolicyHiddenDefinitionRefs).toBeUndefined();
         expect(field.dataset.formspecUiPolicyRoute).toBeUndefined();
+        expect(stack.getAttribute('role')).toBe('main');
+        expect(stack.getAttribute('tabindex')).toBeNull();
+    });
+
+    it('maps validated region route policy to role and aria-label on layout route root', () => {
+        el.componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: 'formspec://components/respondent',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'formspec://surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        el.hostEvidence = {
+            appGraphReport: completedUiGraphPolicyReport(),
+            uiGraphPolicies: [{
+                schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                source: 'host://policy/respondent-ui-policy',
+                document: {
+                    $formspecUiGraphPolicy: '0.1',
+                    version: '1.0.0',
+                    targetSurface: {
+                        url: 'formspec://surfaces/respondent',
+                        version: '1.0.0',
+                    },
+                    routePolicies: [{
+                        routeId: 'review',
+                        a11y: {
+                            landmark: 'region',
+                            landmarkLabel: 'Application review',
+                            keyboardNavigation: true,
+                        },
+                    }],
+                },
+            }],
+        };
+        el.componentDocument = {
+            $formspecComponent: '1.2',
+            version: '1.0.0',
+            targetSurfaceRoutes: [{
+                surface: { url: 'formspec://surfaces/respondent', version: '1.0.0' },
+                route: 'review',
+            }],
+            tree: {
+                component: 'Stack',
+                id: 'root',
+                children: [{ component: 'TextInput', bind: 'name', id: 'nameField' }],
+            },
+        };
+        el.definition = singleFieldDef();
+        el.render();
+
+        const stack = el.querySelector('.formspec-stack') as HTMLElement;
+        expect(stack.getAttribute('role')).toBe('region');
+        expect(stack.getAttribute('aria-label')).toBe('Application review');
+        expect(stack.dataset.formspecUiPolicyKeyboardNavigation).toBe('true');
+        expect(stack.getAttribute('tabindex')).toBeNull();
+    });
+
+    it('suppresses active route landmark when projection marks host reservation', () => {
+        el.componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: 'formspec://components/respondent',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'formspec://surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        el.hostEvidence = {
+            appGraphReport: completedUiGraphPolicyReport(),
+            hostLandmarks: { reserved: ['main'] },
+            uiGraphPolicies: [{
+                schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                source: 'host://policy/respondent-ui-policy',
+                document: {
+                    $formspecUiGraphPolicy: '0.1',
+                    version: '1.0.0',
+                    targetSurface: {
+                        url: 'formspec://surfaces/respondent',
+                        version: '1.0.0',
+                    },
+                    routePolicies: [{
+                        routeId: 'review',
+                        a11y: { landmark: 'main' },
+                    }],
+                },
+            }],
+        };
+        el.componentDocument = {
+            $formspecComponent: '1.2',
+            version: '1.0.0',
+            targetSurfaceRoutes: [{
+                surface: { url: 'formspec://surfaces/respondent', version: '1.0.0' },
+                route: 'review',
+            }],
+            tree: {
+                component: 'Stack',
+                id: 'root',
+                children: [{ component: 'TextInput', bind: 'name', id: 'nameField' }],
+            },
+        };
+        el.definition = singleFieldDef();
+        el.render();
+
+        const stack = el.querySelector('.formspec-stack') as HTMLElement;
+        expect(stack.getAttribute('role')).toBeNull();
+        expect(stack.dataset.formspecUiPolicyA11yLandmarkSuppressed).toBe('true');
+    });
+
+    it('keeps Modal route roots metadata-only even when policy requests main', () => {
+        el.componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: 'formspec://components/respondent',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'formspec://surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        el.hostEvidence = {
+            appGraphReport: completedUiGraphPolicyReport(),
+            uiGraphPolicies: [{
+                schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                source: 'host://policy/respondent-ui-policy',
+                document: {
+                    $formspecUiGraphPolicy: '0.1',
+                    version: '1.0.0',
+                    targetSurface: {
+                        url: 'formspec://surfaces/respondent',
+                        version: '1.0.0',
+                    },
+                    routePolicies: [{
+                        routeId: 'review',
+                        a11y: { landmark: 'main' },
+                    }],
+                },
+            }],
+        };
+        el.componentDocument = {
+            $formspecComponent: '1.2',
+            version: '1.0.0',
+            targetSurfaceRoutes: [{
+                surface: { url: 'formspec://surfaces/respondent', version: '1.0.0' },
+                route: 'review',
+            }],
+            tree: {
+                component: 'Modal',
+                id: 'modal-1',
+                props: { title: 'Confirm', triggerLabel: 'Open' },
+                children: [],
+            },
+        };
+        el.definition = singleFieldDef();
+        el.render();
+
+        const dialog = el.querySelector('dialog.formspec-modal') as HTMLDialogElement;
+        expect(dialog).toBeTruthy();
+        expect(dialog.getAttribute('role')).toBeNull();
+        expect(dialog.dataset.formspecUiPolicyA11yLandmark).toBe('main');
     });
 
     it('setting definition again re-renders in place (root container preserved)', () => {

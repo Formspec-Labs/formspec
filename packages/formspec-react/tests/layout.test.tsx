@@ -181,11 +181,55 @@ describe('Stack layout', () => {
         expect(el.getAttribute('role')).toBeNull();
     });
 
-    it('leaves region route policy as metadata until a naming profile exists', () => {
-        const container = renderNode(routePolicyNode(stackNode(), 'region'));
+    it('maps region route policy with landmarkLabel to role and aria-label', () => {
+        const container = renderNode({
+            ...routePolicyNode(stackNode(), 'region'),
+            uiGraphRoutePolicy: {
+                ...routePolicyNode(stackNode(), 'region').uiGraphRoutePolicy!,
+                a11y: {
+                    landmark: 'region',
+                    landmarkLabel: 'Application review',
+                    keyboardNavigation: true,
+                },
+            },
+        });
+        const el = container.querySelector('.formspec-stack') as HTMLElement;
+        expect(el.getAttribute('role')).toBe('region');
+        expect(el.getAttribute('aria-label')).toBe('Application review');
+        expect(el.dataset.formspecUiPolicyA11yLandmark).toBe('region');
+        expect(el.dataset.formspecUiPolicyA11yLandmarkLabel).toBe('Application review');
+    });
+
+    it('suppresses active route landmark when projection marks host reservation', () => {
+        const container = renderNode({
+            ...routePolicyNode(stackNode(), 'main'),
+            uiGraphRoutePolicy: {
+                ...routePolicyNode(stackNode(), 'main').uiGraphRoutePolicy!,
+                a11y: {
+                    landmark: 'main',
+                    landmarkSuppressed: true,
+                },
+            },
+        });
         const el = container.querySelector('.formspec-stack') as HTMLElement;
         expect(el.getAttribute('role')).toBeNull();
-        expect(el.dataset.formspecUiPolicyA11yLandmark).toBe('region');
+        expect(el.dataset.formspecUiPolicyA11yLandmark).toBe('main');
+        expect(el.dataset.formspecUiPolicyA11yLandmarkSuppressed).toBe('true');
+    });
+
+    it('keeps Modal route roots metadata-only even when policy requests main', () => {
+        const container = renderNode(routePolicyNode({
+            id: 'modal-1',
+            component: 'Modal',
+            category: 'interactive',
+            props: { title: 'Confirm', triggerLabel: 'Open' },
+            cssClasses: [],
+            children: [],
+        }, 'main'));
+        const dialog = container.querySelector('dialog.formspec-modal') as HTMLDialogElement;
+        expect(dialog.getAttribute('role')).toBeNull();
+        expect(dialog.dataset.formspecUiPolicyA11yLandmark).toBe('main');
+        expect(dialog.dataset.formspecUiPolicyRoute).toBe('apply');
     });
 
     it('keeps route policy active when Stack pageMode rewrites the root to Wizard', () => {

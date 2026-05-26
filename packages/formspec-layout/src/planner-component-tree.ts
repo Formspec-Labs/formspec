@@ -278,6 +278,31 @@ function projectUiGraphRoutePolicy(node: LayoutNode, ctx: PlanContext): LayoutNo
     return node;
 }
 
+function hostReservedLandmarks(
+    hostEvidence: PlanContext['hostEvidence'],
+): Set<'main' | 'navigation' | 'complementary'> {
+    const reserved = hostEvidence?.hostLandmarks?.reserved ?? [];
+    const roles = new Set<'main' | 'navigation' | 'complementary'>();
+    for (const landmark of reserved) {
+        if (landmark === 'main' || landmark === 'navigation' || landmark === 'complementary') {
+            roles.add(landmark);
+        }
+    }
+    return roles;
+}
+
+function projectRouteA11y(
+    a11y: NonNullable<NonNullable<LayoutNode['uiGraphRoutePolicy']>['a11y']>,
+    hostReserved: ReadonlySet<'main' | 'navigation' | 'complementary'>,
+): NonNullable<LayoutNode['uiGraphRoutePolicy']>['a11y'] {
+    const projected = { ...a11y };
+    const landmark = projected.landmark;
+    if (landmark && landmark !== 'region' && hostReserved.has(landmark)) {
+        projected.landmarkSuppressed = true;
+    }
+    return projected;
+}
+
 function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRoutePolicy'] | undefined {
     const scope = ctx.componentGraph;
     const hostEvidence = ctx.hostEvidence;
@@ -301,6 +326,8 @@ function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRout
         if (!isUiGraphPolicyDocumentLike(document)) continue;
         if (!targetSurfaceMatches(document.targetSurface, scope.surface)) continue;
 
+        const hostReserved = hostReservedLandmarks(hostEvidence);
+
         for (const routePolicy of document.routePolicies) {
             if (routePolicy.routeId !== scope.route) continue;
             matches.push({
@@ -308,7 +335,7 @@ function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRout
                 source: entry.source,
                 targetSurface: { ...document.targetSurface },
                 routeId: routePolicy.routeId,
-                ...(routePolicy.a11y ? { a11y: { ...routePolicy.a11y } } : {}),
+                ...(routePolicy.a11y ? { a11y: projectRouteA11y(routePolicy.a11y, hostReserved) } : {}),
                 ...(routePolicy.responsive ? {
                     responsive: {
                         ...routePolicy.responsive,
@@ -468,12 +495,16 @@ function isUiGraphRoutePolicyLike(
         }
         const a11y = routePolicy.a11y as {
             landmark?: unknown;
+            landmarkLabel?: unknown;
             keyboardNavigation?: unknown;
         };
         if (
             'landmark' in a11y
             && !['main', 'navigation', 'complementary', 'region'].includes(String(a11y.landmark))
         ) {
+            return false;
+        }
+        if ('landmarkLabel' in a11y && typeof a11y.landmarkLabel !== 'string') {
             return false;
         }
         if ('keyboardNavigation' in a11y && typeof a11y.keyboardNavigation !== 'boolean') {
