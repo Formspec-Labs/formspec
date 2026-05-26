@@ -1,7 +1,7 @@
 // ADR-0023 Exception: Tests the remoteOptions data-loading infrastructure contract
 // (fetch + 500 error fallback). Requires a mock server; not representable in domain data.
 import { test, expect } from '@playwright/test';
-import { gotoHarness, mountDefinition, submitAndGetResponse } from '../e2e/browser/helpers/harness';
+import { gotoHarness, HARNESS_ORIGIN, mountDefinition, submitAndGetResponse } from '../e2e/browser/helpers/harness';
 
 test.describe('Components: Remote Options Binding', () => {
   test('loads bind.remoteOptions data into Select at runtime', async ({ page }) => {
@@ -33,7 +33,7 @@ test.describe('Components: Remote Options Binding', () => {
         },
       ],
       binds: [
-        { path: 'state', remoteOptions: 'http://127.0.0.1:8080/api/options/states' },
+        { path: 'state', remoteOptions: `${HARNESS_ORIGIN}/api/options/states` },
       ],
     });
 
@@ -83,7 +83,7 @@ test.describe('Components: Remote Options Binding', () => {
         },
       ],
       binds: [
-        { path: 'country', remoteOptions: 'http://127.0.0.1:8080/api/options/countries' },
+        { path: 'country', remoteOptions: `${HARNESS_ORIGIN}/api/options/countries` },
       ],
     });
 

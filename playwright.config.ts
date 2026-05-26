@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { FORMSPEC_E2E_HEALTH_PATH, FORMSPEC_E2E_ORIGIN } from './tests/e2e/harness-server';
 
 export default defineConfig({
   testDir: './tests',
@@ -10,7 +11,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:8080',
+    baseURL: FORMSPEC_E2E_ORIGIN,
     trace: 'on-first-retry',
   },
   projects: [
@@ -22,7 +23,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run test:serve',
-      port: 8080,
+      url: `${FORMSPEC_E2E_ORIGIN}${FORMSPEC_E2E_HEALTH_PATH}`,
       reuseExistingServer: !process.env.CI,
     },
     {

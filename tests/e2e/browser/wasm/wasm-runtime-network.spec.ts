@@ -1,7 +1,7 @@
 /** @filedesc Assert render-only bundle does not fetch tools WASM on startup (ADR 0050 §8). */
 import { test, expect } from '@playwright/test';
 
-const SLIM_HARNESS = 'http://127.0.0.1:8080/wasm-runtime-network.html';
+const SLIM_HARNESS = '/wasm-runtime-network.html';
 
 test.describe('WASM runtime-only network (slim harness)', () => {
     test('does not request tools wasm/glue during runtime init', async ({ page }) => {

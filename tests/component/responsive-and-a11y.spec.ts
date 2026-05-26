@@ -3,7 +3,7 @@ import { waitForWasm } from '../e2e/browser/helpers/harness';
 
 test.describe('Components: Accessibility and Responsive Overrides', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://127.0.0.1:8080/');
+        await page.goto('/');
         await page.waitForSelector('formspec-render', { state: 'attached' });
         await waitForWasm(page);
     });

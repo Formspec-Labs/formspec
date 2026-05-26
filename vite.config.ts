@@ -1,11 +1,14 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import fs from 'fs';
+import { FORMSPEC_E2E_HEALTH_PATH, FORMSPEC_E2E_PORT } from './tests/e2e/harness-server';
 
 export default defineConfig({
   root: 'tests/e2e/fixtures',
   server: {
-    port: 8080
+    host: '127.0.0.1',
+    port: FORMSPEC_E2E_PORT,
+    strictPort: true,
   },
   build: {
     target: 'esnext',
@@ -13,6 +16,16 @@ export default defineConfig({
     emptyOutDir: true
   },
   plugins: [
+    {
+      name: 'formspec-e2e-health',
+      configureServer(server) {
+        server.middlewares.use(FORMSPEC_E2E_HEALTH_PATH, (_req, res) => {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/plain');
+          res.end('ok');
+        });
+      },
+    },
     {
       name: 'serve-examples',
       configureServer(server) {

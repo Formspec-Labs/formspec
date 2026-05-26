@@ -2,8 +2,10 @@
 // ADR-0023: Low-level harness used only by tests that require synthetic inline fixtures
 // (compatibility matrices, Tab-based layouts, and other non-grant-app scenarios).
 import type { Page } from '@playwright/test';
+import { FORMSPEC_E2E_ORIGIN } from '../../harness-server';
 
-const DEFAULT_HARNESS_URL = 'http://127.0.0.1:8080/';
+export const HARNESS_ORIGIN = FORMSPEC_E2E_ORIGIN;
+const DEFAULT_HARNESS_URL = `${HARNESS_ORIGIN}/`;
 
 export async function waitForWasm(page: Page): Promise<void> {
   await page.waitForFunction(() => (window as any).__wasmReady === true, null, { timeout: 10000 });

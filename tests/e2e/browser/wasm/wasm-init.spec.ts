@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('WASM initializes in browser', async ({ page }) => {
-    await page.goto('http://127.0.0.1:8080/');
+    await page.goto('/');
     await page.waitForFunction(() => (window as any).__wasmReady !== undefined, {}, { timeout: 10000 });
 
     const wasmReady = await page.evaluate(() => (window as any).__wasmReady);
@@ -12,7 +12,7 @@ test('WASM initializes in browser', async ({ page }) => {
 });
 
 test('createFormEngine evaluates correctly when WASM is ready', async ({ page }) => {
-    await page.goto('http://127.0.0.1:8080/');
+    await page.goto('/');
     await page.waitForFunction(() => (window as any).__wasmReady === true, {}, { timeout: 10000 });
 
     const result = await page.evaluate(() => {
@@ -38,7 +38,7 @@ test('createFormEngine evaluates correctly when WASM is ready', async ({ page })
 });
 
 test('WASM FEL evaluation produces correct results via engine', async ({ page }) => {
-    await page.goto('http://127.0.0.1:8080/');
+    await page.goto('/');
     await page.waitForFunction(() => (window as any).__wasmReady === true, {}, { timeout: 10000 });
 
     const result = await page.evaluate(() => {
@@ -72,7 +72,7 @@ test('WASM FEL evaluation produces correct results via engine', async ({ page })
 });
 
 test('WASM FEL validation constraints work', async ({ page }) => {
-    await page.goto('http://127.0.0.1:8080/');
+    await page.goto('/');
     await page.waitForFunction(() => (window as any).__wasmReady === true, {}, { timeout: 10000 });
 
     const result = await page.evaluate(() => {
@@ -104,7 +104,7 @@ test('WASM FEL validation constraints work', async ({ page }) => {
 });
 
 test('WASM FEL relevance (conditional visibility) works', async ({ page }) => {
-    await page.goto('http://127.0.0.1:8080/');
+    await page.goto('/');
     await page.waitForFunction(() => (window as any).__wasmReady === true, {}, { timeout: 10000 });
 
     const result = await page.evaluate(() => {

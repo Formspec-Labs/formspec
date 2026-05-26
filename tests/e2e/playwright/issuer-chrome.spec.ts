@@ -75,7 +75,7 @@ test.describe('Issuer chrome - browser', () => {
         await routeIssuers(page);
         await gotoHarness(
             page,
-            'http://127.0.0.1:8080/?_issuer=https%3A%2F%2Fallowed%2Fissuer.json',
+            '/?_issuer=https%3A%2F%2Fallowed%2Fissuer.json',
         );
         await page.evaluate(() => {
             const el: any = document.querySelector('formspec-render');
@@ -91,7 +91,7 @@ test.describe('Issuer chrome - browser', () => {
         await routeIssuers(page);
         await gotoHarness(
             page,
-            'http://127.0.0.1:8080/?_issuer=https%3A%2F%2Fbad%2Fissuer.json',
+            '/?_issuer=https%3A%2F%2Fbad%2Fissuer.json',
         );
         await page.evaluate(() => {
             const el: any = document.querySelector('formspec-render');
