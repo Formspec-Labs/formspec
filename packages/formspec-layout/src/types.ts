@@ -4,6 +4,7 @@ import type {
     ComponentDocument,
     FormDefinition,
     FormItem,
+    AppGraphValidationReport,
     ThemeDocument,
     UiGraphPolicyDocument,
 } from '@formspec-org/types';
@@ -33,6 +34,9 @@ export interface UiGraphPolicyProjectionEvidence {
 
 /** Projection-only host evidence. Layout does not fetch, validate, or discover these documents. */
 export interface LayoutHostEvidence {
+    /** Completed AppGraphValidator report for the supplied host evidence. */
+    appGraphReport?: AppGraphValidationReport;
+
     uiGraphPolicies?: UiGraphPolicyProjectionEvidence[];
 }
 

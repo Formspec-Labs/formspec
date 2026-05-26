@@ -40,12 +40,12 @@ This row spans:
   token-reference/category diagnostics.
 - `@formspec-org/layout` now has the first projection-only non-validator
   consumer: `PlanContext.hostEvidence.uiGraphPolicies[]` accepts generated
-  `UiGraphPolicyDocument` host evidence and emits inert
-  `LayoutNode.uiGraphRoutePolicy` metadata for the matching target Surface URL
-  and route id. The projection copies route `a11y` and `responsive` metadata
-  only; it does not copy hidden Definition policy, validate evidence, fetch
-  policies, discover App Manifest slots, mutate layout order, set ARIA, or block
-  drafts/actions.
+  `UiGraphPolicyDocument` host evidence only alongside a completed
+  `AppGraphValidationReport`, then emits inert `LayoutNode.uiGraphRoutePolicy`
+  metadata for the matching target Surface URL/version and route id. The
+  projection copies route `a11y` and `responsive` metadata only; it does not
+  copy hidden Definition policy, validate evidence, fetch policies, discover
+  App Manifest slots, mutate layout order, set ARIA, or block drafts/actions.
 - Registry token-category contribution compatibility, runtime hidden-state,
   Studio/authoring feedback, renderer/runtime consumers, broader consumer
   conformance, and optional future App Manifest slot work remain open.
@@ -86,8 +86,9 @@ This row spans:
 - 2026-05-26: External architecture review narrowed the first consumer slice to
   projection only. Studio editor and renderer targets would cross authoring or
   runtime ownership too early. The accepted slice is a pure
-  `@formspec-org/layout` read of `hostEvidence.uiGraphPolicies[]` that annotates
-  route projection output without becoming a validator or runtime gate.
+  `@formspec-org/layout` read of validated `hostEvidence.uiGraphPolicies[]`
+  evidence plus completed `AppGraphValidationReport` proof that annotates route
+  projection output without becoming a validator or runtime gate.
 
 ## Closure Evidence
 

@@ -5,7 +5,7 @@ import type { ItemDescriptor, Tier1Hints } from './theme-resolver.js';
 import { resolvePresentation, resolveWidget } from './theme-resolver.js';
 import { resolveResponsiveProps } from './responsive.js';
 import { interpolateParams } from './params.js';
-import type { ComponentTreeNode, FormItem, LayoutNode, PlanContext } from './types.js';
+import type { ComponentTreeNode, FormItem, LayoutHostEvidence, LayoutNode, PlanContext } from './types.js';
 import {
     classifyComponent,
     extractProps,
@@ -280,19 +280,29 @@ function projectUiGraphRoutePolicy(node: LayoutNode, ctx: PlanContext): LayoutNo
 
 function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRoutePolicy'] | undefined {
     const scope = ctx.componentGraph;
-    const evidence = ctx.hostEvidence?.uiGraphPolicies;
-    if (!scope || !evidence?.length) return undefined;
+    const hostEvidence = ctx.hostEvidence;
+    const evidence = hostEvidence?.uiGraphPolicies;
+    const validatedPolicySources = validatedUiGraphPolicyEvidenceSources(hostEvidence?.appGraphReport);
+    if (!scope || !Array.isArray(evidence) || evidence.length === 0 || validatedPolicySources.size === 0) {
+        return undefined;
+    }
 
     const matches: NonNullable<LayoutNode['uiGraphRoutePolicy']>[] = [];
-    for (const entry of evidence) {
-        if (entry.schemaId !== UI_GRAPH_POLICY_SCHEMA_ID || typeof entry.source !== 'string') {
+    for (const [index, entry] of evidence.entries()) {
+        if (!isUiGraphPolicyProjectionEvidenceLike(entry)) continue;
+        const evidenceSlot = `hostEvidence.uiGraphPolicies[${index}]`;
+        if (validatedPolicySources.get(evidenceSlot) !== entry.source) {
+            continue;
+        }
+        if (entry.schemaId !== UI_GRAPH_POLICY_SCHEMA_ID) {
             continue;
         }
         const document = entry.document;
-        if (document.$formspecUiGraphPolicy !== '0.1') continue;
-        if (document.targetSurface.url !== scope.surface.url) continue;
+        if (!isUiGraphPolicyDocumentLike(document)) continue;
+        if (!targetSurfaceMatches(document.targetSurface, scope.surface)) continue;
 
         for (const routePolicy of document.routePolicies) {
+            if (!isUiGraphRoutePolicyLike(routePolicy)) continue;
             if (routePolicy.routeId !== scope.route) continue;
             matches.push({
                 schemaId: entry.schemaId,
@@ -313,6 +323,136 @@ function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRout
     }
 
     return matches.length === 1 ? matches[0] : undefined;
+}
+
+function validatedUiGraphPolicyEvidenceSources(
+    report: LayoutHostEvidence['appGraphReport'] | undefined,
+): Map<string, string> {
+    if (
+        !report
+        || typeof report !== 'object'
+        || report.ok !== true
+        || !Array.isArray(report.phases)
+        || !Array.isArray(report.evidenceResults)
+    ) {
+        return new Map();
+    }
+    const hasCompletedSchema = report.phases.some((phase) => isCompletedAppGraphPhase(phase, 'schema'));
+    const hasCompletedCrossArtifact = report.phases.some((phase) => (
+        isCompletedAppGraphPhase(phase, 'cross-artifact')
+    ));
+    if (!hasCompletedSchema || !hasCompletedCrossArtifact) return new Map();
+    return new Map(
+        report.evidenceResults
+            .filter(isCompletedUiGraphPolicyEvidenceResult)
+            .map((result) => [result.evidenceSlot, result.source]),
+    );
+}
+
+function isCompletedAppGraphPhase(value: unknown, phaseName: string): boolean {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const phase = value as {
+        phase?: unknown;
+        status?: unknown;
+    };
+    return phase.phase === phaseName && phase.status === 'completed';
+}
+
+function isCompletedUiGraphPolicyEvidenceResult(value: unknown): value is {
+    evidenceSlot: string;
+    schemaId: typeof UI_GRAPH_POLICY_SCHEMA_ID;
+    source: string;
+    status: 'completed';
+    ok: true;
+} {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const result = value as {
+        evidenceSlot?: unknown;
+        schemaId?: unknown;
+        source?: unknown;
+        status?: unknown;
+        ok?: unknown;
+    };
+    return result.schemaId === UI_GRAPH_POLICY_SCHEMA_ID
+        && result.status === 'completed'
+        && result.ok === true
+        && typeof result.evidenceSlot === 'string'
+        && typeof result.source === 'string';
+}
+
+function isUiGraphPolicyProjectionEvidenceLike(value: unknown): value is {
+    schemaId: string;
+    source: string;
+    document: unknown;
+} {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const evidence = value as {
+        schemaId?: unknown;
+        source?: unknown;
+    };
+    return typeof evidence.schemaId === 'string' && typeof evidence.source === 'string' && 'document' in value;
+}
+
+function isUiGraphPolicyDocumentLike(
+    value: unknown,
+): value is NonNullable<NonNullable<PlanContext['hostEvidence']>['uiGraphPolicies']>[number]['document'] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const document = value as {
+        $formspecUiGraphPolicy?: unknown;
+        targetSurface?: unknown;
+        routePolicies?: unknown;
+    };
+    const targetSurface = document.targetSurface;
+    return document.$formspecUiGraphPolicy === '0.1'
+        && !!targetSurface
+        && typeof targetSurface === 'object'
+        && !Array.isArray(targetSurface)
+        && typeof (targetSurface as { url?: unknown }).url === 'string'
+        && Array.isArray(document.routePolicies);
+}
+
+function isUiGraphRoutePolicyLike(
+    value: unknown,
+): value is NonNullable<
+    NonNullable<NonNullable<PlanContext['hostEvidence']>['uiGraphPolicies']>[number]['document']['routePolicies']
+>[number] {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const routePolicy = value as {
+        routeId?: unknown;
+        a11y?: unknown;
+        responsive?: unknown;
+    };
+    if (typeof routePolicy.routeId !== 'string') return false;
+    if ('a11y' in routePolicy) {
+        if (!routePolicy.a11y || typeof routePolicy.a11y !== 'object' || Array.isArray(routePolicy.a11y)) {
+            return false;
+        }
+    }
+    if ('responsive' in routePolicy) {
+        if (
+            !routePolicy.responsive
+            || typeof routePolicy.responsive !== 'object'
+            || Array.isArray(routePolicy.responsive)
+        ) {
+            return false;
+        }
+        const responsive = routePolicy.responsive as { collapseOrder?: unknown };
+        if ('collapseOrder' in responsive && !Array.isArray(responsive.collapseOrder)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function targetSurfaceMatches(
+    policySurface: NonNullable<NonNullable<PlanContext['hostEvidence']>['uiGraphPolicies']>[number]['document']['targetSurface'],
+    scopeSurface: NonNullable<PlanContext['componentGraph']>['surface'],
+): boolean {
+    if (policySurface.url !== scopeSurface.url) return false;
+    if (policySurface.version && scopeSurface.version && policySurface.version !== scopeSurface.version) {
+        return false;
+    }
+    return true;
 }
 
 function planThemePagesFromComponentTree(
