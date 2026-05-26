@@ -12,8 +12,9 @@ host-supplied Component graph projection context as inert DOM metadata.
 AppGraphValidator now defines and checks `hostEvidence.componentGraphContexts[]`
 as the proof source for that sidecar. `formspec-web` now requires matching
 completed component-graph evidence before trusting runtime `componentGraph`
-metadata. Production runtime host graph loading and production copy/move
-consumers outside StudioCore remain open.
+metadata. Production runtime host graph loading now persists and serves
+first-class, validated Component graph proof from the trusted MCP/BFF publish
+route. Production copy/move consumers outside StudioCore remain open.
 Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
@@ -114,6 +115,13 @@ This plan tracks:
   BLOCKER/HIGH/MEDIUM/LOW issues. The review confirmed the public facade seam,
   missing graph-identity / graph-scope move negatives, pre-mutation rejection
   order, no production/BFF overclaim, and no ADR 0153 §6 prohibited promotion.
+- 2026-05-26: Franklin pre-review
+  `019e64a7-8538-7623-8d09-1b6354e52272` rejected two shortcuts before the
+  runtime-host slice: do not append host evidence after report production, and
+  do not persist an arbitrary submitted `app_graph_validation_report` as runtime
+  trust. The approved shape is trusted MCP/BFF pre-validation Component graph
+  host evidence, server-verified tuple matching, first-class immutable runtime
+  proof storage, and top-level runtime payload fields.
 
 ## Ordered Work
 
@@ -190,8 +198,17 @@ This plan tracks:
     loaded Surface route, and the loaded Component `targetSurfaceRoutes[]`
     declaration as a prerequisite for future runtime consumers to treat
     `componentGraph` metadata as validated.
-  - [ ] Runtime hosts still need route-backed app-graph wiring that supplies the
-    validated projection context from a real loaded graph.
+  - [x] Trusted MCP/BFF publish wiring supplies `component_graph` only when the
+    same document was present in pre-validation
+    `hostEvidence.componentGraphContexts[]`; the helper fails closed unless the
+    produced report completes that evidence slot.
+  - [x] `formspec-server` verifies `component_graph` +
+    `host_evidence.componentGraphContexts[]` +
+    `app_graph_validation_report` as a tuple before persistence, normalizes
+    `host_evidence.appGraphReport` from the admitted report, stores the proof in
+    first-class immutable form-version fields, and serves `component_graph`,
+    `host_evidence`, and `app_graph_validation_report` as top-level runtime
+    payload fields.
 - [x] Definition id alias matching is rejected with evidence.
   - [x] Explicit Studio/kernel graph binding landed as
     `bindComponentMembership`, binding the active singleton Component document to
@@ -308,6 +325,18 @@ This plan tracks:
   loads a Response Actions sidecar for the `submit` transition because A8
   Surface trigger validation rejects unresolved action triggers against the
   loaded graph.
+- 2026-05-26: Runtime host/BFF proof is first-class runtime evidence, not
+  `runtime_config`. The MCP helper strips stale graph-proof keys from
+  `runtime_config`, and the server rejects graph-proof keys there. Report-only
+  publish admission remains separate from runtime graph proof: the server only
+  persists runtime proof when the Component graph, host evidence, and completed
+  report evidence slot match.
+- 2026-05-26: The normal `formspec-server` publish route verifies the runtime
+  proof tuple but does not authenticate that a specific MCP/BFF produced it.
+  Producer provenance remains a host/BFF deployment boundary for this slice;
+  server-side proof storage is limited to structural tuple verification,
+  required completed report phases, and preservation of host-evidence array
+  indexes.
 
 ## Closing Observation
 
@@ -316,10 +345,14 @@ checks, and public-web runtime trust gate have landed: `formspec-web` suppresses
 Component graph metadata unless the sidecar matches completed
 `hostEvidence.componentGraphContexts[]` evidence. Public `StudioCoreKernel`
 consumer conformance now proves bound same-scope graph-wide copy/move workflows
-and provenance stamps through the public facade. The row remains Partial until a
-production runtime host supplies that validated Component graph context from a
-real loaded App Manifest / Component / Surface graph and production copy/move
-consumers outside StudioCore use the shared graph identity shape.
+and provenance stamps through the public facade. The trusted MCP/BFF publish
+route now loads a real App Manifest / Definition / Component / Surface graph,
+validates the Component graph context before publish, and `formspec-server`
+serves the matching first-class runtime proof to renderers while preserving
+`hostEvidence.componentGraphContexts[]` slot indexes and any completed
+`uiGraphPolicies[]` evidence. The row remains
+Partial until production copy/move consumers outside StudioCore use the shared
+graph identity shape.
 
 ## Closure Evidence
 
@@ -389,6 +422,20 @@ Partial evidence landed:
   Definition-only while adding optional Component sidecar hooks. The HTTP
   adapter accepts `componentGraphContexts[]` host evidence only when every list
   entry is well-formed, preserving evidence-slot index identity.
+- Production runtime host/BFF proof:
+  `formspec-studio/packages/formspec-mcp/src/app-graph-publish.ts` requires
+  `component_graph` to match pre-validation
+  `hostEvidence.componentGraphContexts[]`, preserves all host-evidence array
+  indexes, strips stale report/graph proof from `runtime_config`, and posts
+  first-class `component_graph` / `host_evidence` with the completed report.
+  `formspec-server/crates/formspec-server/src/services/forms.rs`,
+  `formspec-server/crates/formspec-server-ports/src/lib.rs`,
+  `formspec-server/crates/formspec-server/src/composition.rs`,
+  `formspec-server/crates/formspec-server-postgres/src/lib.rs`, and
+  `formspec-server/crates/formspec-server-postgres/migrations/202605260001_form_version_runtime_graph_proof.sql`
+  persist and serve only a server-verified runtime proof tuple with required
+  completed report phases, slot-index preservation, and completed UI Graph
+  Policy evidence preserved when present.
 - Fixtures:
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
   and
@@ -438,6 +485,15 @@ Partial evidence landed:
   `cd ../formspec-studio && npm run --workspace @formspec-org/studio-core test -- tests/kernel/proposal-manager-facade.test.ts`;
   `cd ../formspec-studio && npm run --workspace @formspec-org/studio-core test`;
   `cd ../formspec-studio && git diff --check -- packages/formspec-studio-core/tests/kernel/proposal-manager-facade.test.ts`.
+- Verification for production runtime host/BFF proof:
+  `cd ../formspec-studio && npm run build --workspace @formspec-org/mcp`;
+  `cd ../formspec-studio && npm test --workspace @formspec-org/mcp -- app-graph-publish.test.ts`;
+  `cd ../formspec-server && cargo check -p formspec-server --tests`;
+  `cd ../formspec-server && cargo test -p formspec-server --test publish_runtime`;
+  `cd ../formspec-server && cargo test -p formspec-server --test openapi_contract`;
+  `cd ../formspec-server && cargo test -p formspec-server-postgres --test storage_foundation`;
+  `cd ../formspec-server && npx playwright test tests/e2e-http/forms.spec.ts --grep "Trusted AppGraph producer publishes through the live server route"`;
+  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:18082 npx playwright test tests/e2e/response-action-ledger-live.spec.ts --grep "public RespondentRuntime submit appends"` reached the migrated top-level publish payload and failed later on local unmanaged test-server brand seeding (`tenant brand not found`), not on runtime graph proof rejection.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;
@@ -461,9 +517,4 @@ Partial evidence landed:
 
 Still open:
 
-- Production runtime host graph loading that supplies validated Component graph
-  context from a real loaded graph, rather than a test/stub sidecar.
-- Live trusted host/BFF route that produces the Component graph projection
-  context from actual loaded App Manifest / Component / Surface evidence and
-  supplies the matching completed AppGraph report.
 - Production copy/move consumers outside StudioCore.
