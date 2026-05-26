@@ -54,9 +54,10 @@ validation, or fine-grained authorization semantics.
 - 2026-05-26 follow-up checkpoint: `formspec-web` now consumes completed UI
   Graph Policy host evidence for the active Surface route and rejects hidden
   active Definition state before draft loading or Response Action state. This
-  removed EC12 runtime hidden-state from the held list. At that checkpoint the
-  Conformance row still stayed Open because A8, A10, F8/F9 production
-  consumers, and F10 authorization remained unresolved or held.
+  removed EC12 runtime hidden-state from the held list. At that checkpoint A10
+  had not yet landed; after App Manifest v2.3 `screeners[]`, the Conformance row
+  still stays Open because A8, F8/F9 production consumers, and F10 authorization
+  remain unresolved or held.
 - 2026-05-26 architecture review scouts Hegel
   (`019e62be-0f7a-75d0-96da-4f24ebbd19c0`) and Goodall
   (`019e632a-93a9-7c00-863c-20cc135b5a72`) accepted App Manifest v2.3
@@ -276,7 +277,7 @@ Pinned evidence after the ledger slice:
   `tests/conformance/fixtures/ui-graph-policy/invalid-authorization-field.json`,
   and the UI Graph Policy semantic fixture corpus. This evidence proves current
   fail-closed/source contracts only; it does not close production consumers,
-  runtime hidden-state behavior, or ADR 0152 authorization.
+  broader runtime/consumer wiring, or ADR 0152 authorization.
 
 Still open:
 
