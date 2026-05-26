@@ -55,18 +55,18 @@ pub mod tree;
 
 use serde_json::Value;
 
-use formspec_core::{detect_document_type, DocumentType};
+use formspec_core::{DocumentType, detect_document_type};
 
 // Re-export public types
 #[doc(inline)]
 pub use app_graph_report::{
-    app_graph_lint_report_to_json_value, bridge_app_graph_report, AppGraphLintDiagnostic,
-    AppGraphLintReport, AppGraphReportSchemaError,
+    AppGraphLintDiagnostic, AppGraphLintReport, AppGraphReportSchemaError,
+    app_graph_lint_report_to_json_value, bridge_app_graph_report,
 };
 pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
 pub use types::{
-    sort_diagnostics, LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity,
+    LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
 };
 
 // ── Lint pipeline ───────────────────────────────────────────────
@@ -458,10 +458,12 @@ mod tests {
         );
 
         assert!(!result.valid);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.code == crate::LintCode::E100));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == crate::LintCode::E100)
+        );
         let app_graph_report = result.app_graph_report.expect(
             "unknown graph-root documents should still preserve completed AppGraph reports",
         );
@@ -596,10 +598,12 @@ mod tests {
         let doc = json!({ "random": "data" });
         let result = lint(&doc);
         assert!(!result.valid);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|d| d.code == crate::LintCode::E100));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E100)
+        );
         assert_eq!(result.diagnostics.len(), 1, "Should halt after E100");
     }
 
@@ -619,10 +623,12 @@ mod tests {
             ]
         });
         let result = lint(&def);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|d| d.code == crate::LintCode::E201));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E201)
+        );
         assert_eq!(
             result.diagnostics.iter().filter(|d| d.pass >= 3).count(),
             0,
@@ -931,10 +937,12 @@ mod tests {
         });
         let result = lint(&theme);
         assert_eq!(result.document_type, Some(DocumentType::Theme));
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|d| d.code == crate::LintCode::W704));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::W704)
+        );
         // Expect W704 (missing token ref), W708/W709 (registry checks), plus E101 from schema
         // Filter to only W704 — the core check this test validates
         let w704_count = result
@@ -1023,10 +1031,12 @@ mod tests {
         });
         let result = lint(&comp);
         assert_eq!(result.document_type, Some(DocumentType::Component));
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|d| d.code == crate::LintCode::E800));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E800)
+        );
     }
 
     /// Cross-pass integration: definition with errors across passes 3, 4, and 5.
@@ -1123,10 +1133,12 @@ mod tests {
             },
         );
         assert!(!result.valid);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|d| d.code == crate::LintCode::E100));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.code == crate::LintCode::E100)
+        );
     }
 
     // ── no_fel: skips passes 4 and 5 ────────────────────────────

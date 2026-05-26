@@ -6,8 +6,8 @@ use crate::component_matrix::is_input_component;
 use crate::metadata;
 use crate::types::LintDiagnostic;
 
-use super::walk::WalkState;
 use super::PASS;
+use super::walk::WalkState;
 
 pub(crate) fn check(
     state: &mut WalkState<'_>,

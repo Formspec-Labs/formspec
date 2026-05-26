@@ -1,12 +1,12 @@
 //! Bind resolution and field/component type compatibility (W800, E802, W802).
 
-use crate::component_matrix::{classify_compatibility, is_input_component, Compatibility};
+use crate::component_matrix::{Compatibility, classify_compatibility, is_input_component};
 use crate::metadata;
 use crate::types::LintDiagnostic;
 use serde_json::Value;
 
-use super::walk::WalkState;
 use super::PASS;
+use super::walk::WalkState;
 
 pub(crate) fn check(
     state: &mut WalkState<'_>,

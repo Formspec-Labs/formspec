@@ -600,9 +600,11 @@ mod tests {
         assert!(diagnostics.iter().any(|diag| {
             diag.code == crate::LintCode::E1505 && diag.path == "$.resultValidity"
         }));
-        assert!(diagnostics
-            .iter()
-            .any(|diag| { diag.code == crate::LintCode::E1505 && diag.path == "$.version" }));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diag| { diag.code == crate::LintCode::E1505 && diag.path == "$.version" })
+        );
     }
 
     #[test]
@@ -676,17 +678,23 @@ mod tests {
         let unavailable_diagnostics = lint_determination_record(&unavailable);
         let expired_diagnostics = lint_determination_record(&expired);
 
-        assert!(unavailable_diagnostics
-            .iter()
-            .any(|diag| { diag.code == crate::LintCode::E1506 && diag.path == "$.overrides" }));
-        assert!(unavailable_diagnostics
-            .iter()
-            .any(|diag| { diag.code == crate::LintCode::E1506 && diag.path == "$.validity" }));
+        assert!(
+            unavailable_diagnostics
+                .iter()
+                .any(|diag| { diag.code == crate::LintCode::E1506 && diag.path == "$.overrides" })
+        );
+        assert!(
+            unavailable_diagnostics
+                .iter()
+                .any(|diag| { diag.code == crate::LintCode::E1506 && diag.path == "$.validity" })
+        );
         assert!(unavailable_diagnostics.iter().any(|diag| {
             diag.code == crate::LintCode::E1506 && diag.path == "$.validity.resultValidity"
         }));
-        assert!(expired_diagnostics
-            .iter()
-            .any(|diag| { diag.code == crate::LintCode::E1506 && diag.path == "$.validity" }));
+        assert!(
+            expired_diagnostics
+                .iter()
+                .any(|diag| { diag.code == crate::LintCode::E1506 && diag.path == "$.validity" })
+        );
     }
 }

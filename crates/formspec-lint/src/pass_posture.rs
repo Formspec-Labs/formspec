@@ -9,8 +9,9 @@ use serde_json::Value;
 
 use crate::metadata;
 use crate::posture_admission::{
-    allowed_actors_from_posture, allowed_modules_from_posture, evaluate_actor_posture_admission,
-    evaluate_module_posture_admission, module_ref_fields_from_value, ModulePostureAdmissionFailure,
+    ModulePostureAdmissionFailure, allowed_actors_from_posture, allowed_modules_from_posture,
+    evaluate_actor_posture_admission, evaluate_module_posture_admission,
+    module_ref_fields_from_value,
 };
 use crate::types::LintDiagnostic;
 
