@@ -22,7 +22,7 @@ export type { UnitKind, ExperienceDocument, Applicability, Actor, Task, Unit, It
 export type { ChangelogDocument, Change } from './changelog.js';
 export type { ValidationResult } from './validation-result.js';
 export type { VerificationReceipt } from './verification-receipt.js';
-export type { FormResponse, ResponseMetadata, ResponseProvenanceEntry, ResponseDerivationEntry, ResponseDisclosureShownEntry, AuthoredSignature, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding } from './response.js';
+export type { ResponseMetadataPathKey, FormResponse, ResponseMetadata, ResponseProvenanceEntry, ResponseDerivationEntry, ResponseDisclosureShownEntry, AuthoredSignature, AuthoredSignatureSignedPayload, AuthoredSignatureIdentityBinding } from './response.js';
 export type { IntakeHandoff, Ref, HashString, DefinitionRef } from './intake-handoff.js';
 export type { ValidationReport, FormspecValidationResult } from './validation-report.js';
 export type { LocaleDocument } from './locale.js';
