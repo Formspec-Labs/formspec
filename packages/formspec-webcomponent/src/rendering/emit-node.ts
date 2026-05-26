@@ -31,7 +31,34 @@ function applyComponentGraphIdentity(el: HTMLElement, identity: LayoutNode['comp
     if (identity.nodeId) el.dataset.formspecComponentNodeStructuralId = identity.nodeId;
 }
 
-function renderActualComponentWithGraphIdentity(
+function applyUiGraphRoutePolicy(el: HTMLElement, policy: LayoutNode['uiGraphRoutePolicy']): void {
+    if (!policy) return;
+    el.dataset.formspecUiPolicySchema = policy.schemaId;
+    el.dataset.formspecUiPolicySource = policy.source;
+    el.dataset.formspecUiPolicySurfaceUrl = policy.targetSurface.url;
+    if (policy.targetSurface.version) el.dataset.formspecUiPolicySurfaceVersion = policy.targetSurface.version;
+    el.dataset.formspecUiPolicyRoute = policy.routeId;
+    if (policy.a11y?.landmark) el.dataset.formspecUiPolicyA11yLandmark = policy.a11y.landmark;
+    if (policy.a11y?.keyboardNavigation !== undefined) {
+        el.dataset.formspecUiPolicyKeyboardNavigation = String(policy.a11y.keyboardNavigation);
+    }
+    if (policy.responsive?.minColumns !== undefined) {
+        el.dataset.formspecUiPolicyResponsiveMinColumns = String(policy.responsive.minColumns);
+    }
+    if (policy.responsive?.collapseOrder) {
+        el.dataset.formspecUiPolicyResponsiveCollapseOrder = JSON.stringify(policy.responsive.collapseOrder);
+    }
+}
+
+function applyProjectionMetadata(
+    el: HTMLElement,
+    metadata: Pick<LayoutNode, 'componentGraphIdentity' | 'uiGraphRoutePolicy'>,
+): void {
+    applyComponentGraphIdentity(el, metadata.componentGraphIdentity);
+    applyUiGraphRoutePolicy(el, metadata.uiGraphRoutePolicy);
+}
+
+function renderActualComponentWithProjectionMetadata(
     host: RenderHost,
     comp: ComponentDescriptor,
     parent: HTMLElement,
@@ -39,11 +66,11 @@ function renderActualComponentWithGraphIdentity(
 ): void {
     const firstNewChildIndex = parent.childElementCount;
     renderActualComponent(host, comp, parent, prefix);
-    if (!comp.componentGraphIdentity) return;
+    if (!comp.componentGraphIdentity && !comp.uiGraphRoutePolicy) return;
     const added = Array.from(parent.children).slice(firstNewChildIndex);
     for (const child of added) {
         if (child instanceof HTMLElement) {
-            applyComponentGraphIdentity(child, comp.componentGraphIdentity);
+            applyProjectionMetadata(child, comp);
         }
     }
 }
@@ -83,7 +110,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         const container = document.createElement('div');
         container.className = 'formspec-repeat';
         container.dataset.bind = bindKey;
-        applyComponentGraphIdentity(container, node.componentGraphIdentity);
+        applyProjectionMetadata(container, node);
         target.appendChild(container);
         const list = document.createElement('div');
         list.className = 'formspec-repeat-list';
@@ -184,7 +211,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         const nextPrefix = prefix ? `${prefix}.${bindKey}` : bindKey;
         const el = document.createElement('div');
         el.className = 'formspec-group';
-        applyComponentGraphIdentity(el, node.componentGraphIdentity);
+        applyProjectionMetadata(el, node);
         if (node.cssClasses.length > 0) host.applyClassValue(el, node.cssClasses);
         host.applyAccessibility(el, node);
         host.applyStyle(el, node.style);
@@ -240,8 +267,11 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
     if (node.componentGraphIdentity !== undefined) {
         comp.componentGraphIdentity = node.componentGraphIdentity;
     }
+    if (node.uiGraphRoutePolicy !== undefined) {
+        comp.uiGraphRoutePolicy = node.uiGraphRoutePolicy;
+    }
 
-    renderActualComponentWithGraphIdentity(host, comp, target, prefix);
+    renderActualComponentWithProjectionMetadata(host, comp, target, prefix);
 }
 
 /**

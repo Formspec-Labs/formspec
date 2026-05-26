@@ -57,6 +57,8 @@ export type ComponentDescriptor = ComponentPresentationSource & {
     pageMode?: 'wizard' | 'tabs';
     /** App-graph Component node identity projected by the layout planner. */
     componentGraphIdentity?: LayoutNode['componentGraphIdentity'];
+    /** Projection-only UI Graph Policy route metadata emitted as inert DOM metadata. */
+    uiGraphRoutePolicy?: LayoutNode['uiGraphRoutePolicy'];
 };
 
 /** Response `data` / screener answer maps (JSON-compatible values). */

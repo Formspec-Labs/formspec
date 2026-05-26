@@ -42,6 +42,7 @@ import {
     preparePlanContext,
     mergeFormPresentationForPlanning,
     type ComponentGraphProjectionContext,
+    type LayoutHostEvidence,
 } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
@@ -177,6 +178,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ _definition: FormDefinition | null = null;
     /** @internal */ _componentDocument: ComponentDocument | null = null;
     /** @internal */ _componentGraph: ComponentGraphProjectionContext | null = null;
+    /** @internal */ _hostEvidence: LayoutHostEvidence | null = null;
     /** @internal */ _themeDocument: ThemeDocument | null = null;
     /** @internal */ _responseActionsDocument: ResponseActionsDocument | null = null;
     /** @internal */ _responseActionInvoker: ResponseActionInvoker | null = null;
@@ -524,6 +526,21 @@ export class FormspecRender extends HTMLElement {
         return this._componentGraph;
     }
 
+    /**
+     * Host-supplied AppGraphValidator-backed projection evidence.
+     * The renderer forwards this to layout planning only; it does not validate,
+     * fetch, apply ARIA, or infer hidden-state runtime behavior from it.
+     */
+    set hostEvidence(val: LayoutHostEvidence | null | undefined) {
+        this._hostEvidence = val ?? null;
+        this.scheduleRender();
+    }
+
+    /** The currently loaded host projection evidence, if any. */
+    get hostEvidence(): LayoutHostEvidence | null {
+        return this._hostEvidence;
+    }
+
     /** Set the Response Actions document used by ActionButton actionRef resolution. */
     set responseActionsDocument(val: ResponseActionsDocument | null | undefined) {
         this._responseActionsDocument = val ?? null;
@@ -817,6 +834,7 @@ export class FormspecRender extends HTMLElement {
             ),
             componentDocument: this._componentDocument ?? undefined,
             ...(this._componentGraph ? { componentGraph: this._componentGraph } : {}),
+            ...(this._hostEvidence ? { hostEvidence: this._hostEvidence } : {}),
             theme: (this._themeDocument || this.getEffectiveTheme()) as unknown as SchemaThemeDocument,
             activeBreakpoint: this.activeBreakpoint,
             findItem: (key: string) => this.findItemByKey(key),

@@ -10,8 +10,7 @@
 Close UI Graph Policy from host-loaded structural evidence to executable
 AppGraphValidator semantics without promoting an App Manifest policy slot,
 ArtifactResolver group, ADR 0152 authorization fields, runtime hidden-state
-behavior, renderer behavior, Studio wiring, or production consumers before
-their gates.
+behavior, Studio wiring, or broad production consumers before their gates.
 
 This row spans:
 
@@ -51,8 +50,13 @@ This row spans:
   Definition policy, validate evidence, check Surface version compatibility,
   fetch policies, discover App Manifest slots, mutate layout order, set ARIA,
   or block drafts/actions.
+- `<formspec-render>` now exposes host-supplied `hostEvidence` for the same
+  projection boundary and emits `LayoutNode.uiGraphRoutePolicy` as inert
+  `data-formspec-ui-policy-*` metadata on rendered route roots. It does not
+  validate AppGraph reports, fetch policy documents, apply ARIA/responsive
+  behavior, or infer hidden-state rejection.
 - Registry token-category contribution compatibility, runtime hidden-state,
-  Studio/authoring feedback, renderer/runtime consumers, broader consumer
+  Studio/authoring feedback, additional renderer/runtime consumers, broader consumer
   conformance, and optional future App Manifest slot work remain open.
 
 ## Phase Order
@@ -98,6 +102,10 @@ This row spans:
   AppGraphValidator instead of the layout projection consumer. The validator
   uses the `semver` package rather than a local range parser; layout matches
   only target Surface URL after completed report proof.
+- 2026-05-26: The first renderer consumer is limited to `<formspec-render>`
+  inert metadata emission from `LayoutNode.uiGraphRoutePolicy`. This is not
+  runtime hidden-state behavior, authoring feedback, ARIA application, or an App
+  Manifest policy slot.
 
 ## Closure Evidence
 
@@ -132,9 +140,14 @@ Current partial evidence:
 - `packages/formspec-layout/src/types.ts`
 - `packages/formspec-layout/src/planner-component-tree.ts`
 - `packages/formspec-layout/tests/planner.test.ts`
+- `packages/formspec-webcomponent/src/element.ts`
+- `packages/formspec-webcomponent/src/hub-types.ts`
+- `packages/formspec-webcomponent/src/rendering/emit-node.ts`
+- `packages/formspec-webcomponent/tests/render-lifecycle.test.ts`
 - `thoughts/archive/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
 
 Closure still requires Registry token-category contribution compatibility,
 runtime hidden-state behavior, Studio/authoring feedback, renderer/runtime
-consumers, broader consumer conformance, optional App Manifest slot decision,
-and final rollup gate transition.
+consumers beyond this webcomponent metadata surface, broader consumer
+conformance, optional App Manifest slot decision, and final rollup gate
+transition.

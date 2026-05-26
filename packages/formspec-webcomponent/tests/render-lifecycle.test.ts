@@ -1,6 +1,27 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { singleFieldDef, minimalComponentDoc, multiFieldDef } from './helpers/engine-fixtures';
 
+const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
+
+function completedUiGraphPolicyReport(source = 'host://policy/respondent-ui-policy') {
+    return {
+        version: '0.1',
+        ok: true,
+        phases: [
+            { phase: 'schema', status: 'completed' },
+            { phase: 'cross-artifact', status: 'completed' },
+        ],
+        evidenceResults: [{
+            evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+            evidenceKind: 'uiGraphPolicy',
+            schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+            source,
+            status: 'completed',
+            ok: true,
+        }],
+    };
+}
+
 /** Standalone Screener Document (spec Appendix A: `routes` → first-match `evaluation`). */
 function standaloneGate(opts: {
     items: any[];
@@ -103,6 +124,83 @@ describe('render lifecycle', () => {
         expect(stack.dataset.formspecNodePath).toBe('/root');
         expect(field.dataset.formspecNodePath).toBe('/root/name');
         expect(field.dataset.formspecComponentNodeId).toBe('nameField');
+    });
+
+    it('renders host-supplied UI Graph Policy route metadata as inert DOM metadata', () => {
+        el.componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: 'formspec://components/respondent',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'formspec://surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        el.hostEvidence = {
+            appGraphReport: completedUiGraphPolicyReport(),
+            uiGraphPolicies: [{
+                schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                source: 'host://policy/respondent-ui-policy',
+                document: {
+                    $formspecUiGraphPolicy: '0.1',
+                    version: '1.0.0',
+                    targetSurface: {
+                        url: 'formspec://surfaces/respondent',
+                        version: '1.0.0',
+                    },
+                    routePolicies: [{
+                        routeId: 'review',
+                        a11y: {
+                            landmark: 'main',
+                            keyboardNavigation: true,
+                        },
+                        responsive: {
+                            minColumns: 1,
+                            collapseOrder: ['summary', 'details'],
+                        },
+                        definitionVisibility: {
+                            hiddenDefinitionRefs: [{
+                                url: 'formspec://definitions/internal-notes',
+                                version: '1.0.0',
+                            }],
+                        },
+                    }],
+                },
+            }],
+        };
+        el.componentDocument = {
+            $formspecComponent: '1.2',
+            version: '1.0.0',
+            targetSurfaceRoutes: [{
+                surface: { url: 'formspec://surfaces/respondent', version: '1.0.0' },
+                route: 'review',
+                slot: 'main',
+            }],
+            tree: {
+                component: 'Stack',
+                id: 'root',
+                children: [{ component: 'TextInput', bind: 'name', id: 'nameField' }],
+            },
+        };
+        el.definition = singleFieldDef();
+        el.render();
+
+        const stack = el.querySelector('.formspec-stack') as HTMLElement;
+        const field = el.querySelector('.formspec-field') as HTMLElement;
+        expect(stack.dataset.formspecUiPolicySchema).toBe(UI_GRAPH_POLICY_SCHEMA_ID);
+        expect(stack.dataset.formspecUiPolicySource).toBe('host://policy/respondent-ui-policy');
+        expect(stack.dataset.formspecUiPolicySurfaceUrl).toBe('formspec://surfaces/respondent');
+        expect(stack.dataset.formspecUiPolicySurfaceVersion).toBe('1.0.0');
+        expect(stack.dataset.formspecUiPolicyRoute).toBe('review');
+        expect(stack.dataset.formspecUiPolicyA11yLandmark).toBe('main');
+        expect(stack.dataset.formspecUiPolicyKeyboardNavigation).toBe('true');
+        expect(stack.dataset.formspecUiPolicyResponsiveMinColumns).toBe('1');
+        expect(stack.dataset.formspecUiPolicyResponsiveCollapseOrder).toBe('["summary","details"]');
+        expect(stack.dataset.formspecUiPolicyHiddenDefinitionRefs).toBeUndefined();
+        expect(field.dataset.formspecUiPolicyRoute).toBeUndefined();
     });
 
     it('setting definition again re-renders in place (root container preserved)', () => {
