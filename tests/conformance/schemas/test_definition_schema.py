@@ -83,6 +83,10 @@ class TestMinimalValid:
         "items/purpose/authority-citation.definition.json",
         "definition/preparation-fees/fel-fees.definition.json",
         "definition/assurance/required-assurance.definition.json",
+        "definition/assurance/ial-only.definition.json",
+        "definition/assurance/aal-only.definition.json",
+        "definition/assurance/jurisdiction-only.definition.json",
+        "definition/assurance/full-l4-assurance.definition.json",
     ])
     def test_ext_ratification_fixtures_validate(self, schema, relative_path):
         doc = json.loads((FIXTURE_DIR / relative_path).read_text(encoding="utf-8"))
@@ -126,6 +130,24 @@ class TestTopLevelEnums:
 
     def test_invalid_assurance_level(self, schema):
         doc = _base_doc(metadata={"assurance": {"ial": "L5"}})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_assurance_rejects_unknown_subkey(self, schema):
+        # AssuranceRequirement is additionalProperties: false — only ial/aal/jurisdiction allowed.
+        doc = _base_doc(metadata={"assurance": {"ial": "L2", "fal": "L2"}})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_assurance_rejects_empty_object(self, schema):
+        # AssuranceRequirement has minProperties: 1 — empty {} is not a declaration.
+        doc = _base_doc(metadata={"assurance": {}})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_assurance_rejects_empty_jurisdiction(self, schema):
+        # jurisdiction minLength: 1 — empty string is not a valid policy namespace.
+        doc = _base_doc(metadata={"assurance": {"ial": "L2", "jurisdiction": ""}})
         with pytest.raises(ValidationError):
             _validate(doc, schema)
 

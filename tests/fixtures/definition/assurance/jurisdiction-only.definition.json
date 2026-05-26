@@ -1,0 +1,20 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/assurance-jurisdiction-only",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Assurance Jurisdiction-only Fixture",
+  "metadata": {
+    "assurance": {
+      "jurisdiction": "US-CA"
+    }
+  },
+  "items": [
+    {
+      "key": "legalName",
+      "type": "field",
+      "label": "Legal name",
+      "dataType": "string"
+    }
+  ]
+}

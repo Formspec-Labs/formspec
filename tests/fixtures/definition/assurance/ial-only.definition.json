@@ -1,0 +1,20 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/assurance-ial-only",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Assurance IAL-only Fixture",
+  "metadata": {
+    "assurance": {
+      "ial": "L1"
+    }
+  },
+  "items": [
+    {
+      "key": "legalName",
+      "type": "field",
+      "label": "Legal name",
+      "dataType": "string"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/assurance-full-l4",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Assurance Full L4 Fixture",
+  "metadata": {
+    "assurance": {
+      "ial": "L4",
+      "aal": "L4",
+      "jurisdiction": "urn:agency.gov:policy:hardened-identity:v1"
+    }
+  },
+  "items": [
+    {
+      "key": "legalName",
+      "type": "field",
+      "label": "Legal name",
+      "dataType": "string"
+    }
+  ]
+}
