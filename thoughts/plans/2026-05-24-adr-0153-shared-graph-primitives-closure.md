@@ -61,6 +61,9 @@ fine-grained authorization.
   stripped caller-supplied report evidence, posted
   `/forms/{form_id}/versions/publish`, and did not promote this row to Closed
   before live server-route proof.
+- 2026-05-26 Hegel pre-review required the MCP/BFF helper to reject reports
+  missing completed artifact-resolution, module-resolution, schema, or
+  cross-artifact phases before HTTP.
 - 2026-05-26 Goodall review `019e632a-93a9-7c00-863c-20cc135b5a72`
   found no BLOCKER/HIGH/MEDIUM issues. Its LOW findings were resolved by
   removing generated `studio-core/dist` build churn from the slice and narrowing
@@ -157,7 +160,8 @@ fine-grained authorization.
   `app_graph_validation_report`, and defensively strip snake-case/camel-case
   stale report fields at runtime.
 - [x] Fail closed locally when the produced report has `ok: false` or any
-  `severity: "error"` diagnostic.
+  `severity: "error"` diagnostic, or when required producer phases are not
+  completed.
 - [x] POST only `/forms/{form_id}/versions/publish` with the produced
   `app_graph_validation_report`.
 - [x] Export `./app-graph-publish` and `./product-verbs` package subpaths so the
@@ -245,8 +249,8 @@ Partial evidence landed:
 - MCP/BFF publish coverage:
   `formspec-studio/packages/formspec-mcp/tests/app-graph-publish.test.ts` proves
   canonical server route submission with a produced report, strips stale caller
-  report evidence, fails closed before HTTP when the report has errors, and maps
-  server conflict rejection to `CONFLICT`.
+  report evidence, fails closed before HTTP when the report has errors or lacks
+  required completed phases, and maps server conflict rejection to `CONFLICT`.
 - Verification: `cargo nextest run -p formspec-lint` passed 434/434 tests after
   schema mirror sync.
 - Verification: `cargo nextest run -p formspec-server app_graph_report_admission`;
