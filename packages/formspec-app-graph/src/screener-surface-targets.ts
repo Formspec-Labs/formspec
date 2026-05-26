@@ -86,7 +86,7 @@ function screenerSurfaceTargets(handle: ResolvedArtifactHandle): ScreenerRouteTa
       const target = stringProp(record(route), 'target');
       if (!target?.startsWith('surface:')) return [];
       const routeId = target.slice('surface:'.length);
-      return routeId ? [{ evaluationIndex, routeIndex, target, routeId }] : [];
+      return [{ evaluationIndex, routeIndex, target, routeId }];
     });
   });
 }

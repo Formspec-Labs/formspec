@@ -20,12 +20,14 @@ FIXTURE_PATH = (
 REQUIRED_CASES = {
     "valid-screener-surface-target",
     "screener-surface-route-unresolved",
+    "screener-surface-route-empty",
     "screener-surface-route-ambiguous",
     "unassociated-screener-surface-target-ignored",
 }
 
 EXPECTED_CODES = {
     "screener-surface-route-unresolved": "APP-GRAPH-SCREENER-SURFACE-TARGET",
+    "screener-surface-route-empty": "APP-GRAPH-SCREENER-SURFACE-TARGET",
     "screener-surface-route-ambiguous": "APP-GRAPH-SCREENER-SURFACE-TARGET",
 }
 

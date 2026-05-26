@@ -104,6 +104,36 @@
         ]
       }
     },
+    "screener.empty-route": {
+      "slot": "screeners[0]",
+      "artifactKind": "screener",
+      "status": "loaded",
+      "source": "memory://screener/empty-route",
+      "ref": {
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecScreener": "1.0",
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0",
+        "title": "Eligibility",
+        "items": [],
+        "evaluation": [
+          {
+            "id": "route",
+            "strategy": "first-match",
+            "routes": [
+              {
+                "condition": "true",
+                "target": "surface:",
+                "label": "Empty"
+              }
+            ]
+          }
+        ]
+      }
+    },
     "screener.ambiguous-route": {
       "slot": "screeners[0]",
       "artifactKind": "screener",
@@ -267,6 +297,65 @@
               "reason": "route-unresolved",
               "target": "surface:missing",
               "routeId": "missing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "screener-surface-route-empty",
+      "description": "A manifest-associated Screener surface target with an empty route id must not fail open.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "screeners": ["screener.empty-route"],
+          "surfaces": ["surface.respondent"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SCREENER-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "screeners[0]",
+              "artifactKind": "screener",
+              "source": "memory://screener/empty-route",
+              "jsonPointer": "/evaluation/0/routes/0/target",
+              "ref": {
+                "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes",
+                "ref": {
+                  "url": "https://example.gov/apps/screened-intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "route-unresolved",
+              "target": "surface:",
+              "routeId": ""
             }
           }
         ]
