@@ -94,17 +94,18 @@ This plan tracks:
 
 - [ ] Studio/kernel operations use graph-wide identity when multiple Surfaces
   or Component documents are loaded.
-  - [x] `copyNode` requires `source.graphIdentity` once multiple Surfaces or
-    Component memberships are declared, stamps graph-wide `copiedFrom`, and
-    returns graph-wide copied root/descendant identity.
+  - [x] `copyNode` requires `source.graphIdentity` once multiple Surfaces are
+    declared, stamps graph-wide `copiedFrom`, and returns graph-wide copied
+    root/descendant identity; multiple Component memberships fail closed until
+    explicit graph binding lands.
   - [x] `addNode` accepts a target route/graph scope, fail-closes without graph
-    scope once multiple Surfaces or Component memberships are loaded, and returns
-    the created node's exported graph identity.
+    scope once multiple Surfaces are loaded, returns the created node's exported
+    graph identity, and fails closed for multiple Component memberships until
+    explicit graph binding lands.
   - [x] `moveNode` accepts source/target exported identity, validates same-route
-    and same-scope graph moves in the single-runtime facade, and returns moved
-    exported graph identity.
-  - [ ] `moveNode` `x-generation.movedFrom` stamping remains gated until the
-    facade has an atomic move-and-stamp helper instead of a two-write sequence.
+    and same-scope graph moves in the single-runtime facade, returns moved
+    exported graph identity, and fails closed for multiple Component memberships
+    until explicit graph binding lands.
 - [ ] Production consumers use the shared identity shape rather than local
   route/path strings.
   - [x] `@formspec-org/layout` projects optional `componentGraphIdentity` from
@@ -121,8 +122,10 @@ This plan tracks:
   - [x] StudioCore `addNode` / `moveNode` graph identity tests cover
     multi-Surface fail-closed behavior, same-scope exported identity, and
     cross-scope move rejection.
-  - [ ] Production copy/move consumers and graph-wide `movedFrom` persistence
-    remain open.
+  - [x] StudioCore graph identity tests cover multi-Component fail-closed
+    behavior for add/move/copy until explicit graph binding exists.
+  - [ ] Production copy/move consumers and graph-wide `movedFrom` provenance
+    persistence remain open.
 
 ## Deviations
 
@@ -159,6 +162,11 @@ This plan tracks:
   identity, but does not stamp `x-generation.movedFrom`. The current facade would
   need a separate property write after the core move dispatch; review rejected
   that non-atomic two-write shape for a kernel operation.
+- 2026-05-25: StudioCore `addNode`, `moveNode`, and `copyNode` fail closed when
+  multiple Component memberships are declared. The single-runtime facade has no
+  explicit binding from the active Component tree to an App Manifest
+  `components[]` handle, so accepting caller-supplied handles would mint false
+  graph identity.
 
 ## Closure Evidence
 
@@ -209,7 +217,9 @@ Partial evidence landed:
 
 Still open:
 
-- ADR 0154 gate 6 graph-wide `movedFrom` persistence behind an atomic move/stamp
+- ADR 0154 gate 6 explicit Component membership binding for multi-Component
+  Studio/kernel identity.
+- ADR 0154 gate 7 graph-wide `movedFrom` persistence behind an atomic move/stamp
   helper.
 - Production consumer wiring.
 - Explicit graph binding and Definition id alias matching.
