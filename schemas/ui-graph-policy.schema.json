@@ -134,13 +134,31 @@
         "landmark": {
           "type": "string",
           "enum": ["main", "navigation", "complementary", "region"],
-          "description": "Route-level landmark category. A web renderer may map validated projected main, navigation, or complementary policy to a route-root layout container role under the UI Graph Policy route-landmark profile. Region remains metadata-only until a profile supplies an accessible-name contract; broader ARIA synthesis and platform mapping remain out of scope."
+          "description": "Route-level landmark category. A web renderer may map validated projected main, navigation, or complementary policy to a route-root layout container role under the UI Graph Policy route-landmark profile. Region maps only when landmarkLabel is present under the named-region profile."
+        },
+        "landmarkLabel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Accessible name for region landmarks. Required when landmark is region."
         },
         "keyboardNavigation": {
           "type": "boolean",
-          "description": "Whether the route-level policy profile requires keyboard navigation support."
+          "description": "Graph-visible obligation that route-level keyboard navigation is required. Renderers may expose this as inert metadata only; they MUST NOT implement focus movement or tabindex inference from this field."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "landmark": { "const": "region" }
+            },
+            "required": ["landmark"]
+          },
+          "then": {
+            "required": ["landmarkLabel"]
+          }
+        }
+      ]
     },
     "ResponsiveRoutePolicy": {
       "type": "object",

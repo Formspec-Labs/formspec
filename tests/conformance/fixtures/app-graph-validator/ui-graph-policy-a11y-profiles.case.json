@@ -1,0 +1,279 @@
+{
+  "id": "ui-graph-policy-a11y-profiles",
+  "description": "Executable AppGraphValidator conformance for UI Graph Policy keyboard-navigation metadata, named-region, and host-landmark scope profiles.",
+  "handles": {
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/ui-graph-policy-a11y",
+        "version": "1.0.0",
+        "definitions": [
+          { "url": "https://example.gov/forms/intake", "version": "1.0.0" }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/intake/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "surface-respondent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/intake/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "review",
+        "routes": [
+          {
+            "id": "review",
+            "path": "/review",
+            "slots": [
+              {
+                "id": "summary",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": [
+              {
+                "id": "confirmation",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "text",
+                  "content": "Done"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "policies": {
+    "region-with-label": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/region-with-label",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "1.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "a11y": {
+              "landmark": "region",
+              "landmarkLabel": "Application review"
+            }
+          },
+          {
+            "routeId": "done",
+            "a11y": {
+              "landmark": "complementary"
+            }
+          }
+        ]
+      }
+    },
+    "region-blank-label": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/region-blank-label",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "1.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "a11y": {
+              "landmark": "region",
+              "landmarkLabel": "   "
+            }
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "host-main-conflict": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/host-main-conflict",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "1.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review",
+            "a11y": {
+              "landmark": "main"
+            }
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "region-with-label-valid",
+      "description": "Region route policy with landmarkLabel emits no UI policy diagnostics.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["region-with-label"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "region-blank-label",
+      "description": "Region route policy with blank landmarkLabel fails semantic validation.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["region-blank-label"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-REGION-LABEL",
+            "origin": "ui-graph-policy",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/region-blank-label",
+              "jsonPointer": "/routePolicies/0/a11y/landmarkLabel"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+                "source": "host://policy/region-blank-label",
+                "jsonPointer": "/routePolicies/0/a11y/landmark"
+              }
+            ],
+            "details": {
+              "routeId": "review",
+              "landmark": "region"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "host-landmark-conflict-main",
+      "description": "Route policy main landmark conflicts with host-reserved main.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "hostLandmarks": {
+            "reserved": ["main"]
+          },
+          "uiGraphPolicies": ["host-main-conflict"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-HOST-LANDMARK-CONFLICT",
+            "origin": "ui-graph-policy",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/host-main-conflict",
+              "jsonPointer": "/routePolicies/0/a11y/landmark"
+            },
+            "details": {
+              "routeId": "review",
+              "landmark": "main",
+              "hostReserved": ["main"]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 ---
 title: Formspec UI Graph Policy Interface Specification
-version: 0.1.0-draft.3
-date: 2026-05-25
+version: 0.1.0-draft.4
+date: 2026-05-26
 status: draft
 ---
 
 # Formspec UI Graph Policy Interface Specification v0.1
 
-**Version:** 0.1.0-draft.3
-**Date:** 2026-05-25
+**Version:** 0.1.0-draft.4
+**Date:** 2026-05-26
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, Surface, Locale, Theme, Registry, Module
 Resolver, and AppGraphValidator
@@ -262,7 +262,8 @@ keyboard navigation requirement. The initial conceptual fields are:
 |---|---|
 | `routeId` | Surface `routes[].id`. |
 | `a11y.landmark` | Route-level landmark category, such as `main`, `navigation`, `complementary`, or `region`. |
-| `a11y.keyboardNavigation` | Whether route-level keyboard navigation is required by the policy profile. |
+| `a11y.landmarkLabel` | Non-empty accessible name required when `a11y.landmark` is `region`. |
+| `a11y.keyboardNavigation` | Graph-visible keyboard-navigation obligation (metadata only for renderers). |
 
 Rules:
 
@@ -293,9 +294,7 @@ profile is intentionally narrow:
 5. Non-layout roots and modal/dialog roots remain metadata-only; the renderer
    MUST NOT add wrappers or override intrinsic widget/dialog roles to satisfy
    this profile.
-6. `region` remains metadata-only in this profile. A renderer MUST NOT map it to
-   `role="region"` unless a future profile supplies and validates an accessible
-   name source.
+6. `region` maps only under the named-region profile in §5.3.3.
 7. The host/renderer composition MUST avoid duplicate or nested host landmarks;
    if the outer host shell already owns the page `main`, route policy evidence
    can still be exposed as inert metadata or use a non-conflicting landmark.
@@ -304,6 +303,66 @@ This profile promotes active consumption of route-level landmark obligations
 only. It does not define keyboard event handling, focus movement algorithms,
 accessible-name synthesis, general ARIA markup synthesis, or renderer layout
 implementation.
+
+### 5.3.2 Keyboard-Navigation Metadata Profile
+
+`a11y.keyboardNavigation: true` is a graph-visible obligation only.
+
+1. Renderers MAY expose the validated projection as inert metadata (for example
+   `data-formspec-ui-policy-keyboard-navigation`).
+2. Renderers MUST NOT implement focus movement, tabindex inference, or keyboard
+   event handling from this field.
+3. AppGraphValidator does not prove runtime keyboard behavior; it only validates
+   policy shape and host-evidence consistency.
+
+### 5.3.3 Named-Region Profile
+
+When `a11y.landmark` is `region`, `a11y.landmarkLabel` MUST be a non-empty
+string. AppGraphValidator emits `UI-POLICY-REGION-LABEL` when the label is
+missing or empty.
+
+A web renderer MAY map a validated projection to `role="region"` and
+`aria-label` from `landmarkLabel` on the route-root layout container under the
+same constraints as §5.3.1:
+
+1. Consume only `LayoutNode.uiGraphRoutePolicy` from completed validation.
+2. Apply only on the route-root layout container.
+3. Do not derive roles from raw host evidence or unvalidated policy JSON.
+4. Non-layout and modal/dialog route roots remain metadata-only even when this
+   profile is satisfied.
+
+### 5.3.4 Host-Landmark Scope Profile
+
+Hosts MAY supply reserved page landmarks alongside UI Graph Policy evidence:
+
+```json
+{
+  "hostEvidence": {
+    "hostLandmarks": {
+      "reserved": ["main"]
+    },
+    "uiGraphPolicies": []
+  }
+}
+```
+
+`hostEvidence.hostLandmarks.reserved[]` entries MUST be one of `main`,
+`navigation`, or `complementary`.
+
+When the host reserves a landmark, route policy MUST NOT actively map the same
+landmark to `role` on the route-root layout container. Projection MAY include
+`a11y.landmarkSuppressed: true` so consumers do not re-derive host evidence.
+
+AppGraphValidator emits `UI-POLICY-HOST-LANDMARK-CONFLICT` when a route policy
+`a11y.landmark` is in the host reserved set. The diagnostic is cross-artifact,
+`origin: ui-graph-policy`, severity `error`, and MUST set report `ok` to false.
+
+`a11y.landmarkSuppressed` on `LayoutNode.uiGraphRoutePolicy` is projection-only
+consumer metadata. Planners set it when the same reserved-landmark rule would
+apply so renderers avoid duplicate active roles without re-reading host evidence.
+It does not override validator authority: publish and other fail-closed paths
+MUST gate on completed `AppGraphValidationReport` evidence and treat
+`UI-POLICY-HOST-LANDMARK-CONFLICT` as blocking.
 
 ### 5.4 Responsive Route Policy
 
@@ -516,14 +575,17 @@ diagnostics including completed ModuleResolver evidence, hidden Definition
 reference diagnostics, Theme widgetRef checks against completed ModuleResolver
 contribution evidence, Theme token-slot checks against completed ModuleResolver
 `widgetTokenSlots[]` evidence, Studio feedback diagnostics, formspec-web hidden
-Definition runtime rejection, and the optional web-renderer route-landmark
-profile for validated `main`, `navigation`, and `complementary` route-root
-layout containers.
-Production closure still requires the remaining gates:
+Definition runtime rejection, the optional web-renderer route-landmark profile
+for validated `main`, `navigation`, and `complementary` route-root layout
+containers, and the gate 9b profiles in §5.3.2–§5.3.4 (keyboard-navigation
+metadata, named `region`, host-landmark scope).
 
-1. residual 9b accessibility semantics such as keyboard navigation or named
-   `region` landmark behavior,
-2. consumer conformance for 9a Locale ownership, 9c responsive route policy, or
-   9d Theme token-slot policy if promoted, and
-3. an optional future App Manifest loading slot if the app package contract
-   later chooses one.
+ADR 0153 gates **9a**, **9c**, and **9d** closed at ratification (2026-05-26) with
+Wireframes-MCP + conformance corpora (`ui-graph-policy-surface-routes`,
+`ui-graph-policy-a11y-profiles`, locale/theme/hidden-definition families). Remaining
+work outside this v0.1 contract:
+
+1. focus movement, tabindex inference, and general ARIA synthesis beyond the
+   narrow route-root landmark profiles in §5.3.1–§5.3.4,
+2. an optional future App Manifest loading slot if the app package contract
+   later chooses one (host-evidence model remains default).

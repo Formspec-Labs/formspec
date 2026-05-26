@@ -6,13 +6,20 @@
       "slot": "app",
       "artifactKind": "appManifest",
       "status": "loaded",
-      "schemaId": "https://formspec.org/schemas/bundleManifest/2.2",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
       "source": "memory://app",
       "document": {
-        "$formspecApp": "2.2",
-        "id": "intake-app",
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/intake",
+        "version": "1.0.0",
         "definitions": [
           { "url": "https://example.gov/forms/intake", "version": "1.0.0" }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/intake/surfaces/respondent",
+            "version": "1.0.0"
+          }
         ]
       }
     },

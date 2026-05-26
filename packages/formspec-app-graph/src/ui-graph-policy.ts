@@ -3,6 +3,7 @@
 import {
   type AppGraphContext,
   type AppGraphDiagnostic,
+  type AppGraphHostLandmarkRole,
   type AppGraphSourcePointer,
   type ResolvedArtifactHandle,
 } from './types.js';
@@ -43,9 +44,14 @@ interface SurfaceRouteSlot {
   definitionRef?: string;
 }
 
+type RouteA11yPolicy = NonNullable<UiGraphPolicyDocument['routePolicies'][number]['a11y']>;
+
+const HOST_LANDMARK_ROLES = new Set<AppGraphHostLandmarkRole>(['main', 'navigation', 'complementary']);
+
 interface IndexedRoutePolicy {
   routeId: string;
   index: number;
+  a11y?: RouteA11yPolicy;
   collapseOrder: string[];
   hiddenDefinitionRefs: IndexedHiddenDefinitionRef[];
 }
@@ -202,12 +208,56 @@ function routePolicies(policy: UiGraphPolicyDocument): IndexedRoutePolicy[] {
   return policy.routePolicies.map((entry, index) => ({
     routeId: entry.routeId,
     index,
+    a11y: entry.a11y,
     collapseOrder: entry.responsive?.collapseOrder ?? [],
     hiddenDefinitionRefs: (entry.definitionVisibility?.hiddenDefinitionRefs ?? []).map((ref, refIndex) => ({
       ref,
       index: refIndex,
     })),
   }));
+}
+
+function hostReservedLandmarks(context: AppGraphContext): Set<AppGraphHostLandmarkRole> {
+  const reserved = context.hostEvidence?.hostLandmarks?.reserved ?? [];
+  return new Set(reserved.filter((landmark): landmark is AppGraphHostLandmarkRole => HOST_LANDMARK_ROLES.has(landmark)));
+}
+
+function validateRouteA11yPolicy(
+  evidence: UiGraphPolicyEvidence,
+  policy: IndexedRoutePolicy,
+  hostReserved: ReadonlySet<AppGraphHostLandmarkRole>,
+): AppGraphDiagnostic[] {
+  const a11y = policy.a11y;
+  if (!a11y) return [];
+
+  const diagnostics: AppGraphDiagnostic[] = [];
+  const a11yPointer = `/routePolicies/${policy.index}/a11y`;
+
+  if (a11y.landmark === 'region') {
+    const label = typeof a11y.landmarkLabel === 'string' ? a11y.landmarkLabel.trim() : '';
+    if (label.length === 0) {
+      diagnostics.push(diagnostic(
+        'UI-POLICY-REGION-LABEL',
+        'Region route policy requires a non-empty landmarkLabel.',
+        evidenceSource(evidence, `${a11yPointer}/landmarkLabel`),
+        [evidenceSource(evidence, `${a11yPointer}/landmark`)],
+        { routeId: policy.routeId, landmark: 'region' },
+      ));
+    }
+  }
+
+  const landmark = a11y.landmark;
+  if (landmark && landmark !== 'region' && hostReserved.has(landmark)) {
+    diagnostics.push(diagnostic(
+      'UI-POLICY-HOST-LANDMARK-CONFLICT',
+      'Route policy landmark conflicts with a host-reserved landmark.',
+      evidenceSource(evidence, `${a11yPointer}/landmark`),
+      undefined,
+      { routeId: policy.routeId, landmark, hostReserved: [...hostReserved] },
+    ));
+  }
+
+  return diagnostics;
 }
 
 function localeKeyOwners(policy: UiGraphPolicyDocument): IndexedLocaleKeyOwner[] {
@@ -277,6 +327,7 @@ function validateRoutePolicies(
   surface: LoadedSurfaceHandle,
   definitions: readonly LoadedDefinitionHandle[],
   policies: readonly IndexedRoutePolicy[],
+  hostReserved: ReadonlySet<AppGraphHostLandmarkRole>,
 ): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const routes = surfaceRoutes(surface);
@@ -327,6 +378,7 @@ function validateRoutePolicies(
     }
 
     diagnostics.push(...validateHiddenDefinitionRefs(evidence, surface, route, policy, definitions));
+    diagnostics.push(...validateRouteA11yPolicy(evidence, policy, hostReserved));
   }
 
   if (!hasUnresolvedRoute) {
@@ -867,8 +919,15 @@ export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnos
     }
     const assignments = themeAssignments(evidence.document);
     const tokenEvidenceByAssignment = themeTokenEvidenceByAssignment(evidence, assignments, themes);
+    const hostReserved = hostReservedLandmarks(context);
     return [
-      ...validateRoutePolicies(evidence, matchingSurfaces[0], definitions, routePolicies(evidence.document)),
+      ...validateRoutePolicies(
+        evidence,
+        matchingSurfaces[0],
+        definitions,
+        routePolicies(evidence.document),
+        hostReserved,
+      ),
       ...validateLocaleKeyOwners(evidence, locales, context.moduleResolution),
       ...[...tokenEvidenceByAssignment.values()].flatMap((tokenEvidence) => tokenEvidence.diagnostics),
       ...validateThemeWidgetRefs(evidence, assignments, context.moduleResolution, tokenEvidenceByAssignment),

@@ -259,7 +259,8 @@
               {
                 "routeId": "review",
                 "a11y": {
-                  "landmark": "region"
+                  "landmark": "region",
+                  "landmarkLabel": "Duplicate review region"
                 }
               }
             ]

@@ -194,9 +194,16 @@ export interface AppGraphHostEvidenceDocument<TDocument = unknown> {
   document: TDocument;
 }
 
+export type AppGraphHostLandmarkRole = 'main' | 'navigation' | 'complementary';
+
+export interface AppGraphHostLandmarks {
+  reserved: AppGraphHostLandmarkRole[];
+}
+
 export interface AppGraphHostEvidence {
   uiGraphPolicies?: AppGraphHostEvidenceDocument[];
   componentGraphContexts?: AppGraphHostEvidenceDocument[];
+  hostLandmarks?: AppGraphHostLandmarks;
 }
 
 export interface AppGraphEvidenceSchemaResult {
