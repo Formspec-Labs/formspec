@@ -2,7 +2,7 @@
 
 **Row:** stack rollup [`thoughts/2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) §"ADR 0153 / ADR 0154 gating table" → "Shared graph primitives" (Partial).
 
-**Status:** in-progress — single named cross-artifact invariant landing this slice.
+**Status:** Partial. Experience ActionRef.id → Response Actions cross-artifact resolution landed (validator, fixture, paired TS/Python conformance). Row stays Partial because single-invariant extraction does not mechanically equal plural "broader cross-artifact checks"; remaining module-consuming semantics and further cross-artifact invariants still open.
 
 **Scope:** Extract Experience `ActionRef.id` → Response Actions `actions[*].id` cross-artifact resolution as an AppGraphValidator-owned invariant. The spec already mandates resolution (experience-spec.md:302, experience.schema.json `ActionRef.id` description: "MUST resolve against the loaded Response Actions document's `actions[*].id` set"), but neither `formspec-lint` nor AppGraphValidator currently enforces it cross-artifact today.
 
