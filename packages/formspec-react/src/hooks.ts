@@ -1,6 +1,13 @@
 /** @filedesc Hooks-only barrel — tree-shakeable, no renderer or default components. */
 export { FormspecProvider, useFormspecContext } from './context';
-export type { FormspecProviderProps, FormspecContextValue, SubmitResult } from './context';
+export type {
+    FormspecProviderProps,
+    FormspecContextValue,
+    ResponseActionInvoker,
+    ResponseActionInvokerInput,
+    ResponseActionInvokerResult,
+    SubmitResult,
+} from './context';
 export { useSignal } from './use-signal';
 export { useField } from './use-field';
 export type { UseFieldResult } from './use-field';

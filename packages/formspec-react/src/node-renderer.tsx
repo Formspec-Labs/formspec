@@ -3,8 +3,13 @@
 /** @filedesc Recursive LayoutNode renderer — dispatches to field or layout components. */
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { signal as createSignal } from '@preact/signals-core';
-import { invokeResponseAction } from '@formspec-org/engine';
+import {
+    invokeResponseAction,
+    type ResponseActionInvocationPorts,
+    type ResponseActionInvocationResult,
+} from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
+import type { ResponseActionInvokerResult, SubmitResult } from './context';
 import { useFormspecContext } from './context';
 import { useSignal } from './use-signal';
 import { useField } from './use-field';
@@ -88,12 +93,27 @@ function actionRefFor(node: LayoutNode): string {
     return typeof value === 'string' ? value : '';
 }
 
+function isPromiseLike<T>(value: T | Promise<T>): value is Promise<T> {
+    return !!value && typeof (value as Promise<T>).then === 'function';
+}
+
+function normalizeInvokerResult<TDetail>(
+    result: ResponseActionInvokerResult<TDetail>,
+): ResponseActionInvocationResult<TDetail> {
+    return 'invocation' in result ? result.invocation : result;
+}
+
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 function ActionButtonNode({ node }: { node: LayoutNode }) {
     const {
         onSubmit,
         onHostEvent,
         onActionFinding,
         onActionResult,
+        responseActionInvoker,
         evaluateActionPrecondition,
         dispatchActionEffect,
         resolveActionIdempotencyKey,
@@ -116,28 +136,50 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     }, [findingKey, onActionFinding]);
 
     const handleClick = useCallback(() => {
-        const result = invokeResponseAction(
-            responseActionsDocument,
-            actionRef,
-            {
-                submit: ({ profile, validationTuple }) => form.submit({ profile, validationTuple }),
-                dispatchHostEvent: (eventName, detail, action) => {
-                    onHostEvent?.(eventName, detail, action);
-                    if (eventName === 'formspec-submit') {
-                        onSubmit?.(detail);
-                    }
-                },
-                ...(evaluateActionPrecondition ? { evaluatePrecondition: evaluateActionPrecondition } : {}),
-                ...(dispatchActionEffect ? { dispatchEffect: dispatchActionEffect } : {}),
-                ...(resolveActionIdempotencyKey ? { resolveIdempotencyKey: resolveActionIdempotencyKey } : {}),
+        const ports: ResponseActionInvocationPorts<SubmitResult> = {
+            submit: ({ profile, validationTuple }) => form.submit({ profile, validationTuple }),
+            dispatchHostEvent: (eventName, detail, action) => {
+                onHostEvent?.(eventName, detail, action);
+                if (eventName === 'formspec-submit') {
+                    onSubmit?.(detail);
+                }
             },
-            node.id,
-        );
-        onActionResult?.(result);
-        if (result.finding) {
-            onActionFinding?.(result.finding);
+            ...(evaluateActionPrecondition ? { evaluatePrecondition: evaluateActionPrecondition } : {}),
+            ...(dispatchActionEffect ? { dispatchEffect: dispatchActionEffect } : {}),
+            ...(resolveActionIdempotencyKey ? { resolveIdempotencyKey: resolveActionIdempotencyKey } : {}),
+        };
+        const finish = (result: ResponseActionInvocationResult<SubmitResult>) => {
+            onActionResult?.(result);
+            if (result.finding) {
+                onActionFinding?.(result.finding);
+            }
+        };
+
+        if (responseActionInvoker) {
+            const result = responseActionInvoker({
+                document: responseActionsDocument,
+                actionRef,
+                nodeId: node.id,
+                ports,
+            });
+            if (isPromiseLike(result)) {
+                void result
+                    .then(value => finish(normalizeInvokerResult(value)))
+                    .catch(error => finish({
+                        status: 'failed',
+                        resolution,
+                        validationTuple: null,
+                        detail: null,
+                        effectTrace: [],
+                        failureReason: errorMessage(error),
+                    }));
+                return;
+            }
+            finish(normalizeInvokerResult(result));
             return;
         }
+
+        finish(invokeResponseAction(responseActionsDocument, actionRef, ports, node.id));
     }, [
         actionRef,
         dispatchActionEffect,
@@ -148,6 +190,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         onActionResult,
         onHostEvent,
         onSubmit,
+        responseActionInvoker,
         resolveActionIdempotencyKey,
         responseActionsDocument,
     ]);

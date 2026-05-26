@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { initFormspecEngine, createFormEngine, createDemoSubmitResponseActions } from '@formspec-org/engine';
+import { initFormspecEngine, createFormEngine, createDemoSubmitResponseActions, invokeResponseAction } from '@formspec-org/engine';
 import { actRender, actRenderAsync } from './render-utils';
 import type { LayoutNode } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
@@ -1135,6 +1135,133 @@ describe('ActionButton', () => {
         expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({
             status: 'completed',
             effectTrace: [expect.objectContaining({ type: 'ledgerAppend', status: 'succeeded' })],
+        }));
+    });
+
+    it('routes ActionButton invocation through a host responseActionInvoker when supplied', () => {
+        const onHostEvent = vi.fn();
+        const onActionResult = vi.fn();
+        const saveActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            actions: [{
+                id: 'save',
+                intent: 'save-draft',
+                effects: [{ type: 'hostEvent', eventName: 'formspec-save' }],
+            }],
+        };
+        const componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
+            tree: { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save' } },
+        };
+        const responseActionInvoker = vi.fn((input) => ({
+            invocation: invokeResponseAction(input.document, input.actionRef, input.ports, input.nodeId),
+        }));
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                responseActionsDocument={saveActionsDocument}
+                responseActionInvoker={responseActionInvoker}
+                onHostEvent={onHostEvent}
+                onActionResult={onActionResult}
+            />
+        );
+
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
+        flushSync(() => { button.click(); });
+
+        expect(responseActionInvoker).toHaveBeenCalledWith(expect.objectContaining({
+            document: saveActionsDocument,
+            actionRef: 'save',
+            nodeId: expect.any(String),
+            ports: expect.any(Object),
+        }));
+        expect(onHostEvent).toHaveBeenCalledWith(
+            'formspec-save',
+            expect.objectContaining({ response: expect.any(Object), validationReport: null }),
+            expect.objectContaining({ id: 'save' }),
+        );
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'completed',
+            effectTrace: [expect.objectContaining({ type: 'hostEvent', status: 'succeeded' })],
+        }));
+    });
+
+    it('supports an async host responseActionInvoker and reports the resolved terminal result', async () => {
+        const onActionResult = vi.fn();
+        const saveActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            actions: [{
+                id: 'save',
+                intent: 'save-draft',
+                effects: [{ type: 'hostEvent', eventName: 'formspec-save' }],
+            }],
+        };
+        const componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
+            tree: { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save' } },
+        };
+        const responseActionInvoker = vi.fn(async (input) => ({
+            invocation: invokeResponseAction(input.document, input.actionRef, input.ports, input.nodeId),
+        }));
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                responseActionsDocument={saveActionsDocument}
+                responseActionInvoker={responseActionInvoker}
+                onActionResult={onActionResult}
+            />
+        );
+
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
+        flushSync(() => { button.click(); });
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'completed',
+            effectTrace: [expect.objectContaining({ type: 'hostEvent', status: 'succeeded' })],
+        }));
+    });
+
+    it('reports async host responseActionInvoker rejection as a failed terminal result', async () => {
+        const onActionResult = vi.fn();
+        const componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
+            tree: { component: 'ActionButton', actionRef: 'submit', label: { literal: 'Submit' } },
+        };
+        const responseActionInvoker = vi.fn(async () => {
+            throw new Error('ledger append failed');
+        });
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                responseActionsDocument={responseActionsDocument}
+                responseActionInvoker={responseActionInvoker}
+                onActionResult={onActionResult}
+            />
+        );
+
+        const button = container.querySelector('button.formspec-submit') as HTMLButtonElement;
+        flushSync(() => { button.click(); });
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({
+            status: 'failed',
+            failureReason: 'ledger append failed',
+            effectTrace: [],
         }));
     });
 });

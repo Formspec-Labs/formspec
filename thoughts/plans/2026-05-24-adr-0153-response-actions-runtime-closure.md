@@ -90,6 +90,9 @@ path is:
 - [x] Add a public async `<formspec-render>.responseActionInvoker` hook so
   product hosts can route `ActionButton` clicks through the bridge without
   coupling the public web component to studio-core.
+- [x] Add React `FormspecProvider.responseActionInvoker` parity so React hosts
+  can route `ActionButton` clicks through the same host-owned invoker seam as
+  the web component.
 - [x] Sync the loaded Response Actions document into Studio Preview's
   `<formspec-render>` host.
 - [x] Add a renderer-level seam test that injects a fake host `LedgerPort`,
@@ -107,9 +110,15 @@ path is:
   HMAC proof, validates the append command, binds `ledgerScope` to
   `urn:formspec:session:<session_id>`, and returns the server-minted append
   capability.
+- [x] Add a `formspec-web` respondent-runtime host factory that wraps the real
+  React ActionButton path, builds the Response Actions `SessionOpBatch`,
+  derives the server-validated op-batch hash and idempotency key, obtains a
+  per-command capability through a trusted/BFF provider, and posts the same
+  command to the append route shape without exposing mint HMAC material to the
+  browser runtime.
 - [ ] Wire production host/runtime configuration to supply the real
-  Trellis-backed `LedgerPort`, call the server-side capability mint route, and
-  inject the bridge-backed invoker.
+  server/Trellis-backed mint+append routes and prove Studio `readLedgerStatus`
+  observes the same respondent-runtime append receipt.
 - [ ] Keep ADR 0153 gate 7 open until route state, session state, Response
   instance state, and invocation state are separately specified and tested.
 
@@ -141,6 +150,12 @@ path is:
   verified session before returning a capability. This does not close production
   runtime wiring because the respondent host still must call the mint route and
   inject the route-backed Trellis `LedgerPort` into the real invoker path.
+- 2026-05-26: `formspec-web` now owns a public respondent-runtime host factory
+  and React `responseActionInvoker` injection path. This proves the real React
+  `RespondentRuntime` ActionButton path can call a trusted/BFF capability
+  provider and append route, but the test uses a mocked route transport. It does not
+  prove actual `formspec-server`/Trellis append or Studio `readLedgerStatus`
+  observation on that same respondent path.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -161,6 +176,10 @@ Partial for ADR 0153 gate 6b.
   `packages/formspec-webcomponent/src/action-invocation.ts`,
   `packages/formspec-webcomponent/src/element.ts`, and
   `packages/formspec-webcomponent/tests/components/interactive-plugins.test.ts`.
+- React renderer seam:
+  `packages/formspec-react/src/context.tsx`,
+  `packages/formspec-react/src/node-renderer.tsx`, and
+  `packages/formspec-react/tests/renderer.test.tsx`.
 - Studio Preview document sync and renderer seam proof:
   `../formspec-studio/packages/formspec-studio/src/workspaces/preview/FormspecPreviewHost.tsx`
   and
@@ -180,6 +199,11 @@ Partial for ADR 0153 gate 6b.
   `../formspec-server/crates/formspec-server/tests/in_process_trellis_action_ledger.rs`
   and
   `../formspec-server/crates/formspec-server/tests/openapi_contract.rs`.
+- Public web respondent host factory and runtime injection:
+  `../formspec-web/src/adapters/http/response-action-ledger.ts`,
+  `../formspec-web/src/ports/response-action-ledger.ts`,
+  `../formspec-web/src/app/RespondentRuntime.tsx`, and
+  `../formspec-web/tests/app/respondent-runtime.test.tsx`.
 - Verification:
   `npm run --workspace @formspec-org/studio-core build`;
   `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger.test.ts`;
@@ -190,8 +214,13 @@ Partial for ADR 0153 gate 6b.
   `npm run --workspace @formspec-org/studio build`;
   `cargo nextest run -p formspec-server --test openapi_contract`;
   `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`.
+- Verification: `npm --prefix ../formspec-web run typecheck`;
+  `npm --prefix ../formspec-web test -- tests/app/respondent-runtime.test.tsx`;
+  `npm --prefix ../formspec-web run build`;
+  `npm --prefix . run build --workspace @formspec-org/react`;
+  `npm --prefix . run test --workspace @formspec-org/react`.
 
-Not closed yet: respondent-facing production runtime/product consumer wiring,
-production host calls to the server-side runtime capability mint route with
-mint-authority proof, route-backed Trellis `LedgerPort` injection into the real
-invoker path, and ADR 0153 gate 7 runtime ownership spec/test closure.
+Not closed yet: the `formspec-web` respondent host must hit actual
+`formspec-server`/Trellis mint+append routes, Studio `readLedgerStatus` must
+observe the same anchored receipt, and ADR 0153 gate 7 runtime ownership
+spec/test closure remains separate.

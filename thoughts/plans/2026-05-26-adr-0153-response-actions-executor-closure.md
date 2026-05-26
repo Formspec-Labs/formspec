@@ -36,8 +36,14 @@ receipt through Studio `readLedgerStatus`.
 This is necessary evidence, not row closure. Studio Preview now proves
 ActionButton/host adapter -> mint route shape -> append -> `readLedgerStatus`,
 and `formspec-server` proves the HTTP mint -> append authority path against the
-server/Trellis route. The remaining closure needs both halves in one production
-respondent/runtime integration.
+server/Trellis route. The public web follow-on adds React ActionButton invoker
+parity plus a `formspec-web` respondent-runtime host factory that builds the
+same append command shape, obtains a per-command capability through a
+trusted/BFF provider, and posts the same command to the append route shape from
+the real `RespondentRuntime` path. That test uses mocked route transport, so
+the remaining closure still needs the respondent runtime path against actual
+`formspec-server`/Trellis routes with Studio `readLedgerStatus` observing the
+same receipt.
 
 ## Ordered Work
 
@@ -46,8 +52,9 @@ respondent/runtime integration.
 3. Prove mint -> append with an in-process `formspec-server` test.
 4. Prove trusted host/BFF mint -> append over the HTTP routes.
 5. Prove the Studio Preview ActionButton/host adapter path obtains a route-backed capability through the mint route shape before append.
-6. Update rollup evidence without changing the row to Closed.
-7. Next slice: wire a production caller/runtime host through the actual mint route and anchored append path.
+6. Prove the public web React RespondentRuntime ActionButton path accepts a trusted host/BFF invoker factory and posts the same route-shaped append command without exposing mint HMAC material to browser runtime code.
+7. Update rollup evidence without changing the row to Closed.
+8. Next slice: wire the public web respondent host through actual `formspec-server`/Trellis mint+append routes and prove Studio `readLedgerStatus` sees that same anchored receipt.
 
 ## Deviations
 
@@ -58,9 +65,11 @@ respondent/runtime integration.
 ## Closing Observation
 
 Not observed yet. The HTTP host-flow checkpoint and Studio consumer checkpoint
-are observed separately, but the closing observation remains the first
-production caller integration test proving ActionButton/host adapter -> server
-mint with host proof -> `formspec-server` append -> Trellis append -> Studio
+are observed separately, and the public web RespondentRuntime host checkpoint
+now proves the real React ActionButton path can call trusted/BFF capability
+provider and append adapters. The closing observation remains the first production caller
+integration test proving ActionButton/host adapter -> server mint with host
+proof -> `formspec-server` append -> Trellis append -> Studio
 `readLedgerStatus` anchored receipt in one path.
 
 ## Closure Evidence
@@ -76,13 +85,16 @@ Partial evidence after this slice:
 - `formspec-server/tests/e2e-http/support/action-ledger.ts` mirrors the HMAC, canonical JSON hash, and StudioCore idempotency-key material used by the server and StudioCore bridge.
 - `formspec-server/TRACEABILITY.md` maps the E2E scenario to `RSP-001`, `INT-001`, `mint_response_action_ledger_capability`, and `append_response_action_session_op_batch`.
 - `formspec-studio/packages/formspec-studio/tests/workspaces/preview/preview-tab.test.tsx` proves Studio Preview ActionButton -> host invoker -> `invokeResponseActionWithLedger` -> HTTP `LedgerPort` obtains a per-command capability through the mint route shape, appends the same command, and observes the anchored receipt through `readLedgerStatus`.
+- `formspec/packages/formspec-react/src/context.tsx`, `formspec/packages/formspec-react/src/node-renderer.tsx`, and `formspec/packages/formspec-react/tests/renderer.test.tsx` add React `responseActionInvoker` parity with the web component path.
+- `formspec-web/src/adapters/http/response-action-ledger.ts`, `formspec-web/src/ports/response-action-ledger.ts`, `formspec-web/src/app/RespondentRuntime.tsx`, and `formspec-web/tests/app/respondent-runtime.test.tsx` prove the public web RespondentRuntime ActionButton path can be wrapped by a trusted/BFF host factory that builds the server-validated append command, obtains a per-command capability from an opaque trusted provider, and posts the same command to the append route shape without storing mint HMAC material in browser runtime code.
 - `trellis/scripts/check-http-api-schema.py` checks both admitted Formspec append literals from `trellis-service-client`.
 - Verification: `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`; `cargo nextest run -p formspec-server --test openapi_contract`; `python3.12 -m pytest scripts/test_check_http_api_schema.py -q`.
 - Verification: `npm run test:e2e -- response-action-ledger.spec.ts registry-coverage.spec.ts traceability-coverage.spec.ts journeys-coverage.spec.ts openapi.spec.ts`.
 - Verification: `npm run test --workspace @formspec-org/studio -- preview-tab.test.tsx`.
+- Verification: `npm --prefix formspec/packages/formspec-react run build`; `npm --prefix formspec/packages/formspec-react test`; `npm --prefix formspec-web run typecheck`; `npm --prefix formspec-web test -- tests/app/respondent-runtime.test.tsx`; `npm --prefix formspec-web run build`.
 
 Still open:
 
-- Single production respondent/runtime host integration against the real `formspec-server` mint and append routes.
-- Studio `readLedgerStatus` proof on that real server/Trellis-backed production caller path.
+- Single production respondent/runtime host integration against actual `formspec-server`/Trellis mint and append routes.
+- Studio `readLedgerStatus` proof on that same real server/Trellis-backed respondent caller path.
 - ADR 0153 gate 7 runtime ownership closure.

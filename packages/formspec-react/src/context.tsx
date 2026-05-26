@@ -14,6 +14,7 @@ import type {
     ResponseActionEffectDispatchContext,
     ResponseActionEffectOutcome,
     ResponseActionIdempotencyKeyContext,
+    ResponseActionInvocationPorts,
     ResponseActionInvocationResult,
     ResponseActionPreconditionResult,
     ResponseActionsDocumentInput,
@@ -32,6 +33,21 @@ import type { ComponentMap } from './component-map';
 
 export type ResponseActionsDocument = ResponseActionsDocumentInput;
 export type { ActionRefFinding, ActionResolution, ResponseAction };
+
+export interface ResponseActionInvokerInput<TDetail = SubmitResult> {
+    document: ResponseActionsDocument | null | undefined;
+    actionRef: string;
+    nodeId?: string;
+    ports: ResponseActionInvocationPorts<TDetail>;
+}
+
+export type ResponseActionInvokerResult<TDetail = SubmitResult> =
+    | ResponseActionInvocationResult<TDetail>
+    | { invocation: ResponseActionInvocationResult<TDetail> };
+
+export type ResponseActionInvoker<TDetail = SubmitResult> = (
+    input: ResponseActionInvokerInput<TDetail>,
+) => ResponseActionInvokerResult<TDetail> | Promise<ResponseActionInvokerResult<TDetail>>;
 
 export interface SubmitResult {
     response: FormResponse;
@@ -56,6 +72,8 @@ export interface FormspecContextValue {
     onActionFinding?: (finding: ActionRefFinding) => void;
     /** Callback invoked after every ActionButton invocation terminal. */
     onActionResult?: (result: ResponseActionInvocationResult<SubmitResult>) => void;
+    /** Optional host-owned invoker that can wrap the engine executor with durable runtime plumbing. */
+    responseActionInvoker?: ResponseActionInvoker<SubmitResult> | null;
     /** Host precondition evaluator for Response Actions that declare FEL preconditions. */
     evaluateActionPrecondition?: (
         precondition: Precondition,
@@ -129,6 +147,8 @@ export interface FormspecProviderProps {
     onActionFinding?: (finding: ActionRefFinding) => void;
     /** Callback invoked after every ActionButton invocation terminal. */
     onActionResult?: (result: ResponseActionInvocationResult<SubmitResult>) => void;
+    /** Optional host-owned invoker that can wrap the engine executor with durable runtime plumbing. */
+    responseActionInvoker?: ResponseActionInvoker<SubmitResult> | null;
     /** Host precondition evaluator for Response Actions that declare FEL preconditions. */
     evaluateActionPrecondition?: (
         precondition: Precondition,
@@ -172,6 +192,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         onHostEvent,
         onActionFinding,
         onActionResult,
+        responseActionInvoker,
         evaluateActionPrecondition,
         dispatchActionEffect,
         resolveActionIdempotencyKey,
@@ -364,6 +385,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             onHostEvent,
             onActionFinding,
             onActionResult,
+            responseActionInvoker,
             evaluateActionPrecondition,
             dispatchActionEffect,
             resolveActionIdempotencyKey,
@@ -375,7 +397,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registryEntries: registryMap,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, themeDocument, componentDocument, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, themeDocument, componentDocument, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
     );
 
     return (

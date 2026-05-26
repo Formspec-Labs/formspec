@@ -8,6 +8,9 @@ export type {
     FormspecProviderProps,
     FormspecContextValue,
     ResponseAction,
+    ResponseActionInvoker,
+    ResponseActionInvokerInput,
+    ResponseActionInvokerResult,
     ResponseActionsDocument,
     SubmitResult,
 } from './context';
