@@ -32,6 +32,8 @@
     "semver": "^7.8.1"
   },
   "devDependencies": {
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
     "@types/semver": "^7.7.1",
     "typescript": "^5.0.0"
   }
