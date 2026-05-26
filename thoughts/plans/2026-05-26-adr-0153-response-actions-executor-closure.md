@@ -48,9 +48,12 @@ Playwright-routed trusted/BFF capability boundary, actual `formspec-server`
 mint/append routes, and Trellis-shaped receipt checks. It proves one anonymous
 session token across session creation, drafts, submit, capability mint, and
 ledger append, and it proves browser-originated requests do not carry the
-mint-authority HMAC header. The row remains Partial because this is a
-test-routed BFF/scope harness, not a deployable host/BFF capability provider or
-the broader ADR 0153 gate 7 runtime ownership proof.
+mint-authority HMAC header. The runtime-ownership extension to that proof now
+adds host-supplied Component graph and UI Graph Policy evidence, asserts
+route metadata in the browser-rendered runtime, and proves hidden active
+Definition rejection before draft, submit, capability, or append work. The row
+remains Partial because this is a test-routed BFF/scope harness, not a
+deployable host/BFF capability provider.
 
 ## Ordered Work
 
@@ -62,7 +65,7 @@ the broader ADR 0153 gate 7 runtime ownership proof.
 6. Prove the public web React RespondentRuntime ActionButton path accepts a trusted host/BFF invoker factory and posts the same route-shaped append command without exposing mint HMAC material to browser runtime code.
 7. Prove the public web React RespondentRuntime ActionButton path against actual `formspec-server`/Trellis mint+append routes, with the trusted/BFF authority confined to test-side routing.
 8. Update rollup evidence without changing the row to Closed.
-9. Next slice: replace the Playwright-routed BFF/scope harness with a deployable host/BFF capability provider, or close the broader runtime-ownership binding proof.
+9. Next slice: replace the Playwright-routed BFF/scope harness with a deployable host/BFF capability provider.
 
 ## Deviations
 
@@ -77,6 +80,11 @@ the broader ADR 0153 gate 7 runtime ownership proof.
   issues after the browser proof added exact request-count assertions,
   minted-capability-to-append-header equality, and negative browser-originated
   mint-authority-header checks.
+- Runtime-ownership extension: the browser/live proof now also carries
+  host-supplied Component graph and UI Graph Policy evidence through the real
+  `RespondentRuntime`, emits route metadata, and proves hidden active Definition
+  rejection before draft or Response Action work. This advances ADR 0153 gate 7,
+  but it still uses the Playwright-routed trusted/BFF and managed-scope harness.
 
 ## Closing Observation
 
@@ -85,8 +93,7 @@ The browser ActionButton live checkpoint is observed: the public
 minting, actual server/Trellis append, and Trellis-shaped receipt checks through
 a test-routed trusted/BFF boundary. The row remains Partial. The remaining
 closing observation is a deployable host/BFF capability provider replacing that
-Playwright-routed harness, or broader runtime ownership wiring that binds route,
-session, Response, and action state in one production consumer.
+Playwright-routed harness.
 
 ## Closure Evidence
 
@@ -107,7 +114,11 @@ Partial evidence after this slice:
   public browser RespondentRuntime submit ActionButton path against live
   `formspec-server` mint/append routes and Trellis-backed receipts, with
   single-session-owner assertions, exact capability header matching, and
-  negative browser-originated mint-authority-header checks.
+  negative browser-originated mint-authority-header checks. It now also proves
+  the broader runtime-ownership browser/live checkpoint: host-supplied Component
+  graph and UI Graph Policy evidence render active route metadata, and hidden
+  active Definition evidence rejects before draft, submit, capability, or append
+  work.
 - `trellis/scripts/check-http-api-schema.py` checks both admitted Formspec append literals from `trellis-service-client`.
 - Verification: `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`; `cargo nextest run -p formspec-server --test openapi_contract`; `python3.12 -m pytest scripts/test_check_http_api_schema.py -q`.
 - Verification: `npm run test:e2e -- response-action-ledger.spec.ts registry-coverage.spec.ts traceability-coverage.spec.ts journeys-coverage.spec.ts openapi.spec.ts`.
@@ -121,6 +132,6 @@ Partial evidence after this slice:
 Still open:
 
 - Deployable host/BFF capability provider replacing the Playwright-routed
-  trusted/BFF and managed-scope harness, or broader runtime ownership wiring in
-  one production consumer.
-- ADR 0153 gate 7 runtime ownership closure.
+  trusted/BFF and managed-scope harness.
+- Remaining ADR 0153 gate 7 runtime ownership coverage for route transitions,
+  ambiguous multi-form routes, and route-param selected Response instances.

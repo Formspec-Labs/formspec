@@ -2,8 +2,9 @@
 
 **Date:** 2026-05-26
 **Row:** ADR 0153 gate 7 Runtime ownership
-**Status:** Partial; prose ownership contract and source conformance pins landed,
-production runtime consumers remain open
+**Status:** Partial; prose ownership contract, source conformance pins, and a
+browser/live production-consumer checkpoint landed; route-param, ambiguous-route,
+and route-transition coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§5, 7, 9, Surface spec, Core Response spec, Response Actions spec,
@@ -45,12 +46,15 @@ production contract separates four owners:
 
 ### Phase 3 - Production Runtime Consumer Wiring
 
-- [ ] Wire a production runtime host that carries explicit route/session/
-  Response/action invocation bindings through draft creation, action invocation,
-  and route transition.
-- [ ] Add runtime integration tests for ambiguous multi-form routes, route-param
-  selected Response instances, and hidden Definition draft/action rejection only
-  after the production runtime consumes schema-valid UI Graph Policy evidence.
+- [x] Add a browser/live `formspec-web` checkpoint that carries explicit
+  Surface route metadata, anonymous session identity, Response draft/submit
+  state, and Response Action invocation into live server/Trellis append evidence.
+- [x] Prove hidden route-local Definition rejection in that same browser/live
+  consumer after it consumes completed UI Graph Policy and Component graph host
+  evidence, before draft, submit, capability, or append work.
+- [ ] Add route-transition coverage for the production runtime host.
+- [ ] Add runtime integration tests for ambiguous multi-form routes and
+  route-param selected Response instances.
 
 ## Deviations
 
@@ -64,6 +68,22 @@ production contract separates four owners:
   production runtime wiring, and required session state to stay out of Surface
   navigation ownership. The slice added an App Manifest session-index anchor
   rather than making AppGraphValidator or Surface own session identity.
+- 2026-05-26: The browser/live checkpoint uses `formspec-web` production
+  composition plus Playwright-routed managed-scope and trusted/BFF capability
+  boundaries. That is valid evidence for the runtime consumer path, but it is
+  not a deployable host/BFF capability provider and does not add ADR 0152
+  authorization semantics.
+
+## Closing Observation
+
+The first production-consumer observation is landed: `formspec-web` publishes a
+runtime payload with Component graph and UI Graph Policy host evidence, renders
+route metadata in the real browser runtime, carries one anonymous session
+identity through draft/submit/capability/append, appends to the live
+server/Trellis substrate, and rejects a hidden active Definition before draft or
+Response Action work. The row remains Partial until route transitions,
+route-param selected Response instances, and ambiguous multi-form routes are
+covered.
 
 ## Closure Evidence
 
@@ -81,11 +101,18 @@ Partial evidence landed:
   `specs/app-graph/app-graph-validator-spec.md` §6.
 - Source conformance pin:
   `tests/conformance/spec/test_runtime_ownership_contract.py`.
+- Browser/live production-consumer pin:
+  `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
+- Verification:
+  `cd ../formspec-web && npm run typecheck`;
+  `cd ../formspec-web && npx eslint tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts`.
 
 Still open:
 
-- Production runtime host wiring with explicit route/session/Response/action
-  bindings.
-- Runtime hidden-state behavior for hidden route-local Definition slots.
-- Any conformance that depends on a real runtime consumer rather than source
-  specs.
+- Route-transition coverage in the production runtime host.
+- Ambiguous multi-form route coverage.
+- Route-param selected Response instance coverage.
+- Deployable host/BFF capability provider if this evidence is used to close the
+  Response Actions deployable production wiring remainder.

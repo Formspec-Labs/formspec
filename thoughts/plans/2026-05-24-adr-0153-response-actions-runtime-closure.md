@@ -6,7 +6,8 @@
 public web respondent-host factory, and live server/Trellis respondent-invoker
 checkpoint landed; the browser ActionButton live proof landed through a
 test-routed trusted/BFF capability boundary; deployable host/BFF wiring and the
-broader runtime ownership checkpoint remain open
+remaining route-transition / route-param / ambiguous-route runtime ownership
+coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§4, 6, 7, 9, Response Actions spec §§7, 11-12,
@@ -59,7 +60,10 @@ path is:
   posts the append command to actual `formspec-server` mint/append routes, and
   asserts Trellis-shaped receipt evidence plus one anonymous session identity
   and `ledgerScope` binding across session creation, drafts, submit, capability
-  mint, and ledger append.
+  mint, and ledger append. The same browser/live proof now carries
+  host-supplied Component graph and UI Graph Policy evidence, renders active
+  route metadata, and rejects hidden active Definition evidence before draft,
+  submit, capability, or append work.
 
 ## Review Checkpoints
 
@@ -81,6 +85,10 @@ path is:
   request-count assertions, compare minted capability to append header, assert
   browser-originated requests do not carry mint-authority HMAC, and align the
   rollup table with the bounded deployable-BFF/runtime-ownership remainder.
+- 2026-05-26 runtime-ownership browser/live scout: `formspec-web` is the
+  smallest valid real-consumer target; hidden-state rejection can be proven in
+  the same consumer without promoting Runtime Plan, URL-convention action
+  lookup, Surface/Component action inference, or ADR 0152 authorization.
 
 ## Ordered Work
 
@@ -155,12 +163,14 @@ path is:
   `RespondentRuntime` React submit `ActionButton` through production runtime
   config, a trusted/BFF capability provider, actual server-side capability
   minting, actual server/Trellis append, and Trellis-shaped receipt assertions.
+- [x] Extend that browser/live proof with host-supplied Component graph and
+  UI Graph Policy evidence so the real runtime emits active route metadata and
+  rejects hidden active Definition evidence before draft, submit, capability, or
+  append work.
 - [ ] Replace the Playwright-routed trusted/BFF and managed-scope harness with
-  a deployable host/BFF capability provider, or close the broader runtime
-  ownership wiring that binds route, session, Response, and action state in one
-  production consumer.
-- [ ] Keep ADR 0153 gate 7 open until route state, session state, Response
-  instance state, and invocation state are separately specified and tested.
+  a deployable host/BFF capability provider.
+- [ ] Keep ADR 0153 gate 7 open until route-transition, route-param selected
+  Response, and ambiguous multi-form-route coverage lands.
 
 ## Deviations
 
@@ -208,8 +218,13 @@ path is:
   and append routes. It keeps mint HMAC material inside a Playwright-routed
   trusted/BFF handler, asserts that browser-originated requests do not carry the
   mint-authority header, and checks Trellis-shaped receipt evidence. This lands
-  the browser ActionButton live checkpoint, but it is not a deployable BFF and
-  does not close ADR 0153 gate 7 runtime ownership.
+  the browser ActionButton live checkpoint, but it is not a deployable BFF.
+- 2026-05-26: The browser/live proof now also lands the first ADR 0153 gate 7
+  production-consumer checkpoint. It uses host-supplied Component graph and UI
+  Graph Policy evidence to render active route metadata and reject hidden active
+  Definition evidence before draft or Response Action work. Gate 7 remains
+  Partial because route-transition, route-param selected Response, and
+  ambiguous multi-form-route coverage remain open.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -289,6 +304,6 @@ Partial for ADR 0153 gate 6b.
 
 Not closed yet: the browser proof still uses Playwright route interception as
 the trusted/BFF capability provider and managed-scope injector. Closure requires
-a deployable host/BFF capability provider or broader runtime ownership wiring
-that binds route, session, Response, and action state in one production
-consumer. ADR 0153 gate 7 runtime ownership spec/test closure remains separate.
+a deployable host/BFF capability provider. ADR 0153 gate 7 remains Partial until
+route-transition, route-param selected Response, and ambiguous multi-form-route
+coverage lands.
