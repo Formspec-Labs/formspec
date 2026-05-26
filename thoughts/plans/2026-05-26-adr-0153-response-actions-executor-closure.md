@@ -22,15 +22,25 @@ The 2026-05-26 slice lands the server-side mint/proxy prerequisite:
 - The existing append route still verifies the HMAC capability, recomputes `opBatchHash`, preserves the StudioCore idempotency key, and appends through Trellis.
 - Trellis' HTTP schema drift checker now treats the Response Actions session-op-batch Formspec literal as an admitted append literal.
 
-This is necessary evidence, not row closure. Studio Preview already proves a host-injected HTTP `LedgerPort` shape, but the production caller path still has to connect ActionButton/host adapter -> server mint -> append -> Studio `readLedgerStatus`.
+The follow-on HTTP E2E slice adds a Playwright host process that computes the
+same trusted mint-authority proof, authenticates an anonymous runtime session,
+calls the server-side capability mint route, and appends with the returned
+route-backed capability over HTTP.
+
+This is necessary evidence, not row closure. Studio Preview already proves a
+host-injected HTTP `LedgerPort` shape, and `formspec-server` now proves the
+HTTP mint -> append authority path, but the production caller path still has to
+connect ActionButton/host adapter -> server mint -> append -> Studio
+`readLedgerStatus` in one consumer-facing integration.
 
 ## Ordered Work
 
 1. Keep the Response Actions spec and StudioCore bridge as the execution authority.
 2. Keep server capability minting behind runtime session verification and trusted host/BFF mint-authority proof.
 3. Prove mint -> append with an in-process `formspec-server` test.
-4. Update rollup evidence without changing the row to Closed.
-5. Next slice: wire a production caller/runtime host through the mint route and anchored append path.
+4. Prove trusted host/BFF mint -> append over the HTTP routes.
+5. Update rollup evidence without changing the row to Closed.
+6. Next slice: wire a production caller/runtime host through the mint route and anchored append path.
 
 ## Deviations
 
@@ -40,7 +50,10 @@ This is necessary evidence, not row closure. Studio Preview already proves a hos
 
 ## Closing Observation
 
-Not observed yet. The closing observation will be the first production caller integration test proving ActionButton/host adapter -> server mint with host proof -> `formspec-server` append -> Trellis append -> Studio `readLedgerStatus` anchored receipt.
+Not observed yet. The HTTP host-flow checkpoint is observed, but the closing
+observation remains the first production caller integration test proving
+ActionButton/host adapter -> server mint with host proof -> `formspec-server`
+append -> Trellis append -> Studio `readLedgerStatus` anchored receipt.
 
 ## Closure Evidence
 
@@ -51,11 +64,15 @@ Partial evidence after this slice:
 - `formspec-server/crates/formspec-server/src/services/action_ledger.rs` binds minting to `ledgerScope == urn:formspec:session:{session_id}`, verifies trusted host/BFF mint-authority HMAC proof, and mints per-command HMAC append capabilities.
 - `formspec-server/crates/formspec-server/tests/in_process_trellis_action_ledger.rs` proves mint -> append success, missing mint-authority rejection, mismatched scope rejection, tampered token rejection, missing token rejection, and route-minted Trellis-backed anchored append behavior.
 - `formspec-server/crates/formspec-server/tests/openapi_contract.rs` pins the mint route and named request/response schemas in OpenAPI.
+- `formspec-server/tests/e2e-http/response-action-ledger.spec.ts` proves a trusted HTTP host/BFF can compute mint-authority proof, call the mint route for the authenticated anonymous runtime session, and append through the route-backed capability.
+- `formspec-server/tests/e2e-http/support/action-ledger.ts` mirrors the HMAC, canonical JSON hash, and StudioCore idempotency-key material used by the server and StudioCore bridge.
+- `formspec-server/TRACEABILITY.md` maps the E2E scenario to `RSP-001`, `INT-001`, `mint_response_action_ledger_capability`, and `append_response_action_session_op_batch`.
 - `trellis/scripts/check-http-api-schema.py` checks both admitted Formspec append literals from `trellis-service-client`.
 - Verification: `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`; `cargo nextest run -p formspec-server --test openapi_contract`; `python3.12 -m pytest scripts/test_check_http_api_schema.py -q`.
+- Verification: `npm run test:e2e -- response-action-ledger.spec.ts registry-coverage.spec.ts traceability-coverage.spec.ts journeys-coverage.spec.ts openapi.spec.ts`.
 
 Still open:
 
-- Production caller/runtime host integration.
-- Studio `readLedgerStatus` proof on the production caller path.
+- ActionButton/host-adapter integration that obtains the route-backed capability from the mint route.
+- Studio `readLedgerStatus` proof on that production caller path.
 - ADR 0153 gate 7 runtime ownership closure.
