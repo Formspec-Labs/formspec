@@ -111,6 +111,21 @@ MCP / runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR
   evidence they supplied to publish.
 - [x] Add producer coverage over the graph-pipeline handoff fixture.
 
+### Phase 7 - Explicit MCP Product-Host Producer
+
+- [x] Add `FormsMcp.produceAppGraphValidationReport()` in `@formspec-org/mcp`.
+- [x] Read the kernel App Manifest through `StudioCoreKernel.readAppManifest()`.
+- [x] Auto-load kernel-owned Surface documents through
+  `exportSurfaceDocument()` and attach the manifest `SiblingRef` identity
+  instead of deriving identity from filenames or Surface document fields.
+- [x] Require the caller-supplied loader for Definition, Component, Registry,
+  Locale, and other non-Surface siblings.
+- [x] Call the shared `@formspec-org/app-graph`
+  `produceAppGraphValidationReport()` helper; do not widen `formspec_publish`
+  or reconstruct graph evidence from `ProjectBundle`.
+- [x] Add product-verb coverage proving Surface loading stays inside the kernel
+  seam while Definition loading goes through the host loader.
+
 ## Deviations
 
 - 2026-05-25: The first implementation used a direct out-of-crate
@@ -136,6 +151,12 @@ MCP / runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR
   not close the row by itself. Closure still requires a trusted production host
   or BFF to call the helper and pass the returned `report` to
   `formspec-server` publish.
+- 2026-05-26: Architecture pre-review rejected widening MCP `formspec_publish`
+  or reconstructing graph evidence from `ProjectBundle`. The accepted shape is
+  an explicit product-host report producer: kernel App Manifest + kernel Surface
+  export + host loaders for remaining siblings + shared producer helper. This
+  advances MCP/product-host adoption only; server-publish submission remains
+  open.
 
 ## Closure Evidence
 
@@ -157,10 +178,19 @@ Partial evidence landed:
 - TS producer helper: `packages/formspec-app-graph/src/producer.ts` exports
   `produceAppGraphValidationReport()` and `packages/formspec-app-graph/src/index.ts`
   makes it public.
+- MCP product-host producer:
+  `formspec-studio/packages/formspec-mcp/src/product-verbs.ts`
+  adds `FormsMcp.produceAppGraphValidationReport()` over the kernel App
+  Manifest, kernel Surface export, caller-supplied sibling loader, and shared
+  producer helper.
 - Producer coverage:
   `packages/formspec-app-graph/tests/producer.test.ts` runs the same loaded-graph
   fixture through the producer helper and asserts completed artifact-resolution,
   module-resolution, schema, and cross-artifact phases for the passing case.
+- MCP coverage:
+  `formspec-studio/packages/formspec-mcp/tests/product-verbs.test.ts` proves the
+  product-host seam auto-loads a publishable kernel Surface, delegates the
+  Definition sibling to the host loader, and returns a completed AppGraph report.
 - Verification: `cargo nextest run -p formspec-lint` passed 434/434 tests after
   schema mirror sync.
 - Verification: `cargo nextest run -p formspec-server app_graph_report_admission`;
@@ -171,14 +201,16 @@ Partial evidence landed:
 - Verification:
   `npm run test --workspace @formspec-org/app-graph -- producer.test.ts artifact-resolution-graph-handoff.test.ts`;
   `npx tsc --noEmit -p packages/formspec-app-graph/tsconfig.json`.
+- Verification:
+  `npm run test --workspace @formspec-org/mcp -- product-verbs.test.ts`;
+  `npm run build --workspace @formspec-org/mcp`.
 
 Still open:
 
-- A trusted production TS/BFF caller does not yet call
-  `produceAppGraphValidationReport()` and supply the completed report to
-  `formspec-server` publish.
+- A trusted server-publish/BFF caller does not yet supply the completed report
+  to `formspec-server` publish.
 - Studio, MCP, runtime, and projection consumers do not yet consume the shared
-  validator report where applicable.
+  validator report where applicable outside the product-host producer seam.
 - Lint does not load an App Manifest graph or run `@formspec-org/app-graph`.
 - Broader conformance corpus promotion and production wiring remain separate
   rows.
