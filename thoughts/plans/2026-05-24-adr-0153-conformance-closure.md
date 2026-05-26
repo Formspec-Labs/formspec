@@ -2,13 +2,12 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Conformance
-**Status:** Open. Source conformance coverage is now pinned for the covered
-families, EC12 has a runtime hidden-state consumer checkpoint, and A10 has a
-real App Manifest v2.3 Screener association source. A8 now has a production
-source-boundary replacement at the Surface / Response Actions trigger seam,
-including undeclared closed-intent, ambiguous closed-intent, direct `x-*`
-intent, and empty-trigger rejection. The row remains Open because F8/F9
-production consumers and F10 authorization remain unresolved or held.
+**Status:** Closed as the current promoted-family coverage ledger. Source
+conformance coverage is pinned for A1-A14, EC2, EC5, EC12, EC13, EC14, and
+F7-F10. F8/F9 close only as current Response Actions executor and UI Graph
+Policy graph-semantics conformance evidence; Production wiring remains its own
+row. F10 closes only as fail-closed/deferred-field conformance; ADR 0152
+authorization semantics and the Authorization row remain Held.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -52,15 +51,15 @@ validation, or fine-grained authorization semantics.
   policy only; they cannot close runtime rejection behavior.
 - 2026-05-26 architecture review scout `019e62e0-bf49-7353-94a3-8f6aad3e75c7`
   found no blocker to a docs/status ledger pin, but required the Conformance
-  row to stay Open because A10, EC12 runtime behavior, F8/F9 production
-  consumers, and F10 authorization remain held or partial.
+  row to stay Open at that checkpoint because A10, EC12 runtime behavior, F8/F9
+  consumer evidence, and F10 authorization were held or partial.
 - 2026-05-26 follow-up checkpoint: `formspec-web` now consumes completed UI
   Graph Policy host evidence for the active Surface route and rejects hidden
   active Definition state before draft loading or Response Action state. This
   removed EC12 runtime hidden-state from the held list. At that checkpoint A10
   had not yet landed; after App Manifest v2.3 `screeners[]`, the Conformance row
-  still stays Open because A8, F8/F9 production consumers, and F10 authorization
-  remain unresolved or held.
+  still stayed Open because A8, F8/F9 consumer evidence, and F10 authorization
+  were unresolved or held.
 - 2026-05-26 architecture review scouts Hegel
   (`019e62be-0f7a-75d0-96da-4f24ebbd19c0`) and Goodall
   (`019e632a-93a9-7c00-863c-20cc135b5a72`) accepted App Manifest v2.3
@@ -74,6 +73,13 @@ validation, or fine-grained authorization semantics.
   Actions trigger boundary, with constraints: do not claim Runtime Plan
   coverage, do not make it schema-only, preserve `x-*` Response Actions intent
   semantics, and keep gate 6b / gate 7 partial.
+- 2026-05-26 architecture review scout Aquinas
+  (`019e64cc-712c-7921-9ed1-09be1abe758a`) found Conformance does not have to
+  stay Open until Production wiring closes because the rollup tracks production
+  wiring separately. Conditions: close F8/F9 only for current promoted
+  conformance evidence, close F10 only as fail-closed/deferred-field evidence,
+  keep Authorization Held behind ADR 0152, and do not claim ADR 0153 production
+  readiness.
 
 ## Evidence Map
 
@@ -99,9 +105,9 @@ validation, or fine-grained authorization semantics.
 | EC13 Locale strings collide across modules/routes | UI Graph Policy Locale-owner collision fixtures | Covered |
 | EC14 Theme styles widget without declared token slots | UI Graph Policy Theme token-slot fixtures | Covered |
 | F7 Data Sources peer artifact | Data Sources schema/spec fixtures, including fail-closed fine-grained auth | Covered |
-| F8 Response Actions as only executor | Response Actions runtime fixtures plus Surface/Component executor-boundary prose/tests | Partial; production wiring separate |
-| F9 UI graph policy as graph semantics | UI Graph Policy source and AppGraphValidator fixtures | Partial; runtime/consumer wiring separate |
-| F10 authorization deferred/fail-closed | Data Sources/UI Graph Policy fail-closed fixtures; broader ADR 0152 authorization remains held | Partial; do not close authorization |
+| F8 Response Actions as only executor | Response Actions runtime fixtures plus Surface/Component executor-boundary prose/tests; closed Response Actions runtime/BFF/E2E evidence proves the current executor consumer path without promoting Runtime Plan | Covered; Production wiring remains separate |
+| F9 UI graph policy as graph semantics | UI Graph Policy source and AppGraphValidator fixtures; layout/webcomponent/React/formspec-web consumers prove current inert metadata and hidden-state runtime checkpoints from completed host evidence | Covered for current promoted families |
+| F10 authorization deferred/fail-closed | Data Sources/UI Graph Policy fail-closed fixtures plus ADR 0152-held boundary wording | Covered as fail-closed/deferred-field conformance only; Authorization stays Held |
 
 ## Ordered Work
 
@@ -146,9 +152,13 @@ validation, or fine-grained authorization semantics.
 
 ### Phase 4 - Rollup Closure
 
-- [x] Update the stack rollup Conformance row with concrete source fixture
-  evidence and the unresolved/held family list while keeping the row Open.
+- [x] Initially update the stack rollup Conformance row with concrete source
+  fixture evidence and the unresolved/held family list while keeping the row
+  Open.
 - [x] Leave Production wiring and Authorization rows separate.
+- [x] Close the Conformance row as the promoted-family coverage ledger after F8,
+  F9, and F10 were explicitly separated from Production wiring and ADR 0152
+  authorization closure.
 
 ## Deviations
 
@@ -198,6 +208,12 @@ validation, or fine-grained authorization semantics.
   evidence and rejected before draft/action state. This does not close broader
   production wiring, authorization, Runtime Plan, TraceIndex, or non-web
   consumer behavior.
+- 2026-05-26: F8/F9/F10 moved from partial/held wording to conformance-covered
+  after architecture review confirmed the row is a coverage ledger, not the
+  Production wiring row. F8 is current Response Actions executor conformance;
+  F9 is current UI Graph Policy graph-semantics conformance; F10 is
+  fail-closed/deferred-field conformance only. ADR 0152 semantics and the
+  Authorization row remain Held.
 
 ## Closure Evidence
 
@@ -304,15 +320,17 @@ Pinned evidence after the ledger slice:
   `tests/conformance/spec/test_data_sources_contract.py`,
   `tests/conformance/spec/test_response_actions_runtime.py`,
   `tests/conformance/fixtures/ui-graph-policy/invalid-authorization-field.json`,
-  and the UI Graph Policy semantic fixture corpus. This evidence proves current
-  fail-closed/source contracts only; it does not close production consumers,
-  broader runtime/consumer wiring, or ADR 0152 authorization.
+  the UI Graph Policy semantic fixture corpus,
+  `formspec-server/tests/e2e-http/response-action-ledger.spec.ts`,
+  `formspec-web/tests/e2e/response-action-ledger-live.spec.ts`, and
+  `formspec-web/tests/app/respondent-runtime.test.tsx`. This evidence proves
+  current promoted source and consumer conformance only; it does not close the
+  Production wiring row or ADR 0152 authorization.
 
-Still open:
+Separated follow-ons:
 
-- F8/F9 production consumers and F10 authorization remain partial or held. The
-  A8 replacement covers source conformance only; it does not close Response
-  Actions runtime, Runtime ownership, Production wiring, or ADR 0152.
-- The rollup Conformance row must remain Open until the remaining production
-  consumer and authorization families are resolved or explicitly separated by an
-  owner decision.
+- Production wiring remains a separate Partial row.
+- Authorization remains Held behind ADR 0152. F10 is closed only for
+  fail-closed/deferred-field conformance evidence.
+- Future UI Graph Policy or Component consumers may add new conformance
+  families; they do not keep the current promoted-family ledger open.
