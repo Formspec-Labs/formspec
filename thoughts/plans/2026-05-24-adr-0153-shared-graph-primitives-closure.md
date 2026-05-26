@@ -2,21 +2,23 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Shared graph primitives
-**Status:** Partial. Lint report consumption landed; production graph-loading consumers remain open.
+**Status:** Partial. Lint and server report consumption landed; trusted production graph-loading producer remains open.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
 
 Advance shared graph primitive consumption without porting the TypeScript
-`@formspec-org/app-graph` kernels into Rust. The slice lets
+`@formspec-org/app-graph` kernels into Rust. The first slice lets
 `formspec-lint` consume a completed `AppGraphValidationReport`, validate it
 against the report schema, preserve AppGraph diagnostic identity, and surface
-the report to FFI hosts.
+the report to FFI hosts. The server-consumption slice lets `formspec-server`
+publish accept a completed report, reject invalid/error reports, and preserve
+AppGraph diagnostic identity without becoming the graph-loading authority.
 
 Not in this slice: Rust artifact loading, Node execution from Rust, a Rust port
-of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, Studio / MCP /
-runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR 0152
-fine-grained authorization.
+of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, a trusted
+production TS/BFF report producer, Studio / MCP / runtime / projection wiring,
+App Manifest policy slots, TraceIndex, or ADR 0152 fine-grained authorization.
 
 ## Evidence Before Work
 
@@ -74,7 +76,18 @@ fine-grained authorization.
 
 - [x] Update ADR 0153 gate 3c from held to partial lint report consumption.
 - [x] Update the stack rollup Shared graph primitives evidence.
-- [x] Keep Shared graph primitives, Conformance, and Production wiring open.
+- [x] Keep Shared graph primitives and Conformance open.
+
+### Phase 5 - Server Publish Report Consumption
+
+- [x] Add optional `PublishFormVersionCommand.app_graph_validation_report`.
+- [x] Reject schema-invalid reports through the lint-side AppGraph report
+  bridge.
+- [x] Reject `ok: false` or error-bearing AppGraph reports while preserving
+  `code`, `origin`, `phase`, and source identity in the denial payload.
+- [x] Keep `formspec-server` a report consumer only: it does not run Node,
+  port TypeScript kernels, load graph artifacts, or infer AppGraph semantics.
+- [x] Add publish-route integration coverage for error-bearing report denial.
 
 ## Deviations
 
@@ -91,6 +104,12 @@ fine-grained authorization.
 - 2026-05-25: The code landed in the same child commit as a posture-admission
   slice. Do not read that commit boundary as row closure; this plan records only
   the AppGraph report-bridge portion, which remains partial.
+- 2026-05-26: Architecture scout returned REVISE for server-side graph loading:
+  Rust must not port or invoke the TypeScript kernels. The valid slice is server
+  consumption of a trusted completed report. Full Shared graph closure still
+  requires a production TS/BFF caller that runs `@formspec-org/app-graph`
+  `resolveArtifacts -> graph adapter -> resolveModules -> validateAppGraph` and
+  supplies the report to publish.
 
 ## Closure Evidence
 
@@ -105,13 +124,24 @@ Partial evidence landed:
   `crates/formspec-py/src/document.rs`,
   `packages/formspec-engine/src/wasm-bridge-tools.ts`, and
   `src/formspec/_rust.py` (`lint_report()`).
+- Server consumer: `formspec-server/crates/formspec-server/src/services/forms.rs`
+  accepts optional `app_graph_validation_report` on publish and
+  `formspec-server/crates/formspec-server/src/services/posture_bundle_admission.rs`
+  rejects invalid/error reports through the lint bridge.
 - Verification: `cargo nextest run -p formspec-lint` passed 434/434 tests after
   schema mirror sync.
+- Verification: `cargo nextest run -p formspec-server app_graph_report_admission`;
+  `cargo nextest run -p formspec-server --test posture_bundle_admission`;
+  `cargo nextest run -p formspec-server --test openapi_contract`;
+  `cargo nextest run -p formspec-server --test in_process_trellis_receipt_projection`;
+  `cargo nextest run -p formspec-server --test receipt_materialization`.
 
 Still open:
 
+- A trusted production TS/BFF caller does not yet run `@formspec-org/app-graph`
+  and supply the completed report to `formspec-server` publish.
 - Studio, MCP, runtime, and projection consumers do not yet consume the shared
-  validator report.
+  validator report where applicable.
 - Lint does not load an App Manifest graph or run `@formspec-org/app-graph`.
 - Broader conformance corpus promotion and production wiring remain separate
   rows.
