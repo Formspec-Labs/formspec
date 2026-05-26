@@ -585,12 +585,12 @@ describe('built-in Component route target validation', () => {
           {
             surface: { url: SURFACE_URL, version: '1.0.0' },
             route: 'review',
-            role: 'primary',
+            role: 'route',
           },
           {
             surface: { url: SURFACE_URL, version: '1.0.0' },
             route: 'review',
-            role: 'secondary',
+            role: 'app-shell',
           },
         ],
       })),

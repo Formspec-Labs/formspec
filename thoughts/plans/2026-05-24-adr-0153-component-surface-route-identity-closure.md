@@ -109,8 +109,10 @@ This plan tracks:
   beyond schema acceptance.
   - [x] StudioCore `copyNode` and layout projection tests cover graph identity
     writer/consumer shape.
-  - [ ] Full writer -> AppGraphValidator -> projection corpus fixture remains
-    open.
+  - [x] Full `copyNode` writer -> AppGraphValidator -> projection proof covers
+    a multi-route Component.
+  - [ ] `addNode` / `moveNode` graph-wide identity and production copy/move
+    consumers remain open.
 
 ## Deviations
 
@@ -137,6 +139,12 @@ This plan tracks:
   templates. AppGraphValidator builds node identity from the source Component
   tree, not from planner-expanded templates, so emitting template-derived
   `nodePath` values would create false comparison evidence.
+- 2026-05-25: The writer -> validator -> projection proof validates a
+  schema-shaped route Component artifact derived from StudioCore editing state,
+  not the raw Studio tree. Studio-only `nodeId` remains optional writer and
+  provenance evidence; source Component nodes still use schema-valid `id`
+  segments for validator/projection identity until Component source schema
+  admits `nodeId` directly.
 
 ## Closure Evidence
 
@@ -177,8 +185,10 @@ Partial evidence landed:
   `npm run --workspace @formspec-org/types test -- tests/schema-sync.test.ts`;
   `cargo nextest run -p formspec-lint`;
   `node scripts/generate-spec-artifacts.mjs --check`;
+  `npm run --workspace @formspec-org/app-graph test -- tests/component-route-validator.test.ts`;
   `npm run --workspace @formspec-org/studio-core test -- tests/kernel/proposal-manager-facade.test.ts`;
   `npm run --workspace @formspec-org/layout test -- tests/planner.test.ts`;
+  `npx tsc --noEmit -p packages/formspec-app-graph/tsconfig.json`;
   `cd ../formspec-studio && npx tsc --noEmit -p packages/formspec-studio-core/tsconfig.json`;
   `npx tsc --noEmit -p packages/formspec-layout/tsconfig.json`.
 
