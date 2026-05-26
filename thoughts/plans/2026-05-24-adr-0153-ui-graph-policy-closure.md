@@ -61,9 +61,14 @@ This row spans:
   loads that snapshot through the single optional `DefinitionSource.getLayoutHostEvidence()`
   sidecar and passes it to the React respondent runtime without widening
   `getDefinition()`.
+- `formspec-studio` now stores a shared `AppGraphValidationReport` without
+  dirtying authored state and Form Health surfaces only completed
+  `origin: "ui-graph-policy"` diagnostics while preserving code, severity,
+  phase, origin, and source-pointer identity. AppGraphValidator remains the
+  diagnostic authority.
 - Registry token-category contribution compatibility, runtime hidden-state,
-  Studio/authoring feedback, behavior-level runtime consumers, broader consumer
-  conformance, and optional future App Manifest slot work remain open.
+  behavior-level runtime consumers, broader consumer conformance, and optional
+  future App Manifest slot work remain open.
 
 ## Phase Order
 
@@ -163,10 +168,14 @@ Current partial evidence:
 - `formspec-web/src/app/RespondentRuntime.tsx`
 - `formspec-web/tests/adapters/http/definition-source.test.ts`
 - `formspec-web/tests/app/respondent-runtime.test.tsx`
+- `formspec-studio/packages/formspec-studio-core/src/project.ts`
+- `formspec-studio/packages/formspec-studio-core/src/types.ts`
+- `formspec-studio/packages/formspec-studio-core/tests/app-graph-validation-report.test.ts`
+- `formspec-studio/packages/formspec-studio/src/workspaces/editor/FormHealthPanel.tsx`
+- `formspec-studio/packages/formspec-studio/tests/workspaces/editor/FormHealthPanel-semantic.test.tsx`
 - `thoughts/archive/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
 
 Closure still requires Registry token-category contribution compatibility,
-runtime hidden-state behavior, Studio/authoring feedback, renderer/runtime
-consumers beyond inert metadata surfaces, broader consumer
-conformance, optional App Manifest slot decision, and final rollup gate
-transition.
+runtime hidden-state behavior, behavior-level renderer/runtime consumers beyond
+inert metadata surfaces, broader consumer conformance, optional App Manifest
+slot decision, and final rollup gate transition.
