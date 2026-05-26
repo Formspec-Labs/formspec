@@ -20,6 +20,9 @@ FIXTURE_PATH = (
 REQUIRED_CASES = {
     "valid-policy-surface-routes",
     "surface-target-mismatch",
+    "surface-target-version-range",
+    "surface-target-version-mismatch",
+    "surface-target-version-malformed",
     "duplicate-route-policy",
     "unresolved-route-policy",
     "missing-route-policy",
@@ -29,6 +32,8 @@ REQUIRED_CASES = {
 
 EXPECTED_CODES = {
     "surface-target-mismatch": "UI-POLICY-SURFACE-TARGET",
+    "surface-target-version-mismatch": "UI-POLICY-SURFACE-TARGET",
+    "surface-target-version-malformed": "UI-POLICY-SURFACE-TARGET",
     "duplicate-route-policy": "UI-POLICY-ROUTE-COLLISION",
     "unresolved-route-policy": "UI-POLICY-ROUTE-REF",
     "missing-route-policy": "UI-POLICY-ROUTE-MISSING",

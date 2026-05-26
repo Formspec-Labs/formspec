@@ -38,14 +38,19 @@ This row spans:
 - Raw Theme token-key source shape, exactly-one loaded Theme evidence, and
   widget-slot category-prefix evidence are pinned for executable
   token-reference/category diagnostics.
+- AppGraphValidator, not layout, owns `targetSurface.version` compatibility
+  against the loaded Surface ref using npm `semver` exact/range semantics; the
+  Surface-route fixture corpus pins compatible range, incompatible range, and
+  malformed range fail-closed cases.
 - `@formspec-org/layout` now has the first projection-only non-validator
   consumer: `PlanContext.hostEvidence.uiGraphPolicies[]` accepts generated
   `UiGraphPolicyDocument` host evidence only alongside a completed
   `AppGraphValidationReport`, then emits inert `LayoutNode.uiGraphRoutePolicy`
-  metadata for the matching target Surface URL/version and route id. The
-  projection copies route `a11y` and `responsive` metadata only; it does not
-  copy hidden Definition policy, validate evidence, fetch policies, discover
-  App Manifest slots, mutate layout order, set ARIA, or block drafts/actions.
+  metadata for the matching target Surface URL and route id. The projection
+  copies route `a11y` and `responsive` metadata only; it does not copy hidden
+  Definition policy, validate evidence, check Surface version compatibility,
+  fetch policies, discover App Manifest slots, mutate layout order, set ARIA,
+  or block drafts/actions.
 - Registry token-category contribution compatibility, runtime hidden-state,
   Studio/authoring feedback, renderer/runtime consumers, broader consumer
   conformance, and optional future App Manifest slot work remain open.
@@ -89,6 +94,10 @@ This row spans:
   `@formspec-org/layout` read of validated `hostEvidence.uiGraphPolicies[]`
   evidence plus completed `AppGraphValidationReport` proof that annotates route
   projection output without becoming a validator or runtime gate.
+- 2026-05-26: `targetSurface.version` compatibility moved into
+  AppGraphValidator instead of the layout projection consumer. The validator
+  uses the `semver` package rather than a local range parser; layout matches
+  only target Surface URL after completed report proof.
 
 ## Closure Evidence
 
@@ -102,6 +111,7 @@ Current partial evidence:
 - `packages/formspec-types/src/generated/ui-graph-policy.ts`
 - `packages/formspec-app-graph/src/validator.ts`
 - `packages/formspec-app-graph/src/ui-graph-policy.ts`
+- `packages/formspec-app-graph/package.json`
 - `tests/conformance/fixtures/ui-graph-policy/`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`
 - `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-hidden-definitions.case.json`

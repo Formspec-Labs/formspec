@@ -110,6 +110,66 @@
         ]
       }
     },
+    "target-version-range": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/target-version-range",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": ">=1.0.0 <2.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "target-version-mismatch": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/target-version-mismatch",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "^2.0.0"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
+    "target-version-malformed": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/target-version-malformed",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "not-a-semver-range"
+        },
+        "routePolicies": [
+          {
+            "routeId": "review"
+          },
+          {
+            "routeId": "done"
+          }
+        ]
+      }
+    },
     "duplicate-route": {
       "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
       "source": "host://policy/duplicate-route",
@@ -304,6 +364,150 @@
             ],
             "details": {
               "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/admin"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-target-version-range",
+      "description": "A policy targetSurface version range must accept the loaded Surface ref version.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["target-version-range"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-target-version-mismatch",
+      "description": "A policy targetSurface version range must reject an incompatible loaded Surface ref version.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["target-version-mismatch"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/target-version-mismatch",
+              "jsonPointer": "/targetSurface/version"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/ref/version",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/respondent",
+              "targetSurfaceVersion": "^2.0.0",
+              "loadedSurfaceVersion": "1.0.0",
+              "reason": "version-incompatible"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-target-version-malformed",
+      "description": "A policy targetSurface version range must reject a malformed version expression.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-respondent"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["target-version-malformed"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "UI-POLICY-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/target-version-malformed",
+              "jsonPointer": "/targetSurface/version"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/ref/version",
+                "ref": {
+                  "url": "https://example.gov/apps/intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "targetSurfaceUrl": "https://example.gov/apps/intake/surfaces/respondent",
+              "targetSurfaceVersion": "not-a-semver-range",
+              "loadedSurfaceVersion": "1.0.0",
+              "reason": "version-incompatible"
             }
           }
         ]

@@ -461,7 +461,7 @@ describe('planComponentTree', () => {
         expect(node.uiGraphRoutePolicy).toBeUndefined();
     });
 
-    it('does not project stale UI Graph Policy route metadata for another Surface version', () => {
+    it('does not revalidate UI Graph Policy target Surface version after completed AppGraph validation', () => {
         const tree = {
             component: 'Stack',
             nodeId: 'reviewLayout',
@@ -490,7 +490,7 @@ describe('planComponentTree', () => {
                         version: '1.0.0',
                         targetSurface: {
                             url: 'https://example.gov/apps/intake/surfaces/respondent',
-                            version: '1.0.0',
+                            version: '>=1.0.0',
                         },
                         routePolicies: [{
                             routeId: 'review',
@@ -501,7 +501,16 @@ describe('planComponentTree', () => {
             },
         }));
 
-        expect(node.uiGraphRoutePolicy).toBeUndefined();
+        expect(node.uiGraphRoutePolicy).toEqual({
+            schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+            source: 'host://policy/respondent-ui-policy',
+            targetSurface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '>=1.0.0',
+            },
+            routeId: 'review',
+            a11y: { landmark: 'main' },
+        });
     });
 
     it('fails closed for malformed UI Graph Policy host evidence', () => {
@@ -583,6 +592,111 @@ describe('planComponentTree', () => {
         expect(node.uiGraphRoutePolicy).toBeUndefined();
     });
 
+    it('fails closed for conflicting duplicate AppGraph validation report phases', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const conflictingReport = {
+            ...completedUiGraphPolicyReport(),
+            phases: [
+                { phase: 'schema', status: 'completed' },
+                { phase: 'schema', status: 'skipped', reason: 'schema-errors' },
+                { phase: 'cross-artifact', status: 'completed' },
+            ],
+        } as any;
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                appGraphReport: conflictingReport,
+                uiGraphPolicies: [{
+                    schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                            version: '1.0.0',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy).toBeUndefined();
+    });
+
+    it('fails closed for duplicate AppGraph validation evidence slots', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const baseReport = completedUiGraphPolicyReport();
+        const duplicateReport = {
+            ...baseReport,
+            evidenceResults: [
+                ...baseReport.evidenceResults,
+                {
+                    ...baseReport.evidenceResults[0],
+                    source: 'host://policy/duplicate',
+                },
+            ],
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                appGraphReport: duplicateReport,
+                uiGraphPolicies: [{
+                    schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                            version: '1.0.0',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy).toBeUndefined();
+    });
+
     it('fails closed for malformed UI Graph Policy route policy records', () => {
         const tree = {
             component: 'Stack',
@@ -623,6 +737,49 @@ describe('planComponentTree', () => {
         expect(node.uiGraphRoutePolicy).toBeUndefined();
     });
 
+    it('fails closed for mixed valid and malformed UI Graph Policy route policy records', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                appGraphReport: completedUiGraphPolicyReport(),
+                uiGraphPolicies: [{
+                    schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                            version: '1.0.0',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }, null],
+                    },
+                } as any],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy).toBeUndefined();
+    });
+
     it('fails closed for malformed UI Graph Policy route optional payloads', () => {
         const tree = {
             component: 'Stack',
@@ -644,6 +801,10 @@ describe('planComponentTree', () => {
         for (const routePolicy of [
             { routeId: 'review', a11y: false },
             { routeId: 'review', responsive: false },
+            { routeId: 'review', a11y: { landmark: 'banner' } },
+            { routeId: 'review', a11y: { keyboardNavigation: 'true' } },
+            { routeId: 'review', responsive: { minColumns: '1' } },
+            { routeId: 'review', responsive: { collapseOrder: ['summary', 1] } },
         ]) {
             const node = planComponentTree(tree, makeCtx({
                 componentGraph,

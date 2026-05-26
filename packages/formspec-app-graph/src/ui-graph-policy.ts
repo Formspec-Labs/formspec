@@ -10,6 +10,8 @@ import {
   appGraphSourceFromModuleSource,
   diagnosticSourceForHandle,
 } from './report.js';
+import { satisfies, valid, validRange } from 'semver';
+
 import type {
   LocaleDocument,
   ModuleResolutionContribution,
@@ -142,6 +144,10 @@ function surfaceRefUrl(handle: ResolvedArtifactHandle): string | undefined {
   return handle.ref?.url;
 }
 
+function surfaceRefVersion(handle: ResolvedArtifactHandle): string | undefined {
+  return handle.ref?.version;
+}
+
 function surfaceSource(handle: LoadedSurfaceHandle, jsonPointer: string): AppGraphSourcePointer {
   return diagnosticSourceForHandle(handle, jsonPointer);
 }
@@ -188,6 +194,10 @@ function targetSurfaceUrl(policy: UiGraphPolicyDocument): string {
   return policy.targetSurface.url;
 }
 
+function targetSurfaceVersion(policy: UiGraphPolicyDocument): string | undefined {
+  return policy.targetSurface.version;
+}
+
 function routePolicies(policy: UiGraphPolicyDocument): IndexedRoutePolicy[] {
   return policy.routePolicies.map((entry, index) => ({
     routeId: entry.routeId,
@@ -229,6 +239,37 @@ function targetSurfaceDiagnostic(
     relatedSources.length > 0 ? relatedSources : undefined,
     { targetSurfaceUrl: targetUrl },
   );
+}
+
+function targetSurfaceVersionDiagnostic(
+  evidence: UiGraphPolicyEvidence,
+  surface: LoadedSurfaceHandle,
+  targetVersion: string,
+): AppGraphDiagnostic {
+  const loadedVersion = surfaceRefVersion(surface);
+  return diagnostic(
+    'UI-POLICY-SURFACE-TARGET',
+    'Policy targetSurface version is incompatible with the loaded Surface ref.',
+    evidenceSource(evidence, '/targetSurface/version'),
+    [surfaceSource(surface, loadedVersion ? '/ref/version' : '/ref/url')],
+    {
+      targetSurfaceUrl: targetSurfaceUrl(evidence.document),
+      targetSurfaceVersion: targetVersion,
+      loadedSurfaceVersion: loadedVersion,
+      reason: 'version-incompatible',
+    },
+  );
+}
+
+function versionSatisfies(requested: string, actual: string | undefined): boolean {
+  if (!actual) return false;
+  if (!valid(actual) || !validRange(requested)) return false;
+  return satisfies(actual, requested, { includePrerelease: true });
+}
+
+function targetSurfaceVersionCompatible(policy: UiGraphPolicyDocument, surface: LoadedSurfaceHandle): boolean {
+  const requestedVersion = targetSurfaceVersion(policy);
+  return requestedVersion === undefined || versionSatisfies(requestedVersion, surfaceRefVersion(surface));
 }
 
 function validateRoutePolicies(
@@ -820,6 +861,9 @@ export function validateUiGraphPolicy(context: AppGraphContext): AppGraphDiagnos
     const matchingSurfaces = surfaces.filter((surface) => surfaceRefUrl(surface) === targetUrl);
     if (matchingSurfaces.length !== 1) {
       return [targetSurfaceDiagnostic(evidence, surfaces, targetUrl)];
+    }
+    if (!targetSurfaceVersionCompatible(evidence.document, matchingSurfaces[0])) {
+      return [targetSurfaceVersionDiagnostic(evidence, matchingSurfaces[0], targetSurfaceVersion(evidence.document) ?? '')];
     }
     const assignments = themeAssignments(evidence.document);
     const tokenEvidenceByAssignment = themeTokenEvidenceByAssignment(evidence, assignments, themes);

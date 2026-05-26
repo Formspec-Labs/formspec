@@ -302,7 +302,6 @@ function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRout
         if (!targetSurfaceMatches(document.targetSurface, scope.surface)) continue;
 
         for (const routePolicy of document.routePolicies) {
-            if (!isUiGraphRoutePolicyLike(routePolicy)) continue;
             if (routePolicy.routeId !== scope.route) continue;
             matches.push({
                 schemaId: entry.schemaId,
@@ -337,25 +336,59 @@ function validatedUiGraphPolicyEvidenceSources(
     ) {
         return new Map();
     }
-    const hasCompletedSchema = report.phases.some((phase) => isCompletedAppGraphPhase(phase, 'schema'));
-    const hasCompletedCrossArtifact = report.phases.some((phase) => (
-        isCompletedAppGraphPhase(phase, 'cross-artifact')
-    ));
-    if (!hasCompletedSchema || !hasCompletedCrossArtifact) return new Map();
-    return new Map(
-        report.evidenceResults
-            .filter(isCompletedUiGraphPolicyEvidenceResult)
-            .map((result) => [result.evidenceSlot, result.source]),
-    );
+    const phases = new Map<string, string>();
+    for (const phase of report.phases) {
+        if (!isAppGraphPhaseLike(phase) || phases.has(phase.phase)) {
+            return new Map();
+        }
+        phases.set(phase.phase, phase.status);
+    }
+    if (phases.get('schema') !== 'completed' || phases.get('cross-artifact') !== 'completed') {
+        return new Map();
+    }
+
+    const sourcesBySlot = new Map<string, string>();
+    const seenEvidenceSlots = new Set<string>();
+    for (const result of report.evidenceResults) {
+        if (!isAppGraphEvidenceResultLike(result) || seenEvidenceSlots.has(result.evidenceSlot)) {
+            return new Map();
+        }
+        seenEvidenceSlots.add(result.evidenceSlot);
+        if (isCompletedUiGraphPolicyEvidenceResult(result)) {
+            sourcesBySlot.set(result.evidenceSlot, result.source);
+        }
+    }
+    return sourcesBySlot;
 }
 
-function isCompletedAppGraphPhase(value: unknown, phaseName: string): boolean {
+function isAppGraphPhaseLike(value: unknown): value is {
+    phase: string;
+    status: string;
+} {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const phase = value as {
         phase?: unknown;
         status?: unknown;
     };
-    return phase.phase === phaseName && phase.status === 'completed';
+    return typeof phase.phase === 'string' && typeof phase.status === 'string';
+}
+
+function isAppGraphEvidenceResultLike(value: unknown): value is {
+    evidenceSlot: string;
+    schemaId: string;
+    source: string;
+    status: unknown;
+    ok: unknown;
+} {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const result = value as {
+        evidenceSlot?: unknown;
+        schemaId?: unknown;
+        source?: unknown;
+    };
+    return typeof result.evidenceSlot === 'string'
+        && typeof result.schemaId === 'string'
+        && typeof result.source === 'string';
 }
 
 function isCompletedUiGraphPolicyEvidenceResult(value: unknown): value is {
@@ -403,12 +436,18 @@ function isUiGraphPolicyDocumentLike(
         routePolicies?: unknown;
     };
     const targetSurface = document.targetSurface;
-    return document.$formspecUiGraphPolicy === '0.1'
-        && !!targetSurface
-        && typeof targetSurface === 'object'
-        && !Array.isArray(targetSurface)
-        && typeof (targetSurface as { url?: unknown }).url === 'string'
-        && Array.isArray(document.routePolicies);
+    if (
+        document.$formspecUiGraphPolicy !== '0.1'
+        || !targetSurface
+        || typeof targetSurface !== 'object'
+        || Array.isArray(targetSurface)
+        || typeof (targetSurface as { url?: unknown }).url !== 'string'
+        || ('version' in targetSurface && typeof (targetSurface as { version?: unknown }).version !== 'string')
+        || !Array.isArray(document.routePolicies)
+    ) {
+        return false;
+    }
+    return document.routePolicies.every(isUiGraphRoutePolicyLike);
 }
 
 function isUiGraphRoutePolicyLike(
@@ -427,6 +466,19 @@ function isUiGraphRoutePolicyLike(
         if (!routePolicy.a11y || typeof routePolicy.a11y !== 'object' || Array.isArray(routePolicy.a11y)) {
             return false;
         }
+        const a11y = routePolicy.a11y as {
+            landmark?: unknown;
+            keyboardNavigation?: unknown;
+        };
+        if (
+            'landmark' in a11y
+            && !['main', 'navigation', 'complementary', 'region'].includes(String(a11y.landmark))
+        ) {
+            return false;
+        }
+        if ('keyboardNavigation' in a11y && typeof a11y.keyboardNavigation !== 'boolean') {
+            return false;
+        }
     }
     if ('responsive' in routePolicy) {
         if (
@@ -436,8 +488,20 @@ function isUiGraphRoutePolicyLike(
         ) {
             return false;
         }
-        const responsive = routePolicy.responsive as { collapseOrder?: unknown };
+        const responsive = routePolicy.responsive as {
+            minColumns?: unknown;
+            collapseOrder?: unknown;
+        };
+        if ('minColumns' in responsive && typeof responsive.minColumns !== 'number') {
+            return false;
+        }
         if ('collapseOrder' in responsive && !Array.isArray(responsive.collapseOrder)) {
+            return false;
+        }
+        if (
+            Array.isArray(responsive.collapseOrder)
+            && !responsive.collapseOrder.every((slot) => typeof slot === 'string')
+        ) {
             return false;
         }
     }
@@ -448,11 +512,7 @@ function targetSurfaceMatches(
     policySurface: NonNullable<NonNullable<PlanContext['hostEvidence']>['uiGraphPolicies']>[number]['document']['targetSurface'],
     scopeSurface: NonNullable<PlanContext['componentGraph']>['surface'],
 ): boolean {
-    if (policySurface.url !== scopeSurface.url) return false;
-    if (policySurface.version && scopeSurface.version && policySurface.version !== scopeSurface.version) {
-        return false;
-    }
-    return true;
+    return policySurface.url === scopeSurface.url;
 }
 
 function planThemePagesFromComponentTree(
