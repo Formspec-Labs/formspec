@@ -94,7 +94,7 @@ request has these conceptual fields:
 | `schemaRegistry` | yes | Closed support profile for schema IDs, artifact kinds, and versions the validator can evaluate without network lookup. |
 | `artifactResolution` | yes | `ArtifactResolver` result, including imported diagnostics for missing artifacts, unsupported references, discriminator drift, and ref/version mismatches. |
 | `moduleResolution` | no | Full `ModuleResolutionReport` result when modules are present or module-contributed values must be checked. |
-| `hostEvidence` | no | Host-supplied evidence collections that are not App Manifest siblings, such as `uiGraphPolicies[]`. This evidence is never discovered by `ArtifactResolver`. |
+| `hostEvidence` | no | Host-supplied evidence collections that are not App Manifest siblings, such as `uiGraphPolicies[]` and `componentGraphContexts[]`. This evidence is never discovered by `ArtifactResolver`. |
 | `evidenceSchemaValidators` | no | Schema validators for host-supplied evidence. These validators are separate from artifact schema validators because host evidence is not an artifact handle. |
 | `options` | no | Validator controls such as supported bundle versions, diagnostic severity policy, phase selection for tools, and compatibility profile. Options MUST NOT authorize fetching, rendering, or effect execution. |
 
@@ -102,8 +102,7 @@ request has these conceptual fields:
 
 `hostEvidence` is explicit request evidence supplied by the host. It is not an
 App Manifest slot namespace, and it is not discovered by `ArtifactResolver`.
-The v0.1 UI Graph Policy boundary defines
-`hostEvidence.uiGraphPolicies[]` entries with required `schemaId`, `source`, and
+Each host-evidence collection carries required `schemaId`, `source`, and
 `document` fields. `source` is diagnostic evidence only, not identity authority.
 
 The shared validator kernel validates host evidence through explicit
@@ -111,6 +110,52 @@ The shared validator kernel validates host evidence through explicit
 Missing or failing host-evidence schema validation MUST produce
 `evidenceResults[]` entries and MUST skip dependent cross-artifact evaluation.
 Artifact `schemaValidators` MUST NOT be used for host evidence.
+
+#### 2.1.1 UI Graph Policy Evidence
+
+The v0.1 UI Graph Policy boundary defines `hostEvidence.uiGraphPolicies[]`.
+Its structural source contract and semantic checks are defined by the UI Graph
+Policy specification. Evidence slots use
+`hostEvidence.uiGraphPolicies[N]`. A completed evidence result for that slot is
+the only report proof that a policy document was schema-valid before dependent
+UI Graph Policy checks ran.
+
+#### 2.1.2 Component Graph Context Evidence
+
+The Component graph projection proof boundary defines
+`hostEvidence.componentGraphContexts[]` for host-supplied Component graph
+projection contexts. This collection is request evidence only. It is not an App
+Manifest sibling slot, not an `ArtifactResolver` artifact kind, and not an
+independent Component, Surface, route, or authorization identity source.
+
+The future structural schema for this collection is the Component graph
+projection context shape: Component membership handle plus optional Component
+URL/version, Surface URL plus optional version, and route id. It exists to prove
+that a runtime or projection consumer's `componentGraph` sidecar corresponds to
+a validated graph context; it does not make the browser, renderer, or layout
+planner the validation authority.
+
+When this host-evidence collection is implemented, proof MUST be tied to an
+explicit completed `evidenceResults[]` entry whose `evidenceSlot` is
+`hostEvidence.componentGraphContexts[N]` and whose `schemaId` and `source`
+match the supplied host-evidence entry. A generic
+`AppGraphValidationReport.ok === true` is never sufficient proof that a
+Component graph sidecar was validated.
+
+Cross-artifact validation for schema-valid Component graph context evidence MAY
+check:
+
+1. App Manifest Component membership handle existence.
+2. Component artifact URL/version compatibility for the membership handle.
+3. Surface artifact URL/version compatibility for the projection scope.
+4. Route coverage against the loaded Surface `routes[].id` namespace.
+5. Route-bound Component context against the loaded Component
+   `targetSurfaceRoutes[]` declarations.
+
+AppGraphValidator MUST NOT use Component graph context evidence to choose an
+active route, render Components, hydrate runtime state, suppress DOM metadata,
+execute Response Actions, infer hidden-state behavior, query TraceIndex, or
+decide fine-grained authorization.
 
 This specification does not define a request JSON Schema and does not require
 runtime hidden-state or consumer UI Graph Policy diagnostics in this slice. The
@@ -121,6 +166,9 @@ schema-valid `hostEvidence.uiGraphPolicies[]`, loaded Surface handles, loaded
 Locale handles, loaded Definition handles, loaded Theme handles, and completed
 ModuleResolver evidence when a check depends on module
 admission, contribution ownership, or normalized widget token-slot evidence.
+The Component graph context proof boundary described above is prose contract in
+this revision; schema, fixture, shared-kernel, and production-consumer wiring
+land in later ADR 0153 §7 phases.
 
 ### 2.2 Artifact Handle
 

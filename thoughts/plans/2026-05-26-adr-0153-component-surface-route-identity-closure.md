@@ -1,0 +1,83 @@
+# ADR 0153 Component Surface Route Identity Proof-Source Checkpoint
+
+**Date:** 2026-05-26
+**Row:** Component Surface/route identity
+**Status:** Partial-row checkpoint landed; row remains Partial
+**Owner:** Formspec app-graph follow-on lane
+**Primary plan:** [`2026-05-24-adr-0153-component-surface-route-identity-closure.md`](2026-05-24-adr-0153-component-surface-route-identity-closure.md)
+
+## Scope
+
+Define the proof-source contract needed before any runtime consumer can treat a
+host-supplied Component graph sidecar as validated graph evidence.
+
+This checkpoint does not add schemas, fixtures, AppGraphValidator
+implementation, `formspec-web` runtime gating, renderer behavior, TraceIndex,
+Runtime Plan, non-form `targetDefinition` shims, or ADR 0152 authorization.
+
+## Ordered Work
+
+1. Record that generic `AppGraphValidationReport.ok` is not proof for a
+   `componentGraph` sidecar.
+2. Define `hostEvidence.componentGraphContexts[]` as explicit AppGraphValidator
+   request evidence.
+3. Keep Component graph context evidence out of App Manifest sibling identity
+   and `ArtifactResolver`.
+4. State the future semantic checks: Component handle/url/version, Surface
+   url/version, route coverage, and route-bound Component context.
+5. Leave schema, fixture, shared-kernel, and production-consumer work to later
+   ADR 0153 production-order phases.
+
+## Review Checkpoints
+
+- 2026-05-26 Kant pre-review
+  `019e639c-5b9f-7631-93b4-977e7c8c46d1` rejected a `formspec-web`
+  proof gate based only on generic `AppGraphValidationReport.ok`.
+- 2026-05-26 Hegel tractability review
+  `019e63a7-76a4-7742-9833-c06c8aa6016f` approved the next slice only as a
+  prose/plan contract slice and required no schema, fixture, implementation,
+  consumer, or row-status promotion in the same commit.
+- 2026-05-26 Goodall review
+  `019e63ad-1162-7a92-904c-8977d7ad165d` found no BLOCKER/HIGH/MEDIUM/LOW
+  findings in the scoped prose-only diff.
+
+## Deviations
+
+- This checkpoint creates a dated ADR 0153 row plan that points to the existing
+  Component closure plan instead of moving or duplicating that plan. The older
+  plan remains the detailed closure ledger; this file records the 2026-05-26
+  proof-source checkpoint required by the active rollup process.
+- The AppGraphValidator prose names future host evidence before the request
+  schema and generated types exist. That is intentional under ADR 0153 §7
+  production order: prose first, then schemas, fixtures, shared libraries, lint
+  and conformance, then production wiring.
+
+## Closing Observation
+
+Not observed yet. The proof-source contract is now explicit in prose, but no
+schema, fixture, shared-kernel check, or runtime consumer gate proves
+`hostEvidence.componentGraphContexts[]` end to end. The Component
+Surface/route identity row remains Partial.
+
+## Closure Evidence
+
+Partial evidence for this checkpoint:
+
+- `specs/app-graph/app-graph-validator-spec.md` now defines
+  `hostEvidence.componentGraphContexts[]` as host request evidence.
+- The spec requires proof through an explicit completed `evidenceResults[]`
+  entry for `hostEvidence.componentGraphContexts[N]`, not generic
+  `AppGraphValidationReport.ok`.
+- The spec preserves negative boundaries: no App Manifest sibling, no
+  ArtifactResolver artifact kind, no runtime route choice, no rendering, no DOM
+  suppression authority, no Response Actions execution, no TraceIndex, and no
+  ADR 0152 authorization.
+- Verification: `git diff --check`; `git -C formspec diff --check`;
+  `node scripts/generate-spec-artifacts.mjs --check`.
+
+Still open:
+
+- Component graph context schema and generated types.
+- Source fixture corpus for valid and invalid Component graph context evidence.
+- Shared AppGraphValidator host-evidence conversion and semantic checks.
+- Runtime consumer gating only after completed component-graph evidence proof.

@@ -80,8 +80,11 @@ This plan tracks:
   acceptable next contract is an explicit
   `hostEvidence.componentGraphContexts[]`-style source with report evidence
   results and AppGraphValidator checks for Component handle/url/version, Surface
-  url/version, and route coverage before web suppresses unproven renderer
-  metadata.
+  url/version, and route coverage before any runtime consumer gates or
+  suppresses Component graph metadata.
+- 2026-05-26: Goodall review
+  `019e63ad-1162-7a92-904c-8977d7ad165d` found no BLOCKER/HIGH/MEDIUM/LOW
+  findings in the prose-only proof-source diff.
 
 ## Ordered Work
 
@@ -241,6 +244,20 @@ This plan tracks:
   `AppGraphValidationReport.ok`. That would be proof by absence. Runtime
   suppression of unproven Component graph metadata needs an explicit
   component-graph host-evidence source first.
+- 2026-05-26: The first proof-source slice is prose-only in the
+  AppGraphValidator spec. It reserves `hostEvidence.componentGraphContexts[]`
+  as host request evidence and leaves schema, fixtures, shared-kernel checks,
+  and runtime gating to later ADR 0153 §7 phases.
+
+## Closing Observation
+
+Not observed yet. The current checkpoint defines the explicit
+`hostEvidence.componentGraphContexts[]` proof-source contract in prose so future
+schema, fixture, shared-kernel, and runtime-consumer phases can prove a
+Component graph sidecar directly. The row remains Partial until a production
+runtime host supplies a validated Component graph context from a real loaded
+graph, or broader consumer-facing copy/move conformance closes the remaining
+ADR 0154 gates.
 
 ## Closure Evidence
 
@@ -271,6 +288,11 @@ Partial evidence landed:
 - Projection consumer: `packages/formspec-layout/src/types.ts` and
   `packages/formspec-layout/src/planner-component-tree.ts`
   (`componentGraphIdentity` projection metadata).
+- Component graph proof-source prose:
+  `specs/app-graph/app-graph-validator-spec.md` defines
+  `hostEvidence.componentGraphContexts[]` as explicit host request evidence,
+  not an App Manifest sibling, ArtifactResolver artifact, runtime behavior
+  authority, TraceIndex input, or ADR 0152 authorization source.
 - Renderer consumer: `packages/formspec-webcomponent/src/element.ts`,
   `packages/formspec-webcomponent/src/rendering/emit-node.ts`, and
   `packages/formspec-webcomponent/src/hub-types.ts` consume host-supplied
@@ -314,6 +336,10 @@ Partial evidence landed:
   `formspec-web/tests/app/respondent-runtime.test.tsx`;
   `formspec-web/tests/app/attachment-upload-control.test.tsx` covers the
   public-web FileUpload override.
+- Verification for proof-source prose checkpoint:
+  `git diff --check`;
+  `git -C formspec diff --check`;
+  `node scripts/generate-spec-artifacts.mjs --check`.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;
