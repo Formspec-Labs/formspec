@@ -165,6 +165,86 @@ describe('planComponentTree', () => {
         expect(node.props.gap).toBe('12px');
     });
 
+    it('projects graph-wide Component node identity when graph context is supplied', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+            children: [
+                { component: 'ActionButton', id: 'submitButton', nodeId: 'submit', actionRef: 'submit-review' },
+            ],
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({ componentGraph }));
+
+        expect(node.componentGraphIdentity).toEqual({
+            component: componentGraph.component,
+            surface: componentGraph.surface,
+            route: 'review',
+            nodePath: '/reviewLayout',
+            nodeId: 'reviewLayout',
+        });
+        expect(node.children[0].componentGraphIdentity).toEqual({
+            component: componentGraph.component,
+            surface: componentGraph.surface,
+            route: 'review',
+            nodePath: '/reviewLayout/submit',
+            id: 'submitButton',
+            nodeId: 'submit',
+        });
+    });
+
+    it('does not project graph identity onto expanded custom component templates', () => {
+        const tree = {
+            component: 'ContactField',
+            nodeId: 'contactInvocation',
+            params: { field: 'contactName' },
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            componentDocument: {
+                components: {
+                    ContactField: {
+                        params: ['field'],
+                        tree: {
+                            component: 'Stack',
+                            nodeId: 'templateRoot',
+                            children: [
+                                { component: 'TextInput', nodeId: 'templateField', bind: '{field}' },
+                            ],
+                        },
+                    },
+                },
+            },
+        }));
+
+        expect(node.component).toBe('Stack');
+        expect(node.componentGraphIdentity).toBeUndefined();
+        expect(node.children[0].componentGraphIdentity).toBeUndefined();
+    });
+
     it('preserves when condition as marker', () => {
         const tree = {
             component: 'Text',

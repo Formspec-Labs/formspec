@@ -81,4 +81,4 @@ export type { PopupPlacement } from './popup-position.js';
 export { platformDefaults, platformSelectors, buildPlatformTheme } from './platform-defaults.js';
 
 // Types
-export type { LayoutNode, PlanContext } from './types.js';
+export type { ComponentGraphProjectionContext, LayoutNode, PlanContext } from './types.js';

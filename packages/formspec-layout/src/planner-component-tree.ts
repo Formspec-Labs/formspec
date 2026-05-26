@@ -36,6 +36,7 @@ export function planComponentTree(
     prefix = '',
     customComponentStack?: Set<string>,
     applyThemePages = prefix === '',
+    graphPathSegments: readonly string[] | null = [],
 ): LayoutNode {
     const planCtx = preparePlanContext(ctx);
     if (!customComponentStack) customComponentStack = new Set();
@@ -72,7 +73,7 @@ export function planComponentTree(
         interpolateParams(template, (comp.params ?? comp) as Record<string, unknown>);
 
         customComponentStack.add(componentType);
-        const result = planComponentTree(template, planCtx, prefix, customComponentStack, false);
+        const result = planComponentTree(template, planCtx, prefix, customComponentStack, false, null);
         customComponentStack.delete(componentType);
         return result;
     }
@@ -113,6 +114,11 @@ export function planComponentTree(
         cssClasses: resolveCssClasses(comp as { cssClass?: string | string[] }, planCtx),
         children: [],
     };
+    const nextGraphPathSegments = componentGraphPathSegments(comp, graphPathSegments);
+    if (planCtx.componentGraph && nextGraphPathSegments) {
+        const graphIdentity = componentGraphIdentityForNode(comp, planCtx, nextGraphPathSegments);
+        if (graphIdentity) node.componentGraphIdentity = graphIdentity;
+    }
 
     if (comp.accessibility && typeof comp.accessibility === 'object') {
         node.accessibility = { ...(comp.accessibility as LayoutNode['accessibility']) };
@@ -190,7 +196,7 @@ export function planComponentTree(
     if (Array.isArray(comp.children)) {
         for (const child of comp.children) {
             node.children.push(
-                planComponentTree(child, planCtx, childPrefix, customComponentStack, false),
+                planComponentTree(child, planCtx, childPrefix, customComponentStack, false, nextGraphPathSegments),
             );
         }
     }
@@ -200,6 +206,41 @@ export function planComponentTree(
     }
 
     return node;
+}
+
+function stringProp(value: Record<string, unknown>, key: string): string | undefined {
+    const raw = value[key];
+    return typeof raw === 'string' && raw.length > 0 ? raw : undefined;
+}
+
+function componentNodePathSegment(node: ComponentTreeNode): string | undefined {
+    return stringProp(node, 'nodeId') ?? stringProp(node, 'bind') ?? stringProp(node, 'id');
+}
+
+function componentGraphPathSegments(
+    node: ComponentTreeNode,
+    parentSegments: readonly string[] | null,
+): readonly string[] | null {
+    if (parentSegments === null) return null;
+    const segment = componentNodePathSegment(node);
+    return segment ? [...parentSegments, segment] : null;
+}
+
+function componentGraphIdentityForNode(
+    node: ComponentTreeNode,
+    ctx: PlanContext,
+    pathSegments: readonly string[],
+): LayoutNode['componentGraphIdentity'] | undefined {
+    const scope = ctx.componentGraph;
+    if (!scope || pathSegments.length === 0) return undefined;
+    return {
+        component: scope.component,
+        surface: scope.surface,
+        route: scope.route,
+        nodePath: `/${pathSegments.join('/')}`,
+        ...(stringProp(node, 'id') ? { id: stringProp(node, 'id') } : {}),
+        ...(stringProp(node, 'nodeId') ? { nodeId: stringProp(node, 'nodeId') } : {}),
+    };
 }
 
 function planThemePagesFromComponentTree(

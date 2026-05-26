@@ -1,5 +1,6 @@
 /** @filedesc Core layout plan types: LayoutNode and PlanContext interfaces. */
 import type {
+    ComponentNodeIdentityRef,
     ComponentDocument,
     FormDefinition,
     FormItem,
@@ -14,6 +15,13 @@ export type NodeIdGenerator = (prefix: string) => string;
 
 /** Component document tree node — runtime shape is wider than generated `AnyComponent`. */
 export type ComponentTreeNode = Record<string, unknown> & { component: string };
+
+/** Graph context used by app-graph-aware projection consumers. */
+export interface ComponentGraphProjectionContext {
+    component: ComponentNodeIdentityRef['component'];
+    surface: ComponentNodeIdentityRef['surface'];
+    route: string;
+}
 
 /**
  * A JSON-serializable layout plan node. Produced by the planner and consumed
@@ -48,6 +56,9 @@ export interface LayoutNode {
 
     /** Page mode for a planner-authoritative root whose direct Section children are page units. */
     pageMode?: 'wizard' | 'tabs';
+
+    /** Graph-wide Component node identity per Component §11.6, when caller supplies graph context. */
+    componentGraphIdentity?: ComponentNodeIdentityRef;
 
     // ── Field binding ──
 
@@ -113,6 +124,9 @@ export interface PlanContext {
 
     /** The loaded component document (tree, components, tokens, breakpoints). */
     componentDocument?: ComponentDocument;
+
+    /** App-graph Component membership/surface/route scope for projection-only identity. */
+    componentGraph?: ComponentGraphProjectionContext;
 
     /** The loaded theme document. */
     theme?: ThemeDocument;
