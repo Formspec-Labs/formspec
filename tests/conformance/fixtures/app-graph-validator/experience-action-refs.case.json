@@ -1,0 +1,360 @@
+{
+  "id": "experience-action-refs",
+  "description": "Source conformance corpus for Experience.units[].actionRefs cross-artifact resolution. Every Experience ActionRef.id MUST resolve against the loaded Response Actions document's actions[*].id set (experience-spec §'Action references'; experience.schema.json ActionRef.id description). Processors MUST load Response Actions when Experience carries actionRefs.",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/experience-action-refs",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/experience-action-refs",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/experience-action-refs",
+            "version": "1.0.0"
+          }
+        ],
+        "experience": {
+          "url": "https://example.gov/apps/experience-action-refs/experience",
+          "version": "1.0.0"
+        },
+        "responseActions": {
+          "url": "https://example.gov/apps/experience-action-refs/response-actions",
+          "version": "1.0.0"
+        }
+      }
+    },
+    "manifest.no-response-actions": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/experience-action-refs-no-ra",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/experience-action-refs-no-ra",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/experience-action-refs",
+            "version": "1.0.0"
+          }
+        ],
+        "experience": {
+          "url": "https://example.gov/apps/experience-action-refs/experience",
+          "version": "1.0.0"
+        }
+      }
+    },
+    "experience.resolved": {
+      "slot": "experience",
+      "artifactKind": "experience",
+      "status": "loaded",
+      "source": "memory://experience/resolved",
+      "ref": {
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecExperience": "0.1",
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/experience-action-refs",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actors": [{ "id": "applicant" }],
+        "tasks": [{ "id": "submitTask" }],
+        "units": [
+          {
+            "id": "submit",
+            "kind": "confirmation",
+            "actorRef": "applicant",
+            "taskRefs": ["submitTask"],
+            "actionRefs": [
+              { "id": "submitApplication", "role": "primary" }
+            ]
+          }
+        ]
+      }
+    },
+    "experience.unresolved": {
+      "slot": "experience",
+      "artifactKind": "experience",
+      "status": "loaded",
+      "source": "memory://experience/unresolved",
+      "ref": {
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecExperience": "0.1",
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/experience-action-refs",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actors": [{ "id": "applicant" }],
+        "tasks": [{ "id": "submitTask" }],
+        "units": [
+          {
+            "id": "submit",
+            "kind": "confirmation",
+            "actorRef": "applicant",
+            "taskRefs": ["submitTask"],
+            "actionRefs": [
+              { "id": "submitApplication", "role": "primary" },
+              { "id": "danglingAction", "role": "secondary" }
+            ]
+          }
+        ]
+      }
+    },
+    "experience.no-action-refs": {
+      "slot": "experience",
+      "artifactKind": "experience",
+      "status": "loaded",
+      "source": "memory://experience/no-action-refs",
+      "ref": {
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecExperience": "0.1",
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/experience-action-refs",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actors": [{ "id": "applicant" }],
+        "tasks": [{ "id": "reviewTask" }],
+        "units": [
+          {
+            "id": "review",
+            "kind": "review",
+            "actorRef": "applicant",
+            "taskRefs": ["reviewTask"]
+          }
+        ]
+      }
+    },
+    "response-actions.with-submit": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/with-submit",
+      "ref": {
+        "url": "https://example.gov/apps/experience-action-refs/response-actions",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/experience-action-refs",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "submitApplication",
+            "intent": "submit",
+            "effects": [
+              { "type": "hostEvent", "eventName": "formspec-submit" }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "experience-action-ref-resolves",
+      "description": "Positive case: Experience actionRef.id resolves to a loaded Response Actions actions[*].id.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "experience": ["experience.resolved"],
+          "responseActions": ["response-actions.with-submit"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "experience-action-ref-unresolved-fails-closed",
+      "description": "Negative case: a dangling Experience actionRef.id fails closed at cross-artifact validation, citing the known Response Actions action ids.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "experience": ["experience.unresolved"],
+          "responseActions": ["response-actions.with-submit"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-EXPERIENCE-ACTION-REF",
+            "primarySource": {
+              "artifactSlot": "experience",
+              "artifactKind": "experience",
+              "source": "memory://experience/unresolved",
+              "jsonPointer": "/units/0/actionRefs/1/id",
+              "ref": {
+                "url": "https://example.gov/apps/experience-action-refs/experience",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/with-submit",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/experience-action-refs/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "action-id-unresolved",
+              "unitId": "submit",
+              "unitIndex": 0,
+              "refIndex": 1,
+              "actionRefId": "danglingAction",
+              "knownActionIds": ["submitApplication"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "experience-action-ref-requires-response-actions-load",
+      "description": "Negative case: Experience carries actionRefs but no Response Actions document is loaded; processors MUST load Response Actions per experience-spec §'Action references'. Cross-artifact validation fails closed.",
+      "request": {
+        "manifest": "manifest.no-response-actions",
+        "artifacts": {
+          "experience": ["experience.unresolved"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 2,
+          "errors": 2,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-EXPERIENCE-ACTION-REF",
+            "primarySource": {
+              "artifactSlot": "experience",
+              "artifactKind": "experience",
+              "source": "memory://experience/unresolved",
+              "jsonPointer": "/units/0/actionRefs/0/id",
+              "ref": {
+                "url": "https://example.gov/apps/experience-action-refs/experience",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "reason": "response-actions-not-loaded",
+              "unitId": "submit",
+              "unitIndex": 0,
+              "refIndex": 0,
+              "actionRefId": "submitApplication"
+            }
+          },
+          {
+            "code": "APP-GRAPH-EXPERIENCE-ACTION-REF",
+            "primarySource": {
+              "artifactSlot": "experience",
+              "artifactKind": "experience",
+              "source": "memory://experience/unresolved",
+              "jsonPointer": "/units/0/actionRefs/1/id",
+              "ref": {
+                "url": "https://example.gov/apps/experience-action-refs/experience",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "reason": "response-actions-not-loaded",
+              "unitId": "submit",
+              "unitIndex": 0,
+              "refIndex": 1,
+              "actionRefId": "danglingAction"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "experience-without-action-refs-no-response-actions-required",
+      "description": "Positive case: Experience has no actionRefs[] entries, so no Response Actions load requirement applies.",
+      "request": {
+        "manifest": "manifest.no-response-actions",
+        "artifacts": {
+          "experience": ["experience.no-action-refs"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 2,
+          "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    }
+  ]
+}

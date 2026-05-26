@@ -60,6 +60,9 @@ export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {
+  validateExperienceActionRefs,
+} from './experience-action-refs.js';
+export {
   validateScreenerSurfaceTargets,
 } from './screener-surface-targets.js';
 export {

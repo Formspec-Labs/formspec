@@ -30,6 +30,7 @@ import {
 } from './report.js';
 import { validateComponentRouteTargets } from './component-routes.js';
 import { validateComponentGraphContexts } from './component-graph-context.js';
+import { validateExperienceActionRefs } from './experience-action-refs.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
 import { validateSurfaceResponseActionTriggers } from './surface-response-action-triggers.js';
@@ -298,6 +299,7 @@ function runCrossArtifactValidators(
   const allValidators = [
     validateComponentRouteTargets,
     validateComponentGraphContexts,
+    validateExperienceActionRefs,
     validateScreenerSurfaceTargets,
     validateSurfaceExperienceUnits,
     validateSurfaceResponseActionTriggers,
