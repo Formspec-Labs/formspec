@@ -1,5 +1,5 @@
 /** @filedesc Shared FormEngine accessors for example-form E2E helpers. */
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /** Wait until formspec-render has a live FormEngine (after mount). */
 export async function waitForFormEngine(page: Page, timeout = 10_000): Promise<void> {
@@ -116,32 +116,40 @@ export async function waitForWizardPageTitle(
     .waitFor({ state: 'visible', timeout: options?.timeout ?? 5000 });
 }
 
-/** Navigate wizard to a named page (by visible h2 text). */
-export async function goToPage(page: Page, title: string): Promise<void> {
-  for (let i = 0; i < 10; i++) {
-    const heading = await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
-      .first()
-      .textContent()
-      .catch(() => '');
-    if (heading?.trim() === title) return;
-    const nextBtn = page.locator('button.formspec-wizard-next').first();
-    await nextBtn.click();
-    await page
-      .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
-      .filter({ hasText: title })
-      .first()
-      .waitFor({ state: 'visible', timeout: 5000 })
-      .catch(() => undefined);
-  }
-  const finalHeading = await page
+function wizardPageHeading(page: Page, title: string) {
+  return page
     .locator('.formspec-wizard-panel:not(.formspec-hidden) h2')
-    .first()
-    .textContent()
-    .catch(() => '');
-  if (finalHeading?.trim() !== title) {
-    throw new Error(`Could not navigate to wizard page "${title}"`);
+    .filter({ hasText: title })
+    .first();
+}
+
+/** Navigate wizard to a named page (by visible section h2 text). */
+export async function goToPage(page: Page, title: string): Promise<void> {
+  const targetHeading = wizardPageHeading(page, title);
+  if (await targetHeading.isVisible()) {
+    return;
   }
+
+  const nextBtn = page.locator('button.formspec-wizard-next').first();
+
+  for (let attempt = 0; attempt < 12; attempt++) {
+    if (await targetHeading.isVisible()) {
+      return;
+    }
+
+    await nextBtn.waitFor({ state: 'visible', timeout: 10_000 });
+
+    const nextLabel = (await nextBtn.textContent())?.trim() ?? '';
+    if (nextLabel === 'Submit') {
+      break;
+    }
+
+    await expect(nextBtn).toBeEnabled({ timeout: 5_000 });
+    await nextBtn.click();
+    await targetHeading.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => undefined);
+  }
+
+  await waitForWizardPageTitle(page, title, { timeout: 5_000 });
 }
 
 /** Get raw field signal value from the engine. */
