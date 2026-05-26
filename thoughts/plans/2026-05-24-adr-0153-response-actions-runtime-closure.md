@@ -2,12 +2,12 @@
 
 **Date:** 2026-05-24
 **Row:** Response Actions executor / runtime
-**Status:** Partial; invocation engine, Studio Ledger bridge, server capability mint,
+**Status:** Closed; invocation engine, Studio Ledger bridge, server capability mint,
 public web respondent-host factory, and live server/Trellis respondent-invoker
 checkpoint landed; the browser ActionButton live proof landed through a
-test-routed trusted/BFF capability boundary; explicit Surface route-transition
-runtime ownership evidence landed; deployable host/BFF wiring and route-param
-selected Response instance coverage remain open
+deployable `formspec-server` BFF capability route; explicit Surface
+route-transition runtime ownership evidence landed; ADR 0153 gate 7 runtime
+ownership closed separately in the runtime ownership plan
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§4, 6, 7, 9, Response Actions spec §§7, 11-12,
@@ -56,8 +56,9 @@ path is:
 - `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts` now proves a
   browser managed-single-cell live checkpoint: the public `RespondentRuntime`
   loads production runtime config, injects the React submit `ActionButton`,
-  obtains a per-command capability through a test-routed trusted/BFF boundary,
-  posts the append command to actual `formspec-server` mint/append routes, and
+  obtains a per-command capability through the deployable
+  `formspec-server` BFF route,
+  posts the append command to actual `formspec-server` BFF/append routes, and
   asserts Trellis-shaped receipt evidence plus one anonymous session identity
   and `ledgerScope` binding across session creation, drafts, submit, capability
   mint, and ledger append. The same browser/live proof now carries
@@ -172,10 +173,12 @@ path is:
   append work.
 - [x] Extend that browser/live proof with explicit Surface router transition
   coverage and route-param Response id submit-binding evidence.
-- [ ] Replace the Playwright-routed trusted/BFF and managed-scope harness with
-  a deployable host/BFF capability provider.
-- [ ] Keep ADR 0153 gate 7 open until route-param selected Response instance
-  coverage lands.
+- [x] Replace the Playwright-routed trusted/BFF capability harness with the
+  deployable `formspec-server`
+  `/runtime/response-actions/ledger/capability` endpoint. The browser proof
+  still uses Playwright only for managed-scope forwarding/capture.
+- [x] Keep ADR 0153 gate 7 distinct from Response Actions executor closure;
+  gate 7 is closed separately by the runtime ownership plan.
 
 ## Deviations
 
@@ -199,12 +202,12 @@ path is:
   capability provider. Browser-side capability minting remains forbidden; the
   production respondent host still needs a server-side mint/proxy boundary that
   authenticates the runtime session before appending.
-- 2026-05-26: `formspec-server` now owns the server-side mint route. The route
+- 2026-05-26: `formspec-server` now owns the trusted-host mint route. The route
   authenticates the anonymous runtime session, requires trusted host/BFF
   mint-authority HMAC proof, and binds the requested `ledgerScope` to the
-  verified session before returning a capability. This does not close production
-  runtime wiring because the respondent host still must call the mint route and
-  inject the route-backed Trellis `LedgerPort` into the real invoker path.
+  verified session before returning a capability. At that point the respondent
+  host still needed to call a server-side capability boundary and inject the
+  route-backed Trellis `LedgerPort` into the real invoker path.
 - 2026-05-26: `formspec-web` now owns a public respondent-runtime host factory
   and React `responseActionInvoker` injection path. This proves the real React
   `RespondentRuntime` ActionButton path can call a trusted/BFF capability
@@ -213,34 +216,39 @@ path is:
   observation on that same respondent path.
 - 2026-05-26: The managed-single-cell live proof uses exact-command replay: the
   sibling `formspec-web` HTTP respondent invoker produces the append command
-  against actual `formspec-server` mint/append routes, then StudioCore replays
+  against actual `formspec-server` BFF/append routes, then StudioCore replays
   that same command through its HTTP `LedgerPort`. This proves live
   server/Trellis append plus Studio `readLedgerStatus` observation of the same
   anchored ledger subset. It is not passive Studio polling, and it is not yet a
   single browser ActionButton runtime path.
 - 2026-05-26: The browser managed-single-cell proof now drives the real public
-  `RespondentRuntime` React submit `ActionButton` against the live server mint
-  and append routes. It keeps mint HMAC material inside a Playwright-routed
-  trusted/BFF handler, asserts that browser-originated requests do not carry the
-  mint-authority header, and checks Trellis-shaped receipt evidence. This lands
-  the browser ActionButton live checkpoint, but it is not a deployable BFF.
+  `RespondentRuntime` React submit `ActionButton` against live server BFF and
+  append routes. It asserts that browser-originated requests do not carry the
+  mint-authority header and checks Trellis-shaped receipt evidence.
 - 2026-05-26: The browser/live proof now also lands the first ADR 0153 gate 7
   production-consumer checkpoint. It uses host-supplied Component graph and UI
   Graph Policy evidence to render active route metadata and reject hidden active
   Definition evidence before draft or Response Action work. The follow-on
   runtime-ownership slices landed ambiguous multi-form-route rejection as
-  selected Definition binding evidence, not selected Response closure; a route
-  guard proving completed or denied Response Action ledger work does not mutate
+  selected Definition binding evidence; a route guard proving completed or denied Response Action ledger work does not mutate
   the selected route URL after append completion or capability denial; and an
   explicit Surface router transition proving a declared trigger action advances
-  the route while preserving route-param Response id submit binding. Gate 7
-  remains Partial because full route-param selected Response instance ownership
-  remains open.
+  the route while preserving route-param Response id submit binding. Gate 7 is
+  closed by the separate runtime ownership plan; this row cites that evidence
+  only to keep executor and runtime-ownership boundaries distinct.
+- 2026-05-26: The deployable BFF endpoint now exists at `formspec-server`
+  `/runtime/response-actions/ledger/capability`. It accepts the existing
+  `formspec-web` capability-provider body, verifies the anonymous runtime
+  session, validates and session-binds the append command, and returns only the
+  per-command append capability without requiring browser-originated
+  mint-authority proof. The trusted-host
+  `/runtime/forms/{form_id}/response-actions/ledger/capability` route remains
+  available for server-side callers.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
 
-Partial for ADR 0153 gate 6b.
+Closed for ADR 0153 gate 6b.
 
 - Runtime executor: `packages/formspec-engine/src/response-actions.ts`
   `invokeResponseAction`.
@@ -271,6 +279,11 @@ Partial for ADR 0153 gate 6b.
   `../formspec-server/crates/formspec-server/src/services/responses.rs`,
   `../formspec-server/crates/formspec-server/src/routes.rs`, and
   `../formspec-server/crates/formspec-server/src/api/openapi_registry.rs`.
+- Deployable browser-safe BFF route:
+  `../formspec-server/crates/formspec-server/src/routes.rs`
+  `/runtime/response-actions/ledger/capability`,
+  `../formspec-server/crates/formspec-server/tests/in_process_trellis_action_ledger.rs`,
+  and `../formspec-server/tests/e2e-http/response-action-ledger.spec.ts`.
 - Preview host injection:
   `../formspec-studio/packages/formspec-studio/src/workspaces/preview/FormspecPreviewHost.tsx`
   and
@@ -306,6 +319,13 @@ Partial for ADR 0153 gate 6b.
   `npm run --workspace @formspec-org/studio build`;
   `cargo nextest run -p formspec-server --test openapi_contract`;
   `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`.
+- Verification:
+  `cargo check -p formspec-server --tests`;
+  `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger --test openapi_contract`;
+  `npm --prefix ../formspec-server run test:e2e -- response-action-ledger.spec.ts`;
+  `npm --prefix ../formspec-web run typecheck`;
+  `cd ../formspec-web && npx eslint tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification: `npm --prefix ../formspec-web run typecheck`;
   `npm --prefix ../formspec-web test -- tests/app/respondent-runtime.test.tsx`;
   `npm --prefix ../formspec-web run build`;
@@ -320,7 +340,6 @@ Partial for ADR 0153 gate 6b.
   `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts`;
   `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts`.
 
-Not closed yet: the browser proof still uses Playwright route interception as
-the trusted/BFF capability provider and managed-scope injector. Closure requires
-a deployable host/BFF capability provider. ADR 0153 gate 7 remains Partial until
-route-param selected Response instance coverage lands.
+Closed for Response Actions executor. ADR 0153 gate 7 runtime ownership is
+closed separately by
+`thoughts/plans/2026-05-26-adr-0153-runtime-ownership-closure.md`.
