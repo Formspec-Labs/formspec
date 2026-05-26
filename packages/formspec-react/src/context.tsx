@@ -21,7 +21,7 @@ import type {
 } from '@formspec-org/engine';
 import type { EffectRequest, FormResponse, Precondition, ValidationReport } from '@formspec-org/types';
 import { createFormEngine, findResponseActionByIntent, missingSubmitActionFinding, resolveResponseAction } from '@formspec-org/engine';
-import type { ComponentGraphProjectionContext, LayoutNode } from '@formspec-org/layout';
+import type { ComponentGraphProjectionContext, LayoutHostEvidence, LayoutNode } from '@formspec-org/layout';
 import {
     planDefinitionFallback,
     planComponentTree,
@@ -64,6 +64,8 @@ export interface FormspecContextValue {
     componentDocument?: any;
     /** Host-supplied Component graph projection context. Projection-only; no runtime authority. */
     componentGraph?: ComponentGraphProjectionContext | null;
+    /** Host-supplied UI Graph Policy validation evidence. Projection-only; no runtime authority. */
+    hostEvidence?: LayoutHostEvidence | null;
     /** Response Actions document used by ActionButton actionRef resolution. */
     responseActionsDocument?: ResponseActionsDocument | null;
     /** Callback invoked on form submission. Absent means no built-in submit button. */
@@ -127,6 +129,8 @@ export interface FormspecProviderProps {
     componentDocument?: any;
     /** Host-supplied Component graph projection context for inert renderer metadata. */
     componentGraph?: ComponentGraphProjectionContext | null;
+    /** Host-supplied UI Graph Policy validation evidence for inert renderer metadata. */
+    hostEvidence?: LayoutHostEvidence | null;
     /** Theme document for presentation cascade. */
     themeDocument?: any;
     /** Response Actions document for ActionButton actionRef resolution. */
@@ -185,6 +189,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
         definition,
         componentDocument,
         componentGraph,
+        hostEvidence,
         themeDocument,
         responseActionsDocument,
         initialData,
@@ -290,6 +295,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             formPresentation: mergedFormPresentation,
             componentDocument,
             componentGraph: componentGraph ?? undefined,
+            hostEvidence: hostEvidence ?? undefined,
             theme: themeDocument,
             activeBreakpoint,
             findItem: (key: string) => findItemByKey(items, key),
@@ -325,7 +331,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             }
         }
         return root;
-    }, [engine, componentDocument, componentGraph, themeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
+    }, [engine, componentDocument, componentGraph, hostEvidence, themeDocument, activeBreakpoint, onSubmit, responseActionsDocument, mergedFormPresentation]);
 
     // §10: surface a finding when the host wires onSubmit but no submit Action
     // is published — otherwise auto-inject silently no-ops.
@@ -387,6 +393,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             themeDocument,
             componentDocument,
             componentGraph,
+            hostEvidence,
             responseActionsDocument,
             onSubmit,
             onHostEvent,
@@ -404,7 +411,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registryEntries: registryMap,
             formPresentation: mergedFormPresentation,
         }),
-        [engine, layoutPlan, components, themeDocument, componentDocument, componentGraph, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
+        [engine, layoutPlan, components, themeDocument, componentDocument, componentGraph, hostEvidence, responseActionsDocument, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, touchField, touchAllFields, touchedVersionSignal, isTouched, registryMap, mergedFormPresentation],
     );
 
     return (

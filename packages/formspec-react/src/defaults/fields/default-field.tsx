@@ -7,7 +7,7 @@ import { useFormspecContext } from '../../context';
 import type { ExtensionAttrs } from './field-control-types';
 import { GroupControl } from './group-control';
 import { renderControl } from './render-control';
-import { componentGraphIdentityAttrs } from '../../projection-metadata.js';
+import { projectionMetadataAttrs } from '../../projection-metadata.js';
 
 /**
  * Default field renderer — works for any field type.
@@ -20,7 +20,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const isReadonly = field.readonly || isProtected;
     const showError = !!(field.error && field.touched);
     const themeClass = node.cssClasses?.join(' ') || '';
-    const graphAttrs = componentGraphIdentityAttrs(node);
+    const graphAttrs = projectionMetadataAttrs(node);
 
     const { registryEntries } = useFormspecContext();
     const extensionAttrs = useMemo((): ExtensionAttrs => {

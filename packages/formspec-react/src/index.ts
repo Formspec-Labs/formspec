@@ -50,7 +50,11 @@ export type { FormspecFormProps } from './renderer';
 export { FormspecNode } from './node-renderer';
 export { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
 export type { IssuerChromeSlotProps } from './issuer';
-export { componentGraphIdentityAttrs } from './projection-metadata';
+export {
+    componentGraphIdentityAttrs,
+    projectionMetadataAttrs,
+    uiGraphRoutePolicyAttrs,
+} from './projection-metadata';
 export type { ProjectionMetadataAttrs } from './projection-metadata';
 
 // ── Screener ──

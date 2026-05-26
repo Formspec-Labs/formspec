@@ -21,3 +21,41 @@ export function componentGraphIdentityAttrs(
         ...(identity.nodeId ? { 'data-formspec-component-node-structural-id': identity.nodeId } : {}),
     };
 }
+
+export function uiGraphRoutePolicyAttrs(
+    node: Pick<LayoutNode, 'uiGraphRoutePolicy'>,
+): ProjectionMetadataAttrs {
+    const policy = node.uiGraphRoutePolicy;
+    if (!policy) return {};
+
+    return {
+        'data-formspec-ui-policy-schema': policy.schemaId,
+        'data-formspec-ui-policy-source': policy.source,
+        'data-formspec-ui-policy-surface-url': policy.targetSurface.url,
+        ...(policy.targetSurface.version ? {
+            'data-formspec-ui-policy-surface-version': policy.targetSurface.version,
+        } : {}),
+        'data-formspec-ui-policy-route': policy.routeId,
+        ...(policy.a11y?.landmark ? {
+            'data-formspec-ui-policy-a11y-landmark': policy.a11y.landmark,
+        } : {}),
+        ...(policy.a11y?.keyboardNavigation !== undefined ? {
+            'data-formspec-ui-policy-keyboard-navigation': String(policy.a11y.keyboardNavigation),
+        } : {}),
+        ...(policy.responsive?.minColumns !== undefined ? {
+            'data-formspec-ui-policy-responsive-min-columns': String(policy.responsive.minColumns),
+        } : {}),
+        ...(policy.responsive?.collapseOrder ? {
+            'data-formspec-ui-policy-responsive-collapse-order': JSON.stringify(policy.responsive.collapseOrder),
+        } : {}),
+    };
+}
+
+export function projectionMetadataAttrs(
+    node: Pick<LayoutNode, 'componentGraphIdentity' | 'uiGraphRoutePolicy'>,
+): ProjectionMetadataAttrs {
+    return {
+        ...componentGraphIdentityAttrs(node),
+        ...uiGraphRoutePolicyAttrs(node),
+    };
+}

@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { initFormspecEngine, createFormEngine, createDemoSubmitResponseActions, invokeResponseAction } from '@formspec-org/engine';
 import { actRender, actRenderAsync } from './render-utils';
-import type { LayoutNode } from '@formspec-org/layout';
+import type { LayoutHostEvidence, LayoutNode } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
 import { FormspecForm } from '../src/renderer';
@@ -67,6 +67,74 @@ const testDefinition = {
 const responseActionsDocument = createDemoSubmitResponseActions({
     definitionUrl: testDefinition.url,
 });
+
+const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
+
+function completedUiGraphPolicyHostEvidence(
+    source = 'host://policy/respondent-ui-policy',
+): LayoutHostEvidence {
+    return {
+        appGraphReport: {
+            ok: true,
+            summary: {
+                artifacts: 0,
+                loadedArtifacts: 0,
+                schemaFailures: 0,
+                unvalidatedArtifacts: 0,
+                graphErrors: 0,
+                errors: 0,
+                warnings: 0,
+                infos: 0,
+                importedDiagnostics: 0,
+                unsupportedFeatures: 0,
+                skippedPhases: 0,
+            },
+            schemaResults: [],
+            evidenceResults: [{
+                evidenceSlot: 'hostEvidence.uiGraphPolicies[0]',
+                schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+                source,
+                status: 'completed',
+                ok: true,
+                diagnostics: [],
+            }],
+            diagnostics: [],
+            phases: [
+                { phase: 'schema', status: 'completed' },
+                { phase: 'cross-artifact', status: 'completed' },
+            ],
+        },
+        uiGraphPolicies: [{
+            schemaId: UI_GRAPH_POLICY_SCHEMA_ID,
+            source,
+            document: {
+                $formspecUiGraphPolicy: '0.1',
+                version: '1.0.0',
+                targetSurface: {
+                    url: 'https://surfaces.example.test/intake',
+                    version: '1.0.0',
+                },
+                routePolicies: [{
+                    routeId: 'apply',
+                    a11y: {
+                        landmark: 'main',
+                        keyboardNavigation: true,
+                    },
+                    responsive: {
+                        minColumns: 1,
+                        collapseOrder: ['summary', 'details'],
+                    },
+                    definitionVisibility: {
+                        hiddenDefinitionRefs: [{
+                            url: 'https://forms.example.test/internal-notes',
+                            version: '1.0.0',
+                        }],
+                    },
+                }],
+            },
+        }],
+    };
+}
 
 function renderInto(element: React.ReactElement): HTMLElement {
     return actRender(element);
@@ -238,6 +306,117 @@ describe('FormspecForm', () => {
         expect(nameField?.dataset.formspecComponentHandle).toBe('respondent');
         expect(nameField?.dataset.formspecComponentNodeId).toBe('name-node');
         expect(nameField?.dataset.formspecNodePath).toBe('/root-stack/name');
+    });
+
+    it('emits inert UI Graph Policy route metadata only on the validated route root', () => {
+        const componentDocument = {
+            $formspecComponent: '1.2',
+            url: 'https://components.example.test/respondent',
+            version: '1.0.0',
+            targetSurfaceRoutes: [
+                {
+                    surface: {
+                        url: 'https://surfaces.example.test/intake',
+                        version: '1.0.0',
+                    },
+                    route: 'apply',
+                },
+            ],
+            tree: {
+                component: 'Stack',
+                id: 'root-stack',
+                children: [
+                    {
+                        component: 'TextInput',
+                        bind: 'name',
+                        id: 'name-node',
+                    },
+                ],
+            },
+        };
+        const componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: componentDocument.url,
+                version: componentDocument.version,
+            },
+            surface: {
+                url: 'https://surfaces.example.test/intake',
+                version: '1.0.0',
+            },
+            route: 'apply',
+        };
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                componentGraph={componentGraph}
+                hostEvidence={completedUiGraphPolicyHostEvidence()}
+            />
+        );
+
+        const rootStack = container.querySelector('.formspec-stack') as HTMLElement;
+        const nameField = container.querySelector('.formspec-field[data-name="name"]') as HTMLElement;
+        expect(rootStack?.dataset.formspecUiPolicySchema).toBe(UI_GRAPH_POLICY_SCHEMA_ID);
+        expect(rootStack?.dataset.formspecUiPolicySource).toBe('host://policy/respondent-ui-policy');
+        expect(rootStack?.dataset.formspecUiPolicySurfaceUrl).toBe('https://surfaces.example.test/intake');
+        expect(rootStack?.dataset.formspecUiPolicySurfaceVersion).toBe('1.0.0');
+        expect(rootStack?.dataset.formspecUiPolicyRoute).toBe('apply');
+        expect(rootStack?.dataset.formspecUiPolicyA11yLandmark).toBe('main');
+        expect(rootStack?.dataset.formspecUiPolicyKeyboardNavigation).toBe('true');
+        expect(rootStack?.dataset.formspecUiPolicyResponsiveMinColumns).toBe('1');
+        expect(rootStack?.dataset.formspecUiPolicyResponsiveCollapseOrder).toBe('["summary","details"]');
+        expect(rootStack?.dataset.formspecComponentHandle).toBe('respondent');
+        expect(nameField?.dataset.formspecUiPolicySchema).toBeUndefined();
+    });
+
+    it('does not emit UI Graph Policy metadata without completed validation report evidence', () => {
+        const componentDocument = {
+            $formspecComponent: '1.2',
+            url: 'https://components.example.test/respondent',
+            version: '1.0.0',
+            targetSurfaceRoutes: [
+                {
+                    surface: {
+                        url: 'https://surfaces.example.test/intake',
+                        version: '1.0.0',
+                    },
+                    route: 'apply',
+                },
+            ],
+            tree: {
+                component: 'Stack',
+                id: 'root-stack',
+            },
+        };
+        const componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: componentDocument.url,
+                version: componentDocument.version,
+            },
+            surface: {
+                url: 'https://surfaces.example.test/intake',
+                version: '1.0.0',
+            },
+            route: 'apply',
+        };
+        const hostEvidence = completedUiGraphPolicyHostEvidence();
+        delete hostEvidence.appGraphReport;
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                componentGraph={componentGraph}
+                hostEvidence={hostEvidence}
+            />
+        );
+
+        const rootStack = container.querySelector('.formspec-stack') as HTMLElement;
+        expect(rootStack?.dataset.formspecUiPolicySchema).toBeUndefined();
+        expect(rootStack?.dataset.formspecComponentHandle).toBe('respondent');
     });
 });
 

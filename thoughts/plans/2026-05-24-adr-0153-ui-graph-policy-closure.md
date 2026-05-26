@@ -55,8 +55,14 @@ This row spans:
   `data-formspec-ui-policy-*` metadata on rendered route roots. It does not
   validate AppGraph reports, fetch policy documents, apply ARIA/responsive
   behavior, or infer hidden-state rejection.
+- `@formspec-org/react` now accepts `FormspecProvider.hostEvidence`, passes the
+  same projection-only evidence snapshot into layout planning, and emits inert
+  `data-formspec-ui-policy-*` metadata on the validated route root. `formspec-web`
+  loads that snapshot through the single optional `DefinitionSource.getLayoutHostEvidence()`
+  sidecar and passes it to the React respondent runtime without widening
+  `getDefinition()`.
 - Registry token-category contribution compatibility, runtime hidden-state,
-  Studio/authoring feedback, additional renderer/runtime consumers, broader consumer
+  Studio/authoring feedback, behavior-level runtime consumers, broader consumer
   conformance, and optional future App Manifest slot work remain open.
 
 ## Phase Order
@@ -106,6 +112,11 @@ This row spans:
   inert metadata emission from `LayoutNode.uiGraphRoutePolicy`. This is not
   runtime hidden-state behavior, authoring feedback, ARIA application, or an App
   Manifest policy slot.
+- 2026-05-26: The React/formspec-web consumer keeps the host evidence as one
+  `LayoutHostEvidence` snapshot (`getLayoutHostEvidence()`), not split
+  policy/report hooks. It is still projection-only: no fetching, validator
+  execution, ARIA/responsive behavior, route authority, hidden-state rejection,
+  or authorization behavior moves into the browser renderer.
 
 ## Closure Evidence
 
@@ -144,10 +155,18 @@ Current partial evidence:
 - `packages/formspec-webcomponent/src/hub-types.ts`
 - `packages/formspec-webcomponent/src/rendering/emit-node.ts`
 - `packages/formspec-webcomponent/tests/render-lifecycle.test.ts`
+- `packages/formspec-react/src/context.tsx`
+- `packages/formspec-react/src/projection-metadata.ts`
+- `packages/formspec-react/tests/renderer.test.tsx`
+- `formspec-web/src/ports/definition-source.ts`
+- `formspec-web/src/adapters/http/definition-source.ts`
+- `formspec-web/src/app/RespondentRuntime.tsx`
+- `formspec-web/tests/adapters/http/definition-source.test.ts`
+- `formspec-web/tests/app/respondent-runtime.test.tsx`
 - `thoughts/archive/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
 
 Closure still requires Registry token-category contribution compatibility,
 runtime hidden-state behavior, Studio/authoring feedback, renderer/runtime
-consumers beyond this webcomponent metadata surface, broader consumer
+consumers beyond inert metadata surfaces, broader consumer
 conformance, optional App Manifest slot decision, and final rollup gate
 transition.

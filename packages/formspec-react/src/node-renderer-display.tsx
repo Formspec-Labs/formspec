@@ -9,7 +9,7 @@ import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
 import { useRepeatCount } from './use-repeat-count';
 import { ValidationSummary } from './validation-summary';
-import { componentGraphIdentityAttrs } from './projection-metadata.js';
+import { projectionMetadataAttrs } from './projection-metadata.js';
 
 /**
  * Minimal markdown-to-HTML converter. Handles the subset required by the Text
@@ -52,7 +52,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
 
     const cssClass = node.cssClasses?.join(' ') || undefined;
     const style = node.style as React.CSSProperties | undefined;
-    const graphAttrs = componentGraphIdentityAttrs(node);
+    const graphAttrs = projectionMetadataAttrs(node);
 
     switch (node.component) {
         case 'Heading': {
