@@ -414,3 +414,156 @@ def _field_edit_recorded_event() -> dict:
 
 def test_field_edit_recorded_event_is_schema_valid():
     _validate_event(_field_edit_recorded_event())
+
+
+# ---------------------------------------------------------------------------
+# EXT-5 Batch A — respondent-act event types (§8.7 - §8.13)
+# ---------------------------------------------------------------------------
+
+
+_EXT5_BATCH_A_FIXTURES = [
+    ("response.declined", "response-declined/clause-objection.json"),
+    ("response.withdrawn", "response-withdrawn/post-determination-rescission.json"),
+    (
+        "response.dispute-attached",
+        "response-dispute-attached/field-scoped-counter-attestation.json",
+    ),
+    ("consent.revoked", "consent-revoked/downstream-disclosure-withdrawn.json"),
+    ("data.erased", "data-erased/key-shred-erasure.json"),
+    ("disclosure.presented", "disclosure-presented/submit-gate-privacy-notice.json"),
+    (
+        "field.flagged-by-respondent",
+        "field-flagged-by-respondent/incorrect-as-prefilled.json",
+    ),
+]
+
+
+def _ext5_event(relative_path: str) -> dict:
+    fixture_path = (
+        ROOT_DIR / "tests/conformance/fixtures/respondent-ledger" / relative_path
+    )
+    with open(fixture_path) as f:
+        return json.load(f)
+
+
+@pytest.mark.parametrize(("event_type", "fixture"), _EXT5_BATCH_A_FIXTURES)
+def test_ext5_batch_a_fixtures_are_schema_valid(event_type: str, fixture: str):
+    event = _ext5_event(fixture)
+    _validate_event(event)
+    assert event["eventType"] == event_type
+    assert "data" in event
+
+
+@pytest.mark.parametrize(("event_type", "fixture"), _EXT5_BATCH_A_FIXTURES)
+def test_ext5_batch_a_events_require_data_payload(event_type: str, fixture: str):
+    event = _ext5_event(fixture)
+    event.pop("data")
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+@pytest.mark.parametrize(("event_type", "fixture"), _EXT5_BATCH_A_FIXTURES)
+def test_ext5_batch_a_event_types_published_in_closed_enum(
+    event_type: str, fixture: str
+):
+    event_type_def = EVENT_SCHEMA["$defs"]["EventType"]
+    closed_branch = next(b for b in event_type_def["oneOf"] if "enum" in b)
+    assert event_type in closed_branch["enum"]
+
+
+@pytest.mark.parametrize(("event_type", "fixture"), _EXT5_BATCH_A_FIXTURES)
+def test_ext5_batch_a_data_blocks_reject_additional_properties(
+    event_type: str, fixture: str
+):
+    event = _ext5_event(fixture)
+    event["data"]["extraneousFieldThatMustBeRejected"] = "nope"
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+@pytest.mark.parametrize(("event_type", "fixture"), _EXT5_BATCH_A_FIXTURES)
+def test_ext5_batch_a_data_blocks_are_event_type_scoped(event_type: str, fixture: str):
+    """data payload bound to event type X must fail validation when carried under
+    an unrelated event type."""
+    event = _ext5_event(fixture)
+    event["eventType"] = "draft.saved"
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_declined_clause_references_must_be_non_empty_when_present():
+    event = _ext5_event("response-declined/clause-objection.json")
+    event["data"]["clauseReferences"] = []
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_withdrawn_rescission_requested_is_boolean():
+    event = _ext5_event("response-withdrawn/post-determination-rescission.json")
+    event["data"]["rescissionRequested"] = "true"
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_dispute_attached_requires_target_event_hash():
+    event = _ext5_event(
+        "response-dispute-attached/field-scoped-counter-attestation.json"
+    )
+    event["data"].pop("disputeTargetEventHash")
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_response_dispute_attached_field_set_paths_use_json_pointer():
+    event = _ext5_event(
+        "response-dispute-attached/field-scoped-counter-attestation.json"
+    )
+    event["data"]["disputedFieldSet"] = ["household/monthlyIncome"]
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_consent_revoked_requires_consent_scope():
+    event = _ext5_event("consent-revoked/downstream-disclosure-withdrawn.json")
+    event["data"].pop("consentScope")
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_data_erased_requires_classes_erased_non_empty():
+    event = _ext5_event("data-erased/key-shred-erasure.json")
+    event["data"]["classesErased"] = []
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_data_erased_requires_deletion_receipt_ref():
+    event = _ext5_event("data-erased/key-shred-erasure.json")
+    event["data"].pop("deletionReceiptRef")
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_disclosure_presented_requires_disclosure_hash():
+    event = _ext5_event("disclosure-presented/submit-gate-privacy-notice.json")
+    event["data"].pop("disclosureHash")
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_field_flagged_path_requires_leading_slash():
+    event = _ext5_event(
+        "field-flagged-by-respondent/incorrect-as-prefilled.json"
+    )
+    event["data"]["path"] = "applicant/lastName"
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+def test_field_flagged_kind_is_closed_enum():
+    event = _ext5_event(
+        "field-flagged-by-respondent/incorrect-as-prefilled.json"
+    )
+    event["data"]["flagKind"] = "arbitrary-deployment-token"
+    with pytest.raises(ValidationError):
+        _validate_event(event)

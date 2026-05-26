@@ -1,0 +1,33 @@
+{
+  "eventId": "evt-data-erased-0001",
+  "sequence": 18,
+  "eventType": "data.erased",
+  "occurredAt": "2026-05-26T18:00:00Z",
+  "recordedAt": "2026-05-26T18:00:05Z",
+  "responseId": "resp-erased-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "system",
+    "id": "deletion-processor",
+    "display": "Deletion Receipt Issuer"
+  },
+  "source": {
+    "kind": "system-job",
+    "channelId": "deletion-pipeline"
+  },
+  "priorEventHash": "sha256:6677889900aabbccddeeff00112233445566778899aabbccddeeff0011223344",
+  "eventHash": "sha256:ee55555555555555555555555555555555555555555555555555555555555555",
+  "data": {
+    "erasedAt": "2026-05-26T18:00:00Z",
+    "classesErased": [
+      "household-financial",
+      "household-identifying"
+    ],
+    "retentionWaived": [
+      "policy:retention-5y-financial"
+    ],
+    "cryptographicMethod": "key-shred-x25519",
+    "deletionReceiptRef": "sha256:abcdef1234567890fedcba0987654321abcdef1234567890fedcba0987654321"
+  }
+}

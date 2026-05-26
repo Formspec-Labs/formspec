@@ -1,0 +1,31 @@
+{
+  "eventId": "evt-dispute-0001",
+  "sequence": 8,
+  "eventType": "response.dispute-attached",
+  "occurredAt": "2026-05-26T16:00:00Z",
+  "recordedAt": "2026-05-26T16:00:01Z",
+  "responseId": "resp-dispute-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-42",
+    "subjectRef": "subj-pseudo-042",
+    "assuranceLevel": "L3"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "case-portal"
+  },
+  "priorEventHash": "sha256:88aaccff1122334455667788aabbccddeeff00112233445566778899aabbccdd",
+  "eventHash": "sha256:cc33333333333333333333333333333333333333333333333333333333333333",
+  "data": {
+    "disputedAt": "2026-05-26T16:00:00Z",
+    "statement": "The household income figure reflected in the determination was prefilled from a stale tax return; the corrected figure was submitted on the resubmission but the determination references the original.",
+    "disputeTargetEventHash": "sha256:88aaccff1122334455667788aabbccddeeff00112233445566778899aabbccdd",
+    "disputedFieldSet": [
+      "/household/monthlyIncome",
+      "/household/incomeSource"
+    ]
+  }
+}

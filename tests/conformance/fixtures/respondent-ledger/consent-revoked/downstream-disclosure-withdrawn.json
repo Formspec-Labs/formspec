@@ -1,0 +1,27 @@
+{
+  "eventId": "evt-consent-revoked-0001",
+  "sequence": 9,
+  "eventType": "consent.revoked",
+  "occurredAt": "2026-05-26T17:15:00Z",
+  "recordedAt": "2026-05-26T17:15:01Z",
+  "responseId": "resp-consent-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-201",
+    "subjectRef": "subj-pseudo-201"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "case-portal"
+  },
+  "priorEventHash": "sha256:77ee8800112233445566778899aabbccddeeff00112233445566778899aabbcc",
+  "eventHash": "sha256:dd44444444444444444444444444444444444444444444444444444444444444",
+  "data": {
+    "revokedAt": "2026-05-26T17:15:00Z",
+    "consentScope": "downstream-disclosure:partner-agency-share",
+    "consentGrantRef": "sha256:5566778899aabbccddeeff00112233445566778899aabbccddeeff0011223344",
+    "reason": "I no longer want my household information shared with the partner agency referenced at submission."
+  }
+}

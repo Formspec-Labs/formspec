@@ -1,0 +1,28 @@
+{
+  "eventId": "evt-field-flagged-0001",
+  "sequence": 5,
+  "eventType": "field.flagged-by-respondent",
+  "occurredAt": "2026-05-26T20:45:00Z",
+  "recordedAt": "2026-05-26T20:45:01Z",
+  "responseId": "resp-flagged-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-501",
+    "subjectRef": "subj-pseudo-501"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-portal"
+  },
+  "priorEventHash": "sha256:aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+  "eventHash": "sha256:1177777777777777777777777777777777777777777777777777777777777777",
+  "data": {
+    "flaggedAt": "2026-05-26T20:45:00Z",
+    "path": "/applicant/lastName",
+    "flagKind": "incorrect-as-prefilled",
+    "note": "The prefilled last name is misspelled; my correct name is different. I will edit before submission but want the flag recorded.",
+    "itemKey": "applicant_last_name"
+  }
+}

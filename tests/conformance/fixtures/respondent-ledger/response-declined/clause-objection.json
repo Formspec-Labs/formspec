@@ -1,0 +1,40 @@
+{
+  "eventId": "evt-declined-0001",
+  "sequence": 4,
+  "eventType": "response.declined",
+  "occurredAt": "2026-05-26T14:00:00Z",
+  "recordedAt": "2026-05-26T14:00:01Z",
+  "responseId": "resp-declined-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-17",
+    "subjectRef": "subj-pseudo-001",
+    "privacyTier": "pseudonymous"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-portal"
+  },
+  "priorEventHash": "sha256:72df6b4f6ff78ec1f41f43a5c68a1be2114e7338e25a7bde7a7258f5b8bb0fb9",
+  "eventHash": "sha256:aa11111111111111111111111111111111111111111111111111111111111111",
+  "data": {
+    "declinedAt": "2026-05-26T14:00:00Z",
+    "reason": "The household composition disclosure on page 3 asks for information I am not willing to share without legal counsel review.",
+    "clauseReferences": [
+      "/household.composition",
+      "disclosure:third-party-share-clause-v3"
+    ]
+  },
+  "changes": [
+    {
+      "op": "status-transition",
+      "path": "$response.status",
+      "valueClass": "system-derived",
+      "before": "in-progress",
+      "after": "stopped",
+      "reasonCode": "respondent-declined"
+    }
+  ]
+}

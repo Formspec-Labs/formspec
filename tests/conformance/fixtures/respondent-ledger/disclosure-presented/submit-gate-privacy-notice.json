@@ -1,0 +1,28 @@
+{
+  "eventId": "evt-disclosure-presented-0001",
+  "sequence": 6,
+  "eventType": "disclosure.presented",
+  "occurredAt": "2026-05-26T19:30:00Z",
+  "recordedAt": "2026-05-26T19:30:01Z",
+  "responseId": "resp-disclosure-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-7",
+    "subjectRef": "subj-pseudo-007"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-portal"
+  },
+  "priorEventHash": "sha256:1122334455667788aabbccddeeff00112233445566778899aabbccddeeff0011",
+  "eventHash": "sha256:ff66666666666666666666666666666666666666666666666666666666666666",
+  "data": {
+    "presentedAt": "2026-05-26T19:30:00Z",
+    "disclosureId": "privacy-notice:housing-assistance-v3",
+    "disclosureHash": "sha256:9988776655443322110099887766554433221100998877665544332211009988",
+    "displayContextRef": "submit-gate",
+    "acknowledged": true
+  }
+}

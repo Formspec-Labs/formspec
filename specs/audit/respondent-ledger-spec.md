@@ -1,14 +1,14 @@
 ---
 title: Respondent Ledger Add-On Specification
-version: 0.2.0-draft
-date: 2026-04-27
+version: 0.3.0-draft
+date: 2026-05-26
 status: draft
 ---
 
-# Respondent Ledger Add-On Specification v0.2
+# Respondent Ledger Add-On Specification v0.3
 
 **Status:** Draft  
-**Last updated:** 2026-04-27
+**Last updated:** 2026-05-26
 **Audience:** Formspec add-on editors, platform engineers, runtime implementers, trust/compliance reviewers  
 **Normative language:** The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119 / RFC 8174 when, and only when, they appear in all capitals.
 
@@ -285,7 +285,7 @@ Each event **MUST** contain at least:
 - `attachmentBinding` **MUST** be present for `attachment.added` and `attachment.replaced`.
 - `priorAttachmentBindingHash` **MUST** be present for `attachment.removed`; `attachment.removed` **MUST NOT** carry a new `attachmentBinding`.
 - `actionEvent` **MUST** be present for `action.invoked`, `action.failed`, `action.deferred`, and `action.replayed`; those events **MUST NOT** carry `changes` or `validationSnapshot`.
-- `data` **MUST** be present for `response.correction-recorded` and `bot-protection-cleared`, using the event-specific payload shape defined by this specification.
+- `data` **MUST** be present for `response.correction-recorded`, `bot-protection-cleared`, `response.declined`, `response.withdrawn`, `response.dispute-attached`, `consent.revoked`, `data.erased`, `disclosure.presented`, and `field.flagged-by-respondent`, using the event-specific payload shape defined by this specification.
 - `sessionRef` **SHOULD** be present when the implementation distinguishes respondent sessions.
 - `amendmentRef` **SHOULD** be present when an event belongs to a particular reopening/amendment cycle.
 
@@ -307,7 +307,7 @@ Each event **MUST** contain at least:
 - `priorAttachmentBindingHash` — prior attachment-binding event hash referenced by an attachment removal.
 - `actionEvent` — Response Actions invocation payload for optional `action.*` events, defined in §8.5. The Ledger stores this payload without interpreting the semantic content of opaque `*Ref` fields.
 - `recordKind` — correction-profile discriminator for `response.correction-recorded`; when present it **MUST** equal `responseCorrection`.
-- `data` — structured event-specific payload for `response.correction-recorded` (§11.3) or `bot-protection-cleared` (§8.6).
+- `data` — structured event-specific payload for `response.correction-recorded` (§11.4), `bot-protection-cleared` (§8.6), `response.declined` (§8.7), `response.withdrawn` (§8.8), `response.dispute-attached` (§8.9), `consent.revoked` (§8.10), `data.erased` (§8.11), `disclosure.presented` (§8.12), or `field.flagged-by-respondent` (§8.13).
 - `priorEventHash` — previous event hash in the respondent-ledger chain, or `null` for the first event in a Trellis-wrapped chain.
 - `eventHash` — hash of this respondent-ledger event under the active integrity profile.
 - `privacyTier` — optional disclosure tier on the actor or identity attestation stating how linkable or revealed the subject is for this event.
@@ -668,6 +668,13 @@ An implementation **MAY** support additional material event types, including:
 - `action.deferred`
 - `action.replayed`
 - `bot-protection-cleared`
+- `response.declined`
+- `response.withdrawn`
+- `response.dispute-attached`
+- `consent.revoked`
+- `data.erased`
+- `disclosure.presented`
+- `field.flagged-by-respondent`
 
 ### 8.3 Event type guidance
 
@@ -695,6 +702,13 @@ An implementation **MAY** support additional material event types, including:
 - `action.deferred` — optional Response Actions audit event for an invocation whose effect chain deferred and produced a replay token.
 - `action.replayed` — optional Response Actions audit event for a retry or replay observing prior invocation outcomes.
 - `bot-protection-cleared` — optional FW-0036 audit event recording that the humane bot-protection gate ran and produced a provider-neutral verdict.
+- `response.declined` — respondent affirmatively refused to complete or sign the form (§8.7). Distinct from `response.stopped` (abandonment without affirmative refusal) and from `consent.revoked` (revocation of a scoped consent rather than refusal of the form act).
+- `response.withdrawn` — respondent retracted a previously-submitted response (§8.8). Pre-determination withdrawals are applicant-authoritative; post-determination withdrawals carry `rescissionRequested = true` and request issuer-side rescission.
+- `response.dispute-attached` — counter-attestation attached to a prior submission without retracting it (§8.9). Dispute is a parallel record, not a lifecycle transition.
+- `consent.revoked` — respondent withdrew a previously-granted scoped consent (§8.10). Aligns with GDPR Article 7(3) consent-withdrawal semantics.
+- `data.erased` — issuer durably erased a subset of respondent data and issued an erasure receipt (§8.11). The ledger event is the respondent-side audit fact; the cryptographic erasure attestation lives in the Deletion Receipt sidecar.
+- `disclosure.presented` — a specific disclosure was rendered to the respondent at a specific point in the flow (§8.12). The verifier can prove the exact disclosure version was presented even when upstream content evolves.
+- `field.flagged-by-respondent` — respondent self-flagged a specific field as uncertain, declined-to-answer, needing-review, or incorrect-as-prefilled (§8.13). Distinct from validation findings (engine-produced) and from response-level lifecycle acts.
 
 ### 8.4 Explicit exclusions
 
@@ -757,6 +771,197 @@ The event **MUST** carry `data` with this shape:
 - `denied`
 
 `attesterId` is an opaque URN or adapter identifier naming the attester that produced the verdict. `evidenceRef` is optional and opaque. The payload **MUST NOT** carry IP addresses, User-Agent strings, device fingerprints, geolocation, behavioral biometrics, or other re-identifying signals. Implementations that need vendor-side audit **MAY** keep vendor-native evidence behind `evidenceRef`; implementations that do not need that audit **MAY** omit it.
+
+### 8.7 Response declined event
+
+`response.declined` records that the respondent affirmatively refused to complete or sign the form. Processors **MAY** emit this event when the respondent invokes a decline affordance on the form surface. Processors **MUST NOT** emit `response.declined` as a substitute for `response.stopped` when the respondent merely abandoned the form without an affirmative refusal act. Processors **MUST NOT** emit `response.declined` as a substitute for `consent.revoked` when the respondent withdrew a previously-granted scoped consent rather than refusing the form act.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "declinedAt": "2026-05-26T14:00:00Z",
+  "reason": "The household composition disclosure on page 3 asks for information I am not willing to share without legal counsel review.",
+  "clauseReferences": [
+    "/household.composition",
+    "disclosure:third-party-share-clause-v3"
+  ]
+}
+```
+
+`declinedAt` **MUST** be present. `reason` **SHOULD** be present and **MUST** be free text when present; implementations honoring per-field `accessControl.class` SHOULD treat `reason` as respondent-authored narrative text under the deployment's prevailing class for narrative reasons. `clauseReferences` **MAY** be present and **MUST** be non-empty when present; each entry is an opaque implementation reference (RFC 6901 JSON Pointer into the Definition, item key, clause id, or disclosure id). `partyRef` **MAY** be present for multi-party drafts per FW-0050 composition and **MUST** be omitted in single-party flows.
+
+The event **SHOULD** include a `ChangeSetEntry` with `op = status-transition` recording the lifecycle move from `in-progress` to `stopped`, since the form act ends.
+
+No widely-adopted public event taxonomy maps cleanly onto `response.declined`; the naming parallels the existing closed-core `response.completed` / `response.amended` / `response.stopped` family.
+
+### 8.8 Response withdrawn event
+
+`response.withdrawn` records that the respondent retracted a previously-submitted response. Processors **MAY** emit this event when the respondent invokes a withdrawal affordance on a completed response. Processors **MUST** preserve the prior submission events; withdrawal **MUST NOT** rewrite, delete, or reinterpret the prior event.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "withdrawnAt": "2026-05-26T15:30:00Z",
+  "reason": "Submitted in error against the wrong applicant; requesting rescission and resubmission under the correct household record.",
+  "rescissionRequested": true,
+  "withdrawalTargetEventHash": "sha256:9366d6fddc451087771a2514419a9b7a876e8301f849cffc5f45f143d0b29088"
+}
+```
+
+`withdrawnAt` **MUST** be present. `reason` **SHOULD** be present and **MUST** be free text when present.
+
+`rescissionRequested` **MUST** be set to `true` when the withdrawal targets a determination-issued submission and requests rescission. The Respondent Ledger records the request only; whether the issuer accepts and emits a kernel-level rescission event is governed elsewhere (WOS Kernel §13.9 amendment taxonomy when WOS is the governance layer). Pre-determination withdrawals MUST omit `rescissionRequested` or set it to `false`. This authority-ladder distinction is load-bearing: applicants authoritatively withdraw pre-determination submissions; post-determination rescission is an issuer act on an applicant request.
+
+`withdrawalTargetEventHash` **MUST** be present when the ledger declares `integrityProfile = "chained"` or `"trellis-wrapped"` and the prior submission event is identifiable in the chain. It **MAY** be omitted when the ledger declares `integrityProfile = "none"` and no chain reference is available.
+
+`partyRef` **MAY** be present for multi-party drafts per FW-0050 composition.
+
+The event **SHOULD** include a `ChangeSetEntry` with `op = status-transition` recording the lifecycle move from `completed` to `stopped` (or to an implementation-specific post-determination state) at the boundary the deployment governs.
+
+### 8.9 Response dispute-attached event
+
+`response.dispute-attached` records a counter-attestation attached to a prior submission without retracting it. Dispute is a parallel record, not a lifecycle transition: the original submission **MUST** remain in force, and the dispute event **MUST** be preserved alongside for verifier surfacing.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "disputedAt": "2026-05-26T16:00:00Z",
+  "statement": "The household income figure reflected in the determination was prefilled from a stale tax return; the corrected figure was submitted on the resubmission but the determination references the original.",
+  "disputeTargetEventHash": "sha256:88aaccff1122334455667788aabbccddeeff00112233445566778899aabbccdd",
+  "disputedFieldSet": [
+    "/household/monthlyIncome",
+    "/household/incomeSource"
+  ]
+}
+```
+
+`disputedAt`, `statement`, and `disputeTargetEventHash` **MUST** be present. `statement` is respondent-authored counter-attestation text; class inheritance follows the deployment's prevailing class for narrative dispute statements (FW-0049 safe-* composition applies). `disputeTargetEventHash` **MUST** name the prior response-submission event the dispute targets.
+
+`disputedFieldSet` **MAY** be present and **MUST** be non-empty when present. Each entry is an RFC 6901 JSON Pointer into the prior submitted response. Omission means the dispute is response-scoped, not field-scoped.
+
+`partyRef` **MAY** be present for multi-party drafts per FW-0050 composition. Dispute is signer-scoped by default in multi-party flows.
+
+The event **MUST NOT** carry a `status-transition` `ChangeSetEntry`: dispute does not transition lifecycle state.
+
+### 8.10 Consent revoked event
+
+`consent.revoked` records that the respondent withdrew a previously-granted scoped consent (data-use, contact, downstream-disclosure, etc.). The event aligns with GDPR Article 7(3) consent-withdrawal semantics: the withdrawal **MUST** be as easy to invoke as the original grant.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "revokedAt": "2026-05-26T17:15:00Z",
+  "consentScope": "downstream-disclosure:partner-agency-share",
+  "consentGrantRef": "sha256:5566778899aabbccddeeff00112233445566778899aabbccddeeff0011223344",
+  "reason": "I no longer want my household information shared with the partner agency referenced at submission."
+}
+```
+
+`revokedAt` and `consentScope` **MUST** be present. `consentScope` is an opaque identifier naming the consent scope being revoked. Implementations using a controlled vocabulary (e.g., W3C Data Privacy Vocabulary `dpv:Purpose` tokens, Kantara Consent Receipt v1.1 purpose ids) **SHOULD** use that vocabulary; ad-hoc deployments **MAY** use a deployment-local token.
+
+`consentGrantRef` **MAY** be present and **SHOULD** reference the prior consent-grant fact being revoked (an algorithm-prefixed hash, URI, or implementation-local handle). The Respondent Ledger **MUST NOT** own consent grant authoring; the reference is an opaque pointer.
+
+`reason` **MAY** be present and **MUST** be free text when present. `partyRef` **MAY** be present for multi-party drafts.
+
+`consent.revoked` is distinct from `response.declined` (refusal of the form act itself) and from `response.withdrawn` (retraction of a submitted response). Implementations **MUST NOT** conflate them.
+
+### 8.11 Data erased event
+
+`data.erased` records that the issuer durably erased a subset of respondent data and issued an erasure receipt. The event aligns with GDPR Article 17 right-to-erasure semantics. The ledger event is the respondent-side audit fact; the cryptographic erasure attestation lives in the Deletion Receipt sidecar (companion specification SC-2 in the upstream queue at the time of writing).
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "erasedAt": "2026-05-26T18:00:00Z",
+  "classesErased": [
+    "household-financial",
+    "household-identifying"
+  ],
+  "retentionWaived": [
+    "policy:retention-5y-financial"
+  ],
+  "cryptographicMethod": "key-shred-x25519",
+  "deletionReceiptRef": "sha256:abcdef1234567890fedcba0987654321abcdef1234567890fedcba0987654321"
+}
+```
+
+`erasedAt`, `classesErased`, and `deletionReceiptRef` **MUST** be present.
+
+`classesErased` **MUST** be non-empty and **MUST** carry resolved `accessControl.class` tokens drawn from the deployment's Access-Class Registry. Implementations that erase ALL retained respondent data for the response **MUST** still enumerate the affected class tokens; they **MUST NOT** use an open-ended marker like `"*"` or `"all"`.
+
+`retentionWaived` **MAY** be present and **SHOULD** list retention-policy identifiers waived for this erasure (e.g., legal-hold exceptions consumed). Empty or omitted when no retention waiver applies.
+
+`cryptographicMethod` **MAY** be present (e.g., `key-shred-x25519`, `overwrite-3pass`, `tombstone-with-anchor`). The ledger **MUST** treat this string as opaque; the Deletion Receipt sidecar owns method semantics.
+
+`deletionReceiptRef` is a reference to the corresponding Deletion Receipt (an algorithm-prefixed hash, URI, or implementation-local handle). The ledger event **MUST NOT** substitute for the receipt itself: a verifier validating the erasure act **MUST** consume the Deletion Receipt; the ledger event records that the act happened and points at the receipt.
+
+The actor on `data.erased` **SHOULD** be `kind = system` (the deletion processor / receipt issuer) rather than `kind = respondent`, because the erasure act is issuer-side even when respondent-initiated.
+
+### 8.12 Disclosure presented event
+
+`disclosure.presented` records that a specific disclosure (privacy notice, consequence statement, plain-language summary, jurisdictional warning, AI-authorship banner) was rendered to the respondent at a specific point in the flow. The event aligns with informed-consent receipt patterns (Kantara Consent Receipt v1.1) and supports verifier-grade proof that a specific disclosure version was presented even when upstream content evolves.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "presentedAt": "2026-05-26T19:30:00Z",
+  "disclosureId": "privacy-notice:housing-assistance-v3",
+  "disclosureHash": "sha256:9988776655443322110099887766554433221100998877665544332211009988",
+  "displayContextRef": "submit-gate",
+  "acknowledged": true
+}
+```
+
+`presentedAt`, `disclosureId`, and `disclosureHash` **MUST** be present.
+
+`disclosureHash` is the hash of the exact disclosure bytes shown. It **MUST** be computed over the disclosure content as rendered, not over a later version. This binding lets the verifier prove that this specific disclosure version was presented even when the upstream content evolves.
+
+`displayContextRef` **MAY** be present and **SHOULD** name the surface/context where the disclosure was rendered (e.g., `submit-gate`, `item:income_section`, `identity-step`).
+
+`acknowledged` **MAY** be present. When the deployment uses an affirmative-action gate that requires explicit acknowledgement, the gate **MUST** set `acknowledged = true`. Absence of `acknowledged` does **NOT** imply non-acknowledgement; deployments that distinguish passive presentation from affirmative acknowledgement **SHOULD** populate this field explicitly. Deployments that do not distinguish the two **MAY** omit it.
+
+A processor **MAY** emit multiple `disclosure.presented` events for the same disclosure across the flow (e.g., once at first-show and again at submit-gate re-confirmation). Each instance is a separate audit fact.
+
+### 8.13 Field flagged by respondent event
+
+`field.flagged-by-respondent` records that the respondent self-flagged a specific field as uncertain, declined-to-answer, needing-review, or incorrect-as-prefilled. This is a respondent-authored audit affordance, **MUST** be distinct from validation findings (which are produced by the engine, not the respondent), and **MUST NOT** be treated as a substitute for `response.declined`.
+
+The event **MUST** carry `data` with this shape:
+
+```json
+{
+  "flaggedAt": "2026-05-26T20:45:00Z",
+  "path": "/applicant/lastName",
+  "flagKind": "incorrect-as-prefilled",
+  "note": "The prefilled last name is misspelled; my correct name is different. I will edit before submission but want the flag recorded.",
+  "itemKey": "applicant_last_name"
+}
+```
+
+`flaggedAt`, `path`, and `flagKind` **MUST** be present.
+
+`path` **MUST** be an RFC 6901 JSON Pointer into the response (leading `/` required by the schema).
+
+`flagKind` **MUST** be one of the closed taxonomy values:
+
+- `uncertain` — respondent answered but is not confident the answer is correct,
+- `decline-to-answer` — respondent chose to leave the field unanswered for declared reasons (distinct from missing-required validation),
+- `needs-review` — respondent requests human review of this field,
+- `incorrect-as-prefilled` — respondent observed that a prefilled value is wrong and is recording the observation even when correcting in place.
+
+The closed enum lets verifiers, support staff, and analytics surfaces interpret the flag without per-deployment vocabulary work. Implementations that need an additional flag kind **MUST NOT** stuff it into `note`; they **MUST** propose an extension to the closed taxonomy.
+
+`note` **MAY** be present and **MUST** be free text when present. Class inheritance follows the flagged field's `accessControl.class` when resolvable.
+
+`itemKey` **MAY** be present and **SHOULD** be the stable Formspec item key when the path maps directly to one.
+
+A respondent **MAY** flag the same field multiple times across the flow with different flag kinds; each instance is a separate audit fact and **MUST NOT** be coalesced.
 
 ---
 
@@ -1303,6 +1508,7 @@ A processor claiming conformance to the Respondent Ledger add-on:
 10. **SHOULD** preserve provider-neutral identity / proof-of-personhood attestation references when those facts are used for completion, delegation, or eligibility-sensitive processing.
 11. **SHOULD** support privacy-bounded retention using hashes, summaries, or redaction metadata where necessary.
 12. **MUST** enforce `integrityProfile` hash obligations when chaining or Trellis wrapping is declared, and **SHOULD** support checkpointing for higher-assurance environments.
+13. **MAY** emit any of the §8.2 optional event types when the corresponding respondent or processor act occurs. If an implementation emits an optional event type defined in §8.7–§8.13 (the Batch A respondent-act event types), it **MUST** populate the event-specific `data` block defined for that event type in this specification and **MUST NOT** invent a parallel payload shape under `extensions`.
 
 ---
 
@@ -1319,5 +1525,6 @@ Companion JSON Schemas for the top-level ledger document and standalone event ob
 
 ### 17.1 Changelog
 
+- **0.3.0-draft (2026-05-26)** — EXT-5 Batch A: added seven optional respondent-act event types (`response.declined`, `response.withdrawn`, `response.dispute-attached`, `consent.revoked`, `data.erased`, `disclosure.presented`, `field.flagged-by-respondent`) with normative per-event payload shapes (§8.7–§8.13), schema `$defs`, and conformance fixtures. The Batch B event `submission.duress-signaled` remains deferred pending stack-root ADR-0156 ratification. The wire-format literal `$formspecRespondentLedger` is unchanged at `"0.1"`.
 - **0.2.0-draft (2026-04-15)** — Added normative L1–L4 assurance taxonomy (§6.6.1); promoted §6.7 to a normative independence invariant between disclosure tier and assurance level; added §6.8 distinguishing authored signatures from recorded attestations; added §2.4 legal-sufficiency disclosure. The wire-format literal `$formspecRespondentLedger` is unchanged at `"0.1"`; a wire-format version bump is a separate compatibility decision.
 - **0.1.0-draft (2026-03-22)** — Initial draft.

@@ -1,0 +1,37 @@
+{
+  "eventId": "evt-withdrawn-0001",
+  "sequence": 12,
+  "eventType": "response.withdrawn",
+  "occurredAt": "2026-05-26T15:30:00Z",
+  "recordedAt": "2026-05-26T15:30:02Z",
+  "responseId": "resp-withdrawn-001",
+  "definitionUrl": "https://forms.example.gov/intake/housing-assistance",
+  "definitionVersion": "2.3.0",
+  "actor": {
+    "kind": "respondent",
+    "id": "usr-99",
+    "subjectRef": "subj-pseudo-099"
+  },
+  "source": {
+    "kind": "web",
+    "channelId": "public-portal"
+  },
+  "priorEventHash": "sha256:9366d6fddc451087771a2514419a9b7a876e8301f849cffc5f45f143d0b29088",
+  "eventHash": "sha256:bb22222222222222222222222222222222222222222222222222222222222222",
+  "data": {
+    "withdrawnAt": "2026-05-26T15:30:00Z",
+    "reason": "Submitted in error against the wrong applicant; requesting rescission and resubmission under the correct household record.",
+    "rescissionRequested": true,
+    "withdrawalTargetEventHash": "sha256:9366d6fddc451087771a2514419a9b7a876e8301f849cffc5f45f143d0b29088"
+  },
+  "changes": [
+    {
+      "op": "status-transition",
+      "path": "$response.status",
+      "valueClass": "system-derived",
+      "before": "completed",
+      "after": "stopped",
+      "reasonCode": "respondent-withdrawn"
+    }
+  ]
+}

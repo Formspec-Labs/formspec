@@ -104,7 +104,14 @@
     "data": {
       "oneOf": [
         { "$ref": "#/$defs/ResponseCorrectionData" },
-        { "$ref": "#/$defs/BotProtectionClearedData" }
+        { "$ref": "#/$defs/BotProtectionClearedData" },
+        { "$ref": "#/$defs/ResponseDeclinedData" },
+        { "$ref": "#/$defs/ResponseWithdrawnData" },
+        { "$ref": "#/$defs/ResponseDisputeAttachedData" },
+        { "$ref": "#/$defs/ConsentRevokedData" },
+        { "$ref": "#/$defs/DataErasedData" },
+        { "$ref": "#/$defs/DisclosurePresentedData" },
+        { "$ref": "#/$defs/FieldFlaggedByRespondentData" }
       ],
       "description": "Structured payload for event types that define an event-specific data block."
     },
@@ -219,10 +226,104 @@
       "then": {
         "properties": {
           "eventType": {
-            "enum": ["response.correction-recorded", "bot-protection-cleared"]
+            "enum": [
+              "response.correction-recorded",
+              "bot-protection-cleared",
+              "response.declined",
+              "response.withdrawn",
+              "response.dispute-attached",
+              "consent.revoked",
+              "data.erased",
+              "disclosure.presented",
+              "field.flagged-by-respondent"
+            ]
           }
         },
         "required": ["eventType"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "response.declined" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/ResponseDeclinedData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "response.withdrawn" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/ResponseWithdrawnData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "response.dispute-attached" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/ResponseDisputeAttachedData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "consent.revoked" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/ConsentRevokedData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "data.erased" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/DataErasedData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "disclosure.presented" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/DisclosurePresentedData" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "eventType": { "const": "field.flagged-by-respondent" } },
+        "required": ["eventType"]
+      },
+      "then": {
+        "required": ["data"],
+        "properties": {
+          "data": { "$ref": "#/$defs/FieldFlaggedByRespondentData" }
+        }
       }
     },
     {
@@ -358,7 +459,14 @@
             "action.failed",
             "action.deferred",
             "action.replayed",
-            "bot-protection-cleared"
+            "bot-protection-cleared",
+            "response.declined",
+            "response.withdrawn",
+            "response.dispute-attached",
+            "consent.revoked",
+            "data.erased",
+            "disclosure.presented",
+            "field.flagged-by-respondent"
           ]
         },
         {
@@ -680,6 +788,251 @@
           "type": "string",
           "minLength": 1,
           "description": "Optional opaque attester-side audit reference. This field MUST NOT contain IP addresses, User-Agent strings, device fingerprints, geolocation, behavioral biometrics, or other re-identifying signals."
+        }
+      }
+    },
+    "ResponseDeclinedData": {
+      "type": "object",
+      "required": ["declinedAt"],
+      "additionalProperties": false,
+      "description": "Payload for response.declined. Records that the respondent affirmatively refused to complete or sign the form. Distinct from response.stopped (abandonment without affirmative refusal). Distinct from consent.revoked (revocation of a previously-granted scoped consent rather than refusal of the form act).",
+      "properties": {
+        "declinedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the respondent declined."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Respondent-visible rationale for declining. Implementations honoring per-field accessControl.class SHOULD treat this as respondent-authored free text under the deployment's prevailing class for narrative reasons."
+        },
+        "clauseReferences": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Optional references to specific Definition clauses or disclosures the respondent objected to. Each entry is an opaque implementation reference (RFC 6901 JSON Pointer, item key, clause id, or disclosure id).",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "partyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional party scope for multi-party drafts (FW-0050 composition). Single-party flows omit this field."
+        }
+      }
+    },
+    "ResponseWithdrawnData": {
+      "type": "object",
+      "required": ["withdrawnAt"],
+      "additionalProperties": false,
+      "description": "Payload for response.withdrawn. Records that the respondent retracted a previously-submitted response. Pre-determination withdrawals are applicant-authoritative; post-determination withdrawals carry rescissionRequested=true and the issuer separately decides whether to emit the kernel rescission event (issuer authority, not respondent). Distinct from response.amendment-opened (cooperative re-edit) and response.dispute-attached (counter-attestation without retraction).",
+      "properties": {
+        "withdrawnAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the respondent issued the withdrawal."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Respondent-visible rationale for withdrawal. Free text; class inheritance follows the same rule as response.declined.reason."
+        },
+        "rescissionRequested": {
+          "type": "boolean",
+          "description": "True when the withdrawal targets a determination-issued submission and requests rescission. The Respondent Ledger records the request; whether the issuer accepts and emits a kernel rescission event is governed elsewhere (WOS Kernel §13.9 amendment taxonomy when WOS is the governance layer)."
+        },
+        "withdrawalTargetEventHash": {
+          "$ref": "#/$defs/HashString",
+          "description": "Hash of the prior response-submission event being withdrawn. Required when integrity chaining is enabled and the prior event is identifiable; omitted only when the ledger has no integrityProfile chain."
+        },
+        "partyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional party scope for multi-party drafts (FW-0050 composition)."
+        }
+      }
+    },
+    "ResponseDisputeAttachedData": {
+      "type": "object",
+      "required": ["disputedAt", "statement", "disputeTargetEventHash"],
+      "additionalProperties": false,
+      "description": "Payload for response.dispute-attached. Records a counter-attestation attached to a prior submission without retracting it. Dispute is a parallel record, not a lifecycle transition: the original submission remains in force, and the dispute is preserved alongside for verifier surfacing.",
+      "properties": {
+        "disputedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the dispute was attached."
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Respondent-authored counter-attestation text. Free text; class inheritance follows accessControl.class on the deployment's prevailing class for narrative dispute statements (FW-0049 safe-* composition applies)."
+        },
+        "disputeTargetEventHash": {
+          "$ref": "#/$defs/HashString",
+          "description": "Hash of the prior response-submission event the dispute targets."
+        },
+        "disputedFieldSet": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Optional narrowed field set the dispute speaks to. Each entry is an RFC 6901 JSON Pointer into the prior submitted response. Omission means the dispute is response-scoped, not field-scoped.",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          }
+        },
+        "partyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional party scope for multi-party drafts (FW-0050 composition). Dispute is signer-scoped by default in multi-party flows."
+        }
+      }
+    },
+    "ConsentRevokedData": {
+      "type": "object",
+      "required": ["revokedAt", "consentScope"],
+      "additionalProperties": false,
+      "description": "Payload for consent.revoked. Records that the respondent withdrew a previously-granted scoped consent (data-use, contact, downstream-disclosure, etc.). Aligns with GDPR Article 7(3) consent-withdrawal semantics. Distinct from response.declined (refusal of the form act itself) and response.withdrawn (retraction of a submitted response).",
+      "properties": {
+        "revokedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the consent was revoked."
+        },
+        "consentScope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque identifier naming the consent scope being revoked. Implementations using a controlled vocabulary (e.g., W3C DPV dpv:Purpose tokens, Kantara Consent Receipt purpose ids) SHOULD use that vocabulary; ad-hoc deployments MAY use a deployment-local token."
+        },
+        "consentGrantRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional reference to the prior consent-grant fact being revoked (an algorithm-prefixed hash, URI, or implementation-local handle). The Respondent Ledger does not own consent grant authoring."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional respondent-visible rationale."
+        },
+        "partyRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional party scope for multi-party drafts (FW-0050 composition)."
+        }
+      }
+    },
+    "DataErasedData": {
+      "type": "object",
+      "required": ["erasedAt", "classesErased", "deletionReceiptRef"],
+      "additionalProperties": false,
+      "description": "Payload for data.erased. Records that the issuer durably erased a subset of respondent data and issued an erasure receipt. The ledger event is the respondent-side audit fact; the cryptographic erasure attestation lives in the Deletion Receipt sidecar (SC-2). Aligns with GDPR Article 17 right-to-erasure semantics.",
+      "properties": {
+        "erasedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the issuer durably erased the data."
+        },
+        "classesErased": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Resolved accessControl.class tokens whose data was erased. Each entry MUST be a non-empty string drawn from the deployment's Access-Class Registry.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "retentionWaived": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Optional list of retention-policy identifiers waived for this erasure (e.g., legal-hold exceptions consumed). Empty or omitted when no retention waiver applies.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cryptographicMethod": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional erasure method identifier (e.g., 'key-shred-x25519', 'overwrite-3pass', 'tombstone-with-anchor'). Opaque to the ledger; the Deletion Receipt sidecar owns method semantics."
+        },
+        "deletionReceiptRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the corresponding Deletion Receipt (an algorithm-prefixed hash, URI, or implementation-local handle). The ledger event MUST NOT substitute for the receipt itself."
+        }
+      }
+    },
+    "DisclosurePresentedData": {
+      "type": "object",
+      "required": ["presentedAt", "disclosureId", "disclosureHash"],
+      "additionalProperties": false,
+      "description": "Payload for disclosure.presented. Records that a specific disclosure (privacy notice, consequence statement, plain-language summary, jurisdictional warning, AI-authorship banner) was rendered to the respondent at a specific point in the flow. Aligns with informed-consent receipt patterns (Kantara Consent Receipt v1.1).",
+      "properties": {
+        "presentedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the disclosure was rendered to the respondent."
+        },
+        "disclosureId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for the disclosure within the Definition or deployment registry."
+        },
+        "disclosureHash": {
+          "$ref": "#/$defs/HashString",
+          "description": "Hash of the exact disclosure bytes shown. Required so the verifier can prove that this specific disclosure version was presented even when the upstream content evolves."
+        },
+        "displayContextRef": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional reference to the surface/context where the disclosure was rendered (e.g., 'submit-gate', 'item:income_section', 'identity-step')."
+        },
+        "acknowledged": {
+          "type": "boolean",
+          "description": "Optional flag indicating that the respondent acknowledged the disclosure via an affirmative-action gate. Absence does NOT imply non-acknowledgement; deployments that distinguish passive presentation from affirmative acknowledgement SHOULD populate this field."
+        }
+      }
+    },
+    "FieldFlaggedByRespondentData": {
+      "type": "object",
+      "required": ["flaggedAt", "path", "flagKind"],
+      "additionalProperties": false,
+      "description": "Payload for field.flagged-by-respondent. Records that the respondent self-flagged a specific field as uncertain, declined-to-answer, needing-review, or incorrect-as-prefilled. This is a respondent-authored audit affordance, distinct from validation findings (which are produced by the engine, not the respondent).",
+      "properties": {
+        "flaggedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the respondent flagged the field."
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "RFC 6901 JSON Pointer to the flagged field within the response."
+        },
+        "flagKind": {
+          "type": "string",
+          "enum": [
+            "uncertain",
+            "decline-to-answer",
+            "needs-review",
+            "incorrect-as-prefilled"
+          ],
+          "description": "Closed taxonomy of respondent self-flag reasons. Extension via the envelope-level extensions block; flagKind itself is a closed enum."
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional respondent-authored note explaining the flag. Free text; class inheritance follows the flagged field's accessControl.class when resolvable."
+        },
+        "itemKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional stable Formspec item key when the path maps directly to one."
         }
       }
     },
