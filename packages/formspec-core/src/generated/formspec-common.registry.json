@@ -2029,6 +2029,13 @@
         "x-formspec-core-ledger-event-type-action-deferred",
         "x-formspec-core-ledger-event-type-action-replayed",
         "x-formspec-core-ledger-event-type-bot-protection-cleared",
+        "x-formspec-core-ledger-event-type-response-declined",
+        "x-formspec-core-ledger-event-type-response-withdrawn",
+        "x-formspec-core-ledger-event-type-response-dispute-attached",
+        "x-formspec-core-ledger-event-type-consent-revoked",
+        "x-formspec-core-ledger-event-type-data-erased",
+        "x-formspec-core-ledger-event-type-disclosure-presented",
+        "x-formspec-core-ledger-event-type-field-flagged-by-respondent",
         "x-formspec-core-ledger-value-class-user-input",
         "x-formspec-core-ledger-value-class-prepopulated",
         "x-formspec-core-ledger-value-class-calculated",
@@ -2428,6 +2435,104 @@
       "license": "Apache-2.0",
       "extensions": {
         "x-formspec-kind-value": "bot-protection-cleared"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-declined",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.declined` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.declined` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.declined"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-withdrawn",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.withdrawn` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.withdrawn` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.withdrawn"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-response-dispute-attached",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `response.dispute-attached` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `response.dispute-attached` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "response.dispute-attached"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-consent-revoked",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `consent.revoked` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `consent.revoked` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "consent.revoked"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-data-erased",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `data.erased` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `data.erased` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "data.erased"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-disclosure-presented",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `disclosure.presented` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `disclosure.presented` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "disclosure.presented"
+      }
+    },
+    {
+      "name": "x-formspec-core-ledger-event-type-field-flagged-by-respondent",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Respondent-Ledger EventType closed-core value `field.flagged-by-respondent` republished as Registry property per ADR 0150 \u00a74.9. Source schema: respondent-ledger-event.schema.json $defs.EventType.oneOf[0].enum. Dotted-translation: original value `field.flagged-by-respondent` (kept verbatim in this description) translates to the hyphenated Registry name. EXT-5 Batch A.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "extensions": {
+        "x-formspec-kind-value": "field.flagged-by-respondent"
       }
     },
     {

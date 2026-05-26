@@ -50,7 +50,15 @@ export type Item = {
    * Item-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics.
    */
   extensions?: Extensions;
+  partyPolicy?: ItemPartyPolicy;
 };
+/**
+ * Reference to a `parties[*].roleId` declared in the same Definition. Cross-reference resolution is a static-lint pass; the schema enforces the lexical pattern only.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PartyRoleRef".
+ */
+export type PartyRoleRef = string;
 /**
  * A named, composable validation rule set (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets data node(s) by path, evaluates a FEL constraint expression, and produces structured ValidationResult entries on failure. Shapes compose via logical operators (and, or, not, xone) where elements can be either shape IDs (referencing other shapes) or inline FEL boolean expressions. MUST have at least one of: constraint, and, or, not, xone.
  *
@@ -245,6 +253,27 @@ export type OptionSet1 = {
  * via the `definition` "AssuranceLevel".
  */
 export type AssuranceLevel = 'L1' | 'L2' | 'L3' | 'L4';
+/**
+ * Closed role-class taxonomy per ADR-0155 §4. `coEqual`: parties sign on their own behalf with equal downstream obligations. `asymmetricPrimary`: primary party with obligations or visibility distinct from secondary parties. `asymmetricSecondary`: secondary party with obligations or visibility distinct from primary. `guardianFor`: party signs or acts for a protected subject; capacity/governance checks apply. Inventing new classes (e.g., `witness`, `notary`) is a definition error — use `extensions` for domain-specific party metadata.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PartyRoleClass".
+ */
+export type PartyRoleClass = 'coEqual' | 'asymmetricPrimary' | 'asymmetricSecondary' | 'guardianFor';
+/**
+ * Closed enum. `shared`: this party sees and edits the same item set as co-parties (default for `coEqual` flows). `scoped`: this party's visibility is restricted via per-item `partyPolicy` declarations (typical for `asymmetric` flows).
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PartyVisibilityScope".
+ */
+export type PartyVisibilityScope = 'shared' | 'scoped';
+/**
+ * Closed enum. `coEqual`: intake-only is sufficient when all parties share role, downstream obligations, and client-side orchestration. `asymmetric`: WOS orchestration required when roles, visibility, deadlines, obligations, or case-state access differ by party.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "MultiPartyTier".
+ */
+export type MultiPartyTier = 'coEqual' | 'asymmetric';
 
 /**
  * A Formspec Definition document per the Formspec v1.0 specification. A Definition is a versioned, self-contained JSON document that completely describes the structure, behavior, and constraints of a data-collection instrument. The tuple (url, version) uniquely identifies a Definition across all systems. Definitions are organized into three layers: Structure (Items), Behavior (Binds + Shapes), and Presentation (advisory hints). A conformant processor implements the four-phase processing cycle: Rebuild → Recalculate → Revalidate → Notify.
@@ -388,6 +417,13 @@ export interface FormDefinition {
      */
     tabPosition?: 'top' | 'bottom' | 'left' | 'right';
   };
+  /**
+   * EXT-28 / ADR-0155 §4: multi-party intake role-slot declarations. Each entry declares a stable party-role slot bound at Definition authoring time. Runtime binds identities to slots; runtime MUST NOT invent new role slots. The role-class taxonomy is closed (`coEqual` | `asymmetricPrimary` | `asymmetricSecondary` | `guardianFor`); domain-specific party metadata uses `extensions`. See core spec §4.8.
+   *
+   * @minItems 1
+   */
+  parties?: [PartyRole, ...PartyRole[]];
+  multiParty?: MultiPartyPolicy;
   /**
    * This interface was referenced by `FormDefinition`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
@@ -589,6 +625,29 @@ export interface PurposeMetadata {
    * Plain-language retention statement when known.
    */
   retention?: string;
+}
+/**
+ * EXT-28 / ADR-0155 §5: per-item party-scoped visibility, editability, and signature obligation policy. Absence means the item is visible-to, editable-by, and signed-by all declared parties (legacy single-party semantics extended to N parties). See core spec §4.8.3.
+ */
+export interface ItemPartyPolicy {
+  /**
+   * Role IDs of parties that MAY see this item. Each entry MUST resolve to a `parties[*].roleId` declared in the same Definition. An empty array is a definition error per MP-10.
+   *
+   * @minItems 1
+   */
+  visibleTo?: [PartyRoleRef, ...PartyRoleRef[]];
+  /**
+   * Role IDs of parties that MAY edit this item. MUST be a subset of `visibleTo` per MP-11.
+   *
+   * @minItems 1
+   */
+  editableBy?: [PartyRoleRef, ...PartyRoleRef[]];
+  /**
+   * Role IDs of parties whose `AuthoredSignature` MUST cover this item. MUST be a subset of `visibleTo` per MP-11.
+   *
+   * @minItems 1
+   */
+  signedBy?: [PartyRoleRef, ...PartyRoleRef[]];
 }
 /**
  * A behavioral declaration attached to one or more data nodes by path. Binds are the bridge between structure (Items) and behavior (reactive expressions). All FEL expressions within a Bind are evaluated in the context of the node identified by 'path'. Binds are evaluated reactively: when a referenced value changes, affected Binds are re-evaluated in dependency-graph order. Inheritance: relevant is AND-inherited (child is non-relevant if any ancestor is), readonly is OR-inherited (child is readonly if any ancestor is), required and constraint are NOT inherited.
@@ -902,6 +961,69 @@ export interface LogoVariant {
   altText?: string | LangMap;
   aspectRatio?: string;
   preferredBackground?: 'light' | 'dark' | 'any';
+}
+/**
+ * One multi-party intake role slot. EXT-28 / ADR-0155 §4. The `role` taxonomy is closed; domain-specific party metadata uses `extensions` (x-*). See core spec §4.8.1 MP-01..MP-05.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PartyRole".
+ */
+export interface PartyRole {
+  /**
+   * Stable party-role slot identifier. Unique across the Definition's `parties` array. Referenced by per-item `partyPolicy` visibility sets and by Response `AuthoredSignature.partyRole` (EXT-3). MUST match `^[a-zA-Z][a-zA-Z0-9_-]*$`.
+   */
+  roleId: string;
+  /**
+   * Human-readable party role label.
+   */
+  label?: string;
+  /**
+   * Normative role class. Closed enum per ADR-0155 §4.
+   */
+  role: 'coEqual' | 'asymmetricPrimary' | 'asymmetricSecondary' | 'guardianFor';
+  cardinality: PartyCardinality;
+  assuranceFloor?: PartyAssuranceFloor;
+  /**
+   * Authorial declaration of whether this party's data slice overlaps with co-parties (`shared`) or is scoped distinctly (`scoped`). Authoring hint; static lint may verify `partyPolicy` per-item declarations are consistent with this scope.
+   */
+  visibilityScope?: 'shared' | 'scoped';
+  /**
+   * Party-role extension data. Domain-specific party metadata (e.g., notary fields, witness fields, jurisdiction-specific role qualifiers) MUST live here, NOT as new top-level role-class enum values.
+   */
+  extensions?: Extensions;
+}
+/**
+ * Required identity-count bounds for a party-role slot. `coEqual` requires `min >= 2`; `asymmetricPrimary` requires `max == 1`. Class-implied bounds are enforced by static lint per core spec §4.8.1 MP-04.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "PartyCardinality".
+ */
+export interface PartyCardinality {
+  /**
+   * Minimum number of identities the runtime MUST bind to this slot before the Response is complete.
+   */
+  min: number;
+  /**
+   * Maximum number of identities the runtime MAY bind. `unbounded` indicates no upper limit.
+   */
+  max: number | 'unbounded';
+}
+/**
+ * Optional per-party identity/authentication assurance floor. Mirrors the form-level `metadata.assurance` taxonomy. Implementations MUST refuse to bind an identity to this role slot when the identity's assurance level falls below this floor.
+ */
+export interface PartyAssuranceFloor {
+  ial?: AssuranceLevel;
+  aal?: AssuranceLevel;
+  fal?: AssuranceLevel;
+}
+/**
+ * EXT-28 / ADR-0155 §4: multi-party intake tier policy. Authored policy — implementations MUST NOT derive the tier from role enums or visibility rules. See core spec §4.8.2.
+ */
+export interface MultiPartyPolicy {
+  /**
+   * Orchestration tier.
+   */
+  tier: 'coEqual' | 'asymmetric';
 }
 /**
  * Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.

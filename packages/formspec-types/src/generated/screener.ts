@@ -160,6 +160,29 @@ export interface PurposeMetadata {
   retention?: string;
 }
 /**
+ * EXT-28 / ADR-0155 §5: per-item party-scoped visibility, editability, and signature obligation policy. Absence means the item is visible-to, editable-by, and signed-by all declared parties (legacy single-party semantics extended to N parties). See core spec §4.8.3.
+ */
+export interface ItemPartyPolicy {
+  /**
+   * Role IDs of parties that MAY see this item. Each entry MUST resolve to a `parties[*].roleId` declared in the same Definition. An empty array is a definition error per MP-10.
+   *
+   * @minItems 1
+   */
+  visibleTo?: [string, ...string[]];
+  /**
+   * Role IDs of parties that MAY edit this item. MUST be a subset of `visibleTo` per MP-11.
+   *
+   * @minItems 1
+   */
+  editableBy?: [string, ...string[]];
+  /**
+   * Role IDs of parties whose `AuthoredSignature` MUST cover this item. MUST be a subset of `visibleTo` per MP-11.
+   *
+   * @minItems 1
+   */
+  signedBy?: [string, ...string[]];
+}
+/**
  * A single stage in the evaluation pipeline. Each phase declares a strategy that determines how its routes are evaluated. Phases execute in declaration order and produce independent results aggregated into the Determination Record.
  *
  * This interface was referenced by `ScreenerDocument`'s JSON-Schema
