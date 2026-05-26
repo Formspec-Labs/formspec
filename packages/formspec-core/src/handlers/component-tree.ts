@@ -106,6 +106,18 @@ function findParentContainingChild(
   return undefined;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stampMovedFrom(node: TreeNode, movedFrom: unknown): void {
+  const existing = isRecord(node['x-generation']) ? node['x-generation'] : {};
+  node['x-generation'] = {
+    ...existing,
+    movedFrom,
+  };
+}
+
 export const componentTreeHandlers = {
 
   /**
@@ -170,10 +182,11 @@ export const componentTreeHandlers = {
   },
 
   'component.moveNode': (state, payload) => {
-    const { source, targetParent, targetIndex } = payload as {
+    const { source, targetParent, targetIndex, movedFrom } = payload as {
       source: { bind?: string; nodeId?: string };
       targetParent: { bind?: string; nodeId?: string };
       targetIndex?: number;
+      movedFrom?: unknown;
     };
 
     const root = ensureTree(state);
@@ -192,6 +205,10 @@ export const componentTreeHandlers = {
         throw new Error('Circular move: cannot move a node into itself or its own descendant');
       }
       stack.push(...(n.children ?? []));
+    }
+
+    if (movedFrom !== undefined) {
+      stampMovedFrom(sourceResult.node, movedFrom);
     }
 
     // Remove from current parent, insert into target

@@ -257,6 +257,49 @@ describe('component.moveNode', () => {
     expect(tree.children[1].children[0].component).toBe('Stack');
   });
 
+  it('stamps movedFrom provenance in the same move command and preserves generation metadata', () => {
+    const project = createRawProject();
+
+    const card1 = (project.dispatch({
+      type: 'component.addNode',
+      payload: { parent: { nodeId: 'root' }, component: 'Card' },
+    }) as any).nodeRef;
+
+    const card2 = (project.dispatch({
+      type: 'component.addNode',
+      payload: { parent: { nodeId: 'root' }, component: 'Card' },
+    }) as any).nodeRef;
+
+    const inner = (project.dispatch({
+      type: 'component.addNode',
+      payload: {
+        parent: card1,
+        component: 'Stack',
+        props: { 'x-generation': { source: 'template' } },
+      },
+    }) as any).nodeRef;
+
+    project.dispatch({
+      type: 'component.moveNode',
+      payload: {
+        source: inner,
+        targetParent: card2,
+        movedFrom: { route: 'review', nodePath: '/reviewRouteRoot/movingPanel' },
+      },
+    });
+
+    const tree = project.component.tree as any;
+    expect(tree.children[1].children[0]['x-generation']).toEqual({
+      source: 'template',
+      movedFrom: { route: 'review', nodePath: '/reviewRouteRoot/movingPanel' },
+    });
+
+    expect(project.undo()).toBe(true);
+    const undone = project.component.tree as any;
+    expect(undone.children[0].children[0]['x-generation']).toEqual({ source: 'template' });
+    expect(undone.children[1].children ?? []).toHaveLength(0);
+  });
+
   it('resolves target parent by bind when the container has no nodeId', () => {
     const project = createRawProject();
 

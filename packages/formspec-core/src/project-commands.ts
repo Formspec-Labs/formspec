@@ -21,6 +21,10 @@ import type {
 } from '@formspec-org/types';
 import type { ScreenerDocument, ExperienceDocument, ResponseActionsDocument } from './types.js';
 
+type ComponentMoveProvenanceRef =
+  | { route: string; nodePath: string }
+  | { route: string; nodePath: string; component: unknown; surface: unknown; id?: string; nodeId?: string };
+
 export interface ProjectCommandMap {
   'theme.setToken': { key: string; value: unknown };
   'theme.setTokens': { tokens: Record<string, unknown> };
@@ -137,7 +141,7 @@ export interface ProjectCommandMap {
   'component.reconcileFromDefinition': Record<string, never>;
   'component.addNode': { parent: { bind?: string; nodeId?: string }; insertIndex?: number; component: string; bind?: string; props?: Record<string, unknown>; };
   'component.deleteNode': { node: { bind?: string; nodeId?: string } };
-  'component.moveNode': { source: { bind?: string; nodeId?: string }; targetParent: { bind?: string; nodeId?: string }; targetIndex?: number; };
+  'component.moveNode': { source: { bind?: string; nodeId?: string }; targetParent: { bind?: string; nodeId?: string }; targetIndex?: number; movedFrom?: ComponentMoveProvenanceRef; };
   'component.reorderNode': { node: { bind?: string; nodeId?: string }; direction: 'up' | 'down'; };
   'component.duplicateNode': { node: { bind?: string; nodeId?: string } };
   'component.wrapNode': { node: { bind?: string; nodeId?: string }; wrapper: { component: string; props?: Record<string, unknown> }; };

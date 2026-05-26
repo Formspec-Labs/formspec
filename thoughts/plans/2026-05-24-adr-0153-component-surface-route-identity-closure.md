@@ -4,10 +4,11 @@
 **Row:** Component Surface/route identity
 **Status:** Partial. Route identity schema, shared validator checks,
 graph-wide provenance schema evidence, Studio/kernel `copyNode` graph identity
-stamping, and layout projection identity consumption are landed. Broader
+stamping, Studio/kernel `moveNode` `movedFrom` persistence, and layout
+projection identity consumption are landed. Broader
 Studio/kernel operations now include explicit Component membership binding.
-Production consumers, graph-wide `movedFrom`, and broader consumer-facing
-conformance remain open. Definition id/name alias matching is rejected as stale
+Production consumers and broader consumer-facing conformance remain open.
+Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
 **Authority:** stack ADR 0153 gate 8, stack ADR 0154, Component spec, Component
@@ -140,8 +141,12 @@ This plan tracks:
     cross-scope move rejection.
   - [x] StudioCore graph identity tests cover multi-Component binding
     requirements, mismatched-handle rejection, and bound add/move/copy success.
-  - [ ] Production copy/move consumers and graph-wide `movedFrom` provenance
-    persistence remain open.
+  - [x] Studio/kernel `moveNode` persists route-aware `x-generation.movedFrom`
+    in the atomic core `component.moveNode` command; graph moves stamp graph-wide
+    identity, while single-runtime route-aware moves preserve legacy
+    `{ route, nodePath }`.
+  - [ ] Production copy/move consumers and broader consumer-facing conformance
+    remain open.
 
 ## Deviations
 
@@ -174,10 +179,12 @@ This plan tracks:
   provenance evidence; source Component nodes still use schema-valid `id`
   segments for validator/projection identity until Component source schema
   admits `nodeId` directly.
-- 2026-05-25: StudioCore `moveNode` validates and returns graph-wide same-scope
-  identity, but does not stamp `x-generation.movedFrom`. The current facade would
-  need a separate property write after the core move dispatch; review rejected
-  that non-atomic two-write shape for a kernel operation.
+- 2026-05-25: StudioCore `moveNode` initially validated and returned graph-wide
+  same-scope identity without stamping `x-generation.movedFrom`; review rejected
+  a separate post-move property write as non-atomic for a kernel operation.
+- 2026-05-26: StudioCore `moveNode` now routes `movedFrom` through the core
+  `component.moveNode` command. NodeId-only internal moves remain unstamped
+  because they carry no route identity.
 - 2026-05-26: StudioCore `bindComponentMembership` now binds the active
   single-runtime Component tree to one App Manifest `components[]` handle before
   multi-Component graph-aware `addNode`, `moveNode`, or `copyNode` operations.
@@ -212,7 +219,9 @@ Partial evidence landed:
   (`declareComponent`, `bindComponentMembership`,
   `ComponentNodeExportRef.graphIdentity`, and
   `copyNode` graph-wide provenance stamping; `addNode` / `moveNode` graph-aware
-  target/source identity validation and exported identity results).
+  target/source identity validation, exported identity results, and atomic
+  `moveNode` `movedFrom` persistence through the core `component.moveNode`
+  command).
 - Projection consumer: `packages/formspec-layout/src/types.ts` and
   `packages/formspec-layout/src/planner-component-tree.ts`
   (`componentGraphIdentity` projection metadata).
@@ -245,7 +254,5 @@ Partial evidence landed:
 
 Still open:
 
-- ADR 0154 gate 7 graph-wide `movedFrom` persistence behind an atomic move/stamp
-  helper.
 - Production consumer wiring.
 - Broader consumer-facing copy/move conformance.
