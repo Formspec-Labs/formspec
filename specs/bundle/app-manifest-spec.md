@@ -270,6 +270,14 @@ The App Manifest's `modules[]` declaration is the canonical app-level module man
 
 The App Manifest's `sessions[]` is the durable session index for the app. Each `SessionRef.id` is a `urn:formspec:session:...` URN; `respondent-ledger.sessionRefs[]` references those URNs to trace the temporal grouping of acts in the ledger back to a session opened against this app.
 
+`sessions[]` is a durable session identity anchor, not runtime route state.
+Host session boundaries own issued tokens, actor/collaborator context, and
+session authentication. Surface runtime routers own active route and navigation
+history. Core Response instances own Response data/status. Response Actions
+runtime owns invocation/effect state. App Manifest may index sessions and let
+Ledger records refer to them, but it MUST NOT synthesize route navigation,
+Response instances, or action invocations from the session index alone.
+
 ### 5.6 No Shim Path
 
 This specification does NOT introduce a `definition.bundle` field, a `Bundle.legacyDefinitionOnly` flag, or any backwards-compat alias on existing primary specs. App Manifest is a peer primary artifact; existing artifacts are unchanged. Implementations migrating from Bundle Manifest v1.0 to App Manifest v2.0 update their manifest files (singular → plural shape, `$formspecBundle` 1.0 → 2.0) — they do not modify existing schema shapes of the underlying sibling documents.

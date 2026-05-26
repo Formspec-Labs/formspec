@@ -216,6 +216,31 @@ Each binding shape is enforced by `schemas/surface.schema.json` via an
 v0.1; future revisions admit new slot types via the Registry `slot-type`
 contribution category per ADR §4.2.
 
+### 5.1 Runtime Route State Ownership
+
+Surface owns the route graph contract: Surface URL/version, route ids, route
+paths, required route params, slot ids, transition declarations, and embed-route
+edges. A runtime router owns the current route state for a respondent session:
+the active Surface route, resolved route params, and any host-local navigation
+history. That runtime route state MUST be keyed by Surface identity plus
+`routes[].id`; it MUST NOT be keyed only by Definition URL, Component handle, or
+renderer-local DOM state.
+
+Surface route state is separate from session, Response, and Response Actions
+state. A Surface route may contain zero, one, or more `definition-form` slots,
+but each live form instance is still a Response instance owned by the Core
+Response contract. A Surface transition may name a Response Action trigger, but
+the transition does not execute that action or own its invocation state. A
+router MAY advance after the referenced action completes successfully under
+Response Actions authority; it MUST NOT infer success from a click, a rendered
+button, or a validation summary.
+
+When a route contains multiple `definition-form` slots or a parameterized
+route-specific form instance, production hosts MUST keep the route binding,
+session actor state, Response instance, and action invocation state explicit.
+Until a host can make those bindings explicit, ambiguous submit/navigation
+behavior is invalid rather than resolved by Definition-url convention.
+
 ## 6. The `surface:<route-id>` URI scheme
 
 [ADR 0150 §7](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#7-surface-and-screener-are-orthogonal)

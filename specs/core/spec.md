@@ -498,6 +498,30 @@ A Response references exactly one Definition by the tuple
 Response whose `definitionVersion` does not match any known Definition at the
 given `definitionUrl`.
 
+##### Response Instance Ownership
+
+A live Response instance is owned by the Core Response contract. It is
+identified by its Response id when present, and is always pinned to exactly one
+Definition tuple `(definitionUrl, definitionVersion)`. Runtime hosts MAY bind a
+Response instance to a Surface route, a route parameter value, or a respondent
+session, but those bindings do not replace the Response identity and MUST NOT
+rewrite the pinned Definition tuple.
+
+Response data, `status`, authored timestamp, validation snapshot, and metadata
+belong to the Response instance. Route position, route params, and navigation
+history belong to Surface runtime route state. Actor/session authentication,
+anonymous-session tokens, and collaborator presence belong to session state.
+Response Actions invocation/effect traces belong to the Response Actions
+runtime. A draft store MAY persist an in-progress Response snapshot for a
+session, but draft persistence is not route state and MUST NOT be used as the
+only identity for the Response instance.
+
+A hidden or collapsed route-local Definition slot does not mutate the Response
+instance by itself. Runtime policy MAY reject draft creation or action
+invocation for hidden state only when a production runtime/consumer has
+explicitly consumed schema-valid UI graph policy evidence; graph policy
+validation alone is not a Response status transition.
+
 A Response MAY carry a `metadata` envelope. The envelope is keyed by Definition
 item path and has three core maps:
 

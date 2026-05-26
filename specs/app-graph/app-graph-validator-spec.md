@@ -236,6 +236,14 @@ The validator does not own:
 - Response Actions invocation state, or
 - Data Sources payload availability at runtime.
 
+It also does not own runtime state. Route state belongs to the Surface runtime
+router, session actor/authentication state belongs to the host session boundary,
+Response data/status belongs to Core Response instances, and action
+invocation/effect state belongs to Response Actions runtime. The validator may
+check declared references between these artifacts, but it MUST NOT synthesize a
+Runtime Plan, choose the active route, create sessions, create Response
+instances, execute actions, or infer hidden-state rejection behavior.
+
 Source schema validation answers whether each loaded artifact has the correct
 shape for its declared family. Cross-artifact validation answers whether the
 schema-valid artifacts are coherent together.

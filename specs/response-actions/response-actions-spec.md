@@ -317,6 +317,30 @@ Invocation follows this order:
 
 The UI MUST NOT report success for `failed`, `deferred`, or `blocked`. On blocked validation, Response data remains preserved and status remains `in-progress`.
 
+### 7.1 Runtime Invocation State Ownership
+
+Response Actions owns action invocation state. An invocation is identified by
+`invocation.id` plus the resolved `actionId`, the current Response snapshot, the
+resolved validation tuple, and the ordered effect trace. Invocation state
+records precondition results, validation output, blocking outcome, durable
+effect idempotency/replay state, transient host-event delivery, and one terminal
+state: `completed`, `failed`, `deferred`, or `blocked`.
+
+Invocation state is not route state, session state, or Response identity.
+Surface routers may observe a completed invocation to decide whether a
+declared transition can advance; they do not own preconditions, validation,
+effect execution, idempotency, replay, or terminal classification. Session
+processors may authenticate the caller and bind actor/session context; they do
+not change the action state machine. Core Response processors own data/status
+mutation only through the resolved VM persistence policy; an invocation trace is
+not a substitute for a Response document.
+
+Processors MUST keep invocation/effect state explicit when a route contains
+multiple Response instances, when a route parameter selects the Response
+instance, or when several actions target the same Response. They MUST NOT infer
+the Response instance from Definition URL alone, from the current route alone,
+from an `ActionButton` DOM location, or from an AppGraphValidator diagnostic.
+
 ## 8. Failure Outcomes
 
 A failed terminal reports the failed effect index, effect type, a meaningful reason, the effect trace through failure, and the validation report when validation ran.
