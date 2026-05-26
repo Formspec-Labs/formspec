@@ -12,8 +12,8 @@ host-supplied Component graph projection context as inert DOM metadata.
 AppGraphValidator now defines and checks `hostEvidence.componentGraphContexts[]`
 as the proof source for that sidecar. `formspec-web` now requires matching
 completed component-graph evidence before trusting runtime `componentGraph`
-metadata. Production runtime host graph loading and broader consumer-facing
-conformance remain open.
+metadata. Production runtime host graph loading and production copy/move
+consumers outside StudioCore remain open.
 Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
@@ -102,6 +102,18 @@ This plan tracks:
   issue: HTTP extraction must not compact malformed `componentGraphContexts[]`
   arrays because that can reindex evidence slots. The remediation rejects the
   malformed list so slot identity remains stable.
+- 2026-05-26: Pauli pre-review `019e6440-96ce-7270-b6ec-f4b6e54c1279`
+  approved a narrow public-kernel consumer conformance slice. Constraints:
+  exercise `StudioCoreKernel` public methods, require
+  `bindComponentMembership` before multi-Component graph edits, prove
+  same-bound same-route copy/move provenance stamps, fail closed on
+  missing/stale/cross-route/cross-Surface/cross-Component identity before
+  mutation, and leave production host/BFF graph loading out of scope.
+- 2026-05-26: Heisenberg post-review
+  `019e644d-d9a3-71f3-9166-49bb875aa6b0` found no actionable
+  BLOCKER/HIGH/MEDIUM/LOW issues. The review confirmed the public facade seam,
+  missing graph-identity / graph-scope move negatives, pre-mutation rejection
+  order, no production/BFF overclaim, and no ADR 0153 §6 prohibited promotion.
 
 ## Ordered Work
 
@@ -204,8 +216,13 @@ This plan tracks:
     in the atomic core `component.moveNode` command; graph moves stamp graph-wide
     identity, while single-runtime route-aware moves preserve legacy
     `{ route, nodePath }`.
-  - [ ] Production copy/move consumers and broader consumer-facing conformance
-    remain open.
+  - [x] Public `StudioCoreKernel` consumer conformance now drives
+    `addSurface`, `addRoute`, `declareComponent`, `bindComponentMembership`,
+    `addNode`, `copyNode`, and `moveNode` through the facade, proving bound
+    same-route graph-wide copy/move success, missing/stale/cross-route/
+    cross-Surface/cross-Component fail-closed behavior before mutation, and
+    `x-generation.copiedFrom` / `movedFrom` graph identity stamps.
+  - [ ] Production copy/move consumers outside StudioCore remain open.
 
 ## Deviations
 
@@ -282,16 +299,27 @@ This plan tracks:
   proof by slot, schema, source, and document. It suppresses metadata on missing
   or mismatched proof and rejects malformed HTTP evidence lists rather than
   reindexing slots.
+- 2026-05-26: The public-kernel copy/move conformance slice adds no new runtime
+  behavior. It proves the already-landed `StudioCoreKernel` graph identity seam
+  through the public facade only; production host/BFF graph loading,
+  cross-document storage, TraceIndex, route behavior, and ADR 0152 authorization
+  remain excluded.
+- 2026-05-26: The existing writer -> AppGraphValidator -> projection test now
+  loads a Response Actions sidecar for the `submit` transition because A8
+  Surface trigger validation rejects unresolved action triggers against the
+  loaded graph.
 
 ## Closing Observation
 
 Partially observed. The proof-source contract, schema, fixture, shared-kernel
 checks, and public-web runtime trust gate have landed: `formspec-web` suppresses
 Component graph metadata unless the sidecar matches completed
-`hostEvidence.componentGraphContexts[]` evidence. The row remains Partial until
-a production runtime host supplies that validated Component graph context from a
-real loaded App Manifest / Component / Surface graph, or broader
-consumer-facing copy/move conformance closes the remaining ADR 0154 gates.
+`hostEvidence.componentGraphContexts[]` evidence. Public `StudioCoreKernel`
+consumer conformance now proves bound same-scope graph-wide copy/move workflows
+and provenance stamps through the public facade. The row remains Partial until a
+production runtime host supplies that validated Component graph context from a
+real loaded App Manifest / Component / Surface graph and production copy/move
+consumers outside StudioCore use the shared graph identity shape.
 
 ## Closure Evidence
 
@@ -405,6 +433,11 @@ Partial evidence landed:
   `cd ../formspec-web && npm test -- tests/app/respondent-runtime.test.tsx tests/adapters/http/definition-source.test.ts`;
   `cd ../formspec-web && npm run typecheck`;
   `cd ../formspec-web && git diff --check`.
+- Verification for public StudioCore copy/move consumer conformance:
+  `cd ../formspec-studio && npx tsc --noEmit -p packages/formspec-studio-core/tsconfig.json`;
+  `cd ../formspec-studio && npm run --workspace @formspec-org/studio-core test -- tests/kernel/proposal-manager-facade.test.ts`;
+  `cd ../formspec-studio && npm run --workspace @formspec-org/studio-core test`;
+  `cd ../formspec-studio && git diff --check -- packages/formspec-studio-core/tests/kernel/proposal-manager-facade.test.ts`.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;
@@ -433,4 +466,4 @@ Still open:
 - Live trusted host/BFF route that produces the Component graph projection
   context from actual loaded App Manifest / Component / Surface evidence and
   supplies the matching completed AppGraph report.
-- Broader consumer-facing copy/move conformance.
+- Production copy/move consumers outside StudioCore.
