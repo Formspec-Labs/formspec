@@ -3,12 +3,12 @@
 **Status:** complete - production-surface validation, not a new generator
 **Lives at:** `formspec/thoughts/spikes/2026-05-25-wireframe-generator-spike-v5.md`
 **Continues:** [`2026-05-24-wireframe-generator-spike-v4.md`](./2026-05-24-wireframe-generator-spike-v4.md)
-**Authority:** stack-root [`thoughts/adr/0153-formspec-app-graph-production-boundary.md`](../../../thoughts/adr/0153-formspec-app-graph-production-boundary.md)
+**Authority:** stack-root [`thoughts/adr/0153-formspec-app-graph-production-boundary.md`](../../../thoughts/adr/0153-formspec-app-graph-production-boundary.md) (**accepted**, ratified 2026-05-26). Current disposition: stack rollup [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) §Spike v5 residual gaps; successor [`2026-05-26-wireframe-generator-spike-v6.md`](./2026-05-26-wireframe-generator-spike-v6.md).
 
 ## Verdict
 
-v5 validates that the ADR 0153 production path is now materially implemented,
-but still not production-complete.
+v5 validates that the ADR 0153 production path was materially implemented at
+write time; **superseded for current state by v6 + 2026-05-26 ratification** (substrate closed; ADR 0152 authorization still Held).
 
 The repo now has real contracts and shared code for the app graph: App Manifest
 v2.0/v2.1/v2.2, Surface, Data Sources, Component 1.2 route targets,
