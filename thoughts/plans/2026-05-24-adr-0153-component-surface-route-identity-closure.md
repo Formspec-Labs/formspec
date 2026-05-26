@@ -10,8 +10,10 @@ now include explicit Component membership binding. The webcomponent renderer,
 React renderer, and `formspec-web` respondent runtime now consume
 host-supplied Component graph projection context as inert DOM metadata.
 AppGraphValidator now defines and checks `hostEvidence.componentGraphContexts[]`
-as the proof source for that sidecar. Production runtime host graph loading,
-runtime proof gating, and broader consumer-facing conformance remain open.
+as the proof source for that sidecar. `formspec-web` now requires matching
+completed component-graph evidence before trusting runtime `componentGraph`
+metadata. Production runtime host graph loading and broader consumer-facing
+conformance remain open.
 Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
@@ -94,6 +96,12 @@ This plan tracks:
   `formspec`-only schema/shared-kernel proof slice with constraints: exclude
   `formspec-web` runtime gating, require completed evidence source/schema
   matching before proof checks run, and keep runtime trust behavior open.
+- 2026-05-26: Hegel and Goodall reviewed the committed `formspec-web` runtime
+  evidence gate. Goodall found no BLOCKER/HIGH code issues and noted that the
+  row remains short of production host graph loading. Hegel found one HIGH
+  issue: HTTP extraction must not compact malformed `componentGraphContexts[]`
+  arrays because that can reindex evidence slots. The remediation rejects the
+  malformed list so slot identity remains stable.
 
 ## Ordered Work
 
@@ -268,16 +276,22 @@ This plan tracks:
   not make the browser load App Manifest, Component, or Surface artifacts, and
   it does not promote Runtime Plan, TraceIndex, route behavior, or ADR 0152
   authorization.
+- 2026-05-26: The public-web runtime proof gate is a consumer trust check, not a
+  graph validator. It only accepts a `componentGraph` sidecar when the supplied
+  `LayoutHostEvidence` has matching completed `hostEvidence.componentGraphContexts[N]`
+  proof by slot, schema, source, and document. It suppresses metadata on missing
+  or mismatched proof and rejects malformed HTTP evidence lists rather than
+  reindexing slots.
 
 ## Closing Observation
 
-Not observed yet. The current checkpoint defines the explicit
-`hostEvidence.componentGraphContexts[]` proof-source contract in prose so future
-schema, fixture, shared-kernel, and runtime-consumer phases can prove a
-Component graph sidecar directly. The row remains Partial until a production
-runtime host supplies a validated Component graph context from a real loaded
-graph, or broader consumer-facing copy/move conformance closes the remaining
-ADR 0154 gates.
+Partially observed. The proof-source contract, schema, fixture, shared-kernel
+checks, and public-web runtime trust gate have landed: `formspec-web` suppresses
+Component graph metadata unless the sidecar matches completed
+`hostEvidence.componentGraphContexts[]` evidence. The row remains Partial until
+a production runtime host supplies that validated Component graph context from a
+real loaded App Manifest / Component / Surface graph, or broader
+consumer-facing copy/move conformance closes the remaining ADR 0154 gates.
 
 ## Closure Evidence
 
@@ -337,13 +351,16 @@ Partial evidence landed:
   `formspec-web/src/app/RespondentRuntime.tsx` consume host-supplied
   Component graph sidecars and emit inert DOM identity metadata; the public-web
   `formspec-web/src/app/attachment-upload-control.tsx` FileUpload override
-  uses the same helper on its primary upload control. Runtime proof-gated
-  suppression or trust behavior remains a later public-web checkpoint.
+  uses the same helper on its primary upload control. `formspec-web` now
+  suppresses Component graph metadata unless the sidecar matches completed
+  `hostEvidence.componentGraphContexts[]` AppGraph proof.
 - Public runtime source seam:
   `formspec-web/src/ports/definition-source.ts`,
   `formspec-web/src/adapters/http/definition-source.ts`, and
   `formspec-web/src/adapters/stub/definition-source.ts` keep `getDefinition()`
-  Definition-only while adding optional Component sidecar hooks.
+  Definition-only while adding optional Component sidecar hooks. The HTTP
+  adapter accepts `componentGraphContexts[]` host evidence only when every list
+  entry is well-formed, preserving evidence-slot index identity.
 - Fixtures:
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
   and
@@ -384,6 +401,10 @@ Partial evidence landed:
   `uv run pytest tests/conformance/schemas/test_component_graph_projection_context_schema.py tests/conformance/schemas/test_app_graph_validation_report_schema.py`;
   `node scripts/generate-spec-artifacts.mjs --check`;
   `git diff --check`.
+- Verification for public-web runtime proof gate:
+  `cd ../formspec-web && npm test -- tests/app/respondent-runtime.test.tsx tests/adapters/http/definition-source.test.ts`;
+  `cd ../formspec-web && npm run typecheck`;
+  `cd ../formspec-web && git diff --check`.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;

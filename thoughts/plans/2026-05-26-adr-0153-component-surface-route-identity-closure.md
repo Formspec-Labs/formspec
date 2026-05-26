@@ -2,18 +2,19 @@
 
 **Date:** 2026-05-26
 **Row:** Component Surface/route identity
-**Status:** Partial-row checkpoint landed; row remains Partial
+**Status:** Partial-row proof-source and runtime-consumer checkpoints landed; row remains Partial
 **Owner:** Formspec app-graph follow-on lane
 **Primary plan:** [`2026-05-24-adr-0153-component-surface-route-identity-closure.md`](2026-05-24-adr-0153-component-surface-route-identity-closure.md)
 
 ## Scope
 
-Define the proof-source contract needed before any runtime consumer can treat a
-host-supplied Component graph sidecar as validated graph evidence.
+Define the proof-source contract and public-web consumer gate needed before a
+runtime consumer can treat a host-supplied Component graph sidecar as validated
+graph evidence.
 
-This checkpoint does not add schemas, fixtures, AppGraphValidator
-implementation, `formspec-web` runtime gating, renderer behavior, TraceIndex,
-Runtime Plan, non-form `targetDefinition` shims, or ADR 0152 authorization.
+This checkpoint does not add production host/BFF graph loading, renderer
+behavior, TraceIndex, Runtime Plan, non-form `targetDefinition` shims, or ADR
+0152 authorization.
 
 ## Ordered Work
 
@@ -25,8 +26,10 @@ Runtime Plan, non-form `targetDefinition` shims, or ADR 0152 authorization.
    and `ArtifactResolver`.
 4. State the future semantic checks: Component handle/url/version, Surface
    url/version, route coverage, and route-bound Component context.
-5. Leave schema, fixture, shared-kernel, and production-consumer work to later
-   ADR 0153 production-order phases.
+5. Land schema, fixture, shared-kernel, and public-web consumer trust checks in
+   ADR 0153 production order.
+6. Leave production host/BFF graph loading and broader consumer conformance to
+   later Component-row checkpoints.
 
 ## Review Checkpoints
 
@@ -40,6 +43,12 @@ Runtime Plan, non-form `targetDefinition` shims, or ADR 0152 authorization.
 - 2026-05-26 Goodall review
   `019e63ad-1162-7a92-904c-8977d7ad165d` found no BLOCKER/HIGH/MEDIUM/LOW
   findings in the scoped prose-only diff.
+- 2026-05-26 Hegel/Goodall implementation reviews approved the
+  schema/shared-kernel slice with runtime work excluded until after
+  `hostEvidence.componentGraphContexts[]` existed.
+- 2026-05-26 Hegel/Goodall runtime reviews approved the public-web trust gate
+  after one HIGH remediation: malformed HTTP `componentGraphContexts[]` lists
+  must be rejected rather than compacted, preserving evidence-slot identity.
 
 ## Deviations
 
@@ -51,13 +60,19 @@ Runtime Plan, non-form `targetDefinition` shims, or ADR 0152 authorization.
   schema and generated types exist. That is intentional under ADR 0153 §7
   production order: prose first, then schemas, fixtures, shared libraries, lint
   and conformance, then production wiring.
+- The public-web runtime gate is a consumer trust check, not a validator. It
+  requires matching completed proof before emitting metadata, but it does not
+  load App Manifest / Component / Surface artifacts or claim route, auth,
+  TraceIndex, or Runtime Plan authority.
 
 ## Closing Observation
 
-Not observed yet. The proof-source contract is now explicit in prose, but no
-schema, fixture, shared-kernel check, or runtime consumer gate proves
-`hostEvidence.componentGraphContexts[]` end to end. The Component
-Surface/route identity row remains Partial.
+Partially observed. The proof-source contract, schema, fixture, shared-kernel
+check, and public-web runtime trust gate now prove
+`hostEvidence.componentGraphContexts[]` through a consumer sidecar boundary. The
+Component Surface/route identity row remains Partial because a production
+host/BFF still must load the real graph, validate it, and supply the matching
+Component graph context and AppGraph report.
 
 ## Closure Evidence
 
@@ -72,12 +87,23 @@ Partial evidence for this checkpoint:
   ArtifactResolver artifact kind, no runtime route choice, no rendering, no DOM
   suppression authority, no Response Actions execution, no TraceIndex, and no
   ADR 0152 authorization.
+- `schemas/component-graph-projection-context.schema.json`,
+  `packages/formspec-app-graph/src/component-graph-context.ts`, and
+  `packages/formspec-app-graph/tests/component-graph-context.test.ts` implement
+  and test the shared proof checks.
+- `formspec-web/src/app/RespondentRuntime.tsx` and
+  `formspec-web/src/adapters/http/definition-source.ts` consume only matching
+  completed Component graph evidence and suppress unproven metadata.
 - Verification: `git diff --check`; `git -C formspec diff --check`;
-  `node scripts/generate-spec-artifacts.mjs --check`.
+  `node scripts/generate-spec-artifacts.mjs --check`;
+  `npm run --workspace @formspec-org/app-graph test`;
+  `cd ../formspec-web && npm test -- tests/app/respondent-runtime.test.tsx tests/adapters/http/definition-source.test.ts`;
+  `cd ../formspec-web && npm run typecheck`.
 
 Still open:
 
-- Component graph context schema and generated types.
-- Source fixture corpus for valid and invalid Component graph context evidence.
-- Shared AppGraphValidator host-evidence conversion and semantic checks.
-- Runtime consumer gating only after completed component-graph evidence proof.
+- Production host/BFF graph loading from real App Manifest / Component /
+  Surface evidence.
+- Live route or integration test that proves the production host supplies the
+  validated Component graph context and matching AppGraph report to the runtime.
+- Broader consumer-facing copy/move conformance.
