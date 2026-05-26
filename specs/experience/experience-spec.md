@@ -18,7 +18,7 @@ status: draft
 
 This document is a **draft specification**. It is a companion to the [Formspec v1.0 core specification](../core/spec.md) and does not modify or extend the core processing model. Implementors are encouraged to experiment with this specification and provide feedback, but MUST NOT treat it as stable for production use until a 1.0.0 release is published.
 
-This spec was promoted from the concept architecture note [`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md) (the "Experience" semantic layer). It addresses the **Experience shape** promotion gate from §9 of that note: actors, tasks, units, applicability, typed references, abstract `unit.kind`, coverage expectations, and seed-from-Definition guidance.
+This spec was promoted from the concept architecture note [`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md) (the "Experience" semantic layer). It addresses the **Experience shape** promotion gate from §9 of that note: actors, tasks, units, applicability, typed references, abstract `unit.kind`, coverage expectations, and seed-from-Definition guidance.
 
 ## Conventions and Terminology
 
@@ -610,6 +610,6 @@ A schema-validated copy lives at `tests/conformance/fixtures/experience/valid-gr
 | [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
 | [RFC 3986] | Berners-Lee, T., Fielding, R., and L. Masinter, "Uniform Resource Identifier (URI): Generic Syntax", STD 66, RFC 3986, January 2005. |
 | [RFC 6901] | Bryan, P., Ed., Zyp, K., and M. Nottingham, Ed., "JavaScript Object Notation (JSON) Pointer", RFC 6901, April 2013. |
-| Concept | Formspec Semantic Layers (Experience / Response Actions / Trace), thoughts/specs/2026-05-20-formspec-semantic-layers.md. |
+| Concept | Formspec Semantic Layers (Experience / Response Actions / Trace), thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md. |
 
 *End of Formspec Experience Specification.*

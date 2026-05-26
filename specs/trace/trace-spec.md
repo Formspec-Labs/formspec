@@ -9,7 +9,7 @@ depends_on:
   - specs/experience/experience-spec.md
   - specs/response-actions/response-actions-spec.md
   - specs/ontology/ontology-spec.md
-  - thoughts/specs/2026-05-20-formspec-semantic-layers.md
+  - thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md
 ---
 
 # Formspec Trace Specification

@@ -46,7 +46,7 @@ Per-ADR detail → [`thoughts/TODO.md`](thoughts/TODO.md). Blocked stack-level A
 | ADR | Blocker |
 |-----|---------|
 | 0051 — PDF | Three crates (`formspec-theme`, `formspec-plan`, `formspec-pdf`) don't exist. Rust spec `rust-layout-planner-and-pdf.md` status: Design only. `x-pdf` extension hook in schema but no renderer. |
-| 0052 — Remove Theme Pages | Superseded for v1 by [`ADR 0063`](thoughts/adr/0063-page-authority-split.md). `theme.pages`, `PageLayout`, and `Region` remain as the compact page-grid surface with explicit Component/Theme precedence. |
+| 0052 — Remove Theme Pages | Superseded for v1 by [`ADR 0063`](thoughts/archive/adr/0063-page-authority-split.md). `theme.pages`, `PageLayout`, and `Region` remain as the compact page-grid surface with explicit Component/Theme precedence. |
 
 ### Done & archived (2026-05-14)
 

@@ -18,7 +18,7 @@ status: draft
 
 This document is a **draft normative companion** to [Formspec v1.0 core specification](spec.md). It reconciles validation-related vocabulary across Core §5 (Validation), Component §5.19 (ActionButton), Component §6.13 (ValidationSummary), and the Response status lifecycle so that [Response Actions](../response-actions/response-actions-spec.md) documents have a single mapping to cite.
 
-This spec was promoted from the concept architecture note [`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md). It addresses the **§9 row 3** promotion gate (one reconciliation table over action intent, Core global modes, per-shape timing, `ValidationSummary.source`, severity, and Response status transitions) and the **§11.2** open question (validation profile names).
+This spec was promoted from the concept architecture note [`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`](../../thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md). It addresses the **§9 row 3** promotion gate (one reconciliation table over action intent, Core global modes, per-shape timing, `ValidationSummary.source`, severity, and Response status transitions) and the **§11.2** open question (validation profile names).
 
 This document landed before the Response Actions schema (concept §10 order) and remains the normative source for Response Actions validation tuples.
 
@@ -404,7 +404,7 @@ There is no prompt-injection surface in this spec; the mapping does not interact
 | [rfc2119] | Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997. |
 | [RFC 8174] | Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, RFC 8174, May 2017. |
 | [RFC 8259] | Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange Format", STD 90, RFC 8259, December 2017. |
-| Concept | Formspec Semantic Layers (Experience / Response Actions / Trace), thoughts/specs/2026-05-20-formspec-semantic-layers.md. |
+| Concept | Formspec Semantic Layers (Experience / Response Actions / Trace), thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md. |
 | Core | Formspec v1.0 — A JSON-Native Declarative Form Standard, specs/core/spec.md. |
 | Component | Formspec Component Specification v1.0, specs/component/component-spec.md. |
 | Response | response.schema.json. |

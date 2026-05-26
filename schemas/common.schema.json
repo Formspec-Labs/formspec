@@ -313,6 +313,12 @@
         "extensions": { "$ref": "#/$defs/Extensions" }
       }
     },
+    "KernelDocUrn": {
+      "type": "string",
+      "pattern": "^urn:formspec:doc:[0-9a-f]{16}:(experience|component|responseActions|theme)$",
+      "description": "Bundle-derived URN for a studio-core singleton kernel document per ADR 0150 §5.6 URN survey. Shape: urn:formspec:doc:<manifest-scope-hash>:<docType> where manifest-scope-hash = sha256(bundleId)[0:16] (hex), matching the §5.5 SessionRef pattern. Minted by KernelDocRefBinder.bindSingleton at @formspec-org/studio-core@1.0.0+ and returned from kernel.refs.<type>() accessors. Used by Forms-MCP / Wireframes-MCP / Ledger event payloads (verbatim carry per §5.4). The four docTypes are terminal-closed — additions are a major-bump per kernel-api spec §5.",
+      "examples": ["urn:formspec:doc:a1b2c3d4e5f60718:experience", "urn:formspec:doc:0123456789abcdef:component"]
+    },
     "Generation": {
       "type": "object",
       "description": "Generalized x-generation provenance carrier per ADR 0150 §5.3/§5.4. SUPERSET of the existing inline x-generation shape at component.schema.json:240-282 — every pre-existing field (source, strategy, generatedBy, generatedAt, anchors) remains valid; new fields (sourceModule, movedFrom, copiedFrom) layered on top. `generatedBy` migrates from free-form string to `oneOf [string, AuthorActor]` for backward compatibility while enabling structured authoring identity. `additionalProperties` stays open (no false) so tool-layer use is unconstrained beyond the documented superset.",

@@ -2,7 +2,7 @@
 
 **Status:** spike — exploratory proof, not production infrastructure
 **Lives at:** `formspec/spikes/wireframe-generator/`
-**Related:** [`thoughts/specs/2026-05-20-formspec-semantic-layers.md`](../specs/2026-05-20-formspec-semantic-layers.md), [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md), [`specs/response-actions/response-actions-spec.md`](../../specs/response-actions/response-actions-spec.md), [`specs/component/component-spec.md`](../../specs/component/component-spec.md)
+**Related:** [`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`](../specs/2026-05-20-formspec-semantic-layers.md), [`specs/experience/experience-spec.md`](../../specs/experience/experience-spec.md), [`specs/response-actions/response-actions-spec.md`](../../specs/response-actions/response-actions-spec.md), [`specs/component/component-spec.md`](../../specs/component/component-spec.md)
 **Prior art:** XIML, UsiXML, CAMELEON Reference Framework (Domain → Task → Abstract UI → Concrete UI → Final UI), with explicit Dialog / Navigation models above Task.
 
 ---

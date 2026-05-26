@@ -152,8 +152,8 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
 - ~~**FORMSPEC-CBOR-CROSS-ENCODER-RECONCILIATION-001 - Reconcile cbor2 canonical mode and integrity-cbor map-key ordering**~~ `fs-qwyb` · CLOSED — Empirical finding (trellis-scout review of session 2026-05-16): cbor2.dumps(canonical=True) and integrity-cbor::json_to_dcbor_bytes produce BYTE-DIFFERENT output for the committed…
 - ~~**ADR 0057-0060 - Companion semantic lint implementation**~~ `for-r249` · CLOSED — Source ADRs:
-- `formspec/thoughts/adr/0057-mapping-semantic-lint-and-contract-projection-analysis.md`
-- `formspec/thoughts/adr/0058-ontology-semantic-lint.md`
+- `formspec/thoughts/archive/adr/0057-mapping-semantic-lint-and-contract-projection-analysis.md`
+- `formspec/thoughts/archive/adr/0058-ontology-semantic-lint.md`
 -…
 - ~~**FORMSPEC-CANONICALIZATION-001 — Consume integrity-canonical + remove WOS shim + bundle regression vectors**~~ `fs-7md4` · CLOSED — **Status reframed 2026-05-15 after scout audit.** The earlier acceptance named a `formspec-canonical` Rust+TS crate that does not exist.
 - ~~**FORMSPEC-SIGNATURE-ADAPTER-WEBCRYPTO-001 — In-tree default TS adapter**~~ `fs-n6vp` · CLOSED — WebCrypto adapter for ed25519, ecdsa-p256, rsa-pss-sha256.
@@ -1173,7 +1173,7 @@ Migrated to stack-root tk ticket `fs-joq5` (see `tk show fs-joq5`). Linked to `f
 
 ### 22. ADR 0150 P0 — completed; P1+ carry-over
 
-ADR 0150 §14 P0 (the layered-UI-substrate refactor — module-aware Registry, App Manifest reframe, common-schema multi-actor + provenance + module $defs, posture admission, MasterTable demotion, Token Registry retirement, bundle-unique id invariant + lint binding) landed across commits `2a178047..b99bab42`. Plan at [`thoughts/plans/2026-05-23-adr-0150-p0-implementation.md`](thoughts/plans/2026-05-23-adr-0150-p0-implementation.md) (revisions r0→r2.2; Deviations log captures execution-time merit decisions).
+ADR 0150 §14 P0 (the layered-UI-substrate refactor — module-aware Registry, App Manifest reframe, common-schema multi-actor + provenance + module $defs, posture admission, MasterTable demotion, Token Registry retirement, bundle-unique id invariant + lint binding) landed across commits `2a178047..b99bab42`. Plan at [`thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md`](thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md) (revisions r0→r2.2; Deviations log captures execution-time merit decisions).
 
 **P1+ carry-over** (not blocking P0 ship; addressed in subsequent waves per ADR §14):
 

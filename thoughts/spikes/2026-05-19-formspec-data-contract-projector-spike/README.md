@@ -5,7 +5,7 @@ implemented. This note preserves the red-team case disposition captured in
 ADR 0057 and ties each case to the lint/projector ownership used by the
 companion semantic-lint implementation.
 
-Source of record: `thoughts/adr/0057-mapping-semantic-lint-and-contract-projection-analysis.md`,
+Source of record: `thoughts/archive/adr/0057-mapping-semantic-lint-and-contract-projection-analysis.md`,
 section "Red-team case disposition".
 
 | Spike case | Lint/projector ownership | Current coverage |

@@ -1,6 +1,6 @@
 # COMP-BUNDLE-ID-COLLISION fixture-audit report
 
-**Gate:** ADR 0150 §5.3 fixture-audit checklist (P0 precondition; gates Task 4 + Task 8 BREAKING commits per `thoughts/plans/2026-05-23-adr-0150-p0-implementation.md`).
+**Gate:** ADR 0150 §5.3 fixture-audit checklist (P0 precondition; gates Task 4 + Task 8 BREAKING commits per `thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md`).
 
 **Closed:** 2026-05-23T23:48:39Z
 
@@ -102,7 +102,7 @@ No fixture files were modified. The §5.3 step-3 mechanical migration (`<compone
 
 **Zero residual collisions; gate closed at 2026-05-23T23:48:39Z.**
 
-Task 4 (App Manifest BREAKING) and Task 8 (`ComponentBase.id` uplift BREAKING + `COMP-BUNDLE-ID-COLLISION` lint binding) per `thoughts/plans/2026-05-23-adr-0150-p0-implementation.md` are unblocked from the §5.3 gate.
+Task 4 (App Manifest BREAKING) and Task 8 (`ComponentBase.id` uplift BREAKING + `COMP-BUNDLE-ID-COLLISION` lint binding) per `thoughts/archive/plans/2026-05-23-adr-0150-p0-implementation.md` are unblocked from the §5.3 gate.
 
 ## 6. Re-runnability
 

@@ -105,7 +105,7 @@ Current partial evidence:
 - `packages/formspec-app-graph/tests/ui-graph-policy-hidden-definition-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-theme-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
-- `thoughts/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
+- `thoughts/archive/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
 
 Closure still requires Registry token-category contribution compatibility,
 runtime hidden-state behavior, Studio/authoring feedback, consumer conformance,

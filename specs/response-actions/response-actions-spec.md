@@ -19,7 +19,7 @@ status: draft
 
 This document is a **draft normative companion** to [Formspec v1.0 core specification](../core/spec.md) and [Formspec Validation Mapping](../core/validation-mapping.md). It defines the Response Actions sidecar: a form-scoped runtime contract for named action invocation.
 
-This document closes the Response Actions promotion gate in [Formspec Semantic Layers](../../thoughts/specs/2026-05-20-formspec-semantic-layers.md). It is additive: existing Definition, Response, ValidationReport, Mapping, Intake Handoff, Ledger, Locale, Theme, Component, and Experience schemas retain ownership of their own structural truth.
+This document closes the Response Actions promotion gate in [Formspec Semantic Layers](../../thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md). It is additive: existing Definition, Response, ValidationReport, Mapping, Intake Handoff, Ledger, Locale, Theme, Component, and Experience schemas retain ownership of their own structural truth.
 
 ## Conventions and Terminology
 

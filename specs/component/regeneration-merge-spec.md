@@ -8,7 +8,7 @@ depends_on:
   - specs/component/component-reference-fields-spec.md
   - specs/experience/experience-spec.md
   - specs/response-actions/response-actions-spec.md
-  - thoughts/specs/2026-05-20-formspec-semantic-layers.md
+  - thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md
 ---
 
 # Formspec Regeneration Merge v1.0
@@ -65,7 +65,7 @@ context changes. The merge consumes:
 It produces a merged Component draft plus a structured `MergeReport`.
 
 This specification formalizes the regeneration intent described by
-`thoughts/specs/2026-05-20-formspec-semantic-layers.md` §7.2 and §10.5. That
+`thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md` §7.2 and §10.5. That
 concept note remains design intent and promotion context. It is not a
 conformance source for regeneration merge wire shapes, algorithms, schemas, or
 fixtures. Regeneration merge conformance is defined by this specification, its

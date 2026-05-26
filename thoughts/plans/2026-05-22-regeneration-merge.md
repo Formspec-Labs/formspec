@@ -4,8 +4,8 @@ date: 2026-05-22
 status: paused-after-task-16
 owner: spec-author
 related:
-  - thoughts/specs/2026-05-20-formspec-semantic-layers.md
-  - thoughts/plans/2026-05-22-component-reference-fields.md
+  - thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md
+  - thoughts/archive/plans/2026-05-22-component-reference-fields.md
   - specs/component/component-spec.md
   - specs/component/component-reference-fields-spec.md
   - specs/experience/experience-spec.md
@@ -26,7 +26,7 @@ related:
 
 **Sequencing:** Spec prose §1–§11 → MergeReport schema → fixtures (each merge case in concept §7.2 plus orphan/rename) → algorithm pytest → invariant pytest (determinism, no-mutation, convergence) → Studio E2E (gated — defer if Studio isn't ready) → upstream back-references → doc pipeline.
 
-**Citations:** "CRF §" = `specs/component/component-reference-fields-spec.md`. "COMP §" = `specs/component/component-spec.md`. "EXP §" = `specs/experience/experience-spec.md`. "RA §" = `specs/response-actions/response-actions-spec.md`. "Concept §" = `thoughts/specs/2026-05-20-formspec-semantic-layers.md`.
+**Citations:** "CRF §" = `specs/component/component-reference-fields-spec.md`. "COMP §" = `specs/component/component-spec.md`. "EXP §" = `specs/experience/experience-spec.md`. "RA §" = `specs/response-actions/response-actions-spec.md`. "Concept §" = `thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`.
 
 ---
 
@@ -93,7 +93,7 @@ Decisions marked HIGH should not change without owner pushback. MEDIUM decisions
 |---|---|
 | `specs/component/component-spec.md` | Append §11 cross-reference to regeneration merge spec. |
 | `specs/component/component-reference-fields-spec.md` | Replace the §5 "regeneration merge behavior is explicitly out of scope" disclaimer with a forward-pointer to the new spec. |
-| `thoughts/specs/2026-05-20-formspec-semantic-layers.md` | Mark §10.5 landed (link). Update concept §7.2 status note. |
+| `thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md` | Mark §10.5 landed (link). Update concept §7.2 status note. |
 | `scripts/spec-artifacts.config.json` | Register new spec + BLUF + LLM + schema entries. |
 | `tests/contracts/surface-coverage.json` | Add `regenerationMerge` contract row pointing at the three pytests + fixture dir. |
 | `crates/formspec-lint/schemas/regeneration-merge-report.schema.json` | Mirror via `make sync-lint-schemas` so lint surface stays current. |
@@ -134,7 +134,7 @@ depends_on:
   - specs/component/component-reference-fields-spec.md
   - specs/experience/experience-spec.md
   - specs/response-actions/response-actions-spec.md
-  - thoughts/specs/2026-05-20-formspec-semantic-layers.md
+  - thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md
 ```
 
 - [ ] Task 1B: Register in `scripts/spec-artifacts.config.json` AFTER Tasks 12–17 fixtures/pytests exist (deferred — same repo-gate constraint that forced the active plan's 1B/1C split).
@@ -1249,7 +1249,7 @@ three-way regeneration merge. See
 
 - [ ] Update `specs/component/component-reference-fields-spec.md` §5: replace the "regeneration merge behavior is explicitly out of scope" disclaimer with a forward-pointer to `regeneration-merge-spec.md`. **Also update the matching BLUF bullet** (M3 fix — currently at `component-reference-fields-spec.md:33`) so it doesn't drift from §5.
 
-- [ ] Update `thoughts/specs/2026-05-20-formspec-semantic-layers.md`:
+- [ ] Update `thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md`:
   - §10.5 — change "(may live with...)" to "**Landed:** [`specs/component/regeneration-merge-spec.md`](../../specs/component/regeneration-merge-spec.md) (draft, 2026-05-22)."
   - §7.2 — append landed marker pointing at the new spec.
 

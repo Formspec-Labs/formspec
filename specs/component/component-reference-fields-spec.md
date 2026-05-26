@@ -8,7 +8,7 @@ depends_on:
   - specs/experience/experience-spec.md
   - specs/response-actions/response-actions-spec.md
   - specs/core/validation-mapping.md
-  - thoughts/specs/2026-05-20-formspec-semantic-layers.md
+  - thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md
 ---
 
 # Formspec Component Reference Fields v1.1
