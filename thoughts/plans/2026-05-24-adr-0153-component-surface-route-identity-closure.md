@@ -7,7 +7,9 @@ graph-wide provenance schema evidence, Studio/kernel `copyNode` graph identity
 stamping, Studio/kernel `moveNode` `movedFrom` persistence, and layout
 projection identity consumption are landed. Broader
 Studio/kernel operations now include explicit Component membership binding.
-Production consumers and broader consumer-facing conformance remain open.
+The webcomponent renderer now consumes host-supplied Component graph projection
+context as inert DOM metadata. Production runtime host wiring and broader
+consumer-facing conformance remain open.
 Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
@@ -59,6 +61,10 @@ This plan tracks:
   tooling convenience, Component 1.2 already defines route-bound Definition
   context as URL-only, and app-graph already compares `definitionRef` to
   `targetDefinition.url`.
+- 2026-05-26: Hegel approved the webcomponent renderer-consumer slice with no
+  blockers: host-supplied `componentGraph` context is passed into layout
+  planning and emitted as inert DOM metadata, while route validation and runtime
+  behavior stay outside the renderer.
 
 ## Ordered Work
 
@@ -120,7 +126,10 @@ This plan tracks:
   route/path strings.
   - [x] `@formspec-org/layout` projects optional `componentGraphIdentity` from
     supplied Component membership + Surface + route scope.
-  - [ ] Runtime hosts / renderers still need route-backed app-graph wiring.
+  - [x] `<formspec-render>` accepts a host-supplied `componentGraph` projection
+    context and emits `LayoutNode.componentGraphIdentity` as inert DOM metadata.
+  - [ ] Runtime hosts still need route-backed app-graph wiring that supplies the
+    validated projection context from a real loaded graph.
 - [x] Definition id alias matching is rejected with evidence.
   - [x] Explicit Studio/kernel graph binding landed as
     `bindComponentMembership`, binding the active singleton Component document to
@@ -195,6 +204,10 @@ This plan tracks:
   Definition contract has no top-level `id`, `name` is not globally unique, App
   Manifest Definition refs are URL/version, and Component 1.2 already pins
   route-bound Definition context to exact URL matching.
+- 2026-05-26: `<formspec-render>` consumes a host-provided graph projection
+  context only. It does not validate Component `targetSurfaceRoutes[]`, discover
+  App Manifest memberships, select routes, enforce authorization, or infer
+  runtime behavior from the emitted metadata.
 
 ## Closure Evidence
 
@@ -225,6 +238,11 @@ Partial evidence landed:
 - Projection consumer: `packages/formspec-layout/src/types.ts` and
   `packages/formspec-layout/src/planner-component-tree.ts`
   (`componentGraphIdentity` projection metadata).
+- Renderer consumer: `packages/formspec-webcomponent/src/element.ts`,
+  `packages/formspec-webcomponent/src/rendering/emit-node.ts`, and
+  `packages/formspec-webcomponent/src/hub-types.ts` consume host-supplied
+  `componentGraph` projection context and emit inert DOM `data-*` identity
+  metadata for rendered Component nodes.
 - Fixtures:
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
   and
@@ -239,6 +257,8 @@ Partial evidence landed:
   `definitionRef` URL shape;
   `formspec-studio/packages/formspec-studio-core/tests/kernel/proposal-manager-facade.test.ts`;
   `packages/formspec-layout/tests/planner.test.ts`.
+- Renderer tests:
+  `packages/formspec-webcomponent/tests/render-lifecycle.test.ts`.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;
@@ -248,11 +268,15 @@ Partial evidence landed:
   `npm run --workspace @formspec-org/app-graph test -- tests/component-route-validator.test.ts`;
   `npm run --workspace @formspec-org/studio-core test -- tests/kernel/proposal-manager-facade.test.ts`;
   `npm run --workspace @formspec-org/layout test -- tests/planner.test.ts`;
+  `npm run test --workspace @formspec-org/webcomponent -- render-lifecycle.test.ts`;
+  `npm run test --workspace @formspec-org/webcomponent`;
+  `npx tsc --noEmit -p packages/formspec-webcomponent/tsconfig.json`;
   `npx tsc --noEmit -p packages/formspec-app-graph/tsconfig.json`;
   `cd ../formspec-studio && npx tsc --noEmit -p packages/formspec-studio-core/tsconfig.json`;
   `npx tsc --noEmit -p packages/formspec-layout/tsconfig.json`.
 
 Still open:
 
-- Production consumer wiring.
+- Production runtime host wiring that supplies validated Component graph context
+  from a real loaded graph.
 - Broader consumer-facing copy/move conformance.

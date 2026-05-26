@@ -65,6 +65,46 @@ describe('render lifecycle', () => {
         expect(el.querySelector('.formspec-field')).not.toBeNull();
     });
 
+    it('renders host-supplied Component graph identity as inert DOM metadata', () => {
+        el.componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: 'formspec://components/respondent',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'formspec://surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'intake',
+        };
+        el.componentDocument = {
+            $formspecComponent: '1.2',
+            version: '1.0.0',
+            targetSurfaceRoutes: [{
+                surface: { url: 'formspec://surfaces/respondent', version: '1.0.0' },
+                route: 'intake',
+                slot: 'main',
+            }],
+            tree: {
+                component: 'Stack',
+                id: 'root',
+                children: [{ component: 'TextInput', bind: 'name', id: 'nameField' }],
+            },
+        };
+        el.definition = singleFieldDef();
+        el.render();
+
+        const stack = el.querySelector('.formspec-stack') as HTMLElement;
+        const field = el.querySelector('.formspec-field') as HTMLElement;
+        expect(stack.dataset.formspecComponentHandle).toBe('respondent');
+        expect(stack.dataset.formspecSurfaceUrl).toBe('formspec://surfaces/respondent');
+        expect(stack.dataset.formspecRoute).toBe('intake');
+        expect(stack.dataset.formspecNodePath).toBe('/root');
+        expect(field.dataset.formspecNodePath).toBe('/root/name');
+        expect(field.dataset.formspecComponentNodeId).toBe('nameField');
+    });
+
     it('setting definition again re-renders in place (root container preserved)', () => {
         el.definition = singleFieldDef();
         el.render();

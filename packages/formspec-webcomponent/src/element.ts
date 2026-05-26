@@ -41,10 +41,11 @@ import {
     ensureActionButton,
     preparePlanContext,
     mergeFormPresentationForPlanning,
+    type ComponentGraphProjectionContext,
 } from '@formspec-org/layout';
 import { buildPlatformTheme } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
-const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1']);
+const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 
 function componentFormPresentation(componentDocument: ComponentDocument | null): unknown {
     return (componentDocument as (ComponentDocument & { formPresentation?: unknown }) | null)?.formPresentation;
@@ -175,6 +176,7 @@ export class FormspecRender extends HTMLElement {
     // ── Internal state ────────────────────────────────────────────────
     /** @internal */ _definition: FormDefinition | null = null;
     /** @internal */ _componentDocument: ComponentDocument | null = null;
+    /** @internal */ _componentGraph: ComponentGraphProjectionContext | null = null;
     /** @internal */ _themeDocument: ThemeDocument | null = null;
     /** @internal */ _responseActionsDocument: ResponseActionsDocument | null = null;
     /** @internal */ _responseActionInvoker: ResponseActionInvoker | null = null;
@@ -508,6 +510,20 @@ export class FormspecRender extends HTMLElement {
         return this._componentDocument;
     }
 
+    /**
+     * Host-supplied, AppGraphValidator-backed Component graph projection context.
+     * The renderer consumes this only as inert identity metadata.
+     */
+    set componentGraph(val: ComponentGraphProjectionContext | null | undefined) {
+        this._componentGraph = val ?? null;
+        this.scheduleRender();
+    }
+
+    /** The currently loaded Component graph projection context, if any. */
+    get componentGraph(): ComponentGraphProjectionContext | null {
+        return this._componentGraph;
+    }
+
     /** Set the Response Actions document used by ActionButton actionRef resolution. */
     set responseActionsDocument(val: ResponseActionsDocument | null | undefined) {
         this._responseActionsDocument = val ?? null;
@@ -800,6 +816,7 @@ export class FormspecRender extends HTMLElement {
                 componentFormPresentation(this._componentDocument),
             ),
             componentDocument: this._componentDocument ?? undefined,
+            ...(this._componentGraph ? { componentGraph: this._componentGraph } : {}),
             theme: (this._themeDocument || this.getEffectiveTheme()) as unknown as SchemaThemeDocument,
             activeBreakpoint: this.activeBreakpoint,
             findItem: (key: string) => this.findItemByKey(key),

@@ -55,6 +55,8 @@ export type ComponentDescriptor = ComponentPresentationSource & {
     bindPath?: string;
     /** Planner-authoritative page mode for root Stack page containers. */
     pageMode?: 'wizard' | 'tabs';
+    /** App-graph Component node identity projected by the layout planner. */
+    componentGraphIdentity?: LayoutNode['componentGraphIdentity'];
 };
 
 /** Response `data` / screener answer maps (JSON-compatible values). */

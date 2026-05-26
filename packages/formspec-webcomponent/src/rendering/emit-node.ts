@@ -18,6 +18,36 @@ import { applySurfaceProps } from '../adapters/default/layout';
 
 export type { RenderHost } from '../hub-types.js';
 
+function applyComponentGraphIdentity(el: HTMLElement, identity: LayoutNode['componentGraphIdentity']): void {
+    if (!identity) return;
+    el.dataset.formspecComponentHandle = identity.component.handle;
+    if (identity.component.url) el.dataset.formspecComponentUrl = identity.component.url;
+    if (identity.component.version) el.dataset.formspecComponentVersion = identity.component.version;
+    el.dataset.formspecSurfaceUrl = identity.surface.url;
+    if (identity.surface.version) el.dataset.formspecSurfaceVersion = identity.surface.version;
+    el.dataset.formspecRoute = identity.route;
+    el.dataset.formspecNodePath = identity.nodePath;
+    if (identity.id) el.dataset.formspecComponentNodeId = identity.id;
+    if (identity.nodeId) el.dataset.formspecComponentNodeStructuralId = identity.nodeId;
+}
+
+function renderActualComponentWithGraphIdentity(
+    host: RenderHost,
+    comp: ComponentDescriptor,
+    parent: HTMLElement,
+    prefix: string,
+): void {
+    const firstNewChildIndex = parent.childElementCount;
+    renderActualComponent(host, comp, parent, prefix);
+    if (!comp.componentGraphIdentity) return;
+    const added = Array.from(parent.children).slice(firstNewChildIndex);
+    for (const child of added) {
+        if (child instanceof HTMLElement) {
+            applyComponentGraphIdentity(child, comp.componentGraphIdentity);
+        }
+    }
+}
+
 /**
  * Walk a LayoutNode tree from the planner and emit DOM.
  */
@@ -53,6 +83,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         const container = document.createElement('div');
         container.className = 'formspec-repeat';
         container.dataset.bind = bindKey;
+        applyComponentGraphIdentity(container, node.componentGraphIdentity);
         target.appendChild(container);
         const list = document.createElement('div');
         list.className = 'formspec-repeat-list';
@@ -153,6 +184,7 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
         const nextPrefix = prefix ? `${prefix}.${bindKey}` : bindKey;
         const el = document.createElement('div');
         el.className = 'formspec-group';
+        applyComponentGraphIdentity(el, node.componentGraphIdentity);
         if (node.cssClasses.length > 0) host.applyClassValue(el, node.cssClasses);
         host.applyAccessibility(el, node);
         host.applyStyle(el, node.style);
@@ -205,8 +237,11 @@ export function emitNode(host: RenderHost, node: LayoutNode, parent: HTMLElement
     if (node.bindPath !== undefined && comp.bindPath === undefined) {
         comp.bindPath = node.bindPath;
     }
+    if (node.componentGraphIdentity !== undefined) {
+        comp.componentGraphIdentity = node.componentGraphIdentity;
+    }
 
-    renderActualComponent(host, comp, target, prefix);
+    renderActualComponentWithGraphIdentity(host, comp, target, prefix);
 }
 
 /**
