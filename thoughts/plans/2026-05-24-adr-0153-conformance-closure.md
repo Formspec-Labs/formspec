@@ -2,17 +2,17 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Conformance
-**Status:** Open. Source conformance coverage exists across several families, but the
-v4 A1-A14 / EC / F7-F10 preservation set is not yet pinned as one auditable
-closure surface.
+**Status:** Open. Source conformance coverage is now pinned for the covered
+families, but A8, A10, EC12 runtime behavior, F8/F9 production consumers, and
+F10 authorization remain unresolved or held.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
 
-Close the ADR 0153 conformance row by promoting the v4 spike's preserved
-acceptance families into source conformance fixtures and tests. This plan tracks
-coverage only; it does not close Production wiring, Runtime ownership, or ADR
-0152 authorization.
+Drive the ADR 0153 conformance row toward closure by promoting the v4 spike's
+preserved acceptance families into source conformance fixtures and tests. This
+plan tracks coverage only; it does not close Production wiring, Runtime
+ownership, or ADR 0152 authorization.
 
 Not in this row: `x-spike-v3-*` / `x-spike-v4-*` contract fields, local fixture
 paths as identity, Runtime Plan as a source artifact, Screener sidecar promotion,
@@ -46,25 +46,29 @@ or fine-grained authorization semantics.
   found EC12 runtime hidden-state has no normative runtime source yet. Existing
   UI Graph Policy/AppGraphValidator hidden-Definition fixtures prove graph
   policy only; they cannot close runtime rejection behavior.
+- 2026-05-26 architecture review scout `019e62e0-bf49-7353-94a3-8f6aad3e75c7`
+  found no blocker to a docs/status ledger pin, but required the Conformance
+  row to stay Open because A10, EC12 runtime behavior, F8/F9 production
+  consumers, and F10 authorization remain held or partial.
 
 ## Evidence Map
 
 | v4 family | Current evidence | Status |
 |---|---|---|
-| A1 stale sidecar ref | ArtifactResolver identity/version fixtures plus AppGraph sibling-ref precedence tests | Covered, needs rollup pin |
+| A1 stale sidecar ref | ArtifactResolver `identity-mismatch`, `version-mismatch`, and `valid-full-graph` fixtures plus AppGraph sibling-ref precedence test | Covered |
 | A2 unadmitted contribution owner | `module-resolver/contribution-unadmitted.case.json` | Covered |
-| A3 unresolved navigation target | Surface E606/E607 and UI Graph Policy unresolved route fixtures | Covered, naming needs pin |
-| A4 unresolved Surface route ref | Component route and UI Graph Policy route-ref fixtures | Covered |
+| A3 unresolved navigation target | Surface E606/E607 fixtures plus UI Graph Policy unresolved route fixtures | Covered |
+| A4 unresolved Surface route ref | Component route `route-unresolved` / `slot-unresolved` cases plus UI Graph Policy route-ref fixtures | Covered |
 | A5 missing route params | Surface route-parameter prose/schema plus lint `E610` fixture | Covered |
 | A6 required-field runtime blocking | Response Actions runtime fixture `intent-submit-blocked.json` | Covered |
 | A7 duplicate durable-effect idempotency key | Source conformance fixture plus Rust lint `E1804` check | Covered |
-| A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held out of first slice |
+| A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held/Open |
 | A9 route/Definition ownership mismatch | Component route `bound-controls-route-definition-mismatch` fixture | Covered |
 | A10 undeclared Screener terminal hop | Surface/Screener syntax is documented, but app-graph validation is blocked until a Screener-to-app association source exists | Held/Open |
 | A11 duplicate Response Actions action id | Source conformance fixture plus Rust lint `E1801` check | Covered |
 | A12 generated Component id collision | Component route `node-identity-duplicate-key` fixture | Covered |
 | A13 module-widget payload mismatch | `module-resolver/payload-mismatch.case.json` | Covered |
-| A14 module version conflict across sibling artifacts | Unit test exists; source fixture missing before this slice | First promotion |
+| A14 module version conflict across sibling artifacts | `module-resolver/sibling-version-mismatch.case.json` plus ModuleResolver corpus required-family check | Covered |
 | EC2 Experience unit reused across routes with different Definitions | Source conformance fixture plus AppGraphValidator Surface `experience-unit` check | Covered, URL-exact |
 | EC5 non-form app has zero Definitions | Component route `fake-target-definition` fixture | Covered for graph rejection |
 | EC12 hidden Definition while Response is mid-draft | Graph hidden-Definition fixtures cover policy; runtime hidden-state remains Held until a production runtime/consumer consumes schema-valid UI Graph Policy evidence and defines draft/action rejection | Held/Open |
@@ -82,7 +86,7 @@ or fine-grained authorization semantics.
 - [x] Create this plan as the conformance-row coverage ledger.
 - [x] Promote A14 into the ModuleResolver source fixture corpus.
 - [x] Add A14 to the ModuleResolver corpus-level required-family test.
-- [ ] Keep unresolved families explicit instead of counting unit tests as closure.
+- [x] Keep unresolved families explicit instead of counting unit tests as closure.
 
 ### Phase 2 - Response Actions Gaps
 
@@ -107,9 +111,9 @@ or fine-grained authorization semantics.
 
 ### Phase 4 - Rollup Closure
 
-- [ ] Update the stack rollup Conformance row with concrete source fixture
-  evidence once all required families are promoted.
-- [ ] Leave Production wiring and Authorization rows separate.
+- [x] Update the stack rollup Conformance row with concrete source fixture
+  evidence and the unresolved/held family list while keeping the row Open.
+- [x] Leave Production wiring and Authorization rows separate.
 
 ## Deviations
 
@@ -142,19 +146,42 @@ or fine-grained authorization semantics.
 
 ## Closure Evidence
 
-Partial evidence after the first slice:
+Pinned evidence after the ledger slice:
 
 - Plan: this file.
-- Fixture:
-  `tests/conformance/fixtures/module-resolver/sibling-version-mismatch.case.json`.
-- Corpus test:
-  `tests/conformance/test_module_resolver_fixture_corpus.py`.
-- Executable TypeScript runner:
+- A1 ArtifactResolver source identity/version evidence:
+  `tests/conformance/fixtures/artifact-resolver/identity-mismatch.case.json`,
+  `tests/conformance/fixtures/artifact-resolver/version-mismatch.case.json`,
+  `tests/conformance/fixtures/artifact-resolver/valid-full-graph.case.json`, and
+  `packages/formspec-app-graph/tests/app-graph-validator.test.ts`.
+- A2/A13/A14 ModuleResolver evidence:
+  `tests/conformance/fixtures/module-resolver/contribution-unadmitted.case.json`,
+  `tests/conformance/fixtures/module-resolver/payload-mismatch.case.json`,
+  `tests/conformance/fixtures/module-resolver/sibling-version-mismatch.case.json`,
+  `tests/conformance/test_module_resolver_fixture_corpus.py`, and
   `packages/formspec-app-graph/tests/module-resolver-conformance.test.ts`.
-- Verification:
-  `npm run --workspace @formspec-org/app-graph test -- tests/module-resolver-conformance.test.ts`
-  passed 19/19 tests; `python -m pytest tests/conformance/test_module_resolver_fixture_corpus.py -q`
-  passed 6/6 tests.
+- A3/A4/A5 Surface and route-ref evidence:
+  `tests/conformance/fixtures/surface/route-unreachable.surface.json`,
+  `tests/conformance/fixtures/surface/embed-route-unresolved.surface.json`,
+  `tests/conformance/fixtures/surface/transition-missing-route-param.surface.json`,
+  `tests/conformance/fixtures/surface/embed-route-missing-route-param.surface.json`,
+  `tests/conformance/spec/test_surface_contract.py`,
+  `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`,
+  `tests/conformance/test_app_graph_component_route_fixture_corpus.py`,
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-surface-routes.case.json`,
+  and `tests/conformance/test_app_graph_ui_policy_surface_route_fixture_corpus.py`.
+- A6/A7/A11 Response Actions evidence:
+  `tests/conformance/fixtures/response-actions/intent-submit-blocked.json`,
+  `tests/conformance/fixtures/response-actions/duplicate-durable-idempotency-key.json`,
+  `tests/conformance/fixtures/response-actions/duplicate-action-id.json`,
+  `tests/conformance/spec/test_response_actions_runtime.py`,
+  `tests/conformance/schemas/test_response_actions_schema.py`, and
+  `crates/formspec-lint/src/pass_response_actions.rs`.
+- A9/A12/EC5 Component route evidence:
+  `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
+  cases `bound-controls-route-definition-mismatch`,
+  `node-identity-duplicate-key`, and `fake-target-definition`, plus
+  `tests/conformance/test_app_graph_component_route_fixture_corpus.py`.
 - A11 fixture:
   `tests/conformance/fixtures/response-actions/duplicate-action-id.json`.
 - A11 tests:
@@ -189,6 +216,19 @@ Partial evidence after the first slice:
   `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py`, and
   `packages/formspec-app-graph/src/ui-graph-policy.ts`. This evidence does not
   close runtime hidden-state behavior.
+- EC13/EC14 UI Graph Policy evidence:
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`,
+  `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`,
+  `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-theme-widgets.case.json`,
+  and `tests/conformance/test_app_graph_ui_policy_theme_widget_fixture_corpus.py`.
+- F7/F8/F9/F10 boundary evidence:
+  `tests/conformance/fixtures/data-sources/fine-grained-auth.json`,
+  `tests/conformance/spec/test_data_sources_contract.py`,
+  `tests/conformance/spec/test_response_actions_runtime.py`,
+  `tests/conformance/fixtures/ui-graph-policy/invalid-authorization-field.json`,
+  and the UI Graph Policy semantic fixture corpus. This evidence proves current
+  fail-closed/source contracts only; it does not close production consumers,
+  runtime hidden-state behavior, or ADR 0152 authorization.
 
 Still open:
 
