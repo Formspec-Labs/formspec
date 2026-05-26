@@ -2,9 +2,9 @@
 
 #[cfg(test)]
 mod tests {
-    use fel_core::{fel_to_json, json_to_fel, Value as FelVal};
+    use fel_core::{Value as FelVal, fel_to_json, json_to_fel};
     use rust_decimal::Decimal;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     #[cfg(feature = "changelog-api")]
     use crate::changelog::generate_changelog_inner;
@@ -24,9 +24,9 @@ mod tests {
     use crate::registry::find_registry_entry_inner;
     use crate::value_coerce::coerce_field_value_inner;
     use formspec_core::{
-        detect_document_type, parse_coerce_type,
+        DocumentType, detect_document_type, parse_coerce_type,
         parse_mapping_document_from_value as parse_mapping_document_inner,
-        parse_mapping_rules_from_value as parse_mapping_rules_inner, DocumentType,
+        parse_mapping_rules_from_value as parse_mapping_rules_inner,
     };
 
     fn fel_eval_value(result_json: &str) -> Value {
@@ -792,9 +792,11 @@ mod tests {
         let rules = json!([{"transform": "teleport", "targetPath": "x"}]);
         let result = parse_mapping_rules_inner(&rules);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("unknown transform type: teleport"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("unknown transform type: teleport")
+        );
     }
 
     // ── Finding 74: fel_to_json Decimal::MAX ────────────────────

@@ -512,9 +512,10 @@ fn validate_response_schema(response_json: &serde_json::Value) {
     )
     .expect("parse verification receipt schema");
     let common_schema_path = formspec_root().join("schemas/common.schema.json");
-    let common_schema: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(common_schema_path).expect("read common schema"))
-            .expect("parse common schema");
+    let common_schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(common_schema_path).expect("read common schema"),
+    )
+    .expect("parse common schema");
     let response_validator = jsonschema::options()
         .with_resource(
             "https://formspec.org/schemas/common/1.0",

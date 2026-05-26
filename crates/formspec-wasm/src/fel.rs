@@ -7,23 +7,23 @@
 //! siblings, which native `cargo nextest` tests in [`crate::wasm_tests`] can drive without
 //! linking the `wasm-bindgen` runtime. The wrappers only wrap `String` → `JsError`.
 
+use fel_core::{
+    EvaluatorOptions, Trace, evaluate, evaluate_with, expr_is_interpolation_static_literal,
+    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
+    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
+    prepare, reject_undefined_functions,
+};
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
     builtin_function_catalog_json_value, dependencies_to_json_value, extract_dependencies,
     print_expr, tokenize_to_json_value,
 };
-use fel_core::{
-    evaluate, evaluate_with, expr_is_interpolation_static_literal, fel_diagnostics_to_json_value,
-    fel_to_ui_json, field_map_from_json_str, formspec_environment_from_json_map,
-    has_error_diagnostics, host_options_from_json, parse, prepare, reject_undefined_functions,
-    EvaluatorOptions, Trace,
-};
 #[cfg(feature = "fel-authoring")]
 use formspec_core::try_lift_condition_group;
 use formspec_core::{
-    analyze_fel, analyze_fel_with_field_types, definition_item_location_to_json_value,
-    fel_analysis_to_json_value, get_fel_dependencies, json_definition_item_at_path,
-    normalize_indexed_path, JsonWireStyle,
+    JsonWireStyle, analyze_fel, analyze_fel_with_field_types,
+    definition_item_location_to_json_value, fel_analysis_to_json_value, get_fel_dependencies,
+    json_definition_item_at_path, normalize_indexed_path,
 };
 #[cfg(feature = "fel-authoring")]
 use formspec_core::{
