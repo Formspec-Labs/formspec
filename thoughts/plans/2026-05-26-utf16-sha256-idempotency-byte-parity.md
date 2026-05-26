@@ -2,7 +2,7 @@
 
 **Owner-action item** from stack rollup [`thoughts/2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) §"Owner action items" → "Known cross-language parity gap (LOW)".
 
-**Status:** in-progress — fixture + paired runners landing this slice.
+**Status:** closed — fixture, paired runners, dist-path guard, and post-closure doc pins landed (rollup §"Cross-language parity (closed)").
 
 **Scope:** one byte-parity fixture, plus paired Rust and TS runner tests, proving StudioCore (TS) and `formspec-server` (Rust) compute byte-identical `sha256:<hex>` StudioCore-LedgerPort idempotency keys for the same `(ledgerScope, branchId, opBatchHash)` inputs across the UTF-16 / UTF-8 / surrogate-pair drift surface.
 
@@ -76,3 +76,18 @@ Note on `@internal` JSDoc enforcement (code-review LOW-1): `formspec-studio/pack
 - Rust runner: `formspec-server/crates/formspec-server/tests/studio_ledger_idempotency_parity.rs` (asserts both material and idempotency key per vector).
 - Rollup pin: stack-root [`thoughts/2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) §"Owner action items" → "Cross-language parity (closed)".
 - Code review: `formspec-specs:formspec-scout` subagent `ab41f6527e4aff5cb` returned Reshape verdict with 1×MED commit-hygiene finding (MED-1: parent-commit captured parallel-staged Conformance flip — recorded in Deviations §"Parent-commit hygiene deviation"), 1×MED docs-accuracy finding (MED-2: rollup pin's Rust visibility claim — fixed by widening Rust `studio_ledger_idempotency_material` to `pub` and re-pinning the rollup), 1×LOW line-numbers-decay finding (LOW-3: dropped stale `:2206-2224` from this plan doc), and 2×LOW + 1×NIT advisories (LOW-1 documented above; LOW-2 reshape applied via Rust public widening + Rust material assertion; NIT-2 path-coupling comments added to both runners).
+- TS dist-path guard: `formspec-studio/packages/formspec-studio-core/tests/kernel/studio-ledger-idempotency-parity-dist.test.ts` (`formspec-studio` `035089a`); `package.json` test script runs `tsc` before vitest.
+- Stack ADR pin: [`thoughts/adr/0151-multi-actor-editing-automerge.md`](../../../thoughts/adr/0151-multi-actor-editing-automerge.md) §13.2 idempotency bullet now cites the fixture as normative byte contract (architecture-review AFTER Finding 1).
+
+## Architecture review AFTER (2026-05-26)
+
+Semi-formal architecture review on the closed parity slice returned **RECONSIDER** on doc drift only; implementation shape **approved**. Remediation:
+
+| Finding | Resolution |
+|---------|------------|
+| ADR 0151 §13.2 stale `sha256(sessionRef \|\| …)` formula | **Fixed** — bullet now points at `cross-language-parity.case.json` + named Rust/TS implementations (stack-root ADR commit). |
+| Fixture `implementations.rust` visibility | **Fixed** — `pub fn studio_ledger_idempotency_material` in fixture metadata. |
+| Plan status vs rollup | **Fixed** — status `closed` above. |
+| Python conformance harness index | **Deferred** — bilateral TS + Rust runners + dist guard are sufficient while only two runtimes exist; register in shared harness when a third consumer lands (no synthetic runner). |
+| MCP dist bundled in studio-core dist commit | **Accepted** — recorded; split commits on future unrelated package churn. |
+| Dist-path parity test | **Already landed** — no further change. |

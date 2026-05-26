@@ -7,7 +7,7 @@
     "drift_surface": "If either implementation drifts to UTF-8 byte length, codepoint count, character count, or any other length measure, the BMP-2byte / CJK-3byte / supplementary-surrogate-pair vectors will diverge. If either drifts to a digest other than SHA-256 of UTF-8 bytes, every non-empty vector diverges. If either drifts to upper-case hex, every vector diverges."
   },
   "implementations": {
-    "rust": "formspec-server/crates/formspec-server/src/services/action_ledger.rs — pub fn studio_ledger_idempotency_key + fn studio_ledger_idempotency_material",
+    "rust": "formspec-server/crates/formspec-server/src/services/action_ledger.rs — pub fn studio_ledger_idempotency_key + pub fn studio_ledger_idempotency_material",
     "typescript": "formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts — ledgerIdempotencyKey + ledgerIdempotencyMaterial (exported @internal narrow port)"
   },
   "vectors": [
