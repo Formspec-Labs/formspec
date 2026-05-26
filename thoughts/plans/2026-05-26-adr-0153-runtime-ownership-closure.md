@@ -2,9 +2,10 @@
 
 **Date:** 2026-05-26
 **Row:** ADR 0153 gate 7 Runtime ownership
-**Status:** Partial; prose ownership contract, source conformance pins, and a
-browser/live production-consumer checkpoint landed; route-param, ambiguous-route,
-and route-transition coverage remain open
+**Status:** Partial; prose ownership contract, source conformance pins,
+browser/live production-consumer checkpoint, selected Definition binding, and
+ambiguous-route rejection landed; route-transition and route-param selected
+Response coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§5, 7, 9, Surface spec, Core Response spec, Response Actions spec,
@@ -52,9 +53,11 @@ production contract separates four owners:
 - [x] Prove hidden route-local Definition rejection in that same browser/live
   consumer after it consumes completed UI Graph Policy and Component graph host
   evidence, before draft, submit, capability, or append work.
+- [x] Add selected root `?form=` Definition binding coverage and fail-closed
+  duplicate-`form` route coverage without treating it as selected Response
+  closure.
 - [ ] Add route-transition coverage for the production runtime host.
-- [ ] Add runtime integration tests for ambiguous multi-form routes and
-  route-param selected Response instances.
+- [ ] Add route-param selected Response instance coverage.
 
 ## Deviations
 
@@ -81,8 +84,11 @@ runtime payload with Component graph and UI Graph Policy host evidence, renders
 route metadata in the real browser runtime, carries one anonymous session
 identity through draft/submit/capability/append, appends to the live
 server/Trellis substrate, and rejects a hidden active Definition before draft or
-Response Action work. The row remains Partial until route transitions,
-route-param selected Response instances, and ambiguous multi-form routes are
+Response Action work. The follow-on selected-Definition checkpoint proves
+`/?form=` selects the runtime Definition URL that owns anonymous session,
+draft/submit, capability, and append work, while duplicate `form` parameters
+render a boot error before any server runtime state is created. The row remains
+Partial until route transitions and route-param selected Response instances are
 covered.
 
 ## Closure Evidence
@@ -103,16 +109,23 @@ Partial evidence landed:
   `tests/conformance/spec/test_runtime_ownership_contract.py`.
 - Browser/live production-consumer pin:
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
+- Selected Definition / ambiguous route pins:
+  `../formspec-web/src/app/form-route.ts`;
+  `../formspec-web/tests/app/form-route.test.ts`;
+  `../formspec-web/tests/app/status-boot-narrowing.test.ts`;
+  `../formspec-web/tests/app/respondent-runtime.test.tsx`;
+  `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification:
   `cd ../formspec-web && npm run typecheck`;
-  `cd ../formspec-web && npx eslint tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && npx eslint src/app/form-route.ts src/app/main-helpers.ts src/app/main.tsx src/composition/default.ts tests/app/form-route.test.ts tests/app/status-boot-narrowing.test.ts tests/app/respondent-runtime.test.tsx tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && npm run test -- tests/app/form-route.test.ts tests/app/status-boot-narrowing.test.ts tests/app/respondent-runtime.test.tsx`;
   `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts`;
   `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts`.
 
 Still open:
 
 - Route-transition coverage in the production runtime host.
-- Ambiguous multi-form route coverage.
-- Route-param selected Response instance coverage.
+- Route-param selected Response instance coverage; selected Definition binding
+  alone is not Response instance ownership closure.
 - Deployable host/BFF capability provider if this evidence is used to close the
   Response Actions deployable production wiring remainder.

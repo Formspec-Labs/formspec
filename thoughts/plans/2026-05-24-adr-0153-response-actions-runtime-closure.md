@@ -6,7 +6,7 @@
 public web respondent-host factory, and live server/Trellis respondent-invoker
 checkpoint landed; the browser ActionButton live proof landed through a
 test-routed trusted/BFF capability boundary; deployable host/BFF wiring and the
-remaining route-transition / route-param / ambiguous-route runtime ownership
+remaining route-transition / route-param selected Response runtime ownership
 coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
@@ -169,8 +169,8 @@ path is:
   append work.
 - [ ] Replace the Playwright-routed trusted/BFF and managed-scope harness with
   a deployable host/BFF capability provider.
-- [ ] Keep ADR 0153 gate 7 open until route-transition, route-param selected
-  Response, and ambiguous multi-form-route coverage lands.
+- [ ] Keep ADR 0153 gate 7 open until route-transition and route-param
+  selected Response coverage lands.
 
 ## Deviations
 
@@ -223,8 +223,10 @@ path is:
   production-consumer checkpoint. It uses host-supplied Component graph and UI
   Graph Policy evidence to render active route metadata and reject hidden active
   Definition evidence before draft or Response Action work. Gate 7 remains
-  Partial because route-transition, route-param selected Response, and
-  ambiguous multi-form-route coverage remain open.
+  Partial because route-transition and route-param selected Response coverage
+  remain open. The follow-on runtime-ownership slice landed ambiguous
+  multi-form-route rejection as selected Definition binding evidence, not
+  selected Response closure.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -305,5 +307,4 @@ Partial for ADR 0153 gate 6b.
 Not closed yet: the browser proof still uses Playwright route interception as
 the trusted/BFF capability provider and managed-scope injector. Closure requires
 a deployable host/BFF capability provider. ADR 0153 gate 7 remains Partial until
-route-transition, route-param selected Response, and ambiguous multi-form-route
-coverage lands.
+route-transition and route-param selected Response coverage lands.

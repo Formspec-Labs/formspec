@@ -116,9 +116,11 @@ Partial evidence after this slice:
   single-session-owner assertions, exact capability header matching, and
   negative browser-originated mint-authority-header checks. It now also proves
   the broader runtime-ownership browser/live checkpoint: host-supplied Component
-  graph and UI Graph Policy evidence render active route metadata, and hidden
+  graph and UI Graph Policy evidence render active route metadata, hidden
   active Definition evidence rejects before draft, submit, capability, or append
-  work.
+  work, and the follow-on runtime-ownership slice rejects ambiguous multi-form
+  routes before server runtime state. Selected Response and route-transition
+  coverage remain open.
 - `trellis/scripts/check-http-api-schema.py` checks both admitted Formspec append literals from `trellis-service-client`.
 - Verification: `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`; `cargo nextest run -p formspec-server --test openapi_contract`; `python3.12 -m pytest scripts/test_check_http_api_schema.py -q`.
 - Verification: `npm run test:e2e -- response-action-ledger.spec.ts registry-coverage.spec.ts traceability-coverage.spec.ts journeys-coverage.spec.ts openapi.spec.ts`.
@@ -133,5 +135,5 @@ Still open:
 
 - Deployable host/BFF capability provider replacing the Playwright-routed
   trusted/BFF and managed-scope harness.
-- Remaining ADR 0153 gate 7 runtime ownership coverage for route transitions,
-  ambiguous multi-form routes, and route-param selected Response instances.
+- Remaining ADR 0153 gate 7 runtime ownership coverage for route transitions
+  and route-param selected Response instances.
