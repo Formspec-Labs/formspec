@@ -97,7 +97,14 @@ This plan tracks:
   - [x] `copyNode` requires `source.graphIdentity` once multiple Surfaces or
     Component memberships are declared, stamps graph-wide `copiedFrom`, and
     returns graph-wide copied root/descendant identity.
-  - [ ] `addNode` / `moveNode` still use single-component internal identity.
+  - [x] `addNode` accepts a target route/graph scope, fail-closes without graph
+    scope once multiple Surfaces or Component memberships are loaded, and returns
+    the created node's exported graph identity.
+  - [x] `moveNode` accepts source/target exported identity, validates same-route
+    and same-scope graph moves in the single-runtime facade, and returns moved
+    exported graph identity.
+  - [ ] `moveNode` `x-generation.movedFrom` stamping remains gated until the
+    facade has an atomic move-and-stamp helper instead of a two-write sequence.
 - [ ] Production consumers use the shared identity shape rather than local
   route/path strings.
   - [x] `@formspec-org/layout` projects optional `componentGraphIdentity` from
@@ -111,8 +118,11 @@ This plan tracks:
     writer/consumer shape.
   - [x] Full `copyNode` writer -> AppGraphValidator -> projection proof covers
     a multi-route Component.
-  - [ ] `addNode` / `moveNode` graph-wide identity and production copy/move
-    consumers remain open.
+  - [x] StudioCore `addNode` / `moveNode` graph identity tests cover
+    multi-Surface fail-closed behavior, same-scope exported identity, and
+    cross-scope move rejection.
+  - [ ] Production copy/move consumers and graph-wide `movedFrom` persistence
+    remain open.
 
 ## Deviations
 
@@ -145,6 +155,10 @@ This plan tracks:
   provenance evidence; source Component nodes still use schema-valid `id`
   segments for validator/projection identity until Component source schema
   admits `nodeId` directly.
+- 2026-05-25: StudioCore `moveNode` validates and returns graph-wide same-scope
+  identity, but does not stamp `x-generation.movedFrom`. The current facade would
+  need a separate property write after the core move dispatch; review rejected
+  that non-atomic two-write shape for a kernel operation.
 
 ## Closure Evidence
 
@@ -163,7 +177,8 @@ Partial evidence landed:
   and
   `formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts`
   (`declareComponent`, `ComponentNodeExportRef.graphIdentity`, and
-  `copyNode` graph-wide provenance stamping).
+  `copyNode` graph-wide provenance stamping; `addNode` / `moveNode` graph-aware
+  target/source identity validation and exported identity results).
 - Projection consumer: `packages/formspec-layout/src/types.ts` and
   `packages/formspec-layout/src/planner-component-tree.ts`
   (`componentGraphIdentity` projection metadata).
@@ -194,7 +209,8 @@ Partial evidence landed:
 
 Still open:
 
-- ADR 0154 gate 6 Studio/kernel graph-wide identity.
+- ADR 0154 gate 6 graph-wide `movedFrom` persistence behind an atomic move/stamp
+  helper.
 - Production consumer wiring.
 - Explicit graph binding and Definition id alias matching.
 - Broader consumer-facing copy/move conformance.
