@@ -70,6 +70,13 @@ export type WidgetName = BuiltInWidgetName | CustomWidgetName;
  * via the `definition` "ThemeWidgetName".
  */
 export type ThemeWidgetName = BuiltInWidgetName | CustomWidgetName | 'none';
+/**
+ * Bundle-derived URN for a studio-core singleton kernel document per ADR 0150 §5.6 URN survey. Shape: urn:formspec:doc:<manifest-scope-hash>:<docType> where manifest-scope-hash = sha256(bundleId)[0:16] (hex), matching the §5.5 SessionRef pattern. Minted by KernelDocRefBinder.bindSingleton at @formspec-org/studio-core@1.0.0+ and returned from kernel.refs.<type>() accessors. Used by Forms-MCP / Wireframes-MCP / Ledger event payloads (verbatim carry per §5.4). The four docTypes are terminal-closed — additions are a major-bump per kernel-api spec §5.
+ *
+ * This interface was referenced by `CommonSchema`'s JSON-Schema
+ * via the `definition` "KernelDocUrn".
+ */
+export type KernelDocUrn = string;
 
 /**
  * Shared schema definitions used by Formspec Definition, Theme, and Component documents.
