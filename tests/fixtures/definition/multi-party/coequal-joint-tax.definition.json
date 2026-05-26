@@ -1,0 +1,59 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/joint-tax-1040",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Joint Income Tax Return — Multi-Party Fixture",
+  "description": "EXT-28 / ADR-0155 §4 passing fixture. Two coEqual parties (primary taxpayer + spouse) sign jointly. All items shared.",
+  "parties": [
+    {
+      "roleId": "primaryTaxpayer",
+      "label": "Primary taxpayer",
+      "role": "coEqual",
+      "cardinality": { "min": 1, "max": 1 },
+      "visibilityScope": "shared",
+      "assuranceFloor": { "ial": "L2", "aal": "L2" }
+    },
+    {
+      "roleId": "spouse",
+      "label": "Spouse",
+      "role": "coEqual",
+      "cardinality": { "min": 1, "max": 1 },
+      "visibilityScope": "shared",
+      "assuranceFloor": { "ial": "L2", "aal": "L2" }
+    }
+  ],
+  "multiParty": {
+    "tier": "coEqual"
+  },
+  "items": [
+    {
+      "key": "filingYear",
+      "type": "field",
+      "label": "Tax year",
+      "dataType": "integer",
+      "partyPolicy": {
+        "visibleTo": ["primaryTaxpayer", "spouse"],
+        "editableBy": ["primaryTaxpayer", "spouse"],
+        "signedBy": ["primaryTaxpayer", "spouse"]
+      }
+    },
+    {
+      "key": "totalIncome",
+      "type": "field",
+      "label": "Total household income",
+      "dataType": "money",
+      "partyPolicy": {
+        "visibleTo": ["primaryTaxpayer", "spouse"],
+        "editableBy": ["primaryTaxpayer", "spouse"],
+        "signedBy": ["primaryTaxpayer", "spouse"]
+      }
+    },
+    {
+      "key": "filingAttestation",
+      "type": "display",
+      "label": "Joint filing attestation",
+      "description": "Both spouses attest under penalty of perjury that the return is true, correct, and complete."
+    }
+  ]
+}

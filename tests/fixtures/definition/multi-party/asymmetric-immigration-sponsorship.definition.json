@@ -1,0 +1,89 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/i-864-affidavit-of-support",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Affidavit of Support — Multi-Role Fixture",
+  "description": "EXT-28 / ADR-0155 §4 multi-role fixture. Three role classes exercised: asymmetricPrimary (sponsor — financial obligations distinct from beneficiary), asymmetricSecondary (beneficiary), guardianFor (joint sponsor signing for a minor co-beneficiary). Per-item partyPolicy declarations exercise scoped visibility with `additionalProperties: false` enforcement.",
+  "metadata": {
+    "assurance": { "ial": "L2", "aal": "L2" }
+  },
+  "parties": [
+    {
+      "roleId": "sponsor",
+      "label": "Petitioning sponsor",
+      "role": "asymmetricPrimary",
+      "cardinality": { "min": 1, "max": 1 },
+      "visibilityScope": "scoped",
+      "assuranceFloor": { "ial": "L3", "aal": "L2" }
+    },
+    {
+      "roleId": "beneficiary",
+      "label": "Principal beneficiary",
+      "role": "asymmetricSecondary",
+      "cardinality": { "min": 1, "max": 1 },
+      "visibilityScope": "scoped",
+      "assuranceFloor": { "ial": "L2", "aal": "L2" }
+    },
+    {
+      "roleId": "minorCoBeneficiaryGuardian",
+      "label": "Guardian signing for minor co-beneficiary",
+      "role": "guardianFor",
+      "cardinality": { "min": 0, "max": "unbounded" },
+      "visibilityScope": "scoped",
+      "extensions": {
+        "x-jurisdiction-guardian-authority": "court-appointed"
+      }
+    }
+  ],
+  "multiParty": {
+    "tier": "asymmetric"
+  },
+  "items": [
+    {
+      "key": "sponsorIncomeDisclosure",
+      "type": "field",
+      "label": "Sponsor annual household income",
+      "dataType": "money",
+      "description": "Sponsor's financial disclosure. Beneficiary is not authorized to see or edit; only the sponsor and (when applicable) the guardian co-signer for a minor.",
+      "partyPolicy": {
+        "visibleTo": ["sponsor", "minorCoBeneficiaryGuardian"],
+        "editableBy": ["sponsor"],
+        "signedBy": ["sponsor"]
+      }
+    },
+    {
+      "key": "beneficiaryBiographicData",
+      "type": "field",
+      "label": "Beneficiary full legal name",
+      "dataType": "string",
+      "partyPolicy": {
+        "visibleTo": ["sponsor", "beneficiary", "minorCoBeneficiaryGuardian"],
+        "editableBy": ["beneficiary"],
+        "signedBy": ["beneficiary"]
+      }
+    },
+    {
+      "key": "sharedRelationshipAttestation",
+      "type": "field",
+      "label": "Stated relationship between sponsor and beneficiary",
+      "dataType": "string",
+      "partyPolicy": {
+        "visibleTo": ["sponsor", "beneficiary", "minorCoBeneficiaryGuardian"],
+        "editableBy": ["sponsor", "beneficiary"],
+        "signedBy": ["sponsor", "beneficiary"]
+      }
+    },
+    {
+      "key": "guardianAuthorityAttestation",
+      "type": "field",
+      "label": "Guardian authority — attestation of legal authority to sign for minor co-beneficiary",
+      "dataType": "boolean",
+      "partyPolicy": {
+        "visibleTo": ["minorCoBeneficiaryGuardian"],
+        "editableBy": ["minorCoBeneficiaryGuardian"],
+        "signedBy": ["minorCoBeneficiaryGuardian"]
+      }
+    }
+  ]
+}

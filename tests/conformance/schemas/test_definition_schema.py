@@ -87,10 +87,22 @@ class TestMinimalValid:
         "definition/assurance/aal-only.definition.json",
         "definition/assurance/jurisdiction-only.definition.json",
         "definition/assurance/full-l4-assurance.definition.json",
+        "definition/multi-party/coequal-joint-tax.definition.json",
+        "definition/multi-party/asymmetric-immigration-sponsorship.definition.json",
     ])
     def test_ext_ratification_fixtures_validate(self, schema, relative_path):
         doc = json.loads((FIXTURE_DIR / relative_path).read_text(encoding="utf-8"))
         _validate(doc, schema)
+
+    def test_ext28_unknown_role_class_fixture_is_rejected(self, schema):
+        """EXT-28 / ADR-0155 MP-02: role-class enum is closed; documents with
+        unknown class values (e.g., `witness`, `notary`) MUST fail schema
+        validation. Domain-specific party metadata belongs in `extensions`."""
+        doc = json.loads(
+            (FIXTURE_DIR / "definition/multi-party/unknown-role-class-rejected.definition.json").read_text(encoding="utf-8")
+        )
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
 
     ALL_DATA_TYPES = [
         "string", "text", "integer", "decimal", "boolean",
@@ -198,6 +210,293 @@ class TestMetadataAndFees:
 
     def test_metadata_rejects_extension_seam(self, schema):
         doc = _base_doc(metadata={"extensions": {"x-vendor": True}})
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+
+# ===================================================================
+# TestParties — EXT-28 / ADR-0155 §4 multi-party intake
+# ===================================================================
+
+
+class TestParties:
+    """EXT-28 / ADR-0155 §4: parties[] declarations + per-item partyPolicy.
+
+    Locks MP-01 (slot identity), MP-02 (closed role-class enum), MP-03
+    (party-role object closure), MP-04 (cardinality), MP-07 (closed tier
+    enum), MP-08 (closed visibility-kind set), MP-10 (no empty arrays).
+    Cross-resolution clauses (MP-09 / MP-11 / MP-12..14 / MP-05) are
+    out-of-schema — they belong to static lint and runtime validators.
+    """
+
+    def _minimal_role(self, **overrides):
+        role = {
+            "roleId": "primary",
+            "label": "Primary",
+            "role": "coEqual",
+            "cardinality": {"min": 1, "max": 1},
+        }
+        role.update(overrides)
+        return role
+
+    def _minimal_two_coequal(self):
+        return [
+            self._minimal_role(roleId="primary"),
+            self._minimal_role(roleId="secondary"),
+        ]
+
+    def test_minimal_parties_block_validates(self, schema):
+        doc = _base_doc(parties=self._minimal_two_coequal())
+        _validate(doc, schema)
+
+    def test_multi_party_tier_coequal_validates(self, schema):
+        doc = _base_doc(
+            parties=self._minimal_two_coequal(),
+            multiParty={"tier": "coEqual"},
+        )
+        _validate(doc, schema)
+
+    def test_multi_party_tier_asymmetric_validates(self, schema):
+        doc = _base_doc(
+            parties=[
+                self._minimal_role(roleId="primary", role="asymmetricPrimary"),
+                self._minimal_role(roleId="secondary", role="asymmetricSecondary"),
+            ],
+            multiParty={"tier": "asymmetric"},
+        )
+        _validate(doc, schema)
+
+    # --- MP-02 closed role-class enum ----------------------------------
+
+    @pytest.mark.parametrize("bad_class", ["witness", "notary", "coSigner", "", "COEQUAL"])
+    def test_unknown_role_class_rejected(self, schema, bad_class):
+        doc = _base_doc(parties=[self._minimal_role(role=bad_class)])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    @pytest.mark.parametrize(
+        "class_value",
+        ["coEqual", "asymmetricPrimary", "asymmetricSecondary", "guardianFor"],
+    )
+    def test_all_four_role_classes_accepted(self, schema, class_value):
+        doc = _base_doc(parties=[self._minimal_role(role=class_value)])
+        _validate(doc, schema)
+
+    # --- MP-01 roleId pattern + uniqueness (lexical only) -------------
+
+    @pytest.mark.parametrize(
+        "bad_role_id", ["1leading", "has space", "_leading", "has.dot", "has/slash", ""]
+    )
+    def test_role_id_pattern_violations_rejected(self, schema, bad_role_id):
+        doc = _base_doc(parties=[self._minimal_role(roleId=bad_role_id)])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    @pytest.mark.parametrize(
+        "role_id", ["primary", "primary1", "primary-with-dashes", "primary_with_underscores", "P", "Z9"]
+    )
+    def test_role_id_pattern_accepts_valid(self, schema, role_id):
+        doc = _base_doc(parties=[self._minimal_role(roleId=role_id)])
+        _validate(doc, schema)
+
+    # --- MP-03 party-role object closure -------------------------------
+
+    def test_party_role_rejects_unknown_property(self, schema):
+        role = self._minimal_role()
+        role["unknownProperty"] = "value"
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_party_role_extensions_accepted(self, schema):
+        role = self._minimal_role(extensions={"x-jurisdiction-witness-rule": True})
+        doc = _base_doc(parties=[role])
+        _validate(doc, schema)
+
+    def test_party_role_rejects_non_x_extension(self, schema):
+        role = self._minimal_role(extensions={"witness": True})
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- MP-04 cardinality --------------------------------------------
+
+    def test_cardinality_required(self, schema):
+        role = {"roleId": "primary", "role": "coEqual"}
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_cardinality_unbounded_max_accepted(self, schema):
+        role = self._minimal_role(cardinality={"min": 0, "max": "unbounded"})
+        doc = _base_doc(parties=[role])
+        _validate(doc, schema)
+
+    def test_cardinality_negative_min_rejected(self, schema):
+        role = self._minimal_role(cardinality={"min": -1, "max": 1})
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_cardinality_zero_max_rejected(self, schema):
+        role = self._minimal_role(cardinality={"min": 0, "max": 0})
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_cardinality_unknown_string_max_rejected(self, schema):
+        role = self._minimal_role(cardinality={"min": 0, "max": "many"})
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- MP-07 closed tier enum ---------------------------------------
+
+    @pytest.mark.parametrize("bad_tier", ["coequal", "asym", "", "hybrid"])
+    def test_unknown_tier_rejected(self, schema, bad_tier):
+        doc = _base_doc(
+            parties=self._minimal_two_coequal(),
+            multiParty={"tier": bad_tier},
+        )
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_multi_party_block_requires_tier(self, schema):
+        doc = _base_doc(
+            parties=self._minimal_two_coequal(),
+            multiParty={},
+        )
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_multi_party_block_rejects_unknown_property(self, schema):
+        doc = _base_doc(
+            parties=self._minimal_two_coequal(),
+            multiParty={"tier": "coEqual", "unknown": True},
+        )
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- parties[] cannot be empty -------------------------------------
+
+    def test_parties_empty_array_rejected(self, schema):
+        doc = _base_doc(parties=[])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- MP-08 closed per-item visibility-kind set --------------------
+
+    def test_party_policy_visible_to_valid(self, schema):
+        item = _minimal_field(
+            partyPolicy={"visibleTo": ["primary", "secondary"]}
+        )
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        _validate(doc, schema)
+
+    def test_party_policy_all_three_kinds_valid(self, schema):
+        item = _minimal_field(
+            partyPolicy={
+                "visibleTo": ["primary", "secondary"],
+                "editableBy": ["primary"],
+                "signedBy": ["primary", "secondary"],
+            }
+        )
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        _validate(doc, schema)
+
+    def test_party_policy_rejects_unknown_kind(self, schema):
+        # MP-08: additionalProperties: false on ItemPartyPolicy. New
+        # visibility kinds (e.g., `archiveBy`, `redactFor`) belong in
+        # Item.extensions, NOT as new top-level partyPolicy keys.
+        item = _minimal_field(
+            partyPolicy={
+                "visibleTo": ["primary"],
+                "archiveBy": ["primary"],
+            }
+        )
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- MP-10 empty arrays forbidden ---------------------------------
+
+    @pytest.mark.parametrize("kind", ["visibleTo", "editableBy", "signedBy"])
+    def test_party_policy_empty_array_rejected(self, schema, kind):
+        item = _minimal_field(partyPolicy={kind: []})
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_party_policy_minproperties_one(self, schema):
+        # Empty ItemPartyPolicy {} is meaningless — at least one kind required.
+        item = _minimal_field(partyPolicy={})
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    @pytest.mark.parametrize("kind", ["visibleTo", "editableBy", "signedBy"])
+    def test_party_policy_duplicate_role_ref_rejected(self, schema, kind):
+        item = _minimal_field(partyPolicy={kind: ["primary", "primary"]})
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_party_policy_on_group_item(self, schema):
+        group = _minimal_group()
+        group["partyPolicy"] = {"visibleTo": ["primary"]}
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[group])
+        _validate(doc, schema)
+
+    def test_party_policy_on_display_item(self, schema):
+        display = _minimal_display()
+        display["partyPolicy"] = {"visibleTo": ["primary"]}
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[display])
+        _validate(doc, schema)
+
+    # --- PartyRoleRef pattern ------------------------------------------
+
+    def test_party_policy_role_ref_pattern_enforced(self, schema):
+        # PartyRoleRef enforces the same pattern as PartyRole.roleId.
+        # Cross-resolution (does the referenced roleId exist in parties[]?)
+        # is a static-lint pass — out of schema scope.
+        item = _minimal_field(partyPolicy={"visibleTo": ["1bad"]})
+        doc = _base_doc(parties=self._minimal_two_coequal(), items=[item])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- PartyAssuranceFloor closure ----------------------------------
+
+    def test_assurance_floor_accepts_ial_aal_fal(self, schema):
+        role = self._minimal_role(
+            assuranceFloor={"ial": "L3", "aal": "L2", "fal": "L1"}
+        )
+        doc = _base_doc(parties=[role])
+        _validate(doc, schema)
+
+    def test_assurance_floor_rejects_unknown_axis(self, schema):
+        role = self._minimal_role(assuranceFloor={"ial": "L2", "unknown": "L1"})
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    def test_assurance_floor_minproperties_one(self, schema):
+        role = self._minimal_role(assuranceFloor={})
+        doc = _base_doc(parties=[role])
+        with pytest.raises(ValidationError):
+            _validate(doc, schema)
+
+    # --- PartyVisibilityScope closed enum -----------------------------
+
+    @pytest.mark.parametrize("scope", ["shared", "scoped"])
+    def test_visibility_scope_accepts_known(self, schema, scope):
+        role = self._minimal_role(visibilityScope=scope)
+        doc = _base_doc(parties=[role])
+        _validate(doc, schema)
+
+    @pytest.mark.parametrize("scope", ["public", "private", "", "Shared"])
+    def test_visibility_scope_rejects_unknown(self, schema, scope):
+        role = self._minimal_role(visibilityScope=scope)
+        doc = _base_doc(parties=[role])
         with pytest.raises(ValidationError):
             _validate(doc, schema)
 

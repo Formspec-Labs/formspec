@@ -2522,9 +2522,11 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/DefinitionMetadata</code> | Form-level metadata that affects respondent-facing explanation and policy resolution without changing the item tree. Current core entries cover preparation guidance and form-level assurance requirements. |
 | `#/properties/migrations` | `migrations` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Migrations</code> | Declares how to transform Responses from prior versions into this version's structure. Migration produces a new Response pinned to the target version; the original is preserved. Fields not in fieldMap are carried forward by path matching or dropped. |
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef (id + version, with optional publisher + lockHash for posture admission). Default-module-set behavior per ADR 0150 §4.9 preserves form-only documents — omitting modules[] is identical to declaring the core module set. Per ADR 0150 §4.3. |
+| `#/properties/multiParty` | `multiParty` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/MultiPartyPolicy</code> | EXT-28 / ADR-0155 §4: multi-party intake tier policy. Authored policy — implementations MUST NOT derive the tier from role enums or visibility rules. See core spec §4.8.2. |
 | `#/properties/name` | `name` | <code>string</code> | no | pattern: <code>^[a-zA-Z][a-zA-Z0-9\-]*&#36;</code> | Machine-readable short name for the definition. Must start with a letter, may contain letters, digits, and hyphens. Unlike 'url', this is a local identifier for tooling convenience, not a globally unique reference. |
 | `#/properties/nonRelevantBehavior` | `nonRelevantBehavior` | <code>string</code> | no | enum: <code>"remove"</code>, <code>"empty"</code>, <code>"keep"</code>; default: <code>"remove"</code> | Form-wide default for how non-relevant fields are treated in submitted Response data. 'remove' (DEFAULT): non-relevant nodes and descendants excluded from Response. 'empty': retained but values set to null. 'keep': retained with current values. Per-Bind overrides via Bind.nonRelevantBehavior take precedence. Regardless of this setting, non-relevant fields are always exempt from validation. |
 | `#/properties/optionSets` | `optionSets` | <code>object</code> | no | — | Named, reusable option lists for choice and multiChoice fields. The property name is the set identifier, referenced by Field items via the 'optionSet' property. Avoids duplicating the same options across multiple fields. |
+| `#/properties/parties` | `parties` | <code>array</code> | no | critical | EXT-28 / ADR-0155 §4: multi-party intake role-slot declarations. Each entry declares a stable party-role slot bound at Definition authoring time. Runtime binds identities to slots; runtime MUST NOT invent new role slots. The role-class taxonomy is closed (`coEqual` \| `asymmetricPrimary` \| `asymmetricSecondary` \| `guardianFor`); domain-specific party metadata uses `extensions`. See core spec §4.8. |
 | `#/properties/shapes` | `shapes` | <code>array</code> | no | — | Named, composable validation rule sets (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets a data path, evaluates a FEL constraint expression, and produces structured ValidationResult entries with severity, message, and code on failure. Shapes compose via 'and', 'or', 'not', 'xone' operators. Only error-severity results block submission; warnings and info are advisory. |
 | `#/properties/status` | `status` | <code>string</code> | yes | enum: <code>"draft"</code>, <code>"active"</code>, <code>"retired"</code>; critical | Definition lifecycle state. Transitions: draft → active → retired. Backward transitions are forbidden for the same version. 'draft': under development, not for production. 'active': in production, content is immutable. 'retired': no longer used for new data collection, but existing Responses remain valid. |
 | `#/properties/title` | `title` | <code>string</code> | yes | critical | Human-readable definition title. Displayed by authoring tools and form renderers. |
@@ -3245,6 +3247,170 @@ A `choice` or `multiChoice` field references a named option set via the
 > The `screener` property is no longer part of the Definition schema as of
 > v1.0. Implementations MUST use standalone Screener Documents
 > (`$formspecScreener`) instead of embedded screeners.
+
+### 4.8 Parties and Multi-Party Intake
+
+*Status:* normative. Cross-stack artifact contract is pinned by
+[ADR-0155 (Multi-Party Intake)](../../../thoughts/adr/0155-multi-party-intake.md).
+This section is the Formspec-side schema binding for that contract; it does
+NOT replace the ADR's role-and-tier model — it implements it. The Response-side
+`partyRole` binding on `AuthoredSignature` is EXT-3 territory, NOT this section.
+
+#### 4.8.1 Party-Role Declaration
+
+A Definition MAY declare a `parties` array at the top level. Each entry
+declares one **party-role slot** — a stable identifier bound at Definition
+authoring time to which runtime party identities may attach.
+
+**MP-01 (party-role slot identity).** Every entry in `parties` MUST carry
+a `roleId` (string matching `^[a-zA-Z][a-zA-Z0-9_-]*$`) that is unique
+across the Definition's `parties` array. The `roleId` is the stable handle
+referenced by per-item visibility policy (§4.8.3) and by Response
+`AuthoredSignature.partyRole` (EXT-3).
+
+**MP-02 (closed role-class taxonomy).** Every entry in `parties` MUST
+carry a `role` field whose value is one of the four normative role
+classes: `coEqual` | `asymmetricPrimary` | `asymmetricSecondary` |
+`guardianFor`. The role-class enum is **closed**. Inventing new role
+classes (e.g., `witness`, `notary`, `coSigner`) at Definition authoring
+time or at runtime is a **definition error**. Domain-specific party
+semantics that cannot be expressed within the four classes belong in
+extensions (`x-*`), not in the core `role` field.
+
+**MP-03 (party-role object closure).** Each `parties[*]` object MUST set
+`additionalProperties: false`. Authors extending party-role declarations
+with domain-specific metadata MUST use the `extensions` property (keys
+prefixed with `x-`). Implementations MUST reject unknown sibling
+properties.
+
+**MP-04 (cardinality).** Each entry MUST declare `cardinality: {min, max}`.
+`min` is a non-negative integer; `max` is a positive integer or the
+string `"unbounded"`. When `min > 0` the runtime MUST have at least `min`
+identities bound to that role slot before the Response is complete. The
+following class-implied bounds are normative:
+- `coEqual` requires `min >= 2`.
+- `asymmetricPrimary` requires `max == 1`.
+- `asymmetricSecondary` and `guardianFor` carry no class-implied bounds.
+
+**MP-05 (runtime role-class invariance).** Runtime MAY vary cardinality
+inside a declared role slot (e.g., bind 1 or 5 `adultHouseholdMember`
+identities). Runtime MUST NOT invent a new role slot whose `roleId` was
+not declared at Definition authoring time. Identity-to-slot binding is a
+runtime concern; slot existence is a Definition concern.
+
+#### 4.8.2 Multi-Party Tier
+
+A Definition MAY declare a `multiParty` block at the top level expressing
+the orchestration tier per ADR-0155 §4:
+
+| Tier | Boundary |
+|---|---|
+| `coEqual` | Intake-only is sufficient. All parties share role, downstream obligations, and client-side orchestration. |
+| `asymmetric` | WOS orchestration is required. Roles, visibility, deadlines, obligations, or case-state access differ by party. |
+
+**MP-06 (tier authority).** The tier is authored policy. Implementations
+MUST NOT derive the tier from the `role` enum or visibility rules. The
+custody case is the counterexample: `coEqual`-class parents may still
+require the `asymmetric` tier because disagreement state, safe-address
+handling, and party-scoped status make orchestration more complex than a
+same-obligation co-signature flow.
+
+**MP-07 (tier closed enum).** The `multiParty.tier` value MUST be one of
+`coEqual` | `asymmetric`. The enum is closed.
+
+#### 4.8.3 Per-Item Party Policy
+
+Items MAY declare a `partyPolicy` block defining party-scoped visibility,
+editability, and signature obligations.
+
+**MP-08 (visibility kinds, closed set).** The `partyPolicy` object's
+fields are closed to the set `{visibleTo, editableBy, signedBy}`.
+Implementations MUST reject `additionalProperties`. Authors needing
+additional axes (e.g., per-party redaction policies, per-party
+notification policies) MUST use `extensions` (`x-*`), not invent new
+top-level visibility kinds.
+
+**MP-09 (visibility values).** Each of `visibleTo`, `editableBy`, and
+`signedBy` is an array of `roleId` strings. Each `roleId` MUST resolve
+to a `parties[*].roleId` declared in the same Definition. Implementations
+MUST report a **definition error** for any reference that does not
+resolve.
+
+**MP-10 (default visibility).** Absence of a `partyPolicy` block means
+the item is visible-to, editable-by, and signed-by **all** declared
+parties — the legacy single-party semantics extended to N parties.
+Empty arrays (`visibleTo: []`) are NOT permitted; an item that is
+visible to no party is a definition error. Authors who want to scope an
+item to a single party MUST enumerate that party's `roleId` explicitly.
+
+**MP-11 (cross-mode coherence).** `editableBy` MUST be a subset of
+`visibleTo` (a party cannot edit what it cannot see). `signedBy` MUST
+be a subset of `visibleTo` (a party cannot sign over what it cannot
+see). Implementations MUST report a **definition error** for any
+violation.
+
+#### 4.8.4 Lifecycle and Versioning
+
+**MP-12 (lifecycle — adding roles).** Adding a new entry to `parties[]`
+in a new Definition version is a backward-incompatible change. The new
+version MUST advance MAJOR per semver (or equivalent under the
+Definition's `versionAlgorithm`) when the new role's `cardinality.min
+> 0`, because existing Responses cannot satisfy a slot that did not
+exist when they were signed. When the added role has `cardinality.min
+== 0`, the change is backward-compatible (MINOR is acceptable).
+
+**MP-13 (lifecycle — removing roles).** Removing an entry from
+`parties[]` in a new Definition version is a backward-incompatible
+change. The new version MUST advance MAJOR. Removing a role whose
+`roleId` is referenced by any existing per-item `partyPolicy`
+visibility set is a **definition error** in the new version unless the
+references are also removed.
+
+**MP-14 (lifecycle — changing role class).** Changing a `parties[*]
+.role` value between versions is a backward-incompatible change. The
+new version MUST advance MAJOR. Changing the `roleId` of an existing
+party-role entry is identical to removing the old slot and adding a
+new one (MP-12 + MP-13 apply).
+
+#### 4.8.5 Interaction with EXT-3 (Response Authored Signatures)
+
+Per ADR-0155 §5, each party's signing act produces an `AuthoredSignature`
+record on the Response. The `partyRole` field on `AuthoredSignature`
+(landed by EXT-3) MUST equal the `roleId` of a `parties[*]` entry
+declared in the Definition referenced by the Response. Implementations
+verifying a multi-party Response MUST:
+
+1. Confirm each `AuthoredSignature.partyRole` resolves to a declared
+   `parties[*].roleId`.
+2. Confirm cardinality invariants (per `parties[*].cardinality.min`) are
+   satisfied.
+3. Confirm `signedBy` policies (per §4.8.3) are satisfied — every item
+   whose `partyPolicy.signedBy` enumerates a `roleId` has at least one
+   `AuthoredSignature` from a party bound to that slot covering it.
+
+A `partySignatures[]` projection at the Response wire level is OPTIONAL
+per ADR-0155 §5; when present it MUST be derivable from
+`authoredSignatures[]` plus the Definition role slots.
+
+#### 4.8.6 Domain-Error Codes (Informative)
+
+The following definition-error codes SHOULD be emitted by static lint
+when the corresponding MUST clauses are violated:
+
+| Code | Clause |
+|---|---|
+| `MULTI_PARTY_DUPLICATE_ROLE_ID` | MP-01 |
+| `MULTI_PARTY_UNKNOWN_ROLE_CLASS` | MP-02 |
+| `MULTI_PARTY_ROLE_EXTRA_PROPERTY` | MP-03 |
+| `MULTI_PARTY_COEQUAL_CARDINALITY_TOO_LOW` | MP-04 |
+| `MULTI_PARTY_PRIMARY_CARDINALITY_TOO_HIGH` | MP-04 |
+| `MULTI_PARTY_UNDECLARED_ROLE_AT_RUNTIME` | MP-05 |
+| `MULTI_PARTY_UNKNOWN_TIER` | MP-07 |
+| `MULTI_PARTY_VISIBILITY_EXTRA_KIND` | MP-08 |
+| `MULTI_PARTY_UNRESOLVED_ROLE_REF` | MP-09 |
+| `MULTI_PARTY_EMPTY_VISIBILITY` | MP-10 |
+| `MULTI_PARTY_INCOHERENT_EDITABLE_BY` | MP-11 |
+| `MULTI_PARTY_INCOHERENT_SIGNED_BY` | MP-11 |
 
 ***
 

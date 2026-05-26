@@ -206,13 +206,15 @@ class TestDefinitionTopLevel:
         optional = {"name", "description", "date", "derivedFrom", "versionAlgorithm",
                     "nonRelevantBehavior", "binds", "shapes", "instances",
                     "variables", "optionSets", "migrations", "issuer", "metadata",
-                    "fees", "extensions"}
+                    "fees", "extensions",
+                    "parties", "multiParty"}
         for field in optional:
             assert field not in DEF_S["required"], f"{field} should not be required"
 
     def test_s4_1__closed_world_property_set(self):
         """Per ADR 0150 §4.3: substrate-consuming documents gain top-level
-        `modules: ModuleRef[]` carrier."""
+        `modules: ModuleRef[]` carrier. Per EXT-28 / ADR-0155 §4: multi-party
+        intake adds top-level `parties` and `multiParty` carriers."""
         expected = {
             "$formspec", "url", "version", "versionAlgorithm", "status",
             "derivedFrom", "name", "title", "description", "date",
@@ -220,6 +222,7 @@ class TestDefinitionTopLevel:
             "nonRelevantBehavior", "optionSets", "migrations", "issuer",
             "metadata", "fees", "extensions", "formPresentation",
             "modules",
+            "parties", "multiParty",
         }
         assert _prop_keys(DEF_S) == expected
 

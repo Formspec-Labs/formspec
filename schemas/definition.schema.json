@@ -453,6 +453,40 @@
           "description": "Tabs mode: position of the tab bar relative to the content."
         }
       }
+    },
+    "parties": {
+      "type": "array",
+      "description": "EXT-28 / ADR-0155 §4: multi-party intake role-slot declarations. Each entry declares a stable party-role slot bound at Definition authoring time. Runtime binds identities to slots; runtime MUST NOT invent new role slots. The role-class taxonomy is closed (`coEqual` | `asymmetricPrimary` | `asymmetricSecondary` | `guardianFor`); domain-specific party metadata uses `extensions`. See core spec §4.8.",
+      "items": {
+        "$ref": "#/$defs/PartyRole"
+      },
+      "minItems": 1,
+      "examples": [
+        [
+          {
+            "roleId": "primaryTaxpayer",
+            "label": "Primary taxpayer",
+            "role": "coEqual",
+            "cardinality": { "min": 1, "max": 1 },
+            "visibilityScope": "shared"
+          },
+          {
+            "roleId": "spouse",
+            "label": "Spouse",
+            "role": "coEqual",
+            "cardinality": { "min": 1, "max": 1 },
+            "visibilityScope": "shared"
+          }
+        ]
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Defines the multi-party role slots referenced by per-item visibility policy and Response authored-signature party bindings (EXT-3)."
+      }
+    },
+    "multiParty": {
+      "$ref": "#/$defs/MultiPartyPolicy",
+      "description": "EXT-28 / ADR-0155 §4: multi-party intake tier policy. Authored policy — implementations MUST NOT derive the tier from role enums or visibility rules. See core spec §4.8.2."
     }
   },
   "patternProperties": {
@@ -865,6 +899,10 @@
             "pattern": "^x-"
           },
           "description": "Item-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics."
+        },
+        "partyPolicy": {
+          "$ref": "#/$defs/ItemPartyPolicy",
+          "description": "EXT-28 / ADR-0155 §5: per-item party-scoped visibility, editability, and signature obligation policy. Absence means the item is visible-to, editable-by, and signed-by all declared parties (legacy single-party semantics extended to N parties). See core spec §4.8.3."
         }
       },
       "allOf": [
@@ -890,6 +928,7 @@
               "consequences": true,
               "purpose": true,
               "extensions": true,
+              "partyPolicy": true,
               "children": {
                 "type": "array",
                 "items": {
@@ -977,6 +1016,7 @@
               "consequences": true,
               "purpose": true,
               "extensions": true,
+              "partyPolicy": true,
               "dataType": {
                 "type": "string",
                 "description": "The value type of this Field. Determines JSON representation, FEL type, valid operations, and default widget. 'string': single-line text. 'text': multi-line text. 'integer': whole number (no fraction). 'decimal': number with optional fractional part (use 'precision' to control decimal places). 'boolean': true/false. 'date': ISO 8601 YYYY-MM-DD. 'dateTime': ISO 8601 date-time. 'time': ISO 8601 HH:MM:SS. 'uri': valid URI per RFC 3986. 'attachment': file reference object {contentType, url/data}. 'choice': single selection (stored as string value key). 'multiChoice': multiple selections (stored as array of string value keys). 'money': monetary value {amount: string, currency: string} — use money() FEL function to produce values.",
@@ -1187,6 +1227,7 @@
               "consequences": true,
               "purpose": true,
               "extensions": true,
+              "partyPolicy": true,
               "presentation": {
                 "$ref": "#/$defs/Presentation"
               }
@@ -2030,6 +2071,167 @@
         "intent": "FEL expression — the language for all form logic including calculations, conditional visibility, validation constraints, and computed variables.",
         "ref": "schemas/fel-functions.schema.json"
       }
+    },
+    "PartyRole": {
+      "type": "object",
+      "description": "One multi-party intake role slot. EXT-28 / ADR-0155 §4. The `role` taxonomy is closed; domain-specific party metadata uses `extensions` (x-*). See core spec §4.8.1 MP-01..MP-05.",
+      "required": ["roleId", "role", "cardinality"],
+      "additionalProperties": false,
+      "properties": {
+        "roleId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Stable party-role slot identifier. Unique across the Definition's `parties` array. Referenced by per-item `partyPolicy` visibility sets and by Response `AuthoredSignature.partyRole` (EXT-3). MUST match `^[a-zA-Z][a-zA-Z0-9_-]*$`.",
+          "examples": ["primaryTaxpayer", "spouse", "parent1", "parent2", "adultHouseholdMember"],
+          "x-lm": {
+            "critical": true,
+            "intent": "The stable handle authored at Definition time; runtime binds identities to this slot."
+          }
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable party role label."
+        },
+        "role": {
+          "$ref": "#/$defs/PartyRoleClass",
+          "description": "Normative role class. Closed enum per ADR-0155 §4."
+        },
+        "cardinality": {
+          "$ref": "#/$defs/PartyCardinality"
+        },
+        "assuranceFloor": {
+          "$ref": "#/$defs/PartyAssuranceFloor",
+          "description": "Optional per-party identity/authentication assurance floor. Mirrors the form-level `metadata.assurance` taxonomy. Implementations MUST refuse to bind an identity to this role slot when the identity's assurance level falls below this floor."
+        },
+        "visibilityScope": {
+          "$ref": "#/$defs/PartyVisibilityScope",
+          "description": "Authorial declaration of whether this party's data slice overlaps with co-parties (`shared`) or is scoped distinctly (`scoped`). Authoring hint; static lint may verify `partyPolicy` per-item declarations are consistent with this scope."
+        },
+        "extensions": {
+          "type": "object",
+          "propertyNames": { "pattern": "^x-" },
+          "description": "Party-role extension data. Domain-specific party metadata (e.g., notary fields, witness fields, jurisdiction-specific role qualifiers) MUST live here, NOT as new top-level role-class enum values."
+        }
+      }
+    },
+    "PartyRoleClass": {
+      "type": "string",
+      "enum": ["coEqual", "asymmetricPrimary", "asymmetricSecondary", "guardianFor"],
+      "description": "Closed role-class taxonomy per ADR-0155 §4. `coEqual`: parties sign on their own behalf with equal downstream obligations. `asymmetricPrimary`: primary party with obligations or visibility distinct from secondary parties. `asymmetricSecondary`: secondary party with obligations or visibility distinct from primary. `guardianFor`: party signs or acts for a protected subject; capacity/governance checks apply. Inventing new classes (e.g., `witness`, `notary`) is a definition error — use `extensions` for domain-specific party metadata.",
+      "examples": [
+        "coEqual",
+        "asymmetricPrimary",
+        "asymmetricSecondary",
+        "guardianFor"
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Closed enum — extension functions through `extensions`, NOT by adding new role-class values."
+      }
+    },
+    "PartyCardinality": {
+      "type": "object",
+      "description": "Required identity-count bounds for a party-role slot. `coEqual` requires `min >= 2`; `asymmetricPrimary` requires `max == 1`. Class-implied bounds are enforced by static lint per core spec §4.8.1 MP-04.",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum number of identities the runtime MUST bind to this slot before the Response is complete."
+        },
+        "max": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "const": "unbounded"
+            }
+          ],
+          "description": "Maximum number of identities the runtime MAY bind. `unbounded` indicates no upper limit."
+        }
+      }
+    },
+    "PartyAssuranceFloor": {
+      "type": "object",
+      "description": "Per-party identity/authentication assurance floor. Subset of the form-level AssuranceRequirement axes; per-party floors override the form-level floor when stricter.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "ial": { "$ref": "#/$defs/AssuranceLevel" },
+        "aal": { "$ref": "#/$defs/AssuranceLevel" },
+        "fal": { "$ref": "#/$defs/AssuranceLevel" }
+      }
+    },
+    "PartyVisibilityScope": {
+      "type": "string",
+      "enum": ["shared", "scoped"],
+      "description": "Closed enum. `shared`: this party sees and edits the same item set as co-parties (default for `coEqual` flows). `scoped`: this party's visibility is restricted via per-item `partyPolicy` declarations (typical for `asymmetric` flows)."
+    },
+    "MultiPartyPolicy": {
+      "type": "object",
+      "description": "Form-level multi-party orchestration policy per ADR-0155 §4. Authored — implementations MUST NOT derive the tier from role enums or visibility rules.",
+      "required": ["tier"],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "$ref": "#/$defs/MultiPartyTier",
+          "description": "Orchestration tier."
+        }
+      }
+    },
+    "MultiPartyTier": {
+      "type": "string",
+      "enum": ["coEqual", "asymmetric"],
+      "description": "Closed enum. `coEqual`: intake-only is sufficient when all parties share role, downstream obligations, and client-side orchestration. `asymmetric`: WOS orchestration required when roles, visibility, deadlines, obligations, or case-state access differ by party."
+    },
+    "ItemPartyPolicy": {
+      "type": "object",
+      "description": "Per-item party-scoped visibility/editability/signing policy. EXT-28 / ADR-0155 §5. Field set is closed to `{visibleTo, editableBy, signedBy}` — additional visibility kinds belong in `extensions` on the parent Item. See core spec §4.8.3 MP-08..MP-11.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "visibleTo": {
+          "type": "array",
+          "description": "Role IDs of parties that MAY see this item. Each entry MUST resolve to a `parties[*].roleId` declared in the same Definition. An empty array is a definition error per MP-10.",
+          "items": {
+            "$ref": "#/$defs/PartyRoleRef"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "editableBy": {
+          "type": "array",
+          "description": "Role IDs of parties that MAY edit this item. MUST be a subset of `visibleTo` per MP-11.",
+          "items": {
+            "$ref": "#/$defs/PartyRoleRef"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "signedBy": {
+          "type": "array",
+          "description": "Role IDs of parties whose `AuthoredSignature` MUST cover this item. MUST be a subset of `visibleTo` per MP-11.",
+          "items": {
+            "$ref": "#/$defs/PartyRoleRef"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "PartyRoleRef": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Reference to a `parties[*].roleId` declared in the same Definition. Cross-reference resolution is a static-lint pass; the schema enforces the lexical pattern only."
     }
   }
 }
