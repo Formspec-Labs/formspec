@@ -66,6 +66,9 @@ export {
   validateScreenerSurfaceTargets,
 } from './screener-surface-targets.js';
 export {
+  validateSurfaceDefinitionSlots,
+} from './surface-definition-slots.js';
+export {
   validateSurfaceExperienceUnits,
 } from './surface-experience-units.js';
 export {

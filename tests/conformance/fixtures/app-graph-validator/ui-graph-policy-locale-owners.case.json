@@ -10,7 +10,10 @@
       "source": "memory://app",
       "document": {
         "$formspecApp": "2.2",
-        "id": "intake-app"
+        "id": "intake-app",
+        "definitions": [
+          { "url": "https://example.gov/forms/intake", "version": "1.0.0" }
+        ]
       }
     },
     "surface-respondent": {

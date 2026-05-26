@@ -32,6 +32,7 @@ import { validateComponentRouteTargets } from './component-routes.js';
 import { validateComponentGraphContexts } from './component-graph-context.js';
 import { validateExperienceActionRefs } from './experience-action-refs.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
+import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
 import { validateSurfaceResponseActionTriggers } from './surface-response-action-triggers.js';
 import { validateUiGraphPolicy } from './ui-graph-policy.js';
@@ -301,6 +302,7 @@ function runCrossArtifactValidators(
     validateComponentGraphContexts,
     validateExperienceActionRefs,
     validateScreenerSurfaceTargets,
+    validateSurfaceDefinitionSlots,
     validateSurfaceExperienceUnits,
     validateSurfaceResponseActionTriggers,
     validateUiGraphPolicy,

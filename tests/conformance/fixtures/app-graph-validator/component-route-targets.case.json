@@ -124,6 +124,10 @@
           {
             "url": "https://example.gov/forms/intake",
             "version": "1.0.0"
+          },
+          {
+            "url": "https://example.gov/forms/other",
+            "version": "1.0.0"
           }
         ],
         "surfaces": [

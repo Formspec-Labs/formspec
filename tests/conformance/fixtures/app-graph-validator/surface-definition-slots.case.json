@@ -1,0 +1,371 @@
+{
+  "id": "surface-definition-slots",
+  "description": "Source conformance corpus for Surface definition-form slot binding cross-artifact resolution. Every Surface definition-form slot binding.definitionRef MUST resolve to a loaded Definition handle (App Manifest definitions[]). Schema phase owns missing-URL diagnostics; cross-artifact owns unresolved-URL diagnostics. See surface-spec §'definition-form' + ADR 0153 §9 gate 3b (broader cross-artifact invariants).",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/surface-definition-slots",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/surface-definition-slots",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/intake",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.two-definitions": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/surface-definition-slots-two-defs",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/surface-definition-slots-two-defs",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/intake",
+            "version": "1.0.0"
+          },
+          {
+            "url": "https://example.gov/forms/eligibility",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/surface-definition-slots-two-defs/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "surface.matching": {
+      "slot": "surface",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/matching",
+      "ref": {
+        "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "intake",
+        "routes": [
+          {
+            "id": "intake",
+            "path": "/intake",
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.unloaded-definition": {
+      "slot": "surface",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/unloaded-definition",
+      "ref": {
+        "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "intake",
+        "routes": [
+          {
+            "id": "intake",
+            "path": "/intake",
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/not-loaded"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.no-definition-slots": {
+      "slot": "surface",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/no-definition-slots",
+      "ref": {
+        "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "info",
+        "routes": [
+          {
+            "id": "info",
+            "path": "/info",
+            "slots": [
+              {
+                "id": "banner",
+                "slotType": "static-content",
+                "binding": {
+                  "kind": "heading",
+                  "content": "Welcome"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.matching-among-two": {
+      "slot": "surface",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/matching-among-two",
+      "ref": {
+        "url": "https://example.gov/apps/surface-definition-slots-two-defs/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "eligibility",
+        "routes": [
+          {
+            "id": "eligibility",
+            "path": "/eligibility",
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/eligibility"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "definition.intake": {
+      "slot": "definition",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/intake",
+      "ref": {
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Intake",
+        "items": [
+          {
+            "key": "name",
+            "type": "field",
+            "label": "Name",
+            "dataType": "string"
+          }
+        ]
+      }
+    },
+    "definition.eligibility": {
+      "slot": "definition",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/eligibility",
+      "ref": {
+        "url": "https://example.gov/forms/eligibility",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/forms/eligibility",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Eligibility",
+        "items": [
+          {
+            "key": "qualifies",
+            "type": "field",
+            "label": "Qualifies",
+            "dataType": "boolean"
+          }
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "definition-form-slot-resolves",
+      "description": "Surface definition-form slot binding definitionRef matches a loaded Definition handle URL.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surface": ["surface.matching"],
+          "definition": ["definition.intake"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "definition-form-slot-undeclared-fails-closed",
+      "description": "Surface definition-form slot binding definitionRef references a Definition URL that the App Manifest definitions[] does not declare; cross-artifact emits APP-GRAPH-SURFACE-DEFINITION-SLOT with reason 'definition-not-declared'.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surface": ["surface.unloaded-definition"],
+          "definition": ["definition.intake"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-DEFINITION-SLOT",
+            "primarySource": {
+              "artifactSlot": "surface",
+              "artifactKind": "surface",
+              "ref": {
+                "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+                "version": "1.0.0"
+              },
+              "source": "memory://surface/unloaded-definition",
+              "jsonPointer": "/routes/0/slots/0/binding/definitionRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "app",
+                "artifactKind": "appManifest",
+                "source": "memory://app/surface-definition-slots",
+                "jsonPointer": "/definitions"
+              }
+            ],
+            "details": {
+              "reason": "definition-not-declared",
+              "surfaceUrl": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+              "routeId": "intake",
+              "slotId": "form",
+              "definitionRef": "https://example.gov/forms/not-loaded",
+              "declaredDefinitionUrls": ["https://example.gov/forms/intake"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-without-definition-form-slots-no-diagnostic",
+      "description": "Surface route has no definition-form slots (only static-content), so cross-artifact emits no APP-GRAPH-SURFACE-DEFINITION-SLOT diagnostic.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surface": ["surface.no-definition-slots"],
+          "definition": ["definition.intake"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "definition-form-slot-resolves-among-multiple-definitions",
+      "description": "Surface definition-form slot binding definitionRef resolves against one of two loaded Definition handles; no diagnostic.",
+      "request": {
+        "manifest": "manifest.two-definitions",
+        "artifacts": {
+          "surface": ["surface.matching-among-two"],
+          "definition": ["definition.intake", "definition.eligibility"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    }
+  ]
+}
