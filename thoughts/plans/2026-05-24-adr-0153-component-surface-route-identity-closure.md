@@ -5,8 +5,9 @@
 **Status:** Partial. Route identity schema, shared validator checks,
 graph-wide provenance schema evidence, Studio/kernel `copyNode` graph identity
 stamping, and layout projection identity consumption are landed. Broader
-Studio/kernel operations, production consumers, explicit graph binding, and
-Definition id alias matching remain open.
+Studio/kernel operations now include explicit Component membership binding.
+Production consumers, Definition id alias matching, graph-wide `movedFrom`, and
+broader consumer-facing conformance remain open.
 **Authority:** stack ADR 0153 gate 8, stack ADR 0154, Component spec, Component
 Reference Fields companion
 
@@ -92,27 +93,30 @@ This plan tracks:
 
 ### Phase 6 - Remaining Closure
 
-- [ ] Studio/kernel operations use graph-wide identity when multiple Surfaces
+- [x] Studio/kernel operations use graph-wide identity when multiple Surfaces
   or Component documents are loaded.
   - [x] `copyNode` requires `source.graphIdentity` once multiple Surfaces are
     declared, stamps graph-wide `copiedFrom`, and returns graph-wide copied
-    root/descendant identity; multiple Component memberships fail closed until
-    explicit graph binding lands.
+    root/descendant identity; multiple Component memberships require an active
+    `bindComponentMembership` handle and reject mismatched graph scopes.
   - [x] `addNode` accepts a target route/graph scope, fail-closes without graph
     scope once multiple Surfaces are loaded, returns the created node's exported
-    graph identity, and fails closed for multiple Component memberships until
-    explicit graph binding lands.
+    graph identity, and requires an active Component membership binding once
+    multiple Component memberships are loaded.
   - [x] `moveNode` accepts source/target exported identity, validates same-route
     and same-scope graph moves in the single-runtime facade, returns moved
-    exported graph identity, and fails closed for multiple Component memberships
-    until explicit graph binding lands.
+    exported graph identity, and requires the source/target graph scope to match
+    the active Component membership binding once multiple Component memberships
+    are loaded.
 - [ ] Production consumers use the shared identity shape rather than local
   route/path strings.
   - [x] `@formspec-org/layout` projects optional `componentGraphIdentity` from
     supplied Component membership + Surface + route scope.
   - [ ] Runtime hosts / renderers still need route-backed app-graph wiring.
-- [ ] Explicit graph binding and Definition id alias matching are decided or
-  rejected with evidence.
+- [ ] Definition id alias matching is decided or rejected with evidence.
+  - [x] Explicit Studio/kernel graph binding landed as
+    `bindComponentMembership`, binding the active singleton Component document to
+    one App Manifest `components[]` handle before multi-Component graph edits.
 - [ ] Consumer-facing conformance promotes graph-wide copy/move workflows
   beyond schema acceptance.
   - [x] StudioCore `copyNode` and layout projection tests cover graph identity
@@ -122,8 +126,8 @@ This plan tracks:
   - [x] StudioCore `addNode` / `moveNode` graph identity tests cover
     multi-Surface fail-closed behavior, same-scope exported identity, and
     cross-scope move rejection.
-  - [x] StudioCore graph identity tests cover multi-Component fail-closed
-    behavior for add/move/copy until explicit graph binding exists.
+  - [x] StudioCore graph identity tests cover multi-Component binding
+    requirements, mismatched-handle rejection, and bound add/move/copy success.
   - [ ] Production copy/move consumers and graph-wide `movedFrom` provenance
     persistence remain open.
 
@@ -162,11 +166,11 @@ This plan tracks:
   identity, but does not stamp `x-generation.movedFrom`. The current facade would
   need a separate property write after the core move dispatch; review rejected
   that non-atomic two-write shape for a kernel operation.
-- 2026-05-25: StudioCore `addNode`, `moveNode`, and `copyNode` fail closed when
-  multiple Component memberships are declared. The single-runtime facade has no
-  explicit binding from the active Component tree to an App Manifest
-  `components[]` handle, so accepting caller-supplied handles would mint false
-  graph identity.
+- 2026-05-26: StudioCore `bindComponentMembership` now binds the active
+  single-runtime Component tree to one App Manifest `components[]` handle before
+  multi-Component graph-aware `addNode`, `moveNode`, or `copyNode` operations.
+  Cross-Component and cross-route storage still remain gated so the facade does
+  not pretend it can write multiple Component documents atomically.
 
 ## Closure Evidence
 
@@ -184,7 +188,8 @@ Partial evidence landed:
 - Studio/kernel writer: `formspec-studio/packages/formspec-studio-core/src/kernel/StudioCoreKernel.ts`
   and
   `formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts`
-  (`declareComponent`, `ComponentNodeExportRef.graphIdentity`, and
+  (`declareComponent`, `bindComponentMembership`,
+  `ComponentNodeExportRef.graphIdentity`, and
   `copyNode` graph-wide provenance stamping; `addNode` / `moveNode` graph-aware
   target/source identity validation and exported identity results).
 - Projection consumer: `packages/formspec-layout/src/types.ts` and
@@ -217,10 +222,8 @@ Partial evidence landed:
 
 Still open:
 
-- ADR 0154 gate 6 explicit Component membership binding for multi-Component
-  Studio/kernel identity.
 - ADR 0154 gate 7 graph-wide `movedFrom` persistence behind an atomic move/stamp
   helper.
 - Production consumer wiring.
-- Explicit graph binding and Definition id alias matching.
+- Definition id alias matching.
 - Broader consumer-facing copy/move conformance.
