@@ -6,7 +6,7 @@ singular `registry` becomes `registries[]`; `surfaces[]` and `modules[]` and
 `sessions[]` arrive. `$formspecBundle` bumps "1.0" -> "2.0" so strict-validating
 consumers fail-loud rather than silently mis-parse the structurally different
 document. App Manifest v2.1 adds `dataSources[]` as an additive minor slot.
-App Manifest v2.2 adds `components[]` as the next additive minor slot.
+App Manifest v2.2 adds `components[]`; v2.3 adds `screeners[]`.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ class TestAppManifestSchemaShape:
         }
 
     def test_formspec_bundle_accepts_current_two_x_versions(self) -> None:
-        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["enum"] == ["2.0", "2.1", "2.2"]
+        assert BUNDLE_SCHEMA["properties"]["$formspecBundle"]["enum"] == ["2.0", "2.1", "2.2", "2.3"]
 
     def test_singular_definition_property_retired(self) -> None:
         assert "definition" not in BUNDLE_SCHEMA["properties"]
@@ -78,12 +78,17 @@ class TestAppManifestSchemaShape:
 
     def test_data_sources_is_an_array_and_v2_1_or_later(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["dataSources"]["type"] == "array"
-        assert BUNDLE_SCHEMA["allOf"][0]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.1", "2.2"]
+        assert BUNDLE_SCHEMA["allOf"][0]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.1", "2.2", "2.3"]
 
-    def test_components_is_an_array_and_v2_2_only(self) -> None:
+    def test_components_is_an_array_and_v2_2_or_later(self) -> None:
         assert BUNDLE_SCHEMA["properties"]["components"]["type"] == "array"
         assert BUNDLE_SCHEMA["properties"]["components"]["items"]["$ref"] == "#/$defs/ComponentRef"
-        assert BUNDLE_SCHEMA["allOf"][1]["then"]["properties"]["$formspecBundle"]["const"] == "2.2"
+        assert BUNDLE_SCHEMA["allOf"][1]["then"]["properties"]["$formspecBundle"]["enum"] == ["2.2", "2.3"]
+
+    def test_screeners_is_an_array_and_v2_3_only(self) -> None:
+        assert BUNDLE_SCHEMA["properties"]["screeners"]["type"] == "array"
+        assert BUNDLE_SCHEMA["properties"]["screeners"]["items"]["$ref"] == "#/$defs/SiblingRef"
+        assert BUNDLE_SCHEMA["allOf"][2]["then"]["properties"]["$formspecBundle"]["const"] == "2.3"
 
     def test_component_ref_requires_handle(self) -> None:
         component_ref = BUNDLE_SCHEMA["$defs"]["ComponentRef"]
@@ -130,6 +135,10 @@ class TestAppManifestPositiveFixtures:
         """ADR 0154 gate 3: components[] is an App Manifest v2.2 additive slot."""
         _validator().validate(_fixture_bundle("app-with-components-v2-2.json"))
 
+    def test_app_with_screeners_v2_3_validates(self) -> None:
+        """ADR 0153 A10: screeners[] is an App Manifest v2.3 association slot."""
+        _validator().validate(_fixture_bundle("app-with-screeners-v2-3.json"))
+
 
 class TestAppManifestNegativeFixtures:
     def test_missing_definitions_rejected(self) -> None:
@@ -162,7 +171,13 @@ class TestAppManifestNegativeFixtures:
         assert "2.1" in str(excinfo.value) or "$formspecBundle" in str(excinfo.value)
 
     def test_components_on_two_one_rejected(self) -> None:
-        """components[] is valid only for `$formspecBundle: "2.2"`."""
+        """components[] is valid only for `$formspecBundle: "2.2"` or later."""
         with pytest.raises(ValidationError) as excinfo:
             _validator().validate(_fixture_bundle("invalid-components-in-2-1.json"))
         assert "2.2" in str(excinfo.value) or "$formspecBundle" in str(excinfo.value)
+
+    def test_screeners_on_two_two_rejected(self) -> None:
+        """screeners[] is valid only for `$formspecBundle: "2.3"`."""
+        with pytest.raises(ValidationError) as excinfo:
+            _validator().validate(_fixture_bundle("invalid-screeners-in-2-2.json"))
+        assert "2.3" in str(excinfo.value) or "$formspecBundle" in str(excinfo.value)

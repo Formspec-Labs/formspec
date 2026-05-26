@@ -1,13 +1,13 @@
 ---
 title: Formspec AppGraphValidator Interface Specification
-version: 0.1.0-draft.3
+version: 0.1.0-draft.4
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec AppGraphValidator Interface Specification v0.1
 
-**Version:** 0.1.0-draft.3
+**Version:** 0.1.0-draft.4
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, Surface, Data Sources, Response Actions, Module Resolver, and Artifact Resolver
@@ -27,9 +27,10 @@ The report output shape is structurally governed by
 TypeScript exported by `@formspec-org/types`. This document intentionally does
 not define a JSON Schema for validator requests, resolver implementations,
 runtime invocation behavior, projection behavior, or production consumer wiring.
-The Component route-target fixtures described in §9 are source-conformance
-evidence for that validator family only. Broader production conformance lands in
-later implementation gates after the report boundary is stable.
+The Component route-target and Screener surface-target fixtures described in §9
+are source-conformance evidence for those validator families only. Broader
+production conformance lands in later implementation gates after the report
+boundary is stable.
 
 Architecture Decision Records may record provenance for this boundary, but
 this specification states the validator contract directly.
@@ -313,6 +314,7 @@ app-graph report.
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. |
 | Data Sources availability selectors to loaded Surfaces, routes, slots, Definitions, and modules | `AppGraphValidator` | `cross-artifact` | Payload fetching and cache behavior remain out of scope. |
+| Screener `surface:<route-id>` terminal-hop targets | `AppGraphValidator` | `cross-artifact` | Applies only to Screener handles associated by App Manifest v2.3 `screeners[]` URL/version evidence. The shared kernel enforces exactly-one loaded Surface `routes[].id` resolution and does not infer association from TraceIndex, Runtime Plan, hostEvidence, filenames, loaded Definitions, or Surface route names. |
 | UI graph policy to routes, locale keys, responsive rules, hidden Definition refs, and Theme widget refs/token slots/categories | UI Graph Policy spec plus `AppGraphValidator` | `cross-artifact` | `specs/app-graph/ui-graph-policy-spec.md` defines the prose boundary and `ui-graph-policy` is an admitted report origin. The shared kernel currently enforces host-evidence-backed Surface/route, policy-local Locale-owner, Locale-owner module-id resolution against completed ModuleResolver evidence, hidden Definition reference diagnostics, Theme widgetRef resolution against completed ModuleResolver widget contribution evidence, Theme token-slot checks against completed ModuleResolver `widgetTokenSlots[]` evidence, Theme token reference/category checks over exactly-one loaded Theme evidence, and custom `x-*` category compatibility against completed ModuleResolver `tokenCategories[]` evidence; runtime hidden-state and consumer checks remain later gates. |
 | Fine-grained actor, route, operation, widget, field, or source authorization | Future authorization contract | `authorization-boundary` | Until a dedicated authorization contract lands, such fields fail closed rather than receiving semantics. |
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
@@ -338,14 +340,16 @@ or per-source authorization semantics.
 This v0.1 draft defines the prose validator contract, the shared report
 schema/generation evidence, and source conformance for the initial Component
 route-target, route-bound-control Definition-context, Component node identity,
-UI Graph Policy Surface/route, UI Graph Policy Locale-owner, hidden Definition,
-and Theme widgetRef validator families. A conforming future implementation will
+Screener `surface:<route-id>` target, UI Graph Policy Surface/route, UI Graph
+Policy Locale-owner, hidden Definition, and Theme widgetRef validator families.
+A conforming future implementation will
 need later gates to provide:
 
 1. broader fixture-backed conformance beyond the Component route-target /
-   route-bound-control / node-identity, UI Graph Policy Surface/route, UI Graph
-   Policy Locale-owner, hidden Definition, Theme widgetRef families, and typed
-   `ModuleResolutionReport` diagnostic handoff,
+   route-bound-control / node-identity, Screener surface-target,
+   UI Graph Policy Surface/route, UI Graph Policy Locale-owner, hidden
+   Definition, Theme widgetRef families, and typed `ModuleResolutionReport`
+   diagnostic handoff,
 2. broader extraction from lint, studio-core, and spike-local lessons without fixture
    assumptions, and
 3. production consumers wired to shared validator output.

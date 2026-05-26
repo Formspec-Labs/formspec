@@ -257,10 +257,13 @@ Surface document. `screener.schema.json:Route.target` documents this scheme as
 the fourth target category alongside Definition references (`url|version`),
 external URIs (`https://...`), and named outcomes (`outcome:name`).
 
-If the bundle includes multiple Surfaces (`bundle-manifest.surfaces[]`
-plural), v0.1 admits the scheme as a bare `surface:<route-id>` — the consumer
-resolves the route across all bundled Surfaces; ambiguity (same route-id in
-two Surfaces) is a future-revision concern.
+For App Manifest v2.3 graphs, the scheme is resolved only for Screeners
+explicitly associated by `screeners[]`. AppGraphValidator resolves the bare
+`surface:<route-id>` across the loaded Surface documents in that app graph.
+The target MUST resolve to exactly one loaded Surface `routes[].id`; missing or
+ambiguous matches are cross-artifact validation errors. This exact-one rule is
+the v0.1/v2.3 conformance boundary for Screener terminal hops; production
+runtime routing remains outside Surface-local conformance.
 
 The Screener spec retains its freestanding posture per
 [`screener-spec.md`](../screener/screener-spec.md) §2.3: no target binding
@@ -269,11 +272,10 @@ string. Surface picks the URI up by scheme inspection at the renderer or
 gateway layer.
 
 AppGraphValidator resolution of Screener `surface:<route-id>` targets applies
-only when a Screener is explicitly associated with the app graph by an explicit
-association contract, such as an App Manifest slot, project binding, or
-host-evidence contract defined by its owning spec. Processors MUST NOT infer
-that association from filenames, loaded Definitions, TraceIndex, Runtime Plan,
-embedded Definition screeners, or ad hoc `hostEvidence`.
+only when a Screener is explicitly associated with the app graph by App
+Manifest v2.3 `screeners[]`. Processors MUST NOT infer that association from
+filenames, loaded Definitions, TraceIndex, Runtime Plan, embedded Definition
+screeners, Surface route names, or ad hoc `hostEvidence`.
 
 ## 7. Conformance
 

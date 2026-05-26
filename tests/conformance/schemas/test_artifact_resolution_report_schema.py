@@ -66,11 +66,27 @@ def _valid_report() -> dict:
                     "digest": "sha256:component",
                 }
             ],
+            "screeners": [
+                {
+                    "slot": "screeners[0]",
+                    "artifactKind": "screener",
+                    "status": "loaded",
+                    "ref": {
+                        "url": "https://example.gov/screeners/eligibility",
+                        "version": "1.0.0",
+                    },
+                    "schemaId": "https://formspec.org/schemas/screener/1.0",
+                    "document": {"$formspecScreener": "1.0"},
+                    "identity": {"url": "https://example.gov/screeners/eligibility"},
+                    "source": "memory://screener",
+                    "digest": "sha256:screener",
+                }
+            ],
         },
         "diagnostics": [],
         "summary": {
-            "declaredRefs": 2,
-            "loadedArtifacts": 2,
+            "declaredRefs": 3,
+            "loadedArtifacts": 3,
             "missingArtifacts": 0,
             "unsupportedRefs": 0,
             "discriminatorMismatches": 0,

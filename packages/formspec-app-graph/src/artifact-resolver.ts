@@ -77,7 +77,7 @@ interface SlotSpec {
   artifactKind: string;
   discriminator: string;
   cardinality: 'array' | 'single';
-  minBundleVersion?: '2.1' | '2.2';
+  minBundleVersion?: '2.1' | '2.2' | '2.3';
 }
 
 interface DeclaredRef {
@@ -93,7 +93,7 @@ interface ParsedRef {
 }
 
 const DEFAULT_SUPPORT: Required<ArtifactResolverSupportProfile> = {
-  bundleVersions: ['2.0', '2.1', '2.2'],
+  bundleVersions: ['2.0', '2.1', '2.2', '2.3'],
   artifactKinds: [
     'definition',
     'experience',
@@ -104,6 +104,7 @@ const DEFAULT_SUPPORT: Required<ArtifactResolverSupportProfile> = {
     'ontology',
     'registry',
     'surface',
+    'screener',
     'dataSources',
     'locale',
     'mapping',
@@ -122,6 +123,7 @@ const SLOT_SPECS: readonly SlotSpec[] = [
   { group: 'ontology', manifestKey: 'ontology', artifactKind: 'ontology', discriminator: '$formspecOntology', cardinality: 'single' },
   { group: 'registries', manifestKey: 'registries', artifactKind: 'registry', discriminator: '$formspecRegistry', cardinality: 'array' },
   { group: 'surfaces', manifestKey: 'surfaces', artifactKind: 'surface', discriminator: '$formspecSurface', cardinality: 'array' },
+  { group: 'screeners', manifestKey: 'screeners', artifactKind: 'screener', discriminator: '$formspecScreener', cardinality: 'array', minBundleVersion: '2.3' },
   { group: 'dataSources', manifestKey: 'dataSources', artifactKind: 'dataSources', discriminator: '$formspecDataSources', cardinality: 'array', minBundleVersion: '2.1' },
   { group: 'locales', manifestKey: 'locales', artifactKind: 'locale', discriminator: '$formspecLocale', cardinality: 'array' },
   { group: 'mappings', manifestKey: 'mappings', artifactKind: 'mapping', discriminator: '$formspecMapping', cardinality: 'array' },
@@ -151,14 +153,15 @@ function supportProfile(support: ArtifactResolverSupportProfile | undefined): Re
 
 function versionAllowed(bundleVersion: string | undefined, minimum: SlotSpec['minBundleVersion']): boolean {
   if (!minimum) return true;
-  if (minimum === '2.1') return bundleVersion === '2.1' || bundleVersion === '2.2';
-  return bundleVersion === '2.2';
+  if (minimum === '2.1') return bundleVersion === '2.1' || bundleVersion === '2.2' || bundleVersion === '2.3';
+  if (minimum === '2.2') return bundleVersion === '2.2' || bundleVersion === '2.3';
+  return bundleVersion === '2.3';
 }
 
 function versionGateCode(minimum: SlotSpec['minBundleVersion']): string {
-  return minimum === '2.2'
-    ? 'ARTIFACT-COMPONENTS-VERSION-GATE'
-    : 'ARTIFACT-DATASOURCES-VERSION-GATE';
+  if (minimum === '2.3') return 'ARTIFACT-SCREENERS-VERSION-GATE';
+  if (minimum === '2.2') return 'ARTIFACT-COMPONENTS-VERSION-GATE';
+  return 'ARTIFACT-DATASOURCES-VERSION-GATE';
 }
 
 function declaredRefs(manifest: unknown): DeclaredRef[] {
@@ -454,6 +457,7 @@ function emptyGroups(): Record<ArtifactGroup, ArtifactResolutionHandle[]> {
     ontology: [],
     registries: [],
     surfaces: [],
+    screeners: [],
     dataSources: [],
     locales: [],
     mappings: [],

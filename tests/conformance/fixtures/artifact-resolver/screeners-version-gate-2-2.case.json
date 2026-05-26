@@ -1,0 +1,42 @@
+{
+  "id": "screeners-version-gate-2-2",
+  "description": "Rejects screeners[] on App Manifest v2.2 before invoking the loader.",
+  "manifest": {
+    "$formspecBundle": "2.2",
+    "id": "https://example.gov/apps/screeners-too-early",
+    "version": "1.0.0",
+    "definitions": [],
+    "screeners": [
+      {
+        "url": "https://example.gov/apps/screeners-too-early/screeners/eligibility",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "documents": {
+    "https://example.gov/apps/screeners-too-early/screeners/eligibility": {
+      "$formspecScreener": "1.0",
+      "url": "https://example.gov/apps/screeners-too-early/screeners/eligibility",
+      "version": "1.0.0",
+      "title": "Eligibility",
+      "items": [],
+      "evaluation": []
+    }
+  },
+  "expected": {
+    "ok": false,
+    "summary": {
+      "declaredRefs": 1,
+      "loadedArtifacts": 0,
+      "unsupportedRefs": 1,
+      "errors": 1
+    },
+    "diagnostics": [
+      { "code": "ARTIFACT-SCREENERS-VERSION-GATE", "severity": "error" }
+    ],
+    "handles": [
+      { "slot": "screeners[0]", "artifactKind": "screener", "status": "unsupported" }
+    ],
+    "loaderCalls": []
+  }
+}

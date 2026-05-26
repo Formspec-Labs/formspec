@@ -667,7 +667,7 @@ categories:
 | Category | Format | Example | Description |
 |----------|--------|---------|-------------|
 | **Formspec Definition** | `url\|version` | `"https://grants.gov/forms/sf-425\|2.1.0"` | Routes to a specific version of a Formspec Definition. Uses the same canonical reference syntax as core §4.7. |
-| **Surface route** | `surface:<route-id>` | `"surface:intake"` | Routes to an app Surface route after an explicit association contract binds the Screener to the app graph. |
+| **Surface route** | `surface:<route-id>` | `"surface:intake"` | Routes to an app Surface route after App Manifest v2.3 `screeners[]` explicitly associates the Screener to the app graph. |
 | **External URI** | Any valid URI | `"https://agency.gov/applications-closed"` | Routes to an external resource. The Screener does not interpret the URI; it is passed through to the consuming application. |
 | **Named outcome** | `outcome:name` | `"outcome:ineligible"` | Routes to a named outcome defined by the consuming application. See §7.2. |
 
@@ -696,12 +696,14 @@ is responsible for resolving the referenced Definition. The Screener
 processor produces the reference; it does not load or validate the target
 Definition.
 
-When a route target uses `surface:<route-id>`, AppGraphValidator route
-resolution applies only after a Screener is explicitly associated with the app
-graph by an explicit association contract, such as an App Manifest slot,
-project binding, or host-evidence contract defined by its owning spec.
-Processors MUST NOT infer that association from filenames, loaded Definitions,
-TraceIndex, Runtime Plan, embedded Definition screeners, or ad hoc
+When a route target uses `surface:<route-id>`, the Screener still emits a URI
+string; it does not bind itself to a Surface document. AppGraphValidator route
+resolution applies only after App Manifest v2.3 `screeners[]` explicitly
+associates the Screener with the app graph. The `<route-id>` value MUST resolve
+to exactly one loaded Surface `routes[].id` in that associated graph. Missing
+or ambiguous matches are AppGraphValidator cross-artifact errors. Processors
+MUST NOT infer that association from filenames, loaded Definitions, TraceIndex,
+Runtime Plan, embedded Definition screeners, Surface route names, or ad hoc
 `hostEvidence`.
 
 A route MAY use a bare URL without a version (e.g., `"https://grants.gov/forms/sf-425"`),

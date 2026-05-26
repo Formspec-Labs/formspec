@@ -1,0 +1,20 @@
+{
+  "fixture": "app-with-screeners-v2-3",
+  "purpose": "Positive: App Manifest v2.3 declaring screeners[] as explicit app-composition association sources for standalone Screener Documents.",
+  "expected": { "valid": true },
+  "bundle": {
+    "$formspecBundle": "2.3",
+    "version": "1.5.0",
+    "id": "https://example.gov/apps/screened-intake",
+    "title": "Screened Intake",
+    "definitions": [
+      { "url": "https://example.gov/apps/screened-intake/definition", "version": "1.0.0" }
+    ],
+    "surfaces": [
+      { "url": "https://example.gov/apps/screened-intake/surfaces/respondent", "version": "1.0.0" }
+    ],
+    "screeners": [
+      { "url": "https://example.gov/apps/screened-intake/screeners/eligibility", "version": "1.0.0" }
+    ]
+  }
+}

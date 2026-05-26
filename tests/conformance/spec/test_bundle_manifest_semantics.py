@@ -3,7 +3,8 @@ beyond schema acceptance.
 
 Schema validates structural shape. This file enforces semantics that
 JSON Schema cannot express: per-array uniqueness keys (locale tag,
-mapping handle, component handle) and sibling-URL distinctness from app `id`.
+mapping handle, component handle, screener URL) and sibling-URL distinctness
+from app `id`.
 
 Per ADR 0150 §5.2/§5.3/§11.2 the singular `definition`/`registry`
 slots reframe as `definitions[]`/`registries[]`; the URL-collection
@@ -36,6 +37,10 @@ def _mapping_handles(bundle: dict) -> list[str]:
 
 def _component_handles(bundle: dict) -> list[str]:
     return [entry["handle"] for entry in bundle.get("components", [])]
+
+
+def _screener_urls(bundle: dict) -> list[str]:
+    return [entry["url"] for entry in bundle.get("screeners", [])]
 
 
 class TestBundleArrayUniqueness:
@@ -76,6 +81,16 @@ class TestBundleArrayUniqueness:
             "fixture must contain a normalized default-handle conflict"
         )
 
+    def test_screeners_array_has_unique_urls_positive(self) -> None:
+        bundle = _bundle("app-with-screeners-v2-3.json")
+        urls = _screener_urls(bundle)
+        assert len(urls) == len(set(urls))
+
+    def test_screeners_array_rejects_duplicate_urls(self) -> None:
+        bundle = _bundle("invalid-duplicate-screener-url.json")
+        urls = _screener_urls(bundle)
+        assert len(urls) != len(set(urls)), "fixture must contain a duplicate screener URL"
+
 
 def _all_sibling_urls(bundle: dict) -> list[str]:
     urls: list[str] = []
@@ -86,8 +101,9 @@ def _all_sibling_urls(bundle: dict) -> list[str]:
             urls.append(bundle[key]["url"])
     # Array-cardinality slots — includes the pluralized definitions[] /
     # registries[] / surfaces[] per ADR 0150 §5.2, alongside v2.1
-    # dataSources[], v2.2 components[], and the existing locales[] / mappings[].
-    for key in ("definitions", "registries", "surfaces", "dataSources", "components", "locales", "mappings"):
+    # dataSources[], v2.2 components[], v2.3 screeners[], and the existing
+    # locales[] / mappings[].
+    for key in ("definitions", "registries", "surfaces", "dataSources", "components", "screeners", "locales", "mappings"):
         for entry in bundle.get(key, []):
             urls.append(entry["url"])
     return urls
@@ -127,3 +143,14 @@ class TestAppManifestComponents:
         assert component_urls
         assert set(component_urls).issubset(set(_all_sibling_urls(bundle)))
         assert bundle["id"] not in component_urls
+
+
+class TestAppManifestScreeners:
+    def test_screener_urls_participate_in_sibling_identity(self) -> None:
+        bundle = _bundle("app-with-screeners-v2-3.json")
+
+        screener_urls = _screener_urls(bundle)
+
+        assert screener_urls
+        assert set(screener_urls).issubset(set(_all_sibling_urls(bundle)))
+        assert bundle["id"] not in screener_urls

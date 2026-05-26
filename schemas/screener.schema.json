@@ -248,7 +248,7 @@
         },
         "target": {
           "type": "string",
-          "description": "Route destination URI. Four categories: (1) a Formspec Definition reference (url|version), (2) an external URI, (3) a named outcome (outcome:name), (4) a Surface route reference (surface:<route-id>) per ADR 0150 §7 — when the bundle includes a Surface document, a Screener terminal-hop with this scheme lands the respondent inside that Surface's route composition. The <route-id> after `surface:` MUST resolve to a route id in the bundle's Surface document.",
+          "description": "Route destination URI. Four categories: (1) a Formspec Definition reference (url|version), (2) an external URI, (3) a named outcome (outcome:name), (4) a Surface route reference (surface:<route-id>) per ADR 0150 §7. The Screener remains freestanding; AppGraphValidator validates surface:<route-id> only when App Manifest v2.3 screeners[] explicitly associates the Screener with loaded Surface documents. The <route-id> after `surface:` MUST resolve to exactly one loaded Surface routes[].id in that associated app graph.",
           "examples": [
             "https://grants.gov/forms/sf-425-short|1.0.0",
             "https://agency.gov/applications-closed",

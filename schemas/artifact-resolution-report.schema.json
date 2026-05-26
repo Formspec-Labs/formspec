@@ -242,6 +242,10 @@
           "type": "array",
           "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
         },
+        "screeners": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }
+        },
         "dataSources": {
           "type": "array",
           "items": { "$ref": "#/$defs/ArtifactResolutionHandle" }

@@ -1,0 +1,17 @@
+{
+  "fixture": "invalid-screeners-in-2-2",
+  "purpose": "Negative: App Manifest v2.2 cannot use the v2.3-only screeners[] sibling slot.",
+  "expected": { "valid": false, "errorContains": "2.3" },
+  "bundle": {
+    "$formspecBundle": "2.2",
+    "version": "1.5.0",
+    "id": "https://example.gov/apps/screeners-too-early",
+    "definitions": [],
+    "surfaces": [
+      { "url": "https://example.gov/apps/screeners-too-early/surfaces/respondent", "version": "1.0.0" }
+    ],
+    "screeners": [
+      { "url": "https://example.gov/apps/screeners-too-early/screeners/eligibility", "version": "1.0.0" }
+    ]
+  }
+}

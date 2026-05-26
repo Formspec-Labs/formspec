@@ -1,0 +1,374 @@
+{
+  "id": "screener-surface-targets",
+  "description": "Source conformance corpus for AppGraphValidator Screener surface:<route-id> terminal-hop validation from App Manifest screeners[] association.",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/screened-intake",
+        "version": "1.0.0",
+        "definitions": [],
+        "screeners": [
+          {
+            "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/screened-intake/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "manifest.no-screeners": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/no-screeners",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/unscreened-intake",
+        "version": "1.0.0",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/screened-intake/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "screener.valid": {
+      "slot": "screeners[0]",
+      "artifactKind": "screener",
+      "status": "loaded",
+      "source": "memory://screener/valid",
+      "ref": {
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecScreener": "1.0",
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0",
+        "title": "Eligibility",
+        "items": [],
+        "evaluation": [
+          {
+            "id": "route",
+            "strategy": "first-match",
+            "routes": [
+              {
+                "condition": "true",
+                "target": "surface:apply",
+                "label": "Apply"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "screener.missing-route": {
+      "slot": "screeners[0]",
+      "artifactKind": "screener",
+      "status": "loaded",
+      "source": "memory://screener/missing-route",
+      "ref": {
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecScreener": "1.0",
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0",
+        "title": "Eligibility",
+        "items": [],
+        "evaluation": [
+          {
+            "id": "route",
+            "strategy": "first-match",
+            "routes": [
+              {
+                "condition": "true",
+                "target": "surface:missing",
+                "label": "Missing"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "screener.ambiguous-route": {
+      "slot": "screeners[0]",
+      "artifactKind": "screener",
+      "status": "loaded",
+      "source": "memory://screener/ambiguous-route",
+      "ref": {
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecScreener": "1.0",
+        "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+        "version": "1.0.0",
+        "title": "Eligibility",
+        "items": [],
+        "evaluation": [
+          {
+            "id": "route",
+            "strategy": "first-match",
+            "routes": [
+              {
+                "condition": "true",
+                "target": "surface:shared",
+                "label": "Shared"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "surface.respondent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/respondent",
+      "ref": {
+        "url": "https://example.gov/apps/screened-intake/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "apply",
+        "routes": [
+          {
+            "id": "apply",
+            "path": "/apply",
+            "slots": []
+          },
+          {
+            "id": "shared",
+            "path": "/shared",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.secondary": {
+      "slot": "surfaces[1]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/secondary",
+      "ref": {
+        "url": "https://example.gov/apps/screened-intake/surfaces/secondary",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "secondary",
+        "entry": "shared",
+        "routes": [
+          {
+            "id": "shared",
+            "path": "/secondary/shared",
+            "slots": []
+          }
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid-screener-surface-target",
+      "description": "A manifest-associated Screener target resolves to exactly one loaded Surface route.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "screeners": ["screener.valid"],
+          "surfaces": ["surface.respondent"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "screener-surface-route-unresolved",
+      "description": "A manifest-associated Screener surface target must resolve to a loaded Surface route.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "screeners": ["screener.missing-route"],
+          "surfaces": ["surface.respondent"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SCREENER-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "screeners[0]",
+              "artifactKind": "screener",
+              "source": "memory://screener/missing-route",
+              "jsonPointer": "/evaluation/0/routes/0/target",
+              "ref": {
+                "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes",
+                "ref": {
+                  "url": "https://example.gov/apps/screened-intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "route-unresolved",
+              "target": "surface:missing",
+              "routeId": "missing"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "screener-surface-route-ambiguous",
+      "description": "A manifest-associated Screener surface target must not resolve to multiple loaded Surface routes.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "screeners": ["screener.ambiguous-route"],
+          "surfaces": ["surface.respondent", "surface.secondary"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SCREENER-SURFACE-TARGET",
+            "primarySource": {
+              "artifactSlot": "screeners[0]",
+              "artifactKind": "screener",
+              "source": "memory://screener/ambiguous-route",
+              "jsonPointer": "/evaluation/0/routes/0/target",
+              "ref": {
+                "url": "https://example.gov/apps/screened-intake/screeners/eligibility",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/respondent",
+                "jsonPointer": "/routes/1/id",
+                "ref": {
+                  "url": "https://example.gov/apps/screened-intake/surfaces/respondent",
+                  "version": "1.0.0"
+                }
+              },
+              {
+                "artifactSlot": "surfaces[1]",
+                "artifactKind": "surface",
+                "source": "memory://surface/secondary",
+                "jsonPointer": "/routes/0/id",
+                "ref": {
+                  "url": "https://example.gov/apps/screened-intake/surfaces/secondary",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "route-ambiguous",
+              "target": "surface:shared",
+              "routeId": "shared",
+              "matches": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "unassociated-screener-surface-target-ignored",
+      "description": "A loaded Screener is not app-associated unless the App Manifest declares it in screeners[].",
+      "request": {
+        "manifest": "manifest.no-screeners",
+        "artifacts": {
+          "screeners": ["screener.missing-route"],
+          "surfaces": ["surface.respondent"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    }
+  ]
+}

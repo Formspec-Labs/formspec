@@ -1,8 +1,8 @@
 {
   "id": "valid-full-graph",
-  "description": "Loads App Manifest v2.2 sibling refs in deterministic order while preserving manifest ref evidence.",
+  "description": "Loads App Manifest v2.3 sibling refs in deterministic order while preserving manifest ref evidence.",
   "manifest": {
-    "$formspecBundle": "2.2",
+    "$formspecBundle": "2.3",
     "id": "https://example.gov/apps/intake",
     "version": "1.0.0",
     "definitions": [
@@ -26,6 +26,12 @@
     "dataSources": [
       {
         "url": "https://example.gov/apps/intake/data-sources",
+        "version": "1.0.0"
+      }
+    ],
+    "screeners": [
+      {
+        "url": "https://example.gov/apps/intake/screeners/eligibility",
         "version": "1.0.0"
       }
     ],
@@ -102,6 +108,14 @@
       "version": "1.0.0",
       "sources": []
     },
+    "https://example.gov/apps/intake/screeners/eligibility": {
+      "$formspecScreener": "1.0",
+      "url": "https://example.gov/apps/intake/screeners/eligibility",
+      "version": "1.0.0",
+      "title": "Eligibility",
+      "items": [],
+      "evaluation": []
+    },
     "https://example.gov/apps/intake/locales/en-us": {
       "$formspecLocale": "1.0",
       "url": "https://example.gov/apps/intake/locales/en-us",
@@ -119,8 +133,8 @@
   "expected": {
     "ok": true,
     "summary": {
-      "declaredRefs": 6,
-      "loadedArtifacts": 6,
+      "declaredRefs": 7,
+      "loadedArtifacts": 7,
       "missingArtifacts": 0,
       "unsupportedRefs": 0,
       "discriminatorMismatches": 0,
@@ -133,6 +147,7 @@
       "definitions[0]:definition:https://example.gov/apps/intake/definition",
       "component:component:https://example.gov/apps/intake/components/default",
       "components[0]:component:https://example.gov/apps/intake/components/summary",
+      "screeners[0]:screener:https://example.gov/apps/intake/screeners/eligibility",
       "dataSources[0]:dataSources:https://example.gov/apps/intake/data-sources",
       "locales[0]:locale:https://example.gov/apps/intake/locales/en-us",
       "mappings[0]:mapping:https://example.gov/apps/intake/mappings/application"

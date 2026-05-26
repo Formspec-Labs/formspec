@@ -1,13 +1,13 @@
 ---
 title: Formspec ArtifactResolver Interface Specification
-version: 0.1.0-draft.4
+version: 0.1.0-draft.5
 date: 2026-05-25
 status: draft
 ---
 
 # Formspec ArtifactResolver Interface Specification v0.1
 
-**Version:** 0.1.0-draft.4
+**Version:** 0.1.0-draft.5
 **Date:** 2026-05-25
 **Editors:** Formspec Working Group
 **Companion to:** App Manifest, AppGraphValidator, and Module Resolver
@@ -66,7 +66,7 @@ In scope:
 
 - resolver request and response concepts,
 - host-supplied loader port boundary,
-- App Manifest v2.0/v2.1/v2.2 sibling slot coverage,
+- App Manifest v2.0/v2.1/v2.2/v2.3 sibling slot coverage,
 - artifact handle identity and status metadata,
 - discriminator, ref, version, and identity mismatch diagnostics, and
 - imported diagnostic origin rules for `AppGraphValidator`.
@@ -134,8 +134,8 @@ when other declared siblings can still be represented as handles.
 
 ## 4. Manifest Slot Coverage
 
-The resolver covers App Manifest v2.0, v2.1, and v2.2 sibling references that
-identify loadable source artifacts.
+The resolver covers App Manifest v2.0, v2.1, v2.2, and v2.3 sibling references
+that identify loadable source artifacts.
 
 | Manifest member | Cardinality | Artifact kind | Expected discriminator |
 |---|---|---|---|
@@ -149,6 +149,7 @@ identify loadable source artifacts.
 | `ontology` | optional single | `ontology` | `$formspecOntology` |
 | `registries[]` | optional array | `registry` | `$formspecRegistry` |
 | `surfaces[]` | optional array | `surface` | `$formspecSurface` |
+| `screeners[]` | optional array, App Manifest v2.3 only | `screener` | `$formspecScreener` |
 | `dataSources[]` | optional array, App Manifest v2.1+ | `dataSources` | `$formspecDataSources` |
 | `locales[]` | optional array | `locale` | `$formspecLocale` |
 | `mappings[]` | optional array | `mapping` | `$formspecMapping` |
@@ -159,10 +160,11 @@ manifest evidence to later phases, but `ModuleResolver` owns module admission,
 dependencies, contribution ownership, and widget payload authority. Runtime
 session state remains outside artifact resolution.
 
-The resolver MUST reject or diagnose `dataSources[]` on App Manifest v2.0 and
-`components[]` on App Manifest v2.0/v2.1. It MUST fail loud on manifest slots
-outside the supplied support profile unless the member is an allowed `x-*`
-extension ignored by App Manifest rules.
+The resolver MUST reject or diagnose `dataSources[]` on App Manifest v2.0,
+`components[]` on App Manifest v2.0/v2.1, and `screeners[]` on App Manifest
+v2.0/v2.1/v2.2. It MUST fail loud on manifest slots outside the supplied
+support profile unless the member is an allowed `x-*` extension ignored by App
+Manifest rules.
 
 For `components[]`, `ComponentRef.handle` is App Manifest membership evidence
 carried on the manifest ref. The resolver preserves that ref evidence for
@@ -172,6 +174,13 @@ loaded Component document structure. The singular `component` member remains a
 legacy compatibility loadable slot; revised import paths may normalize it
 downstream as membership handle `default`, but the resolver keeps the declared
 slot and ref evidence explicit.
+
+For `screeners[]`, `SiblingRef.url` is App Manifest association evidence. The
+resolver loads and groups the Screener documents; it does not evaluate the
+Screener, execute runtime routing, read TraceIndex, or infer association from
+filenames, loaded Definitions, embedded Definition screeners, Surface route
+names, Runtime Plan, or hostEvidence. AppGraphValidator owns the later
+`surface:<route-id>` exact-one loaded Surface route check.
 
 ## 5. Artifact Handles
 
@@ -216,8 +225,9 @@ The resolver runs deterministically:
 7. Emit one deterministic response with handles, diagnostics, and phase status.
 
 The resolver does not synthesize absent siblings. A manifest without
-`dataSources[]` or `components[]`, for example, produces no Data Sources or
-Component-list handles and no fabricated catalog or Component membership list.
+`dataSources[]`, `components[]`, or `screeners[]`, for example, produces no
+Data Sources, Component-list, or Screener handles and no fabricated catalog,
+Component membership list, or Screener association.
 
 ## 7. Resolver Response
 
@@ -258,13 +268,14 @@ the shared app-graph diagnostic envelope.
 | `ARTIFACT-IDENTITY-MISMATCH` | error | Loaded artifact identity contradicts the manifest ref URL. |
 | `ARTIFACT-DATASOURCES-VERSION-GATE` | error | `dataSources[]` appears on an App Manifest version below v2.1. |
 | `ARTIFACT-COMPONENTS-VERSION-GATE` | error | `components[]` appears on an App Manifest version below v2.2. |
+| `ARTIFACT-SCREENERS-VERSION-GATE` | error | `screeners[]` appears on an App Manifest version below v2.3. |
 
 Diagnostics MAY include host-specific `details`, but details MUST NOT promote
 local path, fixture, cache, or fetch metadata to identity authority.
 
-The shared resolver kernel emits the Data Sources and Component version-gate
-diagnostics above. Source conformance fixtures cover those failure families.
-Gate 12 closure still requires production consumer integration.
+The shared resolver kernel emits the Data Sources, Component, and Screener
+version-gate diagnostics above. Source conformance fixtures cover those failure
+families. Gate 12 closure still requires production consumer integration.
 
 ## 9. Non-Goals and Handoff
 

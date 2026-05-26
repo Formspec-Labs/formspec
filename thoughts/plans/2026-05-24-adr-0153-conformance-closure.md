@@ -3,9 +3,9 @@
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Conformance
 **Status:** Open. Source conformance coverage is now pinned for the covered
-families, and EC12 now has a runtime hidden-state consumer checkpoint. A8,
-A10, F8/F9 production consumers, and F10 authorization remain unresolved or
-held.
+families, EC12 has a runtime hidden-state consumer checkpoint, and A10 has a
+real App Manifest v2.3 Screener association source. A8, F8/F9 production
+consumers, and F10 authorization remain unresolved or held.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -16,9 +16,9 @@ plan tracks coverage only; it does not close Production wiring, Runtime
 ownership, or ADR 0152 authorization.
 
 Not in this row: `x-spike-v3-*` / `x-spike-v4-*` contract fields, local fixture
-paths as identity, Runtime Plan as a source artifact, Screener sidecar promotion,
-non-form `targetDefinition` shims, TraceIndex substitution for graph validation,
-or fine-grained authorization semantics.
+paths as identity, Runtime Plan as a source artifact, Screener sidecar
+absorption, non-form `targetDefinition` shims, TraceIndex substitution for graph
+validation, or fine-grained authorization semantics.
 
 ## Review Checkpoints
 
@@ -54,9 +54,16 @@ or fine-grained authorization semantics.
 - 2026-05-26 follow-up checkpoint: `formspec-web` now consumes completed UI
   Graph Policy host evidence for the active Surface route and rejects hidden
   active Definition state before draft loading or Response Action state. This
-  removes EC12 runtime hidden-state from the held list, but the Conformance row
-  remains Open because A8, A10, F8/F9 production consumers, and F10
-  authorization remain unresolved or held.
+  removed EC12 runtime hidden-state from the held list. At that checkpoint the
+  Conformance row still stayed Open because A8, A10, F8/F9 production
+  consumers, and F10 authorization remained unresolved or held.
+- 2026-05-26 architecture review scouts Hegel
+  (`019e62be-0f7a-75d0-96da-4f24ebbd19c0`) and Goodall
+  (`019e632a-93a9-7c00-863c-20cc135b5a72`) accepted App Manifest v2.3
+  `screeners[]` as the A10 association source if the slice also updates
+  Surface/Screener/AppGraphValidator normative prose, clarifies that this is
+  association rather than sidecar absorption, and extends ArtifactResolver/report
+  schemas beyond `SLOT_SPECS`.
 
 ## Evidence Map
 
@@ -71,7 +78,7 @@ or fine-grained authorization semantics.
 | A7 duplicate durable-effect idempotency key | Source conformance fixture plus Rust lint `E1804` check | Covered |
 | A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held/Open |
 | A9 route/Definition ownership mismatch | Component route `bound-controls-route-definition-mismatch` fixture | Covered |
-| A10 undeclared Screener terminal hop | Surface/Screener syntax is documented, but app-graph validation is blocked until a Screener-to-app association source exists | Held/Open |
+| A10 undeclared Screener terminal hop | App Manifest v2.3 `screeners[]` is the explicit Screener-to-app association source; ArtifactResolver loads associated Screeners; AppGraphValidator validates `surface:<route-id>` targets against exactly one loaded Surface route | Covered |
 | A11 duplicate Response Actions action id | Source conformance fixture plus Rust lint `E1801` check | Covered |
 | A12 generated Component id collision | Component route `node-identity-duplicate-key` fixture | Covered |
 | A13 module-widget payload mismatch | `module-resolver/payload-mismatch.case.json` | Covered |
@@ -107,9 +114,11 @@ or fine-grained authorization semantics.
 
 - [x] Promote A5 into Surface route-parameter prose/schema and pin the `E610`
   Surface-local lint diagnostic for missing target route params.
-- [x] Hold A10; do not implement AppGraphValidator Screener validation until the
-  Screener association source is specified. Do not close via TraceIndex, Runtime
-  Plan, embedded Definition screener, filename discovery, or ad hoc hostEvidence.
+- [x] Promote A10 through App Manifest v2.3 `screeners[]`, ArtifactResolver
+  `screeners` loading/report evidence, and AppGraphValidator Screener
+  `surface:<route-id>` exact-one loaded Surface route validation. Do not close
+  via TraceIndex, Runtime Plan, embedded Definition screener, filename
+  discovery, or ad hoc hostEvidence.
 - [x] Promote EC2 into Surface `experience-unit` source conformance fixtures and
   pin route-local Definition context in AppGraphValidator.
 - [x] Split EC12 runtime hidden-state behavior from existing graph hidden-Definition
@@ -143,6 +152,13 @@ or fine-grained authorization semantics.
 - 2026-05-25: A10 cannot count as conformance closure from Surface/Screener
   prose alone. Current evidence proves target syntax only, not graph-associated
   Screener route resolution.
+- 2026-05-26: A10 moved from Held/Open to covered after App Manifest v2.3 added
+  `screeners[]` as the explicit Screener-to-app association source and
+  AppGraphValidator gained exact-one loaded Surface route validation for
+  associated Screener `surface:<route-id>` targets. This is association, not
+  Screener sidecar absorption: no TraceIndex, Runtime Plan, runtime routing,
+  embedded Definition screener, filename discovery, or hostEvidence source was
+  promoted.
 - 2026-05-25: A5 is Surface-local route graph validation, not Data Sources
   runtime behavior. Data Sources `route-params` may expose resolved values to
   consumers, but Surface owns required route parameter declarations and
@@ -197,6 +213,20 @@ Pinned evidence after the ledger slice:
   cases `bound-controls-route-definition-mismatch`,
   `node-identity-duplicate-key`, and `fake-target-definition`, plus
   `tests/conformance/test_app_graph_component_route_fixture_corpus.py`.
+- A10 Screener surface-target evidence:
+  `specs/bundle/app-manifest-spec.md`,
+  `specs/surface/surface-spec.md`,
+  `specs/screener/screener-spec.md`,
+  `schemas/bundle-manifest.schema.json`,
+  `schemas/artifact-resolution-report.schema.json`,
+  `tests/conformance/fixtures/bundle/app-with-screeners-v2-3.json`,
+  `tests/conformance/fixtures/bundle/invalid-screeners-in-2-2.json`,
+  `tests/conformance/fixtures/bundle/invalid-duplicate-screener-url.json`,
+  `tests/conformance/fixtures/artifact-resolver/screeners-version-gate-2-2.case.json`,
+  `tests/conformance/fixtures/app-graph-validator/screener-surface-targets.case.json`,
+  `packages/formspec-app-graph/src/screener-surface-targets.ts`,
+  `packages/formspec-app-graph/tests/screener-surface-targets-conformance.test.ts`,
+  and `tests/conformance/test_app_graph_screener_surface_target_fixture_corpus.py`.
 - A11 fixture:
   `tests/conformance/fixtures/response-actions/duplicate-action-id.json`.
 - A11 tests:
@@ -250,8 +280,8 @@ Pinned evidence after the ledger slice:
 
 Still open:
 
-- A10 remains Held/Open behind a Screener-to-app association source. A8 remains
-  held because Runtime Plan is not a promoted production source artifact. F8/F9
-  production consumers and F10 authorization remain partial or held.
+- A8 remains held because Runtime Plan is not a promoted production source
+  artifact. F8/F9 production consumers and F10 authorization remain partial or
+  held.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.

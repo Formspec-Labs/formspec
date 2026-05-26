@@ -1,0 +1,15 @@
+{
+  "fixture": "invalid-duplicate-screener-url",
+  "purpose": "Negative: two screeners[] entries share the same sibling URL.",
+  "expected": { "valid": false, "errorContains": "duplicate screeners[].url" },
+  "bundle": {
+    "$formspecBundle": "2.3",
+    "version": "1.5.0",
+    "id": "https://example.gov/apps/duplicate-screener-url",
+    "definitions": [],
+    "screeners": [
+      { "url": "https://example.gov/apps/duplicate-screener-url/screeners/eligibility", "version": "1.0.0" },
+      { "url": "https://example.gov/apps/duplicate-screener-url/screeners/eligibility", "version": "1.1.0" }
+    ]
+  }
+}

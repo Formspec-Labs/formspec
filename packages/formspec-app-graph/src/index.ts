@@ -60,6 +60,9 @@ export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {
+  validateScreenerSurfaceTargets,
+} from './screener-surface-targets.js';
+export {
   validateSurfaceExperienceUnits,
 } from './surface-experience-units.js';
 export {
