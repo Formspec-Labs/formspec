@@ -2,7 +2,9 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Shared graph primitives
-**Status:** Partial. Lint and server report consumption landed; reusable TS producer helper landed; trusted production caller wiring remains open.
+**Status:** Partial. Lint and server report consumption landed; reusable TS
+producer helper landed; MCP product-host producer landed; trusted
+server-publish caller wiring remains open.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -20,9 +22,9 @@ outputs before publish.
 
 Not in this slice: Rust artifact loading, Node execution from Rust, a Rust port
 of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, a production
-host/BFF adoption that calls server publish with the generated report, Studio /
-MCP / runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR
-0152 fine-grained authorization.
+host/BFF adoption that calls server publish with the generated report, broader
+Studio/MCP publish wiring, runtime/projection wiring, App Manifest policy slots,
+TraceIndex, or ADR 0152 fine-grained authorization.
 
 ## Evidence Before Work
 
@@ -48,6 +50,17 @@ MCP / runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR
   production-callable API evidence, but not trusted production TS/BFF producer
   closure. Existing Studio and MCP publish paths still export bundles instead
   of calling `formspec-server` publish with an AppGraph report.
+- 2026-05-26 Hegel checkpoint `019e62be-0f7a-75d0-96da-4f24ebbd19c0`
+  returned APPROVE for the MCP product-host producer seam only: it may read the
+  kernel App Manifest, auto-load kernel-owned Surfaces, delegate remaining
+  siblings to a host loader, and call the shared producer helper, but it must not
+  widen `formspec_publish`, become publish authority, or close server-publish
+  caller wiring.
+- 2026-05-26 Goodall review `019e632a-93a9-7c00-863c-20cc135b5a72`
+  found no BLOCKER/HIGH/MEDIUM issues. Its LOW findings were resolved by
+  removing generated `studio-core/dist` build churn from the slice and narrowing
+  this plan's out-of-scope wording to distinguish the landed MCP producer seam
+  from broader MCP publish wiring.
 
 ## Work Phases
 
