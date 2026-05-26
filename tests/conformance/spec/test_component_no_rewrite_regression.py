@@ -30,6 +30,7 @@ LINT_HARNESS_KEYS = {
     "_componentDocuments",
     "_localeDocuments",
     "_pairedDefinition",
+    "_postureDeclaration",
     "_registryDocuments",
     "_themeDocument",
 }

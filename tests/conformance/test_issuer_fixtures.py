@@ -11,7 +11,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from jsonschema import Draft202012Validator, RefResolver
+from jsonschema import Draft202012Validator
+
+from tests.unit.support.schema_fixtures import build_schema_registry
 
 from formspec._rust import lint
 
@@ -163,14 +165,7 @@ def load_case_json(case_dir: Path, entry):
 
 def validator(name: str) -> Draft202012Validator:
     schema = SCHEMAS[name]
-    store = {
-        "https://formspec.org/schemas/common/1.0": SCHEMAS["common"],
-        "https://formspec.org/schemas/definition/1.0": SCHEMAS["definition"],
-        "https://formspec.org/schemas/issuer/1.0": SCHEMAS["issuer"],
-        "https://formspec.org/schemas/registry/1.0": SCHEMAS["registry"],
-        "https://formspec.org/schemas/response/1.0": SCHEMAS["response"],
-    }
-    return Draft202012Validator(schema, resolver=RefResolver.from_schema(schema, store=store))
+    return Draft202012Validator(schema, registry=build_schema_registry(*SCHEMAS.values()))
 
 
 def resolve_fixture(case: dict) -> dict:

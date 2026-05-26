@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, RefResolver
+from jsonschema import Draft202012Validator
+
+from tests.unit.support.schema_fixtures import build_schema_registry
 
 ROOT = Path(__file__).parents[2]
 REG = json.loads((ROOT / "schemas" / "registry.schema.json").read_text())
@@ -12,8 +14,7 @@ COMMON = json.loads((ROOT / "schemas" / "common.schema.json").read_text())
 
 
 def _v():
-    store = {"https://formspec.org/schemas/common/1.0": COMMON}
-    return Draft202012Validator(REG, resolver=RefResolver.from_schema(REG, store=store))
+    return Draft202012Validator(REG, registry=build_schema_registry(COMMON, REG))
 
 
 BASE = {

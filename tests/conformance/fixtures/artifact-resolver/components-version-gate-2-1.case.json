@@ -19,6 +19,16 @@
       "$formspecComponent": "1.2",
       "url": "https://example.gov/apps/components-too-early-v2-1/components/summary",
       "version": "1.0.0",
+      "targetSurfaceRoutes": [
+        {
+          "surface": {
+            "url": "https://example.gov/apps/components-too-early-v2-1/surfaces/summary",
+            "version": "1.0.0"
+          },
+          "route": "summary",
+          "role": "route"
+        }
+      ],
       "tree": {
         "component": "Stack",
         "children": []
