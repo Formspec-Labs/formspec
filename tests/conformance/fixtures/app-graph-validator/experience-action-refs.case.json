@@ -58,8 +58,7 @@
         "version": "1.0.0"
       },
       "document": {
-        "$formspecExperience": "0.1",
-        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "$formspecExperience": "1.0",
         "version": "1.0.0",
         "targetDefinition": {
           "url": "https://example.gov/forms/experience-action-refs",
@@ -90,8 +89,7 @@
         "version": "1.0.0"
       },
       "document": {
-        "$formspecExperience": "0.1",
-        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "$formspecExperience": "1.0",
         "version": "1.0.0",
         "targetDefinition": {
           "url": "https://example.gov/forms/experience-action-refs",
@@ -123,8 +121,7 @@
         "version": "1.0.0"
       },
       "document": {
-        "$formspecExperience": "0.1",
-        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "$formspecExperience": "1.0",
         "version": "1.0.0",
         "targetDefinition": {
           "url": "https://example.gov/forms/experience-action-refs",
@@ -164,6 +161,73 @@
             "intent": "submit",
             "effects": [
               { "type": "hostEvent", "eventName": "formspec-submit" }
+            ]
+          }
+        ]
+      }
+    },
+    "response-actions.review-supplement": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/review-supplement",
+      "ref": {
+        "url": "https://example.gov/apps/experience-action-refs/response-actions-review",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/experience-action-refs",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "escalateForReview",
+            "intent": "review",
+            "effects": [
+              { "type": "hostEvent", "eventName": "formspec-escalate" }
+            ]
+          }
+        ]
+      }
+    },
+    "experience.union-resolution": {
+      "slot": "experience",
+      "artifactKind": "experience",
+      "status": "loaded",
+      "source": "memory://experience/union-resolution",
+      "ref": {
+        "url": "https://example.gov/apps/experience-action-refs/experience",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecExperience": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/experience-action-refs",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actors": [{ "id": "applicant" }, { "id": "reviewer" }],
+        "tasks": [{ "id": "submitTask" }, { "id": "reviewTask" }],
+        "units": [
+          {
+            "id": "submit",
+            "kind": "confirmation",
+            "actorRef": "applicant",
+            "taskRefs": ["submitTask"],
+            "actionRefs": [
+              { "id": "submitApplication", "role": "primary" }
+            ]
+          },
+          {
+            "id": "review",
+            "kind": "review",
+            "actorRef": "reviewer",
+            "taskRefs": ["reviewTask"],
+            "actionRefs": [
+              { "id": "escalateForReview", "role": "primary" }
             ]
           }
         ]
@@ -343,6 +407,34 @@
         "summary": {
           "artifacts": 2,
           "loadedArtifacts": 2,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "experience-action-ref-resolves-across-multiple-response-actions-handles",
+      "description": "Positive case: actionRef ids resolve as the UNION across multiple loaded Response Actions handles. Closes code-review F4 multi-RA union coverage gap.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "experience": ["experience.union-resolution"],
+          "responseActions": ["response-actions.with-submit", "response-actions.review-supplement"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 4,
+          "loadedArtifacts": 4,
           "schemaFailures": 0,
           "unvalidatedArtifacts": 0,
           "graphErrors": 0,

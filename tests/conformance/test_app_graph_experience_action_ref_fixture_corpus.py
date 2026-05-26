@@ -28,6 +28,7 @@ REQUIRED_CASES = {
     "experience-action-ref-unresolved-fails-closed",
     "experience-action-ref-requires-response-actions-load",
     "experience-without-action-refs-no-response-actions-required",
+    "experience-action-ref-resolves-across-multiple-response-actions-handles",
 }
 
 EXPECTED_DIAGNOSTIC_COUNTS = {
@@ -35,6 +36,7 @@ EXPECTED_DIAGNOSTIC_COUNTS = {
     "experience-action-ref-unresolved-fails-closed": 1,
     "experience-action-ref-requires-response-actions-load": 2,
     "experience-without-action-refs-no-response-actions-required": 0,
+    "experience-action-ref-resolves-across-multiple-response-actions-handles": 0,
 }
 
 EXPECTED_CODE = "APP-GRAPH-EXPERIENCE-ACTION-REF"
