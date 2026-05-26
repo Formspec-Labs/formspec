@@ -779,6 +779,17 @@ describe('Popover layout', () => {
         expect(content).toBeTruthy();
     });
 
+    it('keeps route policy metadata-only on popover roots', () => {
+        const container = renderNode(routePolicyNode({
+            id: 'pop-policy', component: 'Popover', category: 'layout',
+            props: {}, cssClasses: [], children: [],
+        }, 'main'));
+        const wrapper = container.querySelector('.formspec-popover') as HTMLElement;
+        expect(wrapper).toBeTruthy();
+        expect(wrapper.getAttribute('data-formspec-ui-policy-route')).toBe('apply');
+        expect(wrapper.getAttribute('role')).toBeNull();
+    });
+
     it('defaults trigger label to "Open" when not provided', () => {
         const container = renderNode({
             id: 'pop-3', component: 'Popover', category: 'layout',

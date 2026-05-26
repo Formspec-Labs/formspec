@@ -658,7 +658,6 @@ function PopoverLayout({ node, children, themeClass, style }: LayoutProps) {
             ref={wrapperRef}
             className={mergeClasses('formspec-popover', themeClass)}
             style={style}
-            {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
             <button
