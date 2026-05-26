@@ -95,8 +95,16 @@ path is:
 - [x] Add a renderer-level seam test that injects a fake host `LedgerPort`,
   records a session, routes an `ActionButton` click through
   `invokeResponseActionWithLedger`, and observes an anchored receipt.
+- [x] Add a host-owned HTTP `LedgerPort` adapter that posts StudioCore
+  `LedgerPortAppendInput` to the `formspec-server`
+  `/runtime/response-actions/ledger/session-op-batches` route with a
+  server-minted per-command capability header.
+- [x] Let Studio Preview receive a host-owned `responseActionInvoker` and prove
+  an `ActionButton` click can flow through `invokeResponseActionWithLedger` to
+  the route-backed HTTP `LedgerPort` adapter and back into `readLedgerStatus`.
 - [ ] Wire production host/runtime configuration to supply the real
-  Trellis-backed `LedgerPort` and bridge-backed invoker.
+  Trellis-backed `LedgerPort`, server-side capability mint/proxy, and
+  bridge-backed invoker.
 - [ ] Keep ADR 0153 gate 7 open until route state, session state, Response
   instance state, and invocation state are separately specified and tested.
 
@@ -118,6 +126,10 @@ path is:
   `<formspec-render>` plus fake host `LedgerPort` to prove the renderer seam.
   It is anchored-mode proof for the bridge hook, not evidence that Studio
   Preview installs an invoker or that a production Trellis-backed port exists.
+- 2026-05-26: The first route-backed Preview slice uses a host-supplied
+  capability provider. Browser-side capability minting remains forbidden; the
+  production respondent host still needs a server-side mint/proxy boundary that
+  authenticates the runtime session before appending.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -142,14 +154,21 @@ Partial for ADR 0153 gate 6b.
   `../formspec-studio/packages/formspec-studio/src/workspaces/preview/FormspecPreviewHost.tsx`
   and
   `../formspec-studio/packages/formspec-studio/tests/workspaces/preview/preview-tab.test.tsx`.
+- Route-backed host adapter:
+  `../formspec-studio/packages/formspec-studio-core/src/response-action-ledger-http-port.ts`.
+- Preview host injection:
+  `../formspec-studio/packages/formspec-studio/src/workspaces/preview/FormspecPreviewHost.tsx`
+  and
+  `../formspec-studio/packages/formspec-studio/src/workspaces/preview/PreviewTab.tsx`.
 - Verification:
   `npm run --workspace @formspec-org/studio-core build`;
   `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger.test.ts`;
+  `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger-http-port.test.ts`;
   `npm run --workspace @formspec-org/webcomponent build`;
   `npm run --workspace @formspec-org/webcomponent test -- tests/components/interactive-plugins.test.ts`;
   `npm run --workspace @formspec-org/studio test -- tests/workspaces/preview/preview-tab.test.tsx`;
   `npm run --workspace @formspec-org/studio build`.
 
-Not closed yet: production runtime/product consumer wiring, host
-Trellis-backed `LedgerPort` injection, and ADR 0153 gate 7 runtime ownership
-spec/test closure.
+Not closed yet: respondent-facing production runtime/product consumer wiring,
+server-side runtime capability mint/proxy, and ADR 0153 gate 7 runtime
+ownership spec/test closure.
