@@ -3,8 +3,8 @@
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Shared graph primitives
 **Status:** Partial. Lint and server report consumption landed; reusable TS
-producer helper landed; MCP product-host producer landed; trusted
-server-publish caller wiring remains open.
+producer helper landed; MCP product-host producer and HTTP caller seam landed;
+live server-publish route integration remains open.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -21,10 +21,10 @@ public `@formspec-org/app-graph` API so hosts do not hand-compose resolver
 outputs before publish.
 
 Not in this slice: Rust artifact loading, Node execution from Rust, a Rust port
-of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, a production
-host/BFF adoption that calls server publish with the generated report, broader
-Studio/MCP publish wiring, runtime/projection wiring, App Manifest policy slots,
-TraceIndex, or ADR 0152 fine-grained authorization.
+of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, live
+`formspec-server` route execution by a deployed host/BFF, broader Studio /
+runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR 0152
+fine-grained authorization.
 
 ## Evidence Before Work
 
@@ -56,11 +56,19 @@ TraceIndex, or ADR 0152 fine-grained authorization.
   siblings to a host loader, and call the shared producer helper, but it must not
   widen `formspec_publish`, become publish authority, or close server-publish
   caller wiring.
+- 2026-05-26 Kant pre-review accepted the next HTTP caller seam only if it
+  stayed outside `formspec_publish`, used the existing AppGraph producer,
+  stripped caller-supplied report evidence, posted
+  `/forms/{form_id}/versions/publish`, and did not promote this row to Closed
+  before live server-route proof.
 - 2026-05-26 Goodall review `019e632a-93a9-7c00-863c-20cc135b5a72`
   found no BLOCKER/HIGH/MEDIUM issues. Its LOW findings were resolved by
   removing generated `studio-core/dist` build churn from the slice and narrowing
   this plan's out-of-scope wording to distinguish the landed MCP producer seam
   from broader MCP publish wiring.
+- 2026-05-26 Kant post-review `019e6397-7c56-70e2-8339-66f46379719d`
+  returned APPROVE with no findings for the MCP/BFF HTTP caller seam. It did not
+  run tests.
 
 ## Work Phases
 
@@ -139,6 +147,24 @@ TraceIndex, or ADR 0152 fine-grained authorization.
 - [x] Add product-verb coverage proving Surface loading stays inside the kernel
   seam while Definition loading goes through the host loader.
 
+### Phase 8 - Explicit MCP/BFF Server Publish Caller
+
+- [x] Add `publishFormVersionWithAppGraphReport()` as a named
+  `@formspec-org/mcp` helper, not a widened `formspec_publish` path.
+- [x] Make the helper call the existing AppGraph report producer seam instead of
+  rebuilding graph evidence from `ProjectBundle`.
+- [x] Type `publishCommand` so callers cannot supply
+  `app_graph_validation_report`, and defensively strip snake-case/camel-case
+  stale report fields at runtime.
+- [x] Fail closed locally when the produced report has `ok: false` or any
+  `severity: "error"` diagnostic.
+- [x] POST only `/forms/{form_id}/versions/publish` with the produced
+  `app_graph_validation_report`.
+- [x] Export `./app-graph-publish` and `./product-verbs` package subpaths so the
+  helper and product-host facade are reachable without importing the CLI entry.
+- [x] Add tests for canonical route/body submission, stale report stripping,
+  local fail-closed behavior, and server rejection code mapping.
+
 ## Deviations
 
 - 2026-05-25: The first implementation used a direct out-of-crate
@@ -170,6 +196,10 @@ TraceIndex, or ADR 0152 fine-grained authorization.
   export + host loaders for remaining siblings + shared producer helper. This
   advances MCP/product-host adoption only; server-publish submission remains
   open.
+- 2026-05-26: The MCP/BFF publish helper is an HTTP caller seam proof with a
+  stubbed fetch, not live server-route integration. It proves the trusted caller
+  can produce a report and submit the exact server command shape, but does not
+  prove deployed host auth, transport, or `formspec-server` execution.
 
 ## Closure Evidence
 
@@ -196,6 +226,14 @@ Partial evidence landed:
   adds `FormsMcp.produceAppGraphValidationReport()` over the kernel App
   Manifest, kernel Surface export, caller-supplied sibling loader, and shared
   producer helper.
+- MCP/BFF publish caller:
+  `formspec-studio/packages/formspec-mcp/src/app-graph-publish.ts` adds
+  `publishFormVersionWithAppGraphReport()` for trusted product hosts that need
+  to produce a report and submit it to `formspec-server` publish without
+  widening `formspec_publish`.
+- MCP package surface:
+  `formspec-studio/packages/formspec-mcp/package.json` exports
+  `./app-graph-publish` and `./product-verbs` subpaths.
 - Producer coverage:
   `packages/formspec-app-graph/tests/producer.test.ts` runs the same loaded-graph
   fixture through the producer helper and asserts completed artifact-resolution,
@@ -204,6 +242,11 @@ Partial evidence landed:
   `formspec-studio/packages/formspec-mcp/tests/product-verbs.test.ts` proves the
   product-host seam auto-loads a publishable kernel Surface, delegates the
   Definition sibling to the host loader, and returns a completed AppGraph report.
+- MCP/BFF publish coverage:
+  `formspec-studio/packages/formspec-mcp/tests/app-graph-publish.test.ts` proves
+  canonical server route submission with a produced report, strips stale caller
+  report evidence, fails closed before HTTP when the report has errors, and maps
+  server conflict rejection to `CONFLICT`.
 - Verification: `cargo nextest run -p formspec-lint` passed 434/434 tests after
   schema mirror sync.
 - Verification: `cargo nextest run -p formspec-server app_graph_report_admission`;
@@ -217,13 +260,18 @@ Partial evidence landed:
 - Verification:
   `npm run test --workspace @formspec-org/mcp -- product-verbs.test.ts`;
   `npm run build --workspace @formspec-org/mcp`.
+- Verification:
+  `npm run test --workspace @formspec-org/mcp -- app-graph-publish.test.ts`;
+  `npm run test --workspace @formspec-org/mcp -- app-graph-publish.test.ts product-verbs.test.ts`;
+  `npm run test --workspace @formspec-org/mcp` (401 tests);
+  `npm run build --workspace @formspec-org/mcp`.
 
 Still open:
 
-- A trusted server-publish/BFF caller does not yet supply the completed report
-  to `formspec-server` publish.
-- Studio, MCP, runtime, and projection consumers do not yet consume the shared
-  validator report where applicable outside the product-host producer seam.
+- A deployed trusted server-publish/BFF caller has not yet executed the real
+  `formspec-server` route with the helper-produced report.
+- Studio, runtime, and projection consumers do not yet consume the shared
+  validator report where applicable outside the MCP product-host seams.
 - Lint does not load an App Manifest graph or run `@formspec-org/app-graph`.
 - Broader conformance corpus promotion and production wiring remain separate
   rows.
