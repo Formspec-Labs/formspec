@@ -5,6 +5,7 @@ import type {
     FormDefinition,
     FormItem,
     ThemeDocument,
+    UiGraphPolicyDocument,
 } from '@formspec-org/types';
 import type { PresentationBlock } from './theme-resolver.js';
 
@@ -21,6 +22,28 @@ export interface ComponentGraphProjectionContext {
     component: ComponentNodeIdentityRef['component'];
     surface: ComponentNodeIdentityRef['surface'];
     route: string;
+}
+
+/** Host-supplied UI Graph Policy evidence shaped like AppGraphValidator request evidence. */
+export interface UiGraphPolicyProjectionEvidence {
+    schemaId: string;
+    source: string;
+    document: UiGraphPolicyDocument;
+}
+
+/** Projection-only host evidence. Layout does not fetch, validate, or discover these documents. */
+export interface LayoutHostEvidence {
+    uiGraphPolicies?: UiGraphPolicyProjectionEvidence[];
+}
+
+/** Inert route-policy metadata copied from a matching UI Graph Policy document. */
+export interface UiGraphRoutePolicyProjection {
+    schemaId: string;
+    source: string;
+    targetSurface: UiGraphPolicyDocument['targetSurface'];
+    routeId: string;
+    a11y?: NonNullable<UiGraphPolicyDocument['routePolicies'][number]['a11y']>;
+    responsive?: NonNullable<UiGraphPolicyDocument['routePolicies'][number]['responsive']>;
 }
 
 /**
@@ -59,6 +82,12 @@ export interface LayoutNode {
 
     /** Graph-wide Component node identity per Component §11.6, when caller supplies graph context. */
     componentGraphIdentity?: ComponentNodeIdentityRef;
+
+    /**
+     * Projection-only UI Graph Policy route metadata. Renderers MUST NOT infer
+     * runtime hidden-state, ARIA implementation, or authorization behavior from it.
+     */
+    uiGraphRoutePolicy?: UiGraphRoutePolicyProjection;
 
     // ── Field binding ──
 
@@ -127,6 +156,9 @@ export interface PlanContext {
 
     /** App-graph Component membership/surface/route scope for projection-only identity. */
     componentGraph?: ComponentGraphProjectionContext;
+
+    /** Projection-only host evidence, matching `hostEvidence.uiGraphPolicies[]`. */
+    hostEvidence?: LayoutHostEvidence;
 
     /** The loaded theme document. */
     theme?: ThemeDocument;

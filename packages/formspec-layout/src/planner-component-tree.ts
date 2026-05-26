@@ -30,6 +30,8 @@ import {
     withoutThemePages,
 } from './planner-theme-pages.js';
 
+const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
+
 export function planComponentTree(
     tree: ComponentTreeNode,
     ctx: PlanContext,
@@ -44,7 +46,12 @@ export function planComponentTree(
     if (applyThemePages && !prefix && planCtx.theme?.pages?.length && !componentTreeOwnsPages(tree)) {
         const themed = planThemePagesFromComponentTree(tree, planCtx, customComponentStack);
         if (themed) {
-            return applyGeneratedPageMode(themed, themed.component, planCtx);
+            return finalizeRouteProjectionRoot(
+                applyGeneratedPageMode(themed, themed.component, planCtx),
+                planCtx,
+                prefix,
+                graphPathSegments,
+            );
         }
     }
 
@@ -75,7 +82,7 @@ export function planComponentTree(
         customComponentStack.add(componentType);
         const result = planComponentTree(template, planCtx, prefix, customComponentStack, false, null);
         customComponentStack.delete(componentType);
-        return result;
+        return finalizeRouteProjectionRoot(result, planCtx, prefix, graphPathSegments);
     }
 
     const bindKey = comp.bind as string | undefined;
@@ -202,10 +209,15 @@ export function planComponentTree(
     }
 
     if (applyThemePages) {
-        return applyGeneratedPageMode(node, componentType, planCtx);
+        return finalizeRouteProjectionRoot(
+            applyGeneratedPageMode(node, componentType, planCtx),
+            planCtx,
+            prefix,
+            graphPathSegments,
+        );
     }
 
-    return node;
+    return finalizeRouteProjectionRoot(node, planCtx, prefix, graphPathSegments);
 }
 
 function stringProp(value: Record<string, unknown>, key: string): string | undefined {
@@ -243,6 +255,66 @@ function componentGraphIdentityForNode(
     };
 }
 
+function isRouteProjectionRoot(prefix: string, graphPathSegments: readonly string[] | null): boolean {
+    return prefix === '' && graphPathSegments !== null && graphPathSegments.length === 0;
+}
+
+function finalizeRouteProjectionRoot(
+    node: LayoutNode,
+    ctx: PlanContext,
+    prefix: string,
+    graphPathSegments: readonly string[] | null,
+): LayoutNode {
+    return isRouteProjectionRoot(prefix, graphPathSegments)
+        ? projectUiGraphRoutePolicy(node, ctx)
+        : node;
+}
+
+function projectUiGraphRoutePolicy(node: LayoutNode, ctx: PlanContext): LayoutNode {
+    const projection = uiGraphRoutePolicyProjection(ctx);
+    if (projection) {
+        node.uiGraphRoutePolicy = projection;
+    }
+    return node;
+}
+
+function uiGraphRoutePolicyProjection(ctx: PlanContext): LayoutNode['uiGraphRoutePolicy'] | undefined {
+    const scope = ctx.componentGraph;
+    const evidence = ctx.hostEvidence?.uiGraphPolicies;
+    if (!scope || !evidence?.length) return undefined;
+
+    const matches: NonNullable<LayoutNode['uiGraphRoutePolicy']>[] = [];
+    for (const entry of evidence) {
+        if (entry.schemaId !== UI_GRAPH_POLICY_SCHEMA_ID || typeof entry.source !== 'string') {
+            continue;
+        }
+        const document = entry.document;
+        if (document.$formspecUiGraphPolicy !== '0.1') continue;
+        if (document.targetSurface.url !== scope.surface.url) continue;
+
+        for (const routePolicy of document.routePolicies) {
+            if (routePolicy.routeId !== scope.route) continue;
+            matches.push({
+                schemaId: entry.schemaId,
+                source: entry.source,
+                targetSurface: { ...document.targetSurface },
+                routeId: routePolicy.routeId,
+                ...(routePolicy.a11y ? { a11y: { ...routePolicy.a11y } } : {}),
+                ...(routePolicy.responsive ? {
+                    responsive: {
+                        ...routePolicy.responsive,
+                        ...(routePolicy.responsive.collapseOrder
+                            ? { collapseOrder: [...routePolicy.responsive.collapseOrder] }
+                            : {}),
+                    },
+                } : {}),
+            });
+        }
+    }
+
+    return matches.length === 1 ? matches[0] : undefined;
+}
+
 function planThemePagesFromComponentTree(
     tree: ComponentTreeNode,
     ctx: PlanContext,
@@ -255,7 +327,7 @@ function planThemePagesFromComponentTree(
         if (!componentNode) {
             return null;
         }
-        return planComponentTree(componentNode, baseCtx, '', customComponentStack, false);
+        return planComponentTree(componentNode, baseCtx, '', customComponentStack, false, null);
     }, ctx.items, ctx);
 
     if (pageNodes.length === 0) {
@@ -268,7 +340,7 @@ function planThemePagesFromComponentTree(
         .map((item) => {
             const componentNode = findComponentNodeByPath(ctx.items, tree, item.key);
             return componentNode
-                ? planComponentTree(componentNode, baseCtx, '', customComponentStack, false)
+                ? planComponentTree(componentNode, baseCtx, '', customComponentStack, false, null)
                 : planDefinitionItem(item, baseCtx, '');
         });
 

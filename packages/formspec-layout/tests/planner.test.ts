@@ -204,6 +204,232 @@ describe('planComponentTree', () => {
         });
     });
 
+    it('projects matching UI Graph Policy route metadata from host evidence onto the route root only', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+            children: [
+                { component: 'TextInput', nodeId: 'nameField', bind: 'name' },
+            ],
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                uiGraphPolicies: [{
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                            version: '1.0.0',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: {
+                                landmark: 'main',
+                                keyboardNavigation: true,
+                            },
+                            responsive: {
+                                minColumns: 1,
+                                collapseOrder: ['summary', 'details'],
+                            },
+                            definitionVisibility: {
+                                hiddenDefinitionRefs: [{
+                                    url: 'https://example.gov/forms/intake/internal-notes',
+                                    version: '1.0.0',
+                                }],
+                            },
+                        }],
+                    },
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy).toEqual({
+            schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+            source: 'host://policy/respondent-ui-policy',
+            targetSurface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            routeId: 'review',
+            a11y: {
+                landmark: 'main',
+                keyboardNavigation: true,
+            },
+            responsive: {
+                minColumns: 1,
+                collapseOrder: ['summary', 'details'],
+            },
+        });
+        expect(node.uiGraphRoutePolicy).not.toHaveProperty('definitionVisibility');
+        expect(node.children[0].uiGraphRoutePolicy).toBeUndefined();
+    });
+
+    it('does not project UI Graph Policy route metadata for a different surface or route', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                uiGraphPolicies: [{
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/admin-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/admin',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }, {
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                        },
+                        routePolicies: [{
+                            routeId: 'submit',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy).toBeUndefined();
+    });
+
+    it('projects UI Graph Policy route metadata for a route root even when page wrapping is disabled', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                uiGraphPolicies: [{
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }],
+            },
+        }), '', undefined, false);
+
+        expect(node.uiGraphRoutePolicy).toEqual({
+            schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+            source: 'host://policy/respondent-ui-policy',
+            targetSurface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+            },
+            routeId: 'review',
+            a11y: { landmark: 'main' },
+        });
+    });
+
+    it('fails closed instead of projecting duplicate matching UI Graph Policy route evidence', () => {
+        const tree = {
+            component: 'Stack',
+            nodeId: 'reviewLayout',
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const policyDocument = {
+            $formspecUiGraphPolicy: '0.1' as const,
+            version: '1.0.0',
+            targetSurface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+            },
+            routePolicies: [{
+                routeId: 'review',
+                a11y: { landmark: 'main' as const },
+            }],
+        };
+        const node = planComponentTree(tree, makeCtx({
+            componentGraph,
+            hostEvidence: {
+                uiGraphPolicies: [{
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/respondent-ui-policy-a',
+                    document: policyDocument,
+                }, {
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/respondent-ui-policy-b',
+                    document: policyDocument,
+                }],
+            },
+        }));
+
+        expect(node.uiGraphRoutePolicy).toBeUndefined();
+    });
+
     it('does not project graph identity onto expanded custom component templates', () => {
         const tree = {
             component: 'ContactField',
@@ -468,6 +694,80 @@ describe('planComponentTree', () => {
         expect(node.children[0]?.component).toBe('Section');
         expect(node.children[0]?.props.id).toBe('theme-org');
         expect(node.children[1]?.bindPath).toBe('email');
+    });
+
+    it('does not project UI Graph Policy route metadata onto theme page internal fragments', () => {
+        const items = [
+            { key: 'projectName', type: 'field', dataType: 'string', label: 'Project Name' },
+            { key: 'amount', type: 'field', dataType: 'money', label: 'Amount' },
+        ];
+        const tree = {
+            component: 'Stack',
+            children: [
+                { component: 'TextInput', bind: 'projectName' },
+                { component: 'MoneyInput', bind: 'amount' },
+            ],
+        };
+        const componentGraph = {
+            component: {
+                handle: 'reviewRoute',
+                url: 'https://example.gov/apps/intake/components/review-route',
+                version: '1.0.0',
+            },
+            surface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+                version: '1.0.0',
+            },
+            route: 'review',
+        };
+        const node = planComponentTree(tree, makeCtx({
+            items,
+            componentDocument: { tree },
+            componentGraph,
+            theme: {
+                pages: [{
+                    id: 'details',
+                    title: 'Details',
+                    regions: [
+                        { key: 'projectName', span: 7 },
+                        { key: 'amount', span: 5 },
+                    ],
+                }],
+            },
+            hostEvidence: {
+                uiGraphPolicies: [{
+                    schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+                    source: 'host://policy/respondent-ui-policy',
+                    document: {
+                        $formspecUiGraphPolicy: '0.1',
+                        version: '1.0.0',
+                        targetSurface: {
+                            url: 'https://example.gov/apps/intake/surfaces/respondent',
+                        },
+                        routePolicies: [{
+                            routeId: 'review',
+                            a11y: { landmark: 'main' },
+                        }],
+                    },
+                }],
+            },
+            findItem: (k) => findItemByPath(items, k),
+        }));
+
+        expect(node.uiGraphRoutePolicy).toEqual({
+            schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+            source: 'host://policy/respondent-ui-policy',
+            targetSurface: {
+                url: 'https://example.gov/apps/intake/surfaces/respondent',
+            },
+            routeId: 'review',
+            a11y: { landmark: 'main' },
+        });
+        const grid = node.children[0].children[0];
+        expect(grid.children[0].uiGraphRoutePolicy).toBeUndefined();
+        expect(grid.children[0].children[0].uiGraphRoutePolicy).toBeUndefined();
+        expect(grid.children[1].uiGraphRoutePolicy).toBeUndefined();
+        expect(grid.children[1].children[0].uiGraphRoutePolicy).toBeUndefined();
     });
 
     it('resolves scoped items by full path, not leaf key', () => {

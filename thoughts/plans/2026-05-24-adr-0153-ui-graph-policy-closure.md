@@ -38,9 +38,17 @@ This row spans:
 - Raw Theme token-key source shape, exactly-one loaded Theme evidence, and
   widget-slot category-prefix evidence are pinned for executable
   token-reference/category diagnostics.
+- `@formspec-org/layout` now has the first projection-only non-validator
+  consumer: `PlanContext.hostEvidence.uiGraphPolicies[]` accepts generated
+  `UiGraphPolicyDocument` host evidence and emits inert
+  `LayoutNode.uiGraphRoutePolicy` metadata for the matching target Surface URL
+  and route id. The projection copies route `a11y` and `responsive` metadata
+  only; it does not copy hidden Definition policy, validate evidence, fetch
+  policies, discover App Manifest slots, mutate layout order, set ARIA, or block
+  drafts/actions.
 - Registry token-category contribution compatibility, runtime hidden-state,
-  Studio, projection, consumer, and optional future App Manifest slot work
-  remains open.
+  Studio/authoring feedback, renderer/runtime consumers, broader consumer
+  conformance, and optional future App Manifest slot work remain open.
 
 ## Phase Order
 
@@ -75,6 +83,11 @@ This row spans:
   exactly-one loaded Theme evidence and exact accepted-prefix-plus-dot matching.
   Registry `token-category` contribution compatibility remains deferred until
   ModuleResolver exposes normalized admitted category evidence.
+- 2026-05-26: External architecture review narrowed the first consumer slice to
+  projection only. Studio editor and renderer targets would cross authoring or
+  runtime ownership too early. The accepted slice is a pure
+  `@formspec-org/layout` read of `hostEvidence.uiGraphPolicies[]` that annotates
+  route projection output without becoming a validator or runtime gate.
 
 ## Closure Evidence
 
@@ -105,8 +118,12 @@ Current partial evidence:
 - `packages/formspec-app-graph/tests/ui-graph-policy-hidden-definition-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-theme-conformance.test.ts`
 - `packages/formspec-app-graph/tests/ui-graph-policy-conformance.test.ts`
+- `packages/formspec-layout/src/types.ts`
+- `packages/formspec-layout/src/planner-component-tree.ts`
+- `packages/formspec-layout/tests/planner.test.ts`
 - `thoughts/archive/plans/2026-05-25-adr-0153-ui-graph-policy-theme-token-diagnostics-partial.md`
 
 Closure still requires Registry token-category contribution compatibility,
-runtime hidden-state behavior, Studio/authoring feedback, consumer conformance,
-optional App Manifest slot decision, and final rollup gate transition.
+runtime hidden-state behavior, Studio/authoring feedback, renderer/runtime
+consumers, broader consumer conformance, optional App Manifest slot decision,
+and final rollup gate transition.
