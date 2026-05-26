@@ -4,7 +4,9 @@
 **Row:** Shared graph primitives
 **Status:** Partial. Lint and server report consumption landed; reusable TS
 producer helper landed; MCP product-host producer and HTTP caller seam landed;
-live server-publish route integration remains open.
+live server-publish route proof landed. Broader validator-owned cross-artifact
+checks, remaining module-consuming graph semantics, and downstream Studio /
+runtime / projection consumer reuse remain open.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -75,6 +77,21 @@ fine-grained authorization.
 - 2026-05-26 Kant delta post-review `019e63a0-f71f-7dc1-9d3b-14e9504406b1`
   returned APPROVE with no findings for the completed-phase gate. It did not run
   tests.
+- 2026-05-26 Kant pre-review `019e62ec-e71d-7761-ba8f-56d9c3cc37f2`
+  returned APPROVE for the live server-route proof: the Playwright helper
+  still captures the request body, but then executes the real
+  `formspec-server` publish route through `request.fetch`; the mutated
+  error-bearing report proves the route consumes AppGraph admission evidence.
+  The review accepted the sibling `formspec-studio` source import because it is
+  test support only and keeps the production proof on the HTTP route.
+- 2026-05-26 Hypatia code review `019e62ed-10bb-78b0-9e67-e2bde8baf746`
+  found one HIGH false-positive risk: the live-route proof used a no-op schema
+  validator and masked that the MCP kernel App Manifest projection omitted the
+  schema-required `version` and emitted null optional fields. Remediation
+  replaced the no-op validator with Ajv over the canonical App Manifest,
+  Definition, and Surface schemas, injected the StudioCore source kernel into
+  the test MCP facade to avoid stale ignored `dist`, and fixed
+  `readAppManifest()` to project a schema-shaped manifest after `createBundle`.
 
 ## Work Phases
 
@@ -172,6 +189,28 @@ fine-grained authorization.
 - [x] Add tests for canonical route/body submission, stale report stripping,
   local fail-closed behavior, and server rejection code mapping.
 
+### Phase 9 - Live Server Publish Route Proof
+
+- [x] Add `formspec-server` Playwright HTTP coverage for
+  `FormsMcp.publishFormVersionWithAppGraphReport()` against the live
+  `/forms/{form_id}/versions/publish` route.
+- [x] Compose the App Manifest, publishable Surface route, and slot through the
+  MCP kernel so the produced report comes from the shared
+  `produceAppGraphValidationReport()` path instead of a hand-built test body.
+- [x] Prove stale caller-supplied report evidence is stripped before HTTP.
+- [x] Run real JSON Schema validation for the helper-produced App Manifest,
+  Definition, and Surface handles against the canonical Formspec schemas.
+- [x] Inject the StudioCore source kernel into the MCP test facade so the proof
+  does not depend on stale ignored package `dist/` output.
+- [x] Assert the live route persists the published runtime form and version
+  view.
+- [x] Assert a mutated error-bearing `AppGraphValidationReport` is rejected by
+  the same live route while preserving the AppGraph diagnostic code in the
+  conflict detail.
+- [x] Keep `formspec-server` a report consumer only: the test imports the
+  sibling MCP source in test support, but the server route still receives a
+  completed report and does not run or port TypeScript graph kernels.
+
 ## Deviations
 
 - 2026-05-25: The first implementation used a direct out-of-crate
@@ -207,6 +246,15 @@ fine-grained authorization.
   stubbed fetch, not live server-route integration. It proves the trusted caller
   can produce a report and submit the exact server command shape, but does not
   prove deployed host auth, transport, or `formspec-server` execution.
+- 2026-05-26: The live route proof imports sibling `formspec-studio` MCP and
+  StudioCore source from `formspec-server` Playwright support to avoid depending
+  on ignored package `dist/` output. That is acceptable for this stack-level
+  integration test because the production server is still exercised only
+  through HTTP. It is deliberately not a standalone `formspec-server` package
+  proof; the seam under test crosses the sibling MCP producer and server route.
+- 2026-05-26: The first live route proof used a permissive schema-validator
+  stub. Code review rejected that as a false-positive risk; the proof now runs
+  Ajv over the canonical App Manifest, Definition, and Surface schemas.
 
 ## Closure Evidence
 
@@ -254,6 +302,25 @@ Partial evidence landed:
   canonical server route submission with a produced report, strips stale caller
   report evidence, fails closed before HTTP when the report has errors or lacks
   required completed phases, and maps server conflict rejection to `CONFLICT`.
+- Live server-route proof:
+  `formspec-server/tests/e2e-http/support/app-graph-publish.ts` composes the
+  MCP App Manifest and publishable Surface route, produces the shared AppGraph
+  report with real schema validation, strips stale report evidence, and posts
+  to the real `formspec-server` route through Playwright `request.fetch`.
+- Live server-route coverage:
+  `formspec-server/tests/e2e-http/forms.spec.ts` test
+  `Trusted AppGraph producer publishes through the live server route` asserts
+  the helper-produced report reaches `/forms/{form_id}/versions/publish`, the
+  runtime form/version are persisted, and a mutated error-bearing report is
+  rejected by the same route with the AppGraph diagnostic code preserved.
+- StudioCore manifest projection:
+  `formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts`
+  now includes the schema-required App Manifest `version` after `createBundle`
+  and omits absent optional prose fields instead of emitting nulls.
+- MCP test seam:
+  `formspec-studio/packages/formspec-mcp/src/product-verbs.ts` accepts an
+  injected `StudioCoreKernel`, letting the stack-level server proof exercise the
+  current source kernel instead of stale ignored `dist` output.
 - Verification: `cargo nextest run -p formspec-lint` passed 434/434 tests after
   schema mirror sync.
 - Verification: `cargo nextest run -p formspec-server app_graph_report_admission`;
@@ -272,11 +339,23 @@ Partial evidence landed:
   `npm run test --workspace @formspec-org/mcp -- app-graph-publish.test.ts product-verbs.test.ts`;
   `npm run test --workspace @formspec-org/mcp` (402 tests);
   `npm run build --workspace @formspec-org/mcp`.
+- Verification:
+  `npm run test:e2e -- tests/e2e-http/forms.spec.ts --grep "Trusted AppGraph producer publishes through the live server route"`.
+- Verification:
+  `npm run test:e2e -- tests/e2e-http/forms.spec.ts --reporter=list`.
+- Verification:
+  `npm run test:e2e -- tests/e2e-http/traceability-coverage.spec.ts tests/e2e-http/registry-coverage.spec.ts tests/e2e-http/journeys-coverage.spec.ts --reporter=list`.
+- Verification:
+  `npm run test --workspace @formspec-org/studio-core -- tests/kernel/proposal-manager-facade.test.ts`.
+- Verification:
+  `npm run test --workspace @formspec-org/mcp -- product-verbs.test.ts app-graph-publish.test.ts`.
+- Verification:
+  `npm run build --workspace @formspec-org/studio-core && npm run build --workspace @formspec-org/mcp`.
 
 Still open:
 
-- A deployed trusted server-publish/BFF caller has not yet executed the real
-  `formspec-server` route with the helper-produced report.
+- Broader validator-owned cross-artifact checks and remaining module-consuming
+  graph semantics remain open before Shared graph primitives can close.
 - Studio, runtime, and projection consumers do not yet consume the shared
   validator report where applicable outside the MCP product-host seams.
 - Lint does not load an App Manifest graph or run `@formspec-org/app-graph`.
