@@ -3,8 +3,8 @@
 **Date:** 2026-05-26
 **Row:** ADR 0153 gate 7 Runtime ownership
 **Status:** Partial; prose ownership contract, source conformance pins,
-browser/live production-consumer checkpoint, selected Definition binding, and
-ambiguous-route rejection, and implicit route-transition guard landed; explicit
+browser/live production-consumer checkpoint, selected Definition binding,
+ambiguous-route rejection, and selected-route URL guard landed; explicit
 route-transition and route-param selected Response coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
@@ -56,9 +56,9 @@ production contract separates four owners:
 - [x] Add selected root `?form=` Definition binding coverage and fail-closed
   duplicate-`form` route coverage without treating it as selected Response
   closure.
-- [x] Add implicit route-transition guard proving completed/denied Response
-  Action ledger work does not mutate the selected route URL or infer a Surface
-  transition.
+- [x] Add selected-route URL guard proving completed/denied Response Action
+  ledger work does not mutate the selected route URL after append completion or
+  capability denial.
 - [ ] Add explicit route-transition coverage for the production runtime host.
 - [ ] Add route-param selected Response instance coverage.
 
@@ -92,9 +92,10 @@ Response Action work. The follow-on selected-Definition checkpoint proves
 draft/submit, capability, and append work, while duplicate `form` parameters
 render a boot error before any server runtime state is created. The
 route-transition guard checkpoint proves completed and denied Response Action
-ledger work leaves the selected runtime route URL unchanged and does not infer a
-Surface transition. The row remains Partial until explicit route-transition
-router behavior and route-param selected Response instances are covered.
+ledger work leaves the selected runtime route URL unchanged after append
+completion or capability denial. The row remains Partial until explicit
+route-transition router behavior and route-param selected Response instances
+are covered.
 
 ## Closure Evidence
 
@@ -120,7 +121,7 @@ Partial evidence landed:
   `../formspec-web/tests/app/status-boot-narrowing.test.ts`;
   `../formspec-web/tests/app/respondent-runtime.test.tsx`;
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
-- Implicit route-transition guard pin:
+- Selected-route URL guard pin:
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification:
   `cd ../formspec-web && npm run typecheck`;

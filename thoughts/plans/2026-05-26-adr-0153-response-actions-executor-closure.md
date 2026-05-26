@@ -87,8 +87,8 @@ deployable host/BFF capability provider.
   but it still uses the Playwright-routed trusted/BFF and managed-scope harness.
 - Runtime-ownership route guard extension: the same browser/live proof now
   verifies completed and denied Response Action ledger work leaves the selected
-  route URL unchanged and does not infer a Surface transition. This is a gate 7
-  guard, not deployable BFF closure and not selected Response coverage.
+  route URL unchanged after append completion or capability denial. This is a
+  gate 7 guard, not deployable BFF closure and not selected Response coverage.
 
 ## Closing Observation
 

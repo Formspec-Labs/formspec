@@ -228,7 +228,8 @@ path is:
   runtime-ownership slices landed ambiguous multi-form-route rejection as
   selected Definition binding evidence, not selected Response closure, and an
   implicit route guard proving completed or denied Response Action ledger work
-  does not mutate the selected route URL.
+  does not mutate the selected route URL after append completion or capability
+  denial.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
