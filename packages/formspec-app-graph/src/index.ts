@@ -54,6 +54,9 @@ export {
   type ModuleResolverSupportInput,
 } from './module-resolver.js';
 export {
+  validateComponentGraphContexts,
+} from './component-graph-context.js';
+export {
   validateComponentRouteTargets,
 } from './component-routes.js';
 export {

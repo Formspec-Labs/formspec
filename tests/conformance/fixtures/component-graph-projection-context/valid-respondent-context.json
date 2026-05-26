@@ -1,0 +1,12 @@
+{
+  "component": {
+    "handle": "respondent",
+    "url": "https://example.gov/apps/intake/components/respondent",
+    "version": "1.0.0"
+  },
+  "surface": {
+    "url": "https://example.gov/apps/intake/surfaces/respondent",
+    "version": "1.0.0"
+  },
+  "route": "apply"
+}

@@ -150,7 +150,7 @@ export interface ArtifactRef {
  */
 export interface EvidenceSchemaResult {
   /**
-   * Request evidence slot, such as hostEvidence.uiGraphPolicies[0]. This is diagnostic evidence only, not an App Manifest slot.
+   * Request evidence slot, such as hostEvidence.uiGraphPolicies[0] or hostEvidence.componentGraphContexts[0]. This is diagnostic evidence only, not an App Manifest slot.
    */
   evidenceSlot: string;
   schemaId: string;

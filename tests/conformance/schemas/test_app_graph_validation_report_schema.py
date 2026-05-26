@@ -175,6 +175,21 @@ def test_evidence_results_do_not_require_artifact_kind() -> None:
     _validator().validate(report)
 
 
+def test_component_graph_context_evidence_result_is_allowed() -> None:
+    report = _valid_report()
+    report["evidenceResults"] = [
+        {
+            "evidenceSlot": "hostEvidence.componentGraphContexts[0]",
+            "schemaId": "https://formspec.org/schemas/componentGraphProjectionContext/0.1",
+            "source": "host://component-graph/respondent",
+            "status": "completed",
+            "ok": True,
+            "diagnostics": [],
+        }
+    ]
+    _validator().validate(report)
+
+
 def test_evidence_result_diagnostics_use_evidence_source_pointer() -> None:
     report = _valid_report()
     report["evidenceResults"] = [

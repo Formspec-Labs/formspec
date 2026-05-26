@@ -29,10 +29,12 @@ import {
   normalizeDiagnostics,
 } from './report.js';
 import { validateComponentRouteTargets } from './component-routes.js';
+import { validateComponentGraphContexts } from './component-graph-context.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
 import { validateUiGraphPolicy } from './ui-graph-policy.js';
 
 const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
+const COMPONENT_GRAPH_CONTEXT_SCHEMA_ID = 'https://formspec.org/schemas/componentGraphProjectionContext/0.1';
 
 export function artifactHandlesFor(request: AppGraphValidationRequest): ResolvedArtifactHandle[] {
   const siblings = Object.values(request.artifacts ?? {}).flatMap((handles) => handles ?? []);
@@ -227,6 +229,23 @@ function uiGraphPolicyEvidence(request: AppGraphValidationRequest): EvidenceSche
   }));
 }
 
+function componentGraphContextEvidence(request: AppGraphValidationRequest): EvidenceSchemaValidatorInput[] {
+  return (request.hostEvidence?.componentGraphContexts ?? []).map((evidence, index) => ({
+    evidenceSlot: `hostEvidence.componentGraphContexts[${index}]`,
+    evidenceKind: 'componentGraphContext',
+    schemaId: evidence.schemaId,
+    source: evidence.source,
+    document: evidence.document,
+  }));
+}
+
+function hostEvidenceFor(request: AppGraphValidationRequest): EvidenceSchemaValidatorInput[] {
+  return [
+    ...uiGraphPolicyEvidence(request),
+    ...componentGraphContextEvidence(request),
+  ];
+}
+
 function schemaValidatorForEvidence(
   request: AppGraphValidationRequest,
   evidence: EvidenceSchemaValidatorInput,
@@ -238,18 +257,24 @@ function schemaValidatorForEvidence(
 }
 
 function evidenceResultsFor(request: AppGraphValidationRequest): AppGraphEvidenceSchemaResult[] {
-  return uiGraphPolicyEvidence(request).map((evidence) => {
+  return hostEvidenceFor(request).map((evidence) => {
     if (evidence.document === undefined) {
       return evidenceSchemaNotRunResult(evidence, 'missing-document');
     }
-    if (evidence.schemaId !== UI_GRAPH_POLICY_SCHEMA_ID) {
+    const expectedSchemaId = evidence.evidenceKind === 'uiGraphPolicy'
+      ? UI_GRAPH_POLICY_SCHEMA_ID
+      : COMPONENT_GRAPH_CONTEXT_SCHEMA_ID;
+    const label = evidence.evidenceKind === 'uiGraphPolicy'
+      ? 'UI Graph Policy'
+      : 'Component graph context';
+    if (evidence.schemaId !== expectedSchemaId) {
       return normalizeEvidenceSchemaOutcome(evidence, {
         ok: false,
         issues: [{
           code: 'APP-GRAPH-EVIDENCE-SCHEMA-ID',
           keyword: 'const',
           path: '/schemaId',
-          message: `UI Graph Policy host evidence must use schemaId '${UI_GRAPH_POLICY_SCHEMA_ID}'.`,
+          message: `${label} host evidence must use schemaId '${expectedSchemaId}'.`,
         }],
       });
     }
@@ -270,6 +295,7 @@ function runCrossArtifactValidators(
 ): AppGraphDiagnostic[] {
   const allValidators = [
     validateComponentRouteTargets,
+    validateComponentGraphContexts,
     validateSurfaceExperienceUnits,
     validateUiGraphPolicy,
     ...(validators ?? []),

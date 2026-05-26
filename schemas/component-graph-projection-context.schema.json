@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/componentGraphProjectionContext/0.1",
+  "title": "Formspec Component Graph Projection Context",
+  "description": "Host-evidence source contract for a Component graph projection context. The context lets projection consumers emit inert graph identity metadata after AppGraphValidator proves the Component membership, Component targetSurfaceRoutes entry, Surface identity, and route coverage. It is not an App Manifest artifact, not a renderer instruction, not runtime route state, not authorization, and not source-path identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["component", "surface", "route"],
+  "properties": {
+    "component": {
+      "$ref": "#/$defs/ComponentMembershipRef",
+      "description": "App Manifest Component membership selected for projection identity.",
+      "examples": [
+        {
+          "handle": "respondent",
+          "url": "https://example.gov/apps/intake/components/respondent",
+          "version": "1.0.0"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Component membership identity for graph projection proof"
+      }
+    },
+    "surface": {
+      "$ref": "#/$defs/SurfaceRef",
+      "description": "Surface identity whose route anchors the projection context.",
+      "examples": [
+        {
+          "url": "https://example.gov/apps/intake/surfaces/respondent",
+          "version": "1.0.0"
+        }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "Surface identity for route-scoped Component projection proof"
+      }
+    },
+    "route": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Surface routes[].id active for the projection context. AppGraphValidator proves the loaded Component declares this route in targetSurfaceRoutes[] before consumers trust the context.",
+      "examples": ["apply"],
+      "x-lm": {
+        "critical": true,
+        "intent": "Route id checked against loaded Surface routes and Component targetSurfaceRoutes"
+      }
+    }
+  },
+  "$defs": {
+    "ComponentMembershipRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handle"],
+      "properties": {
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "description": "App Manifest components[].handle, or the compatibility handle default for singular component.",
+          "examples": ["respondent"]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional Component URL. When present, AppGraphValidator compares it to the App Manifest membership and loaded Component handle; source paths and filenames are never identity.",
+          "examples": ["https://example.gov/apps/intake/components/respondent"]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional Component version. Exact SemVer values are compared to the App Manifest membership and loaded Component handle when both sides pin exact SemVer.",
+          "examples": ["1.0.0"]
+        }
+      }
+    },
+    "SurfaceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Surface URL. AppGraphValidator resolves this against App Manifest surfaces[] and one loaded Surface handle.",
+          "examples": ["https://example.gov/apps/intake/surfaces/respondent"]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional Surface version. Exact SemVer values are compared to App Manifest and loaded Surface handle versions when both sides pin exact SemVer.",
+          "examples": ["1.0.0"]
+        }
+      }
+    }
+  }
+}

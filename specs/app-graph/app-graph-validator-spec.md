@@ -128,22 +128,22 @@ projection contexts. This collection is request evidence only. It is not an App
 Manifest sibling slot, not an `ArtifactResolver` artifact kind, and not an
 independent Component, Surface, route, or authorization identity source.
 
-The future structural schema for this collection is the Component graph
-projection context shape: Component membership handle plus optional Component
-URL/version, Surface URL plus optional version, and route id. It exists to prove
-that a runtime or projection consumer's `componentGraph` sidecar corresponds to
-a validated graph context; it does not make the browser, renderer, or layout
-planner the validation authority.
+The structural schema for this collection is
+`schemas/component-graph-projection-context.schema.json`
+(`https://formspec.org/schemas/componentGraphProjectionContext/0.1`): Component
+membership handle plus optional Component URL/version, Surface URL plus optional
+version, and route id. It exists to prove that a runtime or projection
+consumer's `componentGraph` sidecar corresponds to a validated graph context; it
+does not make the browser, renderer, or layout planner the validation authority.
 
-When this host-evidence collection is implemented, proof MUST be tied to an
-explicit completed `evidenceResults[]` entry whose `evidenceSlot` is
-`hostEvidence.componentGraphContexts[N]` and whose `schemaId` and `source`
-match the supplied host-evidence entry. A generic
+Proof MUST be tied to an explicit completed `evidenceResults[]` entry whose
+`evidenceSlot` is `hostEvidence.componentGraphContexts[N]` and whose `schemaId`
+and `source` match the supplied host-evidence entry. A generic
 `AppGraphValidationReport.ok === true` is never sufficient proof that a
 Component graph sidecar was validated.
 
-Cross-artifact validation for schema-valid Component graph context evidence MAY
-check:
+Cross-artifact validation for schema-valid Component graph context evidence
+MUST check:
 
 1. App Manifest Component membership handle existence.
 2. Component artifact URL/version compatibility for the membership handle.
@@ -157,18 +157,18 @@ active route, render Components, hydrate runtime state, suppress DOM metadata,
 execute Response Actions, infer hidden-state behavior, query TraceIndex, or
 decide fine-grained authorization.
 
-This specification does not define a request JSON Schema and does not require
-runtime hidden-state or consumer UI Graph Policy diagnostics in this slice. The
-shared kernel does include the Surface/route, Locale-owner, hidden Definition
+This slice defines the host-evidence schema and shared-kernel proof checks only.
+It does not require runtime hidden-state behavior, consumer metadata gating,
+production host graph loading, or consumer UI Graph Policy diagnostics. The
+shared kernel includes the Surface/route, Locale-owner, hidden Definition
 reference, Theme widgetRef, Theme token-slot, Theme token-reference/category,
 and custom token-category evidence UI Graph Policy semantic passes over
 schema-valid `hostEvidence.uiGraphPolicies[]`, loaded Surface handles, loaded
 Locale handles, loaded Definition handles, loaded Theme handles, and completed
-ModuleResolver evidence when a check depends on module
-admission, contribution ownership, or normalized widget token-slot evidence.
-The Component graph context proof boundary described above is prose contract in
-this revision; schema, fixture, shared-kernel, and production-consumer wiring
-land in later ADR 0153 §7 phases.
+ModuleResolver evidence when a check depends on module admission, contribution
+ownership, or normalized widget token-slot evidence. It also includes the
+Component graph context proof checks above. Production runtime consumer wiring
+lands in later ADR 0153 §7 phases.
 
 ### 2.2 Artifact Handle
 
@@ -228,7 +228,7 @@ data report, not an execution plan.
 | `ok` | yes | `true` only when no error-severity diagnostic exists in the report. |
 | `summary` | yes | Counts for artifacts, schema failures, schema-unvalidated artifacts, graph errors, warnings, infos, imported diagnostics, unsupported features, and skipped phases. `unvalidatedArtifacts` counts artifact schema results only; host-evidence not-run state is represented in `evidenceResults[]` and phase status. `importedDiagnostics` excludes native `app-graph-validator`, `schema-validator`, and `ui-graph-policy` diagnostics emitted by the shared kernel. |
 | `schemaResults` | yes | Per-loaded-artifact schema validation results, including schema ID, artifact source pointer, status, and schema diagnostics. This array is artifact-only. |
-| `evidenceResults` | yes | Per-host-evidence schema validation results, including evidence slot, schema ID, opaque source, status, and schema diagnostics. Entries MUST NOT carry `artifactKind`, `ref`, `identity`, or App Manifest slot identity. |
+| `evidenceResults` | yes | Per-host-evidence schema validation results, including evidence slot, schema ID, opaque source, status, and schema diagnostics. Entries MUST NOT carry `artifactKind`, `ref`, `identity`, or App Manifest slot identity. Current evidence slots are `hostEvidence.uiGraphPolicies[N]` and `hostEvidence.componentGraphContexts[N]`. |
 | `diagnostics` | yes | Unified diagnostics from native validator phases and imported resolver/module/surface-local phases. |
 | `phases` | yes | Ordered phase statuses with `completed`, `skipped`, or `not-run` status and skip reason when applicable. |
 | `support` | no | Optional echo of supported bundle versions, artifact kinds, schema versions, and feature flags used for the run. |

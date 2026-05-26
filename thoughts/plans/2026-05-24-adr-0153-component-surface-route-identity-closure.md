@@ -9,8 +9,9 @@ projection identity consumption are landed. Broader Studio/kernel operations
 now include explicit Component membership binding. The webcomponent renderer,
 React renderer, and `formspec-web` respondent runtime now consume
 host-supplied Component graph projection context as inert DOM metadata.
-Production runtime host graph loading and broader consumer-facing conformance
-remain open.
+AppGraphValidator now defines and checks `hostEvidence.componentGraphContexts[]`
+as the proof source for that sidecar. Production runtime host graph loading,
+runtime proof gating, and broader consumer-facing conformance remain open.
 Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
@@ -85,6 +86,14 @@ This plan tracks:
 - 2026-05-26: Goodall review
   `019e63ad-1162-7a92-904c-8977d7ad165d` found no BLOCKER/HIGH/MEDIUM/LOW
   findings in the prose-only proof-source diff.
+- 2026-05-26: Kant follow-up review found one HIGH constraint before
+  implementation: Component graph context proof must also prove the loaded
+  Component declares the same Surface/route in `targetSurfaceRoutes[]`.
+  Component membership and route existence alone are insufficient proof.
+- 2026-05-26: Hegel and Goodall implementation reviews approved a
+  `formspec`-only schema/shared-kernel proof slice with constraints: exclude
+  `formspec-web` runtime gating, require completed evidence source/schema
+  matching before proof checks run, and keep runtime trust behavior open.
 
 ## Ordered Work
 
@@ -155,6 +164,12 @@ This plan tracks:
     Component document / Component graph sidecars through optional
     `DefinitionSource` hooks before passing them into the React respondent
     runtime.
+  - [x] `hostEvidence.componentGraphContexts[]` defines explicit
+    AppGraphValidator proof for the projection sidecar. The shared validator
+    checks Component membership, loaded Component handle, loaded Surface handle,
+    loaded Surface route, and the loaded Component `targetSurfaceRoutes[]`
+    declaration as a prerequisite for future runtime consumers to treat
+    `componentGraph` metadata as validated.
   - [ ] Runtime hosts still need route-backed app-graph wiring that supplies the
     validated projection context from a real loaded graph.
 - [x] Definition id alias matching is rejected with evidence.
@@ -248,6 +263,11 @@ This plan tracks:
   AppGraphValidator spec. It reserves `hostEvidence.componentGraphContexts[]`
   as host request evidence and leaves schema, fixtures, shared-kernel checks,
   and runtime gating to later ADR 0153 §7 phases.
+- 2026-05-26: The implemented Component graph host-evidence source is still
+  host-supplied evidence. It proves the sidecar against a loaded graph; it does
+  not make the browser load App Manifest, Component, or Surface artifacts, and
+  it does not promote Runtime Plan, TraceIndex, route behavior, or ADR 0152
+  authorization.
 
 ## Closing Observation
 
@@ -293,6 +313,15 @@ Partial evidence landed:
   `hostEvidence.componentGraphContexts[]` as explicit host request evidence,
   not an App Manifest sibling, ArtifactResolver artifact, runtime behavior
   authority, TraceIndex input, or ADR 0152 authorization source.
+- AppGraph proof source:
+  `schemas/component-graph-projection-context.schema.json`,
+  `schemas/app-graph-validation-report.schema.json`,
+  `packages/formspec-app-graph/src/component-graph-context.ts`,
+  `packages/formspec-app-graph/src/validator.ts`, and
+  `packages/formspec-layout/src/types.ts` define
+  `hostEvidence.componentGraphContexts[]`, evidence-result proof slots, and the
+  Component membership / loaded Component / loaded Surface / route /
+  `targetSurfaceRoutes[]` checks.
 - Renderer consumer: `packages/formspec-webcomponent/src/element.ts`,
   `packages/formspec-webcomponent/src/rendering/emit-node.ts`, and
   `packages/formspec-webcomponent/src/hub-types.ts` consume host-supplied
@@ -308,7 +337,8 @@ Partial evidence landed:
   `formspec-web/src/app/RespondentRuntime.tsx` consume host-supplied
   Component graph sidecars and emit inert DOM identity metadata; the public-web
   `formspec-web/src/app/attachment-upload-control.tsx` FileUpload override
-  uses the same helper on its primary upload control.
+  uses the same helper on its primary upload control. Runtime proof-gated
+  suppression or trust behavior remains a later public-web checkpoint.
 - Public runtime source seam:
   `formspec-web/src/ports/definition-source.ts`,
   `formspec-web/src/adapters/http/definition-source.ts`, and
@@ -317,6 +347,8 @@ Partial evidence landed:
 - Fixtures:
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
   and
+  `tests/conformance/fixtures/component-graph-projection-context/valid-respondent-context.json`;
+  plus
   `tests/conformance/fixtures/component-reference-fields/x-generation-graph-wide-provenance.json`.
 - Tests:
   `packages/formspec-app-graph/tests/component-route-validator.test.ts`,
@@ -328,6 +360,9 @@ Partial evidence landed:
   `definitionRef` URL shape;
   `formspec-studio/packages/formspec-studio-core/tests/kernel/proposal-manager-facade.test.ts`;
   `packages/formspec-layout/tests/planner.test.ts`.
+- Component graph proof tests:
+  `packages/formspec-app-graph/tests/component-graph-context.test.ts` and
+  `tests/conformance/schemas/test_component_graph_projection_context_schema.py`.
 - Renderer tests:
   `packages/formspec-webcomponent/tests/render-lifecycle.test.ts`.
 - React / public runtime tests:
@@ -340,6 +375,15 @@ Partial evidence landed:
   `git diff --check`;
   `git -C formspec diff --check`;
   `node scripts/generate-spec-artifacts.mjs --check`.
+- Verification for component graph proof implementation:
+  `npm run --workspace @formspec-org/app-graph test -- component-graph-context`;
+  `npm run --workspace @formspec-org/app-graph test`;
+  `npm run --workspace @formspec-org/app-graph build`;
+  `npm run --workspace @formspec-org/types build`;
+  `npm run --workspace @formspec-org/layout build`;
+  `uv run pytest tests/conformance/schemas/test_component_graph_projection_context_schema.py tests/conformance/schemas/test_app_graph_validation_report_schema.py`;
+  `node scripts/generate-spec-artifacts.mjs --check`;
+  `git diff --check`.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;
@@ -365,6 +409,7 @@ Still open:
 
 - Production runtime host graph loading that supplies validated Component graph
   context from a real loaded graph, rather than a test/stub sidecar.
-- Explicit component-graph host-evidence source/proof shape for validated
-  projection context. Do not use generic `report.ok` as proof.
+- Live trusted host/BFF route that produces the Component graph projection
+  context from actual loaded App Manifest / Component / Surface evidence and
+  supplies the matching completed AppGraph report.
 - Broader consumer-facing copy/move conformance.

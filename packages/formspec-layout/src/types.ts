@@ -2,6 +2,7 @@
 import type {
     ComponentNodeIdentityRef,
     ComponentDocument,
+    ComponentGraphProjectionContext,
     FormDefinition,
     FormItem,
     AppGraphValidationReport,
@@ -18,12 +19,7 @@ export type NodeIdGenerator = (prefix: string) => string;
 /** Component document tree node — runtime shape is wider than generated `AnyComponent`. */
 export type ComponentTreeNode = Record<string, unknown> & { component: string };
 
-/** Graph context used by app-graph-aware projection consumers. */
-export interface ComponentGraphProjectionContext {
-    component: ComponentNodeIdentityRef['component'];
-    surface: ComponentNodeIdentityRef['surface'];
-    route: string;
-}
+export type { ComponentGraphProjectionContext };
 
 /** Host-supplied UI Graph Policy evidence shaped like AppGraphValidator request evidence. */
 export interface UiGraphPolicyProjectionEvidence {
@@ -32,12 +28,21 @@ export interface UiGraphPolicyProjectionEvidence {
     document: UiGraphPolicyDocument;
 }
 
+/** Host-supplied Component graph projection context evidence shaped like AppGraphValidator request evidence. */
+export interface ComponentGraphProjectionEvidence {
+    schemaId: string;
+    source: string;
+    document: ComponentGraphProjectionContext;
+}
+
 /** Projection-only host evidence. Layout does not fetch, validate, or discover these documents. */
 export interface LayoutHostEvidence {
     /** Completed AppGraphValidator report for the supplied host evidence. */
     appGraphReport?: AppGraphValidationReport;
 
     uiGraphPolicies?: UiGraphPolicyProjectionEvidence[];
+
+    componentGraphContexts?: ComponentGraphProjectionEvidence[];
 }
 
 /** Inert route-policy metadata copied from a matching UI Graph Policy document. */

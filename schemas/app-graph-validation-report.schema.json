@@ -129,7 +129,7 @@
       "properties": {
         "artifactSlot": {
           "type": "string",
-          "pattern": "^hostEvidence\\.uiGraphPolicies\\[[0-9]+\\]$"
+          "pattern": "^hostEvidence\\.(uiGraphPolicies|componentGraphContexts)\\[[0-9]+\\]$"
         },
         "source": {
           "type": "string",
@@ -251,8 +251,8 @@
         "evidenceSlot": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^hostEvidence\\.uiGraphPolicies\\[[0-9]+\\]$",
-          "description": "Request evidence slot, such as hostEvidence.uiGraphPolicies[0]. This is diagnostic evidence only, not an App Manifest slot."
+          "pattern": "^hostEvidence\\.(uiGraphPolicies|componentGraphContexts)\\[[0-9]+\\]$",
+          "description": "Request evidence slot, such as hostEvidence.uiGraphPolicies[0] or hostEvidence.componentGraphContexts[0]. This is diagnostic evidence only, not an App Manifest slot."
         },
         "schemaId": {
           "type": "string",

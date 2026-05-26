@@ -125,9 +125,11 @@ export interface SchemaValidatorInput<TDocument = unknown> {
   schemaId?: string;
 }
 
+export type AppGraphEvidenceKind = 'uiGraphPolicy' | 'componentGraphContext';
+
 export interface EvidenceSchemaValidatorInput<TDocument = unknown> {
   evidenceSlot: string;
-  evidenceKind: 'uiGraphPolicy';
+  evidenceKind: AppGraphEvidenceKind;
   schemaId: string;
   source: string;
   document: TDocument;
@@ -194,6 +196,7 @@ export interface AppGraphHostEvidenceDocument<TDocument = unknown> {
 
 export interface AppGraphHostEvidence {
   uiGraphPolicies?: AppGraphHostEvidenceDocument[];
+  componentGraphContexts?: AppGraphHostEvidenceDocument[];
 }
 
 export interface AppGraphEvidenceSchemaResult {
