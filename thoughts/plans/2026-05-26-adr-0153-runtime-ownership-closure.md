@@ -4,8 +4,8 @@
 **Row:** ADR 0153 gate 7 Runtime ownership
 **Status:** Partial; prose ownership contract, source conformance pins,
 browser/live production-consumer checkpoint, selected Definition binding, and
-ambiguous-route rejection landed; route-transition and route-param selected
-Response coverage remain open
+ambiguous-route rejection, and implicit route-transition guard landed; explicit
+route-transition and route-param selected Response coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§5, 7, 9, Surface spec, Core Response spec, Response Actions spec,
@@ -56,7 +56,10 @@ production contract separates four owners:
 - [x] Add selected root `?form=` Definition binding coverage and fail-closed
   duplicate-`form` route coverage without treating it as selected Response
   closure.
-- [ ] Add route-transition coverage for the production runtime host.
+- [x] Add implicit route-transition guard proving completed/denied Response
+  Action ledger work does not mutate the selected route URL or infer a Surface
+  transition.
+- [ ] Add explicit route-transition coverage for the production runtime host.
 - [ ] Add route-param selected Response instance coverage.
 
 ## Deviations
@@ -87,9 +90,11 @@ server/Trellis substrate, and rejects a hidden active Definition before draft or
 Response Action work. The follow-on selected-Definition checkpoint proves
 `/?form=` selects the runtime Definition URL that owns anonymous session,
 draft/submit, capability, and append work, while duplicate `form` parameters
-render a boot error before any server runtime state is created. The row remains
-Partial until route transitions and route-param selected Response instances are
-covered.
+render a boot error before any server runtime state is created. The
+route-transition guard checkpoint proves completed and denied Response Action
+ledger work leaves the selected runtime route URL unchanged and does not infer a
+Surface transition. The row remains Partial until explicit route-transition
+router behavior and route-param selected Response instances are covered.
 
 ## Closure Evidence
 
@@ -115,16 +120,18 @@ Partial evidence landed:
   `../formspec-web/tests/app/status-boot-narrowing.test.ts`;
   `../formspec-web/tests/app/respondent-runtime.test.tsx`;
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
+- Implicit route-transition guard pin:
+  `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification:
   `cd ../formspec-web && npm run typecheck`;
   `cd ../formspec-web && npx eslint src/app/form-route.ts src/app/main-helpers.ts src/app/main.tsx src/composition/default.ts tests/app/form-route.test.ts tests/app/status-boot-narrowing.test.ts tests/app/respondent-runtime.test.tsx tests/e2e/response-action-ledger-live.spec.ts`;
   `cd ../formspec-web && npm run test -- tests/app/form-route.test.ts tests/app/status-boot-narrowing.test.ts tests/app/respondent-runtime.test.tsx`;
-  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts`;
-  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts`.
+  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts` (four tests skipped without live server URL);
+  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts` (four live tests passed).
 
 Still open:
 
-- Route-transition coverage in the production runtime host.
+- Explicit route-transition coverage in the production runtime host.
 - Route-param selected Response instance coverage; selected Definition binding
   alone is not Response instance ownership closure.
 - Deployable host/BFF capability provider if this evidence is used to close the

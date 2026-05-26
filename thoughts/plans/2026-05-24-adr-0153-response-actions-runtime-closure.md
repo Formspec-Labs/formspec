@@ -223,10 +223,12 @@ path is:
   production-consumer checkpoint. It uses host-supplied Component graph and UI
   Graph Policy evidence to render active route metadata and reject hidden active
   Definition evidence before draft or Response Action work. Gate 7 remains
-  Partial because route-transition and route-param selected Response coverage
-  remain open. The follow-on runtime-ownership slice landed ambiguous
-  multi-form-route rejection as selected Definition binding evidence, not
-  selected Response closure.
+  Partial because explicit Surface-router route-transition behavior and
+  route-param selected Response coverage remain open. The follow-on
+  runtime-ownership slices landed ambiguous multi-form-route rejection as
+  selected Definition binding evidence, not selected Response closure, and an
+  implicit route guard proving completed or denied Response Action ledger work
+  does not mutate the selected route URL.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence

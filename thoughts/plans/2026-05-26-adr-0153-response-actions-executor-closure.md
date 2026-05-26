@@ -85,6 +85,10 @@ deployable host/BFF capability provider.
   `RespondentRuntime`, emits route metadata, and proves hidden active Definition
   rejection before draft or Response Action work. This advances ADR 0153 gate 7,
   but it still uses the Playwright-routed trusted/BFF and managed-scope harness.
+- Runtime-ownership route guard extension: the same browser/live proof now
+  verifies completed and denied Response Action ledger work leaves the selected
+  route URL unchanged and does not infer a Surface transition. This is a gate 7
+  guard, not deployable BFF closure and not selected Response coverage.
 
 ## Closing Observation
 
@@ -119,8 +123,10 @@ Partial evidence after this slice:
   graph and UI Graph Policy evidence render active route metadata, hidden
   active Definition evidence rejects before draft, submit, capability, or append
   work, and the follow-on runtime-ownership slice rejects ambiguous multi-form
-  routes before server runtime state. Selected Response and route-transition
-  coverage remain open.
+  routes before server runtime state. The route guard also proves completed and
+  denied Response Action ledger work does not mutate the selected route URL.
+  Explicit Surface router transition coverage and selected Response coverage
+  remain open.
 - `trellis/scripts/check-http-api-schema.py` checks both admitted Formspec append literals from `trellis-service-client`.
 - Verification: `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`; `cargo nextest run -p formspec-server --test openapi_contract`; `python3.12 -m pytest scripts/test_check_http_api_schema.py -q`.
 - Verification: `npm run test:e2e -- response-action-ledger.spec.ts registry-coverage.spec.ts traceability-coverage.spec.ts journeys-coverage.spec.ts openapi.spec.ts`.
@@ -136,4 +142,5 @@ Still open:
 - Deployable host/BFF capability provider replacing the Playwright-routed
   trusted/BFF and managed-scope harness.
 - Remaining ADR 0153 gate 7 runtime ownership coverage for route transitions
-  and route-param selected Response instances.
+  owned by the explicit Surface router and route-param selected Response
+  instances.
