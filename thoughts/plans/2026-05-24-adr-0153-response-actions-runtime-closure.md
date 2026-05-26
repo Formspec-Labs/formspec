@@ -4,8 +4,9 @@
 **Row:** Response Actions executor / runtime
 **Status:** Partial; invocation engine, Studio Ledger bridge, server capability mint,
 public web respondent-host factory, and live server/Trellis respondent-invoker
-checkpoint landed; the single product/browser ActionButton path and broader
-runtime ownership checkpoint remain open
+checkpoint landed; the browser ActionButton live proof landed through a
+test-routed trusted/BFF capability boundary; deployable host/BFF wiring and the
+broader runtime ownership checkpoint remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§4, 6, 7, 9, Response Actions spec §§7, 11-12,
@@ -51,6 +52,14 @@ path is:
   Trellis-shaped anchored receipt, replays the exact same command through
   StudioCore's HTTP `LedgerPort`, and observes the same anchored ledger subset
   through `readLedgerStatus`.
+- `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts` now proves a
+  browser managed-single-cell live checkpoint: the public `RespondentRuntime`
+  loads production runtime config, injects the React submit `ActionButton`,
+  obtains a per-command capability through a test-routed trusted/BFF boundary,
+  posts the append command to actual `formspec-server` mint/append routes, and
+  asserts Trellis-shaped receipt evidence plus one anonymous session identity
+  and `ledgerScope` binding across session creation, drafts, submit, capability
+  mint, and ledger append.
 
 ## Review Checkpoints
 
@@ -67,6 +76,11 @@ path is:
   exact-command replay through live routes; do not claim a single
   product/browser ActionButton runtime path, passive Studio polling, or ADR 0153
   gate 7 closure.
+- 2026-05-26 browser-live checkpoint reviews: no residual BLOCKER/HIGH/MED
+  findings after absorption. Findings addressed before commit: add exact
+  request-count assertions, compare minted capability to append header, assert
+  browser-originated requests do not carry mint-authority HMAC, and align the
+  rollup table with the bounded deployable-BFF/runtime-ownership remainder.
 
 ## Ordered Work
 
@@ -137,11 +151,14 @@ path is:
   verifies Trellis-shaped receipt evidence, replays the exact web-produced
   command through StudioCore's HTTP `LedgerPort`, and proves
   `readLedgerStatus` records the same anchored ledger subset.
-- [ ] Close the remaining runtime-consumer checkpoint with a single
-  product/browser ActionButton path that drives actual server-side capability
-  minting plus server/Trellis append, or with broader runtime ownership wiring
-  that binds route, session, Response, and action state in one production
-  consumer.
+- [x] Add a browser managed-single-cell live proof that drives the public
+  `RespondentRuntime` React submit `ActionButton` through production runtime
+  config, a trusted/BFF capability provider, actual server-side capability
+  minting, actual server/Trellis append, and Trellis-shaped receipt assertions.
+- [ ] Replace the Playwright-routed trusted/BFF and managed-scope harness with
+  a deployable host/BFF capability provider, or close the broader runtime
+  ownership wiring that binds route, session, Response, and action state in one
+  production consumer.
 - [ ] Keep ADR 0153 gate 7 open until route state, session state, Response
   instance state, and invocation state are separately specified and tested.
 
@@ -186,6 +203,13 @@ path is:
   server/Trellis append plus Studio `readLedgerStatus` observation of the same
   anchored ledger subset. It is not passive Studio polling, and it is not yet a
   single browser ActionButton runtime path.
+- 2026-05-26: The browser managed-single-cell proof now drives the real public
+  `RespondentRuntime` React submit `ActionButton` against the live server mint
+  and append routes. It keeps mint HMAC material inside a Playwright-routed
+  trusted/BFF handler, asserts that browser-originated requests do not carry the
+  mint-authority header, and checks Trellis-shaped receipt evidence. This lands
+  the browser ActionButton live checkpoint, but it is not a deployable BFF and
+  does not close ADR 0153 gate 7 runtime ownership.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -237,6 +261,8 @@ Partial for ADR 0153 gate 6b.
 - Managed-single-cell live respondent-invoker proof:
   `../formspec-server/tests/e2e-http/response-action-ledger.spec.ts` and
   `../formspec-server/tests/e2e-http/support/response-action-respondent.ts`.
+- Browser managed-single-cell live ActionButton proof:
+  `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification:
   `npm run --workspace @formspec-org/studio-core build`;
   `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger.test.ts`;
@@ -255,10 +281,14 @@ Partial for ADR 0153 gate 6b.
 - Verification:
   `npm run test:e2e:live -- tests/e2e-http/response-action-ledger.spec.ts`;
   `npm run test:e2e -- tests/e2e-http/response-action-ledger.spec.ts`.
+- Verification:
+  `npm --prefix ../formspec-web run typecheck`;
+  `cd ../formspec-web && npx eslint tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts`.
 
-Not closed yet: a single product/browser ActionButton runtime path must hit
-actual `formspec-server`/Trellis mint+append routes and Studio
-`readLedgerStatus` must observe the same anchored receipt on that same path, or
-broader runtime ownership must bind route, session, Response, and action state in
-one production consumer. ADR 0153 gate 7 runtime ownership spec/test closure
-remains separate.
+Not closed yet: the browser proof still uses Playwright route interception as
+the trusted/BFF capability provider and managed-scope injector. Closure requires
+a deployable host/BFF capability provider or broader runtime ownership wiring
+that binds route, session, Response, and action state in one production
+consumer. ADR 0153 gate 7 runtime ownership spec/test closure remains separate.
