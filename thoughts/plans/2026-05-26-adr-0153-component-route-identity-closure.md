@@ -1,7 +1,7 @@
 ---
 name: ADR 0153 Component Surface/route identity row closure
 date: 2026-05-26
-status: in-progress
+status: closed
 scope:
   - formspec-studio
   - formspec

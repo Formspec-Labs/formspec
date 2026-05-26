@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-26
 **Row:** UI graph policy / Runtime ownership
-**Status:** Partial-row checkpoint landed; row remains Partial
+**Status:** Closed. Runtime hidden-Definition rejection checkpoint in `formspec-web` is intact; rollup row transitioned Partial → Closed via the Wireframes-MCP `declareUiGraphPolicy` + `produceAppGraphValidationReport` active-consumer slice ([`2026-05-26-adr-0153-ui-graph-policy-closure.md`](2026-05-26-adr-0153-ui-graph-policy-closure.md)).
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope

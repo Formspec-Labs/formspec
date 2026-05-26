@@ -1,7 +1,7 @@
 ---
 name: ADR 0153 Shared graph primitives — second invariant (Surface→Definition slot resolution)
 date: 2026-05-26
-status: in-progress
+status: closed
 scope:
   - formspec
 parent-plan: thoughts/plans/2026-05-26-adr-0153-shared-graph-primitives-closure.md (first invariant — Experience ActionRef)

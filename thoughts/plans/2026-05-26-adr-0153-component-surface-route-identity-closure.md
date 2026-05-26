@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-26
 **Row:** Component Surface/route identity
-**Status:** Partial-row proof-source and runtime-consumer checkpoints landed; row remains Partial
+**Status:** Closed. Proof-source and runtime-consumer checkpoints in this plan are intact; rollup row transitioned Partial → Closed via the Wireframes-MCP 5-verb graph-edit journey + per-consumer integration test ([`2026-05-26-adr-0153-component-route-identity-closure.md`](2026-05-26-adr-0153-component-route-identity-closure.md)).
 **Owner:** Formspec app-graph follow-on lane
 **Primary plan:** [`2026-05-24-adr-0153-component-surface-route-identity-closure.md`](2026-05-24-adr-0153-component-surface-route-identity-closure.md)
 
