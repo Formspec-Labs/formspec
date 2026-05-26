@@ -3,8 +3,9 @@
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Conformance
 **Status:** Open. Source conformance coverage is now pinned for the covered
-families, but A8, A10, EC12 runtime behavior, F8/F9 production consumers, and
-F10 authorization remain unresolved or held.
+families, and EC12 now has a runtime hidden-state consumer checkpoint. A8,
+A10, F8/F9 production consumers, and F10 authorization remain unresolved or
+held.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -50,6 +51,12 @@ or fine-grained authorization semantics.
   found no blocker to a docs/status ledger pin, but required the Conformance
   row to stay Open because A10, EC12 runtime behavior, F8/F9 production
   consumers, and F10 authorization remain held or partial.
+- 2026-05-26 follow-up checkpoint: `formspec-web` now consumes completed UI
+  Graph Policy host evidence for the active Surface route and rejects hidden
+  active Definition state before draft loading or Response Action state. This
+  removes EC12 runtime hidden-state from the held list, but the Conformance row
+  remains Open because A8, A10, F8/F9 production consumers, and F10
+  authorization remain unresolved or held.
 
 ## Evidence Map
 
@@ -71,7 +78,7 @@ or fine-grained authorization semantics.
 | A14 module version conflict across sibling artifacts | `module-resolver/sibling-version-mismatch.case.json` plus ModuleResolver corpus required-family check | Covered |
 | EC2 Experience unit reused across routes with different Definitions | Source conformance fixture plus AppGraphValidator Surface `experience-unit` check | Covered, URL-exact |
 | EC5 non-form app has zero Definitions | Component route `fake-target-definition` fixture | Covered for graph rejection |
-| EC12 hidden Definition while Response is mid-draft | Graph hidden-Definition fixtures cover policy; runtime hidden-state remains Held until a production runtime/consumer consumes schema-valid UI Graph Policy evidence and defines draft/action rejection | Held/Open |
+| EC12 hidden Definition while Response is mid-draft | Graph hidden-Definition fixtures cover policy; `formspec-web` runtime consumer rejects before draft/action state when completed host evidence hides the active Definition | Covered for current consumer checkpoint; production wiring separate |
 | EC13 Locale strings collide across modules/routes | UI Graph Policy Locale-owner collision fixtures | Covered |
 | EC14 Theme styles widget without declared token slots | UI Graph Policy Theme token-slot fixtures | Covered |
 | F7 Data Sources peer artifact | Data Sources schema/spec fixtures, including fail-closed fine-grained auth | Covered |
@@ -108,6 +115,9 @@ or fine-grained authorization semantics.
 - [x] Split EC12 runtime hidden-state behavior from existing graph hidden-Definition
   policy fixtures. Do not close EC12 via UI Graph Policy/AppGraphValidator
   fixtures, Runtime Plan, TraceIndex, or v4 spike runtime.
+- [x] Record the `formspec-web` EC12 runtime consumer checkpoint: completed host
+  evidence for the active Surface route can reject before draft loading or
+  Response Action state.
 
 ### Phase 4 - Rollup Closure
 
@@ -143,6 +153,11 @@ or fine-grained authorization semantics.
   Response Action invocation needs a production runtime/consumer seam that
   consumes schema-valid UI Graph Policy evidence. The v4 spike behavior remains
   evidence, not source authority.
+- 2026-05-26: EC12 runtime hidden-state moved from Held/Open to covered for the
+  current consumer checkpoint after `formspec-web` consumed completed host
+  evidence and rejected before draft/action state. This does not close broader
+  production wiring, authorization, Runtime Plan, TraceIndex, or non-web
+  consumer behavior.
 
 ## Closure Evidence
 
@@ -214,8 +229,11 @@ Pinned evidence after the ledger slice:
 - EC12 graph-policy evidence:
   `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-hidden-definitions.case.json`,
   `tests/conformance/test_ui_graph_policy_semantic_fixture_corpus.py`, and
-  `packages/formspec-app-graph/src/ui-graph-policy.ts`. This evidence does not
-  close runtime hidden-state behavior.
+  `packages/formspec-app-graph/src/ui-graph-policy.ts`.
+- EC12 runtime consumer evidence:
+  `formspec-web/src/app/RespondentRuntime.tsx`,
+  `formspec-web/tests/app/respondent-runtime.test.tsx`, and
+  `thoughts/plans/2026-05-26-adr-0153-ui-graph-policy-runtime-closure.md`.
 - EC13/EC14 UI Graph Policy evidence:
   `tests/conformance/fixtures/app-graph-validator/ui-graph-policy-locale-owners.case.json`,
   `tests/conformance/test_app_graph_ui_policy_locale_owner_fixture_corpus.py`,
@@ -232,9 +250,8 @@ Pinned evidence after the ledger slice:
 
 Still open:
 
-- EC12 runtime behavior remains Held until a production runtime/consumer
-  consumes `UiGraphPolicyDocument` evidence and rejects draft/action state for
-  hidden route-local Definition slots. A10 remains Held/Open behind a
-  Screener-to-app association source.
+- A10 remains Held/Open behind a Screener-to-app association source. A8 remains
+  held because Runtime Plan is not a promoted production source artifact. F8/F9
+  production consumers and F10 authorization remain partial or held.
 - The rollup Conformance row must remain Open until every v4 family is pinned by
   source conformance evidence.
