@@ -2,7 +2,7 @@
 
 **Status:** complete — production-path revalidation; ADR 0153/0154 ratified 2026-05-26 (gate 9b / `landmarkLabel` drift closed in same cycle)
 **Lives at:** `formspec/thoughts/spikes/2026-05-26-wireframe-generator-spike-v6.md`
-**Continues:** [`2026-05-25-wireframe-generator-spike-v5.md`](./2026-05-25-wireframe-generator-spike-v5.md)
+**Continues:** [`2026-05-25-wireframe-generator-spike-v5.md`](../archive/spikes/2026-05-25-wireframe-generator-spike-v5.md)
 **Authority:** stack-root [`thoughts/adr/0153-formspec-app-graph-production-boundary.md`](../../../thoughts/adr/0153-formspec-app-graph-production-boundary.md); closure ledger [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) (freshness pass 2026-05-26)
 
 ## Verdict
@@ -108,9 +108,9 @@ v5 §"Implemented Surface Validation" understates Response Actions runtime, prod
 
 1. **ADR 0152 authorization** — fine-grained per-actor and per-widget-class scope (ADR 0153 gate 10 Held).
 2. **UI Graph Policy focus/ARIA synthesis** — beyond narrow route-landmark + 9b profiles (`ui-graph-policy-spec.md` §8 item 1); new slice, not 9b.
-3. **Data Sources runtime** — catalog contract closed; fetch, staleness enforcement, and availability cross-artifact checks remain future work.
+3. **Data Sources runtime** — catalog contract closed; tracked as [`fs-r2od`](../../../.tickets/fs-r2od.md) (availability validator) → [`fs-9d5e`](../../../.tickets/fs-9d5e.md) (loader MVP). Spec: [`data-sources-spec.md`](../../specs/data-sources/data-sources-spec.md) §11–§12; index: [`2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
 4. **Optional App Manifest `uiPolicy` / `uiGraphPolicy` slot** — host-evidence model omits manifest sibling by design; product decision.
-5. **ADR 0151 P3** — `ChangesetBranchManager`, full-bundle posture CI, schema-aware convergence shadow gate — execution log, not wireframe spike scope.
+5. **ADR 0151 P0–P3** — `fs-apve` → `fs-o7zr` → `fs-91tj` → [`for-p3cb`](../../../.tickets/for-p3cb.md). **`for-posture-ci`** is separate (not blocked on P2). Index: [`2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
 
 ## Verification
 
