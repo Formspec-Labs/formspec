@@ -15,6 +15,11 @@ export {
   type AppGraphComponentNodeIdentity,
 } from './component-identity.js';
 export {
+  produceAppGraphValidationReport,
+  type AppGraphReportProducerRequest,
+  type AppGraphReportProducerResult,
+} from './producer.js';
+export {
   artifactResolutionGraphInput,
   resolveArtifacts,
   type ArtifactResolutionGraphInput,

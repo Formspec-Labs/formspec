@@ -2,7 +2,7 @@
 
 **ADR:** stack-root `thoughts/adr/0153-formspec-app-graph-production-boundary.md`
 **Row:** Shared graph primitives
-**Status:** Partial. Lint and server report consumption landed; trusted production graph-loading producer remains open.
+**Status:** Partial. Lint and server report consumption landed; reusable TS producer helper landed; trusted production caller wiring remains open.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -14,11 +14,15 @@ against the report schema, preserve AppGraph diagnostic identity, and surface
 the report to FFI hosts. The server-consumption slice lets `formspec-server`
 publish accept a completed report, reject invalid/error reports, and preserve
 AppGraph diagnostic identity without becoming the graph-loading authority.
+The producer-helper slice makes the exact TypeScript graph-loading sequence a
+public `@formspec-org/app-graph` API so hosts do not hand-compose resolver
+outputs before publish.
 
 Not in this slice: Rust artifact loading, Node execution from Rust, a Rust port
-of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, a trusted
-production TS/BFF report producer, Studio / MCP / runtime / projection wiring,
-App Manifest policy slots, TraceIndex, or ADR 0152 fine-grained authorization.
+of `resolveArtifacts` / `resolveModules` / `validateAppGraph`, a production
+host/BFF adoption that calls server publish with the generated report, Studio /
+MCP / runtime / projection wiring, App Manifest policy slots, TraceIndex, or ADR
+0152 fine-grained authorization.
 
 ## Evidence Before Work
 
@@ -39,6 +43,11 @@ App Manifest policy slots, TraceIndex, or ADR 0152 fine-grained authorization.
   completed `AppGraphValidationReport`; do not run the TypeScript kernels from
   Rust; do not flatten AppGraph codes into E603/E604/E101; keep resolver output
   identity, origin, phase, and source fields intact.
+- 2026-05-26 Hegel checkpoint `019e62be-0f7a-75d0-96da-4f24ebbd19c0`
+  returned PROCEED for the helper/API slice only: the helper is legitimate
+  production-callable API evidence, but not trusted production TS/BFF producer
+  closure. Existing Studio and MCP publish paths still export bundles instead
+  of calling `formspec-server` publish with an AppGraph report.
 
 ## Work Phases
 
@@ -89,6 +98,19 @@ App Manifest policy slots, TraceIndex, or ADR 0152 fine-grained authorization.
   port TypeScript kernels, load graph artifacts, or infer AppGraph semantics.
 - [x] Add publish-route integration coverage for error-bearing report denial.
 
+### Phase 6 - Reusable TS Producer Helper
+
+- [x] Add `produceAppGraphValidationReport()` to `@formspec-org/app-graph`.
+- [x] Compose `resolveArtifacts -> artifactResolutionGraphInput ->
+  moduleResolverInputFromAppGraph -> resolveModules -> validateAppGraph` inside
+  one production-callable helper.
+- [x] Keep loaders, schema validators, host evidence, ModuleResolver support,
+  and cross-artifact validators caller-supplied.
+- [x] Return the artifact-resolution report, module-resolution report, and final
+  `AppGraphValidationReport` so trusted hosts can persist or forward the exact
+  evidence they supplied to publish.
+- [x] Add producer coverage over the graph-pipeline handoff fixture.
+
 ## Deviations
 
 - 2026-05-25: The first implementation used a direct out-of-crate
@@ -110,6 +132,10 @@ App Manifest policy slots, TraceIndex, or ADR 0152 fine-grained authorization.
   requires a production TS/BFF caller that runs `@formspec-org/app-graph`
   `resolveArtifacts -> graph adapter -> resolveModules -> validateAppGraph` and
   supplies the report to publish.
+- 2026-05-26: The producer helper reduces host-side hand composition, but does
+  not close the row by itself. Closure still requires a trusted production host
+  or BFF to call the helper and pass the returned `report` to
+  `formspec-server` publish.
 
 ## Closure Evidence
 
@@ -128,6 +154,13 @@ Partial evidence landed:
   accepts optional `app_graph_validation_report` on publish and
   `formspec-server/crates/formspec-server/src/services/posture_bundle_admission.rs`
   rejects invalid/error reports through the lint bridge.
+- TS producer helper: `packages/formspec-app-graph/src/producer.ts` exports
+  `produceAppGraphValidationReport()` and `packages/formspec-app-graph/src/index.ts`
+  makes it public.
+- Producer coverage:
+  `packages/formspec-app-graph/tests/producer.test.ts` runs the same loaded-graph
+  fixture through the producer helper and asserts completed artifact-resolution,
+  module-resolution, schema, and cross-artifact phases for the passing case.
 - Verification: `cargo nextest run -p formspec-lint` passed 434/434 tests after
   schema mirror sync.
 - Verification: `cargo nextest run -p formspec-server app_graph_report_admission`;
@@ -135,11 +168,15 @@ Partial evidence landed:
   `cargo nextest run -p formspec-server --test openapi_contract`;
   `cargo nextest run -p formspec-server --test in_process_trellis_receipt_projection`;
   `cargo nextest run -p formspec-server --test receipt_materialization`.
+- Verification:
+  `npm run test --workspace @formspec-org/app-graph -- producer.test.ts artifact-resolution-graph-handoff.test.ts`;
+  `npx tsc --noEmit -p packages/formspec-app-graph/tsconfig.json`.
 
 Still open:
 
-- A trusted production TS/BFF caller does not yet run `@formspec-org/app-graph`
-  and supply the completed report to `formspec-server` publish.
+- A trusted production TS/BFF caller does not yet call
+  `produceAppGraphValidationReport()` and supply the completed report to
+  `formspec-server` publish.
 - Studio, MCP, runtime, and projection consumers do not yet consume the shared
   validator report where applicable.
 - Lint does not load an App Manifest graph or run `@formspec-org/app-graph`.
