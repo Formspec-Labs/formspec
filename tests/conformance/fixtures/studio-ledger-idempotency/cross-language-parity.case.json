@@ -1,0 +1,87 @@
+{
+  "description": "Byte-parity vectors for the StudioCore-LedgerPort idempotency-key algorithm. StudioCore (TypeScript, formspec-studio) and formspec-server (Rust) must produce byte-identical sha256:<hex> outputs for the same (ledgerScope, branchId, opBatchHash) inputs. Closes the cross-language parity gap pinned in stack rollup thoughts/2026-05-24-adr-0150-followons-and-gating.md §'Owner action items' → 'Known cross-language parity gap (LOW)'.",
+  "algorithm": {
+    "step1_material": "Take the three input strings in fixed order: [ledgerScope, branchId, opBatchHash]. For each part, compute its UTF-16 code unit count (JS String.prototype.length / Rust str::encode_utf16().count()) and prefix with '<count>:<part>'. Join the three prefixed parts with '|'.",
+    "step2_digest": "Compute SHA-256 over the UTF-8 byte encoding of the material string. Format as lowercase hexadecimal.",
+    "step3_format": "Return 'sha256:' followed by the 64-character lowercase hex digest.",
+    "drift_surface": "If either implementation drifts to UTF-8 byte length, codepoint count, character count, or any other length measure, the BMP-2byte / CJK-3byte / supplementary-surrogate-pair vectors will diverge. If either drifts to a digest other than SHA-256 of UTF-8 bytes, every non-empty vector diverges. If either drifts to upper-case hex, every vector diverges."
+  },
+  "implementations": {
+    "rust": "formspec-server/crates/formspec-server/src/services/action_ledger.rs — pub fn studio_ledger_idempotency_key + fn studio_ledger_idempotency_material",
+    "typescript": "formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts — ledgerIdempotencyKey + ledgerIdempotencyMaterial (exported @internal narrow port)"
+  },
+  "vectors": [
+    {
+      "case": "ascii-only",
+      "rationale": "Baseline ASCII; UTF-16 count == UTF-8 byte count == char count. Drift undetectable from this case alone — included as a positive control.",
+      "ledgerScope": "urn:formspec:session:abc",
+      "branchId": "branch-main",
+      "opBatchHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedMaterial": "24:urn:formspec:session:abc|11:branch-main|71:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedIdempotencyKey": "sha256:a15877d86ac92616f5292771e4458f80d9f33c35855c998f6f878aba6f2b60d0"
+    },
+    {
+      "case": "bmp-2byte-utf8",
+      "rationale": "Latin-1 supplement (é, í). UTF-16 count = char count = 1; UTF-8 byte count = 2. Drift to byte length diverges here.",
+      "ledgerScope": "urn:formspec:session:café-naïve",
+      "branchId": "branch-señor",
+      "opBatchHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "expectedMaterial": "31:urn:formspec:session:café-naïve|12:branch-señor|71:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "expectedIdempotencyKey": "sha256:faa25aeaf2850f537a4ac307f02f139cd46ee475dd740fca0f8e78a48a6dce09"
+    },
+    {
+      "case": "cjk-3byte-utf8",
+      "rationale": "CJK (中文). UTF-16 count = char count = 2; UTF-8 byte count = 6. Drift to byte length diverges.",
+      "ledgerScope": "urn:formspec:session:中文-test",
+      "branchId": "branch-中",
+      "opBatchHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "expectedMaterial": "28:urn:formspec:session:中文-test|8:branch-中|71:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "expectedIdempotencyKey": "sha256:d68c9f1957d42fb22540c6017d0a54e8f4361d0db6e264b0acbfd4eda6ea4234"
+    },
+    {
+      "case": "supplementary-surrogate-pair",
+      "rationale": "Astral plane codepoint (🌟 U+1F31F). UTF-16 count = 2 (surrogate pair); UTF-8 byte count = 4; codepoint count = 1. Drift to byte length OR drift to codepoint count diverges.",
+      "ledgerScope": "urn:formspec:session:🌟",
+      "branchId": "branch-✨-emoji",
+      "opBatchHash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "expectedMaterial": "23:urn:formspec:session:🌟|14:branch-✨-emoji|71:sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "expectedIdempotencyKey": "sha256:81532d3bd8c10b7616f75492bb18536329d5aa5a6c2c0ff576fe96bffa44cb2a"
+    },
+    {
+      "case": "empty-parts-edge",
+      "rationale": "All three parts empty. Confirms '0:' material segment is correctly emitted for zero-length inputs and that the algorithm still produces a deterministic digest.",
+      "ledgerScope": "",
+      "branchId": "",
+      "opBatchHash": "",
+      "expectedMaterial": "0:|0:|0:",
+      "expectedIdempotencyKey": "sha256:d8af24817ca0b1209872cfe65053804736521a7a9fc00d9a2bf46f338051fc8a"
+    },
+    {
+      "case": "pipe-and-colon-in-content",
+      "rationale": "Material delimiters (':' '|') embedded in payload. Confirms length-prefixed encoding survives in-band delimiters without ambiguity.",
+      "ledgerScope": "urn:formspec:session:a|b:c",
+      "branchId": "branch|with|pipes:and:colons",
+      "opBatchHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "expectedMaterial": "26:urn:formspec:session:a|b:c|28:branch|with|pipes:and:colons|71:sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "expectedIdempotencyKey": "sha256:fa37328c1c1984e54c29ee123730fbdd86d01b4bf3335cf11dddf0600436fe6d"
+    },
+    {
+      "case": "control-chars",
+      "rationale": "Newline and tab embedded in payload. Confirms no implicit normalization or whitespace trimming on either side.",
+      "ledgerScope": "scope\nwith\nnewlines",
+      "branchId": "branch\twith\ttabs",
+      "opBatchHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "expectedMaterial": "19:scope\nwith\nnewlines|16:branch\twith\ttabs|71:sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "expectedIdempotencyKey": "sha256:e9a0b3ebcf976e9771d05db7044897717fdbac9898c7f5db27eb63fbfa780d7c"
+    },
+    {
+      "case": "realistic-substrate-values",
+      "rationale": "Shape matches actual runtime inputs: urn:formspec session id, kebab-case branch id, sha256:<hex> op batch hash. Sanity check for production-like input space.",
+      "ledgerScope": "urn:formspec:session:01HXYZ123abc456DEF789ghi",
+      "branchId": "studio-author-branch-2026-05-26",
+      "opBatchHash": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "expectedMaterial": "45:urn:formspec:session:01HXYZ123abc456DEF789ghi|31:studio-author-branch-2026-05-26|71:sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "expectedIdempotencyKey": "sha256:fe998fbfc1cfcb5334e0c7c8ddb5f8c454ecf9adc6fffa659154eaf49cc2ca31"
+    }
+  ]
+}
