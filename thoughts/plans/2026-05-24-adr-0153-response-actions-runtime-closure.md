@@ -103,9 +103,10 @@ path is:
   an `ActionButton` click can flow through `invokeResponseActionWithLedger` to
   the route-backed HTTP `LedgerPort` adapter and back into `readLedgerStatus`.
 - [x] Add a `formspec-server` runtime capability mint route that authenticates
-  the anonymous respondent session, validates the append command, binds
-  `ledgerScope` to `urn:formspec:session:<session_id>`, and returns the
-  server-minted append capability.
+  the anonymous respondent session, requires trusted host/BFF mint-authority
+  HMAC proof, validates the append command, binds `ledgerScope` to
+  `urn:formspec:session:<session_id>`, and returns the server-minted append
+  capability.
 - [ ] Wire production host/runtime configuration to supply the real
   Trellis-backed `LedgerPort`, call the server-side capability mint route, and
   inject the bridge-backed invoker.
@@ -135,11 +136,11 @@ path is:
   production respondent host still needs a server-side mint/proxy boundary that
   authenticates the runtime session before appending.
 - 2026-05-26: `formspec-server` now owns the server-side mint route. The route
-  authenticates the anonymous runtime session and binds the requested
-  `ledgerScope` to the verified session before returning a capability. This does
-  not close production runtime wiring because the respondent host still must
-  call the mint route and inject the route-backed Trellis `LedgerPort` into the
-  real invoker path.
+  authenticates the anonymous runtime session, requires trusted host/BFF
+  mint-authority HMAC proof, and binds the requested `ledgerScope` to the
+  verified session before returning a capability. This does not close production
+  runtime wiring because the respondent host still must call the mint route and
+  inject the route-backed Trellis `LedgerPort` into the real invoker path.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -191,6 +192,6 @@ Partial for ADR 0153 gate 6b.
   `cargo nextest run -p formspec-server --test in_process_trellis_action_ledger`.
 
 Not closed yet: respondent-facing production runtime/product consumer wiring,
-production host calls to the server-side runtime capability mint route,
-route-backed Trellis `LedgerPort` injection into the real invoker path, and ADR
-0153 gate 7 runtime ownership spec/test closure.
+production host calls to the server-side runtime capability mint route with
+mint-authority proof, route-backed Trellis `LedgerPort` injection into the real
+invoker path, and ADR 0153 gate 7 runtime ownership spec/test closure.
