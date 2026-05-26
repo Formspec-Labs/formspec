@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>v7 spike: lint-findings — authoring intent</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 2rem; max-width: 1200px; color: #1a1a1a; }
+  h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+  h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+  h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+  .meta { color: #666; font-size: 0.85rem; margin-bottom: 1rem; }
+  .phase { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem; background: #eee; margin: 0 4px 4px 0; }
+  .phase-completed { background: #d4edda; color: #155724; }
+  .phase-not-run { background: #f5f5f5; color: #999; }
+  .route { border-left: 3px solid #4a90e2; padding-left: 1rem; margin: 1rem 0; }
+  .route-path { font-family: monospace; color: #555; margin-left: 0.5rem; }
+  .route-title { color: #4a90e2; margin-left: 0.5rem; }
+  .slots { display: flex; flex-direction: column; gap: 0.5rem; }
+  .slot { border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem 0.75rem; background: #fafafa; }
+  .slot-head { font-size: 0.85rem; color: #333; }
+  .slot-type { background: #e7f0fb; color: #2a5db0; padding: 1px 6px; border-radius: 3px; font-family: monospace; font-size: 0.78rem; }
+  .slot-id { font-family: monospace; color: #888; }
+  .slot-title { color: #1a1a1a; font-weight: 500; }
+  .slot-body { font-size: 0.85rem; margin-top: 0.25rem; }
+  .slot-gap { margin-top: 0.4rem; font-size: 0.78rem; }
+  .gap { background: #fdecea; color: #b71c1c; padding: 2px 6px; border-radius: 3px; font-weight: 600; font-size: 0.72rem; }
+  table.diags { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+  table.diags th, table.diags td { border: 1px solid #ddd; padding: 0.3rem 0.5rem; vertical-align: top; text-align: left; }
+  table.diags th { background: #f5f5f5; }
+  tr.sev-error { background: #fdecea; }
+  tr.sev-warning { background: #fff8e1; }
+  code { background: #f3f3f3; padding: 1px 4px; border-radius: 2px; font-size: 0.85em; }
+  .nb { color: #444; font-style: italic; font-size: 0.9rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+<h1>Lint Findings</h1>
+<p class="meta">v7 spike — persona-authored intent sketch · surface URL <code>list</code> · entry <code>findings</code></p>
+<p class="nb">This is the <strong>authoring intent</strong> the persona expressed via Wireframes-MCP — not a production-rendered UI. Production render via <code>&lt;formspec-render&gt;</code> is gated on admitted Registry modules + an Experience document; the persona deliberately authored against gaps in both, surfaced as the validation diagnostics below. The intent sketch makes those gaps visible per slot.</p>
+
+<h2>Validation phases</h2>
+<div><span class="phase phase-completed">artifact-resolution: completed</span> <span class="phase phase-completed">schema: completed</span> <span class="phase phase-completed">module-resolution: completed</span> <span class="phase phase-not-run">surface-local: not-run</span> <span class="phase phase-completed">cross-artifact: completed</span> <span class="phase phase-not-run">authorization-boundary: not-run</span> <span class="phase phase-not-run">unsupported: not-run</span></div>
+
+<h2>Declared modules</h2>
+<ul><li><code>x-policy-studio-lint-filter-bar</code>@0.1.0 </li><li><code>x-policy-studio-findings-list</code>@0.1.0 </li></ul>
+
+<h2>Routes (1)</h2>
+
+    <section class="route">
+      <h3>Route <code>findings</code> <span class="route-path">/findings</span> <span class="route-title">Findings</span></h3>
+      <div class="slots"><div class="slot slot-module-widget">
+  <div class="slot-head"><span class="slot-type">module-widget</span> <span class="slot-id">#filterBar</span> <span class="slot-title">Filters</span></div>
+  <div class="slot-body"><code>x-policy-studio-lint-filter-bar::LintFilterBar</code></div>
+  
+</div><div class="slot slot-module-widget">
+  <div class="slot-head"><span class="slot-type">module-widget</span> <span class="slot-id">#findingsList</span> <span class="slot-title">Findings</span></div>
+  <div class="slot-body"><code>x-policy-studio-findings-list::FindingsList</code></div>
+  <div class="slot-gap"> <span class="gap" title="Substrate gap surfaced by persona authoring">NON-STANDARD workspace: DATA SOURCE SCOPE</span></div>
+</div><div class="slot slot-experience-unit">
+  <div class="slot-head"><span class="slot-type">experience-unit</span> <span class="slot-id">#detailDrawer</span> <span class="slot-title">Finding Detail</span></div>
+  <div class="slot-body"><code>unitRef=findingDetailDrawer</code></div>
+  <div class="slot-gap"><span class="gap" title="Substrate gap surfaced by persona authoring">NO Experience DOCUMENT BACKING</span></div>
+</div></div>
+    </section>
+
+<h2>Validation diagnostics (5)</h2>
+<table class="diags">
+  <thead><tr><th>origin</th><th>code</th><th>severity</th><th>message</th></tr></thead>
+  <tbody>
+    <tr class="sev-error">
+      <td>module-resolver</td>
+      <td><code>MODULE-UNRESOLVED</code></td>
+      <td>error</td>
+      <td>App module &#39;x-policy-studio-lint-filter-bar&#39; is absent from the Registry module index.</td>
+    </tr>
+    <tr class="sev-error">
+      <td>module-resolver</td>
+      <td><code>MODULE-UNRESOLVED</code></td>
+      <td>error</td>
+      <td>App module &#39;x-policy-studio-findings-list&#39; is absent from the Registry module index.</td>
+    </tr>
+    <tr class="sev-error">
+      <td>module-resolver</td>
+      <td><code>MODULE-CONTRIBUTION-MISSING</code></td>
+      <td>error</td>
+      <td>Contribution &#39;LintFilterBar&#39; is absent from the Registry entry index.</td>
+    </tr>
+    <tr class="sev-error">
+      <td>module-resolver</td>
+      <td><code>MODULE-CONTRIBUTION-MISSING</code></td>
+      <td>error</td>
+      <td>Contribution &#39;FindingsList&#39; is absent from the Registry entry index.</td>
+    </tr>
+    <tr class="sev-error">
+      <td>app-graph-validator</td>
+      <td><code>APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF</code></td>
+      <td>error</td>
+      <td>Surface route &#39;findings&#39; contains an experience-unit slot, but the app graph has no unique loaded Experience document.</td>
+    </tr></tbody></table>
+</body>
+</html>

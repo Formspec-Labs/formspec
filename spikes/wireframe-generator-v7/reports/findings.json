@@ -1,0 +1,288 @@
+{
+  "findings": [
+    {
+      "id": 1,
+      "surface": "cross-cutting",
+      "verb": "wireframeFromBrief",
+      "wanted": "Three sibling surfaces under one Policy Studio app — each is a top-level tab in the IA, sharing identity, theme, and locale.",
+      "got": "One Surface URL per bundle. Authoring three Policy Studio tabs forces three bundles, three App Manifests, three validation passes.",
+      "severity": "reshape-needed",
+      "why": "Authoring-tool UIs are multi-pane apps; substrate one-Surface-per-bundle assumes a respondent flow with one entry. Either the bundle needs sibling-Surface support or the MCP needs a verb for tab-shaped IA on a single Surface.",
+      "suggestion": "Add `addSurface` as a peer to `wireframeFromBrief`, or expose a `tabs[]` shape on the Surface for top-level IA siblings."
+    },
+    {
+      "id": 2,
+      "surface": "source-vault",
+      "verb": "bindSlot",
+      "wanted": "A `tree` slot type — hierarchical navigation with expand/collapse, selection state, and a node-shape schema the validator can check.",
+      "got": "slotType ∈ { definition-form, experience-unit, module-widget, static-content, embed-route }. Falls back to `module-widget` with a custom module the substrate cannot reason about.",
+      "severity": "missing-feature",
+      "why": "Authoring tools are tree-heavy (source vault, lint by tier, scenario taxonomy). Without a first-class tree, every authoring surface bypasses the substrate validator for its core navigation primitive — the substrate stops carrying the load it claims to.",
+      "suggestion": "Add `tree` as a sixth slot type with a node-shape schema, selection contract, and expand/collapse state binding."
+    },
+    {
+      "id": 3,
+      "surface": "source-vault",
+      "verb": "bindSlot",
+      "wanted": "A `workspace:` Data Source scope so the source-tree binding lists the actual uploaded policy documents and routes through the substrate Data Source contract.",
+      "got": "Data Source vocabulary appears respondent-shaped (host: / response: / resource:). Module fetches workspace state out-of-band; no substrate-level enforcement of consent / sensitivity / cache discipline on authoring data.",
+      "severity": "reshape-needed",
+      "why": "Authoring data IS workspace-scoped — sources, policy objects, lint findings, scenarios. Forcing every authoring widget to bypass Data Sources strips the substrate of its visibility into the data plane of every authoring tool.",
+      "suggestion": "Extend Data Source vocabulary with workspace-scoped sources (workspace:sources, workspace:policy-objects, workspace:lint-findings, workspace:scenarios) carrying ownership and sensitivity metadata."
+    },
+    {
+      "id": 4,
+      "surface": "source-vault",
+      "verb": "addExperienceUnit",
+      "wanted": "A \"read-only data view\" slot/Component shape — display structured data with no respondent intent, no Task, no Definition.",
+      "got": "Experience Unit (form-adjacent) is the closest fit; `definition-form` demands a Definition. Read-only display is wedged through Experience.",
+      "severity": "missing-feature",
+      "why": "Authoring tool surfaces are mostly read-only data display (detail panels, finding messages, scenario traces). Reusing Experience for this conflates form-flow semantics with display, polluting both.",
+      "suggestion": "Add a `data-view` slot type (or a `display-only` Component shape) explicitly for read-only structured data with no respondent semantics."
+    },
+    {
+      "id": 5,
+      "surface": "source-vault",
+      "verb": "bindSlot",
+      "wanted": "A cross-slot selection contract: \"slot B and slot C receive the selected node from slot A\". Substrate could validate the shape and emit a11y focus-order diagnostics.",
+      "got": "No cross-slot binding verb. Selection coordination becomes module-private state that escapes the substrate validator and the UI Graph Policy a11y rules.",
+      "severity": "missing-feature",
+      "why": "Master-detail and tree-drawer patterns are the dominant authoring-tool layouts. Without substrate-level cross-slot binding, multi-pane authoring surfaces are opaque to the validator and to the a11y policy that needs to know focus order across panes.",
+      "suggestion": "Add a `slotBindings[]` contract on the route shape, where a producer slot exposes named state (selection, filter) and consumer slots subscribe."
+    },
+    {
+      "id": 6,
+      "surface": "source-vault",
+      "verb": "declareUiGraphPolicy",
+      "wanted": "Authoring-shaped a11y profile: tree-node ARIA, multi-pane focus order, keyboard shortcut declarations (open finding, waive, re-run scenario), drawer focus trap semantics.",
+      "got": "RoutePolicy.a11y exposes landmark + keyboardNavigation — respondent-form vocabulary. Tree-control, multi-pane, and authoring-shortcut concerns are not expressible.",
+      "severity": "reshape-needed",
+      "why": "Authoring tools are keyboard-heavy and tree-heavy. A respondent-shaped a11y profile under-covers authoring surfaces, silently. The UI Graph Policy needs to be the authoring-tool a11y contract, not just the intake-form a11y contract.",
+      "suggestion": "Extend RoutePolicy.a11y with an `authoring` sub-profile: tree controls, multi-pane focus order, shortcut taxonomy, drawer/dialog focus trap rules."
+    },
+    {
+      "id": 106,
+      "surface": "source-vault",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-UNRESOLVED — App module 'x-policy-studio-source-tree' is absent from the Registry module index.",
+      "severity": "reshape-needed",
+      "why": "Validator diagnostics on authoring-tool surfaces signal where the substrate refuses an authoring shape. Each one is evidence the substrate is intake-shaped, not authoring-shaped."
+    },
+    {
+      "id": 107,
+      "surface": "source-vault",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-CONTRIBUTION-MISSING — Contribution 'SourceTree' is absent from the Registry entry index.",
+      "severity": "reshape-needed",
+      "why": "Validator diagnostics on authoring-tool surfaces signal where the substrate refuses an authoring shape. Each one is evidence the substrate is intake-shaped, not authoring-shaped."
+    },
+    {
+      "id": 108,
+      "surface": "source-vault",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF — Surface route 'browse' contains an experience-unit slot, but the app graph has no unique loaded Experience document.",
+      "severity": "reshape-needed",
+      "why": "Validator diagnostics on authoring-tool surfaces signal where the substrate refuses an authoring shape. Each one is evidence the substrate is intake-shaped, not authoring-shaped."
+    },
+    {
+      "id": 109,
+      "surface": "source-vault",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF — Surface route 'browse' contains an experience-unit slot, but the app graph has no unique loaded Experience document.",
+      "severity": "reshape-needed",
+      "why": "Validator diagnostics on authoring-tool surfaces signal where the substrate refuses an authoring shape. Each one is evidence the substrate is intake-shaped, not authoring-shaped."
+    },
+    {
+      "id": 7,
+      "surface": "lint-findings",
+      "verb": "bindSlot",
+      "wanted": "A `filter-bar` slot type — declarative facets with chip state, bound to a Data Source the list slot consumes.",
+      "got": "Closest fit is `module-widget` again (or wedging a `definition-form` for a filter \"form\" the user never submits). Substrate-opaque either way.",
+      "severity": "missing-feature",
+      "why": "Filtered lists are the dominant authoring-tool pattern (lint, sources, scenarios, findings, change-impact). Without filter primitives, the validator cannot enforce filter↔list coupling, persisted-filter URL state, or accessibility of filter controls.",
+      "suggestion": "Add a `filter-bar` slot type with declared facets, a producer→consumer slot contract (FINDING 5), and a Data Source binding shape."
+    },
+    {
+      "id": 8,
+      "surface": "lint-findings",
+      "verb": "bindSlot",
+      "wanted": "A `list` slot type — paginated/sortable rows with columns, row selection, row-level conditional actions.",
+      "got": "Same `module-widget` fallback as the tree. No list-shape schema, no row-binding contract, no row-action verb.",
+      "severity": "missing-feature",
+      "why": "List-with-drawer is the universal back-office layout. Without a list primitive, every authoring tool ships a custom list widget that the substrate cannot validate, instrument, or theme.",
+      "suggestion": "Add a `list` slot type with column-binding and a row-action contract. Action visibility uses the capability-gating model (FINDING 10)."
+    },
+    {
+      "id": 9,
+      "surface": "lint-findings",
+      "verb": "addExperienceUnit / addDefinitionStub",
+      "wanted": "Reviewer-shaped Response Actions: `waive-finding`, `acknowledge`, `re-run-scenario`, `request-review`. Bound at row level with action-intent + payload schema.",
+      "got": "Response Actions vocabulary appears intake-completion-shaped (submit / save-draft / validate / cancel). Waive lands as a Definition+form (rationale field) attached to a separate route, not as a row action.",
+      "severity": "reshape-needed",
+      "why": "Authoring tools are action-heavy (waive, acknowledge, override, regenerate, re-run, approve). Forcing reviewer actions through intake-completion vocabulary loses the action taxonomy the substrate could use for audit trails and authorization checks.",
+      "suggestion": "Extend Response Actions with a `reviewer-action` family carrying actionIntent, target subject ref, optional rationale schema, and an AuthorityGrant gating ref."
+    },
+    {
+      "id": 14,
+      "surface": "lint-findings",
+      "verb": "addDefinitionStub",
+      "wanted": "A `createDefinition` / `addDefinition` MCP verb that mints a fresh Definition document inline as part of the authoring journey.",
+      "got": "`addDefinitionStub` only adds items to a pre-loaded Definition. New Definitions must be host-minted out-of-band, breaking the journey.",
+      "severity": "missing-feature",
+      "why": "Authoring tools mint many small forms (waivers, exception requests, attestations). A surface authoring journey that cannot create a Definition cannot stand up its own intake forms.",
+      "suggestion": "Add `createDefinition({ url, version, title })` as a peer of `wireframeFromBrief`; addDefinitionStub then continues to attach items."
+    },
+    {
+      "id": 114,
+      "surface": "lint-findings",
+      "verb": "addDefinitionStub",
+      "wanted": "Add waiver-rationale item.",
+      "got": "addDefinitionStub refused: NOT_FOUND — Definition 'https://policy-studio.gov/forms/lint-waiver' is not loaded in the single-runtime facade.",
+      "severity": "reshape-needed",
+      "why": "Confirms FINDING 14: no Definition exists to add items to."
+    },
+    {
+      "id": 10,
+      "surface": "lint-findings",
+      "verb": "declareUiGraphPolicy",
+      "wanted": "A capability-gating slot in the UI Graph Policy: per-action / per-slot visibility predicate against an AuthorityGrant ref (\"user holds grant for action=waive, scope=ruleId WF-LINT-001\").",
+      "got": "UI Graph Policy covers a11y, locale, theme. Capability gating must live in module logic, invisible to the validator and to audit/export tooling.",
+      "severity": "missing-feature",
+      "why": "Authoring tools are role-shaped — waive, approve, override, publish are not affordances every user has. Without substrate-level capability gating, audit trails cannot prove \"the substrate did not show this button to unauthorized users\" — that property lives in module code outside the spec.",
+      "suggestion": "Add `capabilityGates[]` to UI Graph Policy: per route+slot or per action predicate that resolves against an AuthorityGrant ref. Validator and audit-export can then reason about visibility."
+    },
+    {
+      "id": 116,
+      "surface": "lint-findings",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-UNRESOLVED — App module 'x-policy-studio-lint-filter-bar' is absent from the Registry module index.",
+      "severity": "reshape-needed",
+      "why": "Error-level diagnostics on a list-with-drawer surface flag where the substrate refuses authoring-shape composition. Continue authoring; record the gap."
+    },
+    {
+      "id": 117,
+      "surface": "lint-findings",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-UNRESOLVED — App module 'x-policy-studio-findings-list' is absent from the Registry module index.",
+      "severity": "reshape-needed",
+      "why": "Error-level diagnostics on a list-with-drawer surface flag where the substrate refuses authoring-shape composition. Continue authoring; record the gap."
+    },
+    {
+      "id": 118,
+      "surface": "lint-findings",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-CONTRIBUTION-MISSING — Contribution 'LintFilterBar' is absent from the Registry entry index.",
+      "severity": "reshape-needed",
+      "why": "Error-level diagnostics on a list-with-drawer surface flag where the substrate refuses authoring-shape composition. Continue authoring; record the gap."
+    },
+    {
+      "id": 119,
+      "surface": "lint-findings",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-CONTRIBUTION-MISSING — Contribution 'FindingsList' is absent from the Registry entry index.",
+      "severity": "reshape-needed",
+      "why": "Error-level diagnostics on a list-with-drawer surface flag where the substrate refuses authoring-shape composition. Continue authoring; record the gap."
+    },
+    {
+      "id": 120,
+      "surface": "lint-findings",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF — Surface route 'findings' contains an experience-unit slot, but the app graph has no unique loaded Experience document.",
+      "severity": "reshape-needed",
+      "why": "Error-level diagnostics on a list-with-drawer surface flag where the substrate refuses authoring-shape composition. Continue authoring; record the gap."
+    },
+    {
+      "id": 13,
+      "surface": "scenario-viewer",
+      "verb": "bindSlot(static-content)",
+      "wanted": "A `metadata-strip` static-content kind — declarative key/value or labeled fields the substrate can theme and render without a module.",
+      "got": "static-content kind ∈ { heading, text, image, divider }. Forced to use `heading` and lose the structured fields, or fall back to a module-widget the substrate cannot validate.",
+      "severity": "missing-feature",
+      "why": "Authoring surfaces are header-heavy (each surface has a \"what am I looking at\" strip). Without structured metadata kinds, every surface ships a custom header module — UX drift the substrate cannot prevent.",
+      "suggestion": "Extend static-content kinds with `metadata-strip` (labeled fields), `breadcrumb`, `status-badge`. Closed taxonomy keeps the substrate authoritative."
+    },
+    {
+      "id": 11,
+      "surface": "scenario-viewer",
+      "verb": "bindSlot",
+      "wanted": "A `diff` or `split-tree` slot type — two structured tree inputs, aligned by node identity, inline divergence markers, a11y-aware focus order.",
+      "got": "Two module-widget slots positioned left/right, divergence-marking logic inside a substrate-opaque module. The substrate has no way to reason about diff alignment, divergence semantics, or which side is the \"source of truth.\"",
+      "severity": "missing-feature",
+      "why": "Authoring tools live and die on diffs — workflow versions, scenario expected-vs-actual, policy-object change, source-version compare. Without a diff primitive, every diff in the product is custom and inconsistent.",
+      "suggestion": "Add `split-tree` (or `diff`) as a slot type with two named inputs, an alignment-key contract, and divergence-marker output the substrate can audit."
+    },
+    {
+      "id": 12,
+      "surface": "scenario-viewer",
+      "verb": "bindSlot / Response Actions",
+      "wanted": "`re-run-scenario` as a substrate-recognized non-form action: target=runtime command, payload=scenario id, result updates a named output slot.",
+      "got": "No non-form action vocabulary. Re-run is a module-widget button that the substrate cannot audit, gate, or chain into validation diagnostics.",
+      "severity": "reshape-needed",
+      "why": "Authoring tools call runtime / build / lint / re-run actions constantly. A respondent-completion-shaped Action vocabulary cannot carry these; they leak into module code and become invisible to audit and policy.",
+      "suggestion": "Extend Response Actions with a `runtime-command` family carrying actionIntent, command target, payload schema, and a typed result-slot contract."
+    },
+    {
+      "id": 124,
+      "surface": "scenario-viewer",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-UNRESOLVED — App module 'x-policy-studio-scenario-diff' is absent from the Registry module index.",
+      "severity": "reshape-needed",
+      "why": "Diff-shape + non-form-action surface — every error here is evidence the substrate cannot describe authoring-tool diff/action shapes."
+    },
+    {
+      "id": 125,
+      "surface": "scenario-viewer",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-UNRESOLVED — App module 'x-policy-studio-scenario-rerun-button' is absent from the Registry module index.",
+      "severity": "reshape-needed",
+      "why": "Diff-shape + non-form-action surface — every error here is evidence the substrate cannot describe authoring-tool diff/action shapes."
+    },
+    {
+      "id": 126,
+      "surface": "scenario-viewer",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-CONTRIBUTION-MISSING — Contribution 'ScenarioTraceView' is absent from the Registry entry index.",
+      "severity": "reshape-needed",
+      "why": "Diff-shape + non-form-action surface — every error here is evidence the substrate cannot describe authoring-tool diff/action shapes."
+    },
+    {
+      "id": 127,
+      "surface": "scenario-viewer",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-CONTRIBUTION-MISSING — Contribution 'ScenarioTraceView' is absent from the Registry entry index.",
+      "severity": "reshape-needed",
+      "why": "Diff-shape + non-form-action surface — every error here is evidence the substrate cannot describe authoring-tool diff/action shapes."
+    },
+    {
+      "id": 128,
+      "surface": "scenario-viewer",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: MODULE-CONTRIBUTION-MISSING — Contribution 'RerunButton' is absent from the Registry entry index.",
+      "severity": "reshape-needed",
+      "why": "Diff-shape + non-form-action surface — every error here is evidence the substrate cannot describe authoring-tool diff/action shapes."
+    },
+    {
+      "id": 129,
+      "surface": "scenario-viewer",
+      "verb": "produceAppGraphValidationReport",
+      "wanted": "Surface validates cleanly so authoring can advance to render.",
+      "got": "Validator emitted error: APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF — Surface route 'view' contains an experience-unit slot, but the app graph has no unique loaded Experience document.",
+      "severity": "reshape-needed",
+      "why": "Diff-shape + non-form-action surface — every error here is evidence the substrate cannot describe authoring-tool diff/action shapes."
+    }
+  ]
+}

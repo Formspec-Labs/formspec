@@ -1,0 +1,86 @@
+{
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://policy-studio.gov/apps/authoring/source-vault",
+    "title": "Source Vault Browser",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://policy-studio.gov/apps/authoring/source-vault/surfaces/browser",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-policy-studio-source-tree",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "browser",
+    "entry": "browse",
+    "routes": [
+      {
+        "id": "browse",
+        "path": "/sources",
+        "title": "Source Vault",
+        "slots": [
+          {
+            "id": "sourceTree",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-policy-studio-source-tree",
+              "widgetName": "SourceTree",
+              "config": {
+                "dataSource": "x-spike-v7:workspace:sources",
+                "groupBy": [
+                  "program",
+                  "jurisdiction"
+                ]
+              }
+            },
+            "title": "Sources"
+          },
+          {
+            "id": "sourceDetail",
+            "slotType": "experience-unit",
+            "binding": {
+              "unitRef": "sourceDetailView"
+            },
+            "title": "Detail"
+          },
+          {
+            "id": "objectsDrawer",
+            "slotType": "experience-unit",
+            "binding": {
+              "unitRef": "extractedObjectsDrawer"
+            },
+            "title": "Extracted Objects"
+          }
+        ]
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Source Vault Browser policy",
+    "targetSurface": {
+      "url": "https://policy-studio.gov/apps/authoring/source-vault/surfaces/browser",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "browse",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  }
+}

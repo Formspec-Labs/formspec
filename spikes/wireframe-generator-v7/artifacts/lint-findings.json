@@ -1,0 +1,87 @@
+{
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://policy-studio.gov/apps/authoring/lint-findings",
+    "title": "Lint Findings",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://policy-studio.gov/apps/authoring/lint-findings/surfaces/list",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-policy-studio-lint-filter-bar",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-policy-studio-findings-list",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "list",
+    "entry": "findings",
+    "routes": [
+      {
+        "id": "findings",
+        "path": "/findings",
+        "title": "Findings",
+        "slots": [
+          {
+            "id": "filterBar",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-policy-studio-lint-filter-bar",
+              "widgetName": "LintFilterBar"
+            },
+            "title": "Filters"
+          },
+          {
+            "id": "findingsList",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-policy-studio-findings-list",
+              "widgetName": "FindingsList",
+              "config": {
+                "dataSource": "x-spike-v7:workspace:lint-findings"
+              }
+            },
+            "title": "Findings"
+          },
+          {
+            "id": "detailDrawer",
+            "slotType": "experience-unit",
+            "binding": {
+              "unitRef": "findingDetailDrawer"
+            },
+            "title": "Finding Detail"
+          }
+        ]
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Lint Findings policy",
+    "targetSurface": {
+      "url": "https://policy-studio.gov/apps/authoring/lint-findings/surfaces/list",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "findings",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  }
+}
