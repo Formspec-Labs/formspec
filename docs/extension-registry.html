@@ -930,6 +930,22 @@ non-empty, bundle-time authoring URNs on the consuming document
 <code>actor.id</code>) MUST appear in the list. Runtime actor gates at
 branch-open (studio) and publish/submit (formspec-server) consume the
 same matcher semantics; they are not reimplemented here.</p>
+<p><strong>Host wiring (three injection points, one posture
+JSON):</strong> see stack-root <a
+href="../../../thoughts/deployment-posture-wiring.md"><code>thoughts/deployment-posture-wiring.md</code></a>.
+Lint sidecar, <code>formspec-server</code>
+<code>posture_declaration_json</code>, and studio
+<code>createProject</code> / MCP bootstrap MUST receive the same
+deployment document. <code>formspec-server</code> publish/submit lints
+Definition + Component + optional References/Ontology in the publish
+payload; standalone Experience/App Manifest documents require CI lint on
+the full bundle. Branch-open checks the opening actor (and session index
+when wired); <code>allowedModules[]</code> is not evaluated at
+branch-open. Non-empty
+<code>posture.extensions.x-formspec-actor-scope</code> or
+<code>x-formspec-class-scope</code> fail closed at branch-open until ADR
+0152 evaluation. Static E609 scans embedded URNs at lint/publish time —
+not duplicated on changeset close.</p>
 <hr />
 <h2 id="discovery">5. Discovery</h2>
 <p>To support automated discovery, organizations publishing Formspec

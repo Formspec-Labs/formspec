@@ -371,6 +371,19 @@ ledger-style `actor.id`) MUST appear in the list. Runtime actor gates at
 branch-open (studio) and publish/submit (formspec-server) consume the same
 matcher semantics; they are not reimplemented here.
 
+**Host wiring (three injection points, one posture JSON):** see stack-root
+[`thoughts/deployment-posture-wiring.md`](../../../thoughts/deployment-posture-wiring.md).
+Lint sidecar, `formspec-server` `posture_declaration_json`, and studio
+`createProject` / MCP bootstrap MUST receive the same deployment document.
+`formspec-server` publish/submit lints Definition + Component + optional
+References/Ontology in the publish payload; standalone Experience/App Manifest
+documents require CI lint on the full bundle. Branch-open checks the opening
+actor (and session index when wired); `allowedModules[]` is not evaluated at
+branch-open. Non-empty `posture.extensions.x-formspec-actor-scope` or
+`x-formspec-class-scope` fail closed at branch-open until ADR 0152 evaluation.
+Static E609 scans embedded URNs at lint/publish time — not duplicated on
+changeset close.
+
 ---
 
 ## 5. Discovery
