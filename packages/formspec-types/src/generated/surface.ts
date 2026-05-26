@@ -140,7 +140,7 @@ export interface RouteParam {
  */
 export interface Transition {
   /**
-   * Transition trigger declaration. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a Response Actions intent value (per x-formspec-core-actions). Surface declares the navigation trigger; Response Actions remains the executor for preconditions, validation, effects, idempotency, replay, retry, blocking, and terminal state.
+   * Transition trigger declaration. Typically references a Response Actions action ID (resolved against the bundle's response-actions document) or names a standard Response Actions intent value declared by exactly one loaded action. Surface declares the navigation trigger; Response Actions remains the executor for preconditions, validation, effects, idempotency, replay, retry, blocking, and terminal state.
    */
   trigger: string;
   /**

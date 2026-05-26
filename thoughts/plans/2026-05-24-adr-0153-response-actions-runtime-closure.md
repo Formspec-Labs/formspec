@@ -5,9 +5,9 @@
 **Status:** Partial; invocation engine, Studio Ledger bridge, server capability mint,
 public web respondent-host factory, and live server/Trellis respondent-invoker
 checkpoint landed; the browser ActionButton live proof landed through a
-test-routed trusted/BFF capability boundary; deployable host/BFF wiring and the
-remaining route-transition / route-param selected Response runtime ownership
-coverage remain open
+test-routed trusted/BFF capability boundary; explicit Surface route-transition
+runtime ownership evidence landed; deployable host/BFF wiring and route-param
+selected Response instance coverage remain open
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§4, 6, 7, 9, Response Actions spec §§7, 11-12,
@@ -62,8 +62,11 @@ path is:
   and `ledgerScope` binding across session creation, drafts, submit, capability
   mint, and ledger append. The same browser/live proof now carries
   host-supplied Component graph and UI Graph Policy evidence, renders active
-  route metadata, and rejects hidden active Definition evidence before draft,
-  submit, capability, or append work.
+  route metadata, rejects hidden active Definition evidence before draft,
+  submit, capability, or append work, preserves selected routes through
+  completed/denied ledger work, and proves a declared Surface trigger action
+  advances the browser route while preserving route-param Response id submit
+  binding.
 
 ## Review Checkpoints
 
@@ -167,10 +170,12 @@ path is:
   UI Graph Policy evidence so the real runtime emits active route metadata and
   rejects hidden active Definition evidence before draft, submit, capability, or
   append work.
+- [x] Extend that browser/live proof with explicit Surface router transition
+  coverage and route-param Response id submit-binding evidence.
 - [ ] Replace the Playwright-routed trusted/BFF and managed-scope harness with
   a deployable host/BFF capability provider.
-- [ ] Keep ADR 0153 gate 7 open until route-transition and route-param
-  selected Response coverage lands.
+- [ ] Keep ADR 0153 gate 7 open until route-param selected Response instance
+  coverage lands.
 
 ## Deviations
 
@@ -222,14 +227,15 @@ path is:
 - 2026-05-26: The browser/live proof now also lands the first ADR 0153 gate 7
   production-consumer checkpoint. It uses host-supplied Component graph and UI
   Graph Policy evidence to render active route metadata and reject hidden active
-  Definition evidence before draft or Response Action work. Gate 7 remains
-  Partial because explicit Surface-router route-transition behavior and
-  route-param selected Response coverage remain open. The follow-on
+  Definition evidence before draft or Response Action work. The follow-on
   runtime-ownership slices landed ambiguous multi-form-route rejection as
-  selected Definition binding evidence, not selected Response closure, and an
-  implicit route guard proving completed or denied Response Action ledger work
-  does not mutate the selected route URL after append completion or capability
-  denial.
+  selected Definition binding evidence, not selected Response closure; a route
+  guard proving completed or denied Response Action ledger work does not mutate
+  the selected route URL after append completion or capability denial; and an
+  explicit Surface router transition proving a declared trigger action advances
+  the route while preserving route-param Response id submit binding. Gate 7
+  remains Partial because full route-param selected Response instance ownership
+  remains open.
 - 2026-05-25: No ADR 0152 authorization fields were added or inferred.
 
 ## Closure Evidence
@@ -283,6 +289,13 @@ Partial for ADR 0153 gate 6b.
   `../formspec-server/tests/e2e-http/support/response-action-respondent.ts`.
 - Browser managed-single-cell live ActionButton proof:
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
+- Explicit Surface router transition and route-param Response submit-binding
+  proof:
+  `../formspec-web/src/adapters/browser/surface-router.ts`,
+  `../formspec-web/src/app/route-transition.ts`,
+  `../formspec-web/src/app/routed-composition.ts`,
+  `../formspec-web/tests/app/surface-router.test.ts`, and
+  `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification:
   `npm run --workspace @formspec-org/studio-core build`;
   `npm run --workspace @formspec-org/studio-core test -- tests/response-action-ledger.test.ts`;
@@ -310,4 +323,4 @@ Partial for ADR 0153 gate 6b.
 Not closed yet: the browser proof still uses Playwright route interception as
 the trusted/BFF capability provider and managed-scope injector. Closure requires
 a deployable host/BFF capability provider. ADR 0153 gate 7 remains Partial until
-route-transition and route-param selected Response coverage lands.
+route-param selected Response instance coverage lands.

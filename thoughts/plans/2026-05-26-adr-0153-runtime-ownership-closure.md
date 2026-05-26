@@ -2,10 +2,10 @@
 
 **Date:** 2026-05-26
 **Row:** ADR 0153 gate 7 Runtime ownership
-**Status:** Partial; prose ownership contract, source conformance pins,
+**Status:** Closed; prose ownership contract, source conformance pins,
 browser/live production-consumer checkpoint, selected Definition binding,
-ambiguous-route rejection, and selected-route URL guard landed; explicit
-route-transition and route-param selected Response coverage remain open
+ambiguous-route rejection, selected-route URL guard, explicit Surface router
+transition, and route-param selected Response binding landed
 **Authority:** stack rollup
 [`2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md),
 ADR 0153 §§5, 7, 9, Surface spec, Core Response spec, Response Actions spec,
@@ -59,8 +59,8 @@ production contract separates four owners:
 - [x] Add selected-route URL guard proving completed/denied Response Action
   ledger work does not mutate the selected route URL after append completion or
   capability denial.
-- [ ] Add explicit route-transition coverage for the production runtime host.
-- [ ] Add route-param selected Response instance coverage.
+- [x] Add explicit route-transition coverage for the production runtime host.
+- [x] Add route-param selected Response instance coverage.
 
 ## Deviations
 
@@ -79,27 +79,39 @@ production contract separates four owners:
   boundaries. That is valid evidence for the runtime consumer path, but it is
   not a deployable host/BFF capability provider and does not add ADR 0152
   authorization semantics.
+- 2026-05-26: The explicit Surface transition slice requires
+  `surfaceNextRoute` and `surfaceTriggerAction` route state before the browser
+  router advances. It also binds the route `response` parameter into the submit
+  transport `response_id` without rewriting the selected Definition tuple.
+- 2026-05-26: The Surface router intentionally does not dispatch the app-level
+  route-transition event. Internal Surface route-state changes must not remount
+  the runtime or allocate a second anonymous session; app-level route
+  transitions stay reserved for true app route changes such as `/status`.
 
 ## Closing Observation
 
-The first production-consumer observation is landed: `formspec-web` publishes a
+The production-consumer observation is closed: `formspec-web` publishes a
 runtime payload with Component graph and UI Graph Policy host evidence, renders
 route metadata in the real browser runtime, carries one anonymous session
 identity through draft/submit/capability/append, appends to the live
 server/Trellis substrate, and rejects a hidden active Definition before draft or
-Response Action work. The follow-on selected-Definition checkpoint proves
+Response Action work. The selected-Definition checkpoint proves
 `/?form=` selects the runtime Definition URL that owns anonymous session,
 draft/submit, capability, and append work, while duplicate `form` parameters
 render a boot error before any server runtime state is created. The
 route-transition guard checkpoint proves completed and denied Response Action
 ledger work leaves the selected runtime route URL unchanged after append
-completion or capability denial. The row remains Partial until explicit
-route-transition router behavior and route-param selected Response instances
-are covered.
+completion or capability denial. The explicit Surface router checkpoint proves
+the browser host advances from `surfaceRoute=apply` to
+`surfaceRoute=confirmation` only after the declared `surfaceTriggerAction`
+completes on matching Component graph evidence, clears one-shot next-route
+state, and preserves the route-param selected `response=` value through submit.
+The selected Response checkpoint proves `response=` binds the Response instance
+for submit while `form=` continues to own the Definition URL.
 
 ## Closure Evidence
 
-Partial evidence landed:
+Closure evidence landed:
 
 - Surface route owner:
   `specs/surface/surface-spec.md` §5.1.
@@ -123,17 +135,29 @@ Partial evidence landed:
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Selected-route URL guard pin:
   `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
+- Explicit Surface router transition and selected Response pins:
+  `../formspec-web/src/adapters/browser/surface-router.ts`;
+  `../formspec-web/src/app/form-route.ts`;
+  `../formspec-web/src/app/RespondentRuntime.tsx`;
+  `../formspec-web/src/app/main-helpers.ts`;
+  `../formspec-web/src/composition/default.ts`;
+  `../formspec-web/src/ports/surface-router.ts`;
+  `../formspec-web/src/app/route-transition.ts`;
+  `../formspec-web/src/app/routed-composition.ts`;
+  `../formspec-web/tests/app/app-routing.test.tsx`;
+  `../formspec-web/tests/app/form-route.test.ts`;
+  `../formspec-web/tests/app/status-boot-narrowing.test.ts`;
+  `../formspec-web/tests/app/surface-router.test.ts`;
+  `../formspec-web/tests/e2e/response-action-ledger-live.spec.ts`.
 - Verification:
   `cd ../formspec-web && npm run typecheck`;
-  `cd ../formspec-web && npx eslint src/app/form-route.ts src/app/main-helpers.ts src/app/main.tsx src/composition/default.ts tests/app/form-route.test.ts tests/app/status-boot-narrowing.test.ts tests/app/respondent-runtime.test.tsx tests/e2e/response-action-ledger-live.spec.ts`;
-  `cd ../formspec-web && npm run test -- tests/app/form-route.test.ts tests/app/status-boot-narrowing.test.ts tests/app/respondent-runtime.test.tsx`;
-  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts` (four tests skipped without live server URL);
-  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts` (four live tests passed).
+  `cd ../formspec-web && npx eslint src/app/route-transition.ts src/app/routed-composition.ts src/shared/route-transition.ts src/app/main.tsx src/app/App.tsx src/adapters/browser/surface-router.ts src/ports/surface-router.ts src/app/RespondentRuntime.tsx src/app/form-route.ts src/app/main-helpers.ts src/composition/default.ts src/composition/types.ts src/ports/index.ts tests/app/app-routing.test.tsx tests/app/surface-router.test.ts tests/app/status-boot-narrowing.test.ts tests/app/form-route.test.ts tests/e2e/response-action-ledger-live.spec.ts`;
+  `cd ../formspec-web && npm run test -- tests/app/app-routing.test.tsx tests/app/status-boot-narrowing.test.ts tests/app/form-route.test.ts tests/app/surface-router.test.ts`;
+  `cd ../formspec-web && npx playwright test tests/e2e/response-action-ledger-live.spec.ts` (five tests skipped without live server URL);
+  `cd ../formspec-web && FORMSPEC_WEB_LIVE_FORMSPEC_SERVER_URL=http://127.0.0.1:8080 npx playwright test tests/e2e/response-action-ledger-live.spec.ts` (five live tests passed).
 
-Still open:
+Still outside this row:
 
-- Explicit route-transition coverage in the production runtime host.
-- Route-param selected Response instance coverage; selected Definition binding
-  alone is not Response instance ownership closure.
-- Deployable host/BFF capability provider if this evidence is used to close the
-  Response Actions deployable production wiring remainder.
+- Deployable host/BFF capability provider for the Response Actions executor row.
+- Production graph-loading host/BFF for Component Surface/route identity.
+- ADR 0152 fine-grained authorization.
