@@ -226,6 +226,40 @@ describe('built-in Component route target validation', () => {
     ]);
   });
 
+  it('does not treat loaded Definition id or name as definition-form aliases', () => {
+    const alias = 'intakeAlias';
+    const report = validateWith(
+      manifestDocument({ definitions: [{ url: DEFINITION_URL, version: '1.0.0' }] }),
+      {
+        ...baseArtifacts(boundRouteComponentDocument()),
+        surfaces: [loadedHandle({
+          slot: 'surfaces[0]',
+          artifactKind: 'surface',
+          ref: { url: SURFACE_URL, version: '1.0.0' },
+          document: surfaceWithDefinitionForm(alias),
+        })],
+        definitions: [loadedHandle({
+          slot: 'definitions[0]',
+          artifactKind: 'definition',
+          ref: { url: DEFINITION_URL, version: '1.0.0' },
+          document: { $formspec: '1.0', url: DEFINITION_URL, id: alias, name: alias },
+          identity: { url: DEFINITION_URL, version: '1.0.0', id: alias, name: alias },
+        })],
+      },
+    );
+
+    const mismatch = report.diagnostics.find((entry) =>
+      entry.code === 'APP-GRAPH-COMPONENT-BOUND-CONTROLS-ROUTE-DEFINITION'
+    );
+    expect(mismatch?.details).toMatchObject({
+      targetDefinition: DEFINITION_URL,
+      route: 'review',
+    });
+    expect(mismatch?.relatedSources).toContainEqual(
+      expect.objectContaining({ artifactSlot: 'surfaces[0]', jsonPointer: '/routes/0/slots/1/binding/definitionRef' }),
+    );
+  });
+
   it('ignores bind-like fields outside document.tree for route-bound control checks', () => {
     const report = validateWith(
       manifestDocument(),

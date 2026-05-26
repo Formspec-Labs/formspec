@@ -106,8 +106,9 @@ and consumer wiring out of scope.
   route-bound-control Definition-context rule only. They do not claim
   Studio/kernel identity, provenance, production consumers, or ADR 0154 gate
   closure.
-- Explicit graph binding and in-bundle Definition id alias matching are deferred.
-  This slice compares route-local `definition-form.binding.definitionRef` against
+- Explicit graph binding remains deferred. In-bundle Definition id/name alias
+  matching was rejected in the parent closure plan; this slice compares
+  route-local `definition-form.binding.definitionRef` against
   `targetDefinition.url` only.
 
 ## Closure Evidence

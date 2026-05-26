@@ -37,8 +37,8 @@
       "path": "/matter",
       "title": "Matter",
       "slots": [
-        { "id": "intake", "slotType": "definition-form", "position": "left", "binding": { "definitionRef": "matter-intake", "presentation": "inline" } },
-        { "id": "review", "slotType": "definition-form", "position": "main", "binding": { "definitionRef": "matter-review", "presentation": "wizard" } }
+        { "id": "intake", "slotType": "definition-form", "position": "left", "binding": { "definitionRef": "https://example.gov/forms/matter-intake", "presentation": "inline" } },
+        { "id": "review", "slotType": "definition-form", "position": "main", "binding": { "definitionRef": "https://example.gov/forms/matter-review", "presentation": "wizard" } }
       ]
     },
     {

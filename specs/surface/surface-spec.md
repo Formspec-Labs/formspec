@@ -205,6 +205,12 @@ closes the v0.1 slot-type list at five values:
 | `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, level?: 1..6 }` | Inline literal content. |
 | `embed-route`     | `{ routeRef: string, mode?: string, params?: RouteParamMap }` | Another route from this Surface (modal/panel/dialog). |
 
+`definition-form.binding.definitionRef` is URL-based in v0.1. In bundled
+app-graph validation it resolves against App Manifest `definitions[].url` and
+the loaded Definition `url`; it is not a Definition `name`, local handle, file
+stem, or `identity.id` alias. Any future alias or explicit graph-binding
+contract requires a Surface spec/schema revision.
+
 Each binding shape is enforced by `schemas/surface.schema.json` via an
 `allOf [if/then]` gate discriminating on `slotType`. The taxonomy is closed at
 v0.1; future revisions admit new slot types via the Registry `slot-type`

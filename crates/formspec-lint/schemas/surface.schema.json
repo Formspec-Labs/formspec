@@ -159,7 +159,9 @@
                 "properties": {
                   "definitionRef": {
                     "type": "string",
-                    "description": "Reference to a Definition. Resolves to a bundle-manifest definitions[] entry by URL or to an in-bundle Definition by id."
+                    "format": "uri",
+                    "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+                    "description": "Reference to a Definition URL. In app-graph validation this resolves against App Manifest definitions[].url and the loaded Definition url; v0.1 does not define Definition id/name alias matching."
                   },
                   "presentation": {
                     "type": "string",

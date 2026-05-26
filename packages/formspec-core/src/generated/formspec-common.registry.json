@@ -2563,14 +2563,14 @@
       "category": "slot-type",
       "version": "0.1.0",
       "status": "stable",
-      "description": "Surface slot-type `definition-form` per ADR 0150 \u00a76.2. Slot binds a Definition form (binding.definitionRef references a bundle Definition by url or in-bundle id). Renders the bound form using the Component+Theme stack.",
+      "description": "Surface slot-type `definition-form` per ADR 0150 \u00a76.2. Slot binds a Definition form by URL (binding.definitionRef resolves against App Manifest definitions[].url and loaded Definition url in app-graph validation). Renders the bound form using the Component+Theme stack.",
       "compatibility": {
         "formspecVersion": ">=1.0.0 <2.0.0"
       },
       "license": "Apache-2.0",
       "slotShape": {
         "kindValue": "definition-form",
-        "summary": "Slot binds a Definition form (binding.definitionRef references a bundle Definition by url or in-bundle id). Renders the bound form using the Component+Theme stack."
+        "summary": "Slot binds a Definition form by URL. Renders the bound form using the Component+Theme stack."
       }
     },
     {

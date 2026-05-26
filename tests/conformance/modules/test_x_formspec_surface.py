@@ -14,6 +14,7 @@ Tests verify:
    Task 7; verify the Surface document URL resolves under the plural shape.
 """
 
+import copy
 import json
 from pathlib import Path
 
@@ -135,6 +136,16 @@ def test_legal_workspace_surface_fixture_validates():
     doc = json.loads((FIXTURES_DIR / "legal-workspace-surface.json").read_text())
     errors = list(_surface_validator().iter_errors(doc))
     assert errors == [], f"unexpected schema errors: {errors}"
+
+
+def test_definition_form_requires_definition_url():
+    """definition-form.definitionRef is a Definition URL, not a local handle."""
+    doc = json.loads((FIXTURES_DIR / "legal-workspace-surface.json").read_text())
+    invalid = copy.deepcopy(doc)
+    invalid["routes"][2]["slots"][0]["binding"]["definitionRef"] = "matter-intake"
+
+    errors = list(_surface_validator().iter_errors(invalid))
+    assert any(error.json_path.endswith(".definitionRef") for error in errors)
 
 
 def test_legal_workspace_surface_fixture_exercises_all_slot_types():

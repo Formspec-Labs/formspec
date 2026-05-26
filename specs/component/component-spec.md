@@ -352,8 +352,9 @@ A route-bound Component that contains Definition-bound controls MUST declare
 `targetDefinition`. The resolved Surface route MUST contain a `definition-form`
 slot whose `binding.definitionRef` exactly equals `targetDefinition.url`, unless
 a future graph-binding contract explicitly supplies the same Definition context.
-This v1.2 rule is URL-based only; in-bundle Definition id alias resolution and
-explicit graph bindings are deferred to later contracts.
+This v1.2 rule is URL-based only. Definition id/name alias resolution is not a
+v1.2 contract; a future explicit graph-binding contract must define any
+non-URL Definition context.
 
 Source documents MUST NOT fabricate a fake `targetDefinition` to make non-form
 route UI validate as a form Component. Exporters MAY emit output-only legacy

@@ -6,8 +6,10 @@
 graph-wide provenance schema evidence, Studio/kernel `copyNode` graph identity
 stamping, and layout projection identity consumption are landed. Broader
 Studio/kernel operations now include explicit Component membership binding.
-Production consumers, Definition id alias matching, graph-wide `movedFrom`, and
-broader consumer-facing conformance remain open.
+Production consumers, graph-wide `movedFrom`, and broader consumer-facing
+conformance remain open. Definition id/name alias matching is rejected as stale
+Surface/registry text; the v1.2 route-bound Definition-context rule remains
+URL-only.
 **Authority:** stack ADR 0153 gate 8, stack ADR 0154, Component spec, Component
 Reference Fields companion
 
@@ -51,6 +53,11 @@ This plan tracks:
   projection as the first consumer. The layout package consumes the generated
   `ComponentNodeIdentityRef` type from `@formspec-org/types`, not
   `@formspec-org/app-graph`, to preserve dependency-fence direction.
+- 2026-05-26: Mencius reviewed the Definition alias checkpoint and rejected
+  implementation. Definition identity is `(url, version)`, `name` is local
+  tooling convenience, Component 1.2 already defines route-bound Definition
+  context as URL-only, and app-graph already compares `definitionRef` to
+  `targetDefinition.url`.
 
 ## Ordered Work
 
@@ -113,10 +120,15 @@ This plan tracks:
   - [x] `@formspec-org/layout` projects optional `componentGraphIdentity` from
     supplied Component membership + Surface + route scope.
   - [ ] Runtime hosts / renderers still need route-backed app-graph wiring.
-- [ ] Definition id alias matching is decided or rejected with evidence.
+- [x] Definition id alias matching is rejected with evidence.
   - [x] Explicit Studio/kernel graph binding landed as
     `bindComponentMembership`, binding the active singleton Component document to
     one App Manifest `components[]` handle before multi-Component graph edits.
+  - [x] Surface schema/spec/registry text now states `definitionRef` resolves by
+    Definition URL only in v0.1, the Surface schema requires URI-shaped
+    `definitionRef` values, and tests prove local handles plus loaded Definition
+    `identity.id` / `identity.name` do not satisfy route-local
+    `definition-form` context.
 - [ ] Consumer-facing conformance promotes graph-wide copy/move workflows
   beyond schema acceptance.
   - [x] StudioCore `copyNode` and layout projection tests cover graph identity
@@ -171,15 +183,24 @@ This plan tracks:
   multi-Component graph-aware `addNode`, `moveNode`, or `copyNode` operations.
   Cross-Component and cross-route storage still remain gated so the facade does
   not pretend it can write multiple Component documents atomically.
+- 2026-05-26: Definition id/name alias matching is rejected, not implemented.
+  Surface previously carried stale "in-bundle id" wording, but the Core
+  Definition contract has no top-level `id`, `name` is not globally unique, App
+  Manifest Definition refs are URL/version, and Component 1.2 already pins
+  route-bound Definition context to exact URL matching.
 
 ## Closure Evidence
 
 Partial evidence landed:
 
 - Prose: `specs/component/component-spec.md` and
-  `specs/component/component-reference-fields-spec.md`.
+  `specs/component/component-reference-fields-spec.md`; Surface
+  `specs/surface/surface-spec.md` now makes `definition-form.definitionRef`
+  URL-only in v0.1.
 - Schemas: `schemas/component.schema.json`, `schemas/common.schema.json`, and
-  lint mirrors under `crates/formspec-lint/schemas/`.
+  lint mirrors under `crates/formspec-lint/schemas/`; `schemas/surface.schema.json`
+  and the lint mirror require URI-shaped `definitionRef` values and reject stale
+  Definition id/name alias wording.
 - Generated types: `packages/formspec-types/src/generated/common.ts`,
   `packages/formspec-types/src/generated/component.ts`, and generated barrel
   export when the overlapping pre-existing generated drift is committed.
@@ -205,6 +226,8 @@ Partial evidence landed:
   `tests/conformance/test_app_graph_component_route_fixture_corpus.py`,
   `tests/conformance/test_common_schema_defs.py`, and
   `tests/conformance/schemas/test_component_reference_fields_schema.py`;
+  `tests/conformance/modules/test_x_formspec_surface.py` for Surface
+  `definitionRef` URL shape;
   `formspec-studio/packages/formspec-studio-core/tests/kernel/proposal-manager-facade.test.ts`;
   `packages/formspec-layout/tests/planner.test.ts`.
 - Verification:
@@ -225,5 +248,4 @@ Still open:
 - ADR 0154 gate 7 graph-wide `movedFrom` persistence behind an atomic move/stamp
   helper.
 - Production consumer wiring.
-- Definition id alias matching.
 - Broader consumer-facing copy/move conformance.
