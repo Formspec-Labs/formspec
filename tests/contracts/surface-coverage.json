@@ -851,7 +851,8 @@
       "schema": "schemas/surface.schema.json",
       "conformance": [
         "tests/conformance/modules/test_x_formspec_surface.py",
-        "tests/conformance/spec/test_surface_contract.py"
+        "tests/conformance/spec/test_surface_contract.py",
+        "tests/conformance/test_app_graph_surface_response_action_trigger_fixture_corpus.py"
       ],
       "crates": [
         "crates/formspec-lint/src/pass_surface.rs",
@@ -860,9 +861,14 @@
       ],
       "fixtures": [
         "tests/conformance/fixtures/modules/x-formspec-surface/",
-        "tests/conformance/fixtures/surface/"
+        "tests/conformance/fixtures/surface/",
+        "tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json"
       ],
       "packages": {
+        "app-graph": [
+          "packages/formspec-app-graph/src/surface-response-action-triggers.ts",
+          "packages/formspec-app-graph/tests/surface-response-action-triggers-conformance.test.ts"
+        ],
         "studio-core": [
           "../formspec-studio/packages/formspec-studio-core/src/kernel/StudioCoreKernel.ts",
           "../formspec-studio/packages/formspec-studio-core/src/kernel/ProposalManagerFacade.ts",
@@ -872,6 +878,7 @@
       "checks": [
         "Surface schema shape, closed slot taxonomy, draft/document prose, and transition authority are covered by spec and schema conformance tests",
         "Fixture corpus covers a publishable positive Surface, App Manifest URL sibling refs, E606, E607, E610, E603, and E604 fail-closed paths",
+        "AppGraphValidator fixture corpus covers Surface transition triggers resolving to loaded Response Actions actions[*].id values, including x-* action ids, or to exactly one loaded action carrying the closed intent, and rejects unknown, empty, undeclared closed-intent, ambiguous closed-intent, and direct x-* intent trigger strings without promoting Runtime Plan commands",
         "Rust lint owns Surface-local route graph diagnostics, route-parameter completeness, plus module-widget admission/config validation",
         "studio-core exposes readSurfaceDraft as authoring projection and exportSurfaceDocument as the fail-closed publish gate"
       ]

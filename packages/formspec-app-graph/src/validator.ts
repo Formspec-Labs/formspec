@@ -32,6 +32,7 @@ import { validateComponentRouteTargets } from './component-routes.js';
 import { validateComponentGraphContexts } from './component-graph-context.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
+import { validateSurfaceResponseActionTriggers } from './surface-response-action-triggers.js';
 import { validateUiGraphPolicy } from './ui-graph-policy.js';
 
 const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
@@ -299,6 +300,7 @@ function runCrossArtifactValidators(
     validateComponentGraphContexts,
     validateScreenerSurfaceTargets,
     validateSurfaceExperienceUnits,
+    validateSurfaceResponseActionTriggers,
     validateUiGraphPolicy,
     ...(validators ?? []),
   ];

@@ -1,0 +1,807 @@
+{
+  "id": "surface-response-action-triggers",
+  "description": "Source conformance corpus for A8 replacement: Surface transition triggers must resolve to loaded Response Actions action ids or exactly one loaded Response Actions action carrying the closed intent, without promoting Runtime Plan commands.",
+  "handles": {
+    "manifest.base": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "source": "memory://app/action-trigger",
+      "document": {
+        "$formspecBundle": "2.3",
+        "id": "https://example.gov/apps/action-trigger",
+        "version": "1.0.0",
+        "definitions": [
+          {
+            "url": "https://example.gov/forms/action-trigger",
+            "version": "1.0.0"
+          }
+        ],
+        "responseActions": {
+          "url": "https://example.gov/apps/action-trigger/response-actions",
+          "version": "1.0.0"
+        },
+        "surfaces": [
+          {
+            "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+            "version": "1.0.0"
+          }
+        ]
+      }
+    },
+    "surface.valid-action": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/valid-action",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [],
+            "transitions": [
+              {
+                "trigger": "escalate",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.valid-intent": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/valid-intent",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [],
+            "transitions": [
+              {
+                "trigger": "submit",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.unknown-trigger": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/unknown-trigger",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [],
+            "transitions": [
+              {
+                "trigger": "teleport",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.empty-trigger": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/empty-trigger",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [],
+            "transitions": [
+              {
+                "trigger": "",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.x-intent-direct": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/x-intent-direct",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [],
+            "transitions": [
+              {
+                "trigger": "x-escalate",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "surface.x-action-id": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/x-action-id",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "respondent",
+        "entry": "start",
+        "routes": [
+          {
+            "id": "start",
+            "path": "/start",
+            "slots": [],
+            "transitions": [
+              {
+                "trigger": "x-escalate",
+                "to": "done"
+              }
+            ]
+          },
+          {
+            "id": "done",
+            "path": "/done",
+            "slots": []
+          }
+        ]
+      }
+    },
+    "response-actions.base": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/base",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/response-actions",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/action-trigger",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "escalate",
+            "intent": "review",
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-escalate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "response-actions.with-submit": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/with-submit",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/response-actions",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/action-trigger",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "escalate",
+            "intent": "review",
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-escalate"
+              }
+            ]
+          },
+          {
+            "id": "submitApplication",
+            "intent": "submit",
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-submit"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "response-actions.ambiguous-submit": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/ambiguous-submit",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/response-actions",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/action-trigger",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "submitPrimary",
+            "intent": "submit",
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-submit-primary"
+              }
+            ]
+          },
+          {
+            "id": "submitSecondary",
+            "intent": "submit",
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-submit-secondary"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "response-actions.x-intent": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/x-intent",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/response-actions",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/action-trigger",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "escalate",
+            "intent": "x-escalate",
+            "validation": {
+              "profile": "on-submit",
+              "blocking": "non-blocking",
+              "persistence": "none"
+            },
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-escalate"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "response-actions.x-action-id": {
+      "slot": "responseActions",
+      "artifactKind": "responseActions",
+      "status": "loaded",
+      "source": "memory://response-actions/x-action-id",
+      "ref": {
+        "url": "https://example.gov/apps/action-trigger/response-actions",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecResponseActions": "1.0",
+        "version": "1.0.0",
+        "targetDefinition": {
+          "url": "https://example.gov/forms/action-trigger",
+          "compatibleVersions": ">=1.0.0"
+        },
+        "actions": [
+          {
+            "id": "x-escalate",
+            "intent": "x-escalate",
+            "validation": {
+              "profile": "on-submit",
+              "blocking": "non-blocking",
+              "persistence": "none"
+            },
+            "effects": [
+              {
+                "type": "hostEvent",
+                "eventName": "formspec-escalate"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "surface-trigger-resolves-action-id",
+      "description": "A Surface transition trigger can name a loaded Response Actions action id.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid-action"],
+          "responseActions": ["response-actions.base"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-trigger-resolves-closed-intent",
+      "description": "A Surface transition trigger can name a closed-core Response Actions intent without inventing a Runtime Plan command.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid-intent"],
+          "responseActions": ["response-actions.with-submit"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-trigger-resolves-x-action-id",
+      "description": "A Surface transition trigger can name an x-* Response Actions action id without treating x-* intents as closed commands.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.x-action-id"],
+          "responseActions": ["response-actions.x-action-id"]
+        }
+      },
+      "expected": {
+        "ok": true,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 0,
+          "errors": 0,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "id": "surface-trigger-rejects-unknown-runtime-command",
+      "description": "A Surface transition trigger that is neither a closed Response Actions intent nor a loaded action id fails closed at source conformance.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.unknown-trigger"],
+          "responseActions": ["response-actions.base"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/unknown-trigger",
+              "jsonPointer": "/routes/0/transitions/0/trigger",
+              "ref": {
+                "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/base",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/action-trigger/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "trigger-unresolved",
+              "routeId": "start",
+              "trigger": "teleport",
+              "closedIntents": ["autosave", "request-evidence", "review", "save-draft", "submit"],
+              "knownActionIds": ["escalate"],
+              "matchingActionIds": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-trigger-rejects-undeclared-closed-intent",
+      "description": "A closed-core intent trigger fails closed when no loaded Response Actions action declares that intent.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid-intent"],
+          "responseActions": ["response-actions.base"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/valid-intent",
+              "jsonPointer": "/routes/0/transitions/0/trigger",
+              "ref": {
+                "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/base",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/action-trigger/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "closed-intent-unresolved",
+              "routeId": "start",
+              "trigger": "submit",
+              "closedIntents": ["autosave", "request-evidence", "review", "save-draft", "submit"],
+              "knownActionIds": ["escalate"],
+              "matchingActionIds": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-trigger-rejects-empty-trigger",
+      "description": "An empty Surface transition trigger fails closed instead of disappearing from source conformance.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.empty-trigger"],
+          "responseActions": ["response-actions.base"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/empty-trigger",
+              "jsonPointer": "/routes/0/transitions/0/trigger",
+              "ref": {
+                "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/base",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/action-trigger/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "trigger-unresolved",
+              "routeId": "start",
+              "trigger": "",
+              "closedIntents": ["autosave", "request-evidence", "review", "save-draft", "submit"],
+              "knownActionIds": ["escalate"],
+              "matchingActionIds": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-trigger-rejects-ambiguous-closed-intent",
+      "description": "A closed-core intent trigger fails closed when more than one loaded Response Actions action declares that intent.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.valid-intent"],
+          "responseActions": ["response-actions.ambiguous-submit"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/valid-intent",
+              "jsonPointer": "/routes/0/transitions/0/trigger",
+              "ref": {
+                "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/ambiguous-submit",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/action-trigger/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "closed-intent-ambiguous",
+              "routeId": "start",
+              "trigger": "submit",
+              "closedIntents": ["autosave", "request-evidence", "review", "save-draft", "submit"],
+              "knownActionIds": ["submitPrimary", "submitSecondary"],
+              "matchingActionIds": ["submitPrimary", "submitSecondary"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "surface-trigger-rejects-direct-x-intent",
+      "description": "A direct x-* intent trigger fails closed unless the same string is a loaded Response Actions action id.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surfaces": ["surface.x-intent-direct"],
+          "responseActions": ["response-actions.x-intent"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-RESPONSE-ACTION-TRIGGER",
+            "primarySource": {
+              "artifactSlot": "surfaces[0]",
+              "artifactKind": "surface",
+              "source": "memory://surface/x-intent-direct",
+              "jsonPointer": "/routes/0/transitions/0/trigger",
+              "ref": {
+                "url": "https://example.gov/apps/action-trigger/surfaces/respondent",
+                "version": "1.0.0"
+              }
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "responseActions",
+                "artifactKind": "responseActions",
+                "source": "memory://response-actions/x-intent",
+                "jsonPointer": "/actions",
+                "ref": {
+                  "url": "https://example.gov/apps/action-trigger/response-actions",
+                  "version": "1.0.0"
+                }
+              }
+            ],
+            "details": {
+              "reason": "trigger-unresolved",
+              "routeId": "start",
+              "trigger": "x-escalate",
+              "closedIntents": ["autosave", "request-evidence", "review", "save-draft", "submit"],
+              "knownActionIds": ["escalate"],
+              "matchingActionIds": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

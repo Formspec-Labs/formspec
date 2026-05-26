@@ -4,8 +4,11 @@
 **Row:** Conformance
 **Status:** Open. Source conformance coverage is now pinned for the covered
 families, EC12 has a runtime hidden-state consumer checkpoint, and A10 has a
-real App Manifest v2.3 Screener association source. A8, F8/F9 production
-consumers, and F10 authorization remain unresolved or held.
+real App Manifest v2.3 Screener association source. A8 now has a production
+source-boundary replacement at the Surface / Response Actions trigger seam,
+including undeclared closed-intent, ambiguous closed-intent, direct `x-*`
+intent, and empty-trigger rejection. The row remains Open because F8/F9
+production consumers and F10 authorization remain unresolved or held.
 **Owner:** Formspec app-graph follow-on lane
 
 ## Scope
@@ -65,6 +68,12 @@ validation, or fine-grained authorization semantics.
   Surface/Screener/AppGraphValidator normative prose, clarifies that this is
   association rather than sidecar absorption, and extends ArtifactResolver/report
   schemas beyond `SLOT_SPECS`.
+- 2026-05-26 architecture review scout Kant
+  (`019e62ec-e71d-7761-ba8f-56d9c3cc37f2`) approved closing A8 through a
+  production-equivalent source-conformance replacement at the Surface / Response
+  Actions trigger boundary, with constraints: do not claim Runtime Plan
+  coverage, do not make it schema-only, preserve `x-*` Response Actions intent
+  semantics, and keep gate 6b / gate 7 partial.
 
 ## Evidence Map
 
@@ -77,7 +86,7 @@ validation, or fine-grained authorization semantics.
 | A5 missing route params | Surface route-parameter prose/schema plus lint `E610` fixture | Covered |
 | A6 required-field runtime blocking | Response Actions runtime fixture `intent-submit-blocked.json` | Covered |
 | A7 duplicate durable-effect idempotency key | Source conformance fixture plus Rust lint `E1804` check | Covered |
-| A8 unknown runtime command | Runtime Plan is not promoted as a production source artifact | Held/Open |
+| A8 unknown runtime command | Source-conformance replacement: AppGraphValidator rejects Surface transition triggers that are neither loaded Response Actions `actions[*].id` values nor closed intents declared by exactly one loaded Response Actions action; empty triggers, undeclared closed intents, ambiguous closed intents, and direct `x-*` intent triggers fail closed; no Runtime Plan artifact/schema/validator phase promoted | Covered |
 | A9 route/Definition ownership mismatch | Component route `bound-controls-route-definition-mismatch` fixture | Covered |
 | A10 undeclared Screener terminal hop | App Manifest v2.3 `screeners[]` is the explicit Screener-to-app association source; ArtifactResolver loads associated Screeners; AppGraphValidator validates `surface:<route-id>` targets against exactly one loaded Surface route | Covered |
 | A11 duplicate Response Actions action id | Source conformance fixture plus Rust lint `E1801` check | Covered |
@@ -113,6 +122,12 @@ validation, or fine-grained authorization semantics.
 
 ### Phase 3 - Route / Screener / Experience Gaps
 
+- [x] Promote A8 through a source-conformance replacement at the Surface /
+  Response Actions trigger seam: unknown transition triggers fail closed against
+  loaded Response Actions action ids and closed-core intents declared by exactly
+  one loaded action; empty triggers, undeclared closed intents, ambiguous closed
+  intents, and direct `x-*` intent triggers also fail closed. Runtime Plan
+  remains evidence-only and unpromoted.
 - [x] Promote A5 into Surface route-parameter prose/schema and pin the `E610`
   Surface-local lint diagnostic for missing target route params.
 - [x] Promote A10 through App Manifest v2.3 `screeners[]`, ArtifactResolver
@@ -142,6 +157,14 @@ validation, or fine-grained authorization semantics.
   cross-artifact semantics and should not be bundled into the inventory commit.
 - 2026-05-25: A8 remains out of the first slice because Runtime Plan is not a
   promoted production source artifact under ADR 0153.
+- 2026-05-26: A8 moved from Held/Open to covered by replacing the spike Runtime
+  Plan command check with a production source-boundary check over
+  `Surface.transitions[].trigger` against loaded Response Actions action ids and
+  closed-core intents declared by exactly one loaded action. Empty triggers,
+  undeclared closed intents, ambiguous closed intents, direct `x-*` intent
+  triggers, and unknown trigger strings fail closed. No Runtime Plan source
+  artifact, schema, AppGraphValidator phase, TraceIndex substitute, or renderer
+  command channel was promoted.
 - 2026-05-25: A11 uses a schema-valid fixture plus Rust lint check because the
   Response Actions schema explicitly cannot enforce unique `actions[*].id`.
 - 2026-05-25: A7 is intentionally exact-string and single-action scoped. It does
@@ -209,6 +232,12 @@ Pinned evidence after the ledger slice:
   `tests/conformance/spec/test_response_actions_runtime.py`,
   `tests/conformance/schemas/test_response_actions_schema.py`, and
   `crates/formspec-lint/src/pass_response_actions.rs`.
+- A8 Surface / Response Actions trigger evidence:
+  `tests/conformance/fixtures/app-graph-validator/surface-response-action-triggers.case.json`,
+  `packages/formspec-app-graph/src/surface-response-action-triggers.ts`,
+  `packages/formspec-app-graph/tests/surface-response-action-triggers-conformance.test.ts`,
+  and
+  `tests/conformance/test_app_graph_surface_response_action_trigger_fixture_corpus.py`.
 - A9/A12/EC5 Component route evidence:
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
   cases `bound-controls-route-definition-mismatch`,
@@ -281,8 +310,9 @@ Pinned evidence after the ledger slice:
 
 Still open:
 
-- A8 remains held because Runtime Plan is not a promoted production source
-  artifact. F8/F9 production consumers and F10 authorization remain partial or
-  held.
-- The rollup Conformance row must remain Open until every v4 family is pinned by
-  source conformance evidence.
+- F8/F9 production consumers and F10 authorization remain partial or held. The
+  A8 replacement covers source conformance only; it does not close Response
+  Actions runtime, Runtime ownership, Production wiring, or ADR 0152.
+- The rollup Conformance row must remain Open until the remaining production
+  consumer and authorization families are resolved or explicitly separated by an
+  owner decision.

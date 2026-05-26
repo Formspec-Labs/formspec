@@ -66,6 +66,9 @@ export {
   validateSurfaceExperienceUnits,
 } from './surface-experience-units.js';
 export {
+  validateSurfaceResponseActionTriggers,
+} from './surface-response-action-triggers.js';
+export {
   validateUiGraphPolicy,
 } from './ui-graph-policy.js';
 export {

@@ -182,6 +182,14 @@ replay, retry, blocking, and terminal state. A router MAY advance a Surface
 transition only after the referenced action or closed-core intent has completed
 successfully under Response Actions authority.
 
+App-graph validation MUST reject a transition trigger that is neither a loaded
+Response Actions `actions[*].id` nor a closed-core Response Actions intent
+declared by exactly one loaded Response Actions action. Direct `x-` extension
+intent triggers are invalid unless they are also action ids; extension intent
+semantics stay inside the Response Actions document. This is a
+source-conformance check over the loaded graph; it does not introduce or require
+a Runtime Plan artifact, schema, or validator phase.
+
 If `when` is present, it is an FEL boolean expression evaluated against current
 bundle state. The transition fires only when `when` evaluates true. Producers
 and authoring facades MAY reject `when` until they can validate the expression
