@@ -72,6 +72,9 @@ fine-grained authorization.
 - 2026-05-26 Kant post-review `019e6397-7c56-70e2-8339-66f46379719d`
   returned APPROVE with no findings for the MCP/BFF HTTP caller seam. It did not
   run tests.
+- 2026-05-26 Kant delta post-review `019e63a0-f71f-7dc1-9d3b-14e9504406b1`
+  returned APPROVE with no findings for the completed-phase gate. It did not run
+  tests.
 
 ## Work Phases
 
@@ -267,7 +270,7 @@ Partial evidence landed:
 - Verification:
   `npm run test --workspace @formspec-org/mcp -- app-graph-publish.test.ts`;
   `npm run test --workspace @formspec-org/mcp -- app-graph-publish.test.ts product-verbs.test.ts`;
-  `npm run test --workspace @formspec-org/mcp` (401 tests);
+  `npm run test --workspace @formspec-org/mcp` (402 tests);
   `npm run build --workspace @formspec-org/mcp`.
 
 Still open:
