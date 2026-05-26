@@ -72,6 +72,16 @@ This plan tracks:
   context as a trusted host/BFF sidecar, emit inert `data-*` metadata only, and
   keep the rollup row Partial because the runtime still does not load and
   validate the graph itself.
+- 2026-05-26: Kant pre-review `019e639c-5b9f-7631-93b4-977e7c8c46d1`
+  rejected a proposed `formspec-web` proof gate for `componentGraph` sidecars
+  against the current report shape. `AppGraphValidationReport` has no
+  source/evidence pointer that proves a `ComponentGraphProjectionContext` sidecar
+  was validated; `hostEvidence` currently has `uiGraphPolicies[]` only. The
+  acceptable next contract is an explicit
+  `hostEvidence.componentGraphContexts[]`-style source with report evidence
+  results and AppGraphValidator checks for Component handle/url/version, Surface
+  url/version, and route coverage before web suppresses unproven renderer
+  metadata.
 
 ## Ordered Work
 
@@ -227,6 +237,10 @@ This plan tracks:
   Definition-only; Component document and graph context are optional sidecars.
   The browser does not validate Component route membership, apply route
   behavior, or infer authorization from the emitted metadata.
+- 2026-05-26: Do not gate `formspec-web` Component graph sidecars on generic
+  `AppGraphValidationReport.ok`. That would be proof by absence. Runtime
+  suppression of unproven Component graph metadata needs an explicit
+  component-graph host-evidence source first.
 
 ## Closure Evidence
 
@@ -325,4 +339,6 @@ Still open:
 
 - Production runtime host graph loading that supplies validated Component graph
   context from a real loaded graph, rather than a test/stub sidecar.
+- Explicit component-graph host-evidence source/proof shape for validated
+  projection context. Do not use generic `report.ok` as proof.
 - Broader consumer-facing copy/move conformance.
