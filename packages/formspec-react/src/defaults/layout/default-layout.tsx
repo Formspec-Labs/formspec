@@ -10,6 +10,7 @@ import {
 } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
 import { useWhen } from '../../use-when';
+import { componentGraphIdentityAttrs } from '../../projection-metadata.js';
 
 /**
  * Default layout renderer — dispatches to the correct container component
@@ -145,6 +146,7 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
                 style={surfaceStyle(props, style)}
                 {...elevationAttrs(props)}
                 {...accessibilityAttrs(node)}
+                {...componentGraphIdentityAttrs(node)}
             >
                 <h3 className="formspec-group-title">{title}</h3>
                 {children}
@@ -153,7 +155,7 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     }
 
     return (
-        <div className={mergeClasses('formspec-stack', themeClass)} style={stackStyle}>
+        <div className={mergeClasses('formspec-stack', themeClass)} style={stackStyle} {...componentGraphIdentityAttrs(node)}>
             {children}
         </div>
     );
@@ -192,7 +194,7 @@ function GridLayout({ node, children, themeClass, style }: LayoutProps) {
     };
 
     return (
-        <div className={mergeClasses('formspec-grid', themeClass)} style={gridStyle}>
+        <div className={mergeClasses('formspec-grid', themeClass)} style={gridStyle} {...componentGraphIdentityAttrs(node)}>
             {children}
         </div>
     );
@@ -212,6 +214,7 @@ function CardLayout({ node, children, themeClass, style }: LayoutProps) {
             className={mergeClasses('formspec-card', themeClass)}
             style={surfaceStyle(props, style)}
             {...elevationAttrs(props)}
+            {...componentGraphIdentityAttrs(node)}
         >
             {label && <Heading className="formspec-card-title">{label}</Heading>}
             {subtitle && <p className="formspec-card-subtitle">{subtitle}</p>}
@@ -227,7 +230,7 @@ function DividerLayout({ node, themeClass, style }: Omit<LayoutProps, 'children'
 
     if (label) {
         return (
-            <div className={mergeClasses('formspec-divider formspec-divider--labeled', themeClass)} style={style}>
+            <div className={mergeClasses('formspec-divider formspec-divider--labeled', themeClass)} style={style} {...componentGraphIdentityAttrs(node)}>
                 <hr />
                 <span>{label}</span>
                 <hr />
@@ -235,7 +238,7 @@ function DividerLayout({ node, themeClass, style }: Omit<LayoutProps, 'children'
         );
     }
 
-    return <hr className={mergeClasses('formspec-divider', themeClass)} style={style} />;
+    return <hr className={mergeClasses('formspec-divider', themeClass)} style={style} {...componentGraphIdentityAttrs(node)} />;
 }
 
 // ── Section ──────────────────────────────────────────────────────
@@ -248,7 +251,7 @@ function SectionLayout({ node, children, themeClass, style }: LayoutProps) {
     const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return (
-        <section className={mergeClasses('formspec-section', themeClass)} style={surfaceStyle(props, style)} {...elevationAttrs(props)}>
+        <section className={mergeClasses('formspec-section', themeClass)} style={surfaceStyle(props, style)} {...elevationAttrs(props)} {...componentGraphIdentityAttrs(node)}>
             {title && <Heading>{title}</Heading>}
             {description && <p className="formspec-section-description">{description}</p>}
             {children}
@@ -264,7 +267,7 @@ function CollapsibleLayout({ node, children, themeClass, style }: LayoutProps) {
     const defaultOpen = props.defaultOpen as boolean | undefined;
 
     return (
-        <details className={mergeClasses('formspec-collapsible', themeClass)} style={style} open={defaultOpen || false}>
+        <details className={mergeClasses('formspec-collapsible', themeClass)} style={style} open={defaultOpen || false} {...componentGraphIdentityAttrs(node)}>
             <summary>{title}</summary>
             <div className="formspec-collapsible-content">
                 {children}
@@ -345,6 +348,7 @@ function AccordionLayout({ node, children, themeClass, style }: LayoutProps) {
             className={mergeClasses('formspec-accordion', themeClass)}
             style={style}
             onKeyDown={handleKeyDown}
+            {...componentGraphIdentityAttrs(node)}
         >
             {childArray.map((child, idx) => {
                 const label = labels[idx] ?? `Section ${idx + 1}`;
@@ -382,7 +386,7 @@ function PanelLayout({ node, children, themeClass, style }: LayoutProps) {
     };
 
     return (
-        <div className={mergeClasses('formspec-panel', themeClass)} style={panelStyle} {...elevationAttrs(props)}>
+        <div className={mergeClasses('formspec-panel', themeClass)} style={panelStyle} {...elevationAttrs(props)} {...componentGraphIdentityAttrs(node)}>
             {title && <div className="formspec-panel-header">{title}</div>}
             <div className="formspec-panel-body">
                 {children}
@@ -512,6 +516,7 @@ function ModalLayout({ node, children, themeClass, style }: LayoutProps) {
                 aria-label={title ? undefined : triggerLabel}
                 {...(size ? { 'data-size': size } : {})}
                 onClick={handleDialogClick}
+                {...componentGraphIdentityAttrs(node)}
             >
                 {closable && (
                     <button
@@ -621,6 +626,7 @@ function PopoverLayout({ node, children, themeClass, style }: LayoutProps) {
             ref={wrapperRef}
             className={mergeClasses('formspec-popover', themeClass)}
             style={style}
+            {...componentGraphIdentityAttrs(node)}
         >
             <button
                 type="button"
@@ -654,6 +660,7 @@ function DefaultContainer({ node, children, themeClass, style }: LayoutProps) {
         <div
             className={mergeClasses(`formspec-${node.component.toLowerCase()}`, themeClass)}
             style={style}
+            {...componentGraphIdentityAttrs(node)}
         >
             {children}
         </div>

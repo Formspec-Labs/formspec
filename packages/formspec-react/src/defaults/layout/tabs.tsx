@@ -3,6 +3,7 @@
 /** @filedesc Tabs layout component — WAI-ARIA tabbed panel navigation with keyboard support. */
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutComponentProps } from '../../component-map';
+import { componentGraphIdentityAttrs } from '../../projection-metadata.js';
 
 /**
  * Tabs layout component.
@@ -132,6 +133,7 @@ export function Tabs({ node, children }: LayoutComponentProps) {
                 ...(placement === 'left' || placement === 'right' ? { display: 'flex', flexDirection: 'row' } : {}),
             }}
             data-placement={placement !== 'top' ? placement : undefined}
+            {...componentGraphIdentityAttrs(node)}
         >
             {placement === 'bottom' || placement === 'right' ? (
                 <>

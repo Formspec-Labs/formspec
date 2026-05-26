@@ -7,6 +7,7 @@ import { useFormspecContext } from '../../context';
 import type { ExtensionAttrs } from './field-control-types';
 import { GroupControl } from './group-control';
 import { renderControl } from './render-control';
+import { componentGraphIdentityAttrs } from '../../projection-metadata.js';
 
 /**
  * Default field renderer — works for any field type.
@@ -19,6 +20,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const isReadonly = field.readonly || isProtected;
     const showError = !!(field.error && field.touched);
     const themeClass = node.cssClasses?.join(' ') || '';
+    const graphAttrs = componentGraphIdentityAttrs(node);
 
     const { registryEntries } = useFormspecContext();
     const extensionAttrs = useMemo((): ExtensionAttrs => {
@@ -84,6 +86,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 className={`formspec-field formspec-field--inline ${isProtected ? 'formspec-protected' : ''} ${themeClass}`.trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
+                {...graphAttrs}
             >
                 <label htmlFor={field.id} className="formspec-label">
                     {field.label}
@@ -122,6 +125,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 className={[`formspec-fieldset`, isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
+                {...graphAttrs}
             >
                 <legend
                     id={labelId}
@@ -155,6 +159,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             className={[`formspec-field`, isProtected ? 'formspec-protected' : '', themeClass, controlSurfaceClass].filter(Boolean).join(' ').trim()}
             style={node.style as React.CSSProperties | undefined}
             data-name={field.path}
+            {...graphAttrs}
             {...(node.accessibility?.role ? { role: node.accessibility.role } : {})}
             {...(node.accessibility?.description ? { 'aria-description': node.accessibility.description } : {})}
         >

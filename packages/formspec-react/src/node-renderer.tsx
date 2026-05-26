@@ -22,6 +22,7 @@ import { Wizard } from './defaults/layout/wizard';
 import { Tabs } from './defaults/layout/tabs';
 import { DisplayNode } from './node-renderer-display.js';
 import { RepeatGroup, RepeatAccordion } from './node-renderer-repeat.js';
+import { componentGraphIdentityAttrs } from './projection-metadata.js';
 
 const BUILTIN_LAYOUT: Record<string, React.ComponentType<LayoutComponentProps>> = {
     Wizard,
@@ -208,6 +209,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
             disabled={!resolution.resolved}
             onClick={handleClick}
+            {...componentGraphIdentityAttrs(node)}
         >
             {label}
         </button>

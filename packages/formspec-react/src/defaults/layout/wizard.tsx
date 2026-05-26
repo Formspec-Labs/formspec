@@ -5,6 +5,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
 import { useFormspecContext } from '../../context';
+import { componentGraphIdentityAttrs } from '../../projection-metadata.js';
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -218,6 +219,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
         className: cx('formspec-wizard', showSideNav && 'formspec-wizard--with-sidenav'),
         role: 'group' as const,
         'aria-label': `Wizard: Step ${currentStep + 1} of ${totalSteps}`,
+        ...componentGraphIdentityAttrs(node),
     };
 
     if (!showSideNav) {

@@ -5,11 +5,12 @@
 **Status:** Partial. Route identity schema, shared validator checks,
 graph-wide provenance schema evidence, Studio/kernel `copyNode` graph identity
 stamping, Studio/kernel `moveNode` `movedFrom` persistence, and layout
-projection identity consumption are landed. Broader
-Studio/kernel operations now include explicit Component membership binding.
-The webcomponent renderer now consumes host-supplied Component graph projection
-context as inert DOM metadata. Production runtime host wiring and broader
-consumer-facing conformance remain open.
+projection identity consumption are landed. Broader Studio/kernel operations
+now include explicit Component membership binding. The webcomponent renderer,
+React renderer, and `formspec-web` respondent runtime now consume
+host-supplied Component graph projection context as inert DOM metadata.
+Production runtime host graph loading and broader consumer-facing conformance
+remain open.
 Definition id/name alias matching is rejected as stale
 Surface/registry text; the v1.2 route-bound Definition-context rule remains
 URL-only.
@@ -65,6 +66,12 @@ This plan tracks:
   blockers: host-supplied `componentGraph` context is passed into layout
   planning and emitted as inert DOM metadata, while route validation and runtime
   behavior stay outside the renderer.
+- 2026-05-26: Kant approved the React / `formspec-web` respondent-runtime
+  consumer slice with no blockers or high findings. Constraints: keep
+  `DefinitionSource.getDefinition()` definition-only, treat Component graph
+  context as a trusted host/BFF sidecar, emit inert `data-*` metadata only, and
+  keep the rollup row Partial because the runtime still does not load and
+  validate the graph itself.
 
 ## Ordered Work
 
@@ -128,6 +135,13 @@ This plan tracks:
     supplied Component membership + Surface + route scope.
   - [x] `<formspec-render>` accepts a host-supplied `componentGraph` projection
     context and emits `LayoutNode.componentGraphIdentity` as inert DOM metadata.
+  - [x] `@formspec-org/react` accepts the same host-supplied `componentGraph`
+    projection context and emits inert `data-formspec-*` identity metadata from
+    default layout, field, display, wizard/tab, and ActionButton renderers.
+  - [x] `formspec-web` keeps `getDefinition()` definition-only and loads
+    Component document / Component graph sidecars through optional
+    `DefinitionSource` hooks before passing them into the React respondent
+    runtime.
   - [ ] Runtime hosts still need route-backed app-graph wiring that supplies the
     validated projection context from a real loaded graph.
 - [x] Definition id alias matching is rejected with evidence.
@@ -208,6 +222,11 @@ This plan tracks:
   context only. It does not validate Component `targetSurfaceRoutes[]`, discover
   App Manifest memberships, select routes, enforce authorization, or infer
   runtime behavior from the emitted metadata.
+- 2026-05-26: React and `formspec-web` consume the same projection context as a
+  host/BFF sidecar only. `DefinitionSource.getDefinition()` remains
+  Definition-only; Component document and graph context are optional sidecars.
+  The browser does not validate Component route membership, apply route
+  behavior, or infer authorization from the emitted metadata.
 
 ## Closure Evidence
 
@@ -243,6 +262,22 @@ Partial evidence landed:
   `packages/formspec-webcomponent/src/hub-types.ts` consume host-supplied
   `componentGraph` projection context and emit inert DOM `data-*` identity
   metadata for rendered Component nodes.
+- React / public runtime consumer:
+  `packages/formspec-react/src/context.tsx`,
+  `packages/formspec-react/src/projection-metadata.ts`,
+  `packages/formspec-react/src/defaults/fields/default-field.tsx`,
+  `packages/formspec-react/src/defaults/layout/default-layout.tsx`,
+  `packages/formspec-react/src/node-renderer.tsx`,
+  `packages/formspec-react/src/node-renderer-display.tsx`, and
+  `formspec-web/src/app/RespondentRuntime.tsx` consume host-supplied
+  Component graph sidecars and emit inert DOM identity metadata; the public-web
+  `formspec-web/src/app/attachment-upload-control.tsx` FileUpload override
+  uses the same helper on its primary upload control.
+- Public runtime source seam:
+  `formspec-web/src/ports/definition-source.ts`,
+  `formspec-web/src/adapters/http/definition-source.ts`, and
+  `formspec-web/src/adapters/stub/definition-source.ts` keep `getDefinition()`
+  Definition-only while adding optional Component sidecar hooks.
 - Fixtures:
   `tests/conformance/fixtures/app-graph-validator/component-route-targets.case.json`
   and
@@ -259,6 +294,12 @@ Partial evidence landed:
   `packages/formspec-layout/tests/planner.test.ts`.
 - Renderer tests:
   `packages/formspec-webcomponent/tests/render-lifecycle.test.ts`.
+- React / public runtime tests:
+  `packages/formspec-react/tests/renderer.test.tsx`,
+  `formspec-web/tests/adapters/http/definition-source.test.ts`, and
+  `formspec-web/tests/app/respondent-runtime.test.tsx`;
+  `formspec-web/tests/app/attachment-upload-control.test.tsx` covers the
+  public-web FileUpload override.
 - Verification:
   `python -m pytest tests/conformance/test_common_schema_defs.py tests/conformance/schemas/test_component_reference_fields_schema.py tests/conformance/spec/test_component_no_rewrite_regression.py -q`;
   `npm run --workspace @formspec-org/types build`;
@@ -273,10 +314,15 @@ Partial evidence landed:
   `npx tsc --noEmit -p packages/formspec-webcomponent/tsconfig.json`;
   `npx tsc --noEmit -p packages/formspec-app-graph/tsconfig.json`;
   `cd ../formspec-studio && npx tsc --noEmit -p packages/formspec-studio-core/tsconfig.json`;
-  `npx tsc --noEmit -p packages/formspec-layout/tsconfig.json`.
+  `npx tsc --noEmit -p packages/formspec-layout/tsconfig.json`;
+  `npm run --workspace @formspec-org/react build`;
+  `npm run --workspace @formspec-org/react test -- tests/renderer.test.tsx`;
+  `cd ../formspec-web && npm run typecheck`;
+  `cd ../formspec-web && npm test -- tests/app/attachment-upload-control.test.tsx tests/adapters/http/definition-source.test.ts tests/app/respondent-runtime.test.tsx`;
+  `cd ../formspec-web && npm run check:vendor-leaks`.
 
 Still open:
 
-- Production runtime host wiring that supplies validated Component graph context
-  from a real loaded graph.
+- Production runtime host graph loading that supplies validated Component graph
+  context from a real loaded graph, rather than a test/stub sidecar.
 - Broader consumer-facing copy/move conformance.

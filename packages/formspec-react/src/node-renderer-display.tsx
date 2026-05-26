@@ -9,6 +9,7 @@ import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
 import { useRepeatCount } from './use-repeat-count';
 import { ValidationSummary } from './validation-summary';
+import { componentGraphIdentityAttrs } from './projection-metadata.js';
 
 /**
  * Minimal markdown-to-HTML converter. Handles the subset required by the Text
@@ -51,16 +52,17 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
 
     const cssClass = node.cssClasses?.join(' ') || undefined;
     const style = node.style as React.CSSProperties | undefined;
+    const graphAttrs = componentGraphIdentityAttrs(node);
 
     switch (node.component) {
         case 'Heading': {
             const level = (node.props?.level as number) || 2;
             const Tag = `h${Math.min(6, Math.max(1, level))}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-            return <Tag className={cssClass || 'formspec-heading'} style={style}>{text}</Tag>;
+            return <Tag className={cssClass || 'formspec-heading'} style={style} {...graphAttrs}>{text}</Tag>;
         }
 
         case 'Divider':
-            return <hr className={cssClass || 'formspec-divider'} style={style} />;
+            return <hr className={cssClass || 'formspec-divider'} style={style} {...graphAttrs} />;
 
         case 'Alert': {
             const severity = (node.props?.severity as string) || 'info';
@@ -74,6 +76,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
                     text={text}
                     cssClass={cssClass}
                     style={style}
+                    metadataAttrs={graphAttrs}
                 />
             );
         }
@@ -84,6 +87,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
                 <span
                     className={`formspec-badge formspec-badge--${variant}${cssClass ? ' ' + cssClass : ''}`}
                     style={style}
+                    {...graphAttrs}
                 >
                     {text}
                 </span>
@@ -104,13 +108,14 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
                         progressLabel={progressLabel}
                         cssClass={cssClass}
                         style={style}
+                        metadataAttrs={graphAttrs}
                     />
                 );
             }
             const value = (node.props?.value as number) ?? 0;
             const pct = Math.round((value / max) * 100);
             return (
-                <div className={`formspec-progress-bar${cssClass ? ' ' + cssClass : ''}`} style={style}>
+                <div className={`formspec-progress-bar${cssClass ? ' ' + cssClass : ''}`} style={style} {...graphAttrs}>
                     <progress value={value} max={max} aria-label={progressLabel} />
                     {showPercent && (
                         <span className="formspec-progress-percent">{pct}%</span>
@@ -122,12 +127,12 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
         case 'Summary': {
             const items = (node.props?.items as Array<{ label: string; bind?: string }>) || [];
             return (
-                <SummaryDisplay node={node} items={items} cssClass={cssClass} style={style} />
+                <SummaryDisplay node={node} items={items} cssClass={cssClass} style={style} metadataAttrs={graphAttrs} />
             );
         }
 
         case 'DataTable':
-            return <DataTableDisplay node={node} cssClass={cssClass} style={style} />;
+            return <DataTableDisplay node={node} cssClass={cssClass} style={style} metadataAttrs={graphAttrs} />;
 
         case 'ValidationSummary':
             return <ValidationSummaryDisplay />;
@@ -142,12 +147,13 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
                     <p
                         className={textClassName}
                         style={style}
+                        {...graphAttrs}
                         dangerouslySetInnerHTML={{ __html: simpleMarkdown(text) }}
                     />
                 );
             }
             return (
-                <p className={textClassName} style={style}>
+                <p className={textClassName} style={style} {...graphAttrs}>
                     {bindPath ? <BoundText bind={bindPath} /> : text}
                 </p>
             );
@@ -160,14 +166,16 @@ function SummaryDisplay({
     items,
     cssClass,
     style,
+    metadataAttrs,
 }: {
     node: LayoutNode;
     items: Array<{ label: string; bind?: string }>;
     cssClass: string | undefined;
     style: React.CSSProperties | undefined;
+    metadataAttrs: Record<string, string>;
 }) {
     return (
-        <dl className={`formspec-summary${cssClass ? ' ' + cssClass : ''}`} style={style}>
+        <dl className={`formspec-summary${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
             {items.map((item, i) => (
                 <SummaryItem key={item.bind || i} label={item.label} bind={item.bind} />
             ))}
@@ -182,13 +190,14 @@ function BoundText({ bind }: { bind: string }) {
     return <>{rawValue != null ? String(rawValue) : ''}</>;
 }
 
-function BoundProgressBar({ bind, max, showPercent, progressLabel, cssClass, style }: {
+function BoundProgressBar({ bind, max, showPercent, progressLabel, cssClass, style, metadataAttrs }: {
     bind: string;
     max: number;
     showPercent: boolean;
     progressLabel: string;
     cssClass?: string;
     style?: React.CSSProperties;
+    metadataAttrs: Record<string, string>;
 }) {
     const { engine } = useFormspecContext();
     const sig = engine.signals[bind] ?? NO_VALUE;
@@ -196,7 +205,7 @@ function BoundProgressBar({ bind, max, showPercent, progressLabel, cssClass, sty
     const value = typeof rawValue === 'number' ? rawValue : 0;
     const pct = Math.round((value / max) * 100);
     return (
-        <div className={`formspec-progress-bar${cssClass ? ' ' + cssClass : ''}`} style={style}>
+        <div className={`formspec-progress-bar${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
             <progress value={value} max={max} aria-label={progressLabel} />
             {showPercent && (
                 <span className="formspec-progress-percent">{pct}%</span>
@@ -205,13 +214,14 @@ function BoundProgressBar({ bind, max, showPercent, progressLabel, cssClass, sty
     );
 }
 
-function DismissibleAlert({ severity, alertRole, dismissible, text, cssClass, style }: {
+function DismissibleAlert({ severity, alertRole, dismissible, text, cssClass, style, metadataAttrs }: {
     severity: string;
     alertRole: string;
     dismissible: boolean;
     text: string;
     cssClass?: string;
     style?: React.CSSProperties;
+    metadataAttrs: Record<string, string>;
 }) {
     const [dismissed, setDismissed] = useState(false);
     if (dismissed) return null;
@@ -220,6 +230,7 @@ function DismissibleAlert({ severity, alertRole, dismissible, text, cssClass, st
             role={alertRole}
             className={`formspec-alert formspec-alert--${severity}${dismissible ? ' formspec-alert--dismissible' : ''}${cssClass ? ' ' + cssClass : ''}`}
             style={style}
+            {...metadataAttrs}
         >
             {text}
             {dismissible && (
@@ -451,10 +462,12 @@ function DataTableDisplay({
     node,
     cssClass,
     style,
+    metadataAttrs,
 }: {
     node: LayoutNode;
     cssClass: string | undefined;
     style: React.CSSProperties | undefined;
+    metadataAttrs: Record<string, string>;
 }) {
     const { engine } = useFormspecContext();
     const bindKey = node.props?.bind as string | undefined;
@@ -484,14 +497,14 @@ function DataTableDisplay({
 
     if (!bindKey || columns.length === 0) {
         return (
-            <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style}>
+            <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
                 <table className="formspec-data-table" />
             </div>
         );
     }
 
     return (
-        <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style}>
+        <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
             <table className="formspec-data-table">
                 {(node.props?.title as string) && (
                     <caption>{node.props?.title as string}</caption>

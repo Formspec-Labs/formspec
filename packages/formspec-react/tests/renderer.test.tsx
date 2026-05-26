@@ -182,6 +182,63 @@ describe('FormspecForm', () => {
         );
         expect(host?.style.getPropertyValue('--formspec-color-border').trim()).toBe(expectedBorder);
     });
+
+    it('emits inert Component graph identity metadata from host-supplied graph context', () => {
+        const componentDocument = {
+            $formspecComponent: '1.2',
+            url: 'https://components.example.test/respondent',
+            version: '1.0.0',
+            targetSurfaceRoutes: [
+                {
+                    surface: {
+                        url: 'https://surfaces.example.test/intake',
+                        version: '1.0.0',
+                    },
+                    route: 'apply',
+                },
+            ],
+            tree: {
+                component: 'Stack',
+                id: 'root-stack',
+                children: [
+                    {
+                        component: 'TextInput',
+                        bind: 'name',
+                        id: 'name-node',
+                    },
+                ],
+            },
+        };
+        const componentGraph = {
+            component: {
+                handle: 'respondent',
+                url: componentDocument.url,
+                version: componentDocument.version,
+            },
+            surface: {
+                url: 'https://surfaces.example.test/intake',
+                version: '1.0.0',
+            },
+            route: 'apply',
+        };
+
+        const container = renderInto(
+            <FormspecForm
+                definition={testDefinition}
+                componentDocument={componentDocument}
+                componentGraph={componentGraph}
+            />
+        );
+
+        const rootStack = container.querySelector('.formspec-stack') as HTMLElement;
+        const nameField = container.querySelector('.formspec-field[data-name="name"]') as HTMLElement;
+        expect(rootStack?.dataset.formspecComponentHandle).toBe('respondent');
+        expect(rootStack?.dataset.formspecRoute).toBe('apply');
+        expect(rootStack?.dataset.formspecNodePath).toBe('/root-stack');
+        expect(nameField?.dataset.formspecComponentHandle).toBe('respondent');
+        expect(nameField?.dataset.formspecComponentNodeId).toBe('name-node');
+        expect(nameField?.dataset.formspecNodePath).toBe('/root-stack/name');
+    });
 });
 
 // ── Display node rendering ────────────────────────────────────────
