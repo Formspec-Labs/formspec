@@ -4,3 +4,4 @@
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization remains fail-closed until ADR 0152 supplies the authorization contract.
+- ADR 0153 gate 5 "Closed" is the catalog contract only — availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are tracked in [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).

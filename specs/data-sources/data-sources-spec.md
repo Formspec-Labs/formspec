@@ -30,6 +30,7 @@ This document is additive. It does not replace Definition-local `instances`, doe
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization remains fail-closed until ADR 0152 supplies the authorization contract.
+- ADR 0153 gate 5 "Closed" is the catalog contract only — availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are tracked in [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
 <!-- bluf:end -->
 
 ## 1. Purpose and Scope
@@ -243,17 +244,28 @@ The normative fixture corpus lives at `tests/conformance/fixtures/data-sources/`
 
 App Manifest v2.1 Data Sources references are covered in `tests/conformance/fixtures/bundle/app-with-data-sources-v2-1.json`; v2.0 rejection is covered in `invalid-data-sources-in-2-0.json`.
 
-## 11. Out of Scope
+## 11. Contract vs stack implementation
 
-This v1.0 contract does not provide:
+This v1.0 document closes the **catalog contract** (ADR 0153 gate 5). Shared graph loading and validation exist elsewhere; this spec still does not define runtime behavior.
 
-- a canonical `ArtifactResolver`,
-- a canonical `AppGraphValidator`,
-- source payload fetching or cache implementation,
-- renderer fallback behavior,
-- a query language,
-- source-to-Definition-instance mapping,
-- production Studio, MCP, runtime, or projection wiring, or
-- fine-grained authorization.
+| Concern | Status | Where |
+|---|---|---|
+| Peer artifact spec + schema + fixtures | **Closed** (this document) | §3–§10 |
+| `ArtifactResolver` / `ModuleResolver` load `dataSources[]` siblings | **Closed** (contract + kernel) | ADR 0153 gates 4, 12; `artifact-resolver-spec.md` |
+| `AppGraphValidator` availability cross-artifact checks | **Open** | Stack ticket [`fs-r2od`](../../../.tickets/fs-r2od.md) |
+| Payload fetch, cache enforcement, host loader port | **Open** | Stack ticket [`fs-9d5e`](../../../.tickets/fs-9d5e.md); requires normative loader slice (§12) |
+| Source-to-Definition-instance bridge | **Open** | Explicit mapping only; not implied by catalog |
+| Renderer fallback / query language | **Out of scope** | — |
+| Fine-grained authorization | **Held** | ADR 0152 |
 
-Those land in later ADR 0153 resolver, validator, production wiring, and ADR 0152 authorization rows.
+**Cold-read index:** [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
+
+## 12. Runtime loader (future normative slice)
+
+The catalog declares `runtime` delivery, cache, staleness, failure, and provenance metadata. **No processor in this spec version fetches or materializes payloads.** When a loader lands:
+
+1. A host **`DataSourceLoader`** (name TBD) port resolves declared sources against loaded graph handles — not fixture paths.
+2. **Definition `instances`** remain the authority for `@instance()` inside a Definition unless an explicit, documented bridge maps a catalog `sources[].id` to an instance name.
+3. **Definition-local** URL / `formspec-fn:` loading in Core §2.1.7 and `FormEngine` stays valid for form-only apps without a peer catalog.
+
+Implementation tracking: tickets `fs-r2od` (validator availability) then `fs-9d5e` (loader MVP). Do not treat ADR 0153 gate 5 "Closed" as runtime-complete.
