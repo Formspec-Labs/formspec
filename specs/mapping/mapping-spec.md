@@ -1,8 +1,9 @@
 ---
 title: Formspec Mapping DSL
 version: 1.0.0-draft.1
-date: 2026-04-09
-status: draft
+date: 2026-05-23
+depends_on:
+  - specs/bundle/app-manifest-spec.md
 ---
 
 # Formspec Mapping DSL v1.0 — Bidirectional Data Transformation for Formspec Responses

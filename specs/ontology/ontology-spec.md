@@ -1,8 +1,9 @@
 ---
 title: Formspec Ontology Specification
 version: 1.0.0-draft.1
-date: 2026-03-23
-status: draft
+date: 2026-05-21
+depends_on:
+  - specs/registry/extension-registry.md
 ---
 
 # Formspec Ontology Specification v1.0

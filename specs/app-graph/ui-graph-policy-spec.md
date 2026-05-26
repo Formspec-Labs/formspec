@@ -1,8 +1,13 @@
 ---
-title: Formspec UI Graph Policy Interface Specification
-version: 0.1.0-draft.4
+title: Formspec UI Graph Policy
+version: 1.0.0-draft.1
 date: 2026-05-26
-status: draft
+depends_on:
+  - specs/app-graph/app-graph-validator-spec.md
+  - specs/app-graph/module-resolver-spec.md
+  - specs/locale/locale-spec.md
+  - specs/bundle/app-manifest-spec.md
+  - specs/registry/extension-registry.md
 ---
 
 # Formspec UI Graph Policy Interface Specification v0.1

@@ -1,8 +1,12 @@
 ---
 title: Formspec Surface Specification
 version: 0.1.0-draft.1
-date: 2026-05-24
-status: draft
+date: 2026-05-26
+depends_on:
+  - specs/core/spec.md
+  - specs/experience/experience-spec.md
+  - specs/component/component-spec.md
+  - specs/response-actions/response-actions-spec.md
 ---
 
 # Formspec Surface Specification v0.1

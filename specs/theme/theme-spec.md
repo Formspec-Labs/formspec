@@ -1,8 +1,11 @@
 ---
 title: Formspec Theme Specification
 version: 1.0.0-draft.1
-date: 2026-04-09
-status: draft
+date: 2026-05-25
+depends_on:
+  - specs/core/spec.md
+  - specs/component/component-spec.md
+  - specs/theme/token-registry-spec.md
 ---
 
 # Formspec Theme Specification v1.0

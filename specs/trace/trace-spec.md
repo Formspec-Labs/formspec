@@ -1,15 +1,13 @@
 ---
 title: Formspec Trace
 version: 1.0.0-draft.1
-date: 2026-05-22
-status: draft
+date: 2026-05-25
 depends_on:
   - specs/component/component-spec.md
   - specs/component/component-reference-fields-spec.md
   - specs/experience/experience-spec.md
   - specs/response-actions/response-actions-spec.md
   - specs/ontology/ontology-spec.md
-  - thoughts/archive/specs/2026-05-20-formspec-semantic-layers.md
 ---
 
 # Formspec Trace Specification

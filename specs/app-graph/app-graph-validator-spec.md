@@ -1,8 +1,13 @@
 ---
-title: Formspec AppGraphValidator Interface Specification
-version: 0.1.0-draft.4
-date: 2026-05-25
-status: draft
+title: Formspec App Graph Validator
+version: 1.0.0-draft.1
+date: 2026-05-26
+depends_on:
+  - specs/app-graph/artifact-resolver-spec.md
+  - specs/app-graph/module-resolver-spec.md
+  - specs/app-graph/ui-graph-policy-spec.md
+  - specs/bundle/app-manifest-spec.md
+  - specs/data-sources/data-sources-spec.md
 ---
 
 # Formspec AppGraphValidator Interface Specification v0.1

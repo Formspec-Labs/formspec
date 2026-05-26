@@ -1,8 +1,9 @@
 ---
 title: Formspec Screener Specification
 version: 1.0.0-draft.1
-date: 2026-04-09
-status: draft
+date: 2026-05-26
+depends_on:
+  - specs/core/spec.md
 ---
 
 # Formspec Screener Specification v1.0

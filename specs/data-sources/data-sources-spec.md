@@ -1,8 +1,11 @@
 ---
 title: Formspec Data Sources Specification
 version: 1.0.0-draft.1
-date: 2026-05-24
-status: draft
+date: 2026-05-26
+depends_on:
+  - specs/bundle/app-manifest-spec.md
+  - specs/app-graph/artifact-resolver-spec.md
+  - specs/app-graph/app-graph-validator-spec.md
 ---
 
 # Formspec Data Sources Specification v1.0

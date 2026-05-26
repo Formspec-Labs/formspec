@@ -1,8 +1,9 @@
 ---
 title: Formspec References Specification
 version: 1.0.0-draft.1
-date: 2026-03-19
-status: draft
+date: 2026-05-25
+depends_on:
+  - specs/core/spec.md
 ---
 
 # Formspec References Specification v1.0

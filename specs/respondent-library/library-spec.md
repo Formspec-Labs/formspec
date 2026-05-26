@@ -2,7 +2,10 @@
 title: Formspec Respondent Library
 version: 1.0.0-draft.1
 date: 2026-05-23
-status: draft
+depends_on:
+  - specs/core/spec.md
+  - specs/issuer/issuer-spec.md
+  - specs/audit/respondent-ledger-spec.md
 ---
 
 # Formspec Respondent Library v1.0

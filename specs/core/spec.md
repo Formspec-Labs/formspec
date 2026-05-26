@@ -1,7 +1,15 @@
 ---
 title: Formspec Core Specification
 version: 1.0.0-draft.1
-date: 2025-07-10
+date: 2026-05-26
+depends_on:
+  - specs/component/component-spec.md
+  - specs/theme/theme-spec.md
+  - specs/core/validation-mapping.md
+  - specs/core/references-spec.md
+  - specs/experience/experience-spec.md
+  - specs/surface/surface-spec.md
+  - specs/response-actions/response-actions-spec.md
 ---
 
 # FORMSPEC v1.0 — A JSON-Native Declarative Form Standard

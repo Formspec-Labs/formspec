@@ -1,8 +1,11 @@
 ---
 title: Formspec Assist Specification
 version: 1.0.0-draft.1
-date: 2026-03-27
-status: draft
+date: 2026-05-16
+depends_on:
+  - specs/core/references-spec.md
+  - specs/ontology/ontology-spec.md
+  - specs/core/spec.md
 ---
 
 # Formspec Assist Specification v1.0

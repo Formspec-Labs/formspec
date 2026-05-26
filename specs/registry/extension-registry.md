@@ -1,8 +1,12 @@
 ---
 title: Formspec Extension Registry
 version: 1.0.0-draft.1
-date: 2026-04-09
-status: draft
+date: 2026-05-25
+depends_on:
+  - specs/ontology/ontology-spec.md
+  - specs/app-graph/module-resolver-spec.md
+  - specs/app-graph/ui-graph-policy-spec.md
+  - specs/bundle/app-manifest-spec.md
 ---
 
 # Formspec Extension Registry v1.0

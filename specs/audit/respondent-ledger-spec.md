@@ -1,8 +1,9 @@
 ---
-title: Respondent Ledger Add-On Specification
-version: 0.3.0-draft
+title: Formspec Respondent Ledger
+version: 1.0.0-draft.1
 date: 2026-05-26
-status: draft
+depends_on:
+  - specs/audit/deletion-receipt-spec.md
 ---
 
 # Respondent Ledger Add-On Specification v0.3

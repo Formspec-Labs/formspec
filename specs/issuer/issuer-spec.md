@@ -1,8 +1,14 @@
 ---
 title: Formspec Issuer Specification
 version: 1.0.0-draft.1
-date: 2026-05-21
-status: draft
+date: 2026-05-22
+depends_on:
+  - specs/core/spec.md
+  - specs/registry/extension-registry.md
+  - specs/ontology/ontology-spec.md
+  - specs/locale/locale-spec.md
+  - specs/core/references-spec.md
+  - specs/audit/respondent-ledger-spec.md
 ---
 
 # Formspec Issuer Specification v1.0

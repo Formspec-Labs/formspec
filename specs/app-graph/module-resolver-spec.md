@@ -1,8 +1,13 @@
 ---
-title: Formspec ModuleResolver Interface Specification
-version: 0.1.0-draft.3
+title: Formspec Module Resolver
+version: 1.0.0-draft.1
 date: 2026-05-25
-status: draft
+depends_on:
+  - specs/app-graph/app-graph-validator-spec.md
+  - specs/app-graph/artifact-resolver-spec.md
+  - specs/app-graph/ui-graph-policy-spec.md
+  - specs/registry/extension-registry.md
+  - specs/bundle/app-manifest-spec.md
 ---
 
 # Formspec ModuleResolver Interface Specification v0.1

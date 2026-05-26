@@ -1,8 +1,9 @@
 ---
 title: Formspec Changelog Format
 version: 1.0.0-draft.1
-date: 2026-04-09
-status: draft
+date: 2026-05-17
+depends_on:
+  - specs/core/spec.md
 ---
 
 # Formspec Changelog Format v1.0

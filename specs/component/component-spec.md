@@ -1,8 +1,13 @@
 ---
 title: Formspec Component Specification
 version: 1.0.0-draft.1
-date: 2026-04-09
-status: draft
+date: 2026-05-25
+depends_on:
+  - specs/core/spec.md
+  - specs/theme/theme-spec.md
+  - specs/response-actions/response-actions-spec.md
+  - specs/component/component-reference-fields-spec.md
+  - specs/component/regeneration-merge-spec.md
 ---
 
 # Formspec Component Specification v1.0

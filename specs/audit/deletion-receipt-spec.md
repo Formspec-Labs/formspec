@@ -2,7 +2,9 @@
 title: Formspec Deletion Receipt
 version: 1.0.0-draft.1
 date: 2026-05-25
-status: draft
+depends_on:
+  - specs/audit/respondent-ledger-spec.md
+  - specs/registry/signature-method-registry.md
 ---
 
 # Formspec Deletion Receipt v1.0

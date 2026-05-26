@@ -2,7 +2,8 @@
 title: Formspec WYSIWYS Ceremony
 version: 1.0.0-draft.1
 date: 2026-05-25
-status: draft
+depends_on:
+  - specs/core/spec.md
 ---
 
 # Formspec WYSIWYS Ceremony v1.0

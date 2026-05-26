@@ -1,8 +1,13 @@
 ---
 title: Formspec Response Actions
 version: 1.0.0-draft.1
-date: 2026-05-22
-status: draft
+date: 2026-05-26
+depends_on:
+  - specs/core/spec.md
+  - specs/core/validation-mapping.md
+  - specs/component/component-spec.md
+  - specs/experience/experience-spec.md
+  - specs/audit/respondent-ledger-spec.md
 ---
 
 # Formspec Response Actions v1.0

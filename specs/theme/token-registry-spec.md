@@ -1,3 +1,11 @@
+---
+title: Formspec Token Registry Specification
+version: 1.0.0-draft.1
+date: 2026-05-04
+depends_on:
+  - specs/theme/theme-spec.md
+---
+
 # Formspec Token Registry Specification v1.0
 
 ## Status of This Document

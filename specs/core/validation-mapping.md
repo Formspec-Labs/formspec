@@ -1,8 +1,10 @@
 ---
 title: Formspec Validation Mapping
 version: 1.0.0-draft.1
-date: 2026-05-22
-status: draft
+date: 2026-05-25
+depends_on:
+  - specs/core/spec.md
+  - specs/response-actions/response-actions-spec.md
 ---
 
 # Formspec Validation Mapping v1.0

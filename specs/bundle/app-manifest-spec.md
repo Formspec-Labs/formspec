@@ -1,8 +1,16 @@
 ---
-title: Formspec App Manifest Specification
-version: 2.3.0-draft.1
-date: 2026-05-25
-status: draft
+title: Formspec App Manifest
+version: 1.0.0-draft.1
+date: 2026-05-26
+depends_on:
+  - specs/data-sources/data-sources-spec.md
+  - specs/ontology/ontology-spec.md
+  - specs/mapping/mapping-spec.md
+  - specs/locale/locale-spec.md
+  - specs/app-graph/artifact-resolver-spec.md
+  - specs/app-graph/module-resolver-spec.md
+  - specs/app-graph/app-graph-validator-spec.md
+  - specs/registry/extension-registry.md
 ---
 
 # Formspec App Manifest Specification v2.3
