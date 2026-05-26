@@ -82,7 +82,7 @@ export interface RoutePolicy {
  */
 export interface RouteA11YPolicy {
   /**
-   * Route-level landmark category. Renderer-specific ARIA or platform mapping is out of scope.
+   * Route-level landmark category. A web renderer may map validated projected main, navigation, or complementary policy to a route-root layout container role under the UI Graph Policy route-landmark profile. Region remains metadata-only until a profile supplies an accessible-name contract; broader ARIA synthesis and platform mapping remain out of scope.
    */
   landmark?: 'main' | 'navigation' | 'complementary' | 'region';
   /**

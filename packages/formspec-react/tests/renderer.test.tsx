@@ -308,7 +308,7 @@ describe('FormspecForm', () => {
         expect(nameField?.dataset.formspecNodePath).toBe('/root-stack/name');
     });
 
-    it('emits inert UI Graph Policy route metadata only on the validated route root', () => {
+    it('emits UI Graph Policy route metadata and active route landmark only on the validated route root', () => {
         const componentDocument = {
             $formspecComponent: '1.2',
             url: 'https://components.example.test/respondent',
@@ -365,6 +365,7 @@ describe('FormspecForm', () => {
         expect(rootStack?.dataset.formspecUiPolicyRoute).toBe('apply');
         expect(rootStack?.dataset.formspecUiPolicyA11yLandmark).toBe('main');
         expect(rootStack?.dataset.formspecUiPolicyKeyboardNavigation).toBe('true');
+        expect(rootStack?.getAttribute('role')).toBe('main');
         expect(rootStack?.dataset.formspecUiPolicyResponsiveMinColumns).toBe('1');
         expect(rootStack?.dataset.formspecUiPolicyResponsiveCollapseOrder).toBe('["summary","details"]');
         expect(rootStack?.dataset.formspecComponentHandle).toBe('respondent');
@@ -416,6 +417,7 @@ describe('FormspecForm', () => {
 
         const rootStack = container.querySelector('.formspec-stack') as HTMLElement;
         expect(rootStack?.dataset.formspecUiPolicySchema).toBeUndefined();
+        expect(rootStack?.getAttribute('role')).toBeNull();
         expect(rootStack?.dataset.formspecComponentHandle).toBe('respondent');
     });
 });

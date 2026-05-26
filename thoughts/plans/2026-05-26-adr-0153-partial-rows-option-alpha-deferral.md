@@ -43,13 +43,13 @@ The only architecturally honest path (Option γ) builds the consumer in `formspe
 
 - **Closing observation pending:** "Broader consumer conformance if another UI Graph Policy gate is promoted; optional future App Manifest policy slot decision" (rollup row 66).
 - **Different root blocker** from the Component / Production wiring pair. UI graph policy closure is gated on:
-  1. Promotion of one of ADR 0153 §9 gates 9a–9d (Locale ownership / Accessibility / Responsive / Theme token-slot) from Partial to Closed via broader consumer integration. Each 9a–9d gate carries the same closure shape: production consumer that uses validated UI Graph Policy output to drive runtime/projection/Studio behavior. Today's consumers (`@formspec-org/layout` projection-only, `<formspec-render>` inert metadata, `@formspec-org/react` inert metadata, `formspec-web` hidden-Definition rejection, `formspec-studio` Form Health diagnostic surface) are all already cited as the current state.
+  1. Promotion of one of ADR 0153 §9 gates 9a–9d (Locale ownership / Accessibility / Responsive / Theme token-slot) from Partial to Closed via broader consumer integration. Gate 9b now has a narrow active route-landmark checkpoint: `@formspec-org/react` maps validated projected `main`, `navigation`, and `complementary` landmarks to the route-root layout-container `role`, and `formspec-web` consumes that vendored runtime with a non-conflicting landmark. Non-layout roots, modal/dialog roots, and `region` remain metadata-only until a later profile exists. That is not full gate 9b closure; keyboard-navigation semantics, host landmark ownership beyond the fixture, and explicit scope remain residual. Gates 9a/9c/9d remain on their earlier Partial footing.
   2. OR an App Manifest policy slot decision — explicit ADR-level choice to either promote UI graph policy into the App Manifest envelope or to keep it as a separate sibling sidecar.
 - **Why no quick close exists:**
   - Gate 9a–9d promotion requires a real new consumer (Locale resolution at the renderer / Accessibility application at the layout layer / Responsive collapse at the layout layer / Theme token-slot enforcement at the renderer or build pipeline). None of those are session-tractable — same Verdict C class as Component copy/move.
   - App Manifest policy slot decision is itself an ADR-level scope decision requiring owner input on policy ownership boundaries.
 - **Named consumer-emergence triggers:**
-  1. `formspec-web` or `formspec-cloud` lands a production accessibility audit that consumes validated UI Graph Policy `a11y` evidence (not just inert metadata). Closes 9b.
+  1. `formspec-web` or `formspec-cloud` lands the residual 9b accessibility behavior beyond route-root layout-container role mapping, adds named-region/non-layout behavior, or the owner explicitly scope-reframes 9b to the route-landmark profile. Closes 9b.
   2. `@formspec-org/layout` adds responsive collapse behavior driven by validated UI Graph Policy `responsive` policy evidence (not just emitted as inert metadata). Closes 9c.
   3. Build pipeline (Studio export or server publish) rejects Theme documents that assign tokens to widget slots without ModuleResolver-validated `tokenSlots[]` evidence — beyond the current AppGraphValidator-only check, into a build-time gate. Closes 9d.
   4. Module Locale ownership enforcement at the runtime translation layer (`formspec-web` i18n resolution) that consumes validated UI Graph Policy Locale-owner evidence. Closes 9a.
@@ -68,11 +68,11 @@ The /goal hook clause "ADR 0153 + ADR 0154 reach ratified" requires those gates 
 
 ## Closing observation
 
-Rollup §"ADR 0153 / ADR 0154 gating table" row Status columns for Component Surface/route identity, Production wiring, and UI graph policy remain **Partial**. Each row's `Closing slice` / `Closing fixture/test` / `Blocked on` cells stay accurate. Owner action items section names the consumer-emergence triggers above. ADR 0153 + ADR 0154 stay `proposed`. The substrate is ready and tested; production consumer work is the named outstanding lane.
+Rollup §"ADR 0153 / ADR 0154 gating table" row Status columns for Component Surface/route identity, Production wiring, and UI graph policy remain **Partial**. The UI graph policy row now includes the later active route-landmark checkpoint, but its `Closing slice` / `Blocked on` cells still name residual gate-9 work. Owner action items section names the consumer-emergence triggers above. ADR 0153 + ADR 0154 stay `proposed`. The substrate is ready and tested; production consumer work is the named outstanding lane.
 
 ## Closure evidence (this plan doc IS the evidence)
 
 - Architecture review BEFORE: `acf1f5b627eb396ec` Verdict C (initial gating-table tractability audit); `a161c67fe5413c667` Verdict C — Rescope (Forms-MCP-specific path).
 - Sibling closure precedent: `feedback_calendar_time` (observation-not-date framing); Conformance row owner-driven scope reframe at commit `802ab9a`; Shared graph primitives row evidence-pinning at commits `78167536` + `ab3bc85` + `c69a0021`.
 - Stack rollup pin: §"Owner action items" → "Architecture-review-BEFORE finding (2026-05-26) on remaining Partial gating-table rows" (added in parent commit `98ee7b4`; will be expanded by the parent commit that lands this plan doc to name the three rows + their per-row consumer-emergence triggers).
-- No code change in this slice. Deferral is the artifact.
+- This original deferral slice had no code change. A later route-landmark checkpoint added code and updated the rollup without changing this document's residual-deferral conclusion.

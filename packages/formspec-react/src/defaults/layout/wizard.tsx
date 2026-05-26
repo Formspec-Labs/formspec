@@ -6,6 +6,7 @@ import type { LayoutNode } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
 import { useFormspecContext } from '../../context';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
+import { routeLandmarkAttrs } from '../../route-landmark.js';
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -219,6 +220,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
         className: cx('formspec-wizard', showSideNav && 'formspec-wizard--with-sidenav'),
         role: 'group' as const,
         'aria-label': `Wizard: Step ${currentStep + 1} of ${totalSteps}`,
+        ...routeLandmarkAttrs(node),
         ...projectionMetadataAttrs(node),
     };
 

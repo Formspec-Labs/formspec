@@ -25,8 +25,9 @@ accessibility, responsive collapse, and module widget Theme token assignments.
 The structural source contract is governed by
 `schemas/ui-graph-policy.schema.json`
 (`https://formspec.org/schemas/uiGraphPolicy/0.1`). This document intentionally
-does not define an App Manifest slot, runtime responsive behavior, renderer
-behavior, Studio wiring, or hidden Definition runtime behavior. The shared AppGraphValidator kernel validates
+does not define an App Manifest slot, runtime responsive behavior, Studio
+wiring, hidden Definition runtime behavior, or general renderer behavior beyond
+the optional web-renderer route-landmark profile in §5.3.1. The shared AppGraphValidator kernel validates
 host-supplied UI Graph Policy evidence structurally and reports
 `evidenceResults[]`; it also emits the Surface/route, Locale-owner,
 Locale-owner ModuleResolver evidence, hidden Definition reference, Theme
@@ -39,7 +40,7 @@ in this document.
 <!-- bluf:start file=ui-graph-policy-spec.bluf.md -->
 - UI Graph Policy is host-supplied app-graph evidence for already resolved Surface routes and sibling graph evidence.
 - The structural source contract is `schemas/ui-graph-policy.schema.json` with `$formspecUiGraphPolicy="0.1"`.
-- This slice adds host-evidence schema result reporting plus Surface/route, Locale-owner, Locale-owner ModuleResolver evidence, hidden Definition, Theme widgetRef AppGraphValidator enforcement, ModuleResolver token-slot evidence, ModuleResolver token-category evidence, and executable Theme token-slot/reference/category/category-evidence checks; runtime hidden-state and consumer checks remain later gates.
+- This slice adds host-evidence schema result reporting plus Surface/route, Locale-owner, Locale-owner ModuleResolver evidence, hidden Definition, Theme widgetRef AppGraphValidator enforcement, ModuleResolver token-slot evidence, ModuleResolver token-category evidence, executable Theme token-slot/reference/category/category-evidence checks, and an optional web-renderer route-landmark consumer profile; runtime hidden-state, keyboard behavior, responsive behavior, and broader consumer checks remain later gates.
 - Policy identity comes from `document.targetSurface`, never from request handles, fixture paths, filenames, URL suffixes, route names, or `$wireframeUiPolicy` spike documents.
 - The policy boundary covers module Locale key ownership, route-scoped accessibility policy, responsive collapse order over route slots, optional hidden Definition references, and Theme token assignments to module widget token slots.
 - Fine-grained actor, route, widget, field, source, operation, and artifact authorization remain outside this contract until a dedicated authorization specification supplies those semantics.
@@ -74,13 +75,15 @@ Out of scope:
 - adding an App Manifest `uiPolicy` / `uiGraphPolicy` sibling slot,
 - promoting `$wireframeUiPolicy` or the spike schema as production API,
 - component/widget compatibility and responsive prop allowlists,
-- renderer layout algorithms or keyboard implementation details,
+- renderer layout algorithms, keyboard implementation details, or ARIA synthesis
+  beyond the optional route-root landmark profile in §5.3.1,
 - module admission and contribution ownership internals,
 - Theme token value cascade,
 - Locale fallback and interpolation,
 - runtime hidden-state enforcement,
 - fine-grained authorization, and
-- production consumers or semantic/runtime fixtures.
+- production consumers or semantic/runtime fixtures beyond the §5.3.1
+  route-landmark profile.
 
 ## 2. Relationship to Existing UI Policy
 
@@ -270,8 +273,37 @@ Rules:
 4. Component-level and widget-level accessibility props remain Component/Theme
    concerns. UI Graph Policy only states route-level graph obligations.
 
-This spec does not define keyboard event handling, focus movement algorithms,
-ARIA markup, or renderer implementation.
+### 5.3.1 Optional Web-Renderer Route-Landmark Profile
+
+A web renderer MAY actively consume a validated projected route policy by
+mapping `a11y.landmark` values `main`, `navigation`, or `complementary` to the
+route-root layout container's `role` attribute when the container can carry a
+landmark without conflicting with intrinsic widget or dialog semantics. This
+profile is intentionally narrow:
+
+1. The renderer MUST consume only a `LayoutNode.uiGraphRoutePolicy` projection
+   produced from completed, matching AppGraphValidator evidence.
+2. The renderer MUST apply the role only to the route-root layout container
+   carrying that projection.
+3. The renderer MUST NOT derive route-root roles from raw host evidence,
+   filenames, request paths, Surface route names, or unvalidated policy JSON.
+4. The renderer MUST NOT infer keyboard behavior, focus movement, responsive
+   layout behavior, hidden Definition runtime behavior, authorization, widget
+   ARIA, or Component-level accessibility from this profile.
+5. Non-layout roots and modal/dialog roots remain metadata-only; the renderer
+   MUST NOT add wrappers or override intrinsic widget/dialog roles to satisfy
+   this profile.
+6. `region` remains metadata-only in this profile. A renderer MUST NOT map it to
+   `role="region"` unless a future profile supplies and validates an accessible
+   name source.
+7. The host/renderer composition MUST avoid duplicate or nested host landmarks;
+   if the outer host shell already owns the page `main`, route policy evidence
+   can still be exposed as inert metadata or use a non-conflicting landmark.
+
+This profile promotes active consumption of route-level landmark obligations
+only. It does not define keyboard event handling, focus movement algorithms,
+accessible-name synthesis, general ARIA markup synthesis, or renderer layout
+implementation.
 
 ### 5.4 Responsive Route Policy
 
@@ -482,12 +514,16 @@ schema for the UI graph policy families. Current `AppGraphValidator` integration
 covers host-supplied policy evidence, Surface/route diagnostics, Locale-owner
 diagnostics including completed ModuleResolver evidence, hidden Definition
 reference diagnostics, Theme widgetRef checks against completed ModuleResolver
-contribution evidence, and Theme token-slot checks against completed
-ModuleResolver `widgetTokenSlots[]` evidence. Production closure still requires
-the remaining gates:
+contribution evidence, Theme token-slot checks against completed ModuleResolver
+`widgetTokenSlots[]` evidence, Studio feedback diagnostics, formspec-web hidden
+Definition runtime rejection, and the optional web-renderer route-landmark
+profile for validated `main`, `navigation`, and `complementary` route-root
+layout containers.
+Production closure still requires the remaining gates:
 
-1. Studio/authoring feedback,
-2. runtime enforcement for hidden Definition state where applicable,
-3. consumer conformance for any future promoted UI Graph Policy gate, and
-4. an optional future App Manifest loading slot if the app package contract
+1. residual 9b accessibility semantics such as keyboard navigation or named
+   `region` landmark behavior,
+2. consumer conformance for 9a Locale ownership, 9c responsive route policy, or
+   9d Theme token-slot policy if promoted, and
+3. an optional future App Manifest loading slot if the app package contract
    later chooses one.

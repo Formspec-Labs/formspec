@@ -2,7 +2,7 @@
 
 **Row:** stack rollup [`thoughts/2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) §"ADR 0153 / ADR 0154 gating table" → "UI graph policy" (Partial).
 
-**Status:** intentionally deferred — row remains Partial pending gate-9 promotion or App Manifest policy slot owner decision.
+**Status:** route-landmark checkpoint landed after this deferral was written; row remains Partial pending residual gate-9 promotion or App Manifest policy slot owner decision.
 
 **Closing slice per rollup:** "Broader consumer conformance if another UI Graph Policy gate is promoted; optional future App Manifest policy slot decision". Closing fixture/test: "App-graph runtime conformance + production caller wiring". Blocker: ADR 0153 gates 9a–9d.
 
@@ -32,13 +32,13 @@ The row's `Executable today` cell already pins substantial UI Graph Policy infra
 - `formspec-studio` stores the shared `AppGraphValidationReport` and Form Health surfaces completed `origin: "ui-graph-policy"` diagnostics without becoming diagnostic authority.
 - `formspec-web` now rejects draft loading / Response Action state when completed host evidence for the active Surface route hides the active Definition.
 
-This is the substrate. The row stays Partial because the *closure condition* is itself conditional — neither branch has triggered.
+This is the substrate. A later active route-landmark checkpoint triggered part of gate 9b, but the row stays Partial because keyboard-navigation semantics, named-region/non-layout behavior, the other 9x families, host landmark ownership, and the App Manifest slot decision remain outside that narrow profile.
 
 ## Named consumer-emergence and promotion triggers
 
 The row transitions Partial → Closed when ANY of these triggers fires:
 
-1. **`formspec-web` consumes UI Graph Policy evidence beyond hidden-Definition rejection** — e.g. the React respondent runtime applies route `a11y` policy actively (`aria-labelledby`/`aria-describedby` injection per validated route policy) instead of just emitting inert `data-*` metadata. This advances gate 9b from Partial toward Closed via "broader consumer integration".
+1. **`formspec-web` consumes UI Graph Policy evidence beyond hidden-Definition rejection** — partially fired by the active route-landmark profile: `@formspec-org/react` maps validated projected `main`, `navigation`, and `complementary` landmarks to the route-root layout-container `role`, and `formspec-web` consumes the vendored runtime with a non-conflicting landmark. Non-layout roots, modal/dialog roots, and `region` remain metadata-only until a later profile exists. This advances gate 9b but does not close it; keyboard-navigation semantics, host landmark ownership beyond the test fixture, and explicit 9b scope remain residual.
 2. **`formspec-studio` consumes UI Graph Policy evidence beyond Form Health display** — e.g. Studio's layout authoring pre-flights against responsive collapse order per gate 9c policy before allowing publish. Advances gate 9c.
 3. **A new UI Graph Policy authoring consumer lands** outside `formspec-app-graph` projection-only consumers — e.g. an `formspec-mcp-wireframes` product verb that asserts a route policy invariant at authoring time. Advances "broader consumer conformance".
 4. **Owner authors an App Manifest UI Graph Policy slot ADR** — a substantial ADR-level decision adding `uiGraphPolicies[]` to App Manifest v2.x with sibling-identity semantics. This is the explicit "optional future App Manifest policy slot decision" branch of the row's closing slice.
@@ -61,11 +61,11 @@ Explicitly excluded to prevent closure-theater:
 
 ## Closing observation
 
-Architecture-review-BEFORE scout `acf1f5b627eb396ec` returned Verdict C for this row: closing condition is conditional, neither branch has triggered, forcing either branch is closure-theater. Plan doc landed; rollup row evidence updated; named triggers pinned for future closure detection. The row's substantial Partial-row substrate (Surface/route/Locale/hidden-Definition/Theme validators + projection/renderer/Studio/web inert-metadata consumers + browser/live hidden-Definition rejection) is real user value already pinned in `Executable today`; the row is Partial because the *closure-defining transition to "broader consumer conformance"* requires evidence that's named-but-not-yet-landed.
+Architecture-review-BEFORE scout `acf1f5b627eb396ec` returned Verdict C for this row: closing condition is conditional, and forcing either branch is closure-theater. A later pre-review allowed one narrow branch: explicit route-landmark profile text first, then validated route-root role consumption. That checkpoint landed and is now pinned in the rollup. The row's Partial state remains correct because the closure-defining transition still requires residual gate-9 evidence beyond route landmarks or an owner App Manifest slot decision.
 
 ## Closure evidence
 
 - Plan doc: this file.
 - Architecture-review-BEFORE scout `acf1f5b627eb396ec` verdict (per-row tractability) — task transcript.
 - Rollup row evidence update: stack-root [`thoughts/2026-05-24-adr-0150-followons-and-gating.md`](../../../thoughts/2026-05-24-adr-0150-followons-and-gating.md) §"ADR 0153 / ADR 0154 gating table" → "UI graph policy" row cites this plan doc.
-- Existing ADR 0153 §9 gate 9a/9b/9c/9d Partial-row substrate is the load-bearing evidence base; this slice does NOT add new substrate.
+- Existing ADR 0153 §9 gate 9a/9b/9c/9d Partial-row substrate plus the later route-landmark checkpoint is the load-bearing evidence base; this doc remains the deferral record for the residual work.

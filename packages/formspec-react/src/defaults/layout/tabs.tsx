@@ -4,6 +4,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutComponentProps } from '../../component-map';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
+import { routeLandmarkAttrs } from '../../route-landmark.js';
 
 /**
  * Tabs layout component.
@@ -133,6 +134,7 @@ export function Tabs({ node, children }: LayoutComponentProps) {
                 ...(placement === 'left' || placement === 'right' ? { display: 'flex', flexDirection: 'row' } : {}),
             }}
             data-placement={placement !== 'top' ? placement : undefined}
+            {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
             {placement === 'bottom' || placement === 'right' ? (

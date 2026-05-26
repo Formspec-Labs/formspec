@@ -45,7 +45,7 @@ export interface LayoutHostEvidence {
     componentGraphContexts?: ComponentGraphProjectionEvidence[];
 }
 
-/** Inert route-policy metadata copied from a matching UI Graph Policy document. */
+/** Route-policy metadata copied from a matching UI Graph Policy document. */
 export interface UiGraphRoutePolicyProjection {
     schemaId: string;
     source: string;
@@ -93,8 +93,9 @@ export interface LayoutNode {
     componentGraphIdentity?: ComponentNodeIdentityRef;
 
     /**
-     * Projection-only UI Graph Policy route metadata. Renderers MUST NOT infer
-     * runtime hidden-state, ARIA implementation, or authorization behavior from it.
+     * Projection-only UI Graph Policy route metadata. Web renderers may consume
+     * the route-landmark profile; they MUST NOT infer keyboard behavior,
+     * runtime hidden-state, general ARIA synthesis, or authorization from it.
      */
     uiGraphRoutePolicy?: UiGraphRoutePolicyProjection;
 

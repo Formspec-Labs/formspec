@@ -50,6 +50,25 @@ function stackNode(props: Record<string, unknown> = {}, children: LayoutNode[] =
     };
 }
 
+function routePolicyNode(node: LayoutNode, landmark = 'navigation'): LayoutNode {
+    return {
+        ...node,
+        uiGraphRoutePolicy: {
+            schemaId: 'https://formspec.org/schemas/uiGraphPolicy/0.1',
+            source: 'host://policy/respondent-ui-policy',
+            targetSurface: {
+                url: 'https://surfaces.example.test/intake',
+                version: '1.0.0',
+            },
+            routeId: 'apply',
+            a11y: {
+                landmark: landmark as 'main' | 'navigation' | 'complementary' | 'region',
+                keyboardNavigation: true,
+            },
+        },
+    };
+}
+
 // ── Stack ─────────────────────────────────────────────────────────
 
 describe('Stack layout', () => {
@@ -147,6 +166,44 @@ describe('Stack layout', () => {
         const el = container.querySelector('.formspec-stack') as HTMLElement;
         expect(el).toBeTruthy();
         expect(el.classList.contains('formspec-container')).toBe(false);
+    });
+
+    it('maps validated route policy landmark metadata to the route-root role', () => {
+        const container = renderNode(routePolicyNode(stackNode()));
+        const el = container.querySelector('.formspec-stack') as HTMLElement;
+        expect(el.getAttribute('role')).toBe('navigation');
+        expect(el.dataset.formspecUiPolicyA11yLandmark).toBe('navigation');
+    });
+
+    it('does not set a route landmark role without projected route policy', () => {
+        const container = renderNode(stackNode());
+        const el = container.querySelector('.formspec-stack') as HTMLElement;
+        expect(el.getAttribute('role')).toBeNull();
+    });
+
+    it('leaves region route policy as metadata until a naming profile exists', () => {
+        const container = renderNode(routePolicyNode(stackNode(), 'region'));
+        const el = container.querySelector('.formspec-stack') as HTMLElement;
+        expect(el.getAttribute('role')).toBeNull();
+        expect(el.dataset.formspecUiPolicyA11yLandmark).toBe('region');
+    });
+
+    it('keeps route policy active when Stack pageMode rewrites the root to Wizard', () => {
+        const section: LayoutNode = {
+            id: 'section-1',
+            component: 'Section',
+            category: 'layout',
+            props: { title: 'Step one' },
+            cssClasses: [],
+            children: [],
+        };
+        const container = renderNode(routePolicyNode({
+            ...stackNode({}, [section]),
+            pageMode: 'wizard',
+        }, 'complementary'));
+        const wizard = container.querySelector('.formspec-wizard') as HTMLElement;
+        expect(wizard.getAttribute('role')).toBe('complementary');
+        expect(wizard.dataset.formspecUiPolicyRoute).toBe('apply');
     });
 });
 

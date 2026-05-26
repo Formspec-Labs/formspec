@@ -287,6 +287,8 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                     cssClasses: node.cssClasses ?? [],
                     style: node.style,
                     accessibility: node.accessibility,
+                    componentGraphIdentity: node.componentGraphIdentity,
+                    uiGraphRoutePolicy: node.uiGraphRoutePolicy,
                     children: pages,
                 };
                 return (
@@ -317,6 +319,8 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                     cssClasses: node.cssClasses ?? [],
                     style: node.style,
                     accessibility: node.accessibility,
+                    componentGraphIdentity: node.componentGraphIdentity,
+                    uiGraphRoutePolicy: node.uiGraphRoutePolicy,
                     children: pages,
                 };
                 return (

@@ -11,6 +11,7 @@ import {
 import type { LayoutComponentProps } from '../../component-map';
 import { useWhen } from '../../use-when';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
+import { routeLandmarkAttrs } from '../../route-landmark.js';
 
 /**
  * Default layout renderer — dispatches to the correct container component
@@ -146,6 +147,7 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
                 style={surfaceStyle(props, style)}
                 {...elevationAttrs(props)}
                 {...accessibilityAttrs(node)}
+                {...routeLandmarkAttrs(node)}
                 {...projectionMetadataAttrs(node)}
             >
                 <h3 className="formspec-group-title">{title}</h3>
@@ -155,7 +157,12 @@ function StackLayout({ node, children, themeClass, style }: LayoutProps) {
     }
 
     return (
-        <div className={mergeClasses('formspec-stack', themeClass)} style={stackStyle} {...projectionMetadataAttrs(node)}>
+        <div
+            className={mergeClasses('formspec-stack', themeClass)}
+            style={stackStyle}
+            {...routeLandmarkAttrs(node)}
+            {...projectionMetadataAttrs(node)}
+        >
             {children}
         </div>
     );
@@ -194,7 +201,12 @@ function GridLayout({ node, children, themeClass, style }: LayoutProps) {
     };
 
     return (
-        <div className={mergeClasses('formspec-grid', themeClass)} style={gridStyle} {...projectionMetadataAttrs(node)}>
+        <div
+            className={mergeClasses('formspec-grid', themeClass)}
+            style={gridStyle}
+            {...routeLandmarkAttrs(node)}
+            {...projectionMetadataAttrs(node)}
+        >
             {children}
         </div>
     );
@@ -214,6 +226,7 @@ function CardLayout({ node, children, themeClass, style }: LayoutProps) {
             className={mergeClasses('formspec-card', themeClass)}
             style={surfaceStyle(props, style)}
             {...elevationAttrs(props)}
+            {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
             {label && <Heading className="formspec-card-title">{label}</Heading>}
@@ -251,7 +264,13 @@ function SectionLayout({ node, children, themeClass, style }: LayoutProps) {
     const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
     return (
-        <section className={mergeClasses('formspec-section', themeClass)} style={surfaceStyle(props, style)} {...elevationAttrs(props)} {...projectionMetadataAttrs(node)}>
+        <section
+            className={mergeClasses('formspec-section', themeClass)}
+            style={surfaceStyle(props, style)}
+            {...elevationAttrs(props)}
+            {...routeLandmarkAttrs(node)}
+            {...projectionMetadataAttrs(node)}
+        >
             {title && <Heading>{title}</Heading>}
             {description && <p className="formspec-section-description">{description}</p>}
             {children}
@@ -267,7 +286,13 @@ function CollapsibleLayout({ node, children, themeClass, style }: LayoutProps) {
     const defaultOpen = props.defaultOpen as boolean | undefined;
 
     return (
-        <details className={mergeClasses('formspec-collapsible', themeClass)} style={style} open={defaultOpen || false} {...projectionMetadataAttrs(node)}>
+        <details
+            className={mergeClasses('formspec-collapsible', themeClass)}
+            style={style}
+            open={defaultOpen || false}
+            {...routeLandmarkAttrs(node)}
+            {...projectionMetadataAttrs(node)}
+        >
             <summary>{title}</summary>
             <div className="formspec-collapsible-content">
                 {children}
@@ -348,6 +373,7 @@ function AccordionLayout({ node, children, themeClass, style }: LayoutProps) {
             className={mergeClasses('formspec-accordion', themeClass)}
             style={style}
             onKeyDown={handleKeyDown}
+            {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
             {childArray.map((child, idx) => {
@@ -386,7 +412,13 @@ function PanelLayout({ node, children, themeClass, style }: LayoutProps) {
     };
 
     return (
-        <div className={mergeClasses('formspec-panel', themeClass)} style={panelStyle} {...elevationAttrs(props)} {...projectionMetadataAttrs(node)}>
+        <div
+            className={mergeClasses('formspec-panel', themeClass)}
+            style={panelStyle}
+            {...elevationAttrs(props)}
+            {...routeLandmarkAttrs(node)}
+            {...projectionMetadataAttrs(node)}
+        >
             {title && <div className="formspec-panel-header">{title}</div>}
             <div className="formspec-panel-body">
                 {children}
@@ -626,6 +658,7 @@ function PopoverLayout({ node, children, themeClass, style }: LayoutProps) {
             ref={wrapperRef}
             className={mergeClasses('formspec-popover', themeClass)}
             style={style}
+            {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
             <button
@@ -660,6 +693,7 @@ function DefaultContainer({ node, children, themeClass, style }: LayoutProps) {
         <div
             className={mergeClasses(`formspec-${node.component.toLowerCase()}`, themeClass)}
             style={style}
+            {...routeLandmarkAttrs(node)}
             {...projectionMetadataAttrs(node)}
         >
             {children}
