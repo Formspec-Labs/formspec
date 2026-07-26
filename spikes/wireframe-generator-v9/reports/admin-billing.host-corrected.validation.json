@@ -1,0 +1,783 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/admin-billing",
+        "title": "Billing",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-admin-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-quota-meters",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-payment-method",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-invoice-table",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/admin-billing"
+      },
+      "source": "spike-v9://admin-billing/host-corrected/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Formspec Cloud (host-authored, no MCP verb)"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-admin-nav",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-admin-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-admin-section-nav"
+                ]
+              },
+              {
+                "name": "x-admin-section-nav",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-admin-section-nav contributed by x-cloud-admin-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-quota-meters",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-quota-meters.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-quota-meters"
+                ]
+              },
+              {
+                "name": "x-quota-meters",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-quota-meters contributed by x-cloud-quota-meters.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-payment-method",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-payment-method.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-payment-method"
+                ]
+              },
+              {
+                "name": "x-payment-method",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-payment-method contributed by x-cloud-payment-method.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-invoice-table",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-invoice-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-invoice-table"
+                ]
+              },
+              {
+                "name": "x-invoice-table",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-invoice-table contributed by x-cloud-invoice-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "billing",
+            "routes": [
+              {
+                "id": "billing",
+                "path": "/admin/billing",
+                "slots": [
+                  {
+                    "id": "adminNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-admin-nav",
+                      "widgetName": "x-admin-section-nav",
+                      "config": {
+                        "sections": [
+                          "members",
+                          "billing",
+                          "audit",
+                          "retention",
+                          "ai-policy",
+                          "residency",
+                          "sso",
+                          "org"
+                        ],
+                        "counts": {
+                          "members": 12
+                        }
+                      }
+                    },
+                    "position": "top",
+                    "title": "Admin"
+                  },
+                  {
+                    "id": "planPanel",
+                    "slotType": "experience-unit",
+                    "binding": {
+                      "unitRef": "currentPlanPanel"
+                    },
+                    "position": "main",
+                    "title": "Current plan"
+                  },
+                  {
+                    "id": "usageMeters",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-quota-meters",
+                      "widgetName": "x-quota-meters",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:usage",
+                        "meters": [
+                          "responses",
+                          "signature-envelopes",
+                          "api-requests",
+                          "object-storage"
+                        ],
+                        "projection": true
+                      }
+                    },
+                    "position": "main",
+                    "title": "Usage"
+                  },
+                  {
+                    "id": "paymentMethod",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-payment-method",
+                      "widgetName": "x-payment-method",
+                      "config": {
+                        "externalHandoff": "x-spike-v9:external:payment-processor"
+                      }
+                    },
+                    "position": "right",
+                    "title": "Payment method"
+                  },
+                  {
+                    "id": "invoices",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-invoice-table",
+                      "widgetName": "x-invoice-table",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:invoices",
+                        "columns": [
+                          "invoice",
+                          "period",
+                          "amount",
+                          "date",
+                          "status"
+                        ],
+                        "rowActions": [
+                          "download-pdf"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Invoices"
+                  }
+                ],
+                "title": "Billing"
+              }
+            ],
+            "entry": "billing"
+          },
+          "identity": {
+            "id": "billing"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-admin-nav",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/host-corrected/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-admin-nav",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-quota-meters",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/host-corrected/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-quota-meters",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-payment-method",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/host-corrected/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-payment-method",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-invoice-table",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/host-corrected/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-invoice-table",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-admin-section-nav",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-admin-nav",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-quota-meters",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-quota-meters",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-payment-method",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-payment-method",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-invoice-table",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-invoice-table",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/7/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+              "jsonPointer": "/entries/7/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 4,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 1,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://admin-billing/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "app-graph-validator",
+        "message": "Surface route 'billing' contains an experience-unit slot, but the app graph has no unique loaded Experience document.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/1/binding/unitRef",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "surfaceUrl": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "routeId": "billing",
+          "slotId": "planPanel",
+          "unitRef": "currentPlanPanel",
+          "reason": "experience-unresolved"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

@@ -1,0 +1,660 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/trust/center",
+        "title": "Trust Center",
+        "definitions": [],
+        "registries": [],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-public-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/trust/center"
+      },
+      "source": "spike-v9://trust-center/v8-parity/app-manifest"
+    },
+    "artifacts": {
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "trust",
+            "routes": [
+              {
+                "id": "trust",
+                "path": "/trust",
+                "slots": [
+                  {
+                    "id": "publicNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-public-nav",
+                      "widgetName": "PublicNav",
+                      "config": {
+                        "links": [
+                          "deployments",
+                          "data-handling",
+                          "audits",
+                          "contact"
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "Trust"
+                  },
+                  {
+                    "id": "hero",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "Five deployment profiles. The proof surfaces are the same on every one.",
+                      "level": 1
+                    },
+                    "position": "main",
+                    "title": "Trust at Formspec Cloud"
+                  },
+                  {
+                    "id": "profileCards",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-profile-cards",
+                      "widgetName": "DeploymentProfiles",
+                      "config": {
+                        "dataSource": "x-spike-v9:catalog:deployment-profiles",
+                        "taxonomy": [
+                          "shared",
+                          "regulated",
+                          "dedicated",
+                          "self-hosted",
+                          "air-gapped"
+                        ],
+                        "closed": true
+                      }
+                    },
+                    "position": "main",
+                    "title": "Deployment profiles"
+                  },
+                  {
+                    "id": "capabilityMatrix",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-capability-matrix",
+                      "widgetName": "CapabilityMatrix",
+                      "config": {
+                        "dataSource": "x-spike-v9:catalog:capability-claims",
+                        "rows": 14,
+                        "columns": [
+                          "shared",
+                          "regulated",
+                          "dedicated",
+                          "self-hosted",
+                          "air-gapped"
+                        ],
+                        "cellTaxonomy": [
+                          "yes",
+                          "no",
+                          "qualified",
+                          "not-applicable"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Capability matrix"
+                  },
+                  {
+                    "id": "freshness",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "Last updated 2026-05-15 · Updates follow our changelog policy."
+                    },
+                    "position": "bottom",
+                    "title": "Freshness"
+                  }
+                ],
+                "title": "Trust"
+              }
+            ],
+            "entry": "trust"
+          },
+          "identity": {
+            "id": "trust"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 1,
+      "loadedArtifacts": 1,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-public-nav",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-public-nav",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-public-nav' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://trust-center/v8-parity/app-manifest",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-cloud-public-nav",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-profile-cards",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-profile-cards' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://trust-center/v8-parity/app-manifest",
+              "jsonPointer": "/modules/1",
+              "module": {
+                "id": "x-cloud-profile-cards",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-capability-matrix",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-capability-matrix' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://trust-center/v8-parity/app-manifest",
+              "jsonPointer": "/modules/2",
+              "module": {
+                "id": "x-cloud-capability-matrix",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "PublicNav",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "DeploymentProfiles",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "CapabilityMatrix",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-public-nav' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-public-nav",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-profile-cards' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-capability-matrix' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'PublicNav' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "PublicNav",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'DeploymentProfiles' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "DeploymentProfiles",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'CapabilityMatrix' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "CapabilityMatrix",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "summary": {
+      "modules": 3,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 3,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 3,
+      "payloadFailures": 0,
+      "errors": 6,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 2,
+      "loadedArtifacts": 2,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 6,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 6,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://trust-center/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-public-nav' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/0",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-profile-cards' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/1",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-capability-matrix' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://trust-center/v8-parity/app-manifest",
+          "jsonPointer": "/modules/2",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'PublicNav' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "PublicNav",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'DeploymentProfiles' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "DeploymentProfiles",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'CapabilityMatrix' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "CapabilityMatrix",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

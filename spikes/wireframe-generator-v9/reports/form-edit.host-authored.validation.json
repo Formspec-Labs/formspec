@@ -1,0 +1,1564 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/form-edit",
+        "title": "Edit — 2026 Community Grant Application",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-formspec-studio-canvas",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-spec-outline",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-inspector",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-lint-footer",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/form-edit"
+      },
+      "source": "spike-v9://form-edit/host-authored/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Formspec Cloud (host-authored, no MCP verb)"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-formspec-studio-canvas",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-formspec-studio-canvas.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "StudioCanvas"
+                ]
+              },
+              {
+                "name": "StudioCanvas",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget StudioCanvas contributed by x-formspec-studio-canvas.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                }
+              },
+              {
+                "name": "x-cloud-spec-outline",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-spec-outline.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "LensTabs",
+                  "SpecOutline"
+                ]
+              },
+              {
+                "name": "LensTabs",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget LensTabs contributed by x-cloud-spec-outline.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                }
+              },
+              {
+                "name": "SpecOutline",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget SpecOutline contributed by x-cloud-spec-outline.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                }
+              },
+              {
+                "name": "x-cloud-inspector",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-inspector.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "BindInspector"
+                ]
+              },
+              {
+                "name": "BindInspector",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget BindInspector contributed by x-cloud-inspector.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                }
+              },
+              {
+                "name": "x-cloud-lint-footer",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-lint-footer.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "LintFooter"
+                ]
+              },
+              {
+                "name": "LintFooter",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget LintFooter contributed by x-cloud-lint-footer.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                }
+              }
+            ]
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "editor",
+            "routes": [
+              {
+                "id": "edit",
+                "path": "/forms/:id/edit",
+                "slots": [
+                  {
+                    "id": "editorChrome",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "2026 Community Grant Application",
+                      "level": 1
+                    },
+                    "position": "top",
+                    "title": "Editing v1.0.4 (draft)"
+                  },
+                  {
+                    "id": "lensTabs",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-spec-outline",
+                      "widgetName": "LensTabs",
+                      "config": {
+                        "lenses": [
+                          "design",
+                          "logic",
+                          "theme",
+                          "spec"
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "Lenses"
+                  },
+                  {
+                    "id": "specOutline",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-spec-outline",
+                      "widgetName": "SpecOutline",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/draft-definition",
+                        "groups": [
+                          "fields",
+                          "binds",
+                          "rules",
+                          "locales",
+                          "theme",
+                          "signature"
+                        ],
+                        "publishes": "x-spike-v9:selection:bind"
+                      }
+                    },
+                    "position": "left",
+                    "title": "Spec"
+                  },
+                  {
+                    "id": "studioCanvas",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-formspec-studio-canvas",
+                      "widgetName": "StudioCanvas",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/draft-definition",
+                        "fullBleed": true,
+                        "publishes": "x-spike-v9:selection:bind"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Canvas"
+                  },
+                  {
+                    "id": "inspector",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-inspector",
+                      "widgetName": "BindInspector",
+                      "config": {
+                        "consumes": "x-spike-v9:selection:bind",
+                        "sections": [
+                          "identity",
+                          "type",
+                          "validation",
+                          "fel-rule",
+                          "help-text-by-locale",
+                          "provenance"
+                        ]
+                      }
+                    },
+                    "position": "right",
+                    "title": "Inspector"
+                  },
+                  {
+                    "id": "lintFooter",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-lint-footer",
+                      "widgetName": "LintFooter",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/lint",
+                        "severities": [
+                          "error",
+                          "warning",
+                          "info"
+                        ]
+                      }
+                    },
+                    "position": "bottom",
+                    "title": "Validation"
+                  }
+                ],
+                "title": "Edit"
+              }
+            ],
+            "entry": "edit"
+          },
+          "identity": {
+            "id": "editor"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-formspec-studio-canvas",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-edit/host-authored/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-formspec-studio-canvas",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-spec-outline",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-edit/host-authored/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-spec-outline",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-inspector",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-edit/host-authored/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-inspector",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-lint-footer",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-edit/host-authored/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-lint-footer",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "LensTabs",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+          "jsonPointer": "/routes/0/slots/1/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-spec-outline",
+            "version": "0.1.0"
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "SpecOutline",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-spec-outline",
+            "version": "0.1.0"
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "StudioCanvas",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-formspec-studio-canvas",
+            "version": "0.1.0"
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "BindInspector",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-inspector",
+            "version": "0.1.0"
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "LintFooter",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+          "jsonPointer": "/routes/0/slots/5/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-lint-footer",
+            "version": "0.1.0"
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 4,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 5,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 1,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 20,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 1
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+        "status": "completed",
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/0/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/0/contributes/0",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/1/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/1/name",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [if]: /entries/1 must match \"then\" schema",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/1",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "failingKeyword": "then"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [required]: /entries/1 must have required property 'widgetShape'",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/1",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "missingProperty": "widgetShape"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/2/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/2/contributes/0",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/2/contributes/1 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/2/contributes/1",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/3/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/3/name",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [if]: /entries/3 must match \"then\" schema",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/3",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "failingKeyword": "then"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [required]: /entries/3 must have required property 'widgetShape'",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/3",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "missingProperty": "widgetShape"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/4/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/4/name",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [if]: /entries/4 must match \"then\" schema",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/4",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "failingKeyword": "then"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [required]: /entries/4 must have required property 'widgetShape'",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/4",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "missingProperty": "widgetShape"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/5/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/5/contributes/0",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/6/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/6/name",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [if]: /entries/6 must match \"then\" schema",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/6",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "failingKeyword": "then"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [required]: /entries/6 must have required property 'widgetShape'",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/6",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "missingProperty": "widgetShape"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/7/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/7/contributes/0",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [pattern]: /entries/8/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/8/name",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [if]: /entries/8 must match \"then\" schema",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/8",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "failingKeyword": "then"
+              }
+            }
+          },
+          {
+            "code": "APP-GRAPH-SCHEMA",
+            "severity": "error",
+            "phase": "schema",
+            "origin": "schema-validator",
+            "message": "registry [required]: /entries/8 must have required property 'widgetShape'",
+            "primarySource": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+              "jsonPointer": "/entries/8",
+              "ref": {
+                "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+                "version": "1.0.0"
+              }
+            },
+            "details": {
+              "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+              "params": {
+                "missingProperty": "widgetShape"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://form-edit/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/0/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/0/contributes/0",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/1/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/1/name",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [if]: /entries/1 must match \"then\" schema",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/1",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "failingKeyword": "then"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [required]: /entries/1 must have required property 'widgetShape'",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/1",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "missingProperty": "widgetShape"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/2/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/2/contributes/0",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/2/contributes/1 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/2/contributes/1",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/3/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/3/name",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [if]: /entries/3 must match \"then\" schema",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/3",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "failingKeyword": "then"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [required]: /entries/3 must have required property 'widgetShape'",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/3",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "missingProperty": "widgetShape"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/4/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/4/name",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [if]: /entries/4 must match \"then\" schema",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/4",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "failingKeyword": "then"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [required]: /entries/4 must have required property 'widgetShape'",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/4",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "missingProperty": "widgetShape"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/5/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/5/contributes/0",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/6/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/6/name",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [if]: /entries/6 must match \"then\" schema",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/6",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "failingKeyword": "then"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [required]: /entries/6 must have required property 'widgetShape'",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/6",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "missingProperty": "widgetShape"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/7/contributes/0 must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/7/contributes/0",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [pattern]: /entries/8/name must match pattern \"^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$\"",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/8/name",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "pattern": "^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [if]: /entries/8 must match \"then\" schema",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/8",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "failingKeyword": "then"
+          }
+        }
+      },
+      {
+        "code": "APP-GRAPH-SCHEMA",
+        "severity": "error",
+        "phase": "schema",
+        "origin": "schema-validator",
+        "message": "registry [required]: /entries/8 must have required property 'widgetShape'",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+          "jsonPointer": "/entries/8",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "params": {
+            "missingProperty": "widgetShape"
+          }
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "skipped",
+        "reason": "schema-errors"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

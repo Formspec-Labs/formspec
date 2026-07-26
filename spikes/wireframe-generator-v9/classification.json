@@ -1,0 +1,153 @@
+{
+  "title": "Spike v8 surface classification — formspec-cloud Claude Design mockup corpus",
+  "corpus": "formspec-cloud/thoughts/concepts/claude-design-handoff/project",
+  "routeAuthority": "surfaces/route-map.html (61 product routes; the 37 corpus files cover 30 distinct routes)",
+  "method": "Every corpus file is classified into one pattern family. One exemplar per family was translated into AppGraph artifacts through Wireframes-MCP; the rest are covered at classification level only.",
+  "counts": {
+    "files": 37,
+    "productSurfaces": 35,
+    "navigationArtifacts": 1,
+    "dashboardRoot": 1,
+    "families": 14,
+    "exemplarsTranslated": 12
+  },
+  "families": [
+    {
+      "id": "collection-index",
+      "what": "Filtered, sorted, paginated collection of workspace artifacts with row state and row actions.",
+      "members": 7,
+      "exemplars": ["forms-index v3.html", "responses-index.html"],
+      "substrateStrain": "No list slot, no filter-bar slot, no data source, no bulk-action subject, no empty/loading state, no user-scoped view state."
+    },
+    {
+      "id": "dashboard",
+      "what": "Data-bound overview: KPI tiles with deltas, distribution charts, activity feed, posture panel.",
+      "members": 3,
+      "exemplars": ["index.html"],
+      "substrateStrain": "No stat-tile, no visualization, no event-feed, no runtime status region."
+    },
+    {
+      "id": "entity-detail",
+      "what": "One subject artifact, identity header, tab sub-navigation, related-collection panels.",
+      "members": 3,
+      "exemplars": ["form-detail.html"],
+      "substrateStrain": "No sub-route/tab IA, no typed route parameter, embed-route semantics undefined across bundles."
+    },
+    {
+      "id": "editor-shell",
+      "what": "Chrome wrapping a full-bleed third-party canvas, plus outline and inspector panes and a lint footer.",
+      "members": 2,
+      "exemplars": ["form-edit.html"],
+      "substrateStrain": "No Registry admission path for first-party modules, no tree slot, no cross-slot selection channel."
+    },
+    {
+      "id": "wizard",
+      "what": "Ordered multi-step flow with progress, gating, irreversibility, and resumption.",
+      "members": 1,
+      "exemplars": ["onboarding.html"],
+      "substrateStrain": "No step-sequence contract; definition-form fits the step forms but no verb mints the Definition."
+    },
+    {
+      "id": "settings-admin",
+      "what": "Section-navigated read-mostly panels with occasional high-consequence actions.",
+      "members": 2,
+      "exemplars": ["admin-billing.html"],
+      "substrateStrain": "No read-only data-view primitive; no action targets outside form submission."
+    },
+    {
+      "id": "developer-crud",
+      "what": "Registry of integration objects plus delivery/usage history with replay-class actions and secrets.",
+      "members": 3,
+      "exemplars": ["dev-webhooks.html"],
+      "substrateStrain": "No operational-action vocabulary; no sensitivity annotation for secrets."
+    },
+    {
+      "id": "content-compliance",
+      "what": "Public, procurement-facing content: claims, matrices, subprocessor lists, dated evidence.",
+      "members": 4,
+      "exemplars": ["trust-center.html"],
+      "substrateStrain": "No matrix/table static-content kind; compliance facts are authored strings with no freshness contract."
+    },
+    {
+      "id": "interactive-tool",
+      "what": "Anonymous tool taking user-supplied bytes, computing locally, rendering a typed result.",
+      "members": 2,
+      "exemplars": ["verifier.html"],
+      "substrateStrain": "No client-executed action target; no artifact-input slot outside a Definition."
+    },
+    {
+      "id": "stateful-ceremony",
+      "what": "Single high-consequence commitment with immutable chrome, evidence capture, and co-actor state.",
+      "members": 1,
+      "exemplars": ["signature-ceremony.html"],
+      "substrateStrain": "No signature-capture slot; no identity-assurance precondition; no theme-authority assertion."
+    },
+    {
+      "id": "diff-compare",
+      "what": "Two versions of one artifact, aligned, with a semantic change list and a source-level diff.",
+      "members": 1,
+      "exemplars": ["form-versions.html"],
+      "substrateStrain": "No compare slot; no artifact-lineage primitive carrying pin/hash/retirement semantics."
+    },
+    {
+      "id": "proof-artifact",
+      "what": "Durable evidence document that must render without JavaScript and without tenant theming.",
+      "members": 2,
+      "exemplars": [],
+      "substrateStrain": "Same read-only-display and theme-authority gaps as settings and ceremony; no-JS render is not assertable."
+    },
+    {
+      "id": "respondent-intake",
+      "what": "The substrate's design center: a respondent completing a Definition-backed form.",
+      "members": 1,
+      "exemplars": [],
+      "substrateStrain": "None recorded — this is what the closed substrate was sized for."
+    },
+    {
+      "id": "platform-surface",
+      "what": "Cross-cutting non-product surfaces: auth gate, system status, email kit, placeholder, navigation map.",
+      "members": 5,
+      "exemplars": [],
+      "substrateStrain": "Out-of-band rendering targets (email), runtime health state, and design-system placeholders sit outside the app-graph model entirely."
+    }
+  ],
+  "surfaces": [
+    { "file": "index.html", "family": "dashboard", "route": "/o/:org/w/:ws", "persona": "Form Owner", "translatedAs": "owner-dashboard", "note": "surfaces/owner-dashboard.html is a redirect stub to this file" },
+    { "file": "surfaces/route-map.html", "family": "platform-surface", "route": null, "persona": "cross-cutting", "translatedAs": null, "note": "design artifact — the 61-route authority for this classification" },
+    { "file": "surfaces/owner-dashboard.html", "family": "dashboard", "route": "/o/:org/w/:ws", "persona": "Form Owner", "translatedAs": null, "note": "meta-refresh redirect to index.html" },
+    { "file": "surfaces/forms-index v3.html", "family": "collection-index", "route": "/o/:org/w/:ws/forms", "persona": "Form Owner", "translatedAs": "forms-index", "note": "current iteration per the corpus INDEX" },
+    { "file": "surfaces/forms-index v2.html", "family": "collection-index", "route": "/o/:org/w/:ws/forms", "persona": "Form Owner", "translatedAs": null, "note": "intermediate iteration" },
+    { "file": "surfaces/forms-index.html", "family": "collection-index", "route": "/o/:org/w/:ws/forms", "persona": "Form Owner", "translatedAs": null, "note": "first iteration" },
+    { "file": "surfaces/responses-index.html", "family": "collection-index", "route": "/forms/:id/responses", "persona": "Form Owner", "translatedAs": "responses-index", "note": "densest surface in the corpus — 4 218 rows, 11 configurable columns" },
+    { "file": "surfaces/envelopes-index.html", "family": "collection-index", "route": "/envelopes", "persona": "Signer Coordinator", "translatedAs": null, "note": "inbox-style filters by state/signer/form/deadline" },
+    { "file": "surfaces/admin-members.html", "family": "collection-index", "route": "/admin/members", "persona": "Tenant Admin", "translatedAs": null, "note": "member list plus a built-in-roles reference panel" },
+    { "file": "surfaces/admin-audit.html", "family": "collection-index", "route": "/admin/audit", "persona": "Tenant Admin", "translatedAs": null, "note": "access audit log; support-access entries styled distinctly" },
+    { "file": "surfaces/analytics.html", "family": "dashboard", "route": "/forms/:id/analytics", "persona": "Form Owner", "translatedAs": null, "note": "funnel, validation friction, upload failures, signer bottlenecks" },
+    { "file": "surfaces/form-detail.html", "family": "entity-detail", "route": "/forms/:id", "persona": "Form Owner", "translatedAs": "form-detail", "note": "six-tab entity hub with a live respondent-form preview" },
+    { "file": "surfaces/response-detail.html", "family": "entity-detail", "route": "/responses/:id", "persona": "Form Owner", "translatedAs": null, "note": "answers, rule trace, envelope link, access log" },
+    { "file": "surfaces/envelope-detail.html", "family": "entity-detail", "route": "/envelopes/:id", "persona": "Signer Coordinator", "translatedAs": null, "note": "signer timeline, routing, void/resend/delegate actions" },
+    { "file": "surfaces/form-edit.html", "family": "editor-shell", "route": "/forms/:id/edit", "persona": "Form Owner", "translatedAs": "form-edit", "note": "full-bleed @formspec-org/studio slot with outline + inspector + lint footer" },
+    { "file": "surfaces/admin-studio.html", "family": "editor-shell", "route": "/forms/:id/edit", "persona": "Form Owner", "translatedAs": null, "note": "earlier studio-embed iteration" },
+    { "file": "surfaces/onboarding.html", "family": "wizard", "route": "/onboarding", "persona": "Tenant Admin", "translatedAs": "onboarding", "note": "five steps; region choice is irreversible after first publish" },
+    { "file": "surfaces/admin-billing.html", "family": "settings-admin", "route": "/admin/billing", "persona": "Tenant Admin", "translatedAs": "admin-billing", "note": "plan panel, quota meters, external payment handoff, invoice table" },
+    { "file": "surfaces/form-settings.html", "family": "settings-admin", "route": "/forms/:id/settings", "persona": "Form Owner", "translatedAs": null, "note": "eight setting groups including AI policy and anti-abuse" },
+    { "file": "surfaces/dev-webhooks.html", "family": "developer-crud", "route": "/dev/webhooks", "persona": "Integrator", "translatedAs": "dev-webhooks", "note": "signing secret, endpoint registry, delivery history with replay" },
+    { "file": "surfaces/dev-api-keys.html", "family": "developer-crud", "route": "/dev/keys", "persona": "Integrator", "translatedAs": null, "note": "issue/scope/revoke/rotate with last-used and IP" },
+    { "file": "surfaces/dev-keys-kit.html", "family": "developer-crud", "route": "/dev/keys", "persona": "Integrator", "translatedAs": null, "note": "component-kit variant of the keys surface" },
+    { "file": "surfaces/trust-center.html", "family": "content-compliance", "route": "/trust", "persona": "Evaluator", "translatedAs": "trust-center", "note": "five deployment profiles + 14x5 capability matrix" },
+    { "file": "surfaces/trust-matrix.html", "family": "content-compliance", "route": "/trust/capabilities", "persona": "Evaluator", "translatedAs": null, "note": "expanded capability matrix, claim by claim" },
+    { "file": "surfaces/trust-data-flow.html", "family": "content-compliance", "route": "/trust/data-flow", "persona": "Evaluator", "translatedAs": null, "note": "data classes by stage and deployment tier" },
+    { "file": "surfaces/trust-subprocessors.html", "family": "content-compliance", "route": "/trust/subprocessors", "persona": "Evaluator", "translatedAs": null, "note": "subprocessor list plus a change-notification subscription" },
+    { "file": "surfaces/verifier.html", "family": "interactive-tool", "route": "/verify", "persona": "Evaluator", "translatedAs": "verifier", "note": "six checks, client-side only — the product's positioning bet" },
+    { "file": "surfaces/selective-proof.html", "family": "interactive-tool", "route": "/trust/prove", "persona": "Evaluator", "translatedAs": null, "note": "prove one fact without disclosing the rest" },
+    { "file": "surfaces/signature-ceremony.html", "family": "stateful-ceremony", "route": "/sign/:envelopeId", "persona": "Signer", "translatedAs": "signature-ceremony", "note": "immutable chrome, ed25519 client-side commitment, IAL2 evidence" },
+    { "file": "surfaces/form-versions.html", "family": "diff-compare", "route": "/forms/:id/versions", "persona": "Form Owner", "translatedAs": "form-versions", "note": "semantic change list plus source-level FEL diff" },
+    { "file": "surfaces/receipt.html", "family": "proof-artifact", "route": "/r/:receiptId", "persona": "Signer / Evaluator", "translatedAs": null, "note": "must render without JavaScript" },
+    { "file": "surfaces/certificate.html", "family": "proof-artifact", "route": "/cert/:envelopeId", "persona": "Signer", "translatedAs": null, "note": "envelope-level proof artifact" },
+    { "file": "surfaces/respondent-form.html", "family": "respondent-intake", "route": "/f/:formSlug", "persona": "Respondent", "translatedAs": null, "note": "the substrate's design center — translated natively by the closed substrate already" },
+    { "file": "surfaces/auth.html", "family": "platform-surface", "route": "/auth/:flow", "persona": "cross-cutting", "translatedAs": null, "note": "password, IdP, recovery, MFA enrolment" },
+    { "file": "surfaces/status.html", "family": "platform-surface", "route": "/status", "persona": "Platform Operator", "translatedAs": null, "note": "component health and incident records; verifier listed separately" },
+    { "file": "surfaces/emails.html", "family": "platform-surface", "route": "/email/*", "persona": "cross-cutting", "translatedAs": null, "note": "nine transactional templates, HTML beside plain-text — an out-of-band render target" },
+    { "file": "surfaces/preview-stub.html", "family": "platform-surface", "route": null, "persona": "cross-cutting", "translatedAs": null, "note": "placeholder pattern for surfaces whose shape is committed but not drawn" }
+  ]
+}

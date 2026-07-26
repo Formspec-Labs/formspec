@@ -1,0 +1,302 @@
+{
+  "mockup": "surfaces/signature-ceremony.html",
+  "family": "stateful-ceremony",
+  "route": "/sign/:envelopeId",
+  "registryArm": "host-authored",
+  "declareRegistry": {
+    "ok": true,
+    "url": "https://formspec.cloud/apps/ceremony/signature/registries/product-modules"
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "ceremony",
+      "wanted": "ceremony",
+      "verbOk": true,
+      "persisted": false
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/ceremony/signature",
+    "title": "Sign — env_8Bm7n3",
+    "definitions": [],
+    "registries": [
+      {
+        "url": "https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-signature-capture",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-signer-timeline",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-evidence-strip",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "sign",
+    "routes": [
+      {
+        "id": "ceremony",
+        "path": "/sign/:envelopeId",
+        "slots": [
+          {
+            "id": "ceremonyChrome",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "Sign as Diane Park · co-signatory",
+              "level": 1
+            },
+            "position": "top",
+            "title": "Ceremony"
+          },
+          {
+            "id": "attestation",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "text",
+              "content": "I, Diane Park, sign this Vendor Onboarding Agreement on behalf of Acme Industrial Supplies and certify that the information herein is accurate and complete to the best of my knowledge."
+            },
+            "position": "main",
+            "title": "Attestation"
+          },
+          {
+            "id": "signatureCapture",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-signature-capture",
+              "widgetName": "SignatureCapture",
+              "config": {
+                "modes": [
+                  "draw",
+                  "type",
+                  "upload"
+                ],
+                "commitment": "ed25519-client-side-hash",
+                "definitionPin": "sha256:6d4a…ef91"
+              }
+            },
+            "position": "main",
+            "title": "Sign with your name"
+          },
+          {
+            "id": "evidenceStrip",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-evidence-strip",
+              "widgetName": "CeremonyEvidence",
+              "config": {
+                "fields": [
+                  "time",
+                  "ip",
+                  "identityAssurance"
+                ],
+                "dataSource": "x-spike-v9:host:ceremony-evidence"
+              }
+            },
+            "position": "main",
+            "title": "Evidence"
+          },
+          {
+            "id": "documentSummary",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "What you're signing",
+              "level": 2
+            },
+            "position": "right",
+            "title": "What you're signing"
+          },
+          {
+            "id": "signerTimeline",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-signer-timeline",
+              "widgetName": "SignerTimeline",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:envelopes/:envelopeId/signers",
+                "routing": "sequential"
+              }
+            },
+            "position": "right",
+            "title": "Other signers"
+          }
+        ],
+        "title": "Sign"
+      }
+    ],
+    "entry": "ceremony"
+  },
+  "registryDocument": {
+    "$formspecRegistry": "1.0",
+    "publisher": {
+      "name": "Formspec Cloud (host-authored, no MCP verb)"
+    },
+    "published": "2026-07-26T00:00:00Z",
+    "entries": [
+      {
+        "name": "x-cloud-signature-capture",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-signature-capture.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "SignatureCapture"
+        ]
+      },
+      {
+        "name": "SignatureCapture",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget SignatureCapture contributed by x-cloud-signature-capture.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-signer-timeline",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-signer-timeline.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "SignerTimeline"
+        ]
+      },
+      {
+        "name": "SignerTimeline",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget SignerTimeline contributed by x-cloud-signer-timeline.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-evidence-strip",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-evidence-strip.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "CeremonyEvidence"
+        ]
+      },
+      {
+        "name": "CeremonyEvidence",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget CeremonyEvidence contributed by x-cloud-evidence-strip.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Signature ceremony policy",
+    "description": "Ceremony chrome is structurally immutable: tenant theming must not reach this route. The substrate has no way to assert that — see finding 6.",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "ceremony",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ],
+    "theme": {
+      "assignments": [
+        {
+          "widgetRef": {
+            "moduleId": "x-cloud-signature-capture",
+            "widgetName": "SignatureCapture"
+          },
+          "slot": "accent",
+          "token": "color.accent"
+        },
+        {
+          "widgetRef": {
+            "moduleId": "x-cloud-evidence-strip",
+            "widgetName": "CeremonyEvidence"
+          },
+          "slot": "surface",
+          "token": "color.surface"
+        }
+      ]
+    }
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "ceremonyChrome",
+      "slotType": "static-content",
+      "mockupRegion": "immutable ceremony chrome — \"Receipt · Signature\", env id, cancel"
+    },
+    {
+      "slot": "attestation",
+      "slotType": "static-content",
+      "mockupRegion": "attestation sentence with interpolated signer + party (authored as a frozen string — no interpolation contract)"
+    },
+    {
+      "slot": "signatureCapture",
+      "slotType": "module-widget",
+      "mockupRegion": "draw/type/upload capture with ed25519 client-side hashing and Apply signature action"
+    },
+    {
+      "slot": "evidenceStrip",
+      "slotType": "module-widget",
+      "mockupRegion": "time / IP / ID.me IAL2 evidence strip"
+    },
+    {
+      "slot": "documentSummary",
+      "slotType": "static-content",
+      "mockupRegion": "document summary — parties, scope, compliance, open-full-document link"
+    },
+    {
+      "slot": "signerTimeline",
+      "slotType": "module-widget",
+      "mockupRegion": "envelope panel + other-signers timeline with completion timestamps"
+    }
+  ]
+}

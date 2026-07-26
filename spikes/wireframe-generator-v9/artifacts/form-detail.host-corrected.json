@@ -1,0 +1,399 @@
+{
+  "mockup": "surfaces/form-detail.html",
+  "family": "entity-detail",
+  "route": "/forms/:id",
+  "registryArm": "host-corrected",
+  "declareRegistry": {
+    "ok": true,
+    "url": "https://formspec.cloud/apps/console/form-detail/registries/product-modules"
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "overview",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/form-detail",
+    "title": "2026 Community Grant Application",
+    "definitions": [],
+    "registries": [
+      {
+        "url": "https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-tab-nav",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-stat-tiles",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-version-lifecycle",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-share-panel",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "form",
+    "routes": [
+      {
+        "id": "overview",
+        "path": "/forms/:id",
+        "slots": [
+          {
+            "id": "identityHeader",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "2026 Community Grant Application",
+              "level": 1
+            },
+            "position": "top",
+            "title": "Form"
+          },
+          {
+            "id": "tabNav",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-tab-nav",
+              "widgetName": "x-entity-tabs",
+              "config": {
+                "tabs": [
+                  "overview",
+                  "responses",
+                  "versions",
+                  "analytics",
+                  "settings",
+                  "share"
+                ],
+                "counts": {
+                  "responses": 4218,
+                  "versions": 3
+                }
+              }
+            },
+            "position": "top",
+            "title": "Sections"
+          },
+          {
+            "id": "kpiRow",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-stat-tiles",
+              "widgetName": "x-kpi-tiles",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:forms/:id/metrics",
+                "tiles": [
+                  "responses-7d",
+                  "completion-rate",
+                  "avg-time",
+                  "proof-p95"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Metrics"
+          },
+          {
+            "id": "versions",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-version-lifecycle",
+              "widgetName": "x-version-list",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:forms/:id/versions",
+                "lifecycle": [
+                  "draft",
+                  "active",
+                  "retired"
+                ],
+                "rowActions": [
+                  "diff",
+                  "continue-editing"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Versions"
+          },
+          {
+            "id": "sharePanel",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-share-panel",
+              "widgetName": "x-share-and-embed",
+              "config": {
+                "surfaces": [
+                  "public-link",
+                  "workflow-bound-link",
+                  "embed-snippet"
+                ],
+                "workflowLinkTemplate": "https://forms.acme-coop.org/f/grants-2026?case={WOS_CASE_ID}"
+              }
+            },
+            "position": "main",
+            "title": "Share & embed"
+          },
+          {
+            "id": "posture",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "Posture",
+              "level": 2
+            },
+            "position": "right",
+            "title": "Posture"
+          }
+        ],
+        "title": "Overview"
+      }
+    ],
+    "entry": "overview"
+  },
+  "registryDocument": {
+    "$formspecRegistry": "1.0",
+    "publisher": {
+      "name": "Formspec Cloud (host-authored, no MCP verb)"
+    },
+    "published": "2026-07-26T00:00:00Z",
+    "entries": [
+      {
+        "name": "x-cloud-tab-nav",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-tab-nav.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "x-entity-tabs"
+        ]
+      },
+      {
+        "name": "x-entity-tabs",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget x-entity-tabs contributed by x-cloud-tab-nav.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "widgetShape": {
+          "tokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            },
+            {
+              "name": "surface",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "x-cloud-stat-tiles",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-stat-tiles.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "x-kpi-tiles"
+        ]
+      },
+      {
+        "name": "x-kpi-tiles",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget x-kpi-tiles contributed by x-cloud-stat-tiles.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "widgetShape": {
+          "tokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            },
+            {
+              "name": "surface",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "x-cloud-version-lifecycle",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-version-lifecycle.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "x-version-list"
+        ]
+      },
+      {
+        "name": "x-version-list",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget x-version-list contributed by x-cloud-version-lifecycle.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "widgetShape": {
+          "tokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            },
+            {
+              "name": "surface",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "x-cloud-share-panel",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-share-panel.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "x-share-and-embed"
+        ]
+      },
+      {
+        "name": "x-share-and-embed",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget x-share-and-embed contributed by x-cloud-share-panel.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "widgetShape": {
+          "tokenSlots": [
+            {
+              "name": "accent",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            },
+            {
+              "name": "surface",
+              "acceptedTokenCategories": [
+                "color"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Form detail policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "overview",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "identityHeader",
+      "slotType": "static-content",
+      "mockupRegion": "identity header — title, def_grant_2026, created, 4 218 responses, $2.1M awarded, Live/Regulated chips"
+    },
+    {
+      "slot": "tabNav",
+      "slotType": "module-widget",
+      "mockupRegion": "six-tab sub-navigation with counts"
+    },
+    {
+      "slot": "kpiRow",
+      "slotType": "module-widget",
+      "mockupRegion": "KPI row with SLO comparison on proof p95"
+    },
+    {
+      "slot": "versions",
+      "slotType": "module-widget",
+      "mockupRegion": "version lifecycle list — v1.0.3 active, v1.0.2/v1.0.1 retired, v1.0.4 draft"
+    },
+    {
+      "slot": "sharePanel",
+      "slotType": "module-widget",
+      "mockupRegion": "share & embed panel — public link, INT-009 workflow-bound link, embed snippet"
+    },
+    {
+      "slot": "livePreview",
+      "slotType": "embed-route",
+      "mockupRegion": "live respondent-form preview with \"Open hosted form\" link"
+    },
+    {
+      "slot": "posture",
+      "slotType": "static-content",
+      "mockupRegion": "posture panel — state, deployment, region, AI policy, retention, anti-abuse"
+    }
+  ]
+}

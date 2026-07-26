@@ -1,0 +1,740 @@
+{
+  "spike": "wireframe-generator-v9",
+  "baseline": "wireframe-generator-v8",
+  "note": "v8 stubbed schema validation (`schemaValidators: () => ({ ok: true })`); v9 runs real Ajv over formspec/schemas/*.json. The ONLY like-for-like comparison against v8 is the `parity` arm with APP-GRAPH-SCHEMA excluded: same authoring shape, same checks. Every other arm moves a second variable and is reported as its own number, not as a delta.",
+  "arms": {
+    "parity": "v8 authoring shape, real Ajv, no declareRegistry, no theme probe",
+    "verbOnly": "plus declareRegistry (unpopulated — no verb authors entries) and the tenant-theme probe",
+    "hostAuthored": "plus a Registry document hand-composed from declareModule's docstring recipe",
+    "hostCorrected": "plus the corrections APP-GRAPH-SCHEMA named: x- widget names, widgetShape"
+  },
+  "totals": {
+    "v8ErrorDiagnostics": 95,
+    "v9ErrorDiagnostics": {
+      "parity": 95,
+      "verbOnly": 118,
+      "hostAuthored": 203,
+      "hostCorrected": 8
+    },
+    "v9ErrorDiagnosticsLikeForLike": {
+      "parity": 95,
+      "verbOnly": 112,
+      "hostAuthored": 1,
+      "hostCorrected": 8
+    },
+    "deltaParityVsV8LikeForLike": 0,
+    "deltaHostCorrectedVsV8LikeForLike": -87,
+    "crossArtifactCompleted": {
+      "v8": 12,
+      "parity": 11,
+      "verbOnly": 0,
+      "hostAuthored": 0,
+      "hostCorrected": 11
+    },
+    "v8SpikeBindingSites": 53,
+    "v9SpikeBindingSites": 53,
+    "v8SpikeBindingsDistinct": 38,
+    "v9SpikeBindingsDistinct": 38,
+    "v8Routes": 15,
+    "v9Routes": 15,
+    "v8Slots": 66,
+    "v9Slots": 66
+  },
+  "errorCodeCounts": {
+    "parity": {
+      "MODULE-UNRESOLVED": 44,
+      "MODULE-CONTRIBUTION-MISSING": 49,
+      "ARTIFACT-MISSING": 1,
+      "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF": 1
+    },
+    "verbOnly": {
+      "ARTIFACT-MISSING": 13,
+      "MODULE-UNRESOLVED": 44,
+      "MODULE-CONTRIBUTION-MISSING": 55,
+      "APP-GRAPH-SCHEMA": 6
+    },
+    "hostAuthored": {
+      "APP-GRAPH-SCHEMA": 202,
+      "ARTIFACT-MISSING": 1
+    },
+    "hostCorrected": {
+      "ARTIFACT-MISSING": 1,
+      "THEME-TOKEN-REF": 6,
+      "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF": 1
+    }
+  },
+  "routeClass": {
+    "attempted": 15,
+    "verbReturnedOk": 15,
+    "persistedInExportedSurface": 0,
+    "distinctErrors": [],
+    "classesWanted": [
+      "attestation",
+      "ceremony",
+      "intake",
+      "operation",
+      "verification"
+    ]
+  },
+  "themeAuthority": {
+    "surfacesProbed": [
+      "signature-ceremony",
+      "trust-center",
+      "verifier"
+    ],
+    "assignmentsPushed": 6,
+    "themeRouteClassDiagnostics": {
+      "verbOnly": 0,
+      "hostAuthored": 0,
+      "hostCorrected": 0
+    }
+  },
+  "surfaceExport": {
+    "publishable": 11,
+    "surfaces": 12,
+    "refusals": [
+      {
+        "id": "onboarding",
+        "error": "VALIDATION — Surface 'wizard' is not publishable.",
+        "codes": [
+          "SURFACE-ROUTE-UNREACHABLE"
+        ]
+      }
+    ]
+  },
+  "registry": {
+    "surfaces": 12,
+    "declareRegistryAccepted": 12,
+    "moduleDiagnostics": {
+      "v8": 93,
+      "parity": 93,
+      "verbOnly": 99,
+      "hostAuthored": 0,
+      "hostCorrected": 0
+    }
+  },
+  "findings": {
+    "v8Primary": 36,
+    "v8Total": 133,
+    "v9Primary": 42,
+    "v9Total": 162,
+    "dispositionCounts": {
+      "closed": 1,
+      "narrowed": 2,
+      "persists": 33,
+      "new": 6
+    },
+    "dispositionIds": {
+      "closed": [
+        21
+      ],
+      "narrowed": [
+        6,
+        18
+      ],
+      "persists": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        20,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "new": [
+        38,
+        39,
+        40,
+        41,
+        42,
+        43
+      ]
+    }
+  },
+  "perSurface": [
+    {
+      "id": "forms-index",
+      "v8Errors": 7,
+      "v9Errors": {
+        "parity": 7,
+        "verbOnly": 8,
+        "hostAuthored": 16,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 7,
+        "verbOnly": 8,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 7,
+      "v9SpikeBindingSites": 7
+    },
+    {
+      "id": "owner-dashboard",
+      "v8Errors": 11,
+      "v9Errors": {
+        "parity": 11,
+        "verbOnly": 12,
+        "hostAuthored": 24,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 11,
+        "verbOnly": 12,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 7,
+      "v9SpikeBindingSites": 7
+    },
+    {
+      "id": "form-detail",
+      "v8Errors": 8,
+      "v9Errors": {
+        "parity": 8,
+        "verbOnly": 9,
+        "hostAuthored": 16,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 8,
+        "verbOnly": 9,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 2,
+      "v9SpikeBindingSites": 2
+    },
+    {
+      "id": "form-edit",
+      "v8Errors": 9,
+      "v9Errors": {
+        "parity": 9,
+        "verbOnly": 10,
+        "hostAuthored": 20,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 9,
+        "verbOnly": 10,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 6,
+      "v9SpikeBindingSites": 6
+    },
+    {
+      "id": "onboarding",
+      "v8Errors": 9,
+      "v9Errors": {
+        "parity": 9,
+        "verbOnly": 10,
+        "hostAuthored": 17,
+        "hostCorrected": 1
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 9,
+        "verbOnly": 10,
+        "hostAuthored": 1,
+        "hostCorrected": 1
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "skipped",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "skipped"
+      },
+      "v8Codes": [
+        "APP-GRAPH-SURFACE-DEFINITION-SLOT",
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA",
+          "ARTIFACT-MISSING"
+        ],
+        "hostCorrected": [
+          "ARTIFACT-MISSING"
+        ]
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 3,
+      "v9SpikeBindingSites": 3
+    },
+    {
+      "id": "signature-ceremony",
+      "v8Errors": 6,
+      "v9Errors": {
+        "parity": 6,
+        "verbOnly": 11,
+        "hostAuthored": 14,
+        "hostCorrected": 2
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 6,
+        "verbOnly": 9,
+        "hostAuthored": 0,
+        "hostCorrected": 2
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "APP-GRAPH-SCHEMA",
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": [
+          "THEME-TOKEN-REF"
+        ]
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 2,
+      "v9SpikeBindingSites": 2
+    },
+    {
+      "id": "admin-billing",
+      "v8Errors": 9,
+      "v9Errors": {
+        "parity": 9,
+        "verbOnly": 9,
+        "hostAuthored": 16,
+        "hostCorrected": 1
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 9,
+        "verbOnly": 9,
+        "hostAuthored": 0,
+        "hostCorrected": 1
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF",
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": [
+          "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF"
+        ]
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 3,
+      "v9SpikeBindingSites": 3
+    },
+    {
+      "id": "dev-webhooks",
+      "v8Errors": 8,
+      "v9Errors": {
+        "parity": 8,
+        "verbOnly": 9,
+        "hostAuthored": 16,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 8,
+        "verbOnly": 9,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 4,
+      "v9SpikeBindingSites": 4
+    },
+    {
+      "id": "trust-center",
+      "v8Errors": 6,
+      "v9Errors": {
+        "parity": 6,
+        "verbOnly": 11,
+        "hostAuthored": 14,
+        "hostCorrected": 2
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 6,
+        "verbOnly": 9,
+        "hostAuthored": 0,
+        "hostCorrected": 2
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "APP-GRAPH-SCHEMA",
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": [
+          "THEME-TOKEN-REF"
+        ]
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 2,
+      "v9SpikeBindingSites": 2
+    },
+    {
+      "id": "verifier",
+      "v8Errors": 7,
+      "v9Errors": {
+        "parity": 7,
+        "verbOnly": 12,
+        "hostAuthored": 18,
+        "hostCorrected": 2
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 7,
+        "verbOnly": 10,
+        "hostAuthored": 0,
+        "hostCorrected": 2
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "APP-GRAPH-SCHEMA",
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": [
+          "THEME-TOKEN-REF"
+        ]
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 6,
+      "v9SpikeBindingSites": 6
+    },
+    {
+      "id": "responses-index",
+      "v8Errors": 7,
+      "v9Errors": {
+        "parity": 7,
+        "verbOnly": 8,
+        "hostAuthored": 16,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 7,
+        "verbOnly": 8,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 6,
+      "v9SpikeBindingSites": 6
+    },
+    {
+      "id": "form-versions",
+      "v8Errors": 8,
+      "v9Errors": {
+        "parity": 8,
+        "verbOnly": 9,
+        "hostAuthored": 16,
+        "hostCorrected": 0
+      },
+      "v9ErrorsLikeForLike": {
+        "parity": 8,
+        "verbOnly": 9,
+        "hostAuthored": 0,
+        "hostCorrected": 0
+      },
+      "deltaParityVsV8": 0,
+      "crossArtifact": {
+        "parity": "completed",
+        "verbOnly": "skipped",
+        "hostAuthored": "skipped",
+        "hostCorrected": "completed"
+      },
+      "v8Codes": [
+        "MODULE-CONTRIBUTION-MISSING",
+        "MODULE-UNRESOLVED"
+      ],
+      "v9Codes": {
+        "parity": [
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "verbOnly": [
+          "ARTIFACT-MISSING",
+          "MODULE-CONTRIBUTION-MISSING",
+          "MODULE-UNRESOLVED"
+        ],
+        "hostAuthored": [
+          "APP-GRAPH-SCHEMA"
+        ],
+        "hostCorrected": []
+      },
+      "slotsUnchanged": true,
+      "v8SpikeBindingSites": 5,
+      "v9SpikeBindingSites": 5
+    }
+  ]
+}

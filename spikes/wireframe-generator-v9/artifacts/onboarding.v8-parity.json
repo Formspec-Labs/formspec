@@ -1,0 +1,268 @@
+{
+  "mockup": "surfaces/onboarding.html",
+  "family": "wizard",
+  "route": "/onboarding",
+  "registryArm": "v8-parity",
+  "declareRegistry": {
+    "skipped": "v8-parity arm does not declare a Registry"
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "organization",
+      "wanted": "intake",
+      "verbOk": true,
+      "persisted": false
+    },
+    {
+      "routeId": "tier",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    },
+    {
+      "routeId": "region",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    },
+    {
+      "routeId": "first-form",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    }
+  ],
+  "surfaceExport": {
+    "publishable": false,
+    "error": "VALIDATION — Surface 'wizard' is not publishable.",
+    "diagnostics": [
+      {
+        "code": "SURFACE-ROUTE-UNREACHABLE",
+        "message": "Surface route 'tier' is not reachable from entry 'organization'."
+      },
+      {
+        "code": "SURFACE-ROUTE-UNREACHABLE",
+        "message": "Surface route 'region' is not reachable from entry 'organization'."
+      },
+      {
+        "code": "SURFACE-ROUTE-UNREACHABLE",
+        "message": "Surface route 'first-form' is not reachable from entry 'organization'."
+      }
+    ]
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/onboarding",
+    "title": "Get started",
+    "definitions": [
+      {
+        "url": "https://formspec.cloud/definitions/onboarding-org",
+        "version": "1.0.0"
+      }
+    ],
+    "registries": [],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-step-rail",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-tier-cards",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-region-picker",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-form-genesis",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "wizard",
+    "routes": [
+      {
+        "id": "organization",
+        "path": "/onboarding/organization",
+        "slots": [
+          {
+            "id": "stepRail",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-step-rail",
+              "widgetName": "StepRail",
+              "config": {
+                "steps": [
+                  "account",
+                  "organization",
+                  "tier",
+                  "region",
+                  "first-form",
+                  "publish"
+                ],
+                "current": "organization",
+                "estimate": "7 minutes"
+              }
+            },
+            "position": "left",
+            "title": "Steps"
+          }
+        ],
+        "title": "Tell us about your organization"
+      },
+      {
+        "id": "tier",
+        "path": "/onboarding/tier",
+        "slots": [
+          {
+            "id": "tierCards",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-tier-cards",
+              "widgetName": "TierComparison",
+              "config": {
+                "dataSource": "x-spike-v9:catalog:deployment-tiers",
+                "tiers": [
+                  "shared",
+                  "regulated",
+                  "dedicated",
+                  "air-gap"
+                ],
+                "recommended": "regulated"
+              }
+            },
+            "position": "main",
+            "title": "Deployment tier"
+          }
+        ],
+        "title": "Pick a deployment tier"
+      },
+      {
+        "id": "region",
+        "path": "/onboarding/region",
+        "slots": [
+          {
+            "id": "regionPicker",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-region-picker",
+              "widgetName": "RegionPicker",
+              "config": {
+                "dataSource": "x-spike-v9:catalog:regions",
+                "irreversibleAfter": "first-publish"
+              }
+            },
+            "position": "main",
+            "title": "Region"
+          }
+        ],
+        "title": "Where should your data live?"
+      },
+      {
+        "id": "first-form",
+        "path": "/onboarding/first-form",
+        "slots": [
+          {
+            "id": "genesis",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-form-genesis",
+              "widgetName": "FormGenesis",
+              "config": {
+                "paths": [
+                  "template",
+                  "import",
+                  "prompt-to-form",
+                  "blank"
+                ],
+                "dataSource": "x-spike-v9:catalog:templates"
+              }
+            },
+            "position": "main",
+            "title": "First form"
+          }
+        ],
+        "title": "Create your first form"
+      }
+    ],
+    "entry": "organization"
+  },
+  "registryDocument": null,
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Onboarding wizard policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "organization",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      },
+      {
+        "routeId": "tier",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      },
+      {
+        "routeId": "region",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      },
+      {
+        "routeId": "first-form",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "stepRail",
+      "slotType": "module-widget",
+      "mockupRegion": "step rail with completion ticks and estimated time"
+    },
+    {
+      "slot": "orgForm",
+      "slotType": "definition-form",
+      "mockupRegion": "org name + workspace + work-type form (the native design fit)"
+    },
+    {
+      "slot": "tierCards",
+      "slotType": "module-widget",
+      "mockupRegion": "four tier cards with price, claims, and a recommendation badge"
+    },
+    {
+      "slot": "regionPicker",
+      "slotType": "module-widget",
+      "mockupRegion": "region picker with \"you cannot move data after publishing\" warning"
+    },
+    {
+      "slot": "genesis",
+      "slotType": "module-widget",
+      "mockupRegion": "template / import / prompt-to-form / blank chooser plus template gallery"
+    }
+  ]
+}

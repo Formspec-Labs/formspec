@@ -1,0 +1,2073 @@
+{
+  "spike": "wireframe-generator-v9",
+  "exemplars": 12,
+  "arms": {
+    "parity": {
+      "surfaces": [
+        {
+          "id": "forms-index",
+          "mockup": "surfaces/forms-index v3.html",
+          "family": "collection-index",
+          "route": "/o/:org/w/:ws/forms",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 7,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "owner-dashboard",
+          "mockup": "index.html (surfaces/owner-dashboard.html redirects here)",
+          "family": "dashboard",
+          "route": "/o/:org/w/:ws",
+          "routes": 1,
+          "slots": 8,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 11,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 5,
+            "MODULE-CONTRIBUTION-MISSING": 6
+          },
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 6
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-detail",
+          "mockup": "surfaces/form-detail.html",
+          "family": "entity-detail",
+          "route": "/forms/:id",
+          "routes": 1,
+          "slots": 7,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 8,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 4,
+            "embed-route": 1
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-edit",
+          "mockup": "surfaces/form-edit.html",
+          "family": "editor-shell",
+          "route": "/forms/:id/edit",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 5
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 5
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "onboarding",
+          "mockup": "surfaces/onboarding.html",
+          "family": "wizard",
+          "route": "/onboarding",
+          "routes": 4,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "definition-form": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 4,
+          "routeClassAttempted": 4
+        },
+        {
+          "id": "signature-ceremony",
+          "mockup": "surfaces/signature-ceremony.html",
+          "family": "stateful-ceremony",
+          "route": "/sign/:envelopeId",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 6,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 3
+          },
+          "slotTypes": {
+            "static-content": 3,
+            "module-widget": 3
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "admin-billing",
+          "mockup": "surfaces/admin-billing.html",
+          "family": "settings-admin",
+          "route": "/admin/billing",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4,
+            "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF": 1
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "experience-unit": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "dev-webhooks",
+          "mockup": "surfaces/dev-webhooks.html",
+          "family": "developer-crud",
+          "route": "/dev/webhooks",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 8,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "static-content": 1
+          },
+          "spikeBindingSites": 4,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "trust-center",
+          "mockup": "surfaces/trust-center.html",
+          "family": "content-compliance",
+          "route": "/trust",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 6,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 3
+          },
+          "slotTypes": {
+            "module-widget": 3,
+            "static-content": 2
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "verifier",
+          "mockup": "surfaces/verifier.html",
+          "family": "interactive-tool",
+          "route": "/verify",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 7,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "responses-index",
+          "mockup": "surfaces/responses-index.html",
+          "family": "collection-index",
+          "route": "/forms/:id/responses",
+          "routes": 1,
+          "slots": 4,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 7,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-versions",
+          "mockup": "surfaces/form-versions.html",
+          "family": "diff-compare",
+          "route": "/forms/:id/versions",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 8,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 5,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        }
+      ],
+      "totals": {
+        "routes": 15,
+        "slots": 66,
+        "errorDiagnostics": 95,
+        "warningDiagnostics": 0,
+        "infoDiagnostics": 0,
+        "errorCodeCounts": {
+          "MODULE-UNRESOLVED": 44,
+          "MODULE-CONTRIBUTION-MISSING": 49,
+          "ARTIFACT-MISSING": 1,
+          "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF": 1
+        },
+        "slotTypes": {
+          "static-content": 14,
+          "module-widget": 49,
+          "embed-route": 1,
+          "definition-form": 1,
+          "experience-unit": 1
+        },
+        "spikeBindingSites": 53,
+        "spikeBindingsDistinct": 38,
+        "crossArtifactCompleted": 11
+      }
+    },
+    "verbOnly": {
+      "surfaces": [
+        {
+          "id": "forms-index",
+          "mockup": "surfaces/forms-index v3.html",
+          "family": "collection-index",
+          "route": "/o/:org/w/:ws/forms",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 8,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "owner-dashboard",
+          "mockup": "index.html (surfaces/owner-dashboard.html redirects here)",
+          "family": "dashboard",
+          "route": "/o/:org/w/:ws",
+          "routes": 1,
+          "slots": 8,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 12,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 5,
+            "MODULE-CONTRIBUTION-MISSING": 6
+          },
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 6
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-detail",
+          "mockup": "surfaces/form-detail.html",
+          "family": "entity-detail",
+          "route": "/forms/:id",
+          "routes": 1,
+          "slots": 7,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 4,
+            "embed-route": 1
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-edit",
+          "mockup": "surfaces/form-edit.html",
+          "family": "editor-shell",
+          "route": "/forms/:id/edit",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 10,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 5
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 5
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "onboarding",
+          "mockup": "surfaces/onboarding.html",
+          "family": "wizard",
+          "route": "/onboarding",
+          "routes": 4,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 10,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 2,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "definition-form": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 4,
+          "routeClassAttempted": 4
+        },
+        {
+          "id": "signature-ceremony",
+          "mockup": "surfaces/signature-ceremony.html",
+          "family": "stateful-ceremony",
+          "route": "/sign/:envelopeId",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 11,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA",
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "APP-GRAPH-SCHEMA": 2,
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 5
+          },
+          "slotTypes": {
+            "static-content": 3,
+            "module-widget": 3
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "admin-billing",
+          "mockup": "surfaces/admin-billing.html",
+          "family": "settings-admin",
+          "route": "/admin/billing",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "experience-unit": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "dev-webhooks",
+          "mockup": "surfaces/dev-webhooks.html",
+          "family": "developer-crud",
+          "route": "/dev/webhooks",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "static-content": 1
+          },
+          "spikeBindingSites": 4,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "trust-center",
+          "mockup": "surfaces/trust-center.html",
+          "family": "content-compliance",
+          "route": "/trust",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 11,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA",
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "APP-GRAPH-SCHEMA": 2,
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 5
+          },
+          "slotTypes": {
+            "module-widget": 3,
+            "static-content": 2
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "verifier",
+          "mockup": "surfaces/verifier.html",
+          "family": "interactive-tool",
+          "route": "/verify",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 12,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA",
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "APP-GRAPH-SCHEMA": 2,
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 6
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "responses-index",
+          "mockup": "surfaces/responses-index.html",
+          "family": "collection-index",
+          "route": "/forms/:id/responses",
+          "routes": 1,
+          "slots": 4,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 8,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 3,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-versions",
+          "mockup": "surfaces/form-versions.html",
+          "family": "diff-compare",
+          "route": "/forms/:id/versions",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 9,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING",
+            "MODULE-CONTRIBUTION-MISSING",
+            "MODULE-UNRESOLVED"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "MODULE-UNRESOLVED": 4,
+            "MODULE-CONTRIBUTION-MISSING": 4
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 5,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        }
+      ],
+      "totals": {
+        "routes": 15,
+        "slots": 66,
+        "errorDiagnostics": 118,
+        "warningDiagnostics": 0,
+        "infoDiagnostics": 0,
+        "errorCodeCounts": {
+          "ARTIFACT-MISSING": 13,
+          "MODULE-UNRESOLVED": 44,
+          "MODULE-CONTRIBUTION-MISSING": 55,
+          "APP-GRAPH-SCHEMA": 6
+        },
+        "slotTypes": {
+          "static-content": 14,
+          "module-widget": 49,
+          "embed-route": 1,
+          "definition-form": 1,
+          "experience-unit": 1
+        },
+        "spikeBindingSites": 53,
+        "spikeBindingsDistinct": 38,
+        "crossArtifactCompleted": 0
+      }
+    },
+    "hostAuthored": {
+      "surfaces": [
+        {
+          "id": "forms-index",
+          "mockup": "surfaces/forms-index v3.html",
+          "family": "collection-index",
+          "route": "/o/:org/w/:ws/forms",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 16,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "owner-dashboard",
+          "mockup": "index.html (surfaces/owner-dashboard.html redirects here)",
+          "family": "dashboard",
+          "route": "/o/:org/w/:ws",
+          "routes": 1,
+          "slots": 8,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 24,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 24
+          },
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 6
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-detail",
+          "mockup": "surfaces/form-detail.html",
+          "family": "entity-detail",
+          "route": "/forms/:id",
+          "routes": 1,
+          "slots": 7,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 16,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 4,
+            "embed-route": 1
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-edit",
+          "mockup": "surfaces/form-edit.html",
+          "family": "editor-shell",
+          "route": "/forms/:id/edit",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 20,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 20
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 5
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "onboarding",
+          "mockup": "surfaces/onboarding.html",
+          "family": "wizard",
+          "route": "/onboarding",
+          "routes": 4,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 17,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA",
+            "ARTIFACT-MISSING"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1,
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "definition-form": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 4,
+          "routeClassAttempted": 4
+        },
+        {
+          "id": "signature-ceremony",
+          "mockup": "surfaces/signature-ceremony.html",
+          "family": "stateful-ceremony",
+          "route": "/sign/:envelopeId",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 14,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 14
+          },
+          "slotTypes": {
+            "static-content": 3,
+            "module-widget": 3
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "admin-billing",
+          "mockup": "surfaces/admin-billing.html",
+          "family": "settings-admin",
+          "route": "/admin/billing",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 16,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "experience-unit": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "dev-webhooks",
+          "mockup": "surfaces/dev-webhooks.html",
+          "family": "developer-crud",
+          "route": "/dev/webhooks",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 16,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "static-content": 1
+          },
+          "spikeBindingSites": 4,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "trust-center",
+          "mockup": "surfaces/trust-center.html",
+          "family": "content-compliance",
+          "route": "/trust",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 14,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 14
+          },
+          "slotTypes": {
+            "module-widget": 3,
+            "static-content": 2
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "verifier",
+          "mockup": "surfaces/verifier.html",
+          "family": "interactive-tool",
+          "route": "/verify",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 18,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 18
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "responses-index",
+          "mockup": "surfaces/responses-index.html",
+          "family": "collection-index",
+          "route": "/forms/:id/responses",
+          "routes": 1,
+          "slots": 4,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 16,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-versions",
+          "mockup": "surfaces/form-versions.html",
+          "family": "diff-compare",
+          "route": "/forms/:id/versions",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "schema-errors",
+          "diagnostics": {
+            "error": 16,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SCHEMA"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SCHEMA": 16
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 5,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        }
+      ],
+      "totals": {
+        "routes": 15,
+        "slots": 66,
+        "errorDiagnostics": 203,
+        "warningDiagnostics": 0,
+        "infoDiagnostics": 0,
+        "errorCodeCounts": {
+          "APP-GRAPH-SCHEMA": 202,
+          "ARTIFACT-MISSING": 1
+        },
+        "slotTypes": {
+          "static-content": 14,
+          "module-widget": 49,
+          "embed-route": 1,
+          "definition-form": 1,
+          "experience-unit": 1
+        },
+        "spikeBindingSites": 53,
+        "spikeBindingsDistinct": 38,
+        "crossArtifactCompleted": 0
+      }
+    },
+    "hostCorrected": {
+      "surfaces": [
+        {
+          "id": "forms-index",
+          "mockup": "surfaces/forms-index v3.html",
+          "family": "collection-index",
+          "route": "/o/:org/w/:ws/forms",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "owner-dashboard",
+          "mockup": "index.html (surfaces/owner-dashboard.html redirects here)",
+          "family": "dashboard",
+          "route": "/o/:org/w/:ws",
+          "routes": 1,
+          "slots": 8,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 6
+          },
+          "spikeBindingSites": 7,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-detail",
+          "mockup": "surfaces/form-detail.html",
+          "family": "entity-detail",
+          "route": "/forms/:id",
+          "routes": 1,
+          "slots": 7,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "static-content": 2,
+            "module-widget": 4,
+            "embed-route": 1
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-edit",
+          "mockup": "surfaces/form-edit.html",
+          "family": "editor-shell",
+          "route": "/forms/:id/edit",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 5
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "onboarding",
+          "mockup": "surfaces/onboarding.html",
+          "family": "wizard",
+          "route": "/onboarding",
+          "routes": 4,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution"
+          ],
+          "crossArtifactStatus": "skipped",
+          "crossArtifactReason": "unresolved-artifacts",
+          "diagnostics": {
+            "error": 1,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "ARTIFACT-MISSING"
+          ],
+          "errorCodeCounts": {
+            "ARTIFACT-MISSING": 1
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "definition-form": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 4,
+          "routeClassAttempted": 4
+        },
+        {
+          "id": "signature-ceremony",
+          "mockup": "surfaces/signature-ceremony.html",
+          "family": "stateful-ceremony",
+          "route": "/sign/:envelopeId",
+          "routes": 1,
+          "slots": 6,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 2,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "THEME-TOKEN-REF"
+          ],
+          "errorCodeCounts": {
+            "THEME-TOKEN-REF": 2
+          },
+          "slotTypes": {
+            "static-content": 3,
+            "module-widget": 3
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "admin-billing",
+          "mockup": "surfaces/admin-billing.html",
+          "family": "settings-admin",
+          "route": "/admin/billing",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 1,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF"
+          ],
+          "errorCodeCounts": {
+            "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF": 1
+          },
+          "slotTypes": {
+            "module-widget": 4,
+            "experience-unit": 1
+          },
+          "spikeBindingSites": 3,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "dev-webhooks",
+          "mockup": "surfaces/dev-webhooks.html",
+          "family": "developer-crud",
+          "route": "/dev/webhooks",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "module-widget": 4,
+            "static-content": 1
+          },
+          "spikeBindingSites": 4,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "trust-center",
+          "mockup": "surfaces/trust-center.html",
+          "family": "content-compliance",
+          "route": "/trust",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 2,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "THEME-TOKEN-REF"
+          ],
+          "errorCodeCounts": {
+            "THEME-TOKEN-REF": 2
+          },
+          "slotTypes": {
+            "module-widget": 3,
+            "static-content": 2
+          },
+          "spikeBindingSites": 2,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "verifier",
+          "mockup": "surfaces/verifier.html",
+          "family": "interactive-tool",
+          "route": "/verify",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 2,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [
+            "THEME-TOKEN-REF"
+          ],
+          "errorCodeCounts": {
+            "THEME-TOKEN-REF": 2
+          },
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "responses-index",
+          "mockup": "surfaces/responses-index.html",
+          "family": "collection-index",
+          "route": "/forms/:id/responses",
+          "routes": 1,
+          "slots": 4,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "module-widget": 4
+          },
+          "spikeBindingSites": 6,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        },
+        {
+          "id": "form-versions",
+          "mockup": "surfaces/form-versions.html",
+          "family": "diff-compare",
+          "route": "/forms/:id/versions",
+          "routes": 1,
+          "slots": 5,
+          "phasesCompleted": [
+            "artifact-resolution",
+            "schema",
+            "module-resolution",
+            "cross-artifact"
+          ],
+          "crossArtifactStatus": "completed",
+          "crossArtifactReason": null,
+          "diagnostics": {
+            "error": 0,
+            "warning": 0,
+            "info": 0
+          },
+          "diagnosticCodes": [],
+          "errorCodeCounts": {},
+          "slotTypes": {
+            "static-content": 1,
+            "module-widget": 4
+          },
+          "spikeBindingSites": 5,
+          "declareRegistryOk": true,
+          "routeClassPersisted": 0,
+          "routeClassVerbOk": 1,
+          "routeClassAttempted": 1
+        }
+      ],
+      "totals": {
+        "routes": 15,
+        "slots": 66,
+        "errorDiagnostics": 8,
+        "warningDiagnostics": 0,
+        "infoDiagnostics": 0,
+        "errorCodeCounts": {
+          "ARTIFACT-MISSING": 1,
+          "THEME-TOKEN-REF": 6,
+          "APP-GRAPH-SURFACE-EXPERIENCE-UNIT-REF": 1
+        },
+        "slotTypes": {
+          "static-content": 14,
+          "module-widget": 49,
+          "embed-route": 1,
+          "definition-form": 1,
+          "experience-unit": 1
+        },
+        "spikeBindingSites": 53,
+        "spikeBindingsDistinct": 38,
+        "crossArtifactCompleted": 11
+      }
+    }
+  },
+  "themeAuthority": {
+    "surfacesProbed": [
+      "signature-ceremony",
+      "trust-center",
+      "verifier"
+    ],
+    "assignmentsPushed": 6,
+    "themeRouteClassDiagnostics": {
+      "verbOnly": 0,
+      "hostAuthored": 0,
+      "hostCorrected": 0
+    }
+  },
+  "routeClass": {
+    "attempted": 15,
+    "verbReturnedOk": 15,
+    "persistedInExportedSurface": 0,
+    "distinctErrors": [],
+    "classesWanted": [
+      "attestation",
+      "ceremony",
+      "intake",
+      "operation",
+      "verification"
+    ]
+  },
+  "registry": {
+    "surfaces": 12,
+    "declareRegistryAccepted": 12,
+    "moduleDiagnostics": {
+      "v8": 93,
+      "parity": 93,
+      "verbOnly": 99,
+      "hostAuthored": 0,
+      "hostCorrected": 0
+    }
+  },
+  "surfaceExport": {
+    "publishable": 11,
+    "surfaces": 12,
+    "refusals": [
+      {
+        "id": "onboarding",
+        "error": "VALIDATION — Surface 'wizard' is not publishable.",
+        "codes": [
+          "SURFACE-ROUTE-UNREACHABLE"
+        ]
+      }
+    ]
+  },
+  "familyRanking": [
+    {
+      "family": "slot-taxonomy",
+      "primaryHits": 12,
+      "totalHits": 19,
+      "findings": [
+        7,
+        8,
+        9,
+        12,
+        13,
+        14,
+        17,
+        22,
+        28,
+        31,
+        34,
+        35
+      ]
+    },
+    {
+      "family": "mcp-verb-surface",
+      "primaryHits": 6,
+      "totalHits": 112,
+      "findings": [
+        18,
+        21,
+        38,
+        40,
+        41,
+        43
+      ]
+    },
+    {
+      "family": "state-and-status",
+      "primaryHits": 5,
+      "totalHits": 6,
+      "findings": [
+        4,
+        10,
+        15,
+        32,
+        36
+      ]
+    },
+    {
+      "family": "app-composition",
+      "primaryHits": 4,
+      "totalHits": 7,
+      "findings": [
+        1,
+        3,
+        16,
+        20
+      ]
+    },
+    {
+      "family": "action-vocabulary",
+      "primaryHits": 4,
+      "totalHits": 6,
+      "findings": [
+        11,
+        25,
+        26,
+        30
+      ]
+    },
+    {
+      "family": "capability-gating",
+      "primaryHits": 3,
+      "totalHits": 3,
+      "findings": [
+        5,
+        23,
+        27
+      ]
+    },
+    {
+      "family": "theming-and-density",
+      "primaryHits": 3,
+      "totalHits": 3,
+      "findings": [
+        6,
+        39,
+        42
+      ]
+    },
+    {
+      "family": "data-source",
+      "primaryHits": 2,
+      "totalHits": 2,
+      "findings": [
+        2,
+        29
+      ]
+    },
+    {
+      "family": "read-only-display",
+      "primaryHits": 1,
+      "totalHits": 2,
+      "findings": [
+        24
+      ]
+    },
+    {
+      "family": "a11y-profile",
+      "primaryHits": 1,
+      "totalHits": 1,
+      "findings": [
+        33
+      ]
+    },
+    {
+      "family": "cross-slot-contract",
+      "primaryHits": 1,
+      "totalHits": 1,
+      "findings": [
+        19
+      ]
+    }
+  ],
+  "v7CrossReference": {
+    "confirmed": [
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "F5",
+      "F6",
+      "F7",
+      "F8",
+      "F9",
+      "F10",
+      "F11",
+      "F12",
+      "F13",
+      "F14"
+    ],
+    "notHit": [],
+    "newInV9": [
+      38,
+      39,
+      40,
+      41,
+      42,
+      43
+    ]
+  },
+  "dispositionCounts": {
+    "closed": 1,
+    "narrowed": 2,
+    "persists": 33,
+    "new": 6
+  }
+}

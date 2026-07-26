@@ -1,0 +1,782 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/dev-webhooks",
+        "title": "Webhooks",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-dev-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-secret-panel",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-endpoint-table",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-delivery-history",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/dev-webhooks"
+      },
+      "source": "spike-v9://dev-webhooks/host-corrected/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Formspec Cloud (host-authored, no MCP verb)"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-dev-nav",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-dev-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-dev-section-nav"
+                ]
+              },
+              {
+                "name": "x-dev-section-nav",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-dev-section-nav contributed by x-cloud-dev-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-secret-panel",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-secret-panel.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-signing-secret"
+                ]
+              },
+              {
+                "name": "x-signing-secret",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-signing-secret contributed by x-cloud-secret-panel.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-endpoint-table",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-endpoint-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-endpoint-table"
+                ]
+              },
+              {
+                "name": "x-endpoint-table",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-endpoint-table contributed by x-cloud-endpoint-table.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-delivery-history",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-delivery-history.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-delivery-history"
+                ]
+              },
+              {
+                "name": "x-delivery-history",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-delivery-history contributed by x-cloud-delivery-history.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "webhooks",
+            "routes": [
+              {
+                "id": "webhooks",
+                "path": "/dev/webhooks",
+                "slots": [
+                  {
+                    "id": "devNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-dev-nav",
+                      "widgetName": "x-dev-section-nav",
+                      "config": {
+                        "sections": [
+                          "keys",
+                          "webhooks",
+                          "sandbox",
+                          "docs",
+                          "embed",
+                          "imports",
+                          "connectors",
+                          "workflow-links"
+                        ],
+                        "counts": {
+                          "keys": 7,
+                          "webhooks": 4
+                        }
+                      }
+                    },
+                    "position": "top",
+                    "title": "Developer"
+                  },
+                  {
+                    "id": "header",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "Subscribe to lifecycle events: response submitted, anchor ready, anchor stalled, envelope completed, signer declined. Every delivery is signed and idempotent; failures retry with exponential back-off."
+                    },
+                    "position": "top",
+                    "title": "Webhooks"
+                  },
+                  {
+                    "id": "signingSecret",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-secret-panel",
+                      "widgetName": "x-signing-secret",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:webhook-secret",
+                        "sensitivity": "x-spike-v9:secret",
+                        "actions": [
+                          "reveal",
+                          "rotate"
+                        ],
+                        "rotationGrace": "24h"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Workspace signing secret"
+                  },
+                  {
+                    "id": "endpoints",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-endpoint-table",
+                      "widgetName": "x-endpoint-table",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:webhook-endpoints",
+                        "columns": [
+                          "url",
+                          "events",
+                          "success24h",
+                          "lastDelivery",
+                          "status"
+                        ],
+                        "rowActions": [
+                          "pause",
+                          "edit",
+                          "delete",
+                          "test"
+                        ],
+                        "stateCounts": [
+                          "active",
+                          "paused",
+                          "disabled"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Endpoints"
+                  },
+                  {
+                    "id": "deliveries",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-delivery-history",
+                      "widgetName": "x-delivery-history",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:webhook-deliveries",
+                        "columns": [
+                          "time",
+                          "event",
+                          "receipt",
+                          "http",
+                          "latency",
+                          "status"
+                        ],
+                        "rowActions": [
+                          "replay",
+                          "view-raw-payload"
+                        ],
+                        "bulkActions": [
+                          "replay-all-failed"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Recent deliveries"
+                  }
+                ],
+                "title": "Webhooks"
+              }
+            ],
+            "entry": "webhooks"
+          },
+          "identity": {
+            "id": "webhooks"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-dev-nav",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/host-corrected/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-dev-nav",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-secret-panel",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/host-corrected/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-secret-panel",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-endpoint-table",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/host-corrected/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-endpoint-table",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-delivery-history",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/host-corrected/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-delivery-history",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-dev-section-nav",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-dev-nav",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-signing-secret",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-secret-panel",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-endpoint-table",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-endpoint-table",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-delivery-history",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-delivery-history",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/7/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+              "jsonPointer": "/entries/7/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 4,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": true,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://dev-webhooks/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

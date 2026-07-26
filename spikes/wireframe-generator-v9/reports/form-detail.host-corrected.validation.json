@@ -1,0 +1,773 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/form-detail",
+        "title": "2026 Community Grant Application",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-tab-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-stat-tiles",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-version-lifecycle",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-share-panel",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/form-detail"
+      },
+      "source": "spike-v9://form-detail/host-corrected/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Formspec Cloud (host-authored, no MCP verb)"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-tab-nav",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-tab-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-entity-tabs"
+                ]
+              },
+              {
+                "name": "x-entity-tabs",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-entity-tabs contributed by x-cloud-tab-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-stat-tiles",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-stat-tiles.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-kpi-tiles"
+                ]
+              },
+              {
+                "name": "x-kpi-tiles",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-kpi-tiles contributed by x-cloud-stat-tiles.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-version-lifecycle",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-version-lifecycle.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-version-list"
+                ]
+              },
+              {
+                "name": "x-version-list",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-version-list contributed by x-cloud-version-lifecycle.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-share-panel",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-share-panel.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-share-and-embed"
+                ]
+              },
+              {
+                "name": "x-share-and-embed",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-share-and-embed contributed by x-cloud-share-panel.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-detail/surfaces/form",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "form",
+            "routes": [
+              {
+                "id": "overview",
+                "path": "/forms/:id",
+                "slots": [
+                  {
+                    "id": "identityHeader",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "2026 Community Grant Application",
+                      "level": 1
+                    },
+                    "position": "top",
+                    "title": "Form"
+                  },
+                  {
+                    "id": "tabNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-tab-nav",
+                      "widgetName": "x-entity-tabs",
+                      "config": {
+                        "tabs": [
+                          "overview",
+                          "responses",
+                          "versions",
+                          "analytics",
+                          "settings",
+                          "share"
+                        ],
+                        "counts": {
+                          "responses": 4218,
+                          "versions": 3
+                        }
+                      }
+                    },
+                    "position": "top",
+                    "title": "Sections"
+                  },
+                  {
+                    "id": "kpiRow",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-stat-tiles",
+                      "widgetName": "x-kpi-tiles",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/metrics",
+                        "tiles": [
+                          "responses-7d",
+                          "completion-rate",
+                          "avg-time",
+                          "proof-p95"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Metrics"
+                  },
+                  {
+                    "id": "versions",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-version-lifecycle",
+                      "widgetName": "x-version-list",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms/:id/versions",
+                        "lifecycle": [
+                          "draft",
+                          "active",
+                          "retired"
+                        ],
+                        "rowActions": [
+                          "diff",
+                          "continue-editing"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Versions"
+                  },
+                  {
+                    "id": "sharePanel",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-share-panel",
+                      "widgetName": "x-share-and-embed",
+                      "config": {
+                        "surfaces": [
+                          "public-link",
+                          "workflow-bound-link",
+                          "embed-snippet"
+                        ],
+                        "workflowLinkTemplate": "https://forms.acme-coop.org/f/grants-2026?case={WOS_CASE_ID}"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Share & embed"
+                  },
+                  {
+                    "id": "posture",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "Posture",
+                      "level": 2
+                    },
+                    "position": "right",
+                    "title": "Posture"
+                  }
+                ],
+                "title": "Overview"
+              }
+            ],
+            "entry": "overview"
+          },
+          "identity": {
+            "id": "form"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-tab-nav",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-detail/host-corrected/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-tab-nav",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-stat-tiles",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-detail/host-corrected/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-stat-tiles",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-version-lifecycle",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-detail/host-corrected/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-version-lifecycle",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-share-panel",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://form-detail/host-corrected/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-share-panel",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-entity-tabs",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-detail/surfaces/form",
+          "jsonPointer": "/routes/0/slots/1/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-tab-nav",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-kpi-tiles",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-detail/surfaces/form",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-stat-tiles",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-version-list",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-detail/surfaces/form",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-version-lifecycle",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-share-and-embed",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/form-detail/surfaces/form",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/form-detail/surfaces/form",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-share-panel",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/7/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/console/form-detail/registries/product-modules",
+              "jsonPointer": "/entries/7/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 4,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": true,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://form-detail/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

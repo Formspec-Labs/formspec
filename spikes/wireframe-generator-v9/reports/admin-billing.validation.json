@@ -1,0 +1,864 @@
+{
+  "artifactResolutionReport": {
+    "ok": false,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/admin-billing",
+        "title": "Billing",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-admin-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-quota-meters",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-payment-method",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-invoice-table",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/admin-billing"
+      },
+      "source": "spike-v9://admin-billing/verb-only/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "status": "missing",
+          "diagnostics": [
+            {
+              "code": "ARTIFACT-MISSING",
+              "severity": "error",
+              "phase": "artifact-resolution",
+              "origin": "artifact-resolver",
+              "message": "Artifact 'registries[0]' is missing.",
+              "primarySource": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+                "jsonPointer": "",
+                "ref": {
+                  "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+                  "version": "1.0.0"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "billing",
+            "routes": [
+              {
+                "id": "billing",
+                "path": "/admin/billing",
+                "slots": [
+                  {
+                    "id": "adminNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-admin-nav",
+                      "widgetName": "AdminSectionNav",
+                      "config": {
+                        "sections": [
+                          "members",
+                          "billing",
+                          "audit",
+                          "retention",
+                          "ai-policy",
+                          "residency",
+                          "sso",
+                          "org"
+                        ],
+                        "counts": {
+                          "members": 12
+                        }
+                      }
+                    },
+                    "position": "top",
+                    "title": "Admin"
+                  },
+                  {
+                    "id": "planPanel",
+                    "slotType": "experience-unit",
+                    "binding": {
+                      "unitRef": "currentPlanPanel"
+                    },
+                    "position": "main",
+                    "title": "Current plan"
+                  },
+                  {
+                    "id": "usageMeters",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-quota-meters",
+                      "widgetName": "QuotaMeters",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:usage",
+                        "meters": [
+                          "responses",
+                          "signature-envelopes",
+                          "api-requests",
+                          "object-storage"
+                        ],
+                        "projection": true
+                      }
+                    },
+                    "position": "main",
+                    "title": "Usage"
+                  },
+                  {
+                    "id": "paymentMethod",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-payment-method",
+                      "widgetName": "PaymentMethod",
+                      "config": {
+                        "externalHandoff": "x-spike-v9:external:payment-processor"
+                      }
+                    },
+                    "position": "right",
+                    "title": "Payment method"
+                  },
+                  {
+                    "id": "invoices",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-invoice-table",
+                      "widgetName": "InvoiceTable",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:invoices",
+                        "columns": [
+                          "invoice",
+                          "period",
+                          "amount",
+                          "date",
+                          "status"
+                        ],
+                        "rowActions": [
+                          "download-pdf"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Invoices"
+                  }
+                ],
+                "title": "Billing"
+              }
+            ],
+            "entry": "billing"
+          },
+          "identity": {
+            "id": "billing"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-MISSING",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Artifact 'registries[0]' is missing.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+          "jsonPointer": "",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 1,
+      "missingArtifacts": 1,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-admin-nav",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-admin-nav",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-admin-nav' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://admin-billing/verb-only/app-manifest",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-cloud-admin-nav",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-quota-meters",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-quota-meters",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-quota-meters' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://admin-billing/verb-only/app-manifest",
+              "jsonPointer": "/modules/1",
+              "module": {
+                "id": "x-cloud-quota-meters",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-payment-method",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-payment-method",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-payment-method' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://admin-billing/verb-only/app-manifest",
+              "jsonPointer": "/modules/2",
+              "module": {
+                "id": "x-cloud-payment-method",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-invoice-table",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-invoice-table",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-invoice-table' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://admin-billing/verb-only/app-manifest",
+              "jsonPointer": "/modules/3",
+              "module": {
+                "id": "x-cloud-invoice-table",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "AdminSectionNav",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "QuotaMeters",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "PaymentMethod",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "InvoiceTable",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-admin-nav' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-admin-nav",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-quota-meters' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-quota-meters",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-payment-method' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-payment-method",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-invoice-table' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-invoice-table",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'AdminSectionNav' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "AdminSectionNav",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'QuotaMeters' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "QuotaMeters",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'PaymentMethod' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "PaymentMethod",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'InvoiceTable' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "InvoiceTable",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 4,
+      "payloadFailures": 0,
+      "errors": 8,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 2,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 9,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 9,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 1
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://admin-billing/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-MISSING",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Artifact 'registries[0]' is missing.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+          "jsonPointer": "",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/registries/product-modules",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-admin-nav' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-quota-meters' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-payment-method' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-invoice-table' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://admin-billing/verb-only/app-manifest",
+          "jsonPointer": "/modules/3",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'AdminSectionNav' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "AdminSectionNav",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'QuotaMeters' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "QuotaMeters",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'PaymentMethod' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "PaymentMethod",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'InvoiceTable' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/admin-billing/surfaces/billing",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "InvoiceTable",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "skipped",
+        "reason": "unresolved-artifacts"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

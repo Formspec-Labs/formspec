@@ -1,0 +1,309 @@
+{
+  "mockup": "surfaces/form-versions.html",
+  "family": "diff-compare",
+  "route": "/forms/:id/versions",
+  "registryArm": "host-authored",
+  "declareRegistry": {
+    "ok": true,
+    "url": "https://formspec.cloud/apps/console/form-versions/registries/product-modules"
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "versions",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/form-versions",
+    "title": "Versions & diff",
+    "definitions": [],
+    "registries": [
+      {
+        "url": "https://formspec.cloud/apps/console/form-versions/registries/product-modules",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/form-versions/surfaces/versions",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-version-lifecycle",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-compare-selector",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-change-list",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-source-diff",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "versions",
+    "routes": [
+      {
+        "id": "versions",
+        "path": "/forms/:id/versions",
+        "slots": [
+          {
+            "id": "immutabilityHeader",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "text",
+              "content": "Every published version is immutable and pinned at submission. Receipts cite the exact version hash they were submitted against. Retiring a version retains every response under it."
+            },
+            "position": "top",
+            "title": "Versions & diff"
+          },
+          {
+            "id": "versionRail",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-version-lifecycle",
+              "widgetName": "VersionRail",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:forms/:id/versions",
+                "lifecycle": [
+                  "draft",
+                  "active",
+                  "retired"
+                ],
+                "publishes": "x-spike-v9:channel:compare-sides"
+              }
+            },
+            "position": "left",
+            "title": "Versions"
+          },
+          {
+            "id": "compareSelector",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-compare-selector",
+              "widgetName": "CompareSelector",
+              "config": {
+                "consumes": "x-spike-v9:channel:compare-sides",
+                "sides": [
+                  "a",
+                  "b"
+                ],
+                "summary": [
+                  "changes",
+                  "linesAdded",
+                  "linesRemoved"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Compare"
+          },
+          {
+            "id": "changeList",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-change-list",
+              "widgetName": "SemanticChangeList",
+              "config": {
+                "consumes": "x-spike-v9:channel:compare-sides",
+                "changeTaxonomy": [
+                  "added",
+                  "removed",
+                  "modified"
+                ],
+                "register": "plain-language"
+              }
+            },
+            "position": "main",
+            "title": "What changed"
+          },
+          {
+            "id": "sourceDiff",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-source-diff",
+              "widgetName": "UnifiedDiff",
+              "config": {
+                "consumes": "x-spike-v9:channel:compare-sides",
+                "files": [
+                  "rules/budget.fspec",
+                  "fields/org.fspec",
+                  "binds/total.fspec"
+                ],
+                "register": "source"
+              }
+            },
+            "position": "main",
+            "title": "Source diff"
+          }
+        ],
+        "title": "Versions & diff"
+      }
+    ],
+    "entry": "versions"
+  },
+  "registryDocument": {
+    "$formspecRegistry": "1.0",
+    "publisher": {
+      "name": "Formspec Cloud (host-authored, no MCP verb)"
+    },
+    "published": "2026-07-26T00:00:00Z",
+    "entries": [
+      {
+        "name": "x-cloud-version-lifecycle",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-version-lifecycle.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "VersionRail"
+        ]
+      },
+      {
+        "name": "VersionRail",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget VersionRail contributed by x-cloud-version-lifecycle.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-compare-selector",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-compare-selector.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "CompareSelector"
+        ]
+      },
+      {
+        "name": "CompareSelector",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget CompareSelector contributed by x-cloud-compare-selector.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-change-list",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-change-list.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "SemanticChangeList"
+        ]
+      },
+      {
+        "name": "SemanticChangeList",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget SemanticChangeList contributed by x-cloud-change-list.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-source-diff",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-source-diff.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "UnifiedDiff"
+        ]
+      },
+      {
+        "name": "UnifiedDiff",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget UnifiedDiff contributed by x-cloud-source-diff.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Versions & diff policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/form-versions/surfaces/versions",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "versions",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "immutabilityHeader",
+      "slotType": "static-content",
+      "mockupRegion": "immutability statement + download / publish actions"
+    },
+    {
+      "slot": "versionRail",
+      "slotType": "module-widget",
+      "mockupRegion": "version rail — v1.0.4 draft, v1.0.3 active, v1.0.2/v1.0.1 retired with change summaries"
+    },
+    {
+      "slot": "compareSelector",
+      "slotType": "module-widget",
+      "mockupRegion": "A/B compare selector with 7 changes · +18 / −9 lines"
+    },
+    {
+      "slot": "changeList",
+      "slotType": "module-widget",
+      "mockupRegion": "semantic change list in product language, with the back-compat note per change"
+    },
+    {
+      "slot": "sourceDiff",
+      "slotType": "module-widget",
+      "mockupRegion": "unified FEL diff with hunk headers and line numbers"
+    }
+  ]
+}

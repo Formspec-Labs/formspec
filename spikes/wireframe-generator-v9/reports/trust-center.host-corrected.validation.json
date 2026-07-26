@@ -1,0 +1,776 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/trust/center",
+        "title": "Trust Center",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/trust/center/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-public-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/trust/center"
+      },
+      "source": "spike-v9://trust-center/host-corrected/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Formspec Cloud (host-authored, no MCP verb)"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-public-nav",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-public-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-public-nav"
+                ]
+              },
+              {
+                "name": "x-public-nav",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-public-nav contributed by x-cloud-public-nav.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-profile-cards",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-profile-cards.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-deployment-profiles"
+                ]
+              },
+              {
+                "name": "x-deployment-profiles",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-deployment-profiles contributed by x-cloud-profile-cards.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-capability-matrix",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-capability-matrix.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-capability-matrix"
+                ]
+              },
+              {
+                "name": "x-capability-matrix",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-capability-matrix contributed by x-cloud-capability-matrix.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "trust",
+            "routes": [
+              {
+                "id": "trust",
+                "path": "/trust",
+                "slots": [
+                  {
+                    "id": "publicNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-public-nav",
+                      "widgetName": "x-public-nav",
+                      "config": {
+                        "links": [
+                          "deployments",
+                          "data-handling",
+                          "audits",
+                          "contact"
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "Trust"
+                  },
+                  {
+                    "id": "hero",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "Five deployment profiles. The proof surfaces are the same on every one.",
+                      "level": 1
+                    },
+                    "position": "main",
+                    "title": "Trust at Formspec Cloud"
+                  },
+                  {
+                    "id": "profileCards",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-profile-cards",
+                      "widgetName": "x-deployment-profiles",
+                      "config": {
+                        "dataSource": "x-spike-v9:catalog:deployment-profiles",
+                        "taxonomy": [
+                          "shared",
+                          "regulated",
+                          "dedicated",
+                          "self-hosted",
+                          "air-gapped"
+                        ],
+                        "closed": true
+                      }
+                    },
+                    "position": "main",
+                    "title": "Deployment profiles"
+                  },
+                  {
+                    "id": "capabilityMatrix",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-capability-matrix",
+                      "widgetName": "x-capability-matrix",
+                      "config": {
+                        "dataSource": "x-spike-v9:catalog:capability-claims",
+                        "rows": 14,
+                        "columns": [
+                          "shared",
+                          "regulated",
+                          "dedicated",
+                          "self-hosted",
+                          "air-gapped"
+                        ],
+                        "cellTaxonomy": [
+                          "yes",
+                          "no",
+                          "qualified",
+                          "not-applicable"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Capability matrix"
+                  },
+                  {
+                    "id": "freshness",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "Last updated 2026-05-15 · Updates follow our changelog policy."
+                    },
+                    "position": "bottom",
+                    "title": "Freshness"
+                  }
+                ],
+                "title": "Trust"
+              }
+            ],
+            "entry": "trust"
+          },
+          "identity": {
+            "id": "trust"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-public-nav",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/host-corrected/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-public-nav",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-profile-cards",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/host-corrected/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-capability-matrix",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://trust-center/host-corrected/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-public-nav",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-public-nav",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-deployment-profiles",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-capability-matrix",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/trust/center/surfaces/trust",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "ui-graph-policy.theme.assignments.widgetRef",
+        "name": "x-capability-matrix",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "artifactKind": "hostEvidence",
+          "source": "spike-v9://trust-center/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/0/widgetRef"
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-capability-matrix",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "ui-graph-policy.theme.assignments.widgetRef",
+        "name": "x-deployment-profiles",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "artifactKind": "hostEvidence",
+          "source": "spike-v9://trust-center/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/1/widgetRef"
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-profile-cards",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/trust/center/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 3,
+      "admittedModules": 3,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 5,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 2,
+      "errors": 2,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://trust-center/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "THEME-TOKEN-REF",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment requires loaded Theme token evidence.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "spike-v9://trust-center/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/0/token"
+        },
+        "details": {
+          "moduleId": "x-cloud-capability-matrix",
+          "widgetName": "x-capability-matrix",
+          "slot": "accent",
+          "token": "color.accent",
+          "reason": "missing-theme-evidence"
+        }
+      },
+      {
+        "code": "THEME-TOKEN-REF",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment requires loaded Theme token evidence.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "spike-v9://trust-center/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/1/token"
+        },
+        "details": {
+          "moduleId": "x-cloud-profile-cards",
+          "widgetName": "x-deployment-profiles",
+          "slot": "surface",
+          "token": "color.surface",
+          "reason": "missing-theme-evidence"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

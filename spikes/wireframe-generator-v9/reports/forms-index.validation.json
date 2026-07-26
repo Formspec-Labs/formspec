@@ -1,0 +1,835 @@
+{
+  "artifactResolutionReport": {
+    "ok": false,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/forms-index",
+        "title": "Forms",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-forms-collection",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-filter-bar",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-bulk-action-bar",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/forms-index"
+      },
+      "source": "spike-v9://forms-index/verb-only/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "status": "missing",
+          "diagnostics": [
+            {
+              "code": "ARTIFACT-MISSING",
+              "severity": "error",
+              "phase": "artifact-resolution",
+              "origin": "artifact-resolver",
+              "message": "Artifact 'registries[0]' is missing.",
+              "primarySource": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+                "jsonPointer": "",
+                "ref": {
+                  "url": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+                  "version": "1.0.0"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "forms",
+            "routes": [
+              {
+                "id": "index",
+                "path": "/o/:org/w/:ws/forms",
+                "slots": [
+                  {
+                    "id": "headerStats",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "Forms",
+                      "level": 1
+                    },
+                    "position": "top",
+                    "title": "Forms"
+                  },
+                  {
+                    "id": "stateTabs",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-filter-bar",
+                      "widgetName": "StateTabs",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms",
+                        "facets": [
+                          {
+                            "id": "state",
+                            "values": [
+                              "all",
+                              "live",
+                              "paused",
+                              "draft",
+                              "closed",
+                              "archived"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "State"
+                  },
+                  {
+                    "id": "filterBar",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-filter-bar",
+                      "widgetName": "FormsFilterBar",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms",
+                        "facets": [
+                          {
+                            "id": "deployment",
+                            "values": [
+                              "shared",
+                              "regulated",
+                              "dedicated",
+                              "air-gap"
+                            ]
+                          },
+                          {
+                            "id": "owner",
+                            "source": "x-spike-v9:workspace:members"
+                          },
+                          {
+                            "id": "program",
+                            "source": "x-spike-v9:workspace:programs"
+                          }
+                        ],
+                        "search": true,
+                        "groupBy": [
+                          "program",
+                          "recent-activity"
+                        ]
+                      }
+                    },
+                    "position": "top",
+                    "title": "Filters"
+                  },
+                  {
+                    "id": "bulkActions",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-bulk-action-bar",
+                      "widgetName": "BulkActionBar",
+                      "config": {
+                        "actions": [
+                          "pause",
+                          "duplicate",
+                          "move-to-program",
+                          "add-tag",
+                          "export",
+                          "archive"
+                        ],
+                        "subject": "x-spike-v9:selection:forms"
+                      }
+                    },
+                    "position": "top",
+                    "title": "Bulk actions"
+                  },
+                  {
+                    "id": "formsList",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-forms-collection",
+                      "widgetName": "FormsCollection",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:forms",
+                        "grouping": "program",
+                        "pinned": true,
+                        "columns": [
+                          "title",
+                          "state",
+                          "window",
+                          "owner",
+                          "activeVersion",
+                          "draftVersion",
+                          "deployment",
+                          "definitionId",
+                          "tags",
+                          "proofDistribution",
+                          "completion",
+                          "newDelta",
+                          "lastActivity"
+                        ],
+                        "rowActions": [
+                          "copy-link",
+                          "preview",
+                          "more"
+                        ],
+                        "emptyState": "x-spike-v9:state:no-forms"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Forms"
+                  }
+                ],
+                "title": "Forms"
+              }
+            ],
+            "entry": "index"
+          },
+          "identity": {
+            "id": "forms"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-MISSING",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Artifact 'registries[0]' is missing.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+          "jsonPointer": "",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 1,
+      "missingArtifacts": 1,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-forms-collection",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-forms-collection",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-forms-collection' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://forms-index/verb-only/app-manifest",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-cloud-forms-collection",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-filter-bar",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-filter-bar",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-filter-bar' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://forms-index/verb-only/app-manifest",
+              "jsonPointer": "/modules/1",
+              "module": {
+                "id": "x-cloud-filter-bar",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-bulk-action-bar",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-bulk-action-bar",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-bulk-action-bar' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://forms-index/verb-only/app-manifest",
+              "jsonPointer": "/modules/2",
+              "module": {
+                "id": "x-cloud-bulk-action-bar",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "StateTabs",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/1/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "FormsFilterBar",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "BulkActionBar",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "FormsCollection",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-forms-collection' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-forms-collection",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-filter-bar' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-filter-bar",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-bulk-action-bar' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-bulk-action-bar",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'StateTabs' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/1/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "StateTabs",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'FormsFilterBar' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "FormsFilterBar",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'BulkActionBar' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "BulkActionBar",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'FormsCollection' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "FormsCollection",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "summary": {
+      "modules": 3,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 4,
+      "payloadFailures": 0,
+      "errors": 7,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 2,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 8,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 8,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 1
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://forms-index/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-MISSING",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Artifact 'registries[0]' is missing.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+          "jsonPointer": "",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/registries/product-modules",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-forms-collection' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-filter-bar' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-bulk-action-bar' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://forms-index/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'StateTabs' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/1/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "StateTabs",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'FormsFilterBar' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "FormsFilterBar",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'BulkActionBar' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "BulkActionBar",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'FormsCollection' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "FormsCollection",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "skipped",
+        "reason": "unresolved-artifacts"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

@@ -1,0 +1,888 @@
+{
+  "artifactResolutionReport": {
+    "ok": false,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/dev-webhooks",
+        "title": "Webhooks",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-dev-nav",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-secret-panel",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-endpoint-table",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-delivery-history",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/dev-webhooks"
+      },
+      "source": "spike-v9://dev-webhooks/verb-only/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "status": "missing",
+          "diagnostics": [
+            {
+              "code": "ARTIFACT-MISSING",
+              "severity": "error",
+              "phase": "artifact-resolution",
+              "origin": "artifact-resolver",
+              "message": "Artifact 'registries[0]' is missing.",
+              "primarySource": {
+                "artifactSlot": "registries[0]",
+                "artifactKind": "registry",
+                "source": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+                "jsonPointer": "",
+                "ref": {
+                  "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+                  "version": "1.0.0"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "webhooks",
+            "routes": [
+              {
+                "id": "webhooks",
+                "path": "/dev/webhooks",
+                "slots": [
+                  {
+                    "id": "devNav",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-dev-nav",
+                      "widgetName": "DevSectionNav",
+                      "config": {
+                        "sections": [
+                          "keys",
+                          "webhooks",
+                          "sandbox",
+                          "docs",
+                          "embed",
+                          "imports",
+                          "connectors",
+                          "workflow-links"
+                        ],
+                        "counts": {
+                          "keys": 7,
+                          "webhooks": 4
+                        }
+                      }
+                    },
+                    "position": "top",
+                    "title": "Developer"
+                  },
+                  {
+                    "id": "header",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "Subscribe to lifecycle events: response submitted, anchor ready, anchor stalled, envelope completed, signer declined. Every delivery is signed and idempotent; failures retry with exponential back-off."
+                    },
+                    "position": "top",
+                    "title": "Webhooks"
+                  },
+                  {
+                    "id": "signingSecret",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-secret-panel",
+                      "widgetName": "SigningSecret",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:webhook-secret",
+                        "sensitivity": "x-spike-v9:secret",
+                        "actions": [
+                          "reveal",
+                          "rotate"
+                        ],
+                        "rotationGrace": "24h"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Workspace signing secret"
+                  },
+                  {
+                    "id": "endpoints",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-endpoint-table",
+                      "widgetName": "EndpointTable",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:webhook-endpoints",
+                        "columns": [
+                          "url",
+                          "events",
+                          "success24h",
+                          "lastDelivery",
+                          "status"
+                        ],
+                        "rowActions": [
+                          "pause",
+                          "edit",
+                          "delete",
+                          "test"
+                        ],
+                        "stateCounts": [
+                          "active",
+                          "paused",
+                          "disabled"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Endpoints"
+                  },
+                  {
+                    "id": "deliveries",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-delivery-history",
+                      "widgetName": "DeliveryHistory",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:webhook-deliveries",
+                        "columns": [
+                          "time",
+                          "event",
+                          "receipt",
+                          "http",
+                          "latency",
+                          "status"
+                        ],
+                        "rowActions": [
+                          "replay",
+                          "view-raw-payload"
+                        ],
+                        "bulkActions": [
+                          "replay-all-failed"
+                        ]
+                      }
+                    },
+                    "position": "main",
+                    "title": "Recent deliveries"
+                  }
+                ],
+                "title": "Webhooks"
+              }
+            ],
+            "entry": "webhooks"
+          },
+          "identity": {
+            "id": "webhooks"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-MISSING",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Artifact 'registries[0]' is missing.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+          "jsonPointer": "",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 1,
+      "missingArtifacts": 1,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 1,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-dev-nav",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-dev-nav",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-dev-nav' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-cloud-dev-nav",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-secret-panel",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-secret-panel",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-secret-panel' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+              "jsonPointer": "/modules/1",
+              "module": {
+                "id": "x-cloud-secret-panel",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-endpoint-table",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-endpoint-table",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-endpoint-table' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+              "jsonPointer": "/modules/2",
+              "module": {
+                "id": "x-cloud-endpoint-table",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-delivery-history",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-delivery-history",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-delivery-history' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+              "jsonPointer": "/modules/3",
+              "module": {
+                "id": "x-cloud-delivery-history",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "DevSectionNav",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "SigningSecret",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "EndpointTable",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "DeliveryHistory",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-dev-nav' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-dev-nav",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-secret-panel' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-secret-panel",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-endpoint-table' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-endpoint-table",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-delivery-history' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-delivery-history",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'DevSectionNav' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "DevSectionNav",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'SigningSecret' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "SigningSecret",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'EndpointTable' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "EndpointTable",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'DeliveryHistory' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "DeliveryHistory",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 4,
+      "payloadFailures": 0,
+      "errors": 8,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 2,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 0,
+      "errors": 9,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 9,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 1
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://dev-webhooks/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "ARTIFACT-MISSING",
+        "severity": "error",
+        "phase": "artifact-resolution",
+        "origin": "artifact-resolver",
+        "message": "Artifact 'registries[0]' is missing.",
+        "primarySource": {
+          "artifactSlot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+          "jsonPointer": "",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/registries/product-modules",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-dev-nav' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/0",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-secret-panel' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/1",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-endpoint-table' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/2",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-delivery-history' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v9://dev-webhooks/verb-only/app-manifest",
+          "jsonPointer": "/modules/3",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'DevSectionNav' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "DevSectionNav",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'SigningSecret' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "SigningSecret",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'EndpointTable' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "EndpointTable",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'DeliveryHistory' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+          "jsonPointer": "/routes/0/slots/4/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "DeliveryHistory",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "skipped",
+        "reason": "unresolved-artifacts"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

@@ -1,0 +1,772 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/ceremony/signature",
+        "title": "Sign — env_8Bm7n3",
+        "definitions": [],
+        "registries": [
+          {
+            "url": "https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+            "version": "1.0.0"
+          }
+        ],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-signature-capture",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-signer-timeline",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-evidence-strip",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/ceremony/signature"
+      },
+      "source": "spike-v9://signature-ceremony/host-corrected/app-manifest"
+    },
+    "artifacts": {
+      "registries": [
+        {
+          "slot": "registries[0]",
+          "artifactKind": "registry",
+          "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+          "ref": {
+            "url": "https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+          "status": "loaded",
+          "document": {
+            "$formspecRegistry": "1.0",
+            "publisher": {
+              "name": "Formspec Cloud (host-authored, no MCP verb)"
+            },
+            "published": "2026-07-26T00:00:00Z",
+            "entries": [
+              {
+                "name": "x-cloud-signature-capture",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-signature-capture.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-signature-capture"
+                ]
+              },
+              {
+                "name": "x-signature-capture",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-signature-capture contributed by x-cloud-signature-capture.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-signer-timeline",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-signer-timeline.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-signer-timeline"
+                ]
+              },
+              {
+                "name": "x-signer-timeline",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-signer-timeline contributed by x-cloud-signer-timeline.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "x-cloud-evidence-strip",
+                "category": "module",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Formspec Cloud product module x-cloud-evidence-strip.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "contributes": [
+                  "x-ceremony-evidence"
+                ]
+              },
+              {
+                "name": "x-ceremony-evidence",
+                "category": "widget",
+                "version": "0.1.0",
+                "status": "stable",
+                "description": "Widget x-ceremony-evidence contributed by x-cloud-evidence-strip.",
+                "compatibility": {
+                  "formspecVersion": ">=1.0.0"
+                },
+                "widgetShape": {
+                  "tokenSlots": [
+                    {
+                      "name": "accent",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    },
+                    {
+                      "name": "surface",
+                      "acceptedTokenCategories": [
+                        "color"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "diagnostics": []
+        }
+      ],
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+          "ref": {
+            "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+            "version": "1.0.0"
+          },
+          "schemaId": "https://formspec.org/schemas/surface/0.1",
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "sign",
+            "routes": [
+              {
+                "id": "ceremony",
+                "path": "/sign/:envelopeId",
+                "slots": [
+                  {
+                    "id": "ceremonyChrome",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "Sign as Diane Park · co-signatory",
+                      "level": 1
+                    },
+                    "position": "top",
+                    "title": "Ceremony"
+                  },
+                  {
+                    "id": "attestation",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "text",
+                      "content": "I, Diane Park, sign this Vendor Onboarding Agreement on behalf of Acme Industrial Supplies and certify that the information herein is accurate and complete to the best of my knowledge."
+                    },
+                    "position": "main",
+                    "title": "Attestation"
+                  },
+                  {
+                    "id": "signatureCapture",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-signature-capture",
+                      "widgetName": "x-signature-capture",
+                      "config": {
+                        "modes": [
+                          "draw",
+                          "type",
+                          "upload"
+                        ],
+                        "commitment": "ed25519-client-side-hash",
+                        "definitionPin": "sha256:6d4a…ef91"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Sign with your name"
+                  },
+                  {
+                    "id": "evidenceStrip",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-evidence-strip",
+                      "widgetName": "x-ceremony-evidence",
+                      "config": {
+                        "fields": [
+                          "time",
+                          "ip",
+                          "identityAssurance"
+                        ],
+                        "dataSource": "x-spike-v9:host:ceremony-evidence"
+                      }
+                    },
+                    "position": "main",
+                    "title": "Evidence"
+                  },
+                  {
+                    "id": "documentSummary",
+                    "slotType": "static-content",
+                    "binding": {
+                      "kind": "heading",
+                      "content": "What you're signing",
+                      "level": 2
+                    },
+                    "position": "right",
+                    "title": "What you're signing"
+                  },
+                  {
+                    "id": "signerTimeline",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-signer-timeline",
+                      "widgetName": "x-signer-timeline",
+                      "config": {
+                        "dataSource": "x-spike-v9:workspace:envelopes/:envelopeId/signers",
+                        "routing": "sequential"
+                      }
+                    },
+                    "position": "right",
+                    "title": "Other signers"
+                  }
+                ],
+                "title": "Sign"
+              }
+            ],
+            "entry": "ceremony"
+          },
+          "identity": {
+            "id": "sign"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 2,
+      "loadedArtifacts": 2,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": true,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-signature-capture",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://signature-ceremony/host-corrected/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-signature-capture",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-signer-timeline",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://signature-ceremony/host-corrected/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-signer-timeline",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      },
+      {
+        "ref": {
+          "id": "x-cloud-evidence-strip",
+          "version": "0.1.0"
+        },
+        "status": "admitted",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v9://signature-ceremony/host-corrected/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-evidence-strip",
+            "version": "0.1.0"
+          }
+        },
+        "registryVersion": "0.1.0"
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-signature-capture",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+          "jsonPointer": "/routes/0/slots/2/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-signature-capture",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-ceremony-evidence",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+          "jsonPointer": "/routes/0/slots/3/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-evidence-strip",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "x-signer-timeline",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v9:surface:https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+          "jsonPointer": "/routes/0/slots/5/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/ceremony/signature/surfaces/sign",
+            "version": "1.0.0"
+          }
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-signer-timeline",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/3/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "ui-graph-policy.theme.assignments.widgetRef",
+        "name": "x-signature-capture",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "artifactKind": "hostEvidence",
+          "source": "spike-v9://signature-ceremony/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/0/widgetRef"
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-signature-capture",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/1/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      },
+      {
+        "site": "ui-graph-policy.theme.assignments.widgetRef",
+        "name": "x-ceremony-evidence",
+        "expectedCategory": "widget",
+        "status": "resolved",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "artifactKind": "hostEvidence",
+          "source": "spike-v9://signature-ceremony/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/1/widgetRef"
+        },
+        "registryCategory": "widget",
+        "entryVersion": "0.1.0",
+        "owningModules": [
+          {
+            "id": "x-cloud-evidence-strip",
+            "version": "0.1.0"
+          }
+        ],
+        "widgetTokenSlots": [
+          {
+            "name": "accent",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/0"
+            }
+          },
+          {
+            "name": "surface",
+            "acceptedTokenCategories": [
+              "color"
+            ],
+            "source": {
+              "artifactSlot": "registries[0]",
+              "artifactKind": "registry",
+              "source": "spike-v9:registry:https://formspec.cloud/apps/ceremony/signature/registries/product-modules",
+              "jsonPointer": "/entries/5/widgetShape/tokenSlots/1"
+            }
+          }
+        ]
+      }
+    ],
+    "diagnostics": [],
+    "summary": {
+      "modules": 3,
+      "admittedModules": 3,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 5,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 0,
+      "payloadFailures": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 3,
+      "loadedArtifacts": 3,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 2,
+      "errors": 2,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 0,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "schemaId": "https://formspec.org/schemas/bundleManifest/2.3",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "registries[0]",
+        "artifactKind": "registry",
+        "schemaId": "https://formspec.org/schemas/registry/v1.0/registry.json",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "schemaId": "https://formspec.org/schemas/surface/0.1",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v9://signature-ceremony/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "THEME-TOKEN-REF",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment requires loaded Theme token evidence.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "spike-v9://signature-ceremony/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/0/token"
+        },
+        "details": {
+          "moduleId": "x-cloud-signature-capture",
+          "widgetName": "x-signature-capture",
+          "slot": "accent",
+          "token": "color.accent",
+          "reason": "missing-theme-evidence"
+        }
+      },
+      {
+        "code": "THEME-TOKEN-REF",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "ui-graph-policy",
+        "message": "A Theme token assignment requires loaded Theme token evidence.",
+        "primarySource": {
+          "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+          "source": "spike-v9://signature-ceremony/ui-graph-policy",
+          "jsonPointer": "/theme/assignments/1/token"
+        },
+        "details": {
+          "moduleId": "x-cloud-evidence-strip",
+          "widgetName": "x-ceremony-evidence",
+          "slot": "surface",
+          "token": "color.surface",
+          "reason": "missing-theme-evidence"
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

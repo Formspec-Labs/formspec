@@ -1,0 +1,341 @@
+{
+  "mockup": "surfaces/form-edit.html",
+  "family": "editor-shell",
+  "route": "/forms/:id/edit",
+  "registryArm": "host-authored",
+  "declareRegistry": {
+    "ok": true,
+    "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules"
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "edit",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/form-edit",
+    "title": "Edit — 2026 Community Grant Application",
+    "definitions": [],
+    "registries": [
+      {
+        "url": "https://formspec.cloud/apps/console/form-edit/registries/product-modules",
+        "version": "1.0.0"
+      }
+    ],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-formspec-studio-canvas",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-spec-outline",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-inspector",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-lint-footer",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "editor",
+    "routes": [
+      {
+        "id": "edit",
+        "path": "/forms/:id/edit",
+        "slots": [
+          {
+            "id": "editorChrome",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "2026 Community Grant Application",
+              "level": 1
+            },
+            "position": "top",
+            "title": "Editing v1.0.4 (draft)"
+          },
+          {
+            "id": "lensTabs",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-spec-outline",
+              "widgetName": "LensTabs",
+              "config": {
+                "lenses": [
+                  "design",
+                  "logic",
+                  "theme",
+                  "spec"
+                ]
+              }
+            },
+            "position": "top",
+            "title": "Lenses"
+          },
+          {
+            "id": "specOutline",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-spec-outline",
+              "widgetName": "SpecOutline",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:forms/:id/draft-definition",
+                "groups": [
+                  "fields",
+                  "binds",
+                  "rules",
+                  "locales",
+                  "theme",
+                  "signature"
+                ],
+                "publishes": "x-spike-v9:selection:bind"
+              }
+            },
+            "position": "left",
+            "title": "Spec"
+          },
+          {
+            "id": "studioCanvas",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-formspec-studio-canvas",
+              "widgetName": "StudioCanvas",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:forms/:id/draft-definition",
+                "fullBleed": true,
+                "publishes": "x-spike-v9:selection:bind"
+              }
+            },
+            "position": "main",
+            "title": "Canvas"
+          },
+          {
+            "id": "inspector",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-inspector",
+              "widgetName": "BindInspector",
+              "config": {
+                "consumes": "x-spike-v9:selection:bind",
+                "sections": [
+                  "identity",
+                  "type",
+                  "validation",
+                  "fel-rule",
+                  "help-text-by-locale",
+                  "provenance"
+                ]
+              }
+            },
+            "position": "right",
+            "title": "Inspector"
+          },
+          {
+            "id": "lintFooter",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-lint-footer",
+              "widgetName": "LintFooter",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:forms/:id/lint",
+                "severities": [
+                  "error",
+                  "warning",
+                  "info"
+                ]
+              }
+            },
+            "position": "bottom",
+            "title": "Validation"
+          }
+        ],
+        "title": "Edit"
+      }
+    ],
+    "entry": "edit"
+  },
+  "registryDocument": {
+    "$formspecRegistry": "1.0",
+    "publisher": {
+      "name": "Formspec Cloud (host-authored, no MCP verb)"
+    },
+    "published": "2026-07-26T00:00:00Z",
+    "entries": [
+      {
+        "name": "x-formspec-studio-canvas",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-formspec-studio-canvas.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "StudioCanvas"
+        ]
+      },
+      {
+        "name": "StudioCanvas",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget StudioCanvas contributed by x-formspec-studio-canvas.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-spec-outline",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-spec-outline.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "LensTabs",
+          "SpecOutline"
+        ]
+      },
+      {
+        "name": "LensTabs",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget LensTabs contributed by x-cloud-spec-outline.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "SpecOutline",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget SpecOutline contributed by x-cloud-spec-outline.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-inspector",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-inspector.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "BindInspector"
+        ]
+      },
+      {
+        "name": "BindInspector",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget BindInspector contributed by x-cloud-inspector.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      },
+      {
+        "name": "x-cloud-lint-footer",
+        "category": "module",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Formspec Cloud product module x-cloud-lint-footer.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        },
+        "contributes": [
+          "LintFooter"
+        ]
+      },
+      {
+        "name": "LintFooter",
+        "category": "widget",
+        "version": "0.1.0",
+        "status": "stable",
+        "description": "Widget LintFooter contributed by x-cloud-lint-footer.",
+        "compatibility": {
+          "formspecVersion": ">=1.0.0"
+        }
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Form editor policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/form-edit/surfaces/editor",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "edit",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "editorChrome",
+      "slotType": "static-content",
+      "mockupRegion": "editor header — draft chip, \"Saved 4s ago · auto-save on\", preview/save/publish actions"
+    },
+    {
+      "slot": "lensTabs",
+      "slotType": "module-widget",
+      "mockupRegion": "lens tab bar (Design / Logic / Theme / Spec)"
+    },
+    {
+      "slot": "specOutline",
+      "slotType": "module-widget",
+      "mockupRegion": "spec outline tree — 18 fields, 2 binds, 7 rules, 3 locales"
+    },
+    {
+      "slot": "studioCanvas",
+      "slotType": "module-widget",
+      "mockupRegion": "full-bleed Studio canvas — our chrome wraps, their canvas owns"
+    },
+    {
+      "slot": "inspector",
+      "slotType": "module-widget",
+      "mockupRegion": "inspector — $budget.indirect identity/type/validation/FEL rule/locale help/AI provenance"
+    },
+    {
+      "slot": "lintFooter",
+      "slotType": "module-widget",
+      "mockupRegion": "lint footer — spec valid, 2/2 binds verifiable, L201 locale key missing, A104 reading grade"
+    }
+  ]
+}

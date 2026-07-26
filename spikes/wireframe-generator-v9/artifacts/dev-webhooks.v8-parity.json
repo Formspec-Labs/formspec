@@ -1,0 +1,228 @@
+{
+  "mockup": "surfaces/dev-webhooks.html",
+  "family": "developer-crud",
+  "route": "/dev/webhooks",
+  "registryArm": "v8-parity",
+  "declareRegistry": {
+    "skipped": "v8-parity arm does not declare a Registry"
+  },
+  "routeClassOutcomes": [
+    {
+      "routeId": "webhooks",
+      "wanted": "operation",
+      "verbOk": true,
+      "persisted": false
+    }
+  ],
+  "surfaceExport": {
+    "publishable": true,
+    "diagnostics": []
+  },
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/dev-webhooks",
+    "title": "Webhooks",
+    "definitions": [],
+    "registries": [],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-dev-nav",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-secret-panel",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-endpoint-table",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-delivery-history",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "webhooks",
+    "routes": [
+      {
+        "id": "webhooks",
+        "path": "/dev/webhooks",
+        "slots": [
+          {
+            "id": "devNav",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-dev-nav",
+              "widgetName": "DevSectionNav",
+              "config": {
+                "sections": [
+                  "keys",
+                  "webhooks",
+                  "sandbox",
+                  "docs",
+                  "embed",
+                  "imports",
+                  "connectors",
+                  "workflow-links"
+                ],
+                "counts": {
+                  "keys": 7,
+                  "webhooks": 4
+                }
+              }
+            },
+            "position": "top",
+            "title": "Developer"
+          },
+          {
+            "id": "header",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "text",
+              "content": "Subscribe to lifecycle events: response submitted, anchor ready, anchor stalled, envelope completed, signer declined. Every delivery is signed and idempotent; failures retry with exponential back-off."
+            },
+            "position": "top",
+            "title": "Webhooks"
+          },
+          {
+            "id": "signingSecret",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-secret-panel",
+              "widgetName": "SigningSecret",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:webhook-secret",
+                "sensitivity": "x-spike-v9:secret",
+                "actions": [
+                  "reveal",
+                  "rotate"
+                ],
+                "rotationGrace": "24h"
+              }
+            },
+            "position": "main",
+            "title": "Workspace signing secret"
+          },
+          {
+            "id": "endpoints",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-endpoint-table",
+              "widgetName": "EndpointTable",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:webhook-endpoints",
+                "columns": [
+                  "url",
+                  "events",
+                  "success24h",
+                  "lastDelivery",
+                  "status"
+                ],
+                "rowActions": [
+                  "pause",
+                  "edit",
+                  "delete",
+                  "test"
+                ],
+                "stateCounts": [
+                  "active",
+                  "paused",
+                  "disabled"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Endpoints"
+          },
+          {
+            "id": "deliveries",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-delivery-history",
+              "widgetName": "DeliveryHistory",
+              "config": {
+                "dataSource": "x-spike-v9:workspace:webhook-deliveries",
+                "columns": [
+                  "time",
+                  "event",
+                  "receipt",
+                  "http",
+                  "latency",
+                  "status"
+                ],
+                "rowActions": [
+                  "replay",
+                  "view-raw-payload"
+                ],
+                "bulkActions": [
+                  "replay-all-failed"
+                ]
+              }
+            },
+            "position": "main",
+            "title": "Recent deliveries"
+          }
+        ],
+        "title": "Webhooks"
+      }
+    ],
+    "entry": "webhooks"
+  },
+  "registryDocument": null,
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Webhooks policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/dev-webhooks/surfaces/webhooks",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "webhooks",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "devNav",
+      "slotType": "module-widget",
+      "mockupRegion": "dev section nav with counts"
+    },
+    {
+      "slot": "header",
+      "slotType": "static-content",
+      "mockupRegion": "header explainer + test-event / add-endpoint actions"
+    },
+    {
+      "slot": "signingSecret",
+      "slotType": "module-widget",
+      "mockupRegion": "masked signing secret with reveal/rotate and the HMAC header contract"
+    },
+    {
+      "slot": "endpoints",
+      "slotType": "module-widget",
+      "mockupRegion": "endpoint table with state counts and per-row menu"
+    },
+    {
+      "slot": "deliveries",
+      "slotType": "module-widget",
+      "mockupRegion": "delivery history with retry counters, dead-letter rows, replay actions, pagination footer"
+    }
+  ]
+}
