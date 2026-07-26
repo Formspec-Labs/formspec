@@ -26,6 +26,24 @@ Claim 1 is recorded in `reports/rollup.json` as **narrowed**, not closed:
 `narrowedSince.claim1-theme-authority` names what now catches it, and
 `stillUndetectedWhen` names the three shapes that still pass.
 
+## Route-class vocabulary correction — why claims 2 and 3 did not move
+
+The corrected vocabulary (ADR 0159 §The rendering ring) flipped `operation` from
+admitting tenant chrome theming to refusing it, and added `attestation` and
+`authentication`, both refusing. Claim 2 classifies its route `operation` and
+claim 3 classifies both of its routes `verification`, so the flip is the kind of
+change that could have perturbed their verdicts. It did not, and the reason is
+worth stating rather than rediscovering: **`THEME-ROUTE-CLASS` keys on a
+`theme.assignments[]` entry in a UI Graph Policy, and neither case authors one.**
+Claim 2 measures whether the graph can say which data is sensitive; claim 3
+measures whether verification executes client-side. Neither supplies host
+evidence, so route class is inert for both, whatever it says.
+
+Both classifications also stay truthful under the corrected vocabulary — claim
+2's `/forms/{formId}/edit` is operator-facing authoring UI, claim 3's `/verify`
+is an independent check of an issued artifact — so nothing was re-classified to
+keep a verdict. Reports regenerate byte-identical after the change.
+
 ## Divergence from v8's harness
 
 v8 stubbed both schema validators as `() => ({ ok: true })`, so its
