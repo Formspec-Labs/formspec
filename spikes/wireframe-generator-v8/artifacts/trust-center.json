@@ -1,0 +1,174 @@
+{
+  "mockup": "surfaces/trust-center.html",
+  "family": "content-compliance",
+  "route": "/trust",
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/trust/center",
+    "title": "Trust Center",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-public-nav",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-profile-cards",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-capability-matrix",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "trust",
+    "entry": "trust",
+    "routes": [
+      {
+        "id": "trust",
+        "path": "/trust",
+        "title": "Trust",
+        "slots": [
+          {
+            "id": "publicNav",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-public-nav",
+              "widgetName": "PublicNav",
+              "config": {
+                "links": [
+                  "deployments",
+                  "data-handling",
+                  "audits",
+                  "contact"
+                ]
+              }
+            },
+            "title": "Trust"
+          },
+          {
+            "id": "hero",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "Five deployment profiles. The proof surfaces are the same on every one.",
+              "level": 1
+            },
+            "title": "Trust at Formspec Cloud"
+          },
+          {
+            "id": "profileCards",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-profile-cards",
+              "widgetName": "DeploymentProfiles",
+              "config": {
+                "dataSource": "x-spike-v8:catalog:deployment-profiles",
+                "taxonomy": [
+                  "shared",
+                  "regulated",
+                  "dedicated",
+                  "self-hosted",
+                  "air-gapped"
+                ],
+                "closed": true
+              }
+            },
+            "title": "Deployment profiles"
+          },
+          {
+            "id": "capabilityMatrix",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-capability-matrix",
+              "widgetName": "CapabilityMatrix",
+              "config": {
+                "dataSource": "x-spike-v8:catalog:capability-claims",
+                "rows": 14,
+                "columns": [
+                  "shared",
+                  "regulated",
+                  "dedicated",
+                  "self-hosted",
+                  "air-gapped"
+                ],
+                "cellTaxonomy": [
+                  "yes",
+                  "no",
+                  "qualified",
+                  "not-applicable"
+                ]
+              }
+            },
+            "title": "Capability matrix"
+          },
+          {
+            "id": "freshness",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "text",
+              "content": "Last updated 2026-05-15 · Updates follow our changelog policy."
+            },
+            "title": "Freshness"
+          }
+        ]
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Trust center policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/trust/center/surfaces/trust",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "trust",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "publicNav",
+      "slotType": "module-widget",
+      "mockupRegion": "public nav (unauthenticated)"
+    },
+    {
+      "slot": "hero",
+      "slotType": "static-content",
+      "mockupRegion": "positioning hero + explanatory paragraph"
+    },
+    {
+      "slot": "profileCards",
+      "slotType": "module-widget",
+      "mockupRegion": "five profile cards, closed taxonomy (\"there is no Custom or Enterprise Plus\")"
+    },
+    {
+      "slot": "capabilityMatrix",
+      "slotType": "module-widget",
+      "mockupRegion": "14x5 capability matrix — anchoring, BAA, FedRAMP, SOC 2, SSO, support-access mode"
+    },
+    {
+      "slot": "freshness",
+      "slotType": "static-content",
+      "mockupRegion": "last-updated line + security policy / DPA / status / contact links"
+    }
+  ]
+}

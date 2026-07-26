@@ -1,0 +1,831 @@
+{
+  "artifactResolutionReport": {
+    "ok": true,
+    "manifest": {
+      "slot": "app",
+      "artifactKind": "appManifest",
+      "status": "loaded",
+      "document": {
+        "$formspecBundle": "2.0",
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/onboarding",
+        "title": "Get started",
+        "definitions": [],
+        "surfaces": [
+          {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        ],
+        "modules": [
+          {
+            "id": "x-cloud-step-rail",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-tier-cards",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-region-picker",
+            "version": "0.1.0"
+          },
+          {
+            "id": "x-cloud-form-genesis",
+            "version": "0.1.0"
+          }
+        ],
+        "sessions": []
+      },
+      "identity": {
+        "version": "1.0.0",
+        "id": "https://formspec.cloud/apps/console/onboarding"
+      },
+      "source": "spike-v8://onboarding/app-manifest"
+    },
+    "artifacts": {
+      "surfaces": [
+        {
+          "slot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          },
+          "status": "loaded",
+          "document": {
+            "$formspecSurface": "0.1",
+            "id": "wizard",
+            "entry": "organization",
+            "routes": [
+              {
+                "id": "organization",
+                "path": "/onboarding/organization",
+                "title": "Tell us about your organization",
+                "slots": [
+                  {
+                    "id": "stepRail",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-step-rail",
+                      "widgetName": "StepRail",
+                      "config": {
+                        "steps": [
+                          "account",
+                          "organization",
+                          "tier",
+                          "region",
+                          "first-form",
+                          "publish"
+                        ],
+                        "current": "organization",
+                        "estimate": "7 minutes"
+                      }
+                    },
+                    "title": "Steps"
+                  },
+                  {
+                    "id": "orgForm",
+                    "slotType": "definition-form",
+                    "binding": {
+                      "definitionRef": "https://formspec.cloud/definitions/onboarding-org",
+                      "version": "1.0.0"
+                    },
+                    "title": "Organization"
+                  }
+                ]
+              },
+              {
+                "id": "tier",
+                "path": "/onboarding/tier",
+                "title": "Pick a deployment tier",
+                "slots": [
+                  {
+                    "id": "tierCards",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-tier-cards",
+                      "widgetName": "TierComparison",
+                      "config": {
+                        "dataSource": "x-spike-v8:catalog:deployment-tiers",
+                        "tiers": [
+                          "shared",
+                          "regulated",
+                          "dedicated",
+                          "air-gap"
+                        ],
+                        "recommended": "regulated"
+                      }
+                    },
+                    "title": "Deployment tier"
+                  }
+                ]
+              },
+              {
+                "id": "region",
+                "path": "/onboarding/region",
+                "title": "Where should your data live?",
+                "slots": [
+                  {
+                    "id": "regionPicker",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-region-picker",
+                      "widgetName": "RegionPicker",
+                      "config": {
+                        "dataSource": "x-spike-v8:catalog:regions",
+                        "irreversibleAfter": "first-publish"
+                      }
+                    },
+                    "title": "Region"
+                  }
+                ]
+              },
+              {
+                "id": "first-form",
+                "path": "/onboarding/first-form",
+                "title": "Create your first form",
+                "slots": [
+                  {
+                    "id": "genesis",
+                    "slotType": "module-widget",
+                    "binding": {
+                      "moduleId": "x-cloud-form-genesis",
+                      "widgetName": "FormGenesis",
+                      "config": {
+                        "paths": [
+                          "template",
+                          "import",
+                          "prompt-to-form",
+                          "blank"
+                        ],
+                        "dataSource": "x-spike-v8:catalog:templates"
+                      }
+                    },
+                    "title": "First form"
+                  }
+                ]
+              }
+            ]
+          },
+          "identity": {
+            "id": "wizard"
+          },
+          "diagnostics": []
+        }
+      ]
+    },
+    "diagnostics": [],
+    "summary": {
+      "declaredRefs": 1,
+      "loadedArtifacts": 1,
+      "missingArtifacts": 0,
+      "unsupportedRefs": 0,
+      "discriminatorMismatches": 0,
+      "versionMismatches": 0,
+      "identityMismatches": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "artifact-resolution",
+      "status": "completed"
+    }
+  },
+  "moduleResolutionReport": {
+    "ok": false,
+    "modules": [
+      {
+        "ref": {
+          "id": "x-cloud-step-rail",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-step-rail",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-step-rail' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v8://onboarding/app-manifest",
+              "jsonPointer": "/modules/0",
+              "module": {
+                "id": "x-cloud-step-rail",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-tier-cards",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-tier-cards",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-tier-cards' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v8://onboarding/app-manifest",
+              "jsonPointer": "/modules/1",
+              "module": {
+                "id": "x-cloud-tier-cards",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-region-picker",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-region-picker",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-region-picker' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v8://onboarding/app-manifest",
+              "jsonPointer": "/modules/2",
+              "module": {
+                "id": "x-cloud-region-picker",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": {
+          "id": "x-cloud-form-genesis",
+          "version": "0.1.0"
+        },
+        "status": "unresolved",
+        "source": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-form-genesis",
+            "version": "0.1.0"
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "MODULE-UNRESOLVED",
+            "severity": "error",
+            "phase": "module-resolution",
+            "origin": "module-resolver",
+            "message": "App module 'x-cloud-form-genesis' is absent from the Registry module index.",
+            "primarySource": {
+              "artifactSlot": "app",
+              "artifactKind": "appManifest",
+              "source": "spike-v8://onboarding/app-manifest",
+              "jsonPointer": "/modules/3",
+              "module": {
+                "id": "x-cloud-form-genesis",
+                "version": "0.1.0"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "contributions": [
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "StepRail",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "TierComparison",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/1/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "RegionPicker",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/2/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        }
+      },
+      {
+        "site": "surface.module-widget.binding.widgetName",
+        "name": "FormGenesis",
+        "expectedCategory": "widget",
+        "status": "missing",
+        "payloadStatus": "not-run",
+        "source": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/3/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-step-rail' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/0",
+          "module": {
+            "id": "x-cloud-step-rail",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-tier-cards' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/1",
+          "module": {
+            "id": "x-cloud-tier-cards",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-region-picker' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/2",
+          "module": {
+            "id": "x-cloud-region-picker",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-form-genesis' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "artifactKind": "appManifest",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/3",
+          "module": {
+            "id": "x-cloud-form-genesis",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'StepRail' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "StepRail",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'TierComparison' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/1/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "TierComparison",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'RegionPicker' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/2/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "RegionPicker",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'FormGenesis' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/3/slots/0/binding/widgetName",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "FormGenesis",
+          "expectedCategory": "widget"
+        }
+      }
+    ],
+    "summary": {
+      "modules": 4,
+      "admittedModules": 0,
+      "deniedModules": 0,
+      "documents": 0,
+      "contributions": 4,
+      "unresolvedDependencies": 0,
+      "unresolvedContributions": 4,
+      "payloadFailures": 0,
+      "errors": 8,
+      "warnings": 0,
+      "infos": 0
+    },
+    "phase": {
+      "phase": "module-resolution",
+      "status": "completed"
+    }
+  },
+  "report": {
+    "ok": false,
+    "summary": {
+      "artifacts": 2,
+      "loadedArtifacts": 2,
+      "schemaFailures": 0,
+      "unvalidatedArtifacts": 0,
+      "graphErrors": 1,
+      "errors": 9,
+      "warnings": 0,
+      "infos": 0,
+      "importedDiagnostics": 8,
+      "unsupportedFeatures": 0,
+      "skippedPhases": 0
+    },
+    "schemaResults": [
+      {
+        "slot": "app",
+        "artifactKind": "appManifest",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      },
+      {
+        "slot": "surfaces[0]",
+        "artifactKind": "surface",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "evidenceResults": [
+      {
+        "evidenceSlot": "hostEvidence.uiGraphPolicies[0]",
+        "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+        "source": "spike-v8://onboarding/ui-graph-policy",
+        "status": "completed",
+        "ok": true,
+        "diagnostics": []
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-step-rail' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/0",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-tier-cards' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/1",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-region-picker' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/2",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-UNRESOLVED",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "App module 'x-cloud-form-genesis' is absent from the Registry module index.",
+        "primarySource": {
+          "artifactSlot": "app",
+          "source": "spike-v8://onboarding/app-manifest",
+          "jsonPointer": "/modules/3",
+          "artifactKind": "appManifest"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'StepRail' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/0/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "StepRail",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'TierComparison' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/1/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "TierComparison",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'RegionPicker' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/2/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "RegionPicker",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "MODULE-CONTRIBUTION-MISSING",
+        "severity": "error",
+        "phase": "module-resolution",
+        "origin": "module-resolver",
+        "message": "Contribution 'FormGenesis' is absent from the Registry entry index.",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/3/slots/0/binding/widgetName",
+          "artifactKind": "surface",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "details": {
+          "contribution": "FormGenesis",
+          "expectedCategory": "widget"
+        }
+      },
+      {
+        "code": "APP-GRAPH-SURFACE-DEFINITION-SLOT",
+        "severity": "error",
+        "phase": "cross-artifact",
+        "origin": "app-graph-validator",
+        "message": "Surface route 'organization' definition-form slot 'orgForm' binding definitionRef 'https://formspec.cloud/definitions/onboarding-org' is not declared in App Manifest definitions[].",
+        "primarySource": {
+          "artifactSlot": "surfaces[0]",
+          "artifactKind": "surface",
+          "source": "spike-v8:surface:https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "jsonPointer": "/routes/0/slots/1/binding/definitionRef",
+          "ref": {
+            "url": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+            "version": "1.0.0"
+          }
+        },
+        "relatedSources": [
+          {
+            "artifactSlot": "app",
+            "artifactKind": "appManifest",
+            "source": "spike-v8://onboarding/app-manifest",
+            "jsonPointer": "/definitions"
+          }
+        ],
+        "details": {
+          "reason": "definition-not-declared",
+          "surfaceUrl": "https://formspec.cloud/apps/console/onboarding/surfaces/wizard",
+          "routeId": "organization",
+          "slotId": "orgForm",
+          "definitionRef": "https://formspec.cloud/definitions/onboarding-org",
+          "declaredDefinitionUrls": []
+        }
+      }
+    ],
+    "phases": [
+      {
+        "phase": "artifact-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "schema",
+        "status": "completed"
+      },
+      {
+        "phase": "module-resolution",
+        "status": "completed"
+      },
+      {
+        "phase": "surface-local",
+        "status": "not-run"
+      },
+      {
+        "phase": "cross-artifact",
+        "status": "completed"
+      },
+      {
+        "phase": "authorization-boundary",
+        "status": "not-run"
+      },
+      {
+        "phase": "unsupported",
+        "status": "not-run"
+      }
+    ]
+  }
+}

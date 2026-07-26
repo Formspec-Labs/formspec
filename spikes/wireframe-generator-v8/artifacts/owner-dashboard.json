@@ -1,0 +1,238 @@
+{
+  "mockup": "index.html (surfaces/owner-dashboard.html redirects here)",
+  "family": "dashboard",
+  "route": "/o/:org/w/:ws",
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/dashboard",
+    "title": "Overview",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/dashboard/surfaces/overview",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-stat-tiles",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-proof-distribution",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-activity-feed",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-forms-collection",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-status-banner",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "overview",
+    "entry": "overview",
+    "routes": [
+      {
+        "id": "overview",
+        "path": "/o/:org/w/:ws",
+        "title": "Overview",
+        "slots": [
+          {
+            "id": "greeting",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "Good afternoon, Maria.",
+              "level": 1
+            },
+            "title": "Overview"
+          },
+          {
+            "id": "anchorBanner",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-status-banner",
+              "widgetName": "HostStatusBanner",
+              "config": {
+                "dataSource": "x-spike-v8:host-status:anchoring",
+                "visibleWhen": "x-spike-v8:TODO:degraded"
+              }
+            },
+            "title": "Anchoring status"
+          },
+          {
+            "id": "kpiTiles",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-stat-tiles",
+              "widgetName": "KpiTiles",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:metrics",
+                "tiles": [
+                  "responses-30d",
+                  "proof-ready",
+                  "awaiting-signature",
+                  "anchor-stalled"
+                ]
+              }
+            },
+            "title": "Key metrics"
+          },
+          {
+            "id": "proofHealth",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-proof-distribution",
+              "widgetName": "ProofHealth",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:proof-distribution",
+                "categories": [
+                  "proof_ready",
+                  "proof_pending",
+                  "anchor_stalled",
+                  "accepted"
+                ],
+                "window": "7d"
+              }
+            },
+            "title": "Proof health"
+          },
+          {
+            "id": "formsTable",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-forms-collection",
+              "widgetName": "FormsCollection",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:forms",
+                "columns": [
+                  "form",
+                  "responses7d",
+                  "proofDistribution",
+                  "lastResponse",
+                  "deployment",
+                  "state"
+                ]
+              }
+            },
+            "title": "Forms"
+          },
+          {
+            "id": "activity",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-activity-feed",
+              "widgetName": "ActivityFeed",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:activity",
+                "kinds": [
+                  "receipt",
+                  "envelope",
+                  "anchor-retry",
+                  "version",
+                  "signer",
+                  "webhook"
+                ]
+              }
+            },
+            "title": "Activity"
+          },
+          {
+            "id": "posture",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "Posture",
+              "level": 2
+            },
+            "title": "Posture"
+          },
+          {
+            "id": "recentReceipts",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-activity-feed",
+              "widgetName": "ReceiptList",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:receipts",
+                "limit": 5
+              }
+            },
+            "title": "Recent receipts"
+          }
+        ]
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Owner dashboard policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/dashboard/surfaces/overview",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "overview",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "greeting",
+      "slotType": "static-content",
+      "mockupRegion": "greeting + tenancy strip (grants-program · us-west-2 · Regulated · 12 408 responses/30d)"
+    },
+    {
+      "slot": "anchorBanner",
+      "slotType": "module-widget",
+      "mockupRegion": "degraded-anchor banner — \"4 anchor retries are still scheduled\""
+    },
+    {
+      "slot": "kpiTiles",
+      "slotType": "module-widget",
+      "mockupRegion": "four KPI tiles with deltas and sub-labels"
+    },
+    {
+      "slot": "proofHealth",
+      "slotType": "module-widget",
+      "mockupRegion": "proof-health distribution, last 7 days"
+    },
+    {
+      "slot": "formsTable",
+      "slotType": "module-widget",
+      "mockupRegion": "forms table with proof distribution per row"
+    },
+    {
+      "slot": "activity",
+      "slotType": "module-widget",
+      "mockupRegion": "activity feed (receipts, envelopes, anchor retries, versions, signers, webhooks)"
+    },
+    {
+      "slot": "posture",
+      "slotType": "static-content",
+      "mockupRegion": "posture panel — deployment, region, definition pinning, AI policy, retention, tier roadmap"
+    },
+    {
+      "slot": "recentReceipts",
+      "slotType": "module-widget",
+      "mockupRegion": "recent receipts list with deep links"
+    }
+  ]
+}

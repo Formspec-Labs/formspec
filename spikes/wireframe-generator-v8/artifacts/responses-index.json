@@ -1,0 +1,173 @@
+{
+  "mockup": "surfaces/responses-index.html",
+  "family": "collection-index",
+  "route": "/forms/:id/responses",
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/responses",
+    "title": "Responses",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-stat-tiles",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-filter-bar",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-response-table",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "responses",
+    "entry": "responses",
+    "routes": [
+      {
+        "id": "responses",
+        "path": "/forms/:id/responses",
+        "title": "Responses",
+        "slots": [
+          {
+            "id": "proofStats",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-stat-tiles",
+              "widgetName": "ProofStatStrip",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:forms/:id/response-metrics",
+                "categories": [
+                  "proof_ready",
+                  "awaiting_signature",
+                  "proof_pending",
+                  "anchor_stalled"
+                ]
+              }
+            },
+            "title": "Responses"
+          },
+          {
+            "id": "filters",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-filter-bar",
+              "widgetName": "ResponseFilters",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:forms/:id/responses",
+                "facets": [
+                  "version",
+                  "submitted",
+                  "proof",
+                  "signature"
+                ],
+                "publishes": "x-spike-v8:channel:response-query"
+              }
+            },
+            "title": "Filters"
+          },
+          {
+            "id": "viewControls",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-response-table",
+              "widgetName": "ViewControls",
+              "config": {
+                "columns": [
+                  "respondent",
+                  "submitted",
+                  "proof",
+                  "signature",
+                  "totalBudget",
+                  "version",
+                  "hash",
+                  "ein",
+                  "source",
+                  "reviewer",
+                  "timeOnForm"
+                ],
+                "viewState": "x-spike-v8:user-scoped:saved-views",
+                "actions": [
+                  "export"
+                ]
+              }
+            },
+            "title": "Columns & views"
+          },
+          {
+            "id": "table",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-response-table",
+              "widgetName": "ResponseTable",
+              "config": {
+                "consumes": "x-spike-v8:channel:response-query",
+                "dataSource": "x-spike-v8:workspace:forms/:id/responses",
+                "pagination": {
+                  "pageSize": 12,
+                  "total": 4218
+                },
+                "rowActions": [
+                  "open-response",
+                  "open-receipt"
+                ]
+              }
+            },
+            "title": "Responses"
+          }
+        ]
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Responses index policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/responses/surfaces/responses",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "responses",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "proofStats",
+      "slotType": "module-widget",
+      "mockupRegion": "proof-state stat strip — 4 218 total split four ways with a refreshed-at stamp"
+    },
+    {
+      "slot": "filters",
+      "slotType": "module-widget",
+      "mockupRegion": "filter chips with removal + add-filter"
+    },
+    {
+      "slot": "viewControls",
+      "slotType": "module-widget",
+      "mockupRegion": "column configuration, saved views, export"
+    },
+    {
+      "slot": "table",
+      "slotType": "module-widget",
+      "mockupRegion": "4 218-row table with proof state, signature progress, computed total, version, hash"
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "mockup": "surfaces/forms-index v3.html",
+  "family": "collection-index",
+  "route": "/o/:org/w/:ws/forms",
+  "manifest": {
+    "$formspecBundle": "2.0",
+    "version": "1.0.0",
+    "id": "https://formspec.cloud/apps/console/forms-index",
+    "title": "Forms",
+    "definitions": [],
+    "surfaces": [
+      {
+        "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+        "version": "1.0.0"
+      }
+    ],
+    "modules": [
+      {
+        "id": "x-cloud-forms-collection",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-filter-bar",
+        "version": "0.1.0"
+      },
+      {
+        "id": "x-cloud-bulk-action-bar",
+        "version": "0.1.0"
+      }
+    ],
+    "sessions": []
+  },
+  "surface": {
+    "$formspecSurface": "0.1",
+    "id": "forms",
+    "entry": "index",
+    "routes": [
+      {
+        "id": "index",
+        "path": "/o/:org/w/:ws/forms",
+        "title": "Forms",
+        "slots": [
+          {
+            "id": "headerStats",
+            "slotType": "static-content",
+            "binding": {
+              "kind": "heading",
+              "content": "Forms",
+              "level": 1
+            },
+            "title": "Forms"
+          },
+          {
+            "id": "stateTabs",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-filter-bar",
+              "widgetName": "StateTabs",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:forms",
+                "facets": [
+                  {
+                    "id": "state",
+                    "values": [
+                      "all",
+                      "live",
+                      "paused",
+                      "draft",
+                      "closed",
+                      "archived"
+                    ]
+                  }
+                ]
+              }
+            },
+            "title": "State"
+          },
+          {
+            "id": "filterBar",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-filter-bar",
+              "widgetName": "FormsFilterBar",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:forms",
+                "facets": [
+                  {
+                    "id": "deployment",
+                    "values": [
+                      "shared",
+                      "regulated",
+                      "dedicated",
+                      "air-gap"
+                    ]
+                  },
+                  {
+                    "id": "owner",
+                    "source": "x-spike-v8:workspace:members"
+                  },
+                  {
+                    "id": "program",
+                    "source": "x-spike-v8:workspace:programs"
+                  }
+                ],
+                "search": true,
+                "groupBy": [
+                  "program",
+                  "recent-activity"
+                ]
+              }
+            },
+            "title": "Filters"
+          },
+          {
+            "id": "bulkActions",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-bulk-action-bar",
+              "widgetName": "BulkActionBar",
+              "config": {
+                "actions": [
+                  "pause",
+                  "duplicate",
+                  "move-to-program",
+                  "add-tag",
+                  "export",
+                  "archive"
+                ],
+                "subject": "x-spike-v8:selection:forms"
+              }
+            },
+            "title": "Bulk actions"
+          },
+          {
+            "id": "formsList",
+            "slotType": "module-widget",
+            "binding": {
+              "moduleId": "x-cloud-forms-collection",
+              "widgetName": "FormsCollection",
+              "config": {
+                "dataSource": "x-spike-v8:workspace:forms",
+                "grouping": "program",
+                "pinned": true,
+                "columns": [
+                  "title",
+                  "state",
+                  "window",
+                  "owner",
+                  "activeVersion",
+                  "draftVersion",
+                  "deployment",
+                  "definitionId",
+                  "tags",
+                  "proofDistribution",
+                  "completion",
+                  "newDelta",
+                  "lastActivity"
+                ],
+                "rowActions": [
+                  "copy-link",
+                  "preview",
+                  "more"
+                ],
+                "emptyState": "x-spike-v8:state:no-forms"
+              }
+            },
+            "title": "Forms"
+          }
+        ]
+      }
+    ]
+  },
+  "uiGraphPolicy": {
+    "$formspecUiGraphPolicy": "0.1",
+    "version": "1.0.0",
+    "title": "Forms index policy",
+    "targetSurface": {
+      "url": "https://formspec.cloud/apps/console/forms-index/surfaces/forms",
+      "version": "1.0.0"
+    },
+    "routePolicies": [
+      {
+        "routeId": "index",
+        "a11y": {
+          "landmark": "main",
+          "keyboardNavigation": true
+        }
+      }
+    ]
+  },
+  "slotMockupRegions": [
+    {
+      "slot": "headerStats",
+      "slotType": "static-content",
+      "mockupRegion": "header stat strip — 14 forms · 9 live · 1 closes this week · 26 824 responses"
+    },
+    {
+      "slot": "stateTabs",
+      "slotType": "module-widget",
+      "mockupRegion": "state tab bar with per-state counts"
+    },
+    {
+      "slot": "filterBar",
+      "slotType": "module-widget",
+      "mockupRegion": "search + removable filter chips + group-by/sort controls"
+    },
+    {
+      "slot": "bulkActions",
+      "slotType": "module-widget",
+      "mockupRegion": "bulk-selection action bar (\"2 selected across 1 program\")"
+    },
+    {
+      "slot": "formsList",
+      "slotType": "module-widget",
+      "mockupRegion": "pinned + program-grouped form rows with proof bars, completion meters, row actions"
+    }
+  ]
+}
