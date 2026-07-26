@@ -82,6 +82,54 @@ def test_surface_fail_closed_fixtures_emit_expected_lint_codes(fixture: str, exp
     assert expected in codes(doc, registries=[STRICT_REGISTRY])
 
 
+def _route_class_enum() -> list[str]:
+    return SURFACE_SCHEMA["$defs"]["Route"]["properties"]["routeClass"]["enum"]
+
+
+def test_surface_route_class_enum_admits_every_declared_value() -> None:
+    """Every value the closed vocabulary declares is authorable.
+
+    Reads the enum rather than restating it, so adding or renaming a member
+    extends this test without editing it.
+    """
+    enum = _route_class_enum()
+    assert enum, "routeClass must declare a closed vocabulary"
+
+    for route_class in enum:
+        doc = load_fixture("route-class-out-of-vocabulary.surface.json")
+        doc["routes"][0]["routeClass"] = route_class
+        surface_validator().validate(doc)
+
+
+def test_surface_route_class_outside_the_vocabulary_is_rejected() -> None:
+    """The enum is the only gate on the value itself.
+
+    Downstream, an unrecognised `routeClass` reads as *unclassified* — the same
+    as absence — so `THEME-ROUTE-CLASS` does not fire and a proof route loses
+    its theming refusal. That is correct layering only while the schema refuses
+    the value, which is what this pins. See `ui-graph-policy-spec.md` §5.7.
+    """
+    doc = load_fixture("route-class-out-of-vocabulary.surface.json")
+    authored = doc["routes"][0]["routeClass"]
+    assert authored not in _route_class_enum(), (
+        "fixture must stay out of vocabulary to test anything"
+    )
+
+    errors = sorted(surface_validator().iter_errors(doc), key=lambda error: list(error.path))
+    assert errors, "an out-of-vocabulary routeClass must fail schema validation"
+    assert any(list(error.path)[:3] == ["routes", 0, "routeClass"] for error in errors)
+
+
+def test_surface_route_class_has_no_schema_default() -> None:
+    """Absence means *unclassified*, a state distinct from any declared value.
+
+    A `default` would collapse "said nothing" into "said something", which is
+    the one change that cannot be walked back once documents are in the wild.
+    """
+    assert "default" not in SURFACE_SCHEMA["$defs"]["Route"]["properties"]["routeClass"]
+    assert "routeClass" not in SURFACE_SCHEMA["$defs"]["Route"].get("required", [])
+
+
 def test_surface_app_manifest_ref_uses_url_identity_not_fixture_path() -> None:
     manifest = load_fixture("app-manifest.surface-ref.json")
 

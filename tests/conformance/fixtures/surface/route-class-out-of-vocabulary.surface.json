@@ -1,0 +1,30 @@
+{
+  "$formspecSurface": "0.1",
+  "id": "surfaceContractRouteClassOutOfVocabulary",
+  "description": "Schema-INVALID: routeClass carries a value outside the closed vocabulary. Only the enum stops it — every class-keyed rule reads an unknown value as unclassified, so a graph that skipped schema validation would silently lose the theme-authority refusal.",
+  "entry": "certificate",
+  "routes": [
+    {
+      "id": "certificate",
+      "path": "/c/{receiptId}",
+      "routeClass": "Proof",
+      "params": [
+        {
+          "name": "receiptId",
+          "type": "string"
+        }
+      ],
+      "slots": [
+        {
+          "id": "certificateBody",
+          "slotType": "static-content",
+          "binding": {
+            "kind": "heading",
+            "content": "Certificate of completion",
+            "level": 1
+          }
+        }
+      ]
+    }
+  ]
+}
