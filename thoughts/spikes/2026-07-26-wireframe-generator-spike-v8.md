@@ -172,7 +172,7 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 
 ### MCP verb surface (2 findings, 95 diagnostics)
 
-- **18 · no Registry admission path** — form-edit · `declareModule` · new. The product's own designer cannot be composed into the product's own app graph through the product's own authoring MCP.
+- **18 · no Registry admission path** — form-edit · `declareModule` · new. The product's own designer cannot be composed into the product's own app graph through the product's own authoring MCP. **Split post-spike: admission path landed, entry content did not — see §Follow-up.**
 - **21 · no `declareDefinition`** — onboarding · `addDefinitionStub` · → F14. The one native design fit in the corpus fails on one missing verb. **Cheapest promotion in this catalog.**
 
 ### Data source (2 findings, 46 sites)
@@ -231,6 +231,24 @@ The persona wall makes findings valid as *authoring-experience* evidence, and it
 - **Everything else held.** The five-member slot-type union and the four-member `static-content` kind enum are as the persona found them, so findings 7-9, 12-14, 17, 22, 28, 31, 34, and 35 name real absences. The published MCP has no Registry-admission verb and no `declareDefinition`, confirming 18 and 21 exactly.
 
 Nothing in this section was fed back into the persona record: [`reports/findings.json`](../../spikes/wireframe-generator-v8/reports/findings.json) stays as authored, because a corrected record would no longer evidence what the published interface communicates to a competent reader of it. The corrections belong here, in the promotion argument.
+
+## Follow-up
+
+**Finding 18 splits in two. The admission gap is closed; an entry-content gap is open, and it owns the 93 diagnostics.**
+
+Wireframes-MCP now has `declareRegistry` and `declareDefinition`, so finding 21 closes outright and finding 18's *path* closes: a bundle can declare a Registry sibling, `declareModule` against it, and the module resolves `admitted` with its widget contribution `resolved`. Proven end to end at [`formspec-studio/packages/formspec-mcp-wireframes/tests/registry-admission-journey.test.ts`](../../../formspec-studio/packages/formspec-mcp-wireframes/tests/registry-admission-journey.test.ts), which drives this spike's harness path and pairs each verb against a control run without it.
+
+**What that does not do is clear this spike's 93 `MODULE-*` diagnostics.** Admission is per module and needs a matching `category: "module"` Registry entry naming its contributions. §MCP Verb Usage Tracker records **44 `declareModule` calls, 39 distinct modules** across twelve exemplars, and no verb authors an entry for any of them. The proof test's Registry document is hand-authored and served by the host loader; re-running the spike corpus against the new verbs would move 93 diagnostics only if someone first wrote 39 module entries plus a widget entry per contribution, by hand, outside the MCP. **Recorded here rather than absorbed into the closure claim: the residual is a distinct finding, not a rounding error on finding 18.**
+
+**37 · no Registry entry-content verb** — cross-cutting · MCP verb surface · new (post-spike). A `declareRegistryEntry`-shaped verb would have to author, per [`schemas/registry.schema.json`](../../schemas/registry.schema.json) `$defs.RegistryEntry`:
+
+- **Every entry:** `name` (`^x-…` globally unique), `category`, `version` (exact semver), `status`, `description`, `compatibility.formspecVersion`. Six required fields with no defaults — the widest required set of any authoring verb in the MCP.
+- **A `module` entry:** `contributes[]`, listing the entry `name` of each contribution. This is the edge module resolution walks.
+- **A `widget` contribution:** `widgetShape`, whose `widgetName` is the *only* mapping from a Surface `module-widget` binding to the entry — a binding names `{moduleId, widgetName}` and `widgetName` matches nothing else in the document. Plus `props` (JSON Schema for `binding.config` / Theme `widgetConfig`), and optionally `childrenPolicy`, `fallback`, `tokenSlots[]`.
+
+**The design fork the verb has to settle, and the reason this is not a trivial wrapper:** the other declaration verbs push a `SiblingRef` onto the manifest and stop, because the referenced document is authored upstream and served by the host. Entry content has no such upstream when the MCP is the author — so either the MCP mints a bundle-local Registry document it also owns (new artifact ownership, new write surface, publication and versioning questions), or entry authoring stays a host/publisher concern and the MCP's job ends at `declareRegistry`. **Settle that before writing the verb.** Every other v8 promotion candidate is a facade wrapper over a closed contract; this one is not.
+
+**One upstream schema gap surfaced while proving the path.** `widgetShape.widgetName` is load-bearing in [`packages/formspec-app-graph/src/module-resolver.ts`](../../packages/formspec-app-graph/src/module-resolver.ts) (`widgetContributionNameFor`) and normative in [`specs/app-graph/module-resolver-spec.md`](../../specs/app-graph/module-resolver-spec.md) §Contribution use sites, but `registry.schema.json` declared only `props`, `childrenPolicy`, `fallback`, `tokenSlots` — an external implementer authoring a Registry from the published schema could not learn that the field exists, let alone that admission depends on it. Now declared. This is the same class of gap as finding 18 one layer down: the contract was closed in prose and open in the schema.
 
 ## Verification
 
