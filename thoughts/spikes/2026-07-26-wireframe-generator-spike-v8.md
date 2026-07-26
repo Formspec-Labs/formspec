@@ -117,7 +117,7 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 | MCP verb surface | 2 | **94 of 97 diagnostics** (93 from finding 18) | 18, 21 | Registry admission (`declareRegistry`) and `declareDefinition` |
 | Data source | 2 | **53 workaround binding strings, 38 distinct** | 2, 29 | An MCP verb that authors the ratified Data Sources artifact, a `workspace:` scope value, and a `sensitivity` class — see §Post-wall corrections |
 | Read-only display | 1 | 1 experience-unit misuse + every read-mostly panel | 24 | `data-view` slot: data source + layout intent, no Experience, no Definition |
-| Theming authority | 1 | 5 proof-class routes | 6 | `themeAuthority: tenant \| platform \| frozen` on RoutePolicy |
+| Theming authority | 1 | 5 proof-class routes | 6 | ~~`themeAuthority: tenant \| platform \| frozen` on RoutePolicy~~ — **rejected on three grounds; `routeClass` on Surface shipped instead, then was falsified. See §Post-wall corrections** |
 | a11y profile shape | 1 | 12 identical declarations | 33 | `data-table`, `multi-pane`, `command-surface`, `no-script` profiles |
 | Cross-slot contract | 1 | 6 master-detail surfaces | 19 | Named `publishes` / `consumes` channels validated at graph time |
 
@@ -144,7 +144,7 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 
 ### State and status (5)
 
-- **4 · no route lifecycle state** — cross-cutting · `addRoute` · new. Nine preview and three disabled routes ship with a visibility commitment enforced only by review.
+- **4 · no route lifecycle state** — cross-cutting · `addRoute` · new. Nine preview and three disabled routes ship with a visibility commitment enforced only by review. **Examined against `routeClass` and deliberately kept orthogonal — still open. See §Post-wall corrections.**
 - **10 · no slot state variants** — forms-index · `bindSlot` · new. The mockup ships a designed empty state; loading, partial, and error have nowhere to live.
 - **15 · no runtime status region** — owner-dashboard · `bindSlot` · new. The degraded-anchoring banner is load-bearing trust copy that renders conditionally on host state the graph cannot reference.
 - **32 · no user-scoped view state** — responses-index · `bindSlot` · new. Column sets on a response table decide what a CSV export contains: an evidence-scope decision wearing a UI-preference costume.
@@ -166,7 +166,7 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 
 ### Capability gating (3)
 
-- **5 · no route access posture** — cross-cutting · `declareUiGraphPolicy` · → F10. Anonymous reachability of the verifier is the positioning bet; step-up on destructive admin actions is the governance claim; neither is on the artifact that describes routes.
+- **5 · no route access posture** — cross-cutting · `declareUiGraphPolicy` · → F10. Anonymous reachability of the verifier is the positioning bet; step-up on destructive admin actions is the governance claim; neither is on the artifact that describes routes. **Examined against `routeClass` and deliberately kept orthogonal — still open. See §Post-wall corrections.**
 - **23 · no identity-assurance precondition** — signature-ceremony · `declareUiGraphPolicy` · → F10. Four surfaces need step-up; one missing predicate.
 - **27 · no sensitivity annotation** — dev-webhooks · `bindSlot` · new. A signing secret whose sensitivity is invisible to the graph leaks into whatever consumes the graph next — renderer, analytics, or AI context projection.
 
@@ -183,7 +183,7 @@ Eleven families. **Primary** counts distinct findings; **sites** counts where th
 ### Single-finding families (4)
 
 - **24 · no read-only data-view primitive** — admin-billing · `bindSlot` · → F4. Read-mostly panels dominate the admin, trust, detail, and receipt surfaces; every one currently claims to be an Experience unit, corrupting Experience for the flows that mean it.
-- **6 · no theme authority** — cross-cutting · `declareUiGraphPolicy` · new. Tenants may theme form chrome and must not theme receipt, certificate, verifier, or ceremony. The rule is structural and the graph cannot state it.
+- **6 · no theme authority** — cross-cutting · `declareUiGraphPolicy` · new. Tenants may theme form chrome and must not theme receipt, certificate, verifier, or ceremony. The rule is structural and the graph cannot state it. **Closed post-wall on a different artifact than proposed, and the closing vocabulary was then falsified — see §Post-wall corrections.**
 - **33 · a11y profiles under-cover the corpus** — cross-cutting · `declareUiGraphPolicy` · → F6. Twelve surfaces, one a11y shape, against a 4 218-row table, six-tab navigation, focus-trapped drawers, a command palette, and a receipt that must render with JS off.
 - **19 · no cross-slot selection channel** — form-edit · `bindSlot` · → F5. The relationship the user perceives as central (canvas selects, inspector edits) is the one the graph cannot see.
 
@@ -228,6 +228,17 @@ The persona wall makes findings valid as *authoring-experience* evidence, and it
 
 - **Finding 2 is a facade gap, not a contract gap.** [`formspec/schemas/data-sources.schema.json`](../../schemas/data-sources.schema.json) already ratifies a `DataSource` shape with `kind`, `owner`, `scope`, `availability` (down to `level: "slot"` with `surfaceRef`/`routeRef`/`slotId`), `runtime` (delivery, cache, failure mode, provenance), and an optional payload `schema`; App Manifest carries `dataSources[]` siblings; ADR 0153 lists Data Sources as **Closed**. What is missing is (a) any verb on Wireframes-MCP that authors it — zero occurrences of `dataSource` in the MCP or studio-core source — and (b) validator/loader wiring, already tracked as `fs-r2od` (availability cross-artifact checks) and `fs-9d5e` (runtime loader). **This strengthens the promotion argument rather than weakening it:** the verb is a wrapper over a closed artifact, not a new contract.
 - **Two thirds of finding 2's ask is already modeled; one third is not.** `runtime.cache.staleAfter` covers most of finding 29's freshness ask. `scope` is `session | route | definition | resource` — no workspace-shaped value, so v7's F3 scope-family point stands unchanged. There is **no sensitivity/classification field anywhere on `DataSource`**, so finding 27's ask is genuinely net-new surface.
+- **Finding 6's proposed shape is rejected, and its "the graph cannot state it" is now false.** The tracker and the finding both propose `themeAuthority: tenant | platform | frozen` **on RoutePolicy**. Rejected on three independent grounds, and none of them is cost:
+  1. **Wrong artifact.** UI Graph Policy is host evidence, and in a white-label deployment the host is the tenant. Putting the constraint in the tenant's own document lets the constrained party relax it. A constraint the constrained party can edit is not a constraint. ([`../../../thoughts/experiments/2026-07-26-e4-trust-redteam.md`](../../../thoughts/experiments/2026-07-26-e4-trust-redteam.md) §Claim 1 "Disagreement".)
+  2. **No corpus support for three values.** The product states one axis, tenant-vs-not. `styles/receipt.css:49` and `form-settings.html:219` distinguish nothing resembling `platform` from `frozen`. (E4 §Corrections 2.)
+  3. **A bare rendering permission is homeless.** [`../../../thoughts/experiments/2026-07-26-e1-rejection-list-audit.md`](../../../thoughts/experiments/2026-07-26-e1-rejection-list-audit.md) §3.2 proved every one of ADR 0159's eight ports rejects *"this surface's appearance is not the tenant's to change."* A port can pin a rule over a *class*; it cannot pin a permission on a named route in someone else's document. (E4 §Corrections 3.)
+
+  **What shipped instead:** `routeClass` on Surface `$defs/Route` — a closed classification the platform ships and the tenant consumes — with theme authority *derived* from it, enforced as `THEME-ROUTE-CLASS`. So finding 6's *"the graph cannot state it"* no longer holds.
+
+  **And the shipped vocabulary was then falsified.** [`../../../thoughts/experiments/2026-07-26-route-class-closure-test.md`](../../../thoughts/experiments/2026-07-26-route-class-closure-test.md) ran it over 35 product routes of this spike's own corpus: **28 truthful / 7 residual / 0 unassignable**, every residual in `operation`, which admits tenant theming — so the residual bucket is **fail-open**, and a login page plus four MSA-referenced procurement pages ship certified restylable. The corrected vocabulary — `operation` refuses, plus new `attestation` and `authentication` values — is recorded in [`../../../thoughts/adr/0159-product-substrate-recognition.md`](../../../thoughts/adr/0159-product-substrate-recognition.md) §The rendering ring and has **not** yet propagated to the schema or specs. **Read the ADR, not the schema, for the current decision.**
+
+- **Findings 4 and 5 were examined against route class and deliberately kept orthogonal.** E4 first claimed route class collapses findings 4, 5, and 6 into one axis; it closes 6 only. Finding 5 (route access posture) is orthogonal — this corpus populates three of the four cross-product cells, the platform-fixed class spans both access values, and `partials/shell.js` renders `verifier`, `trust-center`, and `status` inside the authenticated sidebar with identical chrome, so access is a floor rather than a partition. Finding 4 (route lifecycle) is orthogonal — any class sits at any lifecycle stage, and E1 §3b places the vocabulary in LIFECYCLE (`draft|stable|deprecated|retired`) carried as a *separate* Surface field. Both remain open on their own terms. `surface-spec.md` §3 states the orthogonality normatively: `routeClass` MUST NOT absorb either.
+
 - **Everything else held.** The five-member slot-type union and the four-member `static-content` kind enum are as the persona found them, so findings 7-9, 12-14, 17, 22, 28, 31, 34, and 35 name real absences. The published MCP has no Registry-admission verb and no `declareDefinition`, confirming 18 and 21 exactly.
 
 Nothing in this section was fed back into the persona record: [`reports/findings.json`](../../spikes/wireframe-generator-v8/reports/findings.json) stays as authored, because a corrected record would no longer evidence what the published interface communicates to a competent reader of it. The corrections belong here, in the promotion argument.
