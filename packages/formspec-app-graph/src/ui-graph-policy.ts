@@ -30,10 +30,17 @@ type HiddenDefinitionRef = NonNullable<
 type ThemeTokenAssignment = NonNullable<NonNullable<UiGraphPolicyDocument['theme']>['assignments']>[number];
 type ModuleResolutionWidgetTokenSlot = NonNullable<ModuleResolutionContribution['widgetTokenSlots']>[number];
 
+/**
+ * The Surface route-class vocabulary, taken from the schema-generated type
+ * rather than restated. A new or renamed `routeClass` enum member changes this
+ * union, which breaks `ROUTE_CLASS_THEME_AUTHORITY` at compile time.
+ */
+type RouteClass = NonNullable<SurfaceDocument['routes'][number]['routeClass']>;
+
 interface SurfaceRoute {
   id: string;
   index: number;
-  routeClass?: string;
+  routeClass?: RouteClass;
   slots: SurfaceRouteSlot[];
   slotsById: Map<string, SurfaceRouteSlot>;
 }
@@ -44,6 +51,7 @@ interface SurfaceRouteSlot {
   slotType: string;
   definitionRef?: string;
   moduleWidget?: { moduleId: string; widgetName: string };
+  embedRouteRef?: string;
 }
 
 type RouteA11yPolicy = NonNullable<UiGraphPolicyDocument['routePolicies'][number]['a11y']>;
@@ -171,6 +179,7 @@ function surfaceRoutes(surface: LoadedSurfaceHandle): SurfaceRoute[] {
         slotType: slot.slotType,
         definitionRef: definitionRefFromSlot(slot),
         moduleWidget: moduleWidgetFromSlot(slot),
+        embedRouteRef: embedRouteRefFromSlot(slot),
       };
       slots.push(slotView);
       slotsById.set(slot.id, slotView);
@@ -179,8 +188,17 @@ function surfaceRoutes(surface: LoadedSurfaceHandle): SurfaceRoute[] {
   });
 }
 
-function routeClassOf(route: { routeClass?: unknown }): string | undefined {
-  return typeof route.routeClass === 'string' ? route.routeClass : undefined;
+/**
+ * An authored `routeClass` that is not in the vocabulary is treated as absent:
+ * unclassified, so no class-keyed rule fires. The closed enum in
+ * `surface.schema.json` is the gate for the value itself, and a graph whose
+ * Surface failed schema validation never reaches cross-artifact checks.
+ */
+function routeClassOf(route: { routeClass?: unknown }): RouteClass | undefined {
+  const routeClass = route.routeClass;
+  return typeof routeClass === 'string' && routeClass in ROUTE_CLASS_THEME_AUTHORITY
+    ? routeClass as RouteClass
+    : undefined;
 }
 
 function definitionRefFromSlot(slot: { binding?: unknown }): string | undefined {
@@ -199,6 +217,14 @@ function moduleWidgetFromSlot(
   const { moduleId, widgetName } = binding as { moduleId?: unknown; widgetName?: unknown };
   if (typeof moduleId !== 'string' || typeof widgetName !== 'string') return undefined;
   return { moduleId, widgetName };
+}
+
+function embedRouteRefFromSlot(slot: { slotType?: unknown; binding?: unknown }): string | undefined {
+  if (slot.slotType !== 'embed-route') return undefined;
+  const binding = slot.binding;
+  if (!binding || typeof binding !== 'object') return undefined;
+  const routeRef = (binding as { routeRef?: unknown }).routeRef;
+  return typeof routeRef === 'string' ? routeRef : undefined;
 }
 
 function policyEvidences(context: AppGraphContext): UiGraphPolicyEvidence[] {
@@ -679,23 +705,90 @@ function validateThemeWidgetRefs(
 }
 
 /**
- * Route classes whose rendered appearance is not the tenant's to restyle:
- * an artifact the platform issued, the act of signing one, and the independent
- * check of one. `intake` admits tenant chrome theming; `operation` carries no
- * substrate trust claim; an unclassified route has stated nothing, so no rule
- * keyed on a class fires against it.
+ * Whether each route class admits tenant chrome theming. `refuses` names the
+ * routes whose rendered appearance is not the tenant's to restyle: an artifact
+ * the platform issued, the act of signing one, and the independent check of one.
+ * `admits` covers the classes that carry no such reliance — a respondent capture
+ * and operator-facing product UI.
+ *
+ * Exhaustive over the schema-generated `RouteClass` union by construction: a new
+ * or renamed `routeClass` enum member fails to compile HERE, at the decision
+ * site, instead of silently defaulting to admitted. There is no `default` arm,
+ * deliberately.
  *
  * `surface-spec.md` §3 Route Class; `ui-graph-policy-spec.md` §5.7.
  */
-export const TENANT_THEMING_REFUSING_ROUTE_CLASSES: ReadonlySet<string> = new Set([
-  'proof',
-  'ceremony',
-  'verification',
-]);
+export const ROUTE_CLASS_THEME_AUTHORITY = {
+  intake: 'admits',
+  proof: 'refuses',
+  ceremony: 'refuses',
+  verification: 'refuses',
+  operation: 'admits',
+} as const satisfies Record<RouteClass, 'admits' | 'refuses'>;
+
+/**
+ * The `refuses` half of {@link ROUTE_CLASS_THEME_AUTHORITY}, derived rather than
+ * restated. An unclassified route has stated nothing, so no rule keyed on a
+ * class fires against it.
+ */
+export const TENANT_THEMING_REFUSING_ROUTE_CLASSES: ReadonlySet<RouteClass> = new Set(
+  (Object.entries(ROUTE_CLASS_THEME_AUTHORITY) as [RouteClass, 'admits' | 'refuses'][])
+    .filter(([, authority]) => authority === 'refuses')
+    .map(([routeClass]) => routeClass),
+);
+
+interface RenderedWidgetBinding {
+  route: SurfaceRoute;
+  routeSlot: SurfaceRouteSlot;
+  /** Route ids from the class-bearing route to `route`; length 1 when direct. */
+  embedChain: string[];
+}
+
+/**
+ * Every `module-widget` slot `root` renders, including those reached through
+ * `embed-route` slots. `embed-route` renders another route of this Surface
+ * INSIDE the host route (`surface-spec.md` §6.2), so an embedded route's slots
+ * paint on the host's surface — composition carries the host's protection down
+ * every embed edge, and an embedded route's own class cannot lower it.
+ *
+ * BFS over embed edges with a visited set, the same traversal shape as the E606
+ * route-graph walk in `crates/formspec-lint/src/pass_surface.rs`. `embed-route`
+ * cycles are authorable — `routeRef` is constrained to a route id, not to an
+ * acyclic graph — so the visited set is a termination requirement, not an
+ * optimization. A `routeRef` resolving to no route is skipped; lint E607 owns
+ * dangling refs.
+ */
+function widgetBindingsRenderedBy(
+  root: SurfaceRoute,
+  routesById: ReadonlyMap<string, SurfaceRoute>,
+): RenderedWidgetBinding[] {
+  const bindings: RenderedWidgetBinding[] = [];
+  const visited = new Set<string>([root.id]);
+  const frontier: { route: SurfaceRoute; embedChain: string[] }[] = [
+    { route: root, embedChain: [root.id] },
+  ];
+
+  for (let cursor = 0; cursor < frontier.length; cursor += 1) {
+    const { route, embedChain } = frontier[cursor];
+    for (const routeSlot of route.slots) {
+      if (routeSlot.moduleWidget) {
+        bindings.push({ route, routeSlot, embedChain });
+        continue;
+      }
+      const embedded = routeSlot.embedRouteRef === undefined
+        ? undefined
+        : routesById.get(routeSlot.embedRouteRef);
+      if (!embedded || visited.has(embedded.id)) continue;
+      visited.add(embedded.id);
+      frontier.push({ route: embedded, embedChain: [...embedChain, embedded.id] });
+    }
+  }
+  return bindings;
+}
 
 /**
  * Theme authority. A tenant Theme token assignment MUST NOT land on a widget
- * bound to a proof-bearing route.
+ * rendered by a proof-bearing route.
  *
  * The check is deliberately widget-grained rather than route-grained, because
  * `ThemeTokenAssignment` is `{widgetRef, slot, token}` and carries no route:
@@ -703,6 +796,11 @@ export const TENANT_THEMING_REFUSING_ROUTE_CLASSES: ReadonlySet<string> = new Se
  * assignment invalid, since the assignment would in fact repaint it on the
  * proof route. Narrowing this needs route-scoped assignments — a UI Graph
  * Policy schema revision, not a validator change (§5.7 "Grain").
+ *
+ * "Rendered by" is transitive over `embed-route`, not just the protected
+ * route's own `slots[]`: an unclassified route embedded in a `proof` route
+ * paints on the proof surface, so a bare `slots[]` scan let one schema-valid
+ * composition hop restore the whole violation (§5.7 "Composition").
  *
  * Reads only the Surface document and the policy: no ModuleResolver, no Theme
  * token evidence. An assignment that repaints a proof surface is refused
@@ -713,39 +811,57 @@ function validateThemeRouteClass(
   surface: LoadedSurfaceHandle,
   assignments: readonly IndexedThemeTokenAssignment[],
 ): AppGraphDiagnostic[] {
-  const protectedRoutes = surfaceRoutes(surface)
+  const routes = surfaceRoutes(surface);
+  const protectedRoutes = routes
     .filter((route) => route.routeClass !== undefined
       && TENANT_THEMING_REFUSING_ROUTE_CLASSES.has(route.routeClass));
   if (protectedRoutes.length === 0) return [];
 
+  const routesById = new Map(routes.map((route) => [route.id, route]));
+  const protectedBindings = protectedRoutes.flatMap((protectedRoute) =>
+    widgetBindingsRenderedBy(protectedRoute, routesById)
+      .map((binding) => ({ protectedRoute, ...binding })));
+
   return assignments.flatMap((assignment) => {
     const { widgetRef, slot, token } = assignment.assignment;
-    const bindings = protectedRoutes.flatMap((route) =>
-      route.slots
-        .filter((routeSlot) =>
-          routeSlot.moduleWidget?.moduleId === widgetRef.moduleId
-          && routeSlot.moduleWidget?.widgetName === widgetRef.widgetName)
-        .map((routeSlot) => ({ route, routeSlot }))
-    );
+    const bindings = protectedBindings.filter((binding) =>
+      binding.routeSlot.moduleWidget?.moduleId === widgetRef.moduleId
+      && binding.routeSlot.moduleWidget?.widgetName === widgetRef.widgetName);
     if (bindings.length === 0) return [];
 
     const [first] = bindings;
     return [diagnostic(
       'THEME-ROUTE-CLASS',
-      'A Theme token assignment targets a widget bound on a Surface route whose routeClass refuses tenant theming.',
+      'A Theme token assignment targets a widget rendered by a Surface route whose routeClass refuses tenant theming.',
       evidenceSource(evidence, `/theme/assignments/${assignment.index}/widgetRef`),
-      bindings.map(({ route, routeSlot }) =>
-        surfaceSource(surface, `/routes/${route.index}/slots/${routeSlot.index}/binding`)),
+      distinctSources(bindings.map(({ route, routeSlot }) =>
+        surfaceSource(surface, `/routes/${route.index}/slots/${routeSlot.index}/binding`))),
       {
         moduleId: widgetRef.moduleId,
         widgetName: widgetRef.widgetName,
         slot,
         token,
-        routeId: first.route.id,
-        routeClass: first.route.routeClass,
+        routeId: first.protectedRoute.id,
+        routeClass: first.protectedRoute.routeClass,
+        embedChain: first.embedChain,
         reason: 'tenant-theming-refused-by-route-class',
       },
     )];
+  });
+}
+
+/**
+ * One pointer per distinct slot binding. Two protected routes can embed the
+ * same route, so the same binding is reachable twice; the diagnostic names each
+ * binding once.
+ */
+function distinctSources(sources: AppGraphSourcePointer[]): AppGraphSourcePointer[] {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    const key = `${source.artifactSlot}#${source.jsonPointer}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 

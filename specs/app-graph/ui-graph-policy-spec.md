@@ -490,26 +490,79 @@ which the platform ships and the tenant consumes:
 [`surface-spec.md`](../surface/surface-spec.md) §3 Route Class.
 
 **Rule.** A `theme.assignments[]` entry whose `widgetRef` matches a
-`module-widget` slot binding on a target-Surface route with `routeClass` in
-`{proof, ceremony, verification}` is invalid, and MUST be reported as
-`THEME-ROUTE-CLASS`.
+`module-widget` slot binding *rendered by* a target-Surface route with
+`routeClass` in `{proof, ceremony, verification}` is invalid, and MUST be
+reported as `THEME-ROUTE-CLASS`. "Rendered by" is defined under Composition
+below: it is transitive over `embed-route`, not just the route's own `slots[]`.
 
 The three refusing classes are exactly the surfaces whose rendered appearance a
 third party relies on: an issued artifact, the act of signing one, and the
 independent check of one. `intake` admits tenant chrome theming; `operation`
 carries no substrate trust claim; an unclassified route has stated nothing, so
-no rule keyed on a class can fire against it.
+no rule keyed on a class can fire against it. A `routeClass` value outside the
+closed vocabulary is likewise *unclassified* — the enum in
+[`surface.schema.json`](../../schemas/surface.schema.json) is the only gate on
+the value itself, and a Surface that failed schema validation never reaches
+cross-artifact checks.
+
+**Composition.** `embed-route` renders another route of the same Surface INSIDE
+the host route ([`surface-spec.md`](../surface/surface-spec.md) §6.2), so the
+embedded route's slots paint on the host's surface. A protected route's theme
+authority therefore reaches every `module-widget` slot it renders through
+`embed-route`, transitively, at any depth. Reading only `routes[i].slots[]`
+would let one schema-valid hop restore the entire violation: a `proof` route
+whose sole slot embeds an unclassified route that binds the certificate widget
+is a repainted certificate.
+
+*Does class inherit through the embed?* No — and that is the point. The embedded
+route's own `routeClass` is unchanged by being embedded; what propagates is the
+host's protection, downward along embed edges only. Three consequences, all
+intended:
+
+- An unclassified route embedded in a `proof` route is protected **while
+  embedded**. Reached directly it states nothing, so nothing about it is
+  refused *by its own class* — but because assignments are widget-scoped (see
+  Grain), any widget it binds is refused everywhere regardless.
+- An embedded route's own class is a **floor on its protection, never a ceiling
+  on its host's**. Declaring `intake` one hop below a `proof` route does not buy
+  back the repaint. Protection is a property of the rendering context, not a
+  permission the embedded document can waive.
+- Protection does **not** flow upward. A `proof` route embedded inside an
+  unclassified operator screen does not make the surrounding chrome
+  proof-bearing; the host's own widgets stay themeable.
+
+The traversal is a breadth-first walk over `embed-route` edges with a visited
+set, the same shape as the E606 route-graph walk. `embed-route` cycles are
+authorable — `routeRef` is constrained to a route id, not to an acyclic graph —
+so cycle termination is a requirement of this check, not an optimisation. A
+`routeRef` resolving to no route is skipped; lint E607 owns dangling refs.
 
 **Grain, and a deliberate over-approximation.** `ThemeTokenAssignment` is
 `{widgetRef, slot, token}` — it is scoped to a *widget*, not to a route, so it
 applies wherever that widget appears. The check is therefore "is this widget
-bound on any protected route", not "is this assignment on a protected route". A
-widget bound on both an `intake` route and a `proof` route makes the assignment
-invalid. That is the safe direction and it is intended: the assignment would in
-fact repaint the widget on the proof route. An author who needs the widget
-themed in one place and fixed in another declares two widget contributions.
-Narrowing this requires route-scoped assignments, which is a UI Graph Policy
-schema revision, not a validator change.
+rendered by any protected route", not "is this assignment on a protected route".
+A widget bound on both an `intake` route and a `proof` route makes the
+assignment invalid. That is the safe direction and it is intended: the
+assignment would in fact repaint the widget on the proof route. An author who
+needs the widget themed in one place and fixed in another declares two widget
+contributions. Narrowing this requires route-scoped assignments, which is a UI
+Graph Policy schema revision, not a validator change.
+
+**Where the check still under-approximates.** Over-approximation is the safe
+direction on the *widget* axis; it is not a property of the check as a whole.
+On the *composition* axis the check under-approximated until `embed-route` was
+resolved transitively, and it remains bounded by what the Surface document
+states. Two paths stay open, both by construction rather than oversight:
+
+1. **Cross-Surface composition.** The walk is Surface-local, because
+   `embed-route` is Surface-local. A host that mounts one Surface's route inside
+   another Surface's chrome composes outside anything either document records.
+2. **Widgets that render a protected artifact without sitting on a protected
+   route.** A widget on an `intake` route that renders a receipt is a repainted
+   proof surface, and no route classification names it. Closing this needs a
+   claim at the widget or artifact level, not at the route level.
+
+Neither is expressible in Surface v0.1, so neither is a validator change.
 
 **Independence from §5.6.** This check reads only the loaded Surface document
 and the policy's assignments. It does not require `ModuleResolutionReport`,
@@ -519,10 +572,15 @@ surface is refused whether or not its token resolves. One assignment may
 therefore carry both a `THEME-TOKEN-*` diagnostic and `THEME-ROUTE-CLASS`.
 
 Diagnostic shape: `primarySource` is the policy's
-`/theme/assignments/{index}/widgetRef`; `relatedSources` names every protected
-Surface slot binding that put the widget there. `details` carries `moduleId`,
-`widgetName`, `slot`, `token`, `routeId`, `routeClass`, and
-`reason: "tenant-theming-refused-by-route-class"`.
+`/theme/assignments/{index}/widgetRef`; `relatedSources` names each distinct
+Surface slot binding that put the widget there — which, under composition, is a
+slot on the *embedded* route rather than on the class-bearing one. `details`
+carries `moduleId`, `widgetName`, `slot`, `token`, `routeId`, `routeClass`,
+`embedChain`, and `reason: "tenant-theming-refused-by-route-class"`. `routeId`
+and `routeClass` name the protected route — the reason for the refusal —
+while `embedChain` is the route-id path from that route to the route whose slot
+binds the widget, so the two are readable together. `embedChain` has length 1
+for a direct binding.
 
 ## 6. Diagnostic Import
 

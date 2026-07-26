@@ -215,6 +215,49 @@
           }
         ]
       }
+    },
+    "surface-embedded-proof-composition": {
+      "slot": "surfaces[0]",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "schemaId": "https://formspec.org/schemas/surface/0.1",
+      "source": "memory://surface/embedded-proof",
+      "ref": { "url": "https://example.gov/apps/intake/surfaces/embedded-proof", "version": "1.0.0" },
+      "document": {
+        "$formspecSurface": "0.1",
+        "id": "embedded-proof",
+        "entry": "certificate",
+        "routes": [
+          {
+            "id": "certificate",
+            "path": "/c/{receiptId}",
+            "routeClass": "proof",
+            "slots": [
+              {
+                "id": "body-embed",
+                "slotType": "embed-route",
+                "binding": { "routeRef": "certificate-body" }
+              }
+            ]
+          },
+          {
+            "id": "certificate-body",
+            "path": "/c-body",
+            "slots": [
+              {
+                "id": "panel",
+                "slotType": "module-widget",
+                "binding": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" }
+              },
+              {
+                "id": "back-embed",
+                "slotType": "embed-route",
+                "binding": { "routeRef": "certificate" }
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "policies": {
@@ -731,6 +774,25 @@
         "version": "1.0.0",
         "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/mixed" },
         "routePolicies": [{ "routeId": "apply" }, { "routeId": "certificate" }],
+        "theme": {
+          "assignments": [
+            {
+              "widgetRef": { "moduleId": "x-reviewer", "widgetName": "x-review-panel" },
+              "slot": "accent",
+              "token": "color.accent"
+            }
+          ]
+        }
+      }
+    },
+    "theme-on-embedded-proof-composition": {
+      "schemaId": "https://formspec.org/schemas/uiGraphPolicy/0.1",
+      "source": "host://policy/theme-on-embedded-proof-composition",
+      "document": {
+        "$formspecUiGraphPolicy": "0.1",
+        "version": "1.0.0",
+        "targetSurface": { "url": "https://example.gov/apps/intake/surfaces/embedded-proof" },
+        "routePolicies": [{ "routeId": "certificate" }, { "routeId": "certificate-body" }],
         "theme": {
           "assignments": [
             {
@@ -2764,6 +2826,7 @@
               "token": "color.accent",
               "routeId": "certificate",
               "routeClass": "proof",
+              "embedChain": ["certificate"],
               "reason": "tenant-theming-refused-by-route-class"
             }
           }
@@ -2887,6 +2950,67 @@
               "token": "color.accent",
               "routeId": "certificate",
               "routeClass": "proof",
+              "embedChain": ["certificate"],
+              "reason": "tenant-theming-refused-by-route-class"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "theme-assignment-through-embed-route-composition",
+      "description": "A Theme token assignment is refused when its widget is bound only on a route the proof route renders through an embed-route slot; the cyclic back-embed terminates.",
+      "request": {
+        "manifest": "manifest",
+        "artifacts": {
+          "surfaces": ["surface-embedded-proof-composition"],
+          "theme": ["theme-default"]
+        },
+        "hostEvidence": {
+          "uiGraphPolicies": ["theme-on-embedded-proof-composition"]
+        },
+        "moduleResolution": "resolved-theme-widget"
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "THEME-ROUTE-CLASS",
+            "primarySource": {
+              "artifactSlot": "hostEvidence.uiGraphPolicies[0]",
+              "source": "host://policy/theme-on-embedded-proof-composition",
+              "jsonPointer": "/theme/assignments/0/widgetRef"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "surfaces[0]",
+                "artifactKind": "surface",
+                "source": "memory://surface/embedded-proof",
+                "ref": { "url": "https://example.gov/apps/intake/surfaces/embedded-proof", "version": "1.0.0" },
+                "jsonPointer": "/routes/1/slots/0/binding"
+              }
+            ],
+            "details": {
+              "moduleId": "x-reviewer",
+              "widgetName": "x-review-panel",
+              "slot": "accent",
+              "token": "color.accent",
+              "routeId": "certificate",
+              "routeClass": "proof",
+              "embedChain": ["certificate", "certificate-body"],
               "reason": "tenant-theming-refused-by-route-class"
             }
           }

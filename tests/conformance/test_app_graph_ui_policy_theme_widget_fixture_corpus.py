@@ -45,6 +45,7 @@ REQUIRED_CASES = {
     "theme-assignment-on-intake-route-class",
     "theme-assignment-on-unclassified-route",
     "theme-assignment-spanning-intake-and-proof-route-classes",
+    "theme-assignment-through-embed-route-composition",
 }
 
 EXPECTED_CODES = {
@@ -75,6 +76,7 @@ EXPECTED_CODES = {
     "theme-assignment-on-intake-route-class": [],
     "theme-assignment-on-unclassified-route": [],
     "theme-assignment-spanning-intake-and-proof-route-classes": ["THEME-ROUTE-CLASS"],
+    "theme-assignment-through-embed-route-composition": ["THEME-ROUTE-CLASS"],
 }
 
 SUMMARY_KEYS = {
@@ -413,8 +415,43 @@ def test_theme_route_class_refuses_tenant_theming_on_proof_bearing_routes() -> N
         "token": "color.accent",
         "routeId": "certificate",
         "routeClass": "proof",
+        "embedChain": ["certificate"],
         "reason": "tenant-theming-refused-by-route-class",
     }
+
+
+def test_theme_route_class_follows_embed_route_composition() -> None:
+    """`embed-route` renders another route INSIDE the host, so the host's theme
+    authority reaches the embedded route's slots.
+
+    Without this, one schema-valid hop restored the whole violation: a `proof`
+    route whose only slot embeds an unclassified route that binds the widget
+    validated clean. `embedChain` names the composition path from the
+    class-bearing route to the route whose slot actually binds the widget, so
+    the diagnostic stays readable when the two differ. The fixture's embedded
+    route also embeds its host back — an authorable cycle the walk terminates on.
+    """
+    corpus = _corpus()
+    routes = corpus["handles"]["surface-embedded-proof-composition"]["document"]["routes"]
+    assert routes[0]["routeClass"] == "proof"
+    assert routes[0]["slots"][0]["slotType"] == "embed-route"
+    # The class-bearing route binds NO widget directly.
+    assert all(slot["slotType"] != "module-widget" for slot in routes[0]["slots"])
+    # The route that does bind it states no class of its own, and embeds back.
+    assert "routeClass" not in routes[1]
+    assert routes[1]["slots"][1]["binding"]["routeRef"] == routes[0]["id"]
+
+    caught = _case("theme-assignment-through-embed-route-composition")["expected"]["diagnostics"][0]
+    assert caught["code"] == "THEME-ROUTE-CLASS"
+    _assert_policy_pointer(caught["primarySource"])
+    # Related source names the EMBEDDED route's slot — where the binding is —
+    # while details name the protected route that renders it.
+    assert len(caught["relatedSources"]) == 1
+    _assert_surface_pointer(caught["relatedSources"][0])
+    assert caught["relatedSources"][0]["jsonPointer"] == "/routes/1/slots/0/binding"
+    assert caught["details"]["routeId"] == "certificate"
+    assert caught["details"]["routeClass"] == "proof"
+    assert caught["details"]["embedChain"] == ["certificate", "certificate-body"]
 
 
 def test_theme_route_class_admits_intake_and_distinguishes_unclassified() -> None:
