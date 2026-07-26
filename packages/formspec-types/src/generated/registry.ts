@@ -152,9 +152,13 @@ export type RegistryEntry = {
    */
   semantics?: {};
   /**
-   * Widget contract (props, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.
+   * Widget contract (widget name, props, children policy, fallback chain, and optional graph-visible token slots). REQUIRED when category is 'widget'. `widgetName` is the name a Surface `module-widget` binding resolves against — the only link from a binding to this entry. The `props` sub-object is the JSON Schema validating Theme's `widgetConfig` slot (theme.schema.json) when a Theme configures a module-supplied widget. `tokenSlots[]` is the production Registry evidence for UI Graph Policy Theme token-slot assignment checks; processors MUST NOT read the v4 spike `semantics.themeTokenSlots` field as authority. Per ADR 0150 §4.2 / Component §progressive-to-core and ADR 0153 UI graph policy gates.
    */
   widgetShape?: {
+    /**
+     * Name a Surface `module-widget` slot binds by (surface.schema.json `binding.widgetName`). ModuleResolver maps a binding to this entry ONLY by matching this field against the widget contributions of the binding's owning module — an entry that omits it cannot satisfy any binding, and a same-name widget owned by a different admitted module MUST NOT satisfy it (module-resolver-spec.md §Contribution use sites). Distinct from the entry's `name`, which is the globally unique `x-`-prefixed contribution id.
+     */
+    widgetName?: string;
     /**
      * JSON Schema fragment for widget configuration payloads such as Theme widgetConfig or Surface module-widget binding.config.
      */
